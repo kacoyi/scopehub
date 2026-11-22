@@ -4,16 +4,20 @@ from contextlib import redirect_stdout
 from io import StringIO
 import json
 import os
+from pathlib import Path
 import shutil
 import base64
 import subprocess
 import sys
+import tempfile
 from unittest.mock import patch
 
 from scripts import check as harness
+from scripts import project as project_cli
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
-    read_json, review_history, task_context, workfront, verified_main, source_identity, validate_model,
+    read_json, recover_hosted_checkpoint, review_history, task_context, workfront, verified_main, source_identity,
+    validate_model,
 )
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
@@ -950,6 +954,62 @@ class DeliveryTests(ProjectFixture):
 
         with patch('scripts.project.subprocess.run', side_effect=legacy_locale):
             self.assertEqual('passed', review_history(self.root, base)['status'])
+
+    def test_hosted_history_recovers_force_pushed_checkpoint_and_enforces_its_history(self):
+        base = self.commit_fixture()
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        checkpoint = self.commit_fixture()
+        subprocess.run(['git', 'reset', '--hard', base], cwd=self.root, check=True, capture_output=True)
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        self.commit_fixture()
+
+        with tempfile.TemporaryDirectory() as directory:
+            checkout = Path(directory) / 'checkout'
+
+            def git(*args, check=True):
+                return subprocess.run(['git', *args], cwd=checkout, capture_output=True, check=check)
+
+            subprocess.run(['git', 'clone', '--no-local', self.root.as_uri(), str(checkout)],
+                           check=True, capture_output=True)
+            repository = 'fixture/base-repository'
+            git('remote', 'set-url', 'origin', 'https://example.invalid/fixture/fork.git')
+            git('config', '--local', f'url.{self.root.as_uri()}.insteadOf', f'https://github.com/{repository}.git')
+            self.assertNotEqual(0, git('cat-file', '-t', checkpoint, check=False).returncode)
+            refs = git('show-ref').stdout
+            env = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': repository,
+                   'SCOPEHUB_REVIEW_BASE': base, 'SCOPEHUB_CHECKPOINT_BASE': checkpoint}
+            output = StringIO()
+            with (patch.object(project_cli, 'ROOT', checkout), patch.dict(os.environ, env),
+                  patch.object(sys, 'argv', ['project.py', 'history', '--fetch-missing-checkpoint']),
+                  redirect_stdout(output), self.assertRaises(SystemExit) as stopped):
+                project_cli.main()
+            self.assertEqual(1, stopped.exception.code)
+            self.assertIn('Accepted task history changed or disappeared: M0-001', json.loads(output.getvalue())['error'])
+            self.assertEqual(b'commit', git('cat-file', '-t', checkpoint).stdout.strip())
+            self.assertEqual(refs, git('show-ref').stdout)
+            self.assertFalse((checkout / '.git/FETCH_HEAD').exists())
+
+            with patch.object(project_cli.subprocess, 'run', wraps=subprocess.run) as git_calls:
+                recover_hosted_checkpoint(checkout, checkpoint, repository)
+                self.assertEqual(1, git_calls.call_count)
+            with self.assertRaisesRegex(ProjectError, 'Cannot retrieve previous checkpoint'):
+                recover_hosted_checkpoint(checkout, '1' * 40, repository)
+
+    def test_hosted_checkpoint_rejects_non_sha_revisions_and_non_commit_objects(self):
+        self.commit_fixture()
+        blob = subprocess.run(['git', 'rev-parse', 'HEAD:implementation.py'], cwd=self.root,
+                              check=True, capture_output=True, text=True).stdout.strip()
+        with patch.object(project_cli.subprocess, 'run', wraps=subprocess.run) as git_calls:
+            for revision in ('--upload-pack=bad', 'HEAD', blob[:8], f'{blob}^{{object}}'):
+                with self.subTest(revision=revision), self.assertRaisesRegex(ProjectError, 'full previous checkpoint SHA'):
+                    recover_hosted_checkpoint(self.root, revision, 'fixture/repo')
+            with self.assertRaisesRegex(ProjectError, 'GitHub verification repository'):
+                recover_hosted_checkpoint(self.root, blob, 'fixture/repo?query=1')
+            recover_hosted_checkpoint(self.root, '0' * 40, 'fixture/repo')
+            git_calls.assert_not_called()
+            with self.assertRaisesRegex(ProjectError, 'not an available Git commit'):
+                recover_hosted_checkpoint(self.root, blob, 'fixture/repo')
+            self.assertEqual(1, git_calls.call_count)
 
     def append_native_receipt(self):
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))

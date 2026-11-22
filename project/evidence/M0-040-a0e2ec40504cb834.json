@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-040",
+  "task_definition_sha256": "ade6c8258ea7af05fd8b356e2b66e965f350bde64c5dd4e27b15194c408597cd",
+  "run_id": "20261122T013320.715857Z-bc03ccf7",
+  "recorded_at": "2026-11-22T01:36:08.161831+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "39ecd850f3805074246e0f4827ce0c8e620bf67ae4e74754010243628b3d70ec",
+    "file_count": 516,
+    "git_head": "fc6e88a678e0f4d95fa8a3122016fba0ea2a6033",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a0e2ec40504cb8346155a547945b753ceee6e743479f738008a5c35119819f21",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.12.24 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "feae690b86d5f03a467f9f295cd3b2a68155c6a8b7eccc931f5743c3d525409d"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ecc325cbc9ca6bac43c12a5bc811076b41768c0a4e9a556439cd1520fd0bc307"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ad1b5aa4d38a9b863b5af6e04225763f336a0a782a6d7ea5e7fc6a934a545c48"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b37caef43cb625b6ac0238734176f5ef069397177e98775f0c294fde00180b9c"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/dependency-maintenance/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2079278dc96b84174388e535ed2e752039afddf8719e175df8f46beb30b7df0d"
+    }
+  ],
+  "project_definition_sha256": "a1ee7c4ca463820cba00723ff8fc6e164d7da3a4c5fab08cac9a7838cdb75b61",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

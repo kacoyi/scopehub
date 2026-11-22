@@ -154,6 +154,10 @@ crates.io: block-buffer 0.10.4
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/block-buffer/0.10.4
 
+crates.io: block-buffer 0.12.1
+Declared license: MIT OR Apache-2.0
+Upstream metadata: https://crates.io/crates/block-buffer/0.12.1
+
 crates.io: block2 0.6.2
 Declared license: MIT
 Upstream metadata: https://crates.io/crates/block2/0.6.2
@@ -246,6 +250,10 @@ crates.io: combine 4.6.8
 Declared license: MIT
 Upstream metadata: https://crates.io/crates/combine/4.6.8
 
+crates.io: const-oid 0.10.3
+Declared license: Apache-2.0 OR MIT
+Upstream metadata: https://crates.io/crates/const-oid/0.10.3
+
 crates.io: cookie 0.18.2
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/cookie/0.18.2
@@ -270,6 +278,10 @@ crates.io: cpufeatures 0.2.17
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/cpufeatures/0.2.17
 
+crates.io: cpufeatures 0.3.1
+Declared license: MIT OR Apache-2.0
+Upstream metadata: https://crates.io/crates/cpufeatures/0.3.1
+
 crates.io: crc32fast 1.5.2
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/crc32fast/1.5.2
@@ -285,6 +297,10 @@ Upstream metadata: https://crates.io/crates/crossbeam-utils/0.8.23
 crates.io: crypto-common 0.1.7
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/crypto-common/0.1.7
+
+crates.io: crypto-common 0.2.2
+Declared license: MIT OR Apache-2.0
+Upstream metadata: https://crates.io/crates/crypto-common/0.2.2
 
 crates.io: cssparser 0.37.0
 Declared license: MPL-2.0
@@ -341,6 +357,10 @@ Upstream metadata: https://crates.io/crates/derive_more-impl/2.1.1
 crates.io: digest 0.10.7
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/digest/0.10.7
+
+crates.io: digest 0.11.3
+Declared license: MIT OR Apache-2.0
+Upstream metadata: https://crates.io/crates/digest/0.11.3
 
 crates.io: dirs 7.0.0
 Declared license: MIT OR Apache-2.0
@@ -422,9 +442,9 @@ crates.io: fallible-streaming-iterator 0.1.9
 Declared license: MIT/Apache-2.0
 Upstream metadata: https://crates.io/crates/fallible-streaming-iterator/0.1.9
 
-crates.io: fancy-regex 0.19.2
+crates.io: fancy-regex 0.20.2
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/fancy-regex/0.19.2
+Upstream metadata: https://crates.io/crates/fancy-regex/0.20.2
 
 crates.io: fastrand 2.5.0
 Declared license: Apache-2.0 OR MIT
@@ -630,6 +650,10 @@ crates.io: httparse 1.10.1
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/httparse/1.10.1
 
+crates.io: hybrid-array 0.4.15
+Declared license: MIT OR Apache-2.0
+Upstream metadata: https://crates.io/crates/hybrid-array/0.4.15
+
 crates.io: hyper 1.12.0
 Declared license: MIT
 Upstream metadata: https://crates.io/crates/hyper/1.12.0
@@ -650,9 +674,9 @@ crates.io: iana-time-zone-haiku 0.1.2
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/iana-time-zone-haiku/0.1.2
 
-crates.io: ico 0.5.0
+crates.io: ico 0.6.0
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/ico/0.5.0
+Upstream metadata: https://crates.io/crates/ico/0.6.0
 
 crates.io: icu_collections 2.3.0
 Declared license: Unicode-3.0
@@ -778,17 +802,17 @@ crates.io: jsonptr 0.7.1
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/jsonptr/0.7.1
 
-crates.io: jsonschema 0.58.6
+crates.io: jsonschema 0.61.2
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/jsonschema/0.58.6
+Upstream metadata: https://crates.io/crates/jsonschema/0.61.2
 
-crates.io: jsonschema-regex 0.58.6
+crates.io: jsonschema-regex 0.61.2
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/jsonschema-regex/0.58.6
+Upstream metadata: https://crates.io/crates/jsonschema-regex/0.61.2
 
-crates.io: jsonschema-value 0.58.6
+crates.io: jsonschema-value 0.61.2
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/jsonschema-value/0.58.6
+Upstream metadata: https://crates.io/crates/jsonschema-value/0.61.2
 
 crates.io: keyboard-types 0.8.3
 Declared license: MIT OR Apache-2.0
@@ -802,9 +826,9 @@ crates.io: libappindicator-sys 0.9.0
 Declared license: Apache-2.0 OR MIT
 Upstream metadata: https://crates.io/crates/libappindicator-sys/0.9.0
 
-crates.io: libc 0.2.190
+crates.io: libc 0.2.191
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/libc/0.2.190
+Upstream metadata: https://crates.io/crates/libc/0.2.191
 
 crates.io: libloading 0.7.4
 Declared license: ISC
@@ -1062,10 +1086,6 @@ crates.io: plist 1.10.1
 Declared license: MIT
 Upstream metadata: https://crates.io/crates/plist/1.10.1
 
-crates.io: png 0.17.16
-Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/png/0.17.16
-
 crates.io: png 0.18.1
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/png/0.18.1
@@ -1150,9 +1170,9 @@ crates.io: ref-cast-impl 1.0.27
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/ref-cast-impl/1.0.27
 
-crates.io: referencing 0.58.6
+crates.io: referencing 0.61.2
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/referencing/0.58.6
+Upstream metadata: https://crates.io/crates/referencing/0.61.2
 
 crates.io: regex 1.13.1
 Declared license: MIT OR Apache-2.0
@@ -1322,6 +1342,10 @@ crates.io: sha2 0.10.9
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/sha2/0.10.9
 
+crates.io: sha2 0.11.1
+Declared license: MIT OR Apache-2.0
+Upstream metadata: https://crates.io/crates/sha2/0.11.1
+
 crates.io: shlex 2.0.1
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/shlex/2.0.1
@@ -1373,6 +1397,10 @@ Upstream metadata: https://crates.io/crates/soup3-sys/0.5.0
 crates.io: stable_deref_trait 1.2.1
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/stable_deref_trait/1.2.1
+
+crates.io: static_vcruntime 3.0.0
+Declared license: MIT OR Apache-2.0 OR Zlib
+Upstream metadata: https://crates.io/crates/static_vcruntime/3.0.0
 
 crates.io: string_cache 0.9.0
 Declared license: MIT OR Apache-2.0
@@ -1438,33 +1466,33 @@ crates.io: target-lexicon 0.12.16
 Declared license: Apache-2.0 WITH LLVM-exception
 Upstream metadata: https://crates.io/crates/target-lexicon/0.12.16
 
-crates.io: tauri 2.12.3
+crates.io: tauri 2.12.7
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri/2.12.3
+Upstream metadata: https://crates.io/crates/tauri/2.12.7
 
-crates.io: tauri-build 2.7.2
+crates.io: tauri-build 2.7.6
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri-build/2.7.2
+Upstream metadata: https://crates.io/crates/tauri-build/2.7.6
 
-crates.io: tauri-codegen 2.7.2
+crates.io: tauri-codegen 2.7.6
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri-codegen/2.7.2
+Upstream metadata: https://crates.io/crates/tauri-codegen/2.7.6
 
-crates.io: tauri-macros 2.7.2
+crates.io: tauri-macros 2.7.6
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri-macros/2.7.2
+Upstream metadata: https://crates.io/crates/tauri-macros/2.7.6
 
-crates.io: tauri-runtime 2.12.1
+crates.io: tauri-runtime 2.12.4
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri-runtime/2.12.1
+Upstream metadata: https://crates.io/crates/tauri-runtime/2.12.4
 
-crates.io: tauri-runtime-wry 2.12.1
+crates.io: tauri-runtime-wry 2.12.5
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri-runtime-wry/2.12.1
+Upstream metadata: https://crates.io/crates/tauri-runtime-wry/2.12.5
 
-crates.io: tauri-utils 2.10.1
+crates.io: tauri-utils 2.10.4
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/tauri-utils/2.10.1
+Upstream metadata: https://crates.io/crates/tauri-utils/2.10.4
 
 crates.io: tauri-winres 0.3.6
 Declared license: MIT
@@ -1510,9 +1538,9 @@ crates.io: tinyvec 1.13.3
 Declared license: Zlib OR Apache-2.0 OR MIT
 Upstream metadata: https://crates.io/crates/tinyvec/1.13.3
 
-crates.io: tokio 1.53.3
+crates.io: tokio 1.54.1
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/tokio/1.53.3
+Upstream metadata: https://crates.io/crates/tokio/1.54.1
 
 crates.io: tokio-macros 2.7.2
 Declared license: MIT
@@ -1630,9 +1658,9 @@ crates.io: utf8_iter 1.0.4
 Declared license: Apache-2.0 OR MIT
 Upstream metadata: https://crates.io/crates/utf8_iter/1.0.4
 
-crates.io: uuid 1.28.0
+crates.io: uuid 1.29.3
 Declared license: Apache-2.0 OR MIT
-Upstream metadata: https://crates.io/crates/uuid/1.28.0
+Upstream metadata: https://crates.io/crates/uuid/1.29.3
 
 crates.io: uuid-simd 0.8.0
 Declared license: MIT

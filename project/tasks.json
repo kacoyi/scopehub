@@ -10831,6 +10831,124 @@
           "cleanup": "Release the held observer on success or failure and close the owned browser context and listeners."
         }
       }
+    },
+    {
+      "id": "M0-040",
+      "title": "Reconcile outstanding dependency update proposals and reviewed pins",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        ".github",
+        "project",
+        "scripts/project.py",
+        "Cargo.toml",
+        "Cargo.lock",
+        "THIRD_PARTY_NOTICES",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Inspect the four specific update proposals and their failed jobs, review official upstream changes, reconcile compatible updates against the current graph, and document concrete constraints for any deferred major.",
+        "Exercise changed dependencies and reviewed Actions with fast, dependency, affected build and platform CI. Preserve the integrity of immutable Actions pins and the existing license and advisory checks.",
+        "Record the outcome for each original proposal and make the recurring dependency review account for closed or superseded proposals."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-040-a0e2ec40504cb834.json",
+          "sha256": "efb066a371a1313e867f72c8d4292fc641fc8ef2f5e37bed977045272f518e00"
+        }
+      ],
+      "next_action": "Archive matching hosted Ubuntu and native Windows verification, including windows-native-build. Open the scoped draft to main when its merge base includes the reviewed fc6e88a integration baseline.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The four inherited Dependabot proposals have a verified, current disposition and update proposals can be reviewed with the required lock, license, advisory and Actions pin evidence.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          ".github/dependabot.yml",
+          ".github/workflows/verify.yml",
+          "scripts/project.py",
+          "scripts/dependencies.py",
+          "project/dependencies.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The Actions proposals failed when their pins disagreed with the immutable inventory. The Cargo proposals failed before checks because their previous force-pushed checkpoints were absent from the checkout.",
+          "The official Actions releases support the existing read-only hosted workflow, and the reviewed Cargo updates can retain Draft 2020-12 validation and the current Windows desktop configuration."
+        ],
+        "risks": [
+          {
+            "failure": "A raw bot change bypasses agreed license or advisory review, or an Action major changes permissions or breaks the supported runners.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers",
+              "rust-lints"
+            ]
+          },
+          {
+            "failure": "Recovering a missing checkpoint resolves an untrusted revision or bypasses the accepted-history comparison.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Keep old immutable revisions and lockfiles in Git and archive failed checks. A reviewed revert restores the previous toolchain. Use only public package metadata and synthetic verification.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/dependabot.yml",
+            ".github/workflows/verify.yml",
+            "scripts/project.py",
+            "scripts/dependencies.py",
+            "project/dependencies.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Relaxing branch protection, introducing paid services or changing product features or permission policy."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Pinned toolchains, strict advisory and license verification, public GitHub Actions permissions and native Windows coverage."
+          ],
+          "change": [
+            "Align the four upstream proposals with the current native lock, generated license inventory and reviewed Action pins.",
+            "Retrieve only a missing exact event checkpoint from the public verification repository and continue both accepted-history comparisons."
+          ],
+          "data_plan": "Keep old immutable revisions and lockfiles in Git and archive failed checks. A reviewed revert restores the previous toolchain. Use only public package metadata and synthetic verification.",
+          "cleanup": "Record the outcome for each original proposal and make the recurring dependency review account for closed or superseded proposals."
+        }
+      }
     }
   ]
 }
