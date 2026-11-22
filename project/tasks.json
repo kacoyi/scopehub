@@ -12160,7 +12160,7 @@
       "id": "M0-049",
       "title": "Release AI workflow fixture processes when their parent exits",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-013"
       ],
@@ -12185,10 +12185,19 @@
         "model-connection-workflow",
         "workspace-layout"
       ],
-      "evidence": [],
-      "next_action": "Import matching Linux and Windows hosted task evidence, then close M0-049 and restore focus to M0-046.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-049-8e3fe591836eecd0.json",
+          "sha256": "80a95407b10ff2e7c1c02a857dbeb1808ee8c1e921ae2922aa98cb83085a4692"
+        },
+        {
+          "path": "project/evidence/M0-049-d3ded177fa621af8.json",
+          "sha256": "00063983d9837207cf52f28e99483195eb81286f575854a3fd6ec684c47b1288"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The retained pre-fix Playwright run reproduced failures on IPC disconnect during listen and after startup (.reports/M0-049/pre-fix-confirmed/playwright.log, SHA-256 e459aea431bc5d44b5ac87332e9373ed4845e3a9c548f4a5d8778288cc0e7c31). At e26ec48, authenticated run 44981248331 passed the 23 model connection cases and 5 workspace layout cases on both Ubuntu and Windows, including normal close and parent loss against the real Rust writer.",
       "plan": {
         "outcome": "A finished or interrupted synthetic AI workflow leaves no live fixture listener or workspace writer.",
         "change_types": [
