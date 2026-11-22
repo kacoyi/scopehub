@@ -3314,6 +3314,32 @@
           "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
         }
       ]
+    },
+    {
+      "id": "windows-python-suite-wall-time",
+      "source": "Authenticated Windows PR 42 run 45042311132. Original report and logs are retained under archives/runs/20261122T161306.780775Z-67e5702f/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The Python process reached its 900-second deadline after printing test 567 of 568. The report records a 900.015-second timeout. Earlier completed suites took 645.078 and 696.188 seconds. Other native checks also took longer in the failed run.",
+      "task_ids": [
+        "M0-070"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The fixed 900-second deadline expired during complete discovery on a slower Windows runner. Eighteen other checks slowed by factors of about 1.23 to 1.69 compared with a passing main run. The final test name showed progress at expiry. Its individual Windows duration in the failed run is unknown.",
+        "correction": "Set the Windows deadline for python-contracts-workers to 1200 seconds. The 645.078-second passing suite multiplied by the observed 1.693 slowdown gives about 1092 seconds. Serial and overlapped dispatch read the same bounded catalog setting. The Linux deadline remains 900 seconds.",
+        "prevention": "Dispatch regression covers both Windows execution paths, the Linux fallback and sibling budgets. A one-second forced timeout preserved the original progress and timeout output. Full discovery completed on both platforms in PR run 45058420352."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T161306.780775Z-67e5702f",
+          "source_commit": "5532f7c2b9b299ef10975088df0c333a138949fd",
+          "report_sha256": "32540b8d527c5fde0e3262dc8635de9cf93fc0114488a8c663094a9d7a21d5f6"
+        }
+      ]
     }
   ]
 }
