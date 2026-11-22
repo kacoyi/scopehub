@@ -70,7 +70,7 @@
     {
       "name": "Playwright",
       "url": "https://playwright.dev/docs/test-intro",
-      "use": "Pinned 1.64.0 development-only Chromium verification; uses a real Rust/Python backend and a substitute WebView transport, without claiming packaged desktop acceptance."
+      "use": "Pinned 1.65.1 development-only Chromium 159.0.8154.6 verification. Includes the upstream Windows TCP source-port randomization fix (Playwright #43605). Uses the real Rust/Python backend through a substitute WebView transport. Packaged desktop acceptance is verified separately."
     }
   ]
 }

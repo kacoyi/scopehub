@@ -1990,9 +1990,9 @@ npm: @oxc-project/types 0.153.0
 Declared license: MIT
 Upstream metadata: https://registry.npmjs.org/%40oxc-project%2Ftypes/0.153.0
 
-npm: @playwright/test 1.64.0
+npm: @playwright/test 1.65.1
 Declared license: Apache-2.0
-Upstream metadata: https://registry.npmjs.org/%40playwright%2Ftest/1.64.0
+Upstream metadata: https://registry.npmjs.org/%40playwright%2Ftest/1.65.1
 
 npm: @rolldown/binding-android-arm-eabi 1.2.13
 Declared license: MIT
@@ -2306,13 +2306,13 @@ npm: picomatch 4.0.7
 Declared license: MIT
 Upstream metadata: https://registry.npmjs.org/picomatch/4.0.7
 
-npm: playwright 1.64.0
+npm: playwright 1.65.1
 Declared license: Apache-2.0
-Upstream metadata: https://registry.npmjs.org/playwright/1.64.0
+Upstream metadata: https://registry.npmjs.org/playwright/1.65.1
 
-npm: playwright-core 1.64.0
+npm: playwright-core 1.65.1
 Declared license: Apache-2.0
-Upstream metadata: https://registry.npmjs.org/playwright-core/1.64.0
+Upstream metadata: https://registry.npmjs.org/playwright-core/1.65.1
 
 npm: postcss 8.5.29
 Declared license: MIT

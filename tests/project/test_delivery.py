@@ -720,6 +720,44 @@ class DeliveryTests(ProjectFixture):
         code, report = self.run_harness(['--profile', 'fast', '--require-windows'], system='Windows')
         self.assertEqual(1, code)
 
+    def test_narrow_profiles_on_windows_report_native_and_release_checks_as_omitted(self):
+        path = self.root / 'project/checks.json'
+        fixture = read_json(path)
+        production = load_project(harness.ROOT)
+        profiles = {name: production['catalog']['profiles'][name]
+                    for name in ('records', 'tooling', 'localization')}
+        added = set().union(*profiles.values()) - {check['id'] for check in fixture['checks']}
+        fixture['checks'].extend(production['checks'][key] for key in sorted(added))
+        fixture['required_change_checks'].extend(sorted(added))
+        fixture['profiles'].update(profiles)
+        path.write_bytes(json_bytes(fixture))
+
+        for profile, selected in profiles.items():
+            with self.subTest(profile=profile):
+                code, report = self.run_harness(['--profile', profile], system='Windows')
+                self.assertEqual(0, code)
+                self.assertEqual('passed', report['status'])
+                self.assertEqual('Windows', report['environment']['system'])
+                self.assertEqual({'profile': profile, 'task_id': None, 'checks': sorted(selected)}, report['selection'])
+                self.assertFalse(report['native_requirement']['requested'])
+                self.assertEqual('not_requested', report['integration_gates']['status'])
+                self.assertIn('windows-native-build', report['integration_gates']['unverified'])
+                self.assertFalse(report['product_complete'])
+                self.assertIsNone(report['candidate_artifacts'])
+                observed = {item['id']: item for item in report['checks']}
+                self.assertEqual(set(selected), {key for key, item in observed.items() if item['status'] == 'passed'})
+                self.assertEqual({key for key in observed if key not in selected},
+                                 {key for key, item in observed.items() if item.get('reason_code') == 'not_selected'})
+                self.assertEqual([sys.executable, 'scripts/dependencies.py'], observed['dependency-review']['command'])
+                for key in ('windows-native-build', 'release-artifacts'):
+                    self.assertEqual('blocked', observed[key]['status'])
+                    self.assertNotIn('exit_code', observed[key])
+
+        code, report = self.run_harness(['--profile', 'localization', '--require-windows'], system='Windows')
+        self.assertEqual(1, code)
+        self.assertFalse(report['native_requirement']['satisfied'])
+        self.assertEqual('blocked', report['integration_gates']['status'])
+
     def replace_gate(self):
         path = self.root / 'project/checks.json'
         catalog = read_json(path)

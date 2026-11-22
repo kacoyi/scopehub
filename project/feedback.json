@@ -3204,6 +3204,64 @@
           "report_sha256": "12470f56f1b88f1ceb042892deeee8180bc32ea80f806bb95832af364a25bd11"
         }
       ]
+    },
+    {
+      "id": "windows-chromium-loopback-exhaustion",
+      "source": "Authenticated Windows verification for main push 45018382994 and PR 41 run 45018440319. Original diagnostics are retained under archives/runs/20261122T114203.123694Z-afc7cc49/test-report.json and archives/runs/20261122T114251.223282Z-6c1990d5/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Chromium reported ERR_NO_BUFFER_SPACE during same-origin Vite module loading in distinct workspace-timeframe cases in both Windows runs. The main push also failed desktop-localization navigation to its loopback listener. The Linux jobs passed.",
+      "task_ids": [
+        "M0-062"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-localization"
+      ],
+      "resolution": {
+        "cause": "The pinned Playwright 1.64.0 launched Chromium 156 with Windows TCP source-port randomization active. Playwright issue 43545 links this path to intermittent Winsock 10055, including on loopback. Both original Windows reports match this failure. They contain no failure-time kernel trace, and an additional old-version run completed without reproducing the error.",
+        "correction": "Pin the development runner and its Playwright dependencies to 1.65.1. The upstream change in microsoft/playwright#43605 disables TcpPortRandomizationWin in Chromium. Product binaries, OS settings, retries and protected check selection are unchanged.",
+        "prevention": "The regression reads actual Chromium launch arguments through CDP and records the effective feature in desktop-localization.log. It failed with the old browser and passed with Chromium 159.0.8154.6. Hosted run 45023093160 passed workspace-timeframe, desktop-localization and the online dependency review on both platforms. Revisit the version-specific guard after an upstream fix or retirement of the affected path."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T114203.123694Z-afc7cc49",
+          "source_commit": "e7d49580cb5a58ce76bf07fa092b42bfa197f600",
+          "report_sha256": "651dac391dbdbdba49cee8b00abae4a7ab760b9cb8c4ccf38fbb4aefeb69d105"
+        },
+        {
+          "run_id": "20261122T114251.223282Z-6c1990d5",
+          "source_commit": "6e6681c0c440397ed200e926c563c3225d2a17f6",
+          "report_sha256": "532e34bb88fd556cf38dd126e3144c052cb82ef90d6d187400ada57370390b20"
+        }
+      ]
+    },
+    {
+      "id": "pr-synchronize-stale-preview-sha",
+      "source": "PR 41 run 45028387189, Ubuntu job 137226316277. Retained report at archives/runs/20261122T133800.124696Z-cdcf5ecd/test-report.json and adjacent verification-scope.json (SHA-256 324f3285ffc8b8440e13420088bc8a88dc2c25b57f9527340f8cfdb29bde4fe4).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The full harness succeeded on the actual merge checkout, but selection recorded comparison_unavailable and no base or count. The selector log rejected the event merge SHA after validating the PR ref, checkout and both parents.",
+      "task_ids": [
+        "M0-068"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The selector required the PR payload preview SHA to equal the current Actions checkout even on synchronize, after the Actions SHA, PR ref and current ordered parents had already been verified.",
+        "correction": "On synchronize, validate the event after SHA against the current PR head and classify the verified checkout. Continue validating the format of a supplied preview SHA and preserve the existing equality check on other actions.",
+        "prevention": "A Git fixture advances the topic and builds fresh test merges. It covers both records and executable updates with a previous preview and rejects contradictory after, ref, checkout, parent or malformed preview identities. A replay of the actual hosted checkout yielded change_requires_full with its base and 24 changed paths."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T133800.124696Z-cdcf5ecd",
+          "source_commit": "eb5320d273a0677057edfb6b2384d45b14819644",
+          "report_sha256": "a6184df429e76ce43191cb8412d4dac46b5a7b2337ac5de36ec1c97e4c57ff4f"
+        }
+      ]
     }
   ]
 }

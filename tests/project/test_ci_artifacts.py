@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from scripts import check_chart_history, ci_artifacts, verification_evidence
 from scripts.check import PRIVATE_CHECK_LOGS, redacted_check_log
-from scripts.ci_artifacts import PublicationError, prepare_reports, stage_artifacts
+from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
 from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, read_json, verified_candidate_files
 from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, integration_validation, release_artifacts
@@ -148,6 +148,94 @@ class PublicationTests(ProjectFixture):
         summary_text = summary.read_text(encoding='utf-8')
         self.assertIn('harness', summary_text.lower())
         self.assertNotIn(self.sentinel.decode().strip(), summary_text)
+        self.assertFalse((Path(outputs['path']) / SCOPE_FILE).exists())
+
+    def scope_env(self, *, profile='full', reason='change_requires_full', count=1):
+        decision = {'profile': profile, 'reason_code': reason, 'base': 'b' * 40,
+                    'checkout': self.env['GITHUB_SHA'], 'change_count': count}
+        return {**self.env, 'SCOPEHUB_SCOPE_OUTCOME': 'success', 'SCOPEHUB_SCOPE_PROFILE': profile,
+                'SCOPEHUB_SCOPE_BASE': decision['base'], 'SCOPEHUB_SCOPE_DECISION': json.dumps(decision)}
+
+    def test_windows_bundle_contains_typed_scope_and_retains_the_original_failed_report(self):
+        report = self.hosted_report(system='Windows', event='push')
+        report['status'] = 'failed'
+        report['selection'] = {'profile': 'tooling', 'task_id': None,
+                               'checks': [row['id'] for row in report['checks']]}
+        self.save_report(report)
+        source = self.write(SCOPE_FILE, self.sentinel)
+        env = self.scope_env(profile='tooling', reason='reviewed_changes')
+
+        outputs, _, _ = self.stage_job(env)
+        self.assert_core_artifacts_retained(outputs, report)
+        staged = Path(outputs['path'])
+        scope = read_json(staged / SCOPE_FILE)
+        self.assertEqual({'kind': 'scopehub-verification-scope-v1',
+                          **json.loads(env['SCOPEHUB_SCOPE_DECISION']),
+                          'report_sha256': digest((staged / 'test-report.json').read_bytes())}, scope)
+        self.assertLess((staged / SCOPE_FILE).stat().st_size, 512)
+        self.assertEqual(self.sentinel, source.read_bytes())
+        self.assertNotIn(b'reviewed_changes', Path(outputs['timing_path']).read_bytes())
+
+    def test_full_scope_provenance_distinguishes_risk_unavailable_comparison_and_selector_failure(self):
+        report = self.hosted_report()
+        report['selection'] = {'profile': 'full', 'task_id': None,
+                               'checks': [row['id'] for row in report['checks']]}
+        self.save_report(report)
+        risk = self.scope_env(count=12)
+        unavailable = self.scope_env(reason='comparison_unavailable', count=None)
+        unavailable['SCOPEHUB_SCOPE_DECISION'] = json.dumps({
+            **json.loads(unavailable['SCOPEHUB_SCOPE_DECISION']), 'base': None,
+        })
+        cases = (
+            ('risk', risk, 'change_requires_full', 12),
+            ('unavailable', unavailable, 'comparison_unavailable', None),
+            ('empty', self.scope_env(reason='no_changes', count=0), 'no_changes', 0),
+            ('failed', {**risk, 'SCOPEHUB_SCOPE_OUTCOME': 'failure', 'SCOPEHUB_SCOPE_DECISION': self.sentinel.decode()},
+             'selector_failed', None),
+            ('no-output', {**risk, 'SCOPEHUB_SCOPE_PROFILE': 'records', 'SCOPEHUB_SCOPE_DECISION': ''},
+             'selector_output_unavailable', None),
+            ('unknown', {**risk, 'SCOPEHUB_SCOPE_PROFILE': 'unknown'}, 'selector_output_unavailable', None),
+        )
+        for name, environment, reason, count in cases:
+            with self.subTest(name=name):
+                destination = self.destination.with_name(name)
+                self.assertTrue(stage_artifacts(self.root, destination, environment))
+                path = destination / SCOPE_FILE
+                scope = read_json(path)
+                self.assertEqual(('full', reason, count), (scope['profile'], scope['reason_code'], scope['change_count']))
+                self.assertEqual('b' * 40 if name in {'risk', 'empty'} else None, scope['base'])
+                self.assertNotIn(self.sentinel.rstrip(), path.read_bytes())
+
+    def test_scope_provenance_rejects_untyped_unbound_or_unexecuted_decisions(self):
+        report = self.hosted_report()
+        report['selection'] = {'profile': 'full', 'task_id': None,
+                               'checks': [row['id'] for row in report['checks']]}
+        self.save_report(report)
+        env = self.scope_env()
+        decision = json.loads(env['SCOPEHUB_SCOPE_DECISION'])
+        mutations = (
+            {'additional': self.sentinel.decode()}, {'reason_code': self.sentinel.decode()},
+            {'reason_code': 'reviewed_changes'}, {'checkout': 'a' * 40}, {'base': '1' * 40}, {'base': 9},
+            {'change_count': True}, {'change_count': -1}, {'change_count': 2**31}, {'base': None},
+        )
+        invalid = [json.dumps({**decision, **mutation}) for mutation in mutations]
+        invalid.extend(('[]', '{"profile":"full","profile":"full"}', ' ' * 1025))
+        for raw in invalid:
+            with self.subTest(raw=raw[:120]), self.assertRaisesRegex(PublicationError, '[Vv]erification scope'):
+                stage_artifacts(self.root, self.destination, {**env, 'SCOPEHUB_SCOPE_DECISION': raw})
+            self.assertFalse(self.destination.exists())
+
+        narrow = self.scope_env(profile='tooling', reason='reviewed_changes')
+        with self.assertRaisesRegex(PublicationError, 'executed harness selection'):
+            stage_artifacts(self.root, self.destination, narrow)
+        self.assertFalse(self.destination.exists())
+
+    def test_scheduled_job_does_not_require_a_scope_selector_output(self):
+        report = self.hosted_report(event='schedule')
+        self.save_report(report)
+        env = {**self.env, 'SCOPEHUB_SCOPE_OUTCOME': 'skipped'}
+        self.assertTrue(stage_artifacts(self.root, self.destination, env))
+        self.assertFalse((self.destination / SCOPE_FILE).exists())
 
     def test_stage_job_reports_missing_harness_separately_from_evidence(self):
         prepare_reports(self.root)

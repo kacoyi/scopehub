@@ -144,9 +144,10 @@ class HostedCargoCacheTests(unittest.TestCase):
         self.assertEqual(restore['uses'].split('@')[1], save['uses'].split('@')[1])
         self.assertEqual(restore['with']['path'], save['with']['path'])
         self.assertEqual("${{ steps.cargo_cache.outputs['cache-primary-key'] }}", save['with']['key'])
-        self.assertEqual("steps.task_setup.outputs.skip != 'true'", restore['if'])
+        self.assertEqual("steps.build_setup.outputs.skip != 'true'", restore['if'])
         self.assertEqual(
-            "success() && !inputs.task_id && steps.cargo_cache.outputs['cache-primary-key'] != '' "
+            "success() && !inputs.task_id && steps.build_setup.outputs.profile == '' "
+            "&& steps.cargo_cache.outputs['cache-primary-key'] != '' "
             "&& steps.cargo_cache.outputs['cache-hit'] != 'true'", save['if'],
         )
         self.assertGreater(steps.index(save), next(i for i, step in enumerate(steps) if step.get('id') == 'artifacts'))

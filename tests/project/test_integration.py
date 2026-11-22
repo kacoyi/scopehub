@@ -15,9 +15,24 @@ from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
 
 
+UBUNTU = 'verify (ubuntu-latest)'
+WINDOWS = 'verify (windows-latest)'
+UBUNTU_FULL = 'Run pnpm check'
+WINDOWS_FULL = 'Run uv run python scripts/check.py --require-windows'
+
+
+def step(name, *, status='completed', conclusion='success'):
+    return {'name': name, 'status': status, 'conclusion': conclusion}
+
+
+CHECKOUT_STEP = step('Run actions/checkout@' + '1' * 40)
+
+
 def observations():
     policy = {'repository': 'fixture/project', 'branch': 'main', 'configuration': {
-        'required_status_checks': {'strict': True, 'checks': [{'context': 'native', 'app_id': 123}]},
+        'required_status_checks': {'strict': True, 'checks': [
+            {'context': name, 'app_id': 123} for name in (UBUNTU, WINDOWS)
+        ]},
         'required_pull_request_reviews': {'dismiss_stale_reviews': True, 'required_approving_review_count': 0},
         'enforce_admins': True, 'allow_force_pushes': False, 'allow_deletions': False,
         'required_conversation_resolution': True,
@@ -31,7 +46,9 @@ def observations():
     return {'source': {'git_head': 'a' * 40, 'working_tree_dirty': False}, 'pr': pr, 'final_pr': deepcopy(pr),
             'base_current': True, 'workflow': {'status': 'passed', 'reason': 'Observed success.',
                                              'run': {'id': 1, 'run_attempt': 2}},
-            'jobs': [{'name': 'native', 'status': 'completed', 'conclusion': 'success', 'head_sha': 'a' * 40}],
+            'jobs': [{'name': name, 'status': 'completed', 'conclusion': 'success', 'head_sha': 'a' * 40,
+                      'steps': [CHECKOUT_STEP, step(harness)]}
+                     for name, harness in [(UBUNTU, UBUNTU_FULL), (WINDOWS, WINDOWS_FULL)]],
             'policy': policy, 'protection': protection,
             'scope': {'completed_task_ids': ['M0-001'], 'blockers': []}, 'observations_stable': True}
 
@@ -121,7 +138,7 @@ class IntegrationAssessmentTests(unittest.TestCase):
             args['jobs'][0][key] = value
             self.assertFalse(integration.assess(**args)['technical_ready'])
         args = observations()
-        args['jobs'] *= 2
+        args['jobs'].append(args['jobs'][0])
         self.assertFalse(integration.assess(**args)['technical_ready'])
 
     def test_successful_old_jobs_do_not_override_the_latest_workflow(self):
@@ -162,12 +179,20 @@ class IntegrationAssessmentTests(unittest.TestCase):
 
 
 class IntegrationHistoryTests(ProjectFixture):
+    def git(self, *args):
+        return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
+                               '-c', 'commit.gpgsign=false', *args], cwd=self.root, capture_output=True,
+                              check=True, text=True).stdout.strip()
+
     def commit(self):
-        subprocess.run(['git', 'add', '.'], cwd=self.root, capture_output=True, check=True)
-        subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
-                        '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Preserve fixture'],
-                       cwd=self.root, capture_output=True, check=True)
+        self.git('add', '.')
+        self.git('commit', '--quiet', '-m', 'Preserve fixture')
         return source_identity(self.root)['git_head']
+
+    def merge_observation(self, base, head, *, tree_revision=None):
+        tree = self.git('rev-parse', f'{tree_revision or head}^{{tree}}')
+        merge = self.git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Merge fixture')
+        return {'sha': merge, 'parents': [{'sha': base}, {'sha': head}], 'tree': {'sha': tree}}
 
     def test_completed_slice_can_reach_review_without_completing_future_product_tasks(self):
         base = self.commit()
@@ -210,14 +235,130 @@ class IntegrationHistoryTests(ProjectFixture):
             scope = integration.delivery_scope(self.root, project, base)
             self.assertEqual(blocked, bool(scope['blockers']))
 
+    def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None):
+        fixture = observations()
+        pr = dict(fixture['pr'], baseRefOid=base, headRefOid=head)
+        run = {'id': 100, 'run_attempt': 2, 'head_sha': head, 'status': 'completed', 'conclusion': 'success',
+               'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
+        jobs = [dict(job, id=job_id, head_sha=head, steps=[CHECKOUT_STEP, *steps])
+                for job_id, (job, steps) in enumerate(zip(fixture['jobs'], [ubuntu_steps, windows_steps]), 1000)]
+        if tested is None:
+            tested = self.merge_observation(base, head)
+        api_responses = iter([json.dumps([{'jobs': jobs}]), json.dumps(tested)])
+        original = integration.command
+
+        def command(argv, root):
+            return original(argv, root) if argv[0] == 'git' else next(api_responses)
+
+        with (patch.object(integration, 'command', side_effect=command),
+              patch.object(integration, 'job_checkout', return_value=(1, tested['sha']))):
+            return integration.verified_pr_run(self.root, 'fixture/project', pr, [run], False, [UBUNTU, WINDOWS])
+
+    def test_narrow_profiles_allow_matching_or_platform_full_harnesses(self):
+        locale = self.root / 'apps/desktop/ui/src/i18n/locales/zh-Hans/core.json'
+        locale.parent.mkdir(parents=True)
+        locale.write_bytes(json_bytes({'open': '打开 {name}'}))
+        tooling = self.root / 'tests/project/test_herdr.py'
+        tooling.parent.mkdir(parents=True)
+        tooling.write_text('value = 1\n', encoding='utf-8')
+        records = self.root / 'README.md'
+        records.write_text('Fixture summary.\n', encoding='utf-8')
+        base = self.commit()
+        for profile, path, content in [
+            ('records', records, b'Updated fixture summary.\n'),
+            ('tooling', tooling, b'value = 2\n'),
+            ('localization', locale, json_bytes({'open': '开启 {name}'})),
+        ]:
+            path.write_bytes(content)
+            head = self.commit()
+            scoped = step(f'Verify {profile} changes')
+            for ubuntu_steps, windows_steps, observed in [
+                ([scoped], [scoped], [profile, profile]),
+                ([step(UBUNTU_FULL)], [scoped, step(WINDOWS_FULL, conclusion='skipped')], ['full', profile]),
+                ([scoped], [step(WINDOWS_FULL)], [profile, 'full']),
+                ([step(UBUNTU_FULL)], [step(WINDOWS_FULL)], ['full', 'full']),
+            ]:
+                with self.subTest(profile=profile, observed=observed):
+                    result, jobs = self.observe_harness(base, head, ubuntu_steps, windows_steps)
+                    self.assertEqual('passed', result['status'], result['reason'])
+                    self.assertEqual(profile, result['expected_profile'])
+                    self.assertEqual(observed, [job['verification_profile'] for job in jobs])
+            base = head
+
+    def test_narrow_scope_blocks_each_unsuccessful_or_incorrect_runner_harness(self):
+        tooling = self.root / 'tests/project/test_herdr.py'
+        tooling.parent.mkdir(parents=True)
+        tooling.write_text('value = 1\n', encoding='utf-8')
+        base = self.commit()
+        tooling.write_text('value = 2\n', encoding='utf-8')
+        head = self.commit()
+        for name, invalid_steps, observed in [
+            ('missing', [], None),
+            ('skipped full', [step(WINDOWS_FULL, conclusion='skipped')], None),
+            ('skipped narrow', [step('Verify tooling changes', conclusion='skipped')], None),
+            ('failed narrow', [step('Verify tooling changes', conclusion='failure')], None),
+            ('unfinished', [step('Verify tooling changes', status='in_progress', conclusion=None)], None),
+            ('wrong runner', [step(UBUNTU_FULL)], None),
+            ('wrong narrow profile', [step('Verify localization changes')], 'localization'),
+            ('unresolved name', [step('Verify  changes')], None),
+            ('manual task', [step('Verify the selected task')], None),
+        ]:
+            with self.subTest(case=name):
+                result, jobs = self.observe_harness(base, head, [step(UBUNTU_FULL)], invalid_steps)
+                self.assertEqual('blocked', result['status'])
+                self.assertEqual('tooling', result['expected_profile'])
+                self.assertIn(f"{WINDOWS} ({observed or 'no successful harness'})", result['reason'])
+                self.assertEqual(['full', observed], [job['verification_profile'] for job in jobs])
+        result, jobs = self.observe_harness(base, head, [step(WINDOWS_FULL)], [step('Verify tooling changes')])
+        self.assertEqual('blocked', result['status'])
+        self.assertIn(f'{UBUNTU} (no successful harness)', result['reason'])
+        self.assertEqual([None, 'tooling'], [job['verification_profile'] for job in jobs])
+
+    def test_merge_tree_difference_or_missing_proof_requires_full_verification(self):
+        records = self.root / 'README.md'
+        records.write_text('Fixture summary.\n', encoding='utf-8')
+        base = self.commit()
+        records.write_text('Updated fixture summary.\n', encoding='utf-8')
+        head = self.commit()
+        matching = self.merge_observation(base, head)
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        merge_content = self.commit()
+        different = self.merge_observation(base, head, tree_revision=merge_content)
+        self.assertEqual(matching['parents'], different['parents'])
+        self.assertNotEqual(matching['tree'], different['tree'])
+        self.assertEqual('records', integration.committed_scope(self.root, base, head)['profile'])
+
+        records_step = [step('Verify records changes')]
+        for tested, reason in [
+            (different, 'differs from the local PR head tree'),
+            ({key: value for key, value in matching.items() if key != 'tree'}, 'merge tree was unavailable'),
+            (dict(matching, tree={'sha': 'invalid'}), 'merge tree was unavailable'),
+        ]:
+            with self.subTest(tree=tested.get('tree')):
+                result, jobs = self.observe_harness(base, head, records_step, records_step, tested=tested)
+                self.assertEqual('blocked', result['status'])
+                self.assertEqual('full', result['expected_profile'])
+                self.assertIn(reason, result['expected_profile_reason'])
+                self.assertEqual(['records', 'records'], [job['verification_profile'] for job in jobs])
+                full, _ = self.observe_harness(base, head, [step(UBUNTU_FULL)], [step(WINDOWS_FULL)], tested=tested)
+                self.assertEqual('passed', full['status'])
+                self.assertEqual('full', full['expected_profile'])
+
+        profile, reason = integration.expected_verification_profile(self.root, base, '0' * len(head), matching)
+        self.assertEqual('full', profile)
+        self.assertIn('local PR head tree could not be verified', reason)
+
     def test_collection_checks_the_latest_pr_attempt_despite_a_newer_task_dispatch(self):
         args = observations()
-        for settings in [args['policy']['configuration'], args['protection']]:
-            settings['required_status_checks']['checks'].append({'context': 'portable', 'app_id': 123})
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes(args['policy']))
+        launcher = self.root / 'scripts/herdr.py'
+        launcher.parent.mkdir()
+        launcher.write_text('requires_approval = True\n', encoding='utf-8')
         base = self.commit()
+        launcher.write_text('requires_approval = False\n', encoding='utf-8')
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         head = self.commit()
+        head_tree = self.git('rev-parse', f'{head}^{{tree}}')
         pr = dict(args['pr'], baseRefOid=base, headRefOid=head)
         run = {'id': 100, 'head_sha': head, 'head_branch': 'task', 'status': 'completed', 'conclusion': 'success',
                'run_attempt': 2, 'path': '.github/workflows/verify.yml', 'event': 'pull_request'}
@@ -228,11 +369,12 @@ class IntegrationHistoryTests(ProjectFixture):
         stale = dict(run, id=102, run_attempt=1, pull_requests=associated)
         task_run = dict(run, id=103, event='workflow_dispatch', run_attempt=1)
         runs = [task_run, stale, foreign, run]
-        checkout_step = {'name': 'Run actions/checkout@' + '1' * 40, 'conclusion': 'success'}
-        checked = {1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
+        previous = dict(run, id=99, run_attempt=1)
+        checked = {990: (1, '6' * 40), 1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
         checked.update({job + 1: source for job, source in checked.items()})
-        second_steps = [checkout_step]
-        head_parent = {100: head, 101: head, 102: head}
+        ubuntu_job, windows_job = args['jobs']
+        windows_steps = list(windows_job['steps'])
+        head_parent = {99: head, 100: head, 101: head, 102: head}
         queries = []
 
         def command(argv, root):
@@ -243,14 +385,17 @@ class IntegrationHistoryTests(ProjectFixture):
                 return json.dumps(pr)
             if 'event=pull_request' in argv:
                 return json.dumps([{'workflow_runs': runs[:2]}, {'workflow_runs': runs[2:]}])
-            for run_id, attempt, parent in [(100, 2, base), (101, 1, base), (102, 1, 'f' * 40)]:
+            for run_id, attempt, parent in [(99, 1, base), (100, 2, base), (101, 1, base), (102, 1, 'f' * 40)]:
                 _, merge_sha = checked[run_id * 10]
                 if f'/runs/{run_id}/attempts/{attempt}/jobs?' in argv[-1]:
-                    job = dict(args['jobs'][0], head_sha=head, id=run_id * 10, steps=[checkout_step])
-                    portable = dict(job, name='portable', id=run_id * 10 + 1, steps=second_steps)
-                    return json.dumps([{'jobs': [job, portable]}])
+                    ubuntu = dict(ubuntu_job, head_sha=head, id=run_id * 10)
+                    windows = dict(windows_job, head_sha=head, id=run_id * 10 + 1)
+                    if run_id != 99:
+                        windows['steps'] = windows_steps if run_id == 100 else [CHECKOUT_STEP]
+                    return json.dumps([{'jobs': [ubuntu, windows]}])
                 if argv[-1].endswith(f'/git/commits/{merge_sha}'):
-                    return json.dumps({'sha': merge_sha, 'parents': [{'sha': parent}, {'sha': head_parent[run_id]}]})
+                    return json.dumps({'sha': merge_sha, 'parents': [{'sha': parent}, {'sha': head_parent[run_id]}],
+                                       'tree': {'sha': head_tree}})
             self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
             return json.dumps(args['protection'])
 
@@ -259,9 +404,14 @@ class IntegrationHistoryTests(ProjectFixture):
         self.addCleanup(checkout.stop)
         checkout.start()
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
-              patch.object(integration, 'command', side_effect=command)):
+              patch.object(integration, 'command', side_effect=command),
+              patch.object(integration, 'committed_scope', wraps=integration.committed_scope) as classify):
             result = integration.inspect(self.root, 1)
+        classify.assert_called_once_with(self.root, base, head)
         self.assertTrue(result['technical_ready'])
+        self.assertEqual('full', result['workflow']['expected_profile'])
+        self.assertEqual({UBUNTU: 'full', WINDOWS: 'full'},
+                         {job['name']: job['verification_profile'] for job in result['required_jobs']})
         self.assertEqual('pull_request', result['workflow']['run']['event'])
         self.assertEqual(100, result['workflow']['run']['id'])
         self.assertEqual({'pull_request': 1, 'commit': '7' * 40, 'base': base, 'head': head},
@@ -280,16 +430,29 @@ class IntegrationHistoryTests(ProjectFixture):
             self.assertFalse(mixed['technical_ready'])
             self.assertIn('different pull requests or merge commits', mixed['workflow']['reason'])
             checked[1001] = checked[1000]
-            second_steps.clear()
+            windows_steps.clear()
             missing = integration.inspect(self.root, 1)
             self.assertFalse(missing['technical_ready'])
-            self.assertIn('portable has no successful pinned checkout', missing['workflow']['reason'])
-            second_steps.append(checkout_step)
+            self.assertIn(f'{WINDOWS} has no successful pinned checkout', missing['workflow']['reason'])
+            windows_steps[:] = [CHECKOUT_STEP, step('Verify tooling changes')]
+            narrower = integration.inspect(self.root, 1)
+            self.assertFalse(narrower['technical_ready'])
+            self.assertIn(f'{WINDOWS} (tooling)', narrower['workflow']['reason'])
+            self.assertEqual({UBUNTU: 'full', WINDOWS: 'tooling'},
+                             {job['name']: job['verification_profile'] for job in narrower['required_jobs']})
+            runs[:] = [run, previous]
+            windows_steps[:] = [CHECKOUT_STEP]
+            unexecuted = integration.inspect(self.root, 1)
+            self.assertFalse(unexecuted['technical_ready'])
+            self.assertEqual(100, unexecuted['workflow']['run']['id'])
+            self.assertIn(f'{WINDOWS} (no successful harness)', unexecuted['workflow']['reason'])
+            self.assertIsNone(unexecuted['required_jobs'][1]['verification_profile'])
             for only, reason in [(stale, 'different base'), (foreign, 'no checked run matches')]:
                 runs[:] = [only]
                 result = integration.inspect(self.root, 1)
                 self.assertFalse(result['technical_ready'])
                 self.assertIn(reason, result['workflow']['reason'])
+                self.assertNotIn('expected_profile', result['workflow'])
             runs[:] = [stale, run]
             head_parent[102] = 'd' * 40
             wrong_head = integration.inspect(self.root, 1)
@@ -300,7 +463,10 @@ class IntegrationHistoryTests(ProjectFixture):
             runs[:] = [dict(stale, status='queued', conclusion=None), run]
             self.assertIn('queued or running', integration.inspect(self.root, 1)['workflow']['reason'])
             runs[:] = [foreign, dict(run, conclusion='failure')]
-            self.assertEqual('failed', integration.inspect(self.root, 1)['workflow']['status'])
+            failed = integration.inspect(self.root, 1)['workflow']
+            self.assertEqual('failed', failed['status'])
+            self.assertIn('did not succeed', failed['reason'])
+        windows_steps[:] = windows_job['steps']
         runs[:] = [run]
         queries.clear()
 

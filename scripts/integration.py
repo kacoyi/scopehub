@@ -12,15 +12,22 @@ if __package__:
     from .ci import WORKFLOW, classify_runs, command, github_identity
     from .project import ProjectError, load_project, read_json, review_history, source_identity
     from .protection import violations
+    from .verification_scope import SCOPED_PROFILES, committed_scope
 else:
     from ci import WORKFLOW, classify_runs, command, github_identity
     from project import ProjectError, load_project, read_json, review_history, source_identity
     from protection import violations
+    from verification_scope import SCOPED_PROFILES, committed_scope
 
 ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
              'mergeable,mergeStateStatus,reviewDecision')
 REVISION = r'(?:[0-9a-f]{40}|[0-9a-f]{64})'
+FULL_HARNESS_STEPS = {
+    'verify (ubuntu-latest)': 'Run pnpm check',
+    'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
+}
+SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
 
 
 def checked_pull_request(log):
@@ -76,6 +83,40 @@ def required_checkouts(root, repository, jobs, contexts):
     return observed
 
 
+def job_verification_profile(job):
+    """Read successful harness coverage for the protected runner's job."""
+    full_step = FULL_HARNESS_STEPS.get(job['name'])
+    if full_step is None:
+        return None
+    successful = {step['name'] for step in job.get('steps', [])
+                  if step.get('status') == 'completed' and step.get('conclusion') == 'success'}
+    if full_step in successful:
+        return 'full'
+    scoped = successful.intersection(SCOPED_HARNESS_STEPS)
+    if len(scoped) == 1:
+        return SCOPED_HARNESS_STEPS[scoped.pop()]
+    return None
+
+
+def expected_verification_profile(root, base, head, tested):
+    """Use the head comparison only when it represents the checked merge tree."""
+    tree = tested.get('tree')
+    merge_tree = tree.get('sha') if isinstance(tree, dict) else None
+    if not isinstance(merge_tree, str) or not re.fullmatch(REVISION, merge_tree):
+        return 'full', 'The checked merge tree was unavailable.'
+    try:
+        head_tree = command(['git', '--no-replace-objects', 'rev-parse', '--verify', '--end-of-options',
+                             f'{head}^{{tree}}'], root)
+    except (ProjectError, OSError, subprocess.SubprocessError, UnicodeError):
+        return 'full', 'The local PR head tree could not be verified.'
+    if not re.fullmatch(REVISION, head_tree):
+        return 'full', 'The local PR head tree could not be verified.'
+    if head_tree != merge_tree:
+        return 'full', 'The checked merge tree differs from the local PR head tree.'
+    scope = committed_scope(root, base, head)
+    return scope['profile'], scope.get('reason')
+
+
 def verified_pr_run(root, repository, pr, runs, dirty, contexts):
     # The REST pull_requests array describes matching open PRs *now*. It may
     # change when a PR moves, and is empty for some legitimate PR attempts.
@@ -109,6 +150,18 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
             continue
         result['checkout'] = {'pull_request': number, 'commit': commit, 'base': base, 'head': head}
         result['required_checkouts'] = observed
+        expected, scope_reason = expected_verification_profile(root, base, head, tested)
+        result['expected_profile'] = expected
+        result['expected_profile_reason'] = scope_reason
+        checked_ids = {item['job_id'] for item in observed}
+        jobs = [dict(job, verification_profile=job_verification_profile(job)) if job['id'] in checked_ids else job
+                for job in jobs]
+        insufficient = [f"{job['name']} ({job['verification_profile'] or 'no successful harness'})"
+                        for job in jobs if job['id'] in checked_ids
+                        and job['verification_profile'] not in {expected, 'full'}]
+        if result['status'] == 'passed' and insufficient:
+            result.update(status='blocked', reason=f"Run {run['id']} requires {expected} verification. "
+                          f"Required jobs with insufficient coverage: {', '.join(insufficient)}.")
         return result, jobs
     return {'status': 'blocked', 'reason': reason, 'run': None}, []
 
@@ -232,7 +285,8 @@ def inspect(root=ROOT, pr_number=None):
                     scope=scope, observations_stable=stable)
     result.update(observed_at=datetime.now(timezone.utc).isoformat(), repository=repository,
                   pull_request=pr, source=source, workflow=workflow, delivery_scope=scope,
-                  required_jobs=[{key: job.get(key) for key in ['id', 'name', 'head_sha', 'status', 'conclusion']}
+                  required_jobs=[{key: job.get(key) for key in
+                                 ['id', 'name', 'head_sha', 'status', 'conclusion', 'verification_profile']}
                                  for job in jobs],
                   protection={'status': 'failed' if violations(protection, policy['configuration']) else 'passed',
                               'branch': policy['branch']})

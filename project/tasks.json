@@ -13796,6 +13796,367 @@
       }
     },
     {
+      "id": "M0-062",
+      "title": "Restore reliable Windows Chromium loopback verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-058"
+      ],
+      "scope": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "contracts/references.json",
+        "tests/ubuntu-preview",
+        "tests/localization",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the two independent native Windows failures and identify the shared failure mechanism with measurements or a controlled comparison.",
+        "Preserve all browser journeys, real operation endpoints and assertion coverage. Pass workspace-timeframe and desktop-localization on native Windows and verify the protected main push."
+      ],
+      "checks": [
+        "workspace-timeframe",
+        "desktop-localization",
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-062-693eab453eff4705.json",
+          "sha256": "cba31d20000aaf153630e2a1779c8bbd02d098d0e6538045999d733d316e3073"
+        },
+        {
+          "path": "project/evidence/M0-062-0b6481a9daf4d022.json",
+          "sha256": "597aebb062512579f879cc2626c446434173bdcbf41f58c3271d12fdf118ccc2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Playwright 1.65.1 applies the upstream Chromium TCP allocation workaround. On Ubuntu and native Windows the real browser reported the corrected launch option, the original workspace and localization journeys passed, and dependency review passed. Hosted PR run 45023093160 supplied both receipts.",
+      "plan": {
+        "outcome": "Windows Chromium can navigate and load same-origin application modules throughout the existing verification sequence.",
+        "change_types": [
+          "tooling",
+          "dependencies"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/localization/desktop.config.mjs",
+          "project/feedback.json",
+          "package.json",
+          "project/dependencies.json",
+          "project/dependency-inventory.json"
+        ],
+        "hypotheses": [
+          "Repeated preview sessions, browser contexts or unbundled module loading may exhaust Windows loopback network resources. Distinguish the contributors before choosing a correction.",
+          "The pinned Playwright release lacks the upstream Windows Chromium source-port allocation workaround for intermittent Winsock 10055. Check the installed launch arguments and compare the unchanged browser journeys on a native runner with a fixed release."
+        ],
+        "risks": [
+          {
+            "failure": "An isolated case passes while the cumulative Windows verification sequence still exhausts resources.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A harness adjustment hides application errors or changes the operations exercised.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "The new browser or runner shifts unrelated dependencies or invalidates dependency and browser coverage.",
+            "checks": [
+              "dependency-review",
+              "architecture",
+              "workspace-timeframe",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed run artifacts and revert the harness change through a protected PR if verification regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/localization/desktop.config.mjs",
+            "scripts/check.py",
+            "package.json",
+            "scripts/dependencies.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, widening permissions, skipping assertions, increasing retries or changing protected check selection."
+          ],
+          "open_questions": [
+            "Which shared resource is depleted, and how can the harness expose the difference on a Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing browser journeys, native Windows coverage and operation semantics."
+          ],
+          "change": [
+            "Correct the verified resource lifecycle or demand in the internal verification harness."
+          ],
+          "data_plan": "Use isolated synthetic CI profiles and retain only diagnostic artifacts.",
+          "cleanup": "Remove temporary workflow resource sampling after archiving the original-sequence diagnostic. Keep the fix in the pinned upstream verification tooling."
+        }
+      }
+    },
+    {
+      "id": "M0-060",
+      "title": "Select hosted verification by the actual change on both protected platforms",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-058",
+        "M0-059"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007",
+        "0026"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "AGENTS.md",
+        "package.json",
+        "scripts/verification_scope.py",
+        "scripts/check.py",
+        "scripts/ci.py",
+        "scripts/ci_artifacts.py",
+        "scripts/timing.py",
+        "tests/project",
+        "contracts/schemas/project.schema.json",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/development.json",
+        "project/delivery.json",
+        "scripts/integration.py",
+        "contracts/decisions/0026-change-scoped-verification.json"
+      ],
+      "acceptance": [
+        "Reviewed task records and contract narrative, isolated Herdr model settings or their tests, and translation wording select proportionate checks on pull requests and main pushes. Preserve the reason for the selection, actual check outcomes, and explicit omissions in the verification evidence.",
+        "Any shared, unclassified, mixed executable, dependency, protocol, authorization, persistence, build or CI change and any unverifiable comparison retains the complete change suite. A mixed records and known executable change must validate the executable. Task evidence and true release acceptance retain their original meaning.",
+        "Both required native jobs check the actual candidate, preserve history and continue the fresh advisory review. Omit expensive build outputs and browser setup only when the selected checks permit it. The manual full and release routes stay available, and a weekly full change run provides a backstop.",
+        "Exercise scope selection with realistic Git histories and local edits, run both lightweight profiles and the localization route against real checkout inputs, and verify that this change to CI itself selects full verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "generated-contracts",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-060-afc28c8350774b09.json",
+          "sha256": "132d600dc5494cefe7516365e031e267b640e2e650c5252067c8984481e28ea9"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "On Ubuntu, a temporary edit to the product-purpose field selected four checks and passed in 9.282 seconds. A translation edit selected eight checks and passed in 20.321 seconds, including 13 Chromium localization cases. A Herdr model setting selected seven checks. The tooling profile passed those checks on the clean source in 100.406 seconds. Real Git fixtures exercise complete PR and push ranges, fallback rules and history preservation. The workflow change itself selected the full change suite. The local timings measure the harness only.",
+      "plan": {
+        "outcome": "A wording edit can reach a protected result without desktop builds, while changes with product or verification risk still exercise their required platforms.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/integration.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Classifying the complete base-to-checked-tree difference with a conservative fallback can save browser, build and native packaging work for known independent changes. Recent unaffected Windows jobs took tens of minutes."
+        ],
+        "risks": [
+          {
+            "failure": "A renamed, deleted, untracked, compound or machine-consumed change is treated as prose, or a missing base yields a false green.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A protected context is silently skipped, an omission becomes a pass, or release and integration evidence lose their scope.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture",
+              "generated-contracts",
+              "dependency-review"
+            ]
+          }
+        ],
+        "rollback": "Run the existing full change profile when scope is uncertain. Keep the protected contexts and the manual full and release workflows available. Restore a reviewed previous workflow if a route is incorrect.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py",
+            "scripts/check.py",
+            ".github/workflows/verify.yml",
+            "scripts/integration.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/checks.json",
+              "pointer": "/required_change_checks"
+            },
+            {
+              "path": "project/branch-protection.json",
+              "pointer": "/configuration"
+            },
+            {
+              "path": "contracts/decisions/0026-change-scoped-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, granting bypasses, altering protected branch settings or treating a partial run as release evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Protected contexts and exact checkout provenance, accepted history, dependency advisory checks, manual task/full/release behavior and explicit skipped checks."
+          ],
+          "change": [
+            "Choose a reviewed verification profile from the full Git change for ordinary PRs and main pushes. Keep a scheduled complete regression independent of release acceptance."
+          ],
+          "data_plan": "Use repository-relative Git metadata, synthetic test fixtures and ordinary build reports only. No user financial data or remote model call is needed.",
+          "cleanup": "Keep the existing full harness as the fallback. Remove duplicate unconditional work on recognized changes and record the actual coverage."
+        }
+      }
+    },
+    {
+      "id": "M0-068",
+      "title": "Verify synchronized pull requests against the actual Actions merge checkout",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-060"
+      ],
+      "decision_refs": [
+        "0004",
+        "0026"
+      ],
+      "scope": [
+        "scripts/verification_scope.py",
+        "tests/project/test_verification_scope.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "acceptance": [
+        "A synchronize event with stale preview metadata and an independently verified candidate records the actual base, checkout, file count and selection reason.",
+        "Invalid checkout SHA, PR ref, synchronization head or ordered parents keep the conservative fallback. Exercise both narrow and full changes using real Git objects."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-068-02f9916d8e9b6d6a.json",
+          "sha256": "da76c3dbdf875d0b9b99d7de2a64a11dc66210b7fb4283cf9a4d9cf382dc7d6c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The real Git regression failed before the change and passed after it. Replaying the retained checkout with stale preview metadata classified all 24 changed files, and contradictory synchronization head, ref, checkout or base identities triggered full fallback. The clean-source task run passed project-state, architecture and python-contracts-workers.",
+      "plan": {
+        "outcome": "The hosted selection explains which files changed when a PR update races background merge metadata.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_scope.py",
+          "tests/project/test_verification_scope.py",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "The Actions merge ref and checkout SHA identify the current merge, while the synchronize payload can still describe a previous test merge."
+        ],
+        "risks": [
+          {
+            "failure": "A stale head or contradictory event incorrectly permits lightweight checks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Return to full verification for an unverifiable comparison and retain the diagnostic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/decisions/0026-change-scoped-verification.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Changes to merge authority, branch protection, platform coverage or push selection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Use the complete checked tree, verify the PR number, ref, checkout SHA and ordered parents, and keep legacy event behavior."
+          ],
+          "change": [
+            "Validate synchronized PR heads independently of stale background merge metadata."
+          ],
+          "data_plan": "No product data or report schema changes.",
+          "cleanup": "Keep the existing selector and remove the incorrect dependency on the synchronize payload preview SHA."
+        }
+      }
+    },
+    {
       "id": "M0-061",
       "title": "Keep product decisions revisable at a cost proportional to the change",
       "milestone": "M0",
