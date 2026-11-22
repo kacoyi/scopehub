@@ -3288,6 +3288,28 @@
           "report_sha256": "d4e476c37861687e0147a805abac3f3099f089baf8556f68ba6037deca3a4628"
         }
       ]
+    },
+    {
+      "id": "windows-acl-prepare-fixture-and-mapping-timeouts",
+      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Windows reported three prepare/powershell-timeout failures. Two explicit fixture calls failed inside the existing preparation slot. The third occurred while the folder-refresh test saved a local import mapping through the application. Rust and Python overlapped in the original job; the diagnostic does not isolate the cause.",
+      "task_ids": [
+        "M0-071"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T165618.491721Z-d3e98934",
+          "source_commit": "cdf27d7722530bc9d5a5753a3898b67644a1887a",
+          "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
+        }
+      ]
     }
   ]
 }

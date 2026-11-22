@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-071",
   "tasks": [
     {
       "id": "M0-001",
@@ -14263,6 +14263,118 @@
           ],
           "data_plan": "Use existing isolated synthetic profiles and the verified native Windows diagnostic.",
           "cleanup": "Remove obsolete ownership inferences and any temporary measurement after confirming the correction."
+        }
+      }
+    },
+    {
+      "id": "M0-071",
+      "title": "Recover native Windows desktop ACL preparation under verification load",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-036"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/rust_workspace.py",
+        "tests/project",
+        "apps/desktop/src-tauri/src/bridge_tests.rs",
+        "crates/persistence/src/storage.rs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0007"
+      ],
+      "acceptance": [
+        "Distinguish explicit fixture preparation timeouts from application-path preparation during SAVE_LOCAL_IMPORT_MAPPING. Compare the original with prior runs and measure native concurrency and helper behavior.",
+        "Demonstrate a bounded correction on native Windows with the desktop cases and full protected verification. Preserve ACL checks, fail-closed behavior, profile isolation, deadlines, cleanup and concurrent desktop operations."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Measure native helper timing and overlap across fixture and application paths, then verify a scoped correction.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T165618.491721Z-d3e98934",
+          "source_commit": "cdf27d7722530bc9d5a5753a3898b67644a1887a",
+          "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
+        }
+      ],
+      "plan": {
+        "outcome": "Native desktop verification exercises real Windows ACL preparation and operation paths without losing their bounds or test concurrency.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "scripts/check.py",
+          "scripts/rust_workspace.py"
+        ],
+        "hypotheses": [
+          "The existing explicit fixture slot still permits overlap with application ACL helpers. The native verification scheduler also overlaps Python and Rust. Measure both and distinguish runner variability from a path-specific defect."
+        ],
+        "risks": [
+          {
+            "failure": "A timeout is incorrectly attributed to the ACL policy or to concurrent Python solely because their timestamps overlap.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-format",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A scheduling or fixture change suppresses meaningful concurrency, skips ACL enforcement, or loses cleanup on failure.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain failed native diagnostics and baseline measurements. Revert the reviewed correction if real ACL or verification behavior regresses.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "persistence"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/rust_workspace.py",
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "crates/persistence/src/storage.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing ACL rules, bypassing profile checks, blanket serialization, changing the Python timeout in PR 46 or starting another queued product task."
+          ],
+          "open_questions": [
+            "Where does native helper wall time accumulate, and which verification activities contribute?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Fail-closed ACL checks, profile isolation, bounded helper termination and concurrent bridge behavior."
+          ],
+          "change": [
+            "Apply only a correction supported by native timing or controlled comparison."
+          ],
+          "data_plan": "Use synthetic test profiles and aggregate measurements. Preserve original reports and bound logs.",
+          "cleanup": "Remove diagnostic-only instrumentation from the protected delivery unless narrowly justified for regression observability."
         }
       }
     }
