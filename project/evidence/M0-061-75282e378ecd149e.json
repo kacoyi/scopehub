@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-061",
+  "task_definition_sha256": "b7aa2ba039a0c31feaab2290571d7d856e1ffdfe89485f97f7b39762421e3d47",
+  "run_id": "20261122T115258.729479Z-a422d52e",
+  "recorded_at": "2026-11-22T11:54:49.443501+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "be1722d11e44d4106038773019e9a8c6a33bd2b8551731cbc10eb73f1303dacc",
+    "file_count": 547,
+    "git_head": "356efee62aac805693d9c645e704724e1732d905",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "75282e378ecd149e3b2c4ccdeeb017098e05a92fb2e328df48c2be176ecce776",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/engineering-evolution/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/engineering-evolution/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e9545f3f50ae8c2773193d3afd0f4793c7727696bcfc030882e600128ab001a1"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/engineering-evolution/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b505ba07623528ed46a9c6c2711adbb8faf2b32df89b656d195caf404ac18600"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/engineering-evolution/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    }
+  ],
+  "project_definition_sha256": "d65471a3717e5804c9d39789ffa6615b53ececc99d580d81b10a78c4d085f0e3",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

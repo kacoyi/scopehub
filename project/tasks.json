@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-061",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13799,7 +13799,7 @@
       "id": "M0-061",
       "title": "Keep product decisions revisable at a cost proportional to the change",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-024"
       ],
@@ -13824,10 +13824,15 @@
         "python-contracts-workers",
         "architecture"
       ],
-      "evidence": [],
-      "next_action": "Review the existing evolution rules, connect them to the implementation contract and expose recorded decision triggers in normal task context.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-061-75282e378ecd149e.json",
+          "sha256": "16d094d44c488b4054e569a90ec8139d1d853cf882884cd23d8c6601ae9c8c7b"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The contract links to the working evolution rules. The fast harness passed on the clean source. M0-001 shows the successor of historical decision 0001 and the original text and list conditions for current decisions in all three focused phases. The regression distinguishes proposed, rejected and unrelated decisions from current guidance. The rules define how to assess later comparable changes. Actual post-release user outcomes and savings require observations from those changes.",
       "plan": {
         "outcome": "A developer making a small edit or revisiting a larger product decision can find the appropriate action and the evidence that would change the decision.",
         "change_types": [
