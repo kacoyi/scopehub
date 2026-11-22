@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-067",
   "tasks": [
     {
       "id": "M0-001",
@@ -13439,7 +13439,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. See contracts/reviews/2026-11-22-ai-workspace-canvas.json for the proposed pane editing workflow and the open release-scope decision about blank workspaces.",
+      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. See contracts/reviews/2026-11-22-ai-workspace-canvas.json for proposed edits to chart panes, individual views or the whole workbench using visual references, and the open release-scope decisions.",
       "blocker": null,
       "closure_reason": null
     },
@@ -13889,6 +13889,93 @@
           ],
           "data_plan": "Use synthetic chart data and public documentation.",
           "cleanup": "Keep design options together in one review record linked from the planned task."
+        }
+      }
+    },
+    {
+      "id": "M0-067",
+      "title": "Define reference-guided edits to the workbench and its contents",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-066"
+      ],
+      "decision_refs": [
+        "0008",
+        "0016"
+      ],
+      "scope": [
+        "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
+        "project/tasks.json"
+      ],
+      "acceptance": [
+        "Record the owner’s intended workbench scope and the ways to express design intent through a description, a selected screenshot or a reference URL. Cover whole-workbench redesign and edits inside a selected view.",
+        "Illustrate the proposal with one authorized information feed shown as headlines, image cards and two independently arranged groups. Keep source records, available fields, attribution, data access and unrelated views intact.",
+        "Distinguish the proposal and its prospective acceptance example from the chart-library observation, existing product capabilities and current release commitments."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Extend the existing proposal and inspect it through the normal project views.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The owner and development AI can distinguish designing the workbench from adding new data services or changing the application shell.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
+          "engineering-contract-v1.json"
+        ],
+        "hypotheses": [
+          "A single editable workbench description can express a new composition or a small edit inside a widget over the same data."
+        ],
+        "risks": [
+          {
+            "failure": "A reference page is treated as the data source, a picture is fabricated for a feed item, or a visual change is recorded as a shipped capability.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Refine the proposal when the owner selects the implementation scope.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
+            "project/tasks.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/product/service_policy"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            }
+          ],
+          "non_goals": [
+            "Runtime reference ingestion, external site access and an information subscription."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "The existing chart proposal, observed probe and current task acceptance."
+          ],
+          "change": [
+            "Describe composition of widget internals and use of an explicit visual reference."
+          ],
+          "data_plan": "Use a hypothetical authorized feed and synthetic records as design examples.",
+          "cleanup": "Extend the existing workbench proposal in place."
         }
       }
     }
