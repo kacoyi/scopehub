@@ -2808,6 +2808,46 @@
         "prevention": "The nine browser source cases and the desktop IPC regression passed locally. Both hosted task selections passed on Ubuntu and Windows at ad7037f03c10b683928b247a655be22cf0a46dfa in runs 44973437972 and 44973438056. The cases hold genuine committed responses, verify the recovery action, commit a competing revision and deliver the stale result after recovery. The desktop fixture substitutes IPC delivery and uses the real Rust registry. Independent review repeated both timed-out response stages and both peer revision scenarios on the exact hosted source. The retained clean browser comparison reports have SHA-256 c14d2e898f1ae9a0d60acdb286176a4df2a740aaef1fdcdf7f87bed21bfee517 and aa8911dc710f099fcd11d163990c20f2acffbca6a809ddae69ce62602b9b18cf."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-browser-workspace-startup-stage",
+      "source": "Hosted Windows run 44973556297. Original screenshot and 27 diagnostic logs retained with the report.",
+      "severity": "major",
+      "status": "open",
+      "observation": "In Windows workflow 44973556297 the first fresh browser displayed only the static startup controls after five seconds. The private-record test had not opened any record or disconnected either writer.",
+      "task_ids": [
+        "M0-045"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T015909.254502Z-420b924b",
+          "source_commit": "18b3583729106e4a1283d4ab4065cb7fe0885a58",
+          "report_sha256": "9e557a0168a3431019885bf6bbfe1a97d4e793d6849f832c856c483bcd595eda"
+        }
+      ]
+    },
+    {
+      "id": "private-workspace-startup-consumed-handoff",
+      "source": "Independent Chromium, Vite and Rust writer review using the actual private launcher on PR 31 at 3d26f0ead10da7ac08c1ed784eed1d8ccb1adcc0.",
+      "severity": "major",
+      "status": "open",
+      "observation": "An exception after imports and before React mount left the private grant consumed and the static Reload window control visible. Reload then opened the public shell without a private snapshot. An entry HTTP failure before grant consumption retained the fragment and ordinary reload restored the private workspace.",
+      "task_ids": [
+        "M0-045"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "market-quality-states",
+        "project-state"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

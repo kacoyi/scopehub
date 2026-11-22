@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M0-045",
   "tasks": [
     {
       "id": "M0-001",
@@ -10976,6 +10976,132 @@
           ],
           "data_plan": "Use synthetic temporary profiles. Keep diagnostic outputs bounded to operation stages, statuses and selection revisions. Retain existing authorization and optimistic selection checks without introducing persisted request metadata.",
           "cleanup": "Release the held reply and owned profile on every test outcome. Run the affected M4-006 selection and deterministic regression locally and on hosted Ubuntu and Windows. Retain the failure and recovery evidence."
+        }
+      }
+    },
+    {
+      "id": "M0-045",
+      "title": "Verify and recover cold browser workspace startup",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M4-013"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "apps/desktop/ui",
+        "project",
+        "tests/ui/preview-startup.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A fresh browser workspace reaches its first verified snapshot under bounded cold startup, or reports the actual startup failure with enough information to distinguish document, application and transport stages.",
+        "Reproduce the missing first control with delayed application evaluation after browser load. Independently distinguish fatal entry failure and a stalled snapshot. Keep record-disconnect and multi-window assertions intact.",
+        "After a real private handoff is consumed, a pre-mount exception directs the user to reopen the original private access document. Reopening it restores the authorized snapshot. Public startup and a failure before grant consumption retain ordinary Reload. A cleaned shell refresh requires a fresh handoff.",
+        "Run the affected startup and workspace checks on Linux and Windows. The combined revision repeats the full protected change workflow at integration."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-quality-states",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T015909.254502Z-420b924b",
+          "source_commit": "18b3583729106e4a1283d4ab4065cb7fe0885a58",
+          "report_sha256": "9e557a0168a3431019885bf6bbfe1a97d4e793d6849f832c856c483bcd595eda"
+        }
+      ],
+      "next_action": "Verify the staged browser harness and private launcher recovery with controlled local experiments and the authenticated Ubuntu and Windows task run.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A fresh browser reaches its first verified workspace snapshot within bounded startup stages. Fatal startup is diagnosed at the correct stage, and a consumed private handoff has a working recovery instruction.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/index.html",
+          "apps/desktop/ui/public/workspace-start.js",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/vite.config.ts",
+          "tests/ui/preview-startup.mjs"
+        ],
+        "hypotheses": [
+          "In Windows workflow 44973556297 the first fresh browser displayed only the static startup controls after five seconds. The private-record test had not opened any record or disconnected either writer.",
+          "The retained Windows screenshot does not distinguish slow module evaluation, entry delivery failure and a pre-mount exception. Independent experiments reproduced the same static view with each of these conditions.",
+          "A pre-mount exception after the private grant is consumed leaves the original fallback pointing to a public reload. A failed entry before grant consumption retains the expected ordinary reload behavior."
+        ],
+        "risks": [
+          {
+            "failure": "An assertion for a later control masks slow module startup or an actual bootstrap error, and a blanket timeout or replay can conceal a broken application.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "ui-build",
+              "market-workflow",
+              "market-quality-states",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A consumed grant is persisted, restored by reload, or exposed in diagnostics, or a pre-consumption failure loses its working reload.",
+            "checks": [
+              "workspace-timeframe",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed Windows report, screenshot and controlled experiments. Restore the affected startup harness or fallback code independently while keeping the grant in memory and the cleaned shell inert on reload.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/index.html",
+            "apps/desktop/ui/public/workspace-start.js",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/vite.config.ts",
+            "tests/ui/preview-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing record privacy, application permissions, the grant lifetime, or native startup deadlines."
+          ],
+          "open_questions": [
+            "The historical Windows report did not retain resource timing or browser error events, so its triggering failure remains undetermined."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The real Vite frontend, Chromium, Rust writer, synthetic profile, and all private record assertions.",
+            "The private launch fragment is cleared upon grant consumption. Ordinary reload in the cleaned shell requires a fresh handoff. Public and pre-consumption failures retain the existing static Reload window control."
+          ],
+          "change": [
+            "Reuse the shared observer to distinguish document, mount and bounded snapshot failures while preserving startup assertions.",
+            "When startup fails after private grant consumption, the static shell directs reopening the original access document."
+          ],
+          "data_plan": "Use synthetic profiles, keep capabilities in their existing in-memory scope and retain diagnostics without capability tokens or user records.",
+          "cleanup": "Exercise delayed entry, failed entry, stalled transport and launcher recovery. Retain both hosted task receipts and repeat the complete protected change workflow on the combined integration revision."
         }
       }
     }
