@@ -31,6 +31,7 @@
     "project:recover": "uv run python scripts/recovery.py",
     "project:storage": "uv run --no-project --offline python -I -S scripts/storage.py",
     "project:checkpoint": "uv run python scripts/project.py checkpoint",
+    "project:timing": "uv run --no-sync python scripts/timing.py",
     "project:ci": "uv run python scripts/ci.py",
     "project:protection": "uv run python scripts/protection.py",
     "project:branches": "uv run python scripts/branches.py",

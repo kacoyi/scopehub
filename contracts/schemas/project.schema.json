@@ -1293,6 +1293,14 @@
         "ci": {
           "$ref": "#/$defs/CIProvenance"
         },
+        "timing": {
+          "type": "object",
+          "properties": {
+            "elapsed_seconds": {"type": "number", "minimum": 0}
+          },
+          "required": ["elapsed_seconds"],
+          "additionalProperties": false
+        },
         "selection": {
           "type": "object",
           "properties": {

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M0-046",
   "tasks": [
     {
       "id": "M0-001",
@@ -11715,6 +11715,309 @@
           ],
           "data_plan": "Store verified executables, archives and trial cache under this checkout. Use signed public release material and synthetic check data.",
           "cleanup": "Supersede the temporary uv disposition and record actual updater coverage without enabling unrelated proposal streams."
+        }
+      }
+    },
+    {
+      "id": "M0-046",
+      "title": "Reduce full verification time while retaining every required check",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project",
+        ".github/workflows/verify.yml",
+        "contracts/schemas/project.schema.json",
+        "contracts/reviews",
+        "package.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0022"
+      ],
+      "acceptance": [
+        "Record platform-specific full workflow timing and identify verified expensive or duplicate work at the current source.",
+        "Improve the measured critical path within existing hosted or local resources. Preserve every required behavior, platform, actual result, evidence, process cleanup and protected job identity. Compare exact test enumeration and failure coverage when a command changes.",
+        "Run controlled before/after trials on comparable inputs. Report wall time, runner work, actual coverage, timing variation and any remaining objective gap."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "market-workflow",
+        "workspace-timeframe",
+        "dependency-review"
+      ],
+      "evidence": [],
+      "next_action": "Record platform-specific full workflow timing and identify verified expensive or duplicate work at the current source.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The same required Linux and Windows checks execute faster than a measured equal-coverage control, with unchanged pass, failure, timeout and evidence semantics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "project/checks.json",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "A full Windows run spent roughly 5 minutes each in Python and Rust tests plus 4 minutes building the desktop. Earlier full reports showed repeated overruns of the existing 15-minute change objective.",
+          "Authenticated task runs uploaded a partially populated target under the complete build key and restored a multi-gigabyte target for a selection without a workspace build."
+        ],
+        "risks": [
+          {
+            "failure": "Parallel or cached work could lose coverage, corrupt evidence or conceal a slower run behind a changed selection.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A partial build archive occupies the full key, or an optimized multi-check run leaves a process or omits a required case.",
+            "checks": [
+              "rust-contracts-workers",
+              "operations-workflow",
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous execution path and original measurements until the equivalent checks and evidence are verified. Revert the optimization or collector if a comparison shows a regression.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "project/checks.json",
+            ".github/workflows/verify.yml",
+            "scripts/rust_workspace.py",
+            "project/dependencies.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Weakening checks, treating cached results as acceptance, weakening main protection, paid runners or a global host timing guarantee."
+          ],
+          "open_questions": [
+            "Which costs dominate comparable runs, and which improvement survives real host variability?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "All covered checks, platform requirements, task and release selection, process cleanup, protected check identity and genuine historical reports.",
+            "Named and cold Rust operation tests retain the original package-only feature selection. A successful full workspace can reuse its compiled target and rerun the actual cases."
+          ],
+          "change": [
+            "The same required Linux and Windows checks execute faster than a measured equal-coverage control, with unchanged pass, failure, timeout and evidence semantics.",
+            "Permit only a successful full job to save the complete Cargo archive, and skip its restoration for reviewed tool-only selections."
+          ],
+          "data_plan": "Use existing synthetic tests and retained timing data. Store only a compact sanitized summary of observed CI and local timings.",
+          "cleanup": "Exercise the new flow on unchanged product behavior and publish the measured tradeoff alongside the continuing review procedure."
+        }
+      }
+    },
+    {
+      "id": "M0-047",
+      "title": "Measure verification speed continuously and track regressions",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project",
+        ".github/workflows",
+        "contracts/schemas/project.schema.json",
+        "contracts/reviews",
+        "package.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0022"
+      ],
+      "acceptance": [
+        "Keep queue, runner and harness elapsed time distinct. Identify slow checks and preserve coverage and profile identity for cold or warm observations when available.",
+        "Use the existing 5-minute fast and 15-minute standard change objectives. Surface repeated overhead or material regressions with a tested actionable result and record the next review.",
+        "Compare actual retained runs without network access for ordinary project status. Treat failed or partial runs as diagnostic only and keep unavailable timings explicit.",
+        "Run a bounded read-only weekly timing review of normal PR and main workflows, with separate absolute budget and same-coverage regression signals and actionable output."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Keep queue, runner and harness elapsed time distinct. Identify slow checks and preserve coverage and profile identity for cold or warm observations when available.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Each normal verification provides credible per-platform timing. Recurring review identifies persistent slowdown or missing comparable data and assigns corrective work.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/ci_artifacts.py",
+          "scripts/ci.py",
+          "project/delivery.json",
+          "package.json"
+        ],
+        "hypotheses": [
+          "Project checkpoint shows the five slowest checks from one local report, but the feedback loop lacks a comparable trend or actionable detection when verification grows."
+        ],
+        "risks": [
+          {
+            "failure": "A partial run, changed check set or host-specific noise could look faster without preserving the work or user feedback time.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the previous execution path and original measurements until the equivalent checks and evidence are verified. Revert the optimization or collector if a comparison shows a regression.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci_artifacts.py",
+            "scripts/ci.py",
+            "project/delivery.json",
+            "package.json",
+            ".github/workflows/review-verification-timing.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Weakening checks, treating cached results as acceptance, weakening main protection, paid runners or a global host timing guarantee."
+          ],
+          "open_questions": [
+            "Which costs dominate comparable runs, and which improvement survives real host variability?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "All covered checks, platform requirements, task and release selection, process cleanup, protected check identity and genuine historical reports."
+          ],
+          "change": [
+            "Each normal verification provides credible per-platform timing. Recurring review identifies persistent slowdown or missing comparable data and assigns corrective work.",
+            "Use the existing verification artifacts and public GitHub Actions for a lightweight weekly review. Preserve missing history and partial observations explicitly."
+          ],
+          "data_plan": "Use existing synthetic tests and retained timing data. Store only a compact sanitized summary of observed CI and local timings.",
+          "cleanup": "Exercise the new flow on unchanged product behavior and publish the measured tradeoff alongside the continuing review procedure."
+        }
+      }
+    },
+    {
+      "id": "M0-048",
+      "title": "Include project-owned host staging in weekly retirement review",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-039"
+      ],
+      "scope": [
+        "project/delivery.json",
+        "contracts/reviews/2026-11-21-host-staging.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0022"
+      ],
+      "acceptance": [
+        "Record how project-owned temporary inputs outside registered checkouts are discovered, retained and released.",
+        "Give staging with a lifetime beyond its creating process a task owner and a recovery or retirement condition.",
+        "Exercise the procedure on completed work and retain a private restore index, original digests and the scope of reclaimed storage."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Verify the retained recovery index and put the handoff and retirement conditions in the existing weekly review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Completed task staging has a disposition and a verified recovery path wherever it was created.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "contracts/reviews/2026-11-21-repository-maintenance.json"
+        ],
+        "hypotheses": [
+          "Completed ScopeHub work left clones, Cargo outputs and review inputs under host temporary roots outside registered worktrees."
+        ],
+        "risks": [
+          {
+            "failure": "An active, unrelated or referenced input is released, or a file disappears from its only recovery location.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Hold ambiguous inputs in place. Restore a retired input from its verified archive and retain the original logical path for its consumer.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/delivery.json",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Host-wide deletion or a new full-filesystem scan in CI."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "User files, active tools, process-bound staging and original evidence."
+          ],
+          "change": [
+            "Include known project-owned temporary roots in the weekly review and assign retirement at creation."
+          ],
+          "data_plan": "Keep per-path host inventory, digests and restore arguments in the private development archive. Track only measured aggregates and content identities in Git.",
+          "cleanup": "Reuse the existing weekly worktree and evidence review. Verify a restore before releasing independently owned originals."
         }
       }
     }

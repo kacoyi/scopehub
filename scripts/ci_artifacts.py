@@ -9,7 +9,8 @@ import tempfile
 
 if __package__:
     from .check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
-    from .project import ProjectError, digest, file_digest, load_project, validate_model
+    from .project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
+    from .timing import TIMING_FILE, job_summary, report_sample
     from .verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
@@ -17,7 +18,8 @@ if __package__:
     )
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
-    from project import ProjectError, digest, file_digest, load_project, validate_model
+    from project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
+    from timing import TIMING_FILE, job_summary, report_sample
     from verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
@@ -266,6 +268,26 @@ def stage_artifacts(root, destination, env):
     return True
 
 
+def stage_timing(destination, env, *, has_report):
+    if has_report:
+        report = evidence_json((destination / 'test-report.json').read_bytes())
+    else:
+        report = {
+            'environment': {'system': env.get('RUNNER_OS'), 'machine': env.get('RUNNER_ARCH')},
+            'ci': {
+                'repository': env.get('GITHUB_REPOSITORY'), 'run_id': env.get('GITHUB_RUN_ID'),
+                'run_attempt': env.get('GITHUB_RUN_ATTEMPT'), 'event': env.get('GITHUB_EVENT_NAME'),
+                'head_sha': env.get('SCOPEHUB_SOURCE_HEAD'), 'checkout_sha': env.get('GITHUB_SHA'),
+            },
+        }
+    sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'))
+    timing_path = destination.parent / TIMING_FILE
+    timing_path.write_bytes(json_bytes(sample))
+    if has_report:
+        copy_file(timing_path, destination / TIMING_FILE)
+    return timing_path, sample
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['prepare', 'stage'])
@@ -277,10 +299,24 @@ def main():
             prepare_reports(ROOT)
             return
         destination = Path(tempfile.mkdtemp(prefix='scopehub-ci-', dir=os.environ['RUNNER_TEMP'])) / 'verification'
-        if stage_artifacts(ROOT, destination, os.environ):
-            with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+        has_report = stage_artifacts(ROOT, destination, os.environ)
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+            if has_report:
                 output.write(f'path={destination}\n')
-        else:
+                output.flush()
+            try:
+                timing_path, sample = stage_timing(destination, os.environ, has_report=has_report)
+                output.write(f'timing_path={timing_path}\n')
+            except (OSError, ValueError, TypeError, KeyError) as error:
+                print(f'::warning::Verification timing artifact unavailable ({type(error).__name__}).')
+            else:
+                if summary := os.environ.get('GITHUB_STEP_SUMMARY'):
+                    try:
+                        with open(summary, 'a', encoding='utf-8') as summary_file:
+                            summary_file.write(job_summary(sample))
+                    except (OSError, ValueError, TypeError, KeyError) as error:
+                        print(f'::warning::Verification timing summary unavailable ({type(error).__name__}).')
+        if not has_report:
             print('No finalized harness report is available for artifact publication.')
     except PublicationError as error:
         parser.exit(1, str(error) + '\n')

@@ -42,12 +42,20 @@
       "review": "Official upstream commit and action manifest inspected. Existing setup/cache/artifact role retained; contents:read only, no product secrets or third-party composite action calls. Native and Linux CI required after change."
     },
     {
-      "repository": "actions/cache",
+      "repository": "actions/cache/restore",
       "sha": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
       "reviewed_ref": "v6.1.0",
       "observed_at": "2026-11-21",
-      "source": "https://github.com/actions/cache/tree/55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
-      "review": "Verified official tag and action.yml. v5 moved to Node 24 and requires runner 2.327.1 or newer; both hosted labels satisfy that requirement. v6 changes the internal module format and v6.1 handles read-only cache writes without error. The used path, key and restore-keys inputs remain supported and the verification token retains contents:read."
+      "source": "https://github.com/actions/cache/blob/55cc8345863c7cc4c66a329aec7e433d2d1c52a9/restore/action.yml",
+      "review": "The reviewed v6.1.0 restore entrypoint runs the official Node 24 restore-only bundle. It returns the resolved primary key and a matched key on restoration. Selected checks that use neither workspace build outputs nor Chromium start with their normal pinned tools. Other tasks can read the complete archive."
+    },
+    {
+      "repository": "actions/cache/save",
+      "sha": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+      "reviewed_ref": "v6.1.0",
+      "observed_at": "2026-11-21",
+      "source": "https://github.com/actions/cache/blob/55cc8345863c7cc4c66a329aec7e433d2d1c52a9/save/action.yml",
+      "review": "The reviewed v6.1.0 save entrypoint runs the official Node 24 save-only bundle. A successful full job can save the existing Cargo paths under the resolved primary key after a miss or fallback. A selected task cannot publish an incomplete target under the full key."
     },
     {
       "repository": "actions/upload-artifact",
@@ -265,7 +273,10 @@
           "pr": "https://github.com/kacoyi/scopehub/pull/2",
           "head": "879bb8bd55ab3603bbad76f03e138f1e2a59264e",
           "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/38530272739",
-          "failed_jobs": {"ubuntu": 115740227041, "windows": 115740227466},
+          "failed_jobs": {
+            "ubuntu": 115740227041,
+            "windows": 115740227466
+          },
           "failed_log_sha256": "0ec0eaf4b21fa45c299b1f0faa2d720c728fcc4ac1f2441e8beb563b3af86b9e",
           "failure": "The dependency check rejected the changed cache pin because the immutable Action review inventory still contained the prior commit.",
           "disposition": "Replace the raw proposal on integration with the reviewed actions/cache v6.1.0 pin.",
@@ -279,7 +290,10 @@
           "pr": "https://github.com/kacoyi/scopehub/pull/3",
           "head": "1de06827df269fef5c5e5a74a867ac7ed875028c",
           "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/38530290280",
-          "failed_jobs": {"ubuntu": 115740285516, "windows": 115740285029},
+          "failed_jobs": {
+            "ubuntu": 115740285516,
+            "windows": 115740285029
+          },
           "failed_log_sha256": "c47a6ddd3623526641ccc2e10d7cb60e862e84e271c71e6d68c8dde235befda3",
           "failure": "The dependency check rejected the changed setup-uv pin because it had no matching immutable Action review.",
           "disposition": "Replace the raw proposal on integration with the reviewed astral-sh/setup-uv v10.3.0 pin, retaining cache pruning and GitHub Releases downloads.",
@@ -295,7 +309,10 @@
           "pr": "https://github.com/kacoyi/scopehub/pull/7",
           "head": "31d25001f61468215138de911743e72d40089e41",
           "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/44588461632",
-          "failed_jobs": {"ubuntu": 135787712115, "windows": 135787712398},
+          "failed_jobs": {
+            "ubuntu": 135787712115,
+            "windows": 135787712398
+          },
           "failed_log_sha256": "f0b27b547904d53fff1ebde2f23fefdee1a4e8a09519aa676a0918198376b898",
           "failure": "Preserve accepted history could not resolve the force-pushed previous head ecc72030f94be453e4c97764f1f01eb7d367b0c1 before harness initialization.",
           "disposition": "Replace the raw proposal with jsonschema 0.61.2, resolved natively against the current graph. Retain the Draft 2020-12 schema, format validation and disabled default retrieval features. Upstream improves relative reference resolution, RFC 3339 validation and recursive validation performance.",
@@ -308,7 +325,10 @@
           "pr": "https://github.com/kacoyi/scopehub/pull/26",
           "head": "22ae5355fc535680920be0cd836eef7ea7b37d15",
           "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/44906250020",
-          "failed_jobs": {"ubuntu": 136852349914, "windows": 136852349791},
+          "failed_jobs": {
+            "ubuntu": 136852349914,
+            "windows": 136852349791
+          },
           "failed_log_sha256": "ed015e9063cf39745cefc2be4e992862683711350dd65c3e8eb50705b002fda1",
           "failure": "Preserve accepted history could not resolve the force-pushed previous head 6e413be2c7cec78f642154727b36f83772d667e0 before harness initialization.",
           "disposition": "Replace the raw proposal with uuid 1.29.3, tokio 1.54.1, libc 0.2.191, tauri 2.12.7 and tauri-build 2.7.6 resolved against the current graph. Tokio 1.54.1 avoids the yanked 1.54.0 Interval regression. Both Tauri versions are outside the published 2.11.x IPC advisory ranges. The Tauri build update moves the existing default static MSVC runtime linkage to static_vcruntime 3.0.0. Verify this link path and the runtime family on native Windows.",

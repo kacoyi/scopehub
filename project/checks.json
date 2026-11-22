@@ -90,7 +90,9 @@
         ".",
         "-p",
         "test_*.py",
-        "-v"
+        "-v",
+        "--durations",
+        "10"
       ],
       "timeout_seconds": 900
     },
@@ -187,14 +189,9 @@
       "purpose": "Verify real A/B/clear chart selection, local AI chart mutation admission, independent revision conflicts, authorized exactly-once replay, rollback, undo and fresh writer reconnect.",
       "platforms": "all",
       "command": [
-        "cargo",
-        "test",
-        "--locked",
-        "-p",
-        "scopehub-persistence",
-        "--test",
-        "workspace_process",
-        "operations_workflow::"
+        "{python}",
+        "scripts/rust_workspace.py",
+        "operations"
       ],
       "timeout_seconds": 900,
       "cadence": "change"

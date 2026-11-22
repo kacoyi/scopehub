@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "reviewed_on": "2026-11-21",
+  "task": "M0-048",
+  "observation": "Completed project-owned clones, Cargo targets, relocation fixtures and review inputs existed outside registered checkouts. Two verified retirement batches covered the following original paths.",
+  "retired_original_paths": 116,
+  "archived_entries": 272433,
+  "original_exclusive_allocated_bytes": 21319802880,
+  "measurement_scope": "Exclusive allocation for the original paths across two host filesystems, including a memory-backed temporary filesystem. Net host disk capacity was not measured.",
+  "recovery": {
+    "logical_index": "private/M0-039/additional-closed-host-inputs/first-116-retired-inputs.json",
+    "sha256": "57b90df994be4d724e386e981a15ae50065c130e645119f2dd016ab0444a3ca7",
+    "action_manifests": [
+      {
+        "retired_paths": 63,
+        "sha256": "78b10882e70dcc748d9babea44de214c490a872e35e0eebb80630cbb7b54abd8"
+      },
+      {
+        "retired_paths": 53,
+        "sha256": "0a9869ae40c71722b9f2986841cd42b85682bc79cb7aed4500f244485e719ec9"
+      }
+    ],
+    "verification": "The private index maps each original to its archive and restoration receipt. The retirement actions record their file checks and process and reference observations."
+  }
+}

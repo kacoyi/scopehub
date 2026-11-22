@@ -702,6 +702,8 @@
     "scaling": [
       "Use a five-minute fast-feedback objective and a fifteen-minute change-CI objective to trigger investigation. The change job timeout is 30 minutes on Linux and 60 minutes on Windows. The release job timeout is 180 minutes. Keep required checks in place while reviewing slow runs.",
       "Use recorded check durations and job queue time to find the bottleneck. Cache pnpm, uv and Cargo dependencies and build outputs by platform, toolchain and lockfiles; caches never count as test evidence.",
+      "Use project:checkpoint for the current checkout and project:timing for retained timing observations. Use project:timing --run <id> or --recent for explicit Actions inspection with pinned official gh and fetch only compact timing artifacts. Save observations under .reports/timing or in the development archive for offline review. Queue spans run creation to job start on the first attempt. Setup, harness step and tail partition the completed job when timestamps are present. Workflow elapsed ends at the last verification job; runner work sums job spans. Summed check durations can overlap and never substitute for elapsed time.",
+      "For a new or materially slower required check, record representative before and after elapsed time and runner work, assign the existing implementation or corrective task, and choose scope and cadence against the accepted risk. Preserve required coverage or review its replacement with equivalent evidence. Use normal runs and targeted measurements without duplicating full CI for routine changes.",
       "When repeated runs exceed the objective, split independent checks into jobs, isolate long stability work, and add measured task-specific selection. Preserve a required aggregate result and explicit coverage of omitted checks.",
       "Keep generated-contract, architecture, task-state and relevant regressions early. Add scheduled validation or paid/self-hosted runners only when an observed need justifies the recurring resource use.",
       "Capability discovery for ci.run returned UNAVAILABLE on 2026-10-14. Use the existing repository GitHub Actions workflow as the explicit fallback; retry discovery if shared CI requirements change."
@@ -751,6 +753,17 @@
     ],
     "periodic_reviews": [
       {
+        "id": "verification-timing",
+        "interval_days": 7,
+        "reviewed_on": "2026-11-21",
+        "actions": [
+          "Use the weekly Review verification timing workflow or pnpm project:timing when due. The read-only hosted job examines up to twelve completed ordinary runs per event and publishes a summary and compact archive. Review passing local fast and completed successful first-attempt full PR and main workflows separately by platform, runner, Cargo cache observation and exact selected check outcomes. Warm means exact archive restoration, partial means a matched prefix restored, cold means restoration attempted without an archive, not_requested means a reviewed task skipped restoration, and unknown means unavailable or failed evidence. Build reuse depends on the restored contents and current inputs.",
+          "Investigate two objective breaches among the latest three comparable runs, or a median increase of at least 60 seconds and 15 percent between consecutive sets of three comparable runs, even under budget. Compare individual stages and slow checks, record the source and coverage, and assign a corrective task for persistent regressions. Investigate a single outlier and collect more observations without a timing gate. Record missing or changed coverage and start a comparable baseline before making a speed claim.",
+          "Apply the elapsed objective across coverage changes within the same feedback scope. Review added and removed checks and compare the latest median to a stable faster three-run window when recent scope expansion follows an improvement. Record missing compact history, keep incomplete and release or task runs available as diagnostics, and advance the review date after recording findings and follow-up.",
+          "The 2026-11-21 baseline review found repeated Windows overruns and substantial setup and harness costs across three retained PR and main pairs. M0-046 owns the first repair and its comparable follow-up. Continue retaining the paired platform observations and review again by 2026-11-28."
+        ]
+      },
+      {
         "id": "branches-and-pull-requests",
         "interval_days": 7,
         "reviewed_on": "2026-11-21",
@@ -766,7 +779,9 @@
         "actions": [
           "Run pnpm project:worktree retirement with the development archive root and pnpm project:storage. Inspect active processes, private refs, dirty files and original evidence on held checkouts.",
           "Retire a clean idle checkout after its source and evidence have a verified recovery path. Record the disposition of unique work. Regenerate the observation immediately before each removal.",
-          "Before releasing a temporary review directory, find feedback records that use its outputs. Copy original observations to a durable location, verify their file digests and record the logical source and manifest digest."
+          "Before releasing a temporary review directory, find feedback records that use its outputs. Copy original observations to a durable location, verify their file digests and record the logical source and manifest digest.",
+          "Keep task-owned staging that outlives its creating process under the task report directory when feasible. For an external clone, build target or review fixture, record its owner, location and retirement condition in the private task handoff.",
+          "Review known project-owned staging outside registered worktrees, including temporary roots used by completed tasks. Check live processes, linked checkouts and evidence references. Retain needed originals in a verified archive with a restoration index, then release the identified idle paths and record the outcome."
         ]
       },
       {

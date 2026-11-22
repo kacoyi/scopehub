@@ -2911,6 +2911,54 @@
         "prevention": "Hosted setup reads the same exact version and checks the reviewed platform download digest. The local entry points and doctor reject the stale tool, and both platforms proved locked synchronization without changing the package graph."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verification-duration-critical-path",
+      "source": "Owner request and independently measured normal GitHub verification runs on 2026-11-21.",
+      "severity": "major",
+      "status": "open",
+      "observation": "A full Windows run spent roughly 5 minutes each in Python and Rust tests plus 4 minutes building the desktop. Earlier full reports showed repeated overruns of the existing 15-minute change objective.",
+      "task_ids": [
+        "M0-046"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-durations-lack-comparable-history",
+      "source": "Owner request and independently measured normal GitHub verification runs on 2026-11-21.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Project checkpoint shows the five slowest checks from one local report, but the feedback loop lacks a comparable trend or actionable detection when verification grows.",
+      "task_ids": [
+        "M0-047"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "completed-host-staging-outlived-task",
+      "source": "Historical repository maintenance and independently restored closed task inputs on 2026-11-21.",
+      "severity": "minor",
+      "status": "open",
+      "observation": "Temporary clones, build targets and review inputs survived their completed tasks outside the registered worktree roots. The existing worktree and Cargo inventories correctly cover their registered scope.",
+      "task_ids": [
+        "M0-048"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

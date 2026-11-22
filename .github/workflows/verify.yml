@@ -72,7 +72,22 @@ jobs:
         with:
           toolchain: '1.99.0'
           components: rustfmt, clippy
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - run: uv sync --locked
+      - run: pnpm install --frozen-lockfile
+      - name: Check the selected task's browser and build-output prerequisites
+        if: inputs.task_id
+        id: task_setup
+        env:
+          SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
+        shell: bash
+        run: |
+          if required="$(uv run --no-sync python scripts/check.py --task="$SCOPEHUB_TASK_ID" --ci-build-setup-required)" &&
+              [ "$required" = 'false' ]; then
+            printf 'skip=true\n' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cargo_cache
+        if: steps.task_setup.outputs.skip != 'true'
         with:
           path: |
             ~/.cargo/registry/index
@@ -82,13 +97,8 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
-      - run: uv sync --locked
-      - run: pnpm install --frozen-lockfile
-      - name: Install the pinned chart-test browser on Windows
-        if: runner.os == 'Windows'
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Start the pinned chart-test browser on Linux
-        if: runner.os == 'Linux'
+      - name: Install and start the pinned chart-test browser
+        if: steps.task_setup.outputs.skip != 'true'
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -135,6 +145,14 @@ jobs:
       - name: Stage current verification evidence
         id: artifacts
         if: always() && steps.reports.outcome == 'success'
+        env:
+          # A cache state describes the archive restored by this job.
+          SCOPEHUB_TIMING_CACHE: >-
+            ${{ steps.cargo_cache.outcome == 'skipped' && 'not_requested' ||
+                steps.cargo_cache.outcome != 'success' && 'unknown' ||
+                steps.cargo_cache.outputs['cache-hit'] == 'true' && 'warm' ||
+                steps.cargo_cache.outputs['cache-matched-key'] != '' && 'partial' ||
+                steps.cargo_cache.outputs['cache-primary-key'] != '' && 'cold' || 'unknown' }}
         run: uv run --no-sync python scripts/ci_artifacts.py stage
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -144,3 +162,22 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+      - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.timing_path != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-timing-${{ matrix.os }}
+          path: ${{ steps.artifacts.outputs.timing_path }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Save the complete Cargo cache
+        if: success() && !inputs.task_id && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ steps.cargo_cache.outputs['cache-primary-key'] }}

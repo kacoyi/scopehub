@@ -133,6 +133,25 @@ class PublisherAdvisoryTests(unittest.TestCase):
         self.assertIn('-I -S scripts/publisher_advisory.py', credential_steps[0]['run'])
 
 
+class HostedCargoCacheTests(unittest.TestCase):
+    def test_only_successful_full_runs_can_publish_the_shared_build_key(self):
+        workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
+        steps = workflow['jobs']['verify']['steps']
+        caches = {step['uses'].split('@')[0]: step for step in steps
+                  if step.get('uses', '').startswith('actions/cache')}
+        self.assertEqual({'actions/cache/restore', 'actions/cache/save'}, set(caches))
+        restore, save = caches['actions/cache/restore'], caches['actions/cache/save']
+        self.assertEqual(restore['uses'].split('@')[1], save['uses'].split('@')[1])
+        self.assertEqual(restore['with']['path'], save['with']['path'])
+        self.assertEqual("${{ steps.cargo_cache.outputs['cache-primary-key'] }}", save['with']['key'])
+        self.assertEqual("steps.task_setup.outputs.skip != 'true'", restore['if'])
+        self.assertEqual(
+            "success() && !inputs.task_id && steps.cargo_cache.outputs['cache-primary-key'] != '' "
+            "&& steps.cargo_cache.outputs['cache-hit'] != 'true'", save['if'],
+        )
+        self.assertGreater(steps.index(save), next(i for i, step in enumerate(steps) if step.get('id') == 'artifacts'))
+
+
 class DependencyTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()

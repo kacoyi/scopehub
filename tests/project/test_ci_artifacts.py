@@ -1,6 +1,6 @@
 """Exercise the hosted publication boundary with isolated synthetic evidence."""
 
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 import base64
 from io import StringIO
 import json
@@ -8,10 +8,11 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 from unittest.mock import patch
 
-from scripts import check_chart_history, verification_evidence
+from scripts import check_chart_history, ci_artifacts, verification_evidence
 from scripts.check import PRIVATE_CHECK_LOGS, redacted_check_log
 from scripts.ci_artifacts import PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
@@ -109,6 +110,88 @@ class PublicationTests(ProjectFixture):
         self.write('runs/unfinished/environment.log', self.sentinel)
         self.assertFalse(stage_artifacts(self.root, self.destination, {}))
         self.assertFalse(self.destination.exists())
+
+    def stage_job(self, environment):
+        runner = self.destination.parent
+        summary = runner / 'step-summary.md'
+        outputs = runner / 'outputs'
+        messages = StringIO()
+        with (patch.dict(os.environ, {
+            **environment, 'GITHUB_ACTIONS': 'true', 'RUNNER_TEMP': str(runner),
+            'GITHUB_OUTPUT': str(outputs), 'GITHUB_STEP_SUMMARY': str(summary),
+        }), patch.object(ci_artifacts, 'ROOT', self.root),
+              patch.object(sys, 'argv', ['ci_artifacts.py', 'stage']),
+              redirect_stdout(messages), redirect_stderr(messages)):
+            ci_artifacts.main()
+        staged = dict(line.split('=', 1) for line in outputs.read_text(encoding='utf-8').splitlines())
+        return staged, summary, messages.getvalue()
+
+    def test_stage_job_publishes_a_small_timing_record_and_summary(self):
+        report = self.hosted_report()
+        for check in report['checks']:
+            check['duration_seconds'] = 3
+        report['checks'][0]['command'].append(self.sentinel.decode().strip())
+        report['selection'] = {'profile': 'full', 'task_id': None,
+                               'checks': [check['id'] for check in report['checks']]}
+        report['generated_at'] = '2026-11-21T00:00:05Z'
+        report['timing'] = {'elapsed_seconds': 5}
+        self.save_report(report)
+        self.write('verification-timing.json', self.sentinel)
+
+        outputs, summary, _ = self.stage_job(self.env)
+        record = Path(outputs['timing_path'])
+        self.assertEqual('verification-timing.json', record.name)
+        self.assertEqual(record.read_bytes(), (Path(outputs['path']) / record.name).read_bytes())
+        self.assertNotIn(self.sentinel.rstrip(), record.read_bytes())
+        self.assertNotIn(b'Synthetic test fixture, not product validation.', record.read_bytes())
+        self.assertNotIn(b'"python_executable"', record.read_bytes())
+        summary_text = summary.read_text(encoding='utf-8')
+        self.assertIn('harness', summary_text.lower())
+        self.assertNotIn(self.sentinel.decode().strip(), summary_text)
+
+    def test_stage_job_reports_missing_harness_separately_from_evidence(self):
+        prepare_reports(self.root)
+        outputs, summary, _ = self.stage_job({
+            'GITHUB_REPOSITORY': 'fixture/scopehub', 'GITHUB_RUN_ID': '10', 'GITHUB_RUN_ATTEMPT': '2',
+            'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_SHA': 'a' * 40, 'RUNNER_OS': 'Linux',
+        })
+        self.assertNotIn('path', outputs)
+        self.assertTrue(Path(outputs['timing_path']).is_file())
+        self.assertIn('harness', summary.read_text(encoding='utf-8').lower())
+
+    def assert_core_artifacts_retained(self, outputs, report):
+        staged = Path(outputs['path'])
+        for relative in ('test-report.json', 'runs/fixture/test-report.json'):
+            self.assertEqual(json_bytes(report), (staged / relative).read_bytes())
+        for check in report['checks']:
+            relative = check['log'].removeprefix('.reports/')
+            self.assertEqual((self.reports / relative).read_bytes(), (staged / relative).read_bytes())
+
+    def test_optional_summary_write_failure_keeps_core_and_timing_outputs(self):
+        report = self.hosted_report()
+        self.save_report(report)
+        (self.destination.parent / 'step-summary.md').mkdir()
+
+        outputs, _, messages = self.stage_job(self.env)
+
+        self.assert_core_artifacts_retained(outputs, report)
+        timing = Path(outputs['timing_path'])
+        self.assertEqual(timing.read_bytes(), (Path(outputs['path']) / timing.name).read_bytes())
+        self.assertIn('warning', messages.lower())
+        self.assertIn('summary', messages.lower())
+
+    def test_optional_compact_timing_failure_keeps_core_output(self):
+        report = self.hosted_report()
+        self.save_report(report)
+
+        with patch.object(ci_artifacts, 'stage_timing', side_effect=OSError('Synthetic timing write failure')):
+            outputs, _, messages = self.stage_job(self.env)
+
+        self.assert_core_artifacts_retained(outputs, report)
+        self.assertNotIn('timing_path', outputs)
+        self.assertFalse((Path(outputs['path']) / 'verification-timing.json').exists())
+        self.assertIn('warning', messages.lower())
+        self.assertIn('timing', messages.lower())
 
     def test_only_current_named_logs_report_and_synthetic_browser_outputs_are_published(self):
         browser_checks = (
