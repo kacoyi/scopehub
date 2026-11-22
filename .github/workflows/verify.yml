@@ -152,7 +152,7 @@ jobs:
                 steps.cargo_cache.outcome != 'success' && 'unknown' ||
                 steps.cargo_cache.outputs['cache-hit'] == 'true' && 'warm' ||
                 steps.cargo_cache.outputs['cache-matched-key'] != '' && 'partial' ||
-                steps.cargo_cache.outputs['cache-primary-key'] != '' && 'cold' || 'unknown' }}
+                steps.cargo_cache.outputs['cache-primary-key'] != '' && 'not_restored' || 'unknown' }}
         run: uv run --no-sync python scripts/ci_artifacts.py stage
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

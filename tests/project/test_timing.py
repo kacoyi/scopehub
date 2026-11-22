@@ -107,6 +107,7 @@ class ReportTimingTests(unittest.TestCase):
         self.assertEqual('c' * 64, sample['inputs_sha256'])
         self.assertTrue(sample['working_tree_dirty'])
         self.assertEqual('not_requested', sample['cache'])
+        self.assertEqual('not_restored', timing.report_sample(report, cache='not_restored')['cache'])
 
     def test_explicit_harness_clock_is_independent_of_overlapping_check_work(self):
         report = historical_report()
@@ -200,6 +201,10 @@ class HostedTimingTests(unittest.TestCase):
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
         linux.update(run_attempt=2, completed_at=None, status='in_progress', conclusion=None)
         linux['steps'][0].update(completed_at=None, status='in_progress', conclusion=None)
+        linux['steps'].append({
+            'name': 'Verify the selected task', 'status': 'queued', 'conclusion': None,
+            'started_at': None, 'completed_at': None,
+        })
         run = dict(hosted_run(), run_attempt=2, status='in_progress', conclusion=None)
         metrics, = timing.hosted_timing(run, [linux])['jobs']
         for segment in ('queue', 'harness_step', 'tail', 'runner', 'total'):

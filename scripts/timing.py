@@ -17,7 +17,7 @@ SAMPLE_KIND = 'scopehub-verification-timing-v1'
 ARCHIVE_KIND = 'scopehub-timing-archive-v1'
 TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
-CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested'}
+CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
 HARNESS_STEPS = {
@@ -210,7 +210,8 @@ def job_summary(sample):
 
 
 def active_step(steps, names):
-    matches = [step for step in steps if step.get('name') in names and step.get('conclusion') != 'skipped']
+    matches = [step for step in steps if step.get('name') in names and step.get('conclusion') != 'skipped'
+               and step.get('status') not in {'queued', 'pending', 'waiting'} and timestamp(step.get('started_at'))]
     if len(matches) != 1:
         return None, None
     return timestamp(matches[0].get('started_at')), timestamp(matches[0].get('completed_at'))
@@ -285,9 +286,10 @@ def hosted_timing(run, jobs):
         for row in rows:
             if ids.count(row['job_id']) > 1:
                 row['identity_issues']['conflicts'].append('duplicate_job_id')
-    complete = (run.get('status') == 'completed' and len(rows) == len(PLATFORMS)
-                and {row['platform'] for row in rows} == set(PLATFORMS.values())
-                and all(row['status'] == 'completed' and not row['identity_issues']['conflicts'] for row in rows))
+    bound_matrix = (len(rows) == len(PLATFORMS) and {row['platform'] for row in rows} == set(PLATFORMS.values())
+                    and all(not row['identity_issues']['conflicts'] for row in rows))
+    complete = (bound_matrix and run.get('status') == 'completed'
+                and all(row['status'] == 'completed' for row in rows))
     totals = [row['seconds']['total'] for row in rows]
     runners = [row['seconds']['runner'] for row in rows]
     return {
@@ -296,7 +298,7 @@ def hosted_timing(run, jobs):
         'status': run.get('status'), 'conclusion': run.get('conclusion'), 'jobs': rows,
         'workflow': {
             'matrix_complete': complete,
-            'identity_complete': (complete and positive_id(run_id) and positive_id(attempt)
+            'identity_complete': (bound_matrix and positive_id(run_id) and positive_id(attempt)
                                   and commit_id(run.get('head_sha'))
                                   and all(not row['identity_issues']['missing'] for row in rows)),
             'total_elapsed_seconds': max(totals) if complete and all(value is not None for value in totals) else None,
