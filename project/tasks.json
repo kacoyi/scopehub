@@ -13439,7 +13439,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. See contracts/reviews/2026-11-22-ai-workspace-canvas.json for proposed edits to chart panes, individual views or the whole workbench using visual references, and the open release-scope decisions.",
+      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. See contracts/reviews/2026-11-22-ai-workspace-canvas.json for the broader proposal to redesign any part of the workbench from text or a visual reference and its open release-scope decisions.",
       "blocker": null,
       "closure_reason": null
     },
@@ -13894,7 +13894,7 @@
     },
     {
       "id": "M0-067",
-      "title": "Define reference-guided edits to the workbench and its contents",
+      "title": "Record free visual design as the desktop workbench goal",
       "milestone": "M0",
       "status": "active",
       "depends_on": [
@@ -13905,11 +13905,13 @@
         "0016"
       ],
       "scope": [
+        "engineering-contract-v1.json",
         "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
         "project/tasks.json"
       ],
       "acceptance": [
-        "Record the owner’s intended workbench scope and the ways to express design intent through a description, a selected screenshot or a reference URL. Cover whole-workbench redesign and edits inside a selected view.",
+        "Record free visual design of the entire workbench as a long-term product goal. Users may replace previous regions or change one detail, expressing the result through a description, selected screenshot or reference URL.",
+        "Show the same candlestick and line presentations simultaneously in either orientation with volume and indicators placed wherever the user chooses. Treat views, groupings and chart panes as possible implementation details and examples.",
         "Illustrate the proposal with one authorized information feed shown as headlines, image cards and two independently arranged groups. Keep source records, available fields, attribution, data access and unrelated views intact.",
         "Distinguish the proposal and its prospective acceptance example from the chart-library observation, existing product capabilities and current release commitments."
       ],
@@ -13922,7 +13924,7 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "The owner and development AI can distinguish designing the workbench from adding new data services or changing the application shell.",
+        "outcome": "The product contract states the owner’s long-term goal of freely designing the workbench, and the proposal shows concrete examples without changing first-release commitments.",
         "change_types": [
           "tooling"
         ],
@@ -13931,7 +13933,7 @@
           "engineering-contract-v1.json"
         ],
         "hypotheses": [
-          "A single editable workbench description can express a new composition or a small edit inside a widget over the same data."
+          "An editable description of the presentation can span former view boundaries and preserve the identity of the underlying data."
         ],
         "risks": [
           {
@@ -13948,6 +13950,7 @@
             "development-tooling"
           ],
           "entrypoints": [
+            "engineering-contract-v1.json",
             "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
             "project/tasks.json"
           ],
@@ -13972,10 +13975,10 @@
             "The existing chart proposal, observed probe and current task acceptance."
           ],
           "change": [
-            "Describe composition of widget internals and use of an explicit visual reference."
+            "Record the confirmed design goal in the product contract and illustrate it with freely positioned price series and alternative views of a connected feed."
           ],
           "data_plan": "Use a hypothetical authorized feed and synthetic records as design examples.",
-          "cleanup": "Extend the existing workbench proposal in place."
+          "cleanup": "Keep the long-term goal in the UI contract and concrete design options in the existing proposal."
         }
       }
     }
