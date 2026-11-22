@@ -3241,7 +3241,7 @@
       "id": "pr-synchronize-stale-preview-sha",
       "source": "PR 41 run 45028387189, Ubuntu job 137226316277. Retained report at archives/runs/20261122T133800.124696Z-cdcf5ecd/test-report.json and adjacent verification-scope.json (SHA-256 324f3285ffc8b8440e13420088bc8a88dc2c25b57f9527340f8cfdb29bde4fe4).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The full harness succeeded on the actual merge checkout, but selection recorded comparison_unavailable and no base or count. The selector log rejected the event merge SHA after validating the PR ref, checkout and both parents.",
       "task_ids": [
         "M0-068"
@@ -3249,7 +3249,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The selector required the PR payload preview SHA to equal the current Actions checkout even on synchronize, after the Actions SHA, PR ref and current ordered parents had already been verified.",
+        "correction": "On synchronize, validate the event after SHA against the current PR head and classify the verified checkout. Continue validating the format of a supplied preview SHA and preserve the existing equality check on other actions.",
+        "prevention": "A Git fixture advances the topic and builds fresh test merges. It covers both records and executable updates with a previous preview and rejects contradictory after, ref, checkout, parent or malformed preview identities. A replay of the actual hosted checkout yielded change_requires_full with its base and 24 changed paths."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {

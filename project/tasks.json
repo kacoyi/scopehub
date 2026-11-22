@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-068",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -14070,7 +14070,7 @@
       "id": "M0-068",
       "title": "Verify synchronized pull requests against the actual Actions merge checkout",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-060"
       ],
@@ -14093,10 +14093,15 @@
         "python-contracts-workers",
         "architecture"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the hosted mismatch and verify the corrected selector against real merge objects.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-068-02f9916d8e9b6d6a.json",
+          "sha256": "da76c3dbdf875d0b9b99d7de2a64a11dc66210b7fb4283cf9a4d9cf382dc7d6c"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The real Git regression failed before the change and passed after it. Replaying the retained checkout with stale preview metadata classified all 24 changed files, and contradictory synchronization head, ref, checkout or base identities triggered full fallback. The clean-source task run passed project-state, architecture and python-contracts-workers.",
       "plan": {
         "outcome": "The hosted selection explains which files changed when a PR update races background merge metadata.",
         "change_types": [

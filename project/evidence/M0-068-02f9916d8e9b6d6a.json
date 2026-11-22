@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-068",
+  "task_definition_sha256": "62070f117ae30ff1f14d8f37bd4bdeb3c513c3bd713e174fa2d170dd21ad94ad",
+  "run_id": "20261122T135307.211644Z-2627bc61",
+  "recorded_at": "2026-11-22T13:54:40.690178+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "66497e77ffd60cfa1ac10836c756ab75fee2e2186884b39ed49f58f7a79795de",
+    "file_count": 550,
+    "git_head": "3590eaa60716317386b799170feae209ef7cd00c",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "02f9916d8e9b6d6a230b68be1881439facaa9c450076153de346b74bcb976cc9",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/change-scoped-verification/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/change-scoped-verification/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "930323d038092b78b3ca3d7ec5839169ff499ee1909d563449bd9727642d4c58"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/change-scoped-verification/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bdd6f637ab74da2b09b40c175aeff3236b04b1676fcbd5bf653a11f160da7806"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/change-scoped-verification/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    }
+  ],
+  "project_definition_sha256": "7fc46ae8a4e61a7b77b19f4402414e19e374c233e35e40a6e32925c11437ae84",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
