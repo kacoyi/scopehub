@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-030",
+  "focus_task_id": "M0-054",
   "tasks": [
     {
       "id": "M0-001",
@@ -4879,6 +4879,7 @@
       ],
       "acceptance": [
         "Exercise the current contract's live and historical chart journeys on Ubuntu, including interruption and recovery, user-owned local data, shared operations, durable workspace recovery, reproducible indicators and human-AI chart collaboration.",
+        "From the same chart, visit My data sources and an AI evidence panel, then return. Observe the shared hierarchy, spacing, controls and status colors in light and dark themes. Exercise keyboard focus, selection and dismissal. Retain representative screenshots and observations of the return to the chart.",
         "Distinguish deterministic AI execution from an explicitly configured model connection. Follow the owner's authorization for the configured service, credentials and any external transmission. Record outstanding real-connection evidence when configuration or authorization is unavailable.",
         "Verify the complete applicable Ubuntu experience on a recorded revision and retain end-to-end observations and regression results. Track Windows installation, packaging and native credential evidence on their designated platform. Explicitly later capabilities remain outside this review unless their delivery scope changes.",
         "Observe CSV folder refresh, a restored custom layout, two-way evidence selection and in-place action results. Identify the exact authorized voice session or record why its real-connection evidence is outstanding.",
@@ -12534,6 +12535,110 @@
       }
     },
     {
+      "id": "M0-054",
+      "title": "Specify the primary visual and interaction reference for the desktop application",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M1-014",
+        "M0-051"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts/contract.json",
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/development.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0023"
+      ],
+      "acceptance": [
+        "The engineering contract names TradingView Supercharts as the primary reference across all ScopeHub-owned desktop interfaces. The chart layout and purpose-specific data and AI workflows remain identifiable.",
+        "The design rule is indexed, the original chart observation retains its scope, and existing delivery tasks have observable criteria for moving between charts, source settings and AI evidence."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Record the owner decision and bind the desktop-wide reference to the existing UI requirements and experience tasks.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Designers and implementers can apply one visual and interaction reference to chart and non-chart surfaces and find a concrete cross-screen review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/contract.json",
+          "contracts/reviews/2026-11-18-chart-workspace.json",
+          "apps/desktop/ui/src/style.css",
+          "apps/desktop/ui/src/workspace-layout.css",
+          "project/tasks.json",
+          "contracts/reviews/2026-11-22-desktop-design-reference.json",
+          "project/development.json"
+        ],
+        "hypotheses": [
+          "Extending the existing chart reference to typography, spacing, color and interaction across panels gives the data and AI screens a consistent design while preserving their workflows."
+        ],
+        "risks": [
+          {
+            "failure": "A chart-only reference survives in the active contract or the new rule is interpreted as completed product acceptance.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the requirement and its task bindings together. The observed chart workflow remains available in its original record.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "engineering-contract-v1.json",
+            "contracts/contract.json",
+            "apps/desktop/ui/src/main.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/layout"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/design_reference"
+            }
+          ],
+          "non_goals": [
+            "Runtime restyling, wire operations and financial service integration."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "The existing chart layout, configurable themes and panel links, source ownership and AI operation permissions."
+          ],
+          "change": [
+            "Apply the primary visual and interaction reference throughout the desktop application."
+          ],
+          "data_plan": "The requirement changes presentation and interaction guidance. It reads and migrates no user data.",
+          "cleanup": "Retain the earlier chart-specific observation and give future surfaces one authoritative rule."
+        }
+      }
+    },
+    {
       "id": "M1-028",
       "title": "Keep a user-selected data directory current across desktop sessions",
       "milestone": "M1",
@@ -12679,6 +12784,7 @@
       "acceptance": [
         "From a fresh local profile open Settings > Data sources > My data sources. Choose the directory containing the user’s downloaded files, or fill the preset or custom form for an API the user obtained directly. Also support entered personal records. All these entries work without a ScopeHub account, data plan or configured model.",
         "Preview entered records with their declared series, units and provenance. Add and edit a user-named connection using its endpoint, authentication form and required fields. A dedicated provider asks only for the fields it needs; the custom flow accepts local documentation and an optional sanitized example. Store only secret references in profile settings.",
+        "From the chart, enter Settings > Data sources > My data sources and open its folder and API forms. Follow /ui/design_reference for typography, spacing, controls and status cues. Dismissing a form returns focus to its invoking control and preserves the current chart context.",
         "Test, save, revisit and disconnect an independently configured source. Display the supplier, check status, actual coverage and most recent usable data. Exercise an untested draft, denied authentication and a successful bounded read against a controlled fixture. Provider qualification has its own task.",
         "Complete this journey on a fresh installation with no first-party data service configured. Remove one user-owned connection and verify the others still work under their respective access rights. Optional service interoperability, when offered, has a separate later qualification under M5-003."
       ],

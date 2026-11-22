@@ -202,7 +202,8 @@
       ],
       "invariants": [
         "No provider SDK or database access",
-        "Late responses cannot replace newer selections"
+        "Late responses cannot replace newer selections",
+        "Apply engineering-contract-v1.json#/ui/design_reference to every desktop screen, panel and application dialog."
       ],
       "checks": [
         "chart-history",

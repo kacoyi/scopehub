@@ -1,0 +1,12 @@
+{
+  "kind": "owner_product_experience_decision",
+  "recorded_at": "2026-11-22",
+  "owner_direction": "Use TradingView Supercharts as the primary visual and interaction reference for the entire ScopeHub desktop application, including settings, user data sources and AI.",
+  "extends": "contracts/reviews/2026-11-18-chart-workspace.json#/reference",
+  "contract": "engineering-contract-v1.json#/ui/design_reference",
+  "task_ids": [
+    "M0-054",
+    "M1-030",
+    "M1-012"
+  ]
+}
