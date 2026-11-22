@@ -101,8 +101,11 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
         if tested['sha'] != commit:
             raise ProjectError('The observed merge commit differs from the checkout log.')
         parents = [parent['sha'] for parent in tested['parents']]
-        if parents != [base, head]:
-            reason = f"Run {run['id']} checked PR #{number} at a different base or head."
+        if len(parents) != 2 or parents[1] != run['head_sha']:
+            result.update(status='blocked', reason=f"Run {run['id']} checked a merge that does not match its declared head.")
+            return result, jobs
+        if parents[0] != base:
+            reason = f"Run {run['id']} checked PR #{number} at a different base."
             continue
         result['checkout'] = {'pull_request': number, 'commit': commit, 'base': base, 'head': head}
         result['required_checkouts'] = observed

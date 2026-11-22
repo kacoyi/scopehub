@@ -10099,14 +10099,15 @@
       "acceptance": [
         "Reproduce a successful pair of required jobs where only the first platform checked the expected pull request and merge commit. Cover both missing and mismatched evidence on the other platform.",
         "Observe each uniquely named required job in the same run attempt and its successful pinned checkout. Require agreement on the pull request, merge checkout and exact parents for both platforms.",
-        "Exercise successful and mismatched platform pairs and retain the real Ubuntu and Windows checkout observations for a reviewed pull request."
+        "Exercise successful and mismatched platform pairs and retain the real Ubuntu and Windows checkout observations for a reviewed pull request.",
+        "Reject a newer attempt with an incorrect head parent even when an older attempt inspected the expected revision."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reproduce a successful pair of required jobs where only the first platform checked the expected pull request and merge commit. Cover both missing and mismatched evidence on the other platform.",
+      "next_action": "Reject a latest attempt whose checked parent conflicts with its own claimed head, even when an older run succeeded.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -10174,7 +10175,7 @@
       "id": "M0-043",
       "title": "Preserve historical feedback observations outside temporary host directories",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "project/feedback.json",
@@ -10196,10 +10197,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify the archived bytes and attach stable observation locators.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-043-93d69e7ba7390661.json",
+          "sha256": "7b17e5c013922a5882c6f538a9ab2640498ae0e0377cdf98fa6feaade0e81ce8"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Restored and verified 17 original files in three independent manifests. Replaced the four temporary source locators and added original-observation retention to the weekly worktree and evidence review.",
       "plan": {
         "outcome": "Three historical feedback sources resolve to the original bytes after the host temporary directories are removed.",
         "change_types": [

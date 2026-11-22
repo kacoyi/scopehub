@@ -232,6 +232,7 @@ class IntegrationHistoryTests(ProjectFixture):
         checked = {1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
         checked.update({job + 1: source for job, source in checked.items()})
         second_steps = [checkout_step]
+        head_parent = {100: head, 101: head, 102: head}
         queries = []
 
         def command(argv, root):
@@ -249,7 +250,7 @@ class IntegrationHistoryTests(ProjectFixture):
                     portable = dict(job, name='portable', id=run_id * 10 + 1, steps=second_steps)
                     return json.dumps([{'jobs': [job, portable]}])
                 if argv[-1].endswith(f'/git/commits/{merge_sha}'):
-                    return json.dumps({'sha': merge_sha, 'parents': [{'sha': parent}, {'sha': head}]})
+                    return json.dumps({'sha': merge_sha, 'parents': [{'sha': parent}, {'sha': head_parent[run_id]}]})
             self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
             return json.dumps(args['protection'])
 
@@ -284,11 +285,17 @@ class IntegrationHistoryTests(ProjectFixture):
             self.assertFalse(missing['technical_ready'])
             self.assertIn('portable has no successful pinned checkout', missing['workflow']['reason'])
             second_steps.append(checkout_step)
-            for only, reason in [(stale, 'different base or head'), (foreign, 'no checked run matches')]:
+            for only, reason in [(stale, 'different base'), (foreign, 'no checked run matches')]:
                 runs[:] = [only]
                 result = integration.inspect(self.root, 1)
                 self.assertFalse(result['technical_ready'])
                 self.assertIn(reason, result['workflow']['reason'])
+            runs[:] = [stale, run]
+            head_parent[102] = 'd' * 40
+            wrong_head = integration.inspect(self.root, 1)
+            self.assertFalse(wrong_head['technical_ready'])
+            self.assertIn('does not match its declared head', wrong_head['workflow']['reason'])
+            head_parent[102] = head
             # A newer attempt with unavailable identity cannot fall through to an older pass.
             runs[:] = [dict(stale, status='queued', conclusion=None), run]
             self.assertIn('queued or running', integration.inspect(self.root, 1)['workflow']['reason'])

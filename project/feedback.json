@@ -2638,7 +2638,7 @@
       "source": "Independent review of PR 30 at 26aab9d with two required platform jobs.",
       "severity": "major",
       "status": "open",
-      "observation": "A successful Linux checkout supplied the source identity for the entire run. Both a missing and an obsolete Windows checkout incorrectly resulted in a ready recommendation in the two-job reproduction.",
+      "observation": "A successful Linux checkout supplied the source identity for the entire run. Both a missing and an obsolete Windows checkout incorrectly resulted in a ready recommendation in the two-job reproduction. A second replay showed that an older correct run could conceal a newer same-PR checkout with an incorrect head parent.",
       "task_ids": [
         "M0-042"
       ],
