@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "collaboration": {
     "owner": [
-      "The owner starts development by opening Codex CLI in a local Herdr window, sets product needs and priorities, decides product experience tradeoffs and evaluates demonstrated results. The owner decides matters reserved for their authorization. The owner can also use ScopeHub as a product user."
+      "The owner starts development by opening Codex CLI in a local Herdr window, sets product needs and priorities, decides product experience tradeoffs and evaluates demonstrated results. The owner decides matters reserved for their authorization. The owner is building ScopeHub for their own long-term use, whether or not others adopt it."
     ],
     "development_ai": [
       "In this owner's current workflow, AI agents fill every engineering role, including requirement synthesis, technical planning, implementation, independent review, coordination, verification, maintenance and handoff of verified results.",
@@ -14,7 +14,9 @@
       "User-visible behavior, product scope or a meaningful experience tradeoff is unresolved and cannot be inferred from accepted requirements.",
       "A change affects user-data retention or irreversible handling, external transmission, costs, runtime authority or an existing explicit permission boundary.",
       "Publication, merge, release or shared-resource use needs authorization not already granted; preserve existing applicable authorization.",
-      "Apply the current source-control authorization in project/delivery.json#/source_control/authorization. Record the owner's subjective product feedback when they actually exercise the program."
+      "Apply the current source-control authorization in project/delivery.json#/source_control/authorization. Record the owner's subjective product feedback when they actually exercise the program.",
+      "During an owner-started session, point out a concrete limitation in personal use, development or maintenance that affects a current task or is likely to impede an upcoming one. One example from the owner's own work can be enough. When others start using ScopeHub, look for specific difficulties such as a setup step that only the owner knows how to complete.",
+      "Explain which part of the product or working practice causes the difficulty. Suggest the smallest practical adjustment, preferably one the owner can try and reverse. Explain the tradeoff and how to tell whether it helps. The owner can keep the current practice, try a change or defer it. Record consequential decisions in the existing task or feedback record and revisit deferred advice when new evidence warrants it."
     ],
     "question_protocol": [
       "Ask concrete questions about observable behavior and consequences; include a recommended option and the impact of alternatives when useful.",
