@@ -135,7 +135,13 @@ class ProcessTests(unittest.TestCase):
         def close_writer(handle):
             try:
                 if _winapi.WaitForSingleObject(handle, 0) == _winapi.WAIT_TIMEOUT:
-                    _winapi.TerminateProcess(handle, 1)
+                    try:
+                        _winapi.TerminateProcess(handle, 1)
+                    except OSError as error:
+                        # TerminateProcess reports access denied if this exact process already exited.
+                        if (error.winerror != _winapi.ERROR_ACCESS_DENIED
+                                or _winapi.WaitForSingleObject(handle, 0) != _winapi.WAIT_OBJECT_0):
+                            raise
                     self.assertEqual(_winapi.WAIT_OBJECT_0, _winapi.WaitForSingleObject(handle, 10_000))
             finally:
                 _winapi.CloseHandle(handle)
