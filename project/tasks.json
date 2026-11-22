@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-056",
   "tasks": [
     {
       "id": "M0-001",
@@ -13185,6 +13185,102 @@
       "next_action": null,
       "blocker": null,
       "closure_reason": "Ubuntu and native Windows passed the selected checks in run 44996898959. The venv redirector control placed the actual gate outside the verification job. The direct interpreter gate entered that job. Although the writer handle was still unsignaled when job accounting reached zero, it was signaled on return from the full timeout cleanup, 0.266 seconds from the timed wait. The delete-access probe, partial output and digest, and strict deletion passed. The independent reader control reproduced WinError 32 until release. The historical file holder remains unknown."
+    },
+    {
+      "id": "M0-056",
+      "title": "Join observed Windows verification Job members before returning",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-053"
+      ],
+      "scope": [
+        "scripts/windows_job.py",
+        "tests/project/test_processes.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0013"
+      ],
+      "acceptance": [
+        "Retain the exact PR failure where the live writer's process handle was unsignaled at timeout return while DELETE access already succeeded.",
+        "On native Windows confirm the real writer belongs to the verification Job before stop. Join its retained process handle within the existing cleanup bound before returning, and verify diagnostic bytes, report digest and strict deletion.",
+        "Keep launch failures, cleanup errors and independent file contention visible. Preserve the original M0-053 record and product focus."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261122T072140.708728Z-edfb023d",
+          "source_commit": "8dcda240584f4115ed5e7560e386c3620c40ae77",
+          "report_sha256": "36f10d1a179b52be99e888b8e467461798b0ce923025658d63afd8b142ec1403"
+        }
+      ],
+      "plan": {
+        "outcome": "The same synthetic Windows writer that exposed early cleanup return is a confirmed Job member and its process object has signaled when cleanup returns.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/windows_job.py",
+          "scripts/process_tree.py",
+          "tests/project/test_processes.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Waiting for the gate and zero active Job members can finish before a separately observed writer signals. Native run 44997698442 observed this at the public timeout return, with DELETE access already available."
+        ],
+        "risks": [
+          {
+            "failure": "A process ID that exited before inspection could be reused, or cleanup could extend a separate deadline per member.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain both original failed diagnostics. Revert the additional cleanup change on this repair branch or through a reviewed correction, preserving the independently verified gate assignment fix.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/windows_job.py",
+            "scripts/process_tree.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product changes, provider calls, private input, release and historical file-holder attribution."
+          ],
+          "open_questions": [
+            "Which return boundaries now see the same writer signal on the hosted native runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The gate assignment fix, Job termination, process accounting, bounded cleanup, partial diagnostics, failure reporting and portable behavior."
+          ],
+          "change": [
+            "Before termination retain handles for verified members in the Windows Job snapshot and wait for those process objects within the cleanup deadline."
+          ],
+          "data_plan": "Use synthetic processes with disposable logs. Preserve both failed reports by identity and archive accepted Windows evidence.",
+          "cleanup": "Close acquired process handles on every path and retain the existing kill-on-close fallback. Keep cleanup errors visible."
+        }
+      },
+      "next_action": "Add an observed-member exit barrier, then rerun the native timeout regression and the exact PR checks.",
+      "blocker": null,
+      "closure_reason": null
     }
   ]
 }

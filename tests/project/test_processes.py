@@ -44,6 +44,14 @@ class ProcessTests(unittest.TestCase):
             time.sleep(.01)
         self.fail(f'The synthetic process did not report its PID to {marker_path.name}.')
 
+    def windows_job_contains(self, job, handle):
+        import ctypes
+        from ctypes import wintypes
+
+        in_job = wintypes.BOOL()
+        job.require(job.api.IsProcessInJob(handle, job.handle, ctypes.byref(in_job)))
+        return bool(in_job.value)
+
     def test_timeout_preserves_partial_diagnostics(self):
         result = self.execute("import time; print('diagnostic before timeout', flush=True); time.sleep(30)")
         self.assertEqual('failed', result['status'])
@@ -58,9 +66,6 @@ class ProcessTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == 'win32', 'requires the Windows venv redirector and Job Objects')
     def test_windows_gated_launcher_is_the_assigned_process(self):
-        import ctypes
-        from ctypes import wintypes
-
         from scripts.windows_job import WindowsJob
 
         environment = self.root / 'venv'
@@ -73,17 +78,13 @@ class ProcessTests(unittest.TestCase):
         def assign_after_gate_starts(job, pid):
             gate_pid = self.read_live_pid(ready_path)
             original_assign(job, pid)
-            gate_in_job = wintypes.BOOL()
-            is_process_in_job = job.api.IsProcessInJob
-            is_process_in_job.argtypes = [wintypes.HANDLE, wintypes.HANDLE, ctypes.POINTER(wintypes.BOOL)]
-            is_process_in_job.restype = wintypes.BOOL
             # PROCESS_QUERY_LIMITED_INFORMATION suffices for IsProcessInJob.
             handle = job.require(job.api.OpenProcess(0x1000, False, gate_pid))
             try:
-                job.require(is_process_in_job(handle, job.handle, ctypes.byref(gate_in_job)))
+                gate_in_job = self.windows_job_contains(job, handle)
             finally:
                 job.require(job.api.CloseHandle(handle))
-            observed.append((pid, gate_pid, bool(gate_in_job.value)))
+            observed.append((pid, gate_pid, gate_in_job))
 
         launcher = (
             'from pathlib import Path\nimport os\n'
@@ -150,7 +151,7 @@ class ProcessTests(unittest.TestCase):
             nonlocal writer_handle, timeout_started
             pid = self.read_live_pid(marker)
             # Keep the original process identity for the probe and fixture cleanup.
-            writer_handle = _winapi.OpenProcess(_winapi.SYNCHRONIZE | 0x0001, False, pid)
+            writer_handle = _winapi.OpenProcess(_winapi.SYNCHRONIZE | 0x1000 | 0x0001, False, pid)
             self.addCleanup(close_writer, writer_handle)
             observed['writer_pid'] = pid
             self.assertEqual(_winapi.WAIT_TIMEOUT, _winapi.WaitForSingleObject(writer_handle, 0))
@@ -158,6 +159,9 @@ class ProcessTests(unittest.TestCase):
             return original_wait(process, timeout, cancel)
 
         def observe_job_stop(job):
+            if writer_handle is not None:
+                observed['writer_in_job_before_stop'] = self.windows_job_contains(job, writer_handle)
+                observed['writer_wait_before_job_stop'] = _winapi.WaitForSingleObject(writer_handle, 0)
             original_stop(job)
             if writer_handle is not None:
                 observed['writer_wait_after_job_stop'] = _winapi.WaitForSingleObject(writer_handle, 0)
@@ -184,6 +188,9 @@ class ProcessTests(unittest.TestCase):
         path = self.root / result['log']
         print(f'Windows timeout observation: {json.dumps(observed)}', flush=True)
         self.assertEqual('timeout', result.get('reason_code'), processes.log_tail(path))
+        self.assertTrue(observed['writer_in_job_before_stop'], observed)
+        self.assertEqual(_winapi.WAIT_TIMEOUT, observed['writer_wait_before_job_stop'], observed)
+        self.assertEqual(_winapi.WAIT_OBJECT_0, observed['writer_wait_after_job_stop'], observed)
         self.assertEqual(_winapi.WAIT_OBJECT_0, observed['writer_wait_status'], observed)
         self.assertIsNone(observed['delete_access_error'], observed)
         self.assertLess(observed['seconds_from_wait'], 25, observed)
