@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-063",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -13914,7 +13914,7 @@
       "id": "M0-063",
       "title": "Clarify the owner's current AI development and external contribution policy",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-061"
       ],
@@ -13938,10 +13938,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Clarify the current operating model in the existing development and source-control policies, then exercise their normal repository views.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-063-5fd3483d66b04193.json",
+          "sha256": "448e24d9216fda08bcc5b80c25c0d5e66d8e7b77c10327681b5c71411d761d27"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The project brief and detailed task context expose the owner-started development roles, feedback decisions and internal GitHub delegation from their canonical records. Independent review covered internal CI, unsolicited Issues, third-party submissions and confirmed defects. The affected checks passed on the reviewed source. Existing tasks, authorization history and the M0-061 receipt were preserved.",
       "plan": {
         "outcome": "An AI agent can determine who starts its work, which feedback warrants action and what GitHub work the standing delegation covers.",
         "change_types": [
