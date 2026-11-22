@@ -130,6 +130,41 @@ jobs:
             exec .venv/Scripts/python.exe -I -S scripts/publisher_advisory.py
           fi
           exec .venv/bin/python -I -S scripts/publisher_advisory.py
+      - name: Observe Windows loopback resources before and during the unchanged harness
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          netsh int ipv4 show dynamicport tcp
+          netsh int ipv4 show excludedportrange protocol=tcp
+          $probe = Join-Path $env:RUNNER_TEMP 'loopback-probe.ps1'
+          $records = Join-Path $env:RUNNER_TEMP 'loopback-observation.jsonl'
+          @'
+          param([string] $OutputFile)
+          $ErrorActionPreference = 'Stop'
+          while (-not (Test-Path "$OutputFile.stop")) {
+              $connections = @(Get-NetTCPConnection)
+              $loopback = @($connections | Where-Object { $_.RemoteAddress -in '127.0.0.1','::1' })
+              $counts = @{}
+              foreach ($group in ($connections | Group-Object State)) { $counts[$group.Name] = $group.Count }
+              $os = Get-CimInstance Win32_OperatingSystem
+              $procs = @(Get-Process | Where-Object { $_.ProcessName -match 'chrome|node|workspace_bridge|history_bridge' })
+              $sample = [ordered]@{
+                  utc = [DateTime]::UtcNow.ToString('o')
+                  states = $counts
+                  localPorts = @($connections.LocalPort | Sort-Object -Unique).Count
+                  loopbackRows = $loopback.Count
+                  loopbackLocalPorts = @($loopback.LocalPort | Sort-Object -Unique).Count
+                  freeRAMKiB = $os.FreePhysicalMemory
+                  freeVirtualKiB = $os.FreeVirtualMemory
+                  processes = @($procs | Group-Object ProcessName | ForEach-Object {
+                      [ordered]@{name=$_.Name; count=$_.Count; handles=($_.Group | Measure-Object Handles -Sum).Sum; privateBytes=($_.Group | Measure-Object PrivateMemorySize64 -Sum).Sum}
+                  })
+              }
+              Add-Content -LiteralPath $OutputFile -Value ($sample | ConvertTo-Json -Compress -Depth 4)
+              Start-Sleep -Seconds 10
+          }
+          '@ | Set-Content $probe
+          Start-Process pwsh -ArgumentList '-NoProfile','-File',$probe,$records -RedirectStandardOutput "$records.out" -RedirectStandardError "$records.err"
       - name: Verify the selected task
         if: inputs.task_id
         env:
@@ -142,6 +177,16 @@ jobs:
         run: uv run python scripts/check.py --require-windows
       - if: runner.os == 'Windows' && inputs.profile == 'release' && !inputs.task_id
         run: uv run python scripts/check.py --profile release --require-windows
+      - name: Report aggregate Windows loopback resource observations
+        if: always() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $records = Join-Path $env:RUNNER_TEMP 'loopback-observation.jsonl'
+          New-Item -ItemType File -Path "$records.stop" -Force | Out-Null
+          if (Test-Path $records) { Get-Content $records }
+          if (Test-Path "$records.err") { Get-Content "$records.err" }
+          Get-WinEvent -FilterHashtable @{LogName='System'; Id=4227,4231; StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,ProviderName | Format-Table
+          exit 0
       - name: Stage current verification evidence
         id: artifacts
         if: always() && steps.reports.outcome == 'success'
