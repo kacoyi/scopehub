@@ -3164,7 +3164,7 @@
       "source": "Desktop localization engineering review on 2026-11-22. A synthetic restored equity without a declared price tick reproduced the issue.",
       "severity": "major",
       "status": "open",
-      "observation": "The watchlist summary rendered a restored close of 12.34 as 12 when no price tick was available.",
+      "observation": "The watchlist summary rendered a restored close of 12.34 as 12 when no price tick was available. Showing the fractional close exposed a binary floating-point tail in its displayed change from 12.25.",
       "task_ids": [
         "M1-032"
       ],

@@ -33,3 +33,20 @@ export function price(value: number, instrument: Instrument) {
   const digits = instrument.price_tick.split('.')[1]?.length ?? 0;
   return formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
+
+function decimalPrice(value: number) {
+  const [mantissa = '0', power = '0'] = value.toExponential().split('e');
+  const [whole, fraction = ''] = mantissa.split('.');
+  return { coefficient: BigInt(whole + fraction), exponent: Number(power) - fraction.length };
+}
+
+export function priceChange(current: number, previous: number, instrument: Instrument) {
+  if (instrument.price_tick != null) return price(Math.abs(current - previous), instrument);
+  const end = decimalPrice(current);
+  const start = decimalPrice(previous);
+  const exponent = Math.min(end.exponent, start.exponent);
+  const delta = end.coefficient * 10n ** BigInt(end.exponent - exponent)
+    - start.coefficient * 10n ** BigInt(start.exponent - exponent);
+  const amount = delta < 0n ? -delta : delta;
+  return formatNumber(`${amount}e${exponent}`, { maximumSignificantDigits: 21 });
+}

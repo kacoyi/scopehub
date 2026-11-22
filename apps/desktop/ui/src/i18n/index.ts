@@ -35,12 +35,14 @@ export const useLocalePreference = () => useSyncExternalStore(subscribeLocale, g
 
 const numbers = new Map<string, Intl.NumberFormat>();
 const dates = new Map<string, Intl.DateTimeFormat>();
-export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+type DisplayNumber = number | `${bigint}e${number}`;
+export function formatNumber(value: DisplayNumber, options?: Intl.NumberFormatOptions): string {
   const locale = getLocale();
   const key = locale + JSON.stringify(options ?? {});
   let formatter = numbers.get(key);
   if (!formatter) { formatter = new Intl.NumberFormat(locale, options); numbers.set(key, formatter); }
-  return formatter.format(value);
+  // Intl can format an exact decimal without converting it back to binary floating point.
+  return (formatter.format as (input: DisplayNumber) => string)(value);
 }
 export function formatDateTime(value: number | Date, options: Intl.DateTimeFormatOptions): string {
   const locale = getLocale();

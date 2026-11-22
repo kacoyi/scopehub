@@ -1,5 +1,5 @@
 import { formatNumber, message, t, type Message } from './i18n';
-import { assetLabel, instrumentName, price, symbol, unitLabel } from './instrument-display';
+import { assetLabel, instrumentName, price, priceChange, symbol, unitLabel } from './instrument-display';
 import {
   isClosedBarGapRevision, isSampleRevision, sampleDateStart, sampleRevisionInstrument, sampleRevisions,
   type Bar, type ChartHistory, type Instrument, type MarketFailure, type SampleRevision,
@@ -52,7 +52,7 @@ function InstrumentDetails({ instrument, history }: { instrument: Instrument; hi
     <div className="quote">{price(last.close, instrument)} <span>{instrument.currency}</span></div>
     {previous && difference !== undefined && previous.close !== 0 && <div className="quote-difference">
       <b className={difference > 0 ? 'up' : difference < 0 ? 'down' : ''}>
-        {difference < 0 ? '−' : '+'}{price(Math.abs(difference), instrument)} ({difference < 0 ? '−' : '+'}{formatNumber(Math.abs(difference / previous.close), {
+        {difference < 0 ? '−' : '+'}{priceChange(last.close, previous.close, instrument)} ({difference < 0 ? '−' : '+'}{formatNumber(Math.abs(difference / previous.close), {
           style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false,
         })})</b>
       <small>{t('vs previous bar')}</small>

@@ -64,18 +64,35 @@ async function restoreFrozenCsv(page, dispatch) {
   await expect(page.getByRole('heading', { name: 'FIX-CSV', exact: true })).toBeVisible();
 }
 
-test('retains a restored CSV close without a price tick in both languages', async ({ page }) => {
+test('retains a restored CSV close and price change without a price tick in both languages', async ({ page }) => {
   await restoreFrozenCsv(page);
   await openPanel(page, 'Watchlist');
   const englishDetails = page.getByRole('region', { name: 'Selected instrument details' });
   await expect(englishDetails.locator('.quote')).toHaveText('12.34');
+  await expect(englishDetails.locator('.quote-difference b')).toHaveText('+0.09 (+0.73%)');
 
   await control(page, 'Language settings').click();
   await page.getByRole('combobox', { name: 'Interface language' }).selectOption('zh-Hans');
   await control(page, '关闭').click();
   const chineseDetails = page.getByRole('region', { name: '所选品种详情' });
   await expect(chineseDetails.locator('.quote')).toHaveText('12.34');
+  await expect(chineseDetails.locator('.quote-difference b')).toHaveText('+0.09 (+0.73%)');
   await expect(page.getByText('Watchlist.csv', { exact: true })).toBeVisible();
+});
+
+test('formats small price changes and keeps declared tick precision', async ({ page }) => {
+  await page.goto('/');
+  const changes = await page.evaluate(async () => {
+    const { priceChange } = await import('/src/instrument-display.ts');
+    const unknownTick = { price_tick: null };
+    return [
+      priceChange(1.3e-7, 2e-8, unknownTick),
+      priceChange(2.0000000000000003e-120, 2e-120, unknownTick),
+      priceChange(1000000000000000.4, 1000000000000000.2, unknownTick),
+      priceChange(12.34, 12.25, { price_tick: '0.001' }),
+    ];
+  });
+  expect(changes).toEqual(['0.00000011', '0.' + '0'.repeat(135) + '3', '0.2', '0.090']);
 });
 
 test('translates indicator diagnostics by engine in preview and accepted details', async ({ page }) => {
