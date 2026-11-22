@@ -1430,7 +1430,7 @@
     },
     {
       "id": "local-csv-mapping-save-and-publication-replay",
-      "source": "Independent synthetic native Rust dispatcher replays at 4571353. Probes: /var/tmp/scopehub-local-v5-sOXuzpLM/independent/replay.json and /var/tmp/scopehub-local-v5-sOXuzpLM/minimal-replay/events.jsonl.",
+      "source": "Independent synthetic native Rust dispatcher replays at 4571353. The archive manifest identifies the original replay.json and events.jsonl observations. See archives/private/M0-039/historical-feedback-observations/local-csv-mapping-save-and-publication-replay/manifest.json.",
       "observation": "Replaying the same trusted mapping save with its original request ID, live folder and file, full digest, mapping and preview limit advanced the review revision from 2 to 3. A delayed retry of the already committed publication then returned STALE_CONTEXT. Publishing under revision 3 created a second dataset UUID with the same source and mapping digests, 504 identical bars and 506 source locators. A fresh one-row repro left two reviewed mapping versions, two byte-equivalent frozen revisions and one source blob. Independent lock tests preserved cancellation and changed-source rollback.",
       "severity": "major",
       "status": "addressed",
@@ -1768,7 +1768,7 @@
     },
     {
       "id": "folder-refresh-current-alias-points-to-replaced-source",
-      "source": "Independent review of the ordinary folder registry at 3b39f81. Synthetic operation trace /var/tmp/scopehub-015a70a-rows-nknu705w/ops.jsonl line 23. Retained registry and real Chromium reproduction under .reports/folder-alias-identity/red.",
+      "source": "Independent review of the ordinary folder registry at 3b39f81. The manifest retains the synthetic operation trace in ops.jsonl, including line 23. The registry and real Chromium reproduction are under .reports/folder-alias-identity/red. See archives/private/M0-039/historical-feedback-observations/folder-refresh-current-alias-points-to-replaced-source/manifest.json.",
       "observation": "After daily.csv and z.csv were published with identical bytes, replacing only daily.csv left z.csv labeled as its current alias. The replacement had a different current SHA-256. The economic comparison still reported close 8 and close 9 as competing values.",
       "severity": "major",
       "status": "addressed",
@@ -1914,7 +1914,7 @@
     },
     {
       "id": "indicator-obsolete-draft-acceptance",
-      "source": "Independent browser replays on 12c73d8. The original changed-draft, restarted and open-confirmation observations are retained under /var/tmp/scopehub-m3-001-12c73d8-lwPVz1fn/results.",
+      "source": "Independent browser replays on 12c73d8. The manifest retains the original changed-draft, restarted and open-confirmation results. See archives/private/M0-039/historical-feedback-observations/indicator-obsolete-draft-acceptance/manifest.json.",
       "observation": "A delayed ready reply for an earlier period and interval could be accepted after editing the form. Changing the settings after opening the confirmation also left the old approval actionable. The repaired real-browser regression rejects the late result and old confirmation after parameter, interval, input expression and source changes, and restores the previously accepted bytes after restart. Local report .reports/indicator-stale/formal-retry/results.json.",
       "severity": "major",
       "status": "addressed",
@@ -2631,6 +2631,22 @@
         "correction": "Verified exact ancestry, dependent pull requests, recovery copies and original hosted evidence. Retired the 29 redundant remote heads and enabled automatic deletion on merge. Added live inventory and validation of the actual tested pull request, head and base.",
         "prevention": "Weekly branch and worktree reviews now surface through project status alongside a monthly compatibility review. Fixtures exercise fork name collisions, older recorded base tips, direct recovery refs, ambiguous runs and stale tested merge checkouts. Recheck live protection, expected tips, open dependents and independent recovery before retirement."
       },
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-shared-first-job-checkout",
+      "source": "Independent review of PR 30 at 26aab9d with two required platform jobs.",
+      "severity": "major",
+      "status": "open",
+      "observation": "A successful Linux checkout supplied the source identity for the entire run. Both a missing and an obsolete Windows checkout incorrectly resulted in a ready recommendation in the two-job reproduction.",
+      "task_ids": [
+        "M0-042"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
       "deferral_reason": null
     }
   ]

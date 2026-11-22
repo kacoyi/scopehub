@@ -212,6 +212,8 @@ class IntegrationHistoryTests(ProjectFixture):
 
     def test_collection_checks_the_latest_pr_attempt_despite_a_newer_task_dispatch(self):
         args = observations()
+        for settings in [args['policy']['configuration'], args['protection']]:
+            settings['required_status_checks']['checks'].append({'context': 'portable', 'app_id': 123})
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes(args['policy']))
         base = self.commit()
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
@@ -228,6 +230,8 @@ class IntegrationHistoryTests(ProjectFixture):
         runs = [task_run, stale, foreign, run]
         checkout_step = {'name': 'Run actions/checkout@' + '1' * 40, 'conclusion': 'success'}
         checked = {1000: (1, '7' * 40), 1010: (2, '8' * 40), 1020: (1, '9' * 40)}
+        checked.update({job + 1: source for job, source in checked.items()})
+        second_steps = [checkout_step]
         queries = []
 
         def command(argv, root):
@@ -242,7 +246,8 @@ class IntegrationHistoryTests(ProjectFixture):
                 _, merge_sha = checked[run_id * 10]
                 if f'/runs/{run_id}/attempts/{attempt}/jobs?' in argv[-1]:
                     job = dict(args['jobs'][0], head_sha=head, id=run_id * 10, steps=[checkout_step])
-                    return json.dumps([{'jobs': [job]}])
+                    portable = dict(job, name='portable', id=run_id * 10 + 1, steps=second_steps)
+                    return json.dumps([{'jobs': [job, portable]}])
                 if argv[-1].endswith(f'/git/commits/{merge_sha}'):
                     return json.dumps({'sha': merge_sha, 'parents': [{'sha': parent}, {'sha': head}]})
             self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
@@ -260,12 +265,25 @@ class IntegrationHistoryTests(ProjectFixture):
         self.assertEqual(100, result['workflow']['run']['id'])
         self.assertEqual({'pull_request': 1, 'commit': '7' * 40, 'base': base, 'head': head},
                          result['workflow']['checkout'])
+        self.assertEqual([(1000, '7' * 40), (1001, '7' * 40)],
+                         [(job['job_id'], job['commit']) for job in result['workflow']['required_checkouts']])
         self.assertEqual(2, sum('event=pull_request' in argv for argv in queries))
         self.assertEqual(2, sum(argv[:3] == ['gh', 'pr', 'view'] for argv in queries))
         self.assertEqual(head, result['source']['git_head'])
         self.assertFalse(source_identity(self.root)['working_tree_dirty'])
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command)):
+            runs[:] = [run]
+            checked[1001] = (1, '9' * 40)
+            mixed = integration.inspect(self.root, 1)
+            self.assertFalse(mixed['technical_ready'])
+            self.assertIn('different pull requests or merge commits', mixed['workflow']['reason'])
+            checked[1001] = checked[1000]
+            second_steps.clear()
+            missing = integration.inspect(self.root, 1)
+            self.assertFalse(missing['technical_ready'])
+            self.assertIn('portable has no successful pinned checkout', missing['workflow']['reason'])
+            second_steps.append(checkout_step)
             for only, reason in [(stale, 'different base or head'), (foreign, 'no checked run matches')]:
                 runs[:] = [only]
                 result = integration.inspect(self.root, 1)

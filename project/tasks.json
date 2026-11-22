@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-001",
+  "focus_task_id": "M0-042",
   "tasks": [
     {
       "id": "M0-001",
@@ -10076,6 +10076,184 @@
           ],
           "data_plan": "The wire format and persisted records use their existing representations.",
           "cleanup": "Remove the two duplicated production literals and keep independent expected values in the tests."
+        }
+      }
+    },
+    {
+      "id": "M0-042",
+      "title": "Verify the actual checkout of every required pull request job",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "scripts/integration.py",
+        "tests/project/test_integration.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce a successful pair of required jobs where only the first platform checked the expected pull request and merge commit. Cover both missing and mismatched evidence on the other platform.",
+        "Observe each uniquely named required job in the same run attempt and its successful pinned checkout. Require agreement on the pull request, merge checkout and exact parents for both platforms.",
+        "Exercise successful and mismatched platform pairs and retain the real Ubuntu and Windows checkout observations for a reviewed pull request."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce a successful pair of required jobs where only the first platform checked the expected pull request and merge commit. Cover both missing and mismatched evidence on the other platform.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A merge recommendation identifies the actual checkout of each required platform and withholds approval when any required job has stale or missing provenance.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/integration.py",
+          "tests/project/test_integration.py",
+          "project/branch-protection.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A successful Linux checkout supplied the source identity for the entire run. Both a missing and an obsolete Windows checkout incorrectly resulted in a ready recommendation in the two-job reproduction."
+        ],
+        "risks": [
+          {
+            "failure": "One platform verifies an obsolete merge while another platform supplies its apparent source identity.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the failed reproduction and accepted prior recommendations. Record missing or divergent checkout evidence as a blocker. Restore with a reviewed tooling correction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "tests/project/test_integration.py",
+            "project/branch-protection.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing CI permissions, branch protection, product code or release requirements."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current base and head, protected Linux and Windows job identities, immutable accepted history and separate merge authorization."
+          ],
+          "change": [
+            "Bind every required job to the same actual checkout before recommending integration."
+          ],
+          "data_plan": "Retain the failed reproduction and accepted prior recommendations. Record missing or divergent checkout evidence as a blocker. Restore with a reviewed tooling correction.",
+          "cleanup": "Exercise successful and mismatched platform pairs and retain the real Ubuntu and Windows checkout observations for a reviewed pull request."
+        }
+      }
+    },
+    {
+      "id": "M0-043",
+      "title": "Preserve historical feedback observations outside temporary host directories",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "project/feedback.json",
+        "project/delivery.json",
+        "contracts/reviews/2026-11-21-repository-maintenance.json",
+        "project/tasks.json",
+        "AGENTS.md"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Three historical feedback sources resolve to the original bytes after the host temporary directories are removed.",
+        "Preserve 17 original observations in the development archive and replace four temporary locators in three feedback sources.",
+        "Include observation retention and restoration in the weekly worktree review."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Verify the archived bytes and attach stable observation locators.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Three historical feedback sources resolve to the original bytes after the host temporary directories are removed.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/feedback.json",
+          "project/delivery.json",
+          "contracts/reviews/2026-11-21-repository-maintenance.json"
+        ],
+        "hypotheses": [
+          "Three addressed reports still use four host temporary paths as evidence. The independently retained manifest and file digests can preserve those observations."
+        ],
+        "risks": [
+          {
+            "failure": "A lost source observation or an accidental change in its meaning obscures a historical correction.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original sources until their independent copies have been verified. Preserve the original path, file digests and historical report classification in each private manifest.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "project/feedback.json",
+            "project/delivery.json",
+            "contracts/reviews/2026-11-21-repository-maintenance.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing the original verification result, product behavior or acceptance receipts."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original bytes, authorship, observed outcome and attached engineering evidence."
+          ],
+          "change": [
+            "Preserve 17 original observations in the development archive and replace four temporary locators in three feedback sources.",
+            "Include observation retention and restoration in the weekly worktree review."
+          ],
+          "data_plan": "Read and digest each retained file. Store only its logical location and manifest digest in version control.",
+          "cleanup": "Recheck all 17 files against the three independently retained manifests before releasing the temporary copies."
         }
       }
     }

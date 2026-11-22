@@ -57,7 +57,26 @@ def job_checkout(root, repository, job_id):
         return checked_pull_request(log)
 
 
-def verified_pr_run(root, repository, pr, runs, dirty):
+def required_checkouts(root, repository, jobs, contexts):
+    observed = []
+    for name in contexts:
+        matches = [job for job in jobs if job.get('name') == name]
+        if len(matches) != 1:
+            raise ProjectError(f'Expected one required job named {name}.')
+        job = matches[0]
+        if not any(step.get('conclusion') == 'success' and
+                   re.fullmatch(r'Run actions/checkout@[0-9a-f]{40}', step['name']) for step in job['steps']):
+            raise ProjectError(f'Required job {name} has no successful pinned checkout.')
+        number, commit = job_checkout(root, repository, job['id'])
+        observed.append({'name': name, 'job_id': job['id'], 'pull_request': number, 'commit': commit})
+    if not observed or len({item['job_id'] for item in observed}) != len(observed):
+        raise ProjectError('Expected distinct required jobs for the pull request checkout.')
+    if len({(item['pull_request'], item['commit']) for item in observed}) != 1:
+        raise ProjectError('Required jobs checked different pull requests or merge commits.')
+    return observed
+
+
+def verified_pr_run(root, repository, pr, runs, dirty, contexts):
     # The REST pull_requests array describes matching open PRs *now*. It may
     # change when a PR moves, and is empty for some legitimate PR attempts.
     head, base = pr['headRefOid'], pr['baseRefOid']
@@ -69,14 +88,12 @@ def verified_pr_run(root, repository, pr, runs, dirty):
         endpoint = f"repos/{repository}/actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs?per_page=100"
         pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', endpoint], root))
         jobs = [job for page in pages for job in page['jobs']]
-        checkout_job = next((job for job in jobs if any(
-            step.get('conclusion') == 'success' and
-            re.fullmatch(r'Run actions/checkout@[0-9a-f]{40}', step['name'])
-            for step in job['steps'])), None)
-        if not checkout_job:
-            result.update(status='blocked', reason=f"Run {run['id']} has no successful checkout to identify its pull request.")
+        try:
+            observed = required_checkouts(root, repository, jobs, contexts)
+        except ProjectError as error:
+            result.update(status='blocked', reason=f"Run {run['id']}: {error}")
             return result, jobs
-        number, commit = job_checkout(root, repository, checkout_job['id'])
+        number, commit = observed[0]['pull_request'], observed[0]['commit']
         if number != pr['number']:
             reason = f"Verification exists for this head, but no checked run matches PR #{pr['number']}."
             continue
@@ -88,6 +105,7 @@ def verified_pr_run(root, repository, pr, runs, dirty):
             reason = f"Run {run['id']} checked PR #{number} at a different base or head."
             continue
         result['checkout'] = {'pull_request': number, 'commit': commit, 'base': base, 'head': head}
+        result['required_checkouts'] = observed
         return result, jobs
     return {'status': 'blocked', 'reason': reason, 'run': None}, []
 
@@ -201,7 +219,8 @@ def inspect(root=ROOT, pr_number=None):
                       key=lambda run: (run['id'], run['run_attempt']), reverse=True)
 
     runs = workflow_runs()
-    workflow, jobs = verified_pr_run(root, repository, pr, runs, source['working_tree_dirty'])
+    contexts = [check['context'] for check in policy['configuration']['required_status_checks']['checks']]
+    workflow, jobs = verified_pr_run(root, repository, pr, runs, source['working_tree_dirty'], contexts)
     protection = json.loads(command(['gh', 'api', f"repos/{repository}/branches/{policy['branch']}/protection"], root))
     stable = source_identity(root) == source and workflow_runs() == runs
     final_pr = pull_request()

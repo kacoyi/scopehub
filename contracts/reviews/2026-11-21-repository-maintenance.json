@@ -220,7 +220,27 @@
     "remote_heads": "All original GitHub heads restored by exact object ID into a new mirror with a complete object check. The private archive retains github-initial/all-before-cleanup.bundle and its verification.json under M0-039. Recover refs/remotes/origin/<name> from the bundle. Restore the verified head to GitHub with an empty expected-value lease only when its name is free.",
     "local_refs_bundle_sha256": "92739b3b26823852af5e3fb8a6fec6ff2a391cb1a10c54159c6097b110c66647",
     "local_refs": "The local-recovery.bundle in the same private archive preserves the individual shared recovery refs including a worktree-private reflog commit and the pre-existing stash. Twelve refs were restored to a fresh bare repository and checked with full fsck.",
-    "original_hosted_receipts_run": 44515807770
+    "original_hosted_receipts_run": 44515807770,
+    "observation_manifests": [
+      {
+        "feedback_id": "local-csv-mapping-save-and-publication-replay",
+        "path": "archives/private/M0-039/historical-feedback-observations/local-csv-mapping-save-and-publication-replay/manifest.json",
+        "sha256": "25a38c9d267712b8d20fa0947d2548a1e4eeac85320861b7999b54b5d18a4dd2",
+        "files": 2
+      },
+      {
+        "feedback_id": "folder-refresh-current-alias-points-to-replaced-source",
+        "path": "archives/private/M0-039/historical-feedback-observations/folder-refresh-current-alias-points-to-replaced-source/manifest.json",
+        "sha256": "9430b5f1bfe939ca79591a0f8c788e8f8dc8238c882cb98497d35f533dee48c9",
+        "files": 1
+      },
+      {
+        "feedback_id": "indicator-obsolete-draft-acceptance",
+        "path": "archives/private/M0-039/historical-feedback-observations/indicator-obsolete-draft-acceptance/manifest.json",
+        "sha256": "3db1c0cf0519ac8405e50b9c9d7d6ec61b42df71bcce533d67c1553cd726e907",
+        "files": 14
+      }
+    ]
   },
   "dispositions": [
     {

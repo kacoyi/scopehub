@@ -729,7 +729,8 @@
         "reviewed_on": "2026-11-21",
         "actions": [
           "Run pnpm project:worktree retirement with the development archive root and pnpm project:storage. Inspect active processes, private refs, dirty files and original evidence on held checkouts.",
-          "Retire a clean idle checkout after its source and evidence have a verified recovery path. Record the disposition of unique work. Regenerate the observation immediately before each removal."
+          "Retire a clean idle checkout after its source and evidence have a verified recovery path. Record the disposition of unique work. Regenerate the observation immediately before each removal.",
+          "Before releasing a temporary review directory, find feedback records that use its outputs. Copy original observations to a durable location, verify their file digests and record the logical source and manifest digest."
         ]
       },
       {
