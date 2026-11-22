@@ -23,6 +23,14 @@
       "docs": "https://tradingview.github.io/lightweight-charts/docs"
     },
     {
+      "name": "OpenBB Workspace",
+      "url": "https://docs.openbb.co/workspace/analysts/dashboards",
+      "docs": "https://docs.openbb.co/workspace/developers/json-specs/widgets-json-reference",
+      "parameter_linking": "https://docs.openbb.co/workspace/analysts/widgets/interacting-with-data",
+      "use": "Reference for arranging and resizing widgets and sharing selected parameters among related views. The widget specification illustrates how a view describes its expected data and display settings. ScopeHub resolves approved sources through its own adapters and Rust operations.",
+      "dependency_status": "not_adopted"
+    },
+    {
       "name": "JSON Schema",
       "url": "https://json-schema.org/draft/2020-12",
       "use": "Cross-language executable wire contracts"

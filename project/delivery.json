@@ -453,7 +453,8 @@
       "id": "workspace-layout-edit",
       "task_ids": [
         "M2-002",
-        "M4-001"
+        "M4-001",
+        "M2-012"
       ],
       "user_goal": "Arrange a workspace manually or by asking the AI, then revisit the same arrangement.",
       "given": "One main chart, a watchlist, an inspection panel and a known workspace revision.",
@@ -461,19 +462,22 @@
       "then": [
         "The same settings drive direct, declarative and AI edits. Selecting an instrument updates the linked table while preserving the pinned selection.",
         "The user can undo the change or restore the default. Source, AI activity and confirmation controls stay reachable.",
-        "Hover and temporary navigation preserve the committed selection token and unsaved layout. Explicitly selecting another row or document passage advances the selection token independently of the durable workspace revision. Returning from temporary evidence restores the original viewport and independent pinned panels."
+        "Hover and temporary navigation preserve the committed selection token and unsaved layout. Explicitly selecting another row or document passage advances the selection token independently of the durable workspace revision. Returning from temporary evidence restores the original viewport and independent pinned panels.",
+        "The user can add or remove an inspection table and switch the chart and table between compatible authorized bar sources. Both views identify the selected source. Reopening the named layout restores its arrangement and checks each data binding against current access."
       ],
       "failure_cases": [
         "Unknown panel or interaction binding",
         "Invalid layout version or stale AI edit",
         "Interrupted save",
-        "A queued annotation targets yesterday’s selected row after explicit reselection"
+        "A queued annotation targets yesterday’s selected row after explicit reselection",
+        "A saved widget binding points to an incompatible, disconnected or revoked source"
       ],
       "checks": [
         "workspace-layout",
         "operations-workflow",
         "state-migrations",
-        "ai-workflow"
+        "ai-workflow",
+        "workspace-widget-bindings"
       ],
       "evidence_boundary": "A single main chart with built-in panels and allowlisted interactions. Executable custom panels have separate later scope."
     },
