@@ -12,11 +12,21 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.check_architecture import desktop_capability_errors, rust_boundaries
+from scripts.check_architecture import desktop_capability_errors, rust_boundaries, valid_operation_actors
 from scripts.rust_workspace import run_operations, verification_command, workspace_packages
 
 
 class ArchitectureTests(unittest.TestCase):
+    def test_operation_actors_follow_the_declared_roles_and_private_workspace_authority(self):
+        roles = ['user', 'ai', 'system']
+        self.assertTrue(valid_operation_actors({'actors': ['system']}, roles))
+        self.assertTrue(valid_operation_actors({'actors': ['ai', 'user']}, roles))
+        for actors in ([], ['user', 'user'], ['unknown']):
+            self.assertFalse(valid_operation_actors({'actors': actors}, roles))
+        for actors in (['ai'], ['system'], ['user', 'ai']):
+            self.assertFalse(valid_operation_actors({'actors': actors, 'transport': 'private_workspace'}, roles))
+        self.assertTrue(valid_operation_actors({'actors': ['user'], 'transport': 'private_workspace'}, roles))
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

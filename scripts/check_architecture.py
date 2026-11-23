@@ -177,6 +177,14 @@ def desktop_capability_errors(root):
     return errors
 
 
+def valid_operation_actors(operation, declared_actors):
+    actors = operation['actors']
+    if operation.get('transport') == 'private_workspace':
+        return actors == ['user']
+    return (isinstance(actors, list) and bool(actors)
+            and all(actor in declared_actors for actor in actors) and len(set(actors)) == len(actors))
+
+
 def main():
     errors = []
     spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text(encoding='utf-8'))
@@ -220,9 +228,8 @@ def main():
         if (op['effect'] not in {'read', 'workspace', 'draft', 'compute', 'persist', 'control'}
                 or type(op['undoable']) is not bool
                 or not (type(op['confirmation']) is bool or op['confirmation'] == 'python_only')
-                or op['actors'] not in (['user'], ['user', 'ai'])
-                or op.get('transport') not in (None, 'private_workspace')
-                or (op.get('transport') == 'private_workspace' and op['actors'] != ['user'])):
+                or not valid_operation_actors(op, spec['authorization']['actors'])
+                or op.get('transport') not in (None, 'private_workspace')):
             errors.append(f'Invalid operation authority: {name}')
         versions = op.get('wire_bindings', {})
         if not set(versions).issubset(manifest['compatible_protocol_versions']):
