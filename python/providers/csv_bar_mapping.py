@@ -21,6 +21,8 @@ _BAR_RULES = {
 _DECLARATIONS = {
     field.replace('_', ''): field for field in PreviewSeries.__annotations__.keys() | _BAR_RULES
 }
+# These source declarations were reserved for every row binding before the wider mapping review.
+_RESERVED_HEADERS = {'quantityunit', 'priceadjustment', 'venue'}
 _ENUM_FIELDS = {'record_kind', 'instrument_kind', 'volume_semantics', 'timestamp_convention'}
 _STANDARD_TERMS = {'quantity_unit': {'shares', 'lots', 'contracts'}, 'price_adjustment': {'raw'}}
 _SETTLEMENT_NAMES = {name + suffix for name in ('settle', 'settlement') for suffix in ('', 'price', 'px')}
@@ -112,6 +114,9 @@ def _column_key(column: str) -> str:
 
 
 def _declaration(column: str) -> str | None:
+    legacy = _column_key(column)
+    if legacy in _RESERVED_HEADERS:
+        return _DECLARATIONS[legacy]
     return _DECLARATIONS.get(re.sub(r'[ _-]+', '', column.casefold()))
 
 
@@ -143,8 +148,9 @@ def _column_indices(mapping: object, header: list[str], issues: list[PreviewIssu
             issues.append(preview_issue('column_required', field, 'Select the source header for this field.'))
         elif (position := positions.get(column)) is None:
             issues.append(preview_issue('column_missing', field, f'The mapped header {column!r} is missing. Review the file layout.'))
-        elif (field in (*_PRICES, 'volume') and _declaration(column) is None
-              and (role := auxiliary_role(column))):
+        elif (role := auxiliary_role(column)) and (
+            _column_key(column) in _RESERVED_HEADERS or (field in (*_PRICES, 'volume') and _declaration(column) is None)
+        ):
             issues.append(preview_issue('auxiliary_column', field, f'{column!r} is {role}. Select a native bar field.'))
         elif position in assigned and (assigned[position], field) != ('timestamp', 'trading_day'):
             issues.append(preview_issue('column_reused', field, 'Select a distinct source header for this field.'))

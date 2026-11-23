@@ -3471,7 +3471,14 @@
     },
     {
       "id": "native-csv-declaration-coverage",
-      "source": "2026-11-23 contract audit of the M1-034 implementation with an independent synthetic dated futures source.",
+      "source": "2026-11-23 contract audit of the M1-034 implementation with an independent synthetic dated futures source. The clean pre-correction task run is retained at archives/runs/20261123T111435.011662Z-290419cc/test-report.json.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T111435.011662Z-290419cc",
+          "source_commit": "2d5807f4e7ae164bca81012349e61d863d249520",
+          "report_sha256": "975ea74a85ab5a2b3522d24c1cae81a1a13317b203f502e38cad970eec1108e8"
+        }
+      ],
       "severity": "major",
       "status": "open",
       "observation": "Rows declaring a bar end, a different calendar or session, or an equity instrument still normalized and passed the complete-file check under a bar-start dated futures mapping. The declaration list did not cover the formal mapping and series fields.",

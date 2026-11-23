@@ -1213,14 +1213,15 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
     const declarations = {
-      quantity_unit: 'shares', price_adjustment: 'raw', timeframe: '1d', timezone: 'Asia/Shanghai', volume_semantics: 'per_bar',
+      quantity_unit: 'shares', price_adjustment: 'raw', venue: equity.settings.venue, timeframe: '1d', timezone: 'Asia/Shanghai', volume_semantics: 'per_bar',
       timestamp_convention: 'bar_start', calendar_id: equity.settings.calendar_id, session_scope: 'day', instrument_kind: 'equity',
       daily_start_time: '09:30', record_kind: 'native_ohlcv', roll_method: '',
     };
     const row = (close, changes = {}) => [
       '000731', '2026-04-14', '4', '8', '3', String(close), '20', ...Object.values({ ...declarations, ...changes }),
     ];
-    const header = [...equity.header, ...Object.keys(declarations)];
+    const legacyHeaders = { quantity_unit: 'Quantity.Unit', price_adjustment: 'Price.Adjustment', venue: 'Ve:nue' };
+    const header = [...equity.header, ...Object.keys(declarations).map(field => legacyHeaders[field] ?? field)];
     const csv = (...rows) => [header, ...rows].map(fields => fields.join(',')).join('\n') + '\n';
     await writeFile(join(folder, 'daily.csv'), csv(row(5)));
 
@@ -1255,7 +1256,7 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
 
     const conflictingFiles = [
-      ['lots.csv', { quantity_unit: 'lots' }], ['adjusted.csv', { price_adjustment: 'split_adjusted' }],
+      ['lots.csv', { quantity_unit: 'lots' }], ['adjusted.csv', { price_adjustment: 'split_adjusted' }], ['venue.csv', { venue: 'X-OTHER' }],
       ['minute.csv', { timeframe: '1m' }], ['utc.csv', { timezone: 'UTC' }],
       ['cumulative.csv', { volume_semantics: 'cumulative' }], ['bar-end.csv', { timestamp_convention: 'bar_end' }],
       ['calendar.csv', { calendar_id: 'futures-calendar' }], ['session.csv', { session_scope: 'night' }],

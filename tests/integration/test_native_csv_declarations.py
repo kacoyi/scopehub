@@ -107,6 +107,29 @@ class NativeCsvDeclarationTests(unittest.TestCase):
         with self.assertRaises(CsvReviewRequired):
             check_complete_csv(source([*HEADER, 'roll_method'], [*ROW, 'unused-draft']), mapping)
 
+    def test_reserved_economic_headers_keep_their_original_aliases_and_cannot_supply_row_values(self):
+        for header, field, wrong in [('Price.Adjustment', 'price_adjustment', 'split_adjusted'),
+                                     ('Quantity.Unit', 'quantity_unit', 'lots'), ('Ve:nue', 'venue', 'X-OTHER')]:
+            with self.subTest(header=header):
+                valid = source([*HEADER, header], [*ROW, FUTURES_MAPPING[field]])
+                self.assertEqual(check_complete_csv(valid, FUTURES_MAPPING)['bars'][0]['bar']['close'], 102)
+                different = source([*HEADER, header], [*ROW, FUTURES_MAPPING[field]], [*LATER, wrong])
+                preview = preview_csv(different, FUTURES_MAPPING)
+                self.assertIsNone(preview['rows'][1]['normalized'])
+                self.assertEqual(preview['rows'][1]['raw_fields'][-1], wrong)
+                for verify in (check_complete_csv, inspect_folder_csv):
+                    with self.assertRaises(CsvReviewRequired) as conflict:
+                        verify(different, FUTURES_MAPPING)
+                    self.assertEqual(conflict.exception.issue['code'], field + '_mismatch')
+                    self.assertEqual(conflict.exception.locator, {'record_number': 2, 'line_start': 3, 'line_end': 3})
+                for binding in ['close', 'symbol']:
+                    mapping = {**FUTURES_MAPPING, 'columns': {**FUTURES_COLUMNS, binding: header}}
+                    denied, = preview_csv(valid, mapping)['issues']
+                    self.assertEqual((denied['code'], denied['field']), ('auxiliary_column', binding))
+                    with self.assertRaises(CsvReviewRequired) as invalid:
+                        check_complete_csv(valid, mapping)
+                    self.assertEqual(invalid.exception.issue, denied)
+
     def test_explicit_row_bindings_win_over_same_named_declarations(self):
         header = list(HEADER)
         columns = dict(FUTURES_COLUMNS)
