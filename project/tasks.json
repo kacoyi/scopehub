@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-077",
   "tasks": [
     {
       "id": "M0-001",
@@ -15608,6 +15608,108 @@
           "cleanup": "Remove the unintended pass-through of catalog-only fields at the report boundary."
         }
       }
+    },
+    {
+      "id": "M0-077",
+      "title": "Keep workflow, platform and observation details with their maintainers",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-074",
+        "M0-076"
+      ],
+      "decision_refs": [
+        "0007",
+        "0027",
+        "0028"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "contracts",
+        "project",
+        "scripts",
+        "tests"
+      ],
+      "acceptance": [
+        "The engineering index states workbench, financial, trust and module invariants. Concrete presentation flows, wire and runtime encodings, toolchain defaults, evidence formats and delivery procedures have local owners.",
+        "Historical engineering pointers and the ordinary project, architecture and qualification entrypoints keep the same effective rules, including nested fixtures, primary model qualification, required release checks and owner decision inputs.",
+        "Moving the records preserves every accepted product requirement and compatible protocol projection. Blank-workbench acceptance and actual native bulk delivery remain separately visible."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "generated-contracts",
+        "python-contracts-workers"
+      ],
+      "next_action": "Relocate remaining details under ADR 0028, verify every effective field against the reviewed base, and exercise the actual consumers.",
+      "blocker": null,
+      "evidence": [],
+      "plan": {
+        "outcome": "An engineer can change a presentation flow, host profile or observation format at its owner while the top-level product agreement stays readable and older tasks can still navigate to the same rule.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "engineering-contract-v1.json",
+          "contracts/decisions/0028-bulk-data-and-contract-ownership.json",
+          "project/checks.json",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The repository source navigator can serve both historical paths and focused domain records without copying the effective rules."
+        ],
+        "risks": [
+          {
+            "failure": "A moved source silently changes the required provider, authorization, financial or release semantics, or makes an established navigation path unreadable.",
+            "checks": [
+              "project-state",
+              "architecture",
+              "generated-contracts",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the reviewed index, source records and their reader together. Historical receipts remain attributable to their execution inputs.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/development.py",
+            "scripts/project.py",
+            "scripts/check_architecture.py",
+            "engineering-contract-v1.json"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/implementation_policy/contract_ownership"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            }
+          ],
+          "non_goals": [
+            "Changing the product scope, renderer, market reader, data permissions, fixture values or packaged acceptance."
+          ],
+          "open_questions": [
+            "Which existing consumers read a whole section directly and therefore need the resolved engineering view?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Every existing rule value, immutable decision, public protocol and release binding."
+          ],
+          "change": [
+            "Keep the stable agreement and link to focused product workflows, the desktop runtime, verification, and delivery records."
+          ],
+          "data_plan": "Only repository records and their readers move. The application database, workspaces and source revisions retain their formats.",
+          "cleanup": "Remove the moved details from the root and validate each linked record through its ordinary reader."
+        }
+      },
+      "closure_reason": null
     }
   ]
 }

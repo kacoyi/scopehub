@@ -395,6 +395,68 @@
             ],
             "additionalProperties": false
           }
+        },
+        "observation_evidence": {
+          "type": "object",
+          "properties": {
+            "field_input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "session_input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "candidate_input": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "field_input",
+            "session_input",
+            "candidate_input"
+          ],
+          "additionalProperties": false
+        },
+        "model_qualification": {
+          "type": "object",
+          "properties": {
+            "material_fields": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "oracle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pass": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference_case": {
+              "type": "object",
+              "properties": {
+                "$source": {
+                  "$ref": "#/$defs/SourceReference"
+                }
+              },
+              "required": [
+                "$source"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "material_fields",
+            "oracle",
+            "pass",
+            "reference_case"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1053,6 +1115,43 @@
         },
         "scaffold_maintenance": {
           "$ref": "#/$defs/ScaffoldMaintenance"
+        },
+        "milestone_outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "goal": {
+                "type": "string",
+                "minLength": 1
+              },
+              "deliver": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "gate": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "id",
+              "goal",
+              "deliver",
+              "gate"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
@@ -2134,6 +2233,45 @@
             "model_selection",
             "parallel",
             "tooling"
+          ],
+          "additionalProperties": false
+        },
+        "repository_layout": {
+          "type": "object",
+          "properties": {
+            "paths": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required_files": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "owner_decision_inputs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SourceReference"
+              }
+            },
+            "implementation_instructions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "paths",
+            "required_files",
+            "owner_decision_inputs",
+            "implementation_instructions"
           ],
           "additionalProperties": false
         }

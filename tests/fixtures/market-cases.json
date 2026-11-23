@@ -1,0 +1,22 @@
+{
+  "instruments": [
+    "SIM.CN.FUTURE.001",
+    "SIM.CN.STOCK.001",
+    "SIM.US.STOCK.001"
+  ],
+  "label": "All data is synthetic; do not disguise it as real market quotes",
+  "timeframes": [
+    "1m",
+    "5m",
+    "1d"
+  ],
+  "generator": "Use a fixed seed and fixed UTC start time to generate and commit fixtures; tests must not depend on the current time",
+  "cases": [
+    "Normal contiguous data",
+    "Gaps",
+    "Stale data",
+    "Worker interruption",
+    "Updates to unclosed bars",
+    "Samples spanning UTC dates within the same trading day"
+  ]
+}

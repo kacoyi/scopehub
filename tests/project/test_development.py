@@ -194,6 +194,29 @@ class DevelopmentTests(ProjectFixture):
         for field in ('roles', 'language', 'validation', 'packaging'):
             self.assertTrue(resolve_source(root, {'path': path, 'pointer': f'/stack/workers/{field}'}))
 
+    def test_linked_workflow_and_nested_fixture_reach_navigation_and_project_checks(self):
+        path = 'engineering-contract-v1.json'
+        spec = read_json(self.root / path)
+        spec['ai'] = {'$source': {'path': 'workflow.json', 'pointer': '/ai'}}
+        self.save(path, spec)
+        self.save('workflow.json', {'ai': {
+            'case': {'$source': {'path': 'fixture.json', 'pointer': '/expected'}},
+            'model_connections': {'primary_cloud_route': {'task': 'unknown', 'check': 'ai-workflow'}},
+        }})
+        self.save('fixture.json', {'expected': {'volume': None}})
+        self.assertIsNone(resolve_source(self.root, {'path': path, 'pointer': '/ai/case/volume'}))
+        self.assertEqual(resolve_source(self.root, {'path': path, 'pointer': '/ai'})['case'], {'volume': None})
+        with self.assertRaisesRegex(ProjectError, 'primary cloud route'):
+            load_project(self.root)
+
+    def test_cycle_between_delegated_local_records_fails_with_the_offending_reference(self):
+        path = 'engineering-contract-v1.json'
+        self.save(path, {'ui': {'$source': {'path': 'workbench.json', 'pointer': ''}}})
+        self.save('workbench.json', {'preview': {'$source': {'path': 'host.json', 'pointer': '/preview'}}})
+        self.save('host.json', {'preview': {'$source': {'path': './workbench.json', 'pointer': ''}}})
+        with self.assertRaisesRegex(ValueError, 'Cyclic engineering source link'):
+            resolve_source(self.root, {'path': path, 'pointer': '/ui/preview'})
+
     def test_task_context_exposes_the_role_families_and_shared_quality_floor(self):
         self.record['herdr'] = {
             'host': 'Herdr', 'profiles': {'implement': {'family': 'sol'}, 'supervise': {'family': 'astra'}},

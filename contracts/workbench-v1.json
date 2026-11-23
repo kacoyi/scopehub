@@ -1,0 +1,90 @@
+{
+  "design_reference": {
+    "primary": "TradingView Desktop with Supercharts",
+    "url": "https://www.tradingview.com/desktop/",
+    "scope": "Use this as the visual and interaction reference for the shipped chart workspace and ScopeHub-owned controls, including settings, data forms, AI conversations, diagnostics and protected dialogs. Users choose the typography, composition and interactions of their own workbench and may use a different visual reference.",
+    "visual": "Use a common type scale, spacing scale and control sizes. Keep information density, icon style, panel boundaries and semantic color roles consistent across light and dark themes. Apply the chosen rising and falling colors wherever price changes appear. Pair important states with a label, icon or other visible cue.",
+    "interaction": "Keep navigation, toolbars, selection, keyboard focus and the behavior of opening, closing and returning from panels and dialogs consistent. Retain chart gestures on the chart and native folder selection for local data.",
+    "workflows": "Use ScopeHub terminology and controls for the actions available. Source settings show the selected directory or API, connection state and refresh results. AI panels show cited evidence, action previews and any required confirmation.",
+    "comparison": {
+      "method": "Compare one visible task at a time. Record the window size, display scale, theme and input method. Compare chart and panel proportions, text and state contrast, the initial focus, the result of the action and the return to the previous context.",
+      "surfaces": "Review ScopeHub in its native desktop window for integrated acceptance. Identify each reference surface. Public Supercharts can supply observations of shared chart behavior. Identify desktop-only behavior separately.",
+      "shared_chart_url": "https://www.tradingview.com/chart/",
+      "tooling": "Development chooses the observation tools for the question. Record differences that affect the task and the reason for a ScopeHub-specific design."
+    }
+  },
+  "layout": "The default chart workspace follows /ui/design_reference. Show instrument, timeframe, chart style and source status above price, volume and time below, tools on the left and instruments and inspection on the right. Offer a blank starting point alongside the default. Restore the chosen composition when reopening.",
+  "workspace_entry": {
+    "unconfigured": "A fresh profile opens the unconfigured chart default with zero application operations. Offer both a blank workbench and an explicit offline sample. Leaving the sample ends its data access. A saved chart-free workbench reopens without creating a chart or subscribing to its source.",
+    "offline_sample": "An explicit action, a deliberate #demo link or restoration of the same previously chosen sample loads the synthetic chart. Keep the Simulated label visible, including after restart. Leaving clears the preference.",
+    "controls": "Use icons for working actions where they help navigation or chart interaction. Keep essential controls reachable at narrow widths.",
+    "restore": "Restore saved layout and accepted indicator artifacts through the core. A missing or revoked source retains its identity and layout, reports the reason, and sends no unauthorized read. Only reconnect to the same currently authorized source; ask the user to select any replacement. A saved mock choice is separate from data-source selection and external-service grants.",
+    "first_question": "With local data but no configured model, the first question offers model configuration or an explicitly labeled offline mock. No call, transfer, simulated answer or charge occurs until the user chooses."
+  },
+  "controls_scope": "The chart default makes the chart controls below available. A chart-free composition can omit them. Host recovery, access status, activity and sensitive confirmations remain reachable independently of the canvas.",
+  "minimal_controls": [
+    "Instrument search",
+    "Timeframe selection",
+    "Candlestick/line chart switching",
+    "Layer removal",
+    "Task cancellation",
+    "Undo",
+    "Data mode and connection status"
+  ],
+  "chart_adapter": [
+    "setMarketSeries",
+    "updateMarketSeries",
+    "addIndicatorSeries",
+    "addAnnotation",
+    "removeLayer",
+    "setVisibleRange",
+    "getSelection",
+    "dispose"
+  ],
+  "chart_rules": [
+    "No default indicators",
+    "React components do not hold provider SDKs",
+    "AI annotations expose their source and task for inspection",
+    "preview and accepted states are distinguishable",
+    "Clean up chart resources on unmount",
+    "Coalescing updates must not lose the final bar state"
+  ],
+  "states": [
+    "loading",
+    "ready",
+    "empty",
+    "disconnected",
+    "stale",
+    "error",
+    "awaiting_confirmation"
+  ],
+  "security": "Render conversational model text as plain text or restricted Markdown. Keep user-authored and generated executable content outside the privileged shell. Apply the canvas boundary under /ui/customization/extensibility to authored presentations.",
+  "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default",
+  "customization": {
+    "design_goal": "Users can reshape the entire workbench. They can start with a blank canvas, replace the default regions or refine a single detail. They choose which available facts, calculations and actions to bring together, the conditions under which they appear, their visual form and what happens on selection. A workbench can consist entirely of text, evidence and actions. Users can edit directly or ask the embedded AI to make a change from a description, a selected screenshot or a reference URL, then refine the result by hand. TradingView and OpenBB guide the defaults. V1 requires an original chart-free composition, a local edit and a whole-workbench redesign. Reference-image or URL interpretation depends on the selected model and disclosure rights.",
+    "content_rules": "Retain the user's choices of content, filtering, grouping, ordering and interactions so they apply when the underlying information changes. A successfully checked source with no matches may leave the canvas empty. If missing inputs, stale coverage or lost access prevent a reliable answer, make that condition distinguishable from an empty result. Views reference independently owned source records, indicator results and research notes. Keep evidence inspectable within current rights. Every bound action uses the ordinary operation and confirmation rules.",
+    "panels": "In the built-in chart workspace let users move, resize, dock, tab and show or hide whole chart, watchlist, data inspection, AI and activity panels. Keep axes, crosshair and zoom inside the chart. Offer light and dark themes and selectable rising/falling colors with accessible state cues.",
+    "links": "Support optional panel selection groups, using Koyfin dashboards as a secondary reference for that interaction. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
+    "editing": "Direct edits and scoped AI requests operate on the same named workbench and addressable elements. Support a targeted change and replacement of the whole composition, including its data bindings and permitted interactions. Preview, apply, undo, restore and return to the default through versioned operations. Keep source status, activity, recovery and required confirmations accessible from the trusted shell.",
+    "extensibility": "The host supplies scoped, typed data with provenance and accepts only registered operation intents. The canvas owns presentation. M2-003 selects its renderer using a native prototype of the V1 journey. Candidates include a host-interpreted composition and a separately isolated renderer for locally authored code. An executable candidate must demonstrate isolation from native commands, credentials, ambient file and network access, and approval controls. The host must be able to discard a failed or stalled draft and restore the last accepted workbench. Product source and privileged UI are outside the editable surface.",
+    "widgets": {
+      "composition": "Use FINOS Workspace (formerly OpenBB Workspace) as a reference for adding, arranging, resizing and linking built-in views in the chart default. Users may remove every default view, compose across former panel boundaries and bind data to a visual form that has no dedicated built-in widget.",
+      "data_binding": "A data widget declares the kind of records and selection parameters it can display. Source adapters map local files and API responses to typed results. The Rust core supplies authorized views of those results with source identity, revision or as-of time, and applicable units, time basis and coverage. A chart and a table can use the same bars, and either view can use another compatible source. FINOS widget endpoint and parameter descriptions can be translated into optional display hints. Tool identifiers and a raw-data link identify a source. The Rust registry rechecks access, and citations bind a readable data revision.",
+      "source_changes": "The named layout stores widget placement, size and selection links. A view can follow the workspace's active source or pin an opaque reference to compatible data. The profile stores the active chart source separately. My data sources owns connection settings and credentials. Recheck access on restore. Keep the arrangement and show the affected view's status when data is incompatible, disconnected or revoked. Removing a widget leaves its source and data intact."
+    }
+  },
+  "shared_evidence": {
+    "pointing": "The human can select a bar or date range, table row or document passage and ask about it. The AI can proactively reveal another authorized page or panel and highlight the precise target. Follow-up turns use the latest selection from either participant.",
+    "navigation": "Show evidence in place or alongside the current view as appropriate. Allow comparison, pinning and return to the prior instrument, timeframe, viewport and layout. Opening temporary evidence preserves unsaved work.",
+    "attribution": "Identify the source, document or dataset revision, locator and relevant publication or market time. Align time zones when comparing a disclosure with a price move. Label search summaries, source statements, calculations and interpretations distinctly. A changed or inaccessible target shows the available reference and the resulting uncertainty.",
+    "external": "For configured research channels, open the permitted original source in a controlled reader or an approved external handoff. A page, its links and its contents cannot authorize navigation, access credentials or call application tools. A discovery service such as Tavily is optional.",
+    "visible_actions": "Show the target, relevant parameters, preview or progress and core result where the user can inspect the affected object. Highlight mapped columns, preview layers or layout changes there. Offer cancellation while applicable, operation-specific confirmation and undo where supported. Retain redacted activity history for later review.",
+    "selection_ownership": "Hover, pointer movement and unsaved viewport navigation are local presentation. Both 1.1 forms of workspace.selectEvidence, the client request and the AI intent, require target. Set target to null to clear shared selection. Reject omission of target. A workspace object uses kind (chart, layer, layout, dataset or workspace) and object_id. A bar or interval uses chart_interval with a frozen snapshot and range. A table_row or document_passage uses source_id, source_revision and locator. The core checks the workspace, current grant, expected_selection_revision and any non-null target. A successful change advances only selection_revision and publishes the core-owned selection for the workspace. New writes bound to an earlier selection token are stale. Hover alone preserves the token. Preserve and restore unsaved view and independently pinned panels around temporary evidence navigation."
+  },
+  "localization": {
+    "languages": "Ship English and Simplified Chinese first. Register additional BCP 47 languages with a native display name, writing direction and message catalog. Keep engineering documentation and protocol identifiers in English.",
+    "preference": "Use the first supported system language on initial launch, with English as the default. Offer a local language setting, including Follow system. Apply changes in place to the current workspace and restore the preference on the next launch.",
+    "presentation": "Localize application-owned controls, empty states, errors, settings, accessible names and chart labels. Keep messages separate from views, with named arguments and locale plural rules. Format display numbers and dates for the selected language while preserving financial precision, exchange timezones, trading days and original evidence.",
+    "content": "Keep user records, provider data, symbol identifiers, model responses and exports in their original form. Language selection changes presentation independently of chart state, source access, external requests or model configuration."
+  }
+}

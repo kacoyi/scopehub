@@ -18,12 +18,22 @@ def repository_path(root, relative):
     return result
 
 
-def engineering_link(root, value):
+def expand_engineering_sources(root, value, ancestors=()):
+    """Read the effective agreement through repository-owned source links."""
+    if isinstance(value, list):
+        return [expand_engineering_sources(root, item, ancestors) for item in value]
+    if not isinstance(value, dict):
+        return value
+    if '$source' not in value:
+        return {key: expand_engineering_sources(root, item, ancestors) for key, item in value.items()}
     link = value['$source']
     if (set(value) != {'$source'} or not isinstance(link, dict) or set(link) != {'path', 'pointer'}
             or not all(isinstance(item, str) for item in link.values())
             or repository_path(root, link['path']).resolve() == (root / 'engineering-contract-v1.json').resolve()):
         raise ValueError(f'Invalid engineering source link: {value}')
+    target = (repository_path(root, link['path']).resolve(), link['pointer'])
+    if target in ancestors:
+        raise ValueError(f'Cyclic engineering source link: {link}')
     if link == {'path': 'contracts/contract.json', 'pointer': '/operations'}:
         # Historical engineering pointers address the negotiated command/reply.
         # The manifest also carries the original payloads for legacy callers.
@@ -36,20 +46,7 @@ def engineering_link(root, value):
                       if field in operation}
             operations.append({**record, 'input_spec': binding['input'], 'output_spec': binding['output']})
         return operations
-    return resolve_source(root, link)
-
-
-def validate_engineering_links(root, spec):
-    remaining = [spec]
-    while remaining:
-        value = remaining.pop()
-        if isinstance(value, dict):
-            if '$source' in value:
-                engineering_link(root, value)
-            else:
-                remaining.extend(value.values())
-        elif isinstance(value, list):
-            remaining.extend(value)
+    return expand_engineering_sources(root, resolve_source(root, link), (*ancestors, target))
 
 
 def resolve_source(root, reference):
@@ -64,11 +61,11 @@ def resolve_source(root, reference):
     # Keep its old section and nested pointers usable by historical task plans.
     in_index = path.resolve() == (root / 'engineering-contract-v1.json').resolve()
     for index in range(len(tokens) + 1):
-        if in_index and isinstance(value, dict) and '$source' in value:
-            value = engineering_link(root, value)
-            in_index = False
         if index == len(tokens):
-            return value
+            return expand_engineering_sources(root, value) if in_index else value
+        if in_index and isinstance(value, dict) and '$source' in value:
+            value = expand_engineering_sources(root, value)
+            in_index = False
         token = tokens[index]
         # Reject malformed escapes rather than returning the wrong requirement.
         if '~' in token.replace('~0', '').replace('~1', ''):
