@@ -3449,6 +3449,32 @@
       "deferral_reason": null
     },
     {
+      "id": "locked-cookie-advisory-blocks-integration",
+      "source": "RustSec advisory RUSTSEC-2026-0594 and the online dependency review on bea74a5.",
+      "observation": "The online dependency check rejected cookie 0.18.2 in Cargo.lock. Tauri and Wry resolve it for the desktop. The upstream issue concerns private cookies on fork-capable platforms and excludes Windows from its affected OS list. GitHub's open glib alert is covered by a separate existing disposition.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-081"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T095941.698705Z-187d8246",
+          "source_commit": "bea74a569b62823e5ce4907250e967bf4596af29",
+          "report_sha256": "b92119b9ce93a95b923ca293383925b20416f2c9fa6d143c554468a02a33b0d3"
+        }
+      ],
+      "resolution": {
+        "cause": "Cargo.lock retained cookie 0.18.2 when RustSec published RUSTSEC-2026-0594. The shared online review detected it, but ran after expensive checks on a full selection.",
+        "correction": "Resolve the published 0.18.3 patch under the existing Tauri and Wry constraints. Update the inventory and notices, and move the selected dependency review immediately after environment and project-state.",
+        "prevention": "The ordinary online gate rejected the original locked version and passed on the repaired graph. A scheduling regression injects the same check failure into real catalog selections and verifies early failure, ordinary completion and fail-fast termination."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "release-selection-omits-contract-checks",
       "source": "Repository-wide review and direct comparison of the release selector with readiness bindings at bea74a5.",
       "severity": "major",

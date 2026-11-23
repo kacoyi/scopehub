@@ -25,6 +25,18 @@
       "timeout_seconds": 900
     },
     {
+      "id": "dependency-review",
+      "status": "implemented",
+      "purpose": "Validate locked dependency and license inventory, reviewed immutable Actions, and fresh advisory disposition with target scope guards",
+      "platforms": "all",
+      "command": [
+        "{python}",
+        "scripts/dependencies.py"
+      ],
+      "timeout_seconds": 900,
+      "cadence": "change"
+    },
+    {
       "id": "generated-contracts",
       "status": "implemented",
       "purpose": "Detect generated protocol drift",
@@ -331,18 +343,6 @@
       "command": null,
       "timeout_seconds": 900,
       "cadence": "release"
-    },
-    {
-      "id": "dependency-review",
-      "status": "implemented",
-      "purpose": "Validate locked dependency and license inventory, reviewed immutable Actions, and fresh advisory disposition with target scope guards",
-      "platforms": "all",
-      "command": [
-        "{python}",
-        "scripts/dependencies.py"
-      ],
-      "timeout_seconds": 900,
-      "cadence": "change"
     },
     {
       "id": "futures-tick-inspection",
