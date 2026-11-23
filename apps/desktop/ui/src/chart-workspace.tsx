@@ -411,6 +411,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         <Tool name={t('Zoom in')} icon="zoomIn" disabled={!canInspect} onClick={() => chart.current?.zoomIn()} />
         <Tool name={t('Zoom out')} icon="zoomOut" disabled={!canInspect} onClick={() => chart.current?.zoomOut()} />
         <Tool name={t('Fit chart')} icon="fit" disabled={!canInspect} onClick={() => chart.current?.fit()} />
+        {(sample || restoredSource) && <Tool name={t('Open workbench prototype')} icon="workbench" onClick={openPrototype} />}
       </nav>}
       <div className={definition ? 'plot-layout layout-grid' : 'plot-layout'} style={plotSize}>
         <section className="plot-workspace" aria-label={t('Price chart')}>
@@ -437,9 +438,6 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
             <span role="status" className="replay-status gap">{t('Replay gap. {reason}', { reason: replayGapReason(replayGap) })}</span>
             <ReplayGapDetails gap={replayGap} />
           </>}
-          {(sample || restoredSource) && <button type="button" className="secondary-button replay-button" onClick={openPrototype}>
-            {t('Open workbench prototype')}
-          </button>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
         {acceptingIndicators && workspace && history && <details className="chart-indicators">
           <summary>{t('Indicators')}</summary>
