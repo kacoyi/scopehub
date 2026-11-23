@@ -21,7 +21,7 @@ from scripts.project import (
     verified_main, source_identity, validate_model,
 )
 from tests.project.test_continuity import ProjectFixture
-from tests.project.fixtures import task_by_id
+from tests.project.fixtures import owner_workbench_fixture, task_by_id, ubuntu_test_host
 from scripts.verification_evidence import integration_validation, release_artifacts, collect_session, performance_verdict, field_observation
 
 
@@ -209,9 +209,10 @@ class DeliveryTests(ProjectFixture):
             ),
         )
         notice = save('THIRD_PARTY_NOTICES', b'Synthetic third-party notices and license text.\n')
+        owner = save('owner-workbench.json', owner_workbench_fixture(identity, installer['sha256']))
         save(
             'build-manifest.json',
-            dict(identity, installer=installer, windows_observations=observations, performance=performance,
+            dict(identity, installer=installer, windows_observations=observations, performance=performance, owner_workbench=owner,
                  third_party_licenses=[notice]),
         )
         report['candidate_artifacts'] = release_artifacts(
@@ -228,6 +229,20 @@ class DeliveryTests(ProjectFixture):
         self.assertTrue(result['technical_ready'])
         self.assertEqual('not_evaluated', result['authorization'])
         self.assertEqual('present_release_proposal', result['recommendation'])
+
+    def test_release_readiness_rejects_install_and_performance_only_ownerless_candidate(self):
+        path, report = self.completed_release_fixture()
+        manifest_path = self.root / '.reports/runs/fixture/candidate/build-manifest.json'
+        manifest = read_json(manifest_path)
+        del manifest['owner_workbench']
+        contents = json_bytes(manifest)
+        manifest_path.write_bytes(contents)
+        report['candidate_artifacts']['manifest_sha256'] = digest(contents)
+        path.write_bytes(json_bytes(report))
+        result = readiness(self.root)
+        self.assertFalse(result['technical_ready'])
+        self.assertIn('owner workbench', ' '.join(result['blockers']))
+        self.assertEqual('not_evaluated', result['authorization'])
 
     def test_bound_hosted_release_and_main_provenance(self):
         latest, report = self.completed_release_fixture()
@@ -490,17 +505,41 @@ class DeliveryTests(ProjectFixture):
         ]
         obs = {
             'kind': key,
+            'observation_version': 2,
             'commit': source['git_head'],
             'inputs_sha256': source['sha256'],
             'operator': 'synthetic operator',
             'observed_at': '2026-01-01T12:00:00Z',
-            'surface': 'ubuntu-graphical-workspace',
+            'surface': 'native-ubuntu-tauri-webkitgtk', 'host': ubuntu_test_host(), 'screenshot_scope': 'synthetic',
             'actions': dict.fromkeys(names, {'status': 'passed', 'observed': 'Observed synthetic test outcome.'}),
             'external_sessions': dict.fromkeys(['text', 'voice', 'cli', 'desktop'], 'pending'),
             'screenshots': [{'path': 'fixture.png', 'sha256': digest(image)}],
         }
-        (directory / 'observation.json').write_bytes(json_bytes(obs))
+        observation_path = directory / 'observation.json'
+        def check_variation(record, message):
+            observation_path.write_bytes(json_bytes(record))
+            for hosted in (False, True):
+                with self.subTest(message=message, hosted=hosted), self.assertRaisesRegex(ProjectError, message):
+                    field_observation(self.root, key, hosted=hosted)
+
+        legacy = {key: value for key, value in obs.items() if key not in ('observation_version', 'host')}
+        check_variation(dict(legacy, surface='ubuntu-graphical-workspace'), 'observation_version')
+        check_variation(obs, 'lacks required actions')
+        chart_free = {'workbench-from-blank', 'workbench-edit', 'workbench-ai-reshape', 'workbench-manual-detail',
+                      'workbench-refresh', 'workbench-source-selection', 'workbench-undo', 'workbench-recover',
+                      'workbench-reopen'}
+        obs['actions'].update(dict.fromkeys(chart_free, {'status': 'passed', 'observed': 'Visible fixture outcome.'}))
+        for surface in ('ubuntu-graphical-workspace', 'chromium-app-mode', 'standalone-vite'):
+            check_variation(dict(obs, surface=surface), 'native Ubuntu')
+        for field in ('os', 'ubuntu_version', 'webkitgtk_version', 'process_name', 'process_id', 'window_id', 'window_process_id'):
+            check_variation(dict(obs, host={k: v for k, v in obs['host'].items() if k != field}),
+                            'Ubuntu|ubuntu_version|webkitgtk_version|process|window_id')
+        for field, value in (('os', 'Debian'), ('ubuntu_version', 'latest'), ('webkitgtk_version', 'unknown'),
+                             ('process_name', 'chromium'), ('window_process_id', 456), ('process_id', True)):
+            check_variation(dict(obs, host={**obs['host'], field: value}), 'Ubuntu|ubuntu_version|webkitgtk_version|process')
+        observation_path.write_bytes(json_bytes(obs))
         result = field_observation(self.root, key)
+        self.assertEqual(2, result['observation_version'])
         self.assertEqual(obs['external_sessions'], result['external_sessions'])
         failed = dict(obs, actions={**obs['actions'], 'reconnect': {'status': 'failed', 'observed': 'No chart'}})
         (directory / 'observation.json').write_bytes(json_bytes(failed))
@@ -534,6 +573,7 @@ class DeliveryTests(ProjectFixture):
         ]
         win = {
             'kind': key,
+            'observation_version': 2, 'screenshot_scope': 'synthetic',
             'commit': source['git_head'],
             'inputs_sha256': source['sha256'],
             'operator': 'test operator',
@@ -549,14 +589,36 @@ class DeliveryTests(ProjectFixture):
         ubuntu_path = self.root / '.reports/ubuntu-receipt.json'
         receipt = {
             'source': dict(source, git_head='c' * 40),
-            'field_observations': {'ubuntu-workspace-observation': {}},
+            'field_observations': {'ubuntu-workspace-observation': {
+                'kind': 'ubuntu-workspace-observation', 'commit': 'c' * 40,
+                'surface': 'native-ubuntu-tauri-webkitgtk', 'observation_version': 2}},
         }
         ubuntu_path.write_bytes(json_bytes(receipt))
         ledger = {
             'tasks': {'M1-012': {'status': 'done', 'evidence': [{'path': '.reports/ubuntu-receipt.json'}]}}
         }
         with patch('scripts.verification_evidence.load_project', return_value=ledger):
+            for hosted in (False, True):
+                with self.subTest(hosted=hosted), self.assertRaisesRegex(ProjectError, 'lacks required actions'):
+                    field_observation(self.root, key, hosted=hosted)
+            for name in ('workbench-edit', 'workbench-selection', 'workbench-display-scaling',
+                         'workbench-reopen', 'workbench-recover'):
+                win['actions'][name] = {'status': 'passed', 'observed': 'Visible fixture result.'}
+            for name in ('workbench-edit', 'workbench-selection', 'workbench-display-scaling',
+                         'workbench-reopen', 'workbench-recover'):
+                incomplete = {k: v for k, v in win['actions'].items() if k != name}
+                obs_path.write_bytes(json_bytes(dict(win, actions=incomplete)))
+                for hosted in (False, True):
+                    with self.subTest(name=name, hosted=hosted), self.assertRaisesRegex(ProjectError, name):
+                        field_observation(self.root, key, hosted=hosted)
+            obs_path.write_bytes(json_bytes(win))
             self.assertEqual(key, field_observation(self.root, key)['kind'])
+            historical = {**receipt, 'field_observations': {'ubuntu-workspace-observation': {
+                'kind': 'ubuntu-workspace-observation', 'surface': 'ubuntu-graphical-workspace'}}}
+            ubuntu_path.write_bytes(json_bytes(historical))
+            with self.assertRaisesRegex(ProjectError, 'matching Ubuntu'):
+                field_observation(self.root, key)
+            ubuntu_path.write_bytes(json_bytes(receipt))
             obs_path.write_bytes(json_bytes(dict(win, surface='hosted-build-only')))
             with self.assertRaisesRegex(ProjectError, 'physical native WebView2'):
                 field_observation(self.root, key)

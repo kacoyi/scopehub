@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-082",
   "tasks": [
     {
       "id": "M0-001",
@@ -15974,6 +15974,124 @@
         }
       ],
       "closure_reason": "The clean task harness at 3607aa8 passed the online dependency review, project and architecture checks, Python suite and Rust workspace tests. Only the cookie version and checksum changed among 484 Cargo package records. The production-catalog scheduling regression observed the advisory in the third position and ordinary verification continued after the simulated failure. The original failing report and its four logs were verified in the development archive. Product work resumes at M2-003."
+    },
+    {
+      "id": "M0-082",
+      "title": "Qualify native workbench observations and the owner’s packaged candidate review",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-023"
+      ],
+      "scope": [
+        "scripts/verification_evidence.py",
+        "scripts/ci_artifacts.py",
+        "scripts/diagnostic_archive.py",
+        "contracts/schemas/project.schema.json",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0024",
+        "0027"
+      ],
+      "acceptance": [
+        "Current native observations identify their revision, execution inputs and actual host. Require the native Ubuntu Tauri process and window, Ubuntu and WebKitGTK versions and integrated chart-free actions. The physical Windows WebView2 check requires chart-free editing, scaling, selection, recovery and reopening on inputs accepted by a current Ubuntu observation.",
+        "Candidate acceptance verifies a versioned owner review on the exact source, inputs and installer, including starting blank, reshaping, refreshing and reopening the workbench. Missing, failed or substituted observations block acceptance locally and on hosted import. An authorized publication decision remains separate.",
+        "Keep historical receipts and diagnostics interpretable at their original scope. Preserve qualified failed candidate artifacts and stage only redacted evidence for hosted use. Synthetic fixtures exercise the verifiers while genuine field and owner trials remain with their product tasks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "Local and hosted acceptance reject incomplete native sessions and candidate packages that omit the owner’s observed workbench workflow.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_evidence.py",
+          "scripts/ci_artifacts.py",
+          "scripts/diagnostic_archive.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "contracts/decisions/0024-native-ubuntu-development.json",
+          "contracts/decisions/0027-v1-user-composed-workbench.json",
+          "tests/project/test_delivery.py",
+          "tests/project/test_ci_artifacts.py"
+        ],
+        "hypotheses": [
+          "The same field and candidate validators already serve local checks and hosted intake; a versioned observation can close both gaps without changing product behavior.",
+          "Historical receipts preserve a digest of their original observations and can continue to describe those historical bytes while fresh acceptance requires the current version."
+        ],
+        "risks": [
+          {
+            "failure": "Historical browser or chart-only receipts acquire a native workbench claim, or valid historical diagnostics cannot be checked.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The owner’s review binds a different installer or is missing or incomplete, or malformed observations disclose private details on upload.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve existing receipts and original candidate diagnostics. Hold current acceptance if evidence validation fails and correct the reader before recording new trials.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_evidence.py",
+            "scripts/ci_artifacts.py",
+            "scripts/diagnostic_archive.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy/product_review"
+            },
+            {
+              "path": "contracts/decisions/0024-native-ubuntu-development.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0027-v1-user-composed-workbench.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Implementing the renderer, running or claiming physical or owner acceptance, altering permissions or authorizing publication."
+          ],
+          "open_questions": [
+            "Can old diagnostics retain every original binding while new owner observations use the same archive layout?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Historical receipts and diagnostic integrity, retained partial candidate measurements, private evidence boundaries and release authorization."
+          ],
+          "change": [
+            "Version new evidence and bind the owner’s observed workbench outcomes to the exact candidate installer.",
+            "Check native host identity and chart-free actions whenever a new field observation is accepted."
+          ],
+          "data_plan": "Only development evidence changes. New observations require an explicit version. Existing product profiles, persistent record formats and historical evidence bytes stay intact.",
+          "cleanup": "Discard fixture-only inputs after the verification. Continue genuine native and packaged acceptance under M1-011, M1-012 and M5-001 and return the task focus to M2-003."
+        }
+      },
+      "next_action": "Exercise the existing false positives, implement the versioned validators and verify local, staging, import and diagnostic paths.",
+      "blocker": null,
+      "evidence": [],
+      "closure_reason": null
     }
   ]
 }

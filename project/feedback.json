@@ -3473,6 +3473,36 @@
         "prevention": "The ordinary online gate rejected the original locked version and passed on the repaired graph. A scheduling regression injects the same check failure into real catalog selections and verifies early failure, ordinary completion and fail-fast termination."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-field-observation-coverage",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding physical-workbench-observation",
+      "severity": "major",
+      "status": "open",
+      "observation": "Existing positive field-observation fixtures pass without dedicated Ubuntu native process and window identity or a physical Windows chart-free edit and reopen. The evolved field requirements need these observations.",
+      "task_ids": [
+        "M0-082"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "packaged-workbench-owner-observation",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding packaged-owner-evidence",
+      "severity": "major",
+      "status": "open",
+      "observation": "The release-artifact verifier and its positive hosted fixture accept a synthetic candidate without a bound owner workbench observation. The product release policy requires the candidate-specific feedback.",
+      "task_ids": [
+        "M0-082"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

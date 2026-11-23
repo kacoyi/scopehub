@@ -16,10 +16,10 @@ from scripts import check_chart_history, ci_artifacts, timing, verification_evid
 from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
 from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
-from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, source_identity, verified_candidate_files
+from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, source_identity, validate_model, verified_candidate_files
 from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, integration_validation, release_artifacts
 from tests.contracts.test_qualification import observed_case
-from tests.project.fixtures import task_by_id
+from tests.project.fixtures import owner_workbench_fixture, task_by_id, ubuntu_test_host
 from tests.project.test_continuity import ProjectFixture
 from tests.project.test_timing import hosted_job, hosted_run
 
@@ -554,7 +554,8 @@ class PublicationTests(ProjectFixture):
         record = {
             'kind': check, 'commit': report['source']['git_head'], 'inputs_sha256': report['source']['sha256'],
             'operator': 'synthetic operator', 'observed_at': '2026-01-01T12:00:00Z',
-            'surface': 'ubuntu-graphical-workspace', 'screenshot_scope': 'synthetic',
+            'observation_version': 2, 'host': ubuntu_test_host(),
+            'surface': 'native-ubuntu-tauri-webkitgtk', 'screenshot_scope': 'synthetic',
             'actions': dict.fromkeys(FIELD_ACTIONS[check], {'status': 'passed', 'observed': 'Synthetic outcome.'}),
             'external_sessions': dict.fromkeys(['text', 'voice', 'cli', 'desktop'], 'pending'),
             'screenshots': [{'path': 'fixture.png', 'sha256': digest(image)}],
@@ -596,7 +597,12 @@ class PublicationTests(ProjectFixture):
         shutil.copytree(self.destination, imported)
         self.assertEqual([manifest_relative], resolve_diagnostic(local_locator, imported)['verified_observations'])
         reference = archive_evidence(self.root, 'M0-001', imported / 'test-report.json', imported)
-        self.assertEqual(expected, read_json(self.root / reference['path'])['field_observations'][check])
+        receipt = read_json(self.root / reference['path'])
+        self.assertEqual(expected, receipt['field_observations'][check])
+        historical = receipt['field_observations'][check]
+        historical.pop('observation_version')
+        historical['surface'] = 'ubuntu-graphical-workspace'
+        validate_model(self.root, 'Evidence', receipt)
 
     def make_candidate(self, report):
         candidate = self.reports / 'runs/fixture/candidate'
@@ -624,8 +630,9 @@ class PublicationTests(ProjectFixture):
         }))
         notices = [save('THIRD_PARTY_NOTICES', b'Synthetic package copyright and notices.\r\n'),
                    save('third-party-licenses/fixture-lib/LICENSE-MIT', b'Synthetic MIT license text.\n')]
+        owner = save('owner-workbench.json', json_bytes(owner_workbench_fixture(identity, installer['sha256'])))
         manifest = dict(identity, installer=installer, windows_observations=windows, performance=performance,
-                        third_party_licenses=notices, webview2='downloadBootstrapper')
+                        third_party_licenses=notices, owner_workbench=owner, webview2='downloadBootstrapper')
         save('build-manifest.json', json_bytes(manifest))
         self.add_result(report, 'release-artifacts')
         policy = load_project(self.root)['catalog']['desktop_performance']
@@ -644,6 +651,76 @@ class PublicationTests(ProjectFixture):
             for hosted in (False, True):
                 with self.subTest(declaration=declaration, hosted=hosted), self.assertRaisesRegex(ProjectError, 'third-party'):
                     release_artifacts(candidate.parent, report['source'], policy, hosted=hosted)
+
+    def test_candidate_acceptance_rechecks_owner_identity_source_installer_and_observed_actions(self):
+        self.add_catalog_checks('release-artifacts')
+        report = self.hosted_report(system='Windows', event='workflow_dispatch')
+        candidate, manifest = self.make_candidate(report)
+        ref = manifest['owner_workbench']
+        owner = read_json(candidate / ref['path'])
+        policy = load_project(self.root)['catalog']['desktop_performance']
+        changes = [
+            ('missing-reference', None, 'lacks the owner workbench'),
+            ('versionless', {k: v for k, v in owner.items() if k != 'observation_version'}, 'observation_version'),
+            ('source', dict(owner, commit='0' * 40), 'another revision'),
+            ('inputs', dict(owner, inputs_sha256='0' * 64), 'another revision'),
+            ('installer', dict(owner, installer_sha256='0' * 64), 'another installer'),
+            ('role', dict(owner, reviewer_role='engineer'), 'product owner'),
+            ('simulated', dict(owner, method='automated-replay'), 'hands-on'),
+            ('feedback', dict(owner, feedback=''), 'feedback'),
+            ('failed-edit', dict(owner, actions={**owner['actions'], 'workbench-edit': {
+                'status': 'failed', 'observed': 'The saved arrangement did not change.'}}), 'did not pass'),
+            ('checklist', dict(owner, actions=dict.fromkeys(owner['actions'], {'status': 'passed'})), 'observed'),
+            ('status-only', dict(owner, actions=dict.fromkeys(owner['actions'], {'status': 'passed', 'observed': 'passed'})), 'observed outcome'),
+        ]
+        for action in owner['actions']:
+            changes.append((action, dict(owner, actions={k: v for k, v in owner['actions'].items() if k != action}), action))
+        for name, update, reason in changes:
+            declared = dict(manifest)
+            if update is None:
+                del declared['owner_workbench']
+            else:
+                self.replace_candidate_record(candidate, ref, update)
+            contents = json_bytes(declared)
+            (candidate / 'build-manifest.json').write_bytes(contents)
+            report['candidate_artifacts']['manifest_sha256'] = digest(contents)
+            self.save_report(report)
+            for hosted in (False, True):
+                with self.subTest(name=name, hosted=hosted), self.assertRaisesRegex(ProjectError, reason):
+                    release_artifacts(candidate.parent, report['source'], policy, hosted=hosted)
+            with self.subTest(name=name, path='export'), self.assertRaisesRegex(ProjectError, reason):
+                stage_artifacts(self.root, self.destination.with_name(name), self.env)
+
+    def test_failed_owner_review_retains_redacted_results_and_keeps_local_details_private(self):
+        report, candidate, manifest = self.failed_candidate()
+        ref = manifest['owner_workbench']
+        owner = read_json(candidate / ref['path'])
+        for name, review, expected in (
+            ('partial', dict(owner, actions={'workbench-edit': {'status': 'failed', 'observed': 'Edit could not be saved.'}}), True),
+            ('private', dict(owner, sharing_scope='local', feedback=self.sentinel.decode()), False),
+            ('extra', dict(owner, private_profile=self.sentinel.decode()), False),
+            ('unmarked', {k: v for k, v in owner.items() if k != 'sharing_scope'}, False),
+        ):
+            with self.subTest(name=name):
+                self.replace_candidate_record(candidate, ref, review)
+                (candidate / 'build-manifest.json').write_bytes(json_bytes(manifest))
+                self.save_report(report)
+                if name == 'private':
+                    policy = load_project(self.root)['catalog']['desktop_performance']
+                    self.assertEqual(manifest['installer']['sha256'],
+                                     release_artifacts(candidate.parent, report['source'], policy)['installer_sha256'])
+                    with self.assertRaisesRegex(ProjectError, 'explicitly redacted'):
+                        release_artifacts(candidate.parent, report['source'], policy, hosted=True)
+                destination = self.destination.with_name(name)
+                self.assertTrue(stage_artifacts(self.root, destination, self.env))
+                published = destination / 'runs/fixture/candidate'
+                self.assertTrue((published / manifest['installer']['path']).is_file())
+                self.assertEqual(expected, (published / ref['path']).is_file())
+                self.assertEqual(expected, (published / 'build-manifest.json').is_file())
+                self.assertIsNone(read_json(destination / 'test-report.json')['candidate_artifacts'])
+                for path in published.rglob('*'):
+                    if path.is_file():
+                        self.assertNotIn(self.sentinel, path.read_bytes())
 
     def test_bound_candidate_remains_compatible_with_hosted_release_readiness(self):
         self.add_catalog_checks('release-artifacts', 'configured-model-session')
@@ -664,7 +741,7 @@ class PublicationTests(ProjectFixture):
         downloaded = self.reports / 'ci/10/windows'
         shutil.copytree(self.destination, downloaded)
         published = downloaded / 'runs/fixture/candidate'
-        paths = ['build-manifest.json', manifest['installer']['path'], manifest['performance']['path'],
+        paths = ['build-manifest.json', manifest['installer']['path'], manifest['performance']['path'], manifest['owner_workbench']['path'],
                  *(ref['path'] for ref in manifest['windows_observations'] + manifest['third_party_licenses'])]
         self.assertEqual(set(paths), {path.relative_to(published).as_posix()
                                       for path in published.rglob('*') if path.is_file()})
@@ -684,6 +761,10 @@ class PublicationTests(ProjectFixture):
         reference = archive_evidence(self.root, 'M0-001', downloaded / 'test-report.json', downloaded)
         receipt = read_json(self.root / reference['path'])
         self.assertIn('configured-model-session', [item['id'] for item in receipt['checks']])
+        (published / manifest['owner_workbench']['path']).write_bytes(b'changed review')
+        with self.assertRaisesRegex(ProjectError, 'Missing or changed retained artifact'):
+            verified_candidate_files(self.root, project, report, results, report['source'],
+                                     downloaded / 'test-report.json', downloaded, report['source']['git_head'])
 
     def test_rejects_candidate_reference_escaping_its_directory(self):
         self.add_catalog_checks('release-artifacts')
@@ -776,7 +857,7 @@ class PublicationTests(ProjectFixture):
 
         self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
         published = self.destination / 'runs/fixture/candidate'
-        expected = [manifest['installer'], manifest['windows_observations'][1], *manifest['third_party_licenses']]
+        expected = [manifest['installer'], manifest['windows_observations'][1], manifest['owner_workbench'], *manifest['third_party_licenses']]
         self.assertEqual({ref['path'] for ref in expected},
                          {path.relative_to(published).as_posix() for path in published.rglob('*') if path.is_file()})
         for ref in expected:
