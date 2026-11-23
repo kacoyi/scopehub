@@ -3784,7 +3784,7 @@
       "source": "The final protected c161317 history comparison with audit base bea74a5 and the clean verification preflight at archives/recovery/20261123T132416.954560Z-23b9430d/diagnostic.json.",
       "observation": "The five-merge audit rejected the accepted cookie dependency correction for lacking a receipt field introduced by a later protected merge. Other earlier bases rejected the release-profile and CSV corrections under the same check. Each affected task retains its original regression receipts.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-084"
       ],
@@ -3798,7 +3798,11 @@
           "report_sha256": "2840545a46d975eab1a99f3baf1b5a510e792be5c29bb40978bb6f04f79cb488"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "A history comparison treated all changes since its base as new closures governed by observation-bound receipts. It did not distinguish records accepted under the preceding policy.",
+        "correction": "Verify the actual protected introduction and its first-parent ledger when the comparison crosses the transition. Preserve earlier task definitions and ordered receipt prefixes while validating each later checkpoint independently.",
+        "prevention": "The Python suite builds real Git merges and tests long reviews, two independent checkpoints in either order, altered observations, recurrences, dropped original receipts, candidate ref replacements, missing ancestry and a verifiable relocation of the same diagnostic. The dated audit retains the original failing range and official receipts."
+      },
       "deferral_reason": null
     }
   ]

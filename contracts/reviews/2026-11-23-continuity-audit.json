@@ -359,6 +359,17 @@
         "tests/project/test_ci_artifacts.py",
         "tests/project/test_diagnostic_archive.py"
       ]
+    },
+    {
+      "tasks": [
+        "M0-084"
+      ],
+      "observed": "The task run at 9b642c9 verified the complete Python suite and project preflight on the original bea74a5 review base. The history command passed from 8bf926a, bea74a5, ada770d, dd58f49, 2b0d209, 8e4c903 and c161317. Removing the first M1-034 receipt while leaving its second valid receipt now fails the long comparison. The isolated Git tests also accept additional evidence and checked diagnostic path relocation while rejecting stale or edited closures.",
+      "evidence": [
+        "project/evidence/M0-084-792ef34baf979930.json",
+        "tests/project/test_delivery.py",
+        "project/feedback.json#historical-feedback-receipt-cutover"
+      ]
     }
   ]
 }

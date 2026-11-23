@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-084",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -16764,7 +16764,7 @@
       "id": "M0-084",
       "title": "Verify historical feedback across the observation-receipt cutover",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-079"
       ],
@@ -16872,10 +16872,15 @@
           "report_sha256": "2840545a46d975eab1a99f3baf1b5a510e792be5c29bb40978bb6f04f79cb488"
         }
       ],
-      "next_action": "Verify the historical cutover and its independent negative cases in the normal history and harness entries.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-084-792ef34baf979930.json",
+          "sha256": "4bf14dbbfd1516e13486d551d0cf9aaf9996b5f221eac58a948a5bda683167a4"
+        }
+      ],
+      "closure_reason": "The clean task run on 9b642c9 passed with the original failing review base, including project validation and the full Python suite. Seven real review bases passed. Git integration regressions preserve the earlier acceptances and the ordered task receipts while rejecting changed or missing closures, unverified metadata, stale occurrences, candidate-declared history and ambiguous imports. Resume M2-003."
     }
   ]
 }
