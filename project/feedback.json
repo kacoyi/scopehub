@@ -3598,14 +3598,18 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-079"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The local ledger checked finding IDs and test ownership, but losing the final unfinished corrective task only produced a later status signal.",
+        "correction": "Compare the prior and current owners before harness execution and in protected history. Require a transfer, verified resolution or deliberate deferral when the last unfinished owner retires.",
+        "prevention": "A real temporary Git project finishes and removes its last owner, tests a valid transfer and an explicit deferral, and keeps intake available for a new defect discovered after earlier work finished."
+      },
       "deferral_reason": null
     },
     {
@@ -3613,14 +3617,18 @@
       "source": "contracts/reviews/2026-11-23-continuity-audit.json and a Git-launched local project preflight over two independent fixture repositories, archives/runs/20261123T112336.451128Z-4b84eb5b/test-report.json",
       "observation": "In one fixture repository an unsupported closure of a major finding failed local project validation. Invoking that same command through an external Git alias in another repository returned success and reported the other repository’s independently accepted checkpoint.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-079"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Git-launched commands inherited the caller’s repository, index and object selectors while validating files in a second checkout.",
+        "correction": "Resolve project history, source identity, check subprocesses, recovery and receipt provenance against the target checkout, clearing inherited repository-local Git selectors.",
+        "prevention": "Use independent repositories and a registered worktree to verify both false acceptance and false rejection, the identity seen inside a check, and the archived receipt."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
