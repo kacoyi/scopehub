@@ -1,0 +1,155 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-034",
+  "task_definition_sha256": "5f74b1b01dc9a7aabb6b0cb05b5bc1b8bc9da4e5a1197dd47835612b5767e193",
+  "run_id": "20261123T113603.573849Z-c97056f8",
+  "recorded_at": "2026-11-23T11:38:53.638739+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "3a6010c9cca9fe081c7e25f6af71f912758511f5f408d404be4ef33058f03872",
+    "file_count": 560,
+    "git_head": "5e07799de52fe4219a78874bc7f84892eafba614",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "7e7bae0dcbb93c4543a4d2ca91b9b221175feff064a15df7738e3c4067d42288",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e56dfb1a36ab1a74c040d069dda5cf7c4b21f8312c866f26339ee653db387c47"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "09d931f8bf598edb65d5bc3e87eaf655b7bbecf95ef1f191c02dc52a8c193d6a"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "df31673ff938e9a6a603c56cfd13949b42c1b8edcba9d2688c7f771f48c449d9"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d1104dd6e5f5e455f3cb7f4d3f6937a147a5910a225571d49694233056ce71f9"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5ab80e71529aa84428e353a64764d6a7c04c59db1eb3c29b8ecc835fd39f25aa"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2cbc1e0fb844d659eb584cbe34b994ab8ad7d0c43ce31f1d4143ce793a8dd0dd"
+    },
+    {
+      "id": "local-import-publication",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+        "scripts/check_local_import_publication.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "23b2a8ed371a4d66df356882f595be8f98fcf24f34db2eff3100c6e694b3afd0"
+    },
+    {
+      "id": "local-folder-refresh-preview",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/csv-series-declarations/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-refresh"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9770b6b4d98839cda05c46ca03579998695b2e034641331d114a9fa57b7dc4b3"
+    }
+  ],
+  "project_definition_sha256": "92a58b0e3f5c0d1cc88e82907fba75cddcfd818733c75d3e5961cc3b95590a11",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
