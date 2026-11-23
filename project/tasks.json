@@ -15667,6 +15667,13 @@
               "generated-contracts",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A valid deep or shared source graph consumes excessive time or fails with a Python recursion error during ordinary project checks.",
+            "checks": [
+              "python-contracts-workers",
+              "architecture"
+            ]
           }
         ],
         "rollback": "Restore the reviewed index, source records and their reader together. Historical receipts remain attributable to their execution inputs.",

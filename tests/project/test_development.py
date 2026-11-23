@@ -3,6 +3,7 @@
 import copy
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.check_architecture import declared_source_boundaries
 from scripts.development import product_brief, resolve_source, status_view
@@ -216,6 +217,25 @@ class DevelopmentTests(ProjectFixture):
         self.save('host.json', {'preview': {'$source': {'path': './workbench.json', 'pointer': ''}}})
         with self.assertRaisesRegex(ValueError, 'Cyclic engineering source link'):
             resolve_source(self.root, {'path': path, 'pointer': '/ui/preview'})
+
+    def test_deep_and_shared_source_records_observe_the_view_budgets(self):
+        index = {'path': 'engineering-contract-v1.json', 'pointer': ''}
+        def link(name):
+            return {'$source': {'path': name, 'pointer': ''}}
+
+        self.save(index['path'], {'first': link('workflow.json'), 'second': link('workflow.json')})
+        self.save('workflow.json', [link('sample.json'), link('sample.json')])
+        self.save('sample.json', {'volume': None})
+        read = Path.read_text
+        with patch.object(Path, 'read_text', autospec=True, side_effect=read) as reads:
+            self.assertEqual(resolve_source(self.root, index)['second'], [{'volume': None}] * 2)
+        self.assertEqual([call.args[0].name for call in reads.call_args_list].count('sample.json'), 1)
+        with patch('scripts.development.MAX_ENGINEERING_DEPTH', 3):
+            with self.assertRaisesRegex(ValueError, 'expansion limit at .*sample.json#'):
+                resolve_source(self.root, index)
+        with patch('scripts.development.MAX_ENGINEERING_VALUES', 12):
+            with self.assertRaisesRegex(ValueError, 'expansion limit at .*sample.json#'):
+                resolve_source(self.root, index)
 
     def test_task_context_exposes_the_role_families_and_shared_quality_floor(self):
         self.record['herdr'] = {
