@@ -15839,6 +15839,143 @@
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
     },
     {
+      "id": "M0-081",
+      "title": "Update the locked cookie dependency for RUSTSEC-2026-0594",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-059"
+      ],
+      "scope": [
+        "Cargo.lock",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "project/checks.json",
+        "tests/project/test_verification_scheduling.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Resolve the desktop dependency graph to the published patched cookie 0.18.3. Verify the registry checksum and preserve unrelated package versions, existing grants and license policy.",
+        "Retain the failed online review for cookie 0.18.2 and obtain a fresh passing review on the repaired lock. Recheck the Rust workspace, exact Windows desktop graph, refreshed inventory and notices.",
+        "Every selected online dependency review runs once immediately after environment and project-state. Its failure reports before expensive checks, a fail-fast run stops there, and ordinary runs retain all other scheduled evidence."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "dependency-review",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T095941.698705Z-187d8246",
+          "source_commit": "bea74a569b62823e5ce4907250e967bf4596af29",
+          "report_sha256": "b92119b9ce93a95b923ca293383925b20416f2c9fa6d143c554468a02a33b0d3"
+        }
+      ],
+      "plan": {
+        "outcome": "The release and protected verification use a patched transitive desktop dependency and the ordinary online policy check can pass again.",
+        "change_types": [
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          "Cargo.lock",
+          "project/dependencies.json",
+          "project/dependency-inventory.json",
+          "scripts/dependencies.py",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "project/checks.json",
+          "scripts/check.py",
+          "tests/project/test_verification_scheduling.py"
+        ],
+        "hypotheses": [
+          "The existing Tauri and Wry constraints accept the published cookie 0.18.3 patch without a direct dependency or unrelated upgrades.",
+          "The runner follows catalog order. Moving the existing dependency check earlier will surface the advisory without changing selection or the normal continue-after-failure behavior."
+        ],
+        "risks": [
+          {
+            "failure": "The solver retains the affected version, changes an unrelated dependency or breaks desktop callers.",
+            "checks": [
+              "architecture",
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An inventory or notice refresh obscures a license change or an advisory disposition hides the still-affected version.",
+            "checks": [
+              "project-state",
+              "dependency-review"
+            ]
+          },
+          {
+            "failure": "The online review runs twice, an unselected profile gains a new gate, or early execution silently suppresses later checks in ordinary mode.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the previous graph only as a diagnostic checkpoint with integration on hold. Reassess a compatible patched graph before acceptance.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "desktop"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py",
+            "apps/desktop/src-tauri/Cargo.toml",
+            "project/checks.json",
+            "tests/project/test_verification_scheduling.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Reproducing the upstream vulnerability, adding an advisory exception, changing product permissions or accepting a packaged desktop release."
+          ],
+          "open_questions": [
+            "Does Cargo resolve the patch with the original desktop constraints and the same unrelated package set?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Current Tauri integrations, supported Windows desktop and portable crate behavior, existing dependency dispositions and historical evidence."
+          ],
+          "change": [
+            "Upgrade the locked cookie dependency and refresh its matching inventory and third-party notices.",
+            "Schedule the existing online dependency review before expensive checks whenever it is selected."
+          ],
+          "data_plan": "The change concerns dependency metadata and packaged library code. Existing user data, source bindings and workspace formats retain their current representations.",
+          "cleanup": "Keep the original failed online review resolvable and return the product focus to M2-003 after archiving the passing task evidence."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-081-bd32880a5e2d73c0.json",
+          "sha256": "07d568a03562b3ec283b6b13370b1324d0bcf23e7a419ab8c06ce472444b25a3"
+        }
+      ],
+      "closure_reason": "The clean task harness at 3607aa8 passed the online dependency review, project and architecture checks, Python suite and Rust workspace tests. Only the cookie version and checksum changed among 484 Cargo package records. The production-catalog scheduling regression observed the advisory in the third position and ordinary verification continued after the simulated failure. The original failing report and its four logs were verified in the development archive. Product work resumes at M2-003."
+    },
+    {
       "id": "M0-079",
       "title": "Keep observed maintenance failures actionable across development sessions",
       "milestone": "M0",

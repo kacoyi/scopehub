@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-22T12:15:56.583002+00:00",
+  "observed_at": "2026-11-23T10:04:51.460841+00:00",
   "lock_sha256": {
-    "Cargo.lock": "813c34437d98de9439bf625cf35301abd0cceb79023472a763f5af290640aba7",
+    "Cargo.lock": "96621a11f8a71e9182d4ac85086ce34222c167502aa1dd66706703e71687eba0",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "93ce172ebd5dbdddc6e00334d8aa79f9913545cf2bf52a49770d4eedff16c1f3"
   },
@@ -444,9 +444,9 @@
     {
       "ecosystem": "crates.io",
       "name": "cookie",
-      "version": "0.18.2",
+      "version": "0.18.3",
       "license": "MIT OR Apache-2.0",
-      "metadata_url": "https://crates.io/crates/cookie/0.18.2"
+      "metadata_url": "https://crates.io/crates/cookie/0.18.3"
     },
     {
       "ecosystem": "crates.io",
