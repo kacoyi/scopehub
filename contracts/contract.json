@@ -948,7 +948,7 @@
   "external_services": [],
   "real_market_data_configured": false,
   "cloud_models_configured": false,
-  "first_product_scenario": "View the current chart, ask AI for analysis and an indicator, preview it, then explicitly accept an immutable version.",
+  "first_product_scenario": "Start from a blank workbench and compose an original view from authorized local evidence with the embedded AI. Adjust one detail, refresh, undo and reopen it. The default chart also supports the existing analysis, indicator preview and immutable acceptance journey.",
   "milestone_order": [
     "M0",
     "M1",

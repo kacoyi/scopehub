@@ -479,7 +479,22 @@
         "ai-workflow",
         "workspace-widget-bindings"
       ],
-      "evidence_boundary": "A single main chart with built-in panels and allowlisted interactions. Executable custom panels have separate later scope."
+      "evidence_boundary": "This scenario exercises the built-in chart layout and allowlisted interactions. The original chart-free workbench has its own V1 acceptance."
+    },
+    {
+      "id": "compose-a-workbench-from-blank",
+      "task_ids": ["M2-013"],
+      "user_goal": "Decide which information is visible, when it belongs on screen, how it looks and what selecting it opens.",
+      "given": "A blank workbench, a selected synthetic research note and an authorized local set of disclosures with known issuers, publication times and evidence identifiers.",
+      "when": "Compose a view that pairs matching disclosures with the note. Change its structure with the embedded AI and then adjust one element manually. Refresh the source, inspect a match, undo, save and reopen. Preview a draft that cannot be rendered.",
+      "then": [
+        "The user can remove all default regions, build a presentation without a dedicated product widget and change its content rule or visual arrangement without rebuilding the application.",
+        "Only entitled matching items appear after refresh. A healthy empty result is distinguishable from unavailable coverage. The selected original and the saved note retain their identities.",
+        "After a failed draft the trusted host restores the accepted workbench. A reopened composition retains its rules and rechecks current permissions."
+      ],
+      "failure_cases": ["Source disconnected or access revoked", "Interrupted draft or failed renderer", "Previously saved chart layout opened after upgrade"],
+      "checks": ["chart-free-workbench"],
+      "evidence_boundary": "Verify the interaction in the desktop application and on the exact packaged Windows candidate at release. A screenshot, a standalone renderer probe or a preset dashboard cannot establish this result."
     },
     {
       "id": "voice-evidence-discussion",
@@ -713,7 +728,8 @@
       "dependency-review",
       "configured-model-session",
       "configured-voice-session",
-      "configured-external-ai-clients"
+      "configured-external-ai-clients",
+      "chart-free-workbench"
     ],
     "artifact_requirements": [
       "Committed source revision and execution-input digest",
@@ -725,6 +741,7 @@
       "The report binds runs/<run-id>/candidate/build-manifest.json to its SHA-256. Within candidate/, retain the same hashed NSIS installer and separately hashed clean-install and upgrade observations on Windows 10 and Windows 11 x64 client builds."
     ],
     "product_review": [
+      "Have the owner reshape a workbench from blank on the candidate and inspect its behavior after a source refresh and reopen.",
       "Demonstrate the end-to-end workflow to the owner and record observed usability issues as feedback.",
       "Compare the delivered outcome with the research question, visible source quality and actual operation results.",
       "Use release-artifacts acceptance to verify retained artifacts and the recorded owner review; a checklist alone is not acceptance."
