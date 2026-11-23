@@ -15976,6 +15976,401 @@
       "closure_reason": "The clean task harness at 3607aa8 passed the online dependency review, project and architecture checks, Python suite and Rust workspace tests. Only the cookie version and checksum changed among 484 Cargo package records. The production-catalog scheduling regression observed the advisory in the third position and ordinary verification continued after the simulated failure. The original failing report and its four logs were verified in the development archive. Product work resumes at M2-003."
     },
     {
+      "id": "M0-080",
+      "title": "Run and verify all checks required by the release contract",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-078"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/project.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The release profile selects its baseline and every check required by a release milestone, acceptance binding, product scenario or explicit release gate, including the nine obligations omitted on bea74a5.",
+        "A newly bound task-cadence check enters release selection automatically. Unbound task and later-only checks stay outside it, ordinary profiles retain their selection, and platform and implementation limits remain visible.",
+        "Candidate verification checks the same selection and authenticates the evidence for each required check. A candidate missing a required check or its evidence is rejected."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "A release run can gather all evidence required by readiness and expose any unavailable obligation to the candidate reviewer.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/project.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "tests/project/test_delivery.py",
+          "tests/project/test_ci_artifacts.py"
+        ],
+        "hypotheses": [
+          "The runner and retained-candidate verifier both filter out task cadence before consulting release obligations."
+        ],
+        "risks": [
+          {
+            "failure": "A task-only prerequisite, later-only check or retired check enters release or ordinary profiles.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new obligation is omitted, a platform or implementation limit passes unnoticed, or a candidate can list a check without proving its execution.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the selector and verifier change together. Preserve earlier diagnostics and rerun candidate verification after repair.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "tests/project/test_delivery.py",
+            "tests/project/test_ci_artifacts.py"
+          ],
+          "rules": [
+            {
+              "path": "project/checks.json",
+              "pointer": "/milestones"
+            },
+            {
+              "path": "project/checks.json",
+              "pointer": "/acceptance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scenarios"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy"
+            }
+          ],
+          "non_goals": [
+            "Implementing planned product checks, running packaged Windows acceptance, changing task cadence or granting release authorization."
+          ],
+          "open_questions": [
+            "Which task-cadence checks have a separately declared release obligation?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The default and named verification profiles, task selection, platform gating, release baseline and candidate evidence validation."
+          ],
+          "change": [
+            "Derive release selection once from versioned product obligations and use it at execution and candidate review."
+          ],
+          "data_plan": "Prior reports and receipts remain readable. Candidates lacking required evidence need a new release run. Product stores retain their existing formats.",
+          "cleanup": "Remove both copies of the cadence-only release selection."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-080-32325cd9494ba510.json",
+          "sha256": "f8ff14d97a255c1bff334ff3f4be671b81ac51e7bd9a63eff7aad25aa4531327"
+        }
+      ],
+      "closure_reason": "The task harness on b0d862c passed environment, project-state and python-contracts-workers. The suite ran 584 tests with three native Windows cases skipped on Linux. The release profile selected all 49 contract-bound checks plus three baseline checks. Candidate regressions covered omitted selection, absent results and changed log bytes. The first workbench demonstration resumes at M2-003."
+    },
+    {
+      "id": "M1-034",
+      "title": "Reject conflicting explicit CSV series declarations before publication",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "python/providers",
+        "apps/desktop/ui/src",
+        "tests/integration",
+        "tests/localization/folder-messages.spec.mjs",
+        "tests/ui/local-import.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0008",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "A native CSV row explicitly declaring a different timeframe, timezone or quantity convention remains inspectable with its original values and locator. Its normalized bar cannot enter a new file or folder revision. Report the conflicting field through the normal desktop import entry and its English and Simplified Chinese presentation.",
+        "Check new publication and folder review against the entire source, including a conflict beyond the preview window. A failed refresh preserves the last accepted snapshot. Verified matching declarations and established mappings for sources without these columns continue to work; separate files can declare different supported series."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "market-workflow",
+        "local-import-publication",
+        "local-folder-refresh-preview"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-034-ceabb05e45519d51.json",
+          "sha256": "0018f0376617494ac42b81f2582bef70ee6b144d029757c71bd118012db5ee81"
+        },
+        {
+          "path": "project/evidence/M1-034-7e7bae0dcbb93c45.json",
+          "sha256": "051e248ad68676cfdc7771014a8c2da689e833da840aecd9b77e331086d60329"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "On clean implementation b8b76dc the task checks passed. Worker regressions preserve raw source declarations and locate late conflicts, while valid independent series and blank declaration cells normalize as reviewed. The Rust desktop bridge rejected each field independently at record 2, left a single accepted revision and returned its original frozen bars. The folder browser excluded the conflicting files, preserved competing valid sources and kept the accepted chart open. Desktop localization verified both languages.",
+      "plan": {
+        "outcome": "A reviewed native bar has compatible source and mapping semantics for timeframe, timezone and volume; conflicting original fields remain accessible for review.",
+        "change_types": [
+          "market-fixtures",
+          "ui"
+        ],
+        "context": [
+          "python/providers/csv_bar_mapping.py",
+          "python/providers/local_folder.py",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "tests/ui/local-import.spec.mjs",
+          "contracts/market-data-v1.json"
+        ],
+        "hypotheses": [
+          "The shared native bar normalizer can enforce source declarations consistently for preview, complete-file publication and folder changes. The existing UI issue transport can localize each field and retain source values."
+        ],
+        "risks": [
+          {
+            "failure": "A late or repeated conflict enters an immutable revision after a limited preview.",
+            "checks": [
+              "python-contracts-workers",
+              "local-import-publication",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A legitimate declaration, a previous supported dataset or the localized diagnostic loses its meaning.",
+            "checks": [
+              "desktop-localization",
+              "local-import-publication",
+              "market-fixtures"
+            ]
+          }
+        ],
+        "rollback": "Retain failing synthetic CSV inputs and receipts. Correct the import checks on a reviewed branch before accepting another affected revision.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "ui"
+          ],
+          "entrypoints": [
+            "python/providers/csv_bar_mapping.py",
+            "python/providers/local_folder.py",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "tests/ui/local-import.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/csv_v1_capabilities"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/series_identity"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            }
+          ],
+          "non_goals": [
+            "Migrating existing immutable revisions, inferring market metadata from prices, adding timezone aliases, or converting cumulative quantities."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing publication and readback of compatible reviewed series, raw field values and locators, immutable revision identity and the current single-writer transaction."
+          ],
+          "change": [
+            "Apply the reviewed declaration comparisons to explicit source timeframe, timezone and volume semantics before normalization."
+          ],
+          "data_plan": "Use synthetic local fixtures. New writes must obey the rule. Previously stored snapshots retain their recorded bytes and identities.",
+          "cleanup": "Reuse the existing row-declaration path and discard rejected new staging through normal publication and folder review."
+        }
+      }
+    },
+    {
+      "id": "M1-035",
+      "title": "Validate every explicit native CSV series declaration against the reviewed mapping",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-034"
+      ],
+      "scope": [
+        "contracts/market-data-v1.json",
+        "python/providers",
+        "apps/desktop/ui/src",
+        "tests/integration",
+        "tests/localization/folder-messages.spec.mjs",
+        "tests/ui/local-import.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0008",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Classify every CsvMappingV1 property and every PreviewSeries field. Every applicable explicit source convention is compared before normalization, with original fields and source locators retained on rejection. A newly added semantic field must fail a contract-to-behavior coverage test until its handling and negative case exist.",
+        "Preserve file decoding and named column bindings, established matching forms, case-sensitive identifiers, unknown provider columns and valid independent series. Distinguish continuous roll rules and date-only civil clocks from fields that do not apply to the current mapping.",
+        "Prove that a conflict after a bounded preview prevents complete-file and folder publication, leaves the accepted frozen data readable and is actionable through existing English and Simplified Chinese diagnostics."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "market-workflow",
+        "local-import-publication",
+        "local-folder-refresh-preview"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-035-3dbefe52a288f80b.json",
+          "sha256": "500d480c1e8983ddaf81f04d2e6850bb6da88934f002d0b1667d93d8b6bdc778"
+        },
+        {
+          "path": "project/evidence/M1-035-7e7bae0dcbb93c45.json",
+          "sha256": "074b237e269009b83d53a88ae714842502f132dda4f7775713d1a7fff85f226c"
+        },
+        {
+          "path": "project/evidence/M1-035-66585888972af629.json",
+          "sha256": "1e6aa98adbaa1aaa68d72bde25c33774acddced53123cce5b902f83bf56fbebe"
+        },
+        {
+          "path": "project/evidence/M1-035-5fdc752690f627ae.json",
+          "sha256": "c0fc9eed7c4d529a45d523cfcb657ac0bc25840705df0b747cacebf947b5d811"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The clean implementation 52a4c01 passed the task checks. Workers reject each of 15 explicit contradictions at the recorded late source row, verify all 20 mapping fields have a defined role and preserve accepted equivalents, custom bindings and established reserved aliases. The real publication bridge retained the only accepted revision after failures. Folder review excluded the contradictory files while preserving a genuine price conflict and the frozen chart. Both desktop languages cover every semantic field. The pre-correction diagnostic is linked to the feedback.",
+      "plan": {
+        "outcome": "Explicit source conventions and reviewed native bar semantics agree for each row that can enter a frozen revision.",
+        "change_types": [
+          "market-fixtures",
+          "ui"
+        ],
+        "context": [
+          "python/providers/csv_bar_mapping.py",
+          "python/providers/local_folder.py",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "tests/ui/local-import.spec.mjs",
+          "contracts/market-data-v1.json",
+          "contracts/schemas/protocol.schema.json"
+        ],
+        "hypotheses": [
+          "A declaration index derived from the fields of the existing PreviewSeries and the native mapping rules can share the established normalizer for complete-file publication, preview and folder inspection. Independent schema coverage and per-field examples can detect an omitted future rule."
+        ],
+        "risks": [
+          {
+            "failure": "A newly introduced or late source rule escapes bounded preview and reaches frozen storage.",
+            "checks": [
+              "python-contracts-workers",
+              "local-import-publication",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "Source-specific identities, valid formatting conventions or arbitrary provider columns are confused with reserved metadata.",
+            "checks": [
+              "desktop-localization",
+              "local-import-publication",
+              "market-fixtures"
+            ]
+          }
+        ],
+        "rollback": "Keep synthetic reproductions and current frozen data available through their original revision IDs. Rebuild any corrected series through the existing reviewed publication workflow.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "ui"
+          ],
+          "entrypoints": [
+            "python/providers/csv_bar_mapping.py",
+            "python/providers/local_folder.py",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "tests/ui/local-import.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/csv_v1_capabilities"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/series_identity"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/CsvMappingV1"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/PreviewSeries"
+            }
+          ],
+          "non_goals": [
+            "Changing stored revisions, guessing provider-specific column synonyms, converting end-labeled bars or introducing new permission or execution paths."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing publication and readback of compatible reviewed series, raw field values and locators, immutable revision identity and the current single-writer transaction."
+          ],
+          "change": [
+            "Check every explicitly named applicable series or bar convention with the field-specific comparison policy. Bind behavioral coverage to the canonical schema."
+          ],
+          "data_plan": "Use synthetic local fixtures. New writes must obey the rule. Previously stored snapshots retain their recorded bytes and identities.",
+          "cleanup": "Keep one declaration index and one normalizer for preview, publication and folder review."
+        }
+      }
+    },
+    {
       "id": "M0-079",
       "title": "Keep observed maintenance failures actionable across development sessions",
       "milestone": "M0",
@@ -16017,6 +16412,10 @@
         {
           "path": "project/evidence/M0-079-4f28e48d2d68149d.json",
           "sha256": "bdddedb774070fd0a180c12f72d1ec973bed67b1a0edf71505a3898473dfb4e8"
+        },
+        {
+          "path": "project/evidence/M0-079-63219ec5e0a0d262.json",
+          "sha256": "34d1ee9724bff6db17130e394b03b50a17bec856233abd5857ba103079e11296"
         }
       ],
       "next_action": null,

@@ -13,11 +13,18 @@ from contracts.generated.protocol import Bar, PreviewIssue, PreviewSeries
 
 _FIELDS = ('symbol', 'timestamp', 'trading_day', 'open', 'high', 'low', 'close', 'volume')
 _PRICES = ('open', 'high', 'low', 'close')
-_SERIES_DECLARATIONS = {
-    'quantityunit': 'quantity_unit',
-    'priceadjustment': 'price_adjustment',
-    'venue': 'venue',
+# Only an unbound header naming a formal series or bar rule declares a row convention.
+_BAR_RULES = {
+    'record_kind', 'volume_semantics', 'timestamp_convention',
+    'timestamp_format', 'trading_day_format', 'daily_start_time',
 }
+_DECLARATIONS = {
+    field.replace('_', ''): field for field in PreviewSeries.__annotations__.keys() | _BAR_RULES
+}
+# These source declarations were reserved for every row binding before the wider mapping review.
+_RESERVED_HEADERS = {'quantityunit', 'priceadjustment', 'venue'}
+_ENUM_FIELDS = {'record_kind', 'instrument_kind', 'volume_semantics', 'timestamp_convention'}
+_STANDARD_TERMS = {'quantity_unit': {'shares', 'lots', 'contracts'}, 'price_adjustment': {'raw'}}
 _SETTLEMENT_NAMES = {name + suffix for name in ('settle', 'settlement') for suffix in ('', 'price', 'px')}
 _CURRENT_SETTLEMENT = _SETTLEMENT_NAMES | {
     prefix + name for prefix in ('current', 'today', 'daily', 'final') for name in _SETTLEMENT_NAMES
@@ -99,11 +106,18 @@ class _NativeMapping:
     zone: ZoneInfo
     daily_start: time | None
     closure_indices: tuple[int, ...]
-    declarations: tuple[tuple[int, str, str], ...]
+    declarations: tuple[tuple[int, str, str | None], ...]
 
 
 def _column_key(column: str) -> str:
     return ''.join(character for character in column.casefold() if character.isalnum())
+
+
+def _declaration(column: str) -> str | None:
+    legacy = _column_key(column)
+    if legacy in _RESERVED_HEADERS:
+        return _DECLARATIONS[legacy]
+    return _DECLARATIONS.get(re.sub(r'[ _-]+', '', column.casefold()))
 
 
 def auxiliary_role(column: str) -> str | None:
@@ -114,7 +128,7 @@ def auxiliary_role(column: str) -> str | None:
         return 'previous settlement price'
     if key in _CLOSURE_NAMES:
         return 'bar closure flag'
-    if field := _SERIES_DECLARATIONS.get(key):
+    if field := _declaration(column):
         return f'declared {field.replace("_", " ")}'
     return _AUXILIARY_COLUMNS.get(key)
 
@@ -135,7 +149,7 @@ def _column_indices(mapping: object, header: list[str], issues: list[PreviewIssu
         elif (position := positions.get(column)) is None:
             issues.append(preview_issue('column_missing', field, f'The mapped header {column!r} is missing. Review the file layout.'))
         elif (role := auxiliary_role(column)) and (
-            field in (*_PRICES, 'volume') or _column_key(column) in _SERIES_DECLARATIONS
+            _column_key(column) in _RESERVED_HEADERS or (field in (*_PRICES, 'volume') and _declaration(column) is None)
         ):
             issues.append(preview_issue('auxiliary_column', field, f'{column!r} is {role}. Select a native bar field.'))
         elif position in assigned and (assigned[position], field) != ('timestamp', 'trading_day'):
@@ -212,17 +226,37 @@ def native_mapping(mapping: Mapping[str, object], header: list[str], issues: lis
     if issues or timestamp is None or trading_day is None or zone is None:
         return None
     closure_indices = tuple(index for index, column in enumerate(header) if _column_key(column) in _CLOSURE_NAMES)
-    reviewed = {
-        'quantity_unit': series['quantity_unit'],
-        'price_adjustment': series['price_adjustment'],
-        'venue': series['venue'],
-    }
-    declarations = tuple(
-        (index, declaration, reviewed[declaration])
-        for index, column in enumerate(header)
-        if (declaration := _SERIES_DECLARATIONS.get(_column_key(column))) is not None
-    )
-    return _NativeMapping(series, indices, timestamp, trading_day, zone, daily_start, closure_indices, declarations)
+    selected = set(indices.values())
+    declarations = []
+    for index, column in enumerate(header):
+        declaration = _declaration(column)
+        if index in selected or declaration is None or (declaration == 'daily_start_time' and daily_start is None):
+            continue
+        # A hidden draft roll setting never changes the effective noncontinuous series.
+        expected = series['roll_method'] if declaration == 'roll_method' else mapping.get(declaration)
+        declarations.append((index, declaration, expected if isinstance(expected, str) else None))
+    return _NativeMapping(series, indices, timestamp, trading_day, zone, daily_start, closure_indices, tuple(declarations))
+
+
+def _declaration_matches(field: str, declared: str, expected: str | None) -> bool:
+    if expected is None:
+        # PreviewSeries represents an inapplicable roll method with JSON null.
+        return field == 'roll_method' and declared.isascii() and declared.casefold() in {'none', 'null'}
+    if declared == expected:
+        return True
+    if field in _ENUM_FIELDS and declared.isascii():
+        return re.sub(r'[ _-]+', '_', declared.casefold()) == expected
+    if declared.isascii() and expected.casefold() in _STANDARD_TERMS.get(field, ()):
+        return declared.casefold() == expected.casefold()
+    if field == 'daily_start_time':
+        # An explicit local clock may omit zero seconds or include only zero fractional seconds.
+        if not re.fullmatch(r'[0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:[.,]0{1,6})?)?', declared):
+            return False
+        try:
+            return time.fromisoformat(declared) == time.fromisoformat(expected)
+        except ValueError:
+            return False
+    return False
 
 
 def _resolve_time(value: datetime, zone: ZoneInfo) -> datetime:
@@ -283,12 +317,17 @@ def normalize_bar(values: list[str], mapping: _NativeMapping) -> tuple[str, Bar]
             raise BarFieldError(preview_issue('bar_closure_ambiguous', 'is_closed', 'Resolve the missing, unrecognized or conflicting source closure flags. Use explicit true or false values.'))
 
     for index, field, expected in mapping.declarations:
-        declared = values[index].strip()
-        if declared and declared.casefold() != expected.casefold():
-            label = field.replace('_', ' ')
+        value = values[index]
+        if not value.strip():
+            continue
+        # Whitespace in a date format is a literal input character.
+        declared = value if field in {'timestamp_format', 'trading_day_format'} else value.strip()
+        if not _declaration_matches(field, declared, expected):
+            label = 'volume basis' if field == 'volume_semantics' else field.replace('_', ' ')
+            reviewed = expected if expected is not None else 'null'
             raise BarFieldError(preview_issue(
                 f'{field}_mismatch', field,
-                f'The source {label} is {declared[:80]!r}. The reviewed value is {expected[:80]!r}. Review the mapping.',
+                f'The source {label} is {declared[:80]!r}. The reviewed value is {reviewed[:80]!r}. Review the mapping.',
             ))
 
     symbol = raw('symbol')

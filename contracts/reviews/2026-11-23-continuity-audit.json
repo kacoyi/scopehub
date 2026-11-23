@@ -3,7 +3,7 @@
   "date": "2026-11-23",
   "source_commit": "bea74a569b62823e5ce4907250e967bf4596af29",
   "scope": "Repository-wide review of the product contract, runnable financial workflows, durable state, verification, delivery dependencies and maintenance handoff.",
-  "verdict": "Implementation can continue on the existing architecture. The reviewed release profile cannot satisfy all of its own gates. Source-semantic errors can also reach a frozen revision through the current CSV publication path.",
+  "verdict": "The existing architecture supports continued implementation. At the reviewed source, the release profile omitted nine required checks and conflicting CSV declarations reached a frozen revision. Native workbench selection, saved-source behavior, authorized AI editing and actual packaged experience still have separate product gates.",
   "baseline": {
     "tasks": {
       "total": 146,
@@ -94,7 +94,8 @@
         "contracts/schemas/protocol.schema.json#/$defs/CsvMappingV1",
         "contracts/schemas/protocol.schema.json#/$defs/PreviewSeries"
       ],
-      "earliest_check": "Require a classification when a declaration is added to the schema. Normalize each source row and report visible conflicts at preview. Repeat complete admission before publishing a revision or committing a folder refresh."
+      "earliest_check": "Require a classification when a declaration is added to the schema. Normalize each source row and report visible conflicts at preview. Repeat complete admission before publishing a revision or committing a folder refresh.",
+      "compatibility": "Tests classify the 20 mapping properties as 15 source semantics and five mapping configuration fields. Independent comparison against the protected source also recovered previously supported dotted or punctuated headers for quantity_unit, price_adjustment and venue and their existing exclusion from raw field bindings."
     },
     {
       "id": "csv-knowledge-cutoff",
@@ -137,6 +138,7 @@
       "priority": "high-at-native-acceptance",
       "work": [
         "M0-082",
+        "M0-083",
         "M1-012",
         "M1-011"
       ],
@@ -147,13 +149,15 @@
         "tests/project/test_delivery.py",
         "project/checks.json"
       ],
-      "earliest_check": "At intake of new native observations, reject a browser-only host, a missing chart-free operation or source/window evidence that does not match."
+      "earliest_check": "At intake of new native observations, reject a browser-only host, a missing chart-free operation or source/window evidence that does not match.",
+      "hosted_intake": "A synthetic staging test added an extra action with a local-only note to a valid native observation. Staging copied the extra action into the outgoing observation file. Enforce the versioned hosted action list before copying or printing any unexpected field, while preserving local notes and independently readable historical evidence. A recognized action also copied local text when only the screenshot was marked synthetic. Require explicit permission for a redacted text summary as well as synthetic screenshots."
     },
     {
       "id": "packaged-owner-evidence",
       "priority": "high-at-release",
       "work": [
         "M0-082",
+        "M0-083",
         "M5-001"
       ],
       "observed": "The positive local and hosted release fixtures can return technical readiness without retaining the owner's blank-workbench experience on the tested installer. Current hosted manifest and artifact fields omit a bound record for it. release-artifacts remains planned.",
@@ -164,7 +168,8 @@
         "scripts/ci_artifacts.py",
         "tests/project/test_delivery.py"
       ],
-      "earliest_check": "At candidate evidence intake, require an owner product observation bound to the exact installer hash, before technical readiness can pass."
+      "earliest_check": "At candidate evidence intake, require an owner product observation bound to the exact installer hash, before technical readiness can pass.",
+      "observation_time": "A synthetic candidate with an otherwise bound owner record dated in the year 2999 passed local and hosted intake. Check that a claimed observation could already have occurred when accepting it, while preserving the original dates and hashes for historical diagnosis."
     },
     {
       "id": "external-client-evidence",
@@ -281,5 +286,62 @@
       "follow_up": "project/delivery.json#/scaffold_maintenance/periodic_reviews",
       "full_main_run": "https://github.com/kacoyi/scopehub/actions/runs/45133726159"
     }
-  }
+  },
+  "repair_evidence": [
+    {
+      "tasks": [
+        "M0-079"
+      ],
+      "observed": "A narrower check can no longer clear an earlier failure or missing executable. Local preflight and protected history reject unsupported feedback closure and loss of an open finding’s last unfinished owner. Direct and Git-launched checks use the target checkout for source, recovery and receipt identity.",
+      "evidence": [
+        "project/evidence/M0-079-4f28e48d2d68149d.json",
+        "tests/project/test_retained_failures.py",
+        "tests/project/test_delivery.py"
+      ]
+    },
+    {
+      "tasks": [
+        "M0-080"
+      ],
+      "observed": "The release runner and candidate intake use the same selection. The production catalog selects 52 checks, covering all 49 distinct release obligations. Expensive and planned checks keep their own execution dispositions.",
+      "evidence": [
+        "project/evidence/M0-080-32325cd9494ba510.json",
+        "https://github.com/kacoyi/scopehub/actions/runs/45166391453"
+      ]
+    },
+    {
+      "tasks": [
+        "M1-034",
+        "M1-035"
+      ],
+      "observed": "The worker checks all 15 applicable declarations while preserving the five configuration properties and historical reserved headers. The desktop single-file and directory paths rejected conflicting rows and retained the last accepted data. Both hosted platforms ran the dedicated task including the checks omitted by ordinary change verification.",
+      "evidence": [
+        "https://github.com/kacoyi/scopehub/actions/runs/45169701010",
+        "project/evidence/M1-035-66585888972af629.json",
+        "project/evidence/M1-035-5fdc752690f627ae.json"
+      ]
+    },
+    {
+      "tasks": [
+        "M0-081"
+      ],
+      "observed": "The pinned cookie update removed the newly reported advisory. The online dependency review runs third, immediately after environment and project validation. The exact merged source passed both protected platforms.",
+      "evidence": [
+        "project/evidence/M0-081-bd32880a5e2d73c0.json",
+        "https://github.com/kacoyi/scopehub/actions/runs/45160264942"
+      ]
+    },
+    {
+      "tasks": [
+        "M0-082",
+        "M0-083"
+      ],
+      "observed": "Synthetic fixtures at the reviewed correction exercised versioned native actions, installer-bound owner observations, local-only notes, explicit redacted sharing and future-dated observations. Earlier diagnostic bytes remain independently readable. Actual native and owner observations remain assigned to M1-011, M1-012 and M5-001.",
+      "evidence": [
+        "https://github.com/kacoyi/scopehub/pull/58",
+        "tests/project/test_ci_artifacts.py",
+        "tests/project/test_diagnostic_archive.py"
+      ]
+    }
+  ]
 }

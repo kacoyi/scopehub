@@ -114,6 +114,7 @@ class RetainedFailureTests(ProjectFixture):
             for result in (workfront(self.root, retained_detail=False), recovery.diagnose(self.root)):
                 self.assertEqual('incomplete', result['retained_failures']['scan']['coverage'])
                 self.assertEqual(1, result['retained_failures']['scan']['older_runs_omitted'])
+                self.assertEqual(first.parent.name, result['retained_failures']['scan']['first_omitted_run_id'])
             self.assertIn('incomplete_retained_run_coverage', {item['kind'] for item in recovery.diagnose(self.root)['signals']})
         self.assertTrue(first.exists())
 
@@ -264,6 +265,7 @@ class RetainedFailureTests(ProjectFixture):
         self.assertEqual('incomplete', limited['scan']['coverage'])
         self.assertTrue(limited['scan']['bytes_limited'])
         self.assertEqual(2, limited['scan']['older_runs_omitted'])
+        self.assertEqual(path.parent.name, limited['scan']['first_omitted_run_id'])
 
     def test_distinguishes_bounded_history_and_declines_linked_originals(self):
         first = self.observed(1, {'rust-lints': 'failed'}, project_definition_sha256='c' * 64)

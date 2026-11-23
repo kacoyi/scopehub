@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import unittest
 
-from providers.local_folder import CsvReviewRequired, check_complete_csv, preview_csv
+from providers.local_folder import CsvReviewRequired, check_complete_csv, inspect_folder_csv, preview_csv
 
 
 FUTURES_COLUMNS = {
@@ -138,6 +138,39 @@ class LocalFolderPreviewTests(unittest.TestCase):
                 self.assertEqual(review.exception.locator, {
                     'record_number': 2, 'line_start': 3, 'line_end': 3,
                 })
+
+    def test_explicit_time_and_volume_rules_apply_to_every_source_row(self):
+        header = FUTURES_HEADER.rstrip(b'\n') + b',Time Frame,TimeZone,Volume_Semantics\n'
+        first = b'DEMO2609,20240719 21:05:00,22-07-2024,101,105,96,102,150,99,800,'
+        second = first.replace(b'21:05:00', b'21:10:00')
+        matching = b'5m,Asia/Shanghai,per_bar\n'
+        for tail, field, value in [
+            (b'1m,Asia/Shanghai,per_bar\n', 'timeframe', '1m'),
+            (b'5M,Asia/Shanghai,per_bar\n', 'timeframe', '5M'),
+            (b'5m,UTC,per_bar\n', 'timezone', 'UTC'),
+            (b'5m,Asia/Shanghai,cumulative\n', 'volume_semantics', 'cumulative'),
+        ]:
+            with self.subTest(field=field, value=value):
+                content = header + first + matching + second + tail
+                valid, conflict = preview_csv(content, FUTURES_MAPPING)['rows']
+                self.assertEqual(valid['normalized']['time_ms'], 1721394300000)
+                self.assertEqual(valid['normalized']['volume'], 150)
+                self.assertIsNone(conflict['normalized'])
+                self.assertIn(value, conflict['raw_fields'])
+                self.assertEqual(conflict['issues'][0]['field'], field)
+                self.assertEqual(conflict['issues'][0]['code'], field + '_mismatch')
+                self.assertTrue(preview_csv(content, FUTURES_MAPPING, row_limit=1)['truncated'])
+                for complete in (check_complete_csv, inspect_folder_csv):
+                    with self.assertRaises(CsvReviewRequired) as denied:
+                        complete(content, FUTURES_MAPPING)
+                    self.assertEqual(denied.exception.locator, {'record_number': 2, 'line_start': 3, 'line_end': 3})
+                    self.assertEqual(denied.exception.issue['code'], field + '_mismatch')
+        # A different source has its own minute series and UTC local-clock convention.
+        alternative = header + second + b'1m,UTC,per_bar\n'
+        changed = preview_csv(alternative, {**FUTURES_MAPPING, 'timeframe': '1m', 'timezone': 'UTC'})
+        self.assertEqual(changed['rows'][0]['normalized']['time_ms'], 1721423400000)
+        self.assertEqual(changed['series']['timeframe'], '1m')
+        self.assertIsNotNone(preview_csv(header + first + b',,\n', FUTURES_MAPPING)['rows'][0]['normalized'])
 
     def test_invalid_quantities_and_prices_are_reviewable_in_source_order(self):
         content = FUTURES_HEADER + (

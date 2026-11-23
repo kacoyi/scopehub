@@ -646,14 +646,94 @@ class DeliveryTests(ProjectFixture):
             with self.assertRaisesRegex(ProjectError, 'matching Ubuntu'):
                 field_observation(self.root, key)
 
+    def test_release_profile_covers_product_obligations_without_selecting_task_only_work(self):
+        project = load_project(project_cli.ROOT)
+        obligations = {
+            'decision-note-lifecycle', 'indicator-workflow', 'local-folder-import', 'model-connection-replay',
+            'model-connection-workflow', 'private-record-lifecycle', 'state-migrations', 'workspace-layout',
+            'workspace-widget-bindings',
+        }
+        release = harness.select_checks(project, profile='release')
+        self.assertLessEqual(obligations, release)
+        changes = {key for key, check in project['checks'].items()
+                   if check['status'] != 'retired' and check.get('cadence', 'change') == 'change'}
+        release_cadence = {key for key, check in project['checks'].items()
+                           if check['status'] != 'retired' and check.get('cadence') == 'release'}
+        self.assertLessEqual(changes | release_cadence, release)
+        self.assertEqual(changes, harness.select_checks(project))
+        for name, expected in project['catalog']['profiles'].items():
+            with self.subTest(profile=name):
+                self.assertEqual(set(expected), harness.select_checks(project, profile=name))
+
+    def test_new_task_cadence_obligations_enter_release_with_platform_and_implementation_limits(self):
+        catalog_path = self.root / 'project/checks.json'
+        delivery_path = self.root / 'project/delivery.json'
+        catalog = read_json(catalog_path)
+        delivery = read_json(delivery_path)
+        base = next(check for check in catalog['checks'] if check['id'] == 'project-state')
+        bindings = {
+            'milestone-only': catalog['milestones'][0]['checks'],
+            'acceptance-only': catalog['acceptance'][0]['checks'],
+            'scenario-only': delivery['scenarios'][0]['checks'],
+            'release-policy-only': delivery['release_policy']['required_checks'],
+        }
+        ledger = self.ledger()
+        scenario_task = task_by_id(ledger, delivery['scenarios'][0]['task_ids'][0])
+        scenario_task['checks'].append('scenario-only')
+        self.save_ledger(ledger)
+        for key, checks in bindings.items():
+            check = dict(base, id=key, cadence='task')
+            if key == 'acceptance-only':
+                check.update(status='planned', command=None)
+            if key == 'scenario-only':
+                check['platforms'] = 'windows-x64'
+            catalog['checks'].append(check)
+            checks.append(key)
+        catalog['checks'].append(dict(base, id='retired-check', status='retired', command=None))
+        catalog_path.write_bytes(json_bytes(catalog))
+        delivery_path.write_bytes(json_bytes(delivery))
+
+        for system in ('Linux', 'Windows'):
+            with self.subTest(system=system):
+                code, report = self.run_harness(['--profile', 'release'], system=system)
+                self.assertEqual(1, code)
+                self.assertEqual('blocked', report['status'])
+                self.assertLessEqual(set(bindings), set(report['selection']['checks']))
+                rows = {row['id']: row for row in report['checks']}
+                self.assertEqual('passed', rows['milestone-only']['status'])
+                self.assertEqual('passed', rows['release-policy-only']['status'])
+                self.assertEqual('not_implemented', rows['acceptance-only']['reason_code'])
+                self.assertEqual('not_selected', rows['retired-check']['reason_code'])
+                if system == 'Windows':
+                    self.assertEqual('passed', rows['scenario-only']['status'])
+                else:
+                    self.assertEqual('unsupported_platform', rows['scenario-only']['reason_code'])
+
+    def test_retired_check_cannot_remain_an_explicit_release_obligation(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        retired = dict(catalog['checks'][0], id='former-release-check', status='retired', command=None)
+        catalog['checks'].append(retired)
+        catalog_path.write_bytes(json_bytes(catalog))
+        delivery_path = self.root / 'project/delivery.json'
+        delivery = read_json(delivery_path)
+        delivery['release_policy']['required_checks'].append(retired['id'])
+        delivery_path.write_bytes(json_bytes(delivery))
+        with self.assertRaisesRegex(ProjectError, 'Release policy depends on a retired check'):
+            load_project(self.root)
+
     def test_task_only_observations_do_not_enter_change_or_release_selection(self):
         project = load_project(self.root)
         key = 'one-observed-session'
         project['checks'][key] = {'id': key, 'status': 'implemented', 'cadence': 'task'}
-        project['tasks']['M0-001']['checks'].append(key)
-        self.assertNotIn(key, harness.select_checks(project))
-        self.assertNotIn(key, harness.select_checks(project, profile='release'))
-        self.assertIn(key, harness.select_checks(project, task_id='M0-001'))
+        task = project['tasks']['M0-001']
+        task['checks'].append(key)
+        for delivery in ('current-contract', 'later'):
+            with self.subTest(delivery=delivery):
+                task['delivery'] = delivery
+                self.assertNotIn(key, harness.select_checks(project))
+                self.assertNotIn(key, harness.select_checks(project, profile='release'))
+                self.assertIn(key, harness.select_checks(project, task_id=task['id']))
 
     def test_single_stream_and_quality_checks_cannot_pass_full_market_acceptance(self):
         project = load_project(self.root)
