@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-082",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -16096,7 +16096,7 @@
       "id": "M0-082",
       "title": "Qualify native workbench observations and the owner’s packaged candidate review",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-023"
       ],
@@ -16212,10 +16212,15 @@
           "report_sha256": "b934c47409b0693be90dbf2cab774eab845f29d57233b1f8541b8807f242f853"
         }
       ],
-      "next_action": "Exercise the existing false positives, implement the versioned validators and verify local, staging, import and diagnostic paths.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-082-418a59a35f889e32.json",
+          "sha256": "3fde37bbf0263f778323c687ad95401bdc58f54da2f964fcd1343097e1b80da9"
+        }
+      ],
+      "closure_reason": "The clean task harness at 0381bd2 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic tests cover local and hosted acceptance, archival privacy, downloaded artifacts and release readiness. M1-012, M1-011 and M5-001 own the genuine field and owner trials. Product focus returns to M2-003."
     }
   ]
 }

@@ -3527,7 +3527,7 @@
       "id": "native-field-observation-coverage",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding physical-workbench-observation",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "diagnostic_reports": [
         {
           "run_id": "20261123T112037.433712Z-5c8a3fdc",
@@ -3542,14 +3542,18 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The existing action lists covered earlier charts. The Ubuntu surface identified a generic graphical workspace and the Windows linkage accepted an Ubuntu receipt without a native host or a chart-free workflow version.",
+        "correction": "Require current observation version 2, the actual ScopeHub Ubuntu process and its window, Ubuntu and WebKitGTK versions, chart-free actions on both hosts and a matching versioned Ubuntu receipt for the physical Windows observation.",
+        "prevention": "Local and hosted negative fixtures exercise old actions, browser surfaces, missing host fields, mismatched process IDs, stale Ubuntu receipts, individual Windows actions and historical receipt and diagnostic reading. The genuine native journeys remain assigned to M1-012 and M1-011."
+      },
       "deferral_reason": null
     },
     {
       "id": "packaged-workbench-owner-observation",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding packaged-owner-evidence",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "diagnostic_reports": [
         {
           "run_id": "20261123T112037.433712Z-5c8a3fdc",
@@ -3564,7 +3568,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The candidate manifest and acceptance paths bound the installer, OS observations, legal notices and performance, and omitted the required owner workbench trial.",
+        "correction": "Require an explicitly hands-on product-owner observation on the same commit, execution inputs and installer. Validate the observed blank construction, edit, refresh, reopening and feedback. Share an owner summary only when it is explicitly redacted.",
+        "prevention": "Local, hosted staging, downloaded-candidate and readiness fixtures reject missing, substituted, simulated, status-only and failed observations. Qualified partial artifacts and historical diagnostic bytes remain verifiable. Actual product review stays with M5-001."
+      },
       "deferral_reason": null
     },
     {
