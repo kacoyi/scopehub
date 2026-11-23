@@ -3452,7 +3452,7 @@
       "id": "maintenance-failure-handoff",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding untriaged-failure-handoff",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "A narrower passing run dropped an earlier executed failure from startup and recovery, an unrelated manual run could cover the normal CI failure, and unchanged historical evidence could close a newly reported defect.",
       "task_ids": [
         "M0-079"
@@ -3460,7 +3460,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Startup and recovery only considered the latest report. Hosted inspection selected one run across different triggers. Task receipts proved the task but could predate the feedback or its recurrence.",
+        "correction": "Report unresolved local failures and incomplete scans, validate matching rechecks against the official report schema and logs, and inspect ordinary, manual and weekly verification separately. Register the repair checks at intake and require active plans to cover serious feedback.",
+        "prevention": "The local check, harness preflight and protected history use the same feedback transition validation. The verified observation and occurrence bind to the archived passing checks. Regression tests cover omissions, concurrent and malformed runs, stale weekly results, unchanged old receipts, a repeated finding and rejection before launching checks."
+      },
       "deferral_reason": null
     },
     {

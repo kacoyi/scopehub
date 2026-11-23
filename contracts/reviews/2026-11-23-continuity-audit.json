@@ -125,7 +125,7 @@
         "contracts/decisions/0027-v1-user-composed-workbench.json",
         "project/tasks.json"
       ],
-      "earliest_check": "Run the same first native composition and failed-draft recovery on both engines before recording the renderer decision."
+      "earliest_check": "Before enabling Ubuntu as a supported native host, re-evaluate the existing glib advisory disposition against the new target graph. Then run the same first native composition and failed-draft recovery on both engines before recording the renderer decision."
     },
     {
       "id": "physical-workbench-observation",
@@ -237,5 +237,20 @@
       "Keep developer-loop and release evidence separate. Before optimizing evidence invalidation across branches, measure how often unrelated project-definition changes force expensive reruns."
     ]
   },
-  "maintenance_owner": "The development AI triages in an active owner-started session. GitHub runs the configured periodic checks and produces evidence between sessions. An unresolved finding retains its corrective task, failure evidence and regression. Personal data, paid services, release and authority changes keep their existing approval boundaries."
+  "maintenance_owner": "The development AI triages in an active owner-started session. GitHub runs the configured periodic checks and produces evidence between sessions. An unresolved finding retains its corrective task, failure evidence and regression. Personal data, paid services, release and authority changes keep their existing approval boundaries.",
+  "subsequent_findings": [
+    {
+      "id": "updated-rust-advisory",
+      "work": [
+        "M0-081"
+      ],
+      "observed": "After the baseline audit, the online dependency check in the Ubuntu run for the CSV correction rejected the locked cookie 0.18.2 for RUSTSEC-2026-0594. It was the only failed check in that report. GitHub Dependabot alert 1 concerns glib and has an existing, separately scoped disposition.",
+      "earliest_check": "Recheck the live dependency inventory when a new advisory is reported. Test the smallest pinned update, validate license inventory, and rerun the protected workflows for the affected revisions.",
+      "sources": [
+        "https://github.com/kacoyi/scopehub/actions/runs/45149535246",
+        "project/dependencies.json",
+        "Cargo.lock"
+      ]
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-079",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15842,7 +15842,7 @@
       "id": "M0-079",
       "title": "Keep observed maintenance failures actionable across development sessions",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-078"
       ],
@@ -15868,10 +15868,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the failed-check handoff, add a regression through normal project status and CI inspection, and register the independently observed correctness and release findings.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-079-6ce05dfcadef670a.json",
+          "sha256": "712a655f4ed5141731da97483e26020dda4583b52c9391ae196e2929bf91d164"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The clean source 091c4dc passed environment, project and Python task verification with 599 tests, including three native Windows skips on Linux. The retained original demonstrates feedback-bound evidence. Regressions exercise local status and recovery, hosted workflow selection, intake and risk ownership, repeated findings, and rejection before check subprocesses. The product focus returns to the native renderer prototype.",
       "plan": {
         "outcome": "An engineer opening the repository can pick up a recorded failure or corrective action without a report from the product owner.",
         "change_types": [
