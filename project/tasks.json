@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-076",
   "tasks": [
     {
       "id": "M0-001",
@@ -15502,6 +15502,99 @@
         }
       },
       "closure_reason": "At 64a2652 the task checks passed and an independent review resolved every historical scalar pointer, compared all negotiated operation records with the base and confirmed the release evidence bindings. Native large-file import, optional Python packaging and upstream provider qualification retain their separate pending evidence."
+    },
+    {
+      "id": "M0-076",
+      "title": "Preserve the published acceptance report after assigning catalog IDs",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-074"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0028"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_ci_artifacts.py",
+        "project"
+      ],
+      "acceptance": [
+        "Produce a complete report from identified acceptance bindings and stage the hosted artifact with the existing report schema and disclosure policy. Preserve each requirement, check mapping and observed status.",
+        "Retain the staging failure and a regression that uses the production progress projection. Keep all current release gates and the historical report format."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Run the production progress projection through the strict hosted artifact stager, retain the failing case, then correct the projection and verify staging.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A new stable catalog identifier can be used for release gating while ordinary hosted jobs still stage the established public report.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/ci_artifacts.py",
+          "scripts/check.py",
+          "contracts/schemas/project.schema.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "Automatically copying a catalog row adds its local ID to an exported report with a narrower schema."
+        ],
+        "risks": [
+          {
+            "failure": "The repair widens the hosted disclosure allowlist or drops a requirement or observed result.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the original catalog rows and strict report schema. Revert the projection repair only together with a verified replacement for report generation and staging.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/check.py",
+            "scripts/ci_artifacts.py",
+            "tests/project/test_ci_artifacts.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/acceptance/required"
+            }
+          ],
+          "non_goals": [
+            "Changing product permissions, requirement IDs, release thresholds or hosted disclosure rules."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Public report fields, the current mapping from requirement to checks and every result status."
+          ],
+          "change": [
+            "Select the published acceptance fields explicitly when constructing progress reports."
+          ],
+          "data_plan": "Previously retained reports keep their schema and evidence identities. Verify with synthetic hosted evidence.",
+          "cleanup": "Remove the unintended pass-through of catalog-only fields at the report boundary."
+        }
+      }
     }
   ]
 }

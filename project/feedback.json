@@ -3371,6 +3371,21 @@
           "report_sha256": "6fd06399e41c7dc5ba89b5fe97174d6308d8f488aa2424428ba16bc5b40b9813"
         }
       ]
+    },
+    {
+      "id": "acceptance-catalog-id-hosted-report",
+      "source": "PR 51 Ubuntu evidence staging, jobs 137478170107 and 137483255003. The staging step failed before an uploadable report was produced. https://github.com/kacoyi/scopehub/actions/runs/45111025193/job/137483255003",
+      "severity": "major",
+      "status": "open",
+      "observation": "The verifier ran successfully but evidence staging rejected its output. Validating the locally generated report against HostedHarnessReport reproduced the rejected acceptance/0 field id. Catalog rows gained that stable identifier and product_progress copied it into the published object.",
+      "task_ids": [
+        "M0-076"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

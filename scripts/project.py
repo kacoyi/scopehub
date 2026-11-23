@@ -544,7 +544,8 @@ def product_progress(project, results):
                            'later_task_ids': [task['id'] for task in tasks if task.get('delivery') == 'later'],
                            'cancelled_task_ids': [task['id'] for task in tasks if task['status'] == 'cancelled']})
     acceptance = [
-        {**binding, 'status': summarize_verification(binding['checks'], by_id)}
+        {'requirement': binding['requirement'], 'checks': binding['checks'],
+         'status': summarize_verification(binding['checks'], by_id)}
         for binding in project['catalog']['acceptance']
     ]
     return milestones, acceptance

@@ -16,7 +16,7 @@ from scripts import check_chart_history, ci_artifacts, verification_evidence
 from scripts.check import PRIVATE_CHECK_LOGS, redacted_check_log
 from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
-from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, read_json, verified_candidate_files
+from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, verified_candidate_files
 from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, integration_validation, release_artifacts
 from tests.contracts.test_qualification import observed_case
 from tests.project.fixtures import task_by_id
@@ -103,6 +103,20 @@ class PublicationTests(ProjectFixture):
         with self.assertRaisesRegex(PublicationError, 'fresh .reports directory'):
             prepare_reports(self.root)
         self.assertEqual(self.sentinel, saved.read_bytes())
+
+    def test_hosted_artifact_preserves_the_public_acceptance_rows(self):
+        self.add_catalog_checks('ai-workflow')
+        report = self.hosted_report()
+        self.add_result(report, 'ai-workflow')
+        report['milestones'], report['acceptance'] = product_progress(load_project(self.root), report['checks'])
+        self.save_report(report)
+
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        published = read_json(self.destination / 'test-report.json')
+        self.assertEqual(published['acceptance'], [
+            {'requirement': 'Synthetic installed outcome', 'checks': ['windows-installation'], 'status': 'blocked'},
+            {'requirement': 'Synthetic model outcome', 'checks': ['ai-workflow'], 'status': 'passed'},
+        ])
 
     def test_no_finalized_report_leaves_nothing_uploadable(self):
         prepare_reports(self.root)
