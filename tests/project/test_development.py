@@ -270,6 +270,9 @@ class DevelopmentTests(ProjectFixture):
         self.save('contracts/decisions/0007-successor.json', decision)
         focused = task_context(self.root, 'M0-001')
         detailed = task_context(self.root, 'M0-001', detail=True)
+        for context in (focused, detailed):
+            self.assertIn('pnpm project:impact', context['commands'])
+            self.assertIn('pnpm check:changed', context['commands'])
         self.assertLess(len(json.dumps(focused)), len(json.dumps(detailed)) / 2)
         self.assertNotIn('acceptance', focused['dependencies'][0])
         successor = next(item for item in focused['decisions'] if item['id'] == '0007')

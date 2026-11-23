@@ -71,7 +71,7 @@
       "Read status and focused context; inspect implementation; define one observable result and expose the highest-impact uncertainty.",
       "Treat feedback as evidence for a decision. Separate the observed difficulty and intended outcome from the suggested solution. Experiment when useful, using synthetic data to reproduce the observation and checking proposed changes against the intended outcome. Weigh the evidence and the product priorities. Adopt a change within authorized scope, keep the present design, decline the suggestion or defer the decision. Record consequential findings and the reason for the decision or what would reopen it in the existing task or feedback record.",
       "When verification confirms a violation of an existing requirement, follow the applicable engineering repair policy in project/delivery.json.",
-      "Implement, run fast and affected checks, inspect behavior, correct consequential failures and archive matching evidence.",
+      "Inspect the working interaction and exercise its affected checks. Select additional checks for the coverage they add, correct consequential failures and archive the evidence required by the task.",
       "Separate engineering verification, ready-for-owner-review, observed owner acceptance, integration and release. Report each honestly.",
       "Keep focus, next action and meaningful feedback current. Turn recurring failures into proportionate regressions; remove obsolete rules through reviewed decisions."
     ]
