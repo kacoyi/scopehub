@@ -15830,6 +15830,10 @@
         {
           "path": "project/evidence/M0-078-eb110949954e714f.json",
           "sha256": "ca0db6d284e052f8e03e7733270e91043705aa9015ceb96e4f094bba3f67c9ad"
+        },
+        {
+          "path": "project/evidence/M0-078-61c8405549e2e9f2.json",
+          "sha256": "e409d25e6cb7b84b7aaf0f641000f2c1048e076be37f860b613ae3ddd13e1873"
         }
       ],
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
