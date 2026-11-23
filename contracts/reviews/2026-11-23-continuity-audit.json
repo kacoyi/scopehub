@@ -79,17 +79,20 @@
       "priority": "high",
       "work": [
         "M1-034",
+        "M1-035",
         "M1-029"
       ],
-      "observed": "A synthetic CSV used the admitted 5m, Asia/Shanghai, per_bar mapping. A later row explicitly identified its timeframe as 1m, its timezone as UTC and its volume semantics as cumulative. The current desktop bridge previewed, published and read it back with no issue. The 21:10 UTC timestamp became 13:10 UTC and 150 became the volume for one 5m bar. The frozen raw locator still showed the contrary declarations.",
-      "acceptance": "Reject contradictory semantics at preview, full-file publication and folder refresh, including a conflict beyond the preview. Keep unaffected files usable. For older revisions, use preserved raw locators to identify affected data and offer an attributable reassessment.",
+      "observed": "A synthetic CSV used the admitted 5m, Asia/Shanghai, per_bar mapping. A later row explicitly identified its timeframe as 1m, its timezone as UTC and its volume semantics as cumulative. The current desktop bridge previewed, published and read it back with no issue. The 21:10 UTC timestamp became 13:10 UTC and 150 became the volume for one 5m bar. The frozen raw locator still showed the contrary declarations. After the first guard was added, separate synthetic rows with a conflicting timestamp_convention, calendar_id, session_scope or instrument_kind still passed worker preview and complete admission.",
+      "acceptance": "Classify every formal mapping and preview-series property. Reject an explicit source declaration that contradicts the reviewed mapping at preview, full-file publication and folder refresh, including a conflict beyond preview. Preserve legitimate column bindings, unrelated source columns and unaffected files. For older revisions, use preserved raw locators to identify affected data and offer an attributable reassessment.",
       "sources": [
         "python/providers/csv_bar_mapping.py",
         "python/providers/local_folder.py",
         "crates/application/src/local_publication.rs",
-        "contracts/market-data-v1.json"
+        "contracts/market-data-v1.json",
+        "contracts/schemas/protocol.schema.json#/$defs/CsvMappingV1",
+        "contracts/schemas/protocol.schema.json#/$defs/PreviewSeries"
       ],
-      "earliest_check": "Normalize every source row. Show an issue during preview when visible, and repeat complete admission before publication or committing a folder refresh."
+      "earliest_check": "Require a classification when a declaration is added to the schema. Normalize each source row and report visible conflicts at preview. Repeat complete admission before publishing a revision or committing a folder refresh."
     },
     {
       "id": "csv-knowledge-cutoff",
@@ -131,6 +134,7 @@
       "id": "physical-workbench-observation",
       "priority": "high-at-native-acceptance",
       "work": [
+        "M0-082",
         "M1-012",
         "M1-011"
       ],
@@ -147,6 +151,7 @@
       "id": "packaged-owner-evidence",
       "priority": "high-at-release",
       "work": [
+        "M0-082",
         "M5-001"
       ],
       "observed": "The positive local and hosted release fixtures can return technical readiness without retaining the owner's blank-workbench experience on the tested installer. Current hosted manifest and artifact fields omit a bound record for it. release-artifacts remains planned.",
