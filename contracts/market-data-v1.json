@@ -1,0 +1,185 @@
+{
+  "onboarding": {
+    "entry": "In Settings > Data sources > My data sources, choose a folder the user maintains or configure the user’s own provider API. Show only the fields needed for the selected source. Report source, status, verified instruments, coverage, freshness, units and operations after a trial read. Live provider qualification and the dedicated CTP market-data connection have their own delivery tasks.",
+    "my_data_sources": {
+      "availability": "On a fresh install without a ScopeHub account or data plan, offer Settings > Data sources > My data sources as a first-class entry to select a folder of personally downloaded data or fill a preset credential form or custom API endpoint and credential form. These connections belong to the end user, who obtains free or paid third-party services directly. Also allow optional manual entry or paste of personal records.",
+      "delivery": "M1-030 delivers the local settings and forms and verifies the connection lifecycle with a controlled connector. Live external provider availability requires later M1-009 qualification.",
+      "independence": "Let users test, save, refresh and disconnect their own connections independently. Keep optional ScopeHub data services separately labeled. The two paths share no purchase or checkout, credentials, entitlements, cancellation or billing dependencies. Provider-issued credentials go only to the user's selected connector for its configured destination. ScopeHub services, other connectors and models do not receive them."
+    },
+    "delivery": {
+      "native_csv": "M1-008 delivered the reviewed native CSV folder workflow with session grants and frozen revisions.",
+      "saved_sources": {
+        "task": "M1-028",
+        "delivery": "current-contract",
+        "status": "not_implemented"
+      },
+      "parquet": {
+        "task": "M1-029",
+        "delivery": "current-contract",
+        "status": "not_implemented"
+      },
+      "my_data_sources": {
+        "task": "M1-030",
+        "delivery": "current-contract",
+        "status": "not_implemented"
+      },
+      "external_market_api": {
+        "task": "M1-009",
+        "delivery": "later",
+        "status": "not_implemented"
+      }
+    },
+    "local_files": "CSV and Parquet are the first required readers. Group compatible files across the selected read-only root and its eligible subdirectories. Profile CSV encoding, delimiter and headers, Parquet physical and logical types, and symbol and date placement in columns and paths. Preserve the complete original bytes, source identity and typed records with stable locators. Additional readers require a concrete workflow.",
+    "saved_sources": {
+      "authorization": "From My data sources, a local human explicitly saves a read-only root for one profile and approves a versioned rule whose scope includes automatic append-only publication. This is a separate opt-in available without a ScopeHub account or plan. Selecting a native directory, saving a mapping or publishing a revision never creates it. The existing native grants expire with their session and still require explicit publication.",
+      "identity_and_lifecycle": "Show the bound root, active rule, freshness and pending review in Settings. Allow pause, resume, revoke and explicit rebind. Pause or revoke stops monitoring, reads and future publication under that grant and invalidates pending commits. Before reading and at commit, verify the current profile, grant, reviewed rule version, root and verified child identities, and complete source membership and content. Reject links, reparse points and replacement directories instead of following their paths. Require explicit rebind and review for replacements. Resuming or rebinding reconciles the source within its approved scope.",
+      "reconciliation": "Use filesystem notifications as hints and reconcile on startup and after interrupted or missed notifications. Wait for complete stable input. Distinguish a partial file, temporarily offline root and confirmed removal. Retry transient failures within bounded limits and show freshness separately from availability and coverage. Preserve the last accepted revision through cancellation, failed retries and crashes.",
+      "publication": "Automatically publish complete compatible new files or verified appends within the approved scope only when existing accepted records and their meaning remain intact. Verify the previously accepted prefix or record set. This includes a synced file atomically replaced with the same accepted records plus compatible additions. Stage other replacements, removals, historical corrections and changes in schema or semantics for targeted review with affected files, series, rows and reasons. Preserve alias paths and attributable locators without double-counting. Use one core SQLite transaction for each immutable revision and its idempotent receipt. Duplicate notifications, reordered enumeration and retries must not duplicate data or publication. Isolate affected series so an unrelated valid update can proceed.",
+      "history": "Retain entitled originals, aliases, source digests and typed row locators with the approved rule, calendar and reader or engine versions. Bind historical analyses to immutable input revisions, as-of dates and calculation versions so the same entitled inputs can reproduce results after refresh, correction, detachment or restart. Revoking future source access is separate from withdrawing display or analysis rights on retained revisions. Identify unavailable evidence when current rights prevent replay."
+    },
+    "financial_content": {
+      "common": "Identify instruments, native OHLCV bars, trades, quote or depth snapshots and reference or corporate-action data independently of file format. Distinguish daily bars from auction records and adjustment factors from prices. Preserve identifiers as strings when needed, numeric precision, units, timestamps, timezones, trading days and explicit nulls or missingness. Keep original fields, factor basis and provenance and show which records and joins the reviewed mapping supports. Apply source-declared conventions to each market, including additional regions. Keep source layouts intact and normalize only the fields a chart or analysis needs.",
+      "us_equities": "Keep listing, market feed coverage, timezone, regular or extended sessions, splits and dividend adjustments identifiable.",
+      "chinese_equities": "Preserve exchange and leading-zero symbols, trading calendars, price adjustment basis, volume in shares or lots and turnover units.",
+      "chinese_futures": "Distinguish dated contracts from continuous series, session date from calendar date, cumulative volume from increments, and last trade from settlement. Preserve open interest, units, multiplier and roll method where supplied. Retain distinct same-time snapshots in source order and label snapshot-derived candles as approximate."
+    },
+    "preview": "Show original records alongside mapped values, a sample chart, rejected rows with reasons and unresolved fields. Resolve ambiguities such as trading day, units, auction identity or adjustment before publishing the affected series. Pin verification to the reviewed rule version and complete source revision. Reject publication of stale input or rule versions and require re-verification.",
+    "refresh": "Apply the approved versioned rule deterministically. Preserve original files, their identities, source row locators and the resulting immutable dataset revision. Reuse compatible rules offline and isolate changes for review. The session picker stages refreshes for explicit publication. The saved-source rule can publish compatible additions within its separately approved scope.",
+    "local_tools": {
+      "operations": "Expose bounded profiling, mapping, preview and verification through a bounded local reader and the shared Rust operation registry used by the human and AI. The core provides only authorized inputs and owns publication. Rules are declarative, versioned and editable by hand. AI can draft them from permitted metadata and a minimal explicitly approved sample under the existing disclosure rules. The model is optional for deterministic execution, verification and offline reuse.",
+      "engine_evaluation": "Use the existing reader as a behavioral baseline for M1-029. Evaluate Rust-owned streaming CSV and projected Parquet reads through a native engine on representative multi-year histories. Choose the library and process boundary from measured correctness, peak memory, throughput, cancellation, failure recovery and clean Windows distribution. Register publication through the core single writer. A single control message or rendered page does not set dataset capacity."
+    },
+    "external_api": {
+      "availability": "M1-030 delivers local preset and custom connection forms and controlled-connector tests in the current contract. Live external market provider availability requires later M1-009 qualification for actual access, coverage and use rights.",
+      "configuration": "For a known service, show only the credential fields and connection choices it needs. For an unfamiliar personal or institutional API, offer one local intake for the connection material as supplied, including instructions, endpoints, mixed credential text, request examples or samples. On-device, let the user identify ambiguous secret fields and assign them to the connector without retyping the whole submission. The trusted connector resolves credentials from the platform store for its configured destination. Persist credential references and the reviewed rule; discard the raw paste.",
+      "assistance": "A user can draft a rule manually or ask AI to draft endpoint, authentication field names, filters, pagination and response mapping. Model input is an explicitly curated sanitized projection of only necessary permitted documentation, metadata or sample fields. Preview and approve the exact projection for the named recipient under applicable disclosure rules. Automatic redaction may assist curation but cannot authorize transfer. Keep credential values, raw private requests or responses and unrelated fields out of model input and diagnostics.",
+      "execution": "Approve a versioned rule before any trial or refresh. Enforce read-only endpoints and the configured destination, instrument, range, pagination, rate and resource limits. Apply the same bounds to retries, redirects and page links. No redirect, page or model response can change the destination or expand the grant. Show verified coverage and provenance. Execute only the reviewed declarative rule. Streaming, SDKs and signing require a dedicated reviewed adapter. Never execute generated connector code.",
+      "acceptance": "For later M1-009, start from a fresh installation without a ScopeHub account or plan and use the M1-030 forms in My data sources. Use a provider preset and reviewed custom HTTP mapping to test, save, refresh and disconnect directly obtained connections independently. Verify that a provider-issued credential reaches only its selected connector and configured destination, and that neither connection depends on separately labeled optional ScopeHub services for purchase, checkout, credentials, entitlement, cancellation or billing. Observe authorized bounded reads and pagination and record actual provider access, coverage and rights separately from controlled-connector tests."
+    },
+    "ctp": "Configure the broker identifier, market-data front, environment and required authentication through settings. Establish contract metadata and session rules, then subscribe through the market-data channel. Keep history supplied by files or another API attributable alongside live quotes. Mark gaps and the handoff between sources. Account access and order routing remain outside v1.",
+    "candidates": "TickDB, Alpaca and Massive are market-data candidates. Evaluate Tushare as a documented API and individual AKShare functions against their upstream sources. Study vn.py for CTP market-data callbacks and contract metadata. SnapTrade is a later brokerage candidate. Qualify each candidate for actual coverage, access, rights and operating constraints. ODP is an optional adapter candidate for provider coverage and normalization. Preserve upstream provenance, entitlements and a direct connection path.",
+    "refresh_conflicts": "Group competing rows by selected series and source-defined economic event identity. For native bars, the normalized start time identifies a bar. Coalesce identical values while retaining every source locator. Different values at one key require a validated source correction order or explicit selection in the reviewed native flow. Never choose by directory traversal order. Same-time snapshots retain source order and cannot be deduplicated merely by timestamp. A saved source stages historical corrections and confirmed withdrawals for targeted review before they affect a new revision. A verified compatible append or addition under an active saved rule may publish automatically. Repeated runs and different enumeration orders produce the same accepted inputs. Store file digest, row identity, rule version and calendar basis. Durable mapping and snapshot changes require tested migration, interruption and restore.",
+    "csv_v1_capabilities": "Publish native OHLCV only with identified instrument, adjustment, calendar, timezone, timestamp convention and units. Inspect raw rows, unsupported financial fields and rejected records with their file digest and stable row locator. Preserve leading-zero symbols, source-specific shares/lots, open interest, settlement, multiplier and units when supplied. Keep identified current and prior settlement prices separate from all OHLC fields. Native historical mappings declare closed input. When a recognized source closure flag is present, preserve rows with incomplete or ambiguous closure as raw records with diagnostics. Snapshot-derived candles are separately labeled approximations only when session/date mapping, counter resets, trade evidence and ordering are resolved. Unallocated cumulative baselines and incomplete volume remain unknown; identical timestamps do not imply identical events. Require attributable adjustment factors, session rules and continuous-contract rolls before offering a derived series. Ambiguity prevents publication of the affected series and leaves other accepted series usable."
+  },
+  "domain": {
+    "Instrument": {
+      "id": "string",
+      "display_symbol": "string",
+      "name": "string",
+      "asset_class": "Open string; futures/stocks are not an exhaustive closed set",
+      "venue": "string",
+      "currency": "string",
+      "calendar_id": "string",
+      "timezone": "IANA string",
+      "price_tick": "decimal string|null",
+      "quantity_unit": "string",
+      "tradability": "non_tradable|unknown; tradable is not allowed in v1",
+      "metadata": "object",
+      "provider_mappings": "array of provider_id + provider_symbol"
+    },
+    "DatasetDescriptor": {
+      "id": "UUID",
+      "instrument_id": "string",
+      "provider_id": "string",
+      "mode": "simulated|historical|delayed|realtime",
+      "timeframe": "string",
+      "price_adjustment": "raw|provider-defined string",
+      "timezone": "string",
+      "calendar_id": "string",
+      "quantity_unit": "string",
+      "revision": "string",
+      "quality": "fresh|stale|gapped|degraded",
+      "provenance": "object"
+    },
+    "Bar": {
+      "time_ms": "UTC epoch milliseconds integer, the start of the bar",
+      "trading_day": "YYYY-MM-DD",
+      "open": "finite number",
+      "high": "finite number",
+      "low": "finite number",
+      "close": "finite number",
+      "volume": "finite number|null",
+      "is_closed": "boolean"
+    },
+    "provider_capabilities": [
+      "instrument_search",
+      "historical_bars",
+      "stream_bars",
+      "ticks",
+      "depth",
+      "supported_timeframes",
+      "price_adjustments",
+      "historical_limits"
+    ],
+    "history_snapshots": {
+      "content": "history-chain-v1 uses SHA-256. Text fields are UTF-8 prefixed by a four-byte unsigned big-endian byte length. The seed starts with ASCII ScopeHub/history-chain-v1 and one NUL, followed by the length-prefixed series fields in order instrument_id, provider_id, timeframe, price_adjustment, session_scope, calendar_id, quantity_unit, then dataset_id, dataset_revision and timezone. Append from_ms, to_ms, warmup_bars and as_of_ms as eight-byte signed big-endian integers. H0 is SHA-256 of that seed. For each ordered bar, hash the preceding 32 raw digest bytes followed by time_ms as an eight-byte signed integer, trading_day as length-prefixed text, OHLC in order as IEEE-754 binary64 big-endian, a zero byte for absent volume or byte one followed by its binary64 value, and a byte 0 or 1 for is_closed. Normalize numeric negative zero to positive zero. The final lowercase hexadecimal digest identifies the exact input, including intermediate live-bar state."
+    },
+    "stream_handoff": {
+      "wire": "The internal 1.1 market.subscribe request carries the selected SeriesKey, frozen snapshot and last included StreamPosition, which must agree with the snapshot source. The core accepts a resume only if stream identity, epoch and precise last position match. A successful response either accepts the boundary or returns backfill_required with a recovery time. Distinguish an in-place partial bar update from an explicit correction carrying its superseded and new revision. A market.stream_gap event reports raw losses, affected half-open interval and expected sequence; no new update can silently close a gap. The host must accept events only from the negotiated market role and advertised subscription. The opt-in synthetic worker replays a finite fixture after an explicit include_stream_position history read. Ordinary history keeps a null position."
+    }
+  },
+  "indicators": {
+    "default_mode": "A declarative expression AST without dynamic code execution",
+    "declarative_ops": [
+      "field",
+      "constant",
+      "add",
+      "subtract",
+      "multiply",
+      "divide",
+      "abs",
+      "lag",
+      "rolling_mean",
+      "rolling_std",
+      "gt",
+      "lt",
+      "and",
+      "or",
+      "param"
+    ],
+    "ast_policy": "Resolve named parameter references against the draft declarations. Validate supplied names, primitive types, finite values, integer period bounds and defaults before hashing; reject duplicate, unknown, missing and ill-typed bindings. Statically type numeric, boolean and nullable expressions, then enforce AST budgets without eval or exec.",
+    "window_semantics": "Use past and current eligible calendar buckets. Scheduled closures add no bucket. A missing expected bucket or null input makes a dependent full window unknown. Cross comparable sessions of the same series, resetting at changes of adjustment, calendar, contract or unadjusted roll discontinuities. lag(0) is the current value; rolling periods are positive integers; rolling_std uses population variance (ddof=0). Division by zero yields null and a diagnostic. Only a frozen snapshot that explicitly includes an open bar can use that observation.",
+    "python_mode": {
+      "enabled_by_default": false,
+      "trust_label": "trusted_code_only_not_secure_sandbox",
+      "entrypoint": "compute(bars, params) -> IndicatorResult",
+      "authorization": "Before every run, show the actual filesystem/network authority of the trusted process, exact code and parameters, input snapshot and approved purpose. Require an eligible source entitlement and explicit local human approval. Any changed input or rerun needs new approval.",
+      "warning": "Separate processes and resource limits do not prevent arbitrary file or network access; do not automatically execute untrusted Python until reliable OS isolation is implemented",
+      "credentials": "Do not pass SDK credentials or inherit unnecessary environment variables",
+      "cwd": "An isolated temporary directory, which must not be described as a file access security boundary",
+      "replay": "The frozen supplied inputs and output are identifiable. Arbitrary trusted code may read external state, so deterministic recomputation is not a general guarantee. Restore the accepted artifact if its use rights permit; otherwise show its reference and reason unavailable. Cache deletion, restart, source changes, revoked rights and editing a layout never trigger Python automatically."
+    },
+    "immutable_versions": true,
+    "execution_input": "Freeze series, revision, visible and warm-up windows, as-of position and exact input bytes. Verify the aggregate bar and byte budgets before execution. Page through only the frozen revision. A changed input, parameter, code or engine produces a distinct computation identity.",
+    "limits": {
+      "$source": {
+        "path": "contracts/worker-runtime-v1.json",
+        "pointer": "/indicator_limits"
+      }
+    },
+    "result": {
+      "series": "array: id, pane, type(line|histogram), points(time_ms,value|null), style",
+      "markers": "array: time_ms, position, label, color",
+      "regions": "array: from_ms,to_ms,label,color",
+      "diagnostics": "array: code,message,severity",
+      "provenance": "Code hash, resolved parameter hash, engine version, immutable input snapshot and result identity. Retain visible output and its source reference at acceptance under the applicable retention entitlement."
+    },
+    "output_policy": "Workers return validated structured data with bounded timestamps, values and approved default styles. HTML, scripts and DOM objects are invalid indicator outputs. The line or histogram type, pane, markers and regions describe supported default drawings. A workbench can bind the same authorized time/value points to a different visual encoding while preserving nulls, computation version, units where applicable and source evidence. A presentation edit does not recompute the indicator.",
+    "lifecycle": [
+      "draft",
+      "running",
+      "preview",
+      "accepted",
+      "rejected",
+      "failed"
+    ],
+    "preview": "Return a task ID immediately. Exactly one terminal message or durable retrievable outcome binds task, draft, preview ID, input snapshot and validated result. Rejected, failed, cancelled or superseded previews cannot be accepted. Commit only the current explicitly accepted matching preview, with its operation receipt; restarting does not replay a computation.",
+    "parameter_and_output": "Resolve defaults and overrides to one typed parameter object for hashing and execution. An integer literal or a declared integer parameter can set a lag or rolling period. Arithmetic accepts numbers, comparisons produce nullable booleans, and logical and/or follow three-valued truth tables. Numeric projections emit a number or null. Boolean marker conditions emit a marker only on true; false and unknown emit none. Reject using booleans as numeric series implicitly.",
+    "result_budget": {
+      "$source": {
+        "path": "contracts/worker-runtime-v1.json",
+        "pointer": "/indicator_result_budget"
+      }
+    }
+  }
+}

@@ -4,8 +4,14 @@ This module owns repository navigation only. It never grants product runtime
 authority or upgrades archived evidence into current verification.
 """
 
+from functools import cache
 import json
 from pathlib import Path
+
+
+# Budgets apply to the repository navigation view, including repeated subtrees.
+MAX_ENGINEERING_DEPTH = 64
+MAX_ENGINEERING_VALUES = 65_536
 
 
 def repository_path(root, relative):
@@ -18,58 +24,68 @@ def repository_path(root, relative):
     return result
 
 
-def engineering_link(root, value):
-    link = value['$source']
-    if (set(value) != {'$source'} or not isinstance(link, dict) or set(link) != {'path', 'pointer'}
-            or not all(isinstance(item, str) for item in link.values())
-            or repository_path(root, link['path']).resolve() == (root / 'engineering-contract-v1.json').resolve()):
-        raise ValueError(f'Invalid engineering source link: {value}')
-    if link == {'path': 'contracts/contract.json', 'pointer': '/operations'}:
-        # Historical engineering pointers address the negotiated command/reply.
-        # The manifest also carries the original payloads for legacy callers.
-        manifest = json.loads(repository_path(root, link['path']).read_text(encoding='utf-8'))
-        operations = []
-        for operation in manifest['operations']:
-            binding = operation.get('wire_bindings', {}).get(manifest['protocol_version'], operation)
-            record = {field: operation[field] for field in
-                      ('name', 'actors', 'effect', 'confirmation', 'undoable', 'schema_requirement', 'transport')
-                      if field in operation}
-            operations.append({**record, 'input_spec': binding['input'], 'output_spec': binding['output']})
-        return operations
-    return resolve_source(root, link)
+def engineering_operations(manifest):
+    # Historical paths name negotiated payloads even when the manifest retains an older binding.
+    operations = []
+    for operation in manifest['operations']:
+        binding = operation.get('wire_bindings', {}).get(manifest['protocol_version'], operation)
+        record = {field: operation[field] for field in
+                  ('name', 'actors', 'effect', 'confirmation', 'undoable', 'schema_requirement', 'transport')
+                  if field in operation}
+        operations.append({**record, 'input_spec': binding['input'], 'output_spec': binding['output']})
+    return operations
 
 
-def validate_engineering_links(root, spec):
-    remaining = [spec]
-    while remaining:
-        value = remaining.pop()
-        if isinstance(value, dict):
-            if '$source' in value:
-                engineering_link(root, value)
-            else:
-                remaining.extend(value.values())
-        elif isinstance(value, list):
-            remaining.extend(value)
+def expand_engineering_sources(root, value):
+    """Build a bounded effective agreement from repository-owned source links."""
+    index = (root / 'engineering-contract-v1.json').resolve()
+    remaining = MAX_ENGINEERING_VALUES
+
+    @cache
+    def read_document(path):
+        return json.loads(path.read_text(encoding='utf-8'))
+
+    def expand(item, ancestors, depth):
+        nonlocal remaining
+        if depth > MAX_ENGINEERING_DEPTH or remaining <= 0:
+            location = ancestors[-1] if ancestors else (index, '')
+            raise ValueError(f'Engineering source expansion limit at {location[0]}#{location[1]}')
+        remaining -= 1
+        if isinstance(item, list):
+            return [expand(child, ancestors, depth + 1) for child in item]
+        if not isinstance(item, dict):
+            return item
+        if '$source' not in item:
+            return {key: expand(child, ancestors, depth + 1) for key, child in item.items()}
+
+        link = item['$source']
+        if (set(item) != {'$source'} or not isinstance(link, dict) or set(link) != {'path', 'pointer'}
+                or not all(isinstance(field, str) for field in link.values())):
+            raise ValueError(f'Invalid engineering source link: {item}')
+        path = repository_path(root, link['path']).resolve()
+        if path == index:
+            raise ValueError(f'Invalid engineering source link: {item}')
+        target = (path, link['pointer'])
+        if target in ancestors:
+            raise ValueError(f'Cyclic engineering source link: {link}')
+        document = read_document(path)
+        if target == (index.parent / 'contracts/contract.json', '/operations'):
+            selected = engineering_operations(document)
+        else:
+            selected = select_source(document, link)
+        return expand(selected, (*ancestors, target), depth + 1)
+
+    return expand(value, (), 0)
 
 
-def resolve_source(root, reference):
-    """Resolve a JSON Pointer without evaluating instructions from its contents."""
-    path = repository_path(root, reference['path'])
-    value = json.loads(path.read_text(encoding='utf-8'))
+def select_source(value, reference, engineering_root=None):
     pointer = reference['pointer']
     if pointer and not pointer.startswith('/'):
         raise ValueError(f'Invalid JSON Pointer: {pointer}')
-    tokens = pointer.split('/')[1:]
-    # The engineering index can delegate a whole section to one local record.
-    # Keep its old section and nested pointers usable by historical task plans.
-    in_index = path.resolve() == (root / 'engineering-contract-v1.json').resolve()
-    for index in range(len(tokens) + 1):
-        if in_index and isinstance(value, dict) and '$source' in value:
-            value = engineering_link(root, value)
-            in_index = False
-        if index == len(tokens):
-            return value
-        token = tokens[index]
+    for token in pointer.split('/')[1:]:
+        if engineering_root is not None and isinstance(value, dict) and '$source' in value:
+            value = expand_engineering_sources(engineering_root, value)
+            engineering_root = None
         # Reject malformed escapes rather than returning the wrong requirement.
         if '~' in token.replace('~0', '').replace('~1', ''):
             raise ValueError(f'Invalid JSON Pointer escape: {pointer}')
@@ -83,6 +99,14 @@ def resolve_source(root, reference):
                 value = value[token]
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ValueError(f'Missing source pointer: {reference}') from error
+    return expand_engineering_sources(engineering_root, value) if engineering_root is not None else value
+
+
+def resolve_source(root, reference):
+    """Navigate the engineering index, or read a raw JSON Pointer in another repository record."""
+    path = repository_path(root, reference['path']).resolve()
+    engineering_root = root if path == (root / 'engineering-contract-v1.json').resolve() else None
+    return select_source(json.loads(path.read_text(encoding='utf-8')), reference, engineering_root)
 
 
 def validate_record(root, project, record):

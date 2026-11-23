@@ -1043,5 +1043,15 @@
   "compatible_protocol_versions": [
     "1.0",
     "1.1"
-  ]
+  ],
+  "operation_authorization": {
+    "default_confirmation_ttl_ms": 300000,
+    "replay": "Scope the stable idempotency key to the authenticated principal, paired client identity where used, workspace and operation. Authenticate the caller and validate the request shape, then look up the scoped key before applying the current revision, target and confirmation checks for new work. Reject a reused key with different semantic input. A matching committed retry, including after reconnection within the same scope, recovers the original receipt subject to current disclosure grants and applicable source entitlements. Project any required result fields under those same permissions. If the registered reply cannot be formed within those permissions, return only a permitted status. Never return a raw historical result. Recover the receipt without re-execution or renewed confirmation, even if revisions advanced, the target changed or the original confirmation expired.",
+    "tauri": "An allowlist of capabilities for the main window; do not expose general shell, arbitrary filesystem, or arbitrary SQL interfaces to the UI",
+    "durable_operations": {
+      "commit": "For new work, revalidate the current grant, workspace, target and expected_workspace_revision. Independently revalidate expected_selection_revision for writes bound to shared selection. Atomically consume required approval, apply the mutation, advance the durable workspace revision and persist the immutable operation receipt and scoped idempotency record in the single-writer transaction. Failure before commit has no visible effect. Serial or concurrent duplicates have one commit.",
+      "receipt": "Return the stable operation ID, committed workspace revision, affected target identity and undo eligibility. Recover a lost committed response under /authorization/replay. A stale new request or an unauthorized request returns only the permitted status.",
+      "undo": "Undo targets an eligible operation ID. Check current grant, requested workspace revision, affected object and recorded after-state. Reject conflicting intervening edits without clobbering them. Otherwise record a new inverse operation with its own receipt; repeated retries do not undo twice."
+    }
+  }
 }

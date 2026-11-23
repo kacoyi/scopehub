@@ -810,5 +810,111 @@
       "For authorized work on this repository, the development AI may independently select, install and configure development tools within existing access and spending grants. These include build and test tools, command-line utilities, skills, MCP servers and plugins. Use trusted distributions and the pinned project setup where applicable. Test the capability before relying on it.",
       "Keep development tools scoped to project code and synthetic fixtures. Use the product user’s chosen grants and data policy independently. Escalate an actual missing credential, entitlement, device, input, product tradeoff or required acceptance with the concrete action needed."
     ]
+  },
+  "repository_layout": {
+    "paths": {
+      "apps/desktop/ui": "React UI and chart adapter",
+      "apps/desktop/src-tauri": "Tauri entry point and allowlisted bridge",
+      "crates/domain": "Domain types without dependencies on the UI, SQLite, or provider SDKs",
+      "crates/application": "Use cases, permissions, tasks, and workspace operations",
+      "crates/persistence": "SQLite and migrations",
+      "crates/worker-host": "Worker lifecycle and protocol",
+      "crates/platform": "Windows credentials, paths, and process resource limits",
+      "python/worker_runtime": "Protocol input/output and task loop",
+      "python/providers": "Simulated market data and future provider adapters",
+      "python/ai": "Mock AI and model provider interfaces",
+      "python/indicators": "Trusted Python indicator support. The declarative AST evaluator lives in crates/domain and runs through the Rust application.",
+      "contracts/schemas": "JSON Schema, the single source of truth for cross-language message specifications",
+      "contracts/generated": "Generated TS/Rust/Python types; manual edits are prohibited",
+      "tests/fixtures": "Deterministic market data and expected outputs",
+      "tests/contracts": "Cross-language protocol consistency",
+      "tests/integration": "End-to-end process and application integration",
+      "scripts": "Build, generation, test, and packaging entry points",
+      "contracts/decisions": "Machine-readable architecture decision records",
+      "project": "Task continuity, executable check bindings and selected verification evidence"
+    },
+    "required_files": [
+      "Cargo.lock",
+      "pnpm-lock.yaml",
+      "uv.lock",
+      "contracts/decisions/0001-architecture.json",
+      "contracts/decisions/0002-python-trust.json",
+      "contracts/decisions/0004-project-continuity.json",
+      "contracts/contract.json",
+      "contracts/schemas/project.schema.json",
+      "project/tasks.json",
+      "project/checks.json",
+      "contracts/worker-runtime-v1.json",
+      "contracts/storage-v1.json",
+      "tests/fixtures/financial-session-v2.json"
+    ],
+    "owner_decision_inputs": [
+      {
+        "path": "contracts/reviews/2026-11-22-ubuntu-desktop.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-22-source-settings-and-development-inputs.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-19-development-and-local-data.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/authority"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/owner_steering"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/publication_scope"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
+        "pointer": "/separate_decisions"
+      },
+      {
+        "path": "contracts/reviews/2026-11-22-tradingview-desktop-reference.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-22-desktop-design-reference.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/owner_direction"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/startup"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/presentation"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
+        "pointer": "/platform_sequence"
+      },
+      {
+        "path": "contracts/reviews/2026-11-18-contract-closure.json",
+        "pointer": "/owner_direction"
+      }
+    ],
+    "implementation_instructions": [
+      "Start with the M0 foundation. Implement work in task dependency order. Milestones group acceptance and do not require closing a whole earlier group before starting an eligible task. Follow the owner-approved Ubuntu and physical Windows experience sequence.",
+      "Edit canonical wire schemas in contracts/schemas/protocol.schema.json; generate language types and operation schema projections with pnpm generate. This engineering file defines product and engineering requirements, not generated schemas.",
+      "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
+      "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
+      "Implement the native Ubuntu development host and the Windows v1 release. Reserve other host integrations for a separately approved platform scope.",
+      "Tests cover protocols, identity, permissions, and computation semantics first, then the UI",
+      "Do not implement live trading types, buttons, or tools as hidden placeholders",
+      "State explicitly in the final report whether real data and cloud models are configured; do not exaggerate the completed scope"
+    ]
   }
 }

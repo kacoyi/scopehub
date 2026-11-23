@@ -9,10 +9,10 @@ import subprocess
 from jsonschema import validators
 
 if __package__:
-    from .development import resolve_source, validate_engineering_links
+    from .development import expand_engineering_sources
     from .rust_workspace import workspace_packages
 else:
-    from development import resolve_source, validate_engineering_links
+    from development import expand_engineering_sources
     from rust_workspace import workspace_packages
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,8 +188,8 @@ def valid_operation_actors(operation, declared_actors):
 
 def main():
     errors = []
-    spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text(encoding='utf-8'))
-    validate_engineering_links(ROOT, spec)
+    index = json.loads((ROOT / 'engineering-contract-v1.json').read_text(encoding='utf-8'))
+    spec = expand_engineering_sources(ROOT, index)
     manifest = json.loads((ROOT / 'contracts/contract.json').read_text(encoding='utf-8'))
     schema = json.loads((ROOT / manifest['schema']).read_text(encoding='utf-8'))
     for path in spec['repository']['required_files']:
@@ -221,7 +221,7 @@ def main():
                 errors.append(f'Provider dependency outside data boundary: {relative}')
     catalog = manifest['operations']
     actual = {op['name']: op for op in catalog}
-    if (spec['operations'] != {'$source': {'path': 'contracts/contract.json', 'pointer': '/operations'}}
+    if (index['operations'] != {'$source': {'path': 'contracts/contract.json', 'pointer': '/operations'}}
             or len(catalog) != len(actual)
             or set(actual) != set(schema['$defs']['OperationName']['enum'])):
         errors.append('Operation catalog drift')
@@ -239,7 +239,7 @@ def main():
             for direction in ['input', 'output']:
                 if binding[direction] not in schema['$defs']:
                     errors.append(f'Missing operation schema: {name}.{direction}')
-    version = resolve_source(ROOT, {'path': 'engineering-contract-v1.json', 'pointer': '/protocol/version'})
+    version = spec['protocol']['version']
     if (schema['$defs']['ProtocolVersion11']['const'] != version
             or schema['$defs']['ProtocolVersion']['const'] != '1.0'
             or manifest['protocol_version'] != version):

@@ -13,10 +13,12 @@ import subprocess
 from jsonschema import Draft202012Validator, FormatChecker
 
 if __package__:
+    from .development import expand_engineering_sources, resolve_source
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .worktree import WorktreeError, has_git_metadata
 else:
+    from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from worktree import WorktreeError, has_git_metadata
@@ -269,7 +271,10 @@ def windows_x64(environment):
 
 
 def load_project(root=ROOT):
-    spec = read_json(root / 'engineering-contract-v1.json')
+    try:
+        spec = expand_engineering_sources(root, read_json(root / 'engineering-contract-v1.json'))
+    except (OSError, ValueError) as error:
+        raise ProjectError(f'Invalid engineering contract: {error}') from error
     ledger = read_json(root / 'project/tasks.json')
     catalog = read_json(root / 'project/checks.json')
     validate_model(root, 'TaskLedger', ledger)
@@ -414,10 +419,6 @@ def load_project(root=ROOT):
             raise ProjectError('The primary cloud route needs a delivery task and a required release check')
     decision_inputs = spec.get('repository', {}).get('owner_decision_inputs', [])
     if decision_inputs:
-        if __package__:
-            from .development import resolve_source
-        else:
-            from development import resolve_source
         project['owner_decisions'] = {}
         for ref in decision_inputs:
             if (not isinstance(ref, dict) or not isinstance(ref.get('path'), str)

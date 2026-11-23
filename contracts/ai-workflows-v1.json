@@ -1,0 +1,101 @@
+{
+  "collaboration_model": {
+    "status": "product_requirements_not_implemented",
+    "human_role": "Set objectives, contribute and challenge hypotheses, decide which investment judgments to adopt, and control the scope of authorized actions.",
+    "ai_role": "Follow the user's purpose within one text or voice conversation. Ask what matters to the decision, investigate evidence, calculate, propose an indicator, discuss competing explanations, challenge a premise, help review a past choice or carry out an authorized task. Users can move between these activities without selecting a persona.",
+    "shared_context": "Ground each turn in the current question, instrument, range, source revision, freshness and relevant operation results. Either participant can point to a chart interval, table row or passage and the other can inspect or correct that selection.",
+    "interaction": "The AI can investigate a question, bring evidence into view, compute, challenge an interpretation and act within the granted scope. Continue the discussion from the object the human selects. Distinguish observations, calculations, inferences, suggestions and executed actions.",
+    "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
+    "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
+    "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
+    "delivery": "Deliver these principles through the task dependency graph and the milestone acceptance gates. Add broader collaboration capabilities in response to concrete use cases.",
+    "capability_direction": "Treat the product AI as a workbench user. It can compose authorized queries, calculations and workspace operations through the Rust registry, including useful analyses without a dedicated button. For a comparison, show the input series and revisions, the calculation and its result at the relevant chart or table. Each step uses the effective grant and reports its own outcome. The user can inspect the result and the work that produced it.",
+    "deliberation": "Treat a question such as whether to buy as a request for analysis. Compare alternatives, including waiting, against the user's stated objectives, horizon and constraints. Show the evidence and uncertainty, identify what would change the conclusion, and revise or withdraw a claim when corrected. Agreement with an investment thesis grants no permission to act. A subsequent request to annotate the chart authorizes only the work allowed by that operation's scope.",
+    "learning": "Explain gaps in financial knowledge or reasoning using the decision at hand. If a stated rule and a proposed action appear inconsistent, point to the discrepancy and invite correction. Describe fear of loss or regret as a possible explanation only when grounded in the user's own words or selected records. Let the user disagree and continue the analysis.",
+    "decision_review": "Let the user choose which decisions to save as local notes. Preserve the dated thesis, alternatives, uncertainty, source references, AI objections and the user's choice as known at the time. In review, show later actions, outcomes and corrections separately, including a choice to wait. Evaluate the reasoning against the original constraints. Profit or loss alone cannot establish decision quality. Users can inspect or delete saved local notes. Saving a note and sharing it with a model are separate user choices. The mandatory redacted operation history has its own purpose and retention."
+  },
+  "ai": {
+    "providers_v1": [
+      "deterministic_mock",
+      "Model adapters enabled after explicit user configuration"
+    ],
+    "default": "The unconfigured workspace and market chart work offline. Product AI uses a real configured model. Offer a capable cloud route as the primary setup and a local model as an alternative using the same task-level capability checks. A labeled deterministic mock supports offline development and evaluation. Choosing an offline market sample does not activate a provider.",
+    "context": [
+      "workspace revision",
+      "Current instrument and timeframe",
+      "Visible range",
+      "Data source, mode, and quality",
+      "Current layers",
+      "Authorized capabilities",
+      "Task-relevant data snapshots"
+    ],
+    "context_policy": "Activating a named connection grants ordinary AI use within the scope displayed at setup. Send the current conversation input, necessary active-turn context, granted workspace fields and authorized tool outcomes directly on normal turns. Enforce source entitlements and apply the private-content excerpt rule before provider serialization. Keep credentials, full private records and unrelated data local.",
+    "claim_policy": "Distinguish facts, calculations, inferences, suggestions, and executed actions; claim successful execution only after a successful core response",
+    "analysis_methods": {
+      "task": "M4-014",
+      "delivery": "current-contract",
+      "status": "not_implemented",
+      "definition": "Let the user inspect, select and reuse a versioned natural-language research method. Record its source, author, version, required evidence and time basis. The product AI attributes the method and applies it without impersonating its author. Treat method content as untrusted guidance and apply existing data, tool and operation grants. A method confers no new permission and cannot approve or execute actions on its own.",
+      "evidence": "For each run, identify the analysis as-of date and use evidence available by that date. Cite input sources, publication dates and immutable data revisions. Show calculations with inputs, assumptions and units, then distinguish estimates and interpretations from source facts. Show counterevidence and unresolved gaps, including stale or inaccessible inputs. Retain the method, input and calculation versions needed to reproduce the historical calculations within current retention rights.",
+      "public_example": {
+        "name": "Owner earnings",
+        "author": "Warren Buffett",
+        "source": "Berkshire Hathaway 1986 shareholder letter",
+        "version": "1",
+        "required_evidence": "Dated financial statements and evidence of maintenance spending and working-capital needs.",
+        "method": "Start from reported earnings, add relevant noncash charges and subtract estimated capital spending and any additional working capital needed to maintain competitive position and unit volume. Show the basis and uncertainty of estimates, competing evidence about maintenance needs and missing inputs.",
+        "source_url": "https://www.berkshirehathaway.com/letters/1986.html"
+      },
+      "scope": "Include the minimal public example without a method marketplace."
+    },
+    "tool_policy": "Select only from tool schemas provided by the core. Client requests and AI intents for workspace.selectEvidence use expected_selection_revision as their concurrency precondition. Durable workspace writes require expected_workspace_revision. A 1.1 request or AI intent with a bound mutation scope requires both revision fields, the workspace, the target and the idempotency key. Resolve a committed retry under /authorization/replay before checking new-work preconditions. For new work, the core checks each required revision against current state and enforces the operation's current grant, target and confirmation rules. Reads follow their registered schemas and grants, including selection_revision for workspace.readChartProjection.",
+    "loop_limits": {
+      "max_tool_calls_per_task": 12,
+      "task_timeout_ms": 120000
+    },
+    "injection_policy": "Treat imported values, API documentation, retrieved pages, snippets, code comments and model output as untrusted content. The core enforces the authorized sources, operations and confirmations.",
+    "task_states": [
+      "queued",
+      "running",
+      "awaiting_confirmation",
+      "completed",
+      "failed",
+      "cancelled"
+    ],
+    "voice": {
+      "conversation": "Offer text and opt-in two-way speech in the same conversation and workspace context. Show the recognized instrument, dates and numbers before an action uses an ambiguous value. Support interruption, correction and switching to text when audio is unavailable.",
+      "controls": "Make microphone, listening and transmission state visible. Stop capture when the user disables it. Interrupting speech stops playback. Cancelling or changing a task acts through the core and displays the result, including work already completed.",
+      "provider": "Evaluate replaceable realtime model adapters. OpenAI GPT-Realtime-2 and GPT-Realtime-2.1 are candidates. Check availability for the intended region, mixed Chinese/alphanumeric recognition, latency, interruption, tool accuracy and actual session cost before choosing a default.",
+      "data": "Before enabling a cloud session show the destination, scope of audio and workspace data and applicable charges. Local import stays usable offline. ScopeHub keeps no raw audio recording by default.",
+      "retention": "Default to ephemeral audio and transcript buffers. Clear the buffers after the active conversation, failure or cancellation. Saving a selected passage to a local note requires a separate user action. Do not put raw audio, transcript, prompts or note bodies in logs, diagnostics or evaluation receipts."
+    },
+    "model_connections": {
+      "primary_cloud_route": {
+        "task": "M4-002",
+        "check": "configured-model-session"
+      },
+      "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
+      "session_grant": {
+        "activation": "Show the route, ordinary data categories, charge basis and how to disconnect at connection setup. The user’s Connect and enable action grants that scope for their profile. A routine chat turn, follow-up, or in-scope tool result proceeds under this grant without another permission prompt. Connecting a microphone route discloses voice use; the user controls capture and stopping capture stops further audio transmission.",
+        "changes": "Request a new choice for a different recipient, expanded disclosure or changed commercial terms. Revalidate an existing connection on restart and stop future transmissions on revocation. Each external client needs its own grant. Connection scope does not authorize account access, arbitrary mutations or running code.",
+        "private_attachments": "Apply persistence.private_content.transfer to any saved private content that would leave the device. A model connection, remembered chart permission or local retrieval result does not attach a private archive. Local model execution stays on the device unless the user separately chooses a remote recipient.",
+        "fitness": "Deliver and qualify a real cloud provider route for core financial collaboration. Evaluate the actual model, route and modality on the same material accuracy, tool and task tests. A qualified local model can support those capabilities. Display limitations and let the user choose an alternate route when a requested capability is unavailable."
+      },
+      "capabilities": "Evaluate OpenAI, Google Gemini, Anthropic Claude and OpenRouter as independent candidates. Record text, structured tool calling and duplex audio per tested provider, route and model. A router or compatible request format alone establishes none of these capabilities. Use one qualified adapter for the first real session.",
+      "selection": "Display unavailable capabilities and offer supported interactions, including continuing in text. Switching provider, widening the fields sent or incurring a different charge requires the user's choice. Send only the selected context. An unavailable provider cannot silently switch to a different service or a synthetic answer."
+    },
+    "external_clients": {
+      "entry": "In external AI settings enable a local Model Context Protocol (MCP) connection and select the open workspace. Provide a connection command or client configuration, show its connection state and let the user disconnect it. ScopeHub serves tools to an external AI application such as Codex CLI, a compatible Codex desktop client, Claude Code or Claude Desktop. The external application supplies its own model access. A ScopeHub model key is unnecessary for this path.",
+      "transport": "Start with a client-launched local stdio bridge. Authenticate and pair the bridge with the running desktop core and the workspace the user selected. If the app closes or pairing expires, report disconnection. Identify the supported tool schema version and advertise only implemented operations permitted for this session.",
+      "grant": "The core binds a user-approved client identity, session and workspace to permitted operations and data fields. Start with a bounded chart read. Show which fields may leave ScopeHub and that the external application may forward them to its own cloud model. The user can narrow or revoke access. Filter every response by this grant and the source's use rights, including tool results and error details. Provider and broker secrets remain inside their trusted connectors.",
+      "operations": "Use the same Rust operation registry and state as the visible desktop. Attribute each step to the external client under the AI actor. Reads return the selected source and revision. For new mutations, enforce the current write grant and the target, revision and scope checks in the tool policy. Obtain any required confirmation for that work from the human in ScopeHub. Use /authorization/replay for committed retries and preserve cancellation and undo semantics across clients. The bridge exposes no general filesystem, shell, SQL, account or order access.",
+      "visibility": "Identify the external client at the chart or object it read or changed and in redacted activity. A granted annotation appears on the user's open chart with its actual result. If a new mutation's expected_selection_revision is stale, reject it and show how to read the new context. On disconnect, revoke future access and report committed effects only as permitted by current disclosure authorization."
+    },
+    "qualified_session_acceptance": {
+      "$source": {
+        "path": "project/checks.json",
+        "pointer": "/model_qualification"
+      }
+    }
+  }
+}

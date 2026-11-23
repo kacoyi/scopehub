@@ -910,5 +910,123 @@
         ]
       }
     ]
-  }
+  },
+  "milestone_outcomes": [
+    {
+      "id": "M0",
+      "goal": "Scaffolding and protocol",
+      "deliver": [
+        "Repository",
+        "ADR",
+        "Executable schemas",
+        "Type generation",
+        "An empty Windows Tauri application",
+        "worker handshake"
+      ],
+      "gate": [
+        "protocol tests",
+        "Windows build"
+      ]
+    },
+    {
+      "id": "M1",
+      "goal": "End-to-end simulated market data and independently configured user sources",
+      "deliver": [
+        "mock provider",
+        "Instrument search",
+        "Historical chart",
+        "Live bar updates",
+        "Status and reconnection",
+        "Session-scoped native CSV folder import and reviewed refresh",
+        "Profile-bound saved local sources with reviewed append-only rules (M1-028)",
+        "Typed Parquet alongside CSV with inspectable market semantics (M1-029)",
+        "First-class settings and forms for user folders and direct API connections with controlled-connector tests (M1-030)",
+        "Ubuntu Tauri desktop development entry sharing the Windows frontend and Rust operation registry (M1-031)"
+      ],
+      "gate": [
+        "fixture correctness",
+        "worker failure recovery",
+        "Saved-source authorization, idempotent restart reconciliation and targeted correction review",
+        "Typed CSV and Parquet evidence with reproducible historical calculations",
+        "Fresh-install access without a ScopeHub account or plan and independent API connection lifecycle with a controlled connector",
+        "Native Ubuntu workspace observation before the physical Windows desktop trial"
+      ]
+    },
+    {
+      "id": "M2",
+      "goal": "Operations and persistence",
+      "deliver": [
+        "Operation registry",
+        "Permissions",
+        "Confirmations",
+        "revision",
+        "SQLite",
+        "undo",
+        "Versioned panel layouts with preview and restore",
+        "A user-composed workbench with an optional chart and a renderer selected from native prototype evidence"
+      ],
+      "gate": [
+        "permission tests",
+        "restart restore",
+        "idempotency tests",
+        "A non-preset chart-free composition can be edited, refreshed, undone and reopened"
+      ]
+    },
+    {
+      "id": "M3",
+      "goal": "End-to-end indicators",
+      "deliver": [
+        "AST engine",
+        "output validation",
+        "preview",
+        "accept version",
+        "trusted Python opt-in"
+      ],
+      "gate": [
+        "determinism",
+        "timeout",
+        "preview failure isolation",
+        "trust gating"
+      ]
+    },
+    {
+      "id": "M4",
+      "goal": "End-to-end AI collaboration",
+      "deliver": [
+        "mock AI",
+        "tools",
+        "context",
+        "task cancellation",
+        "operation provenance",
+        "Visible evidence selection across panels",
+        "Opt-in voice and text continuity",
+        "Deliberation and opt-in decision review",
+        "Model-specific capability settings",
+        "Local MCP access to the same authorized workspace",
+        "Reusable natural-language analysis methods (M4-014)"
+      ],
+      "gate": [
+        "AI cannot bypass authorization",
+        "end-to-end scenario",
+        "A buy discussion preserves human judgment and operation scope",
+        "Observe a configured model, Codex CLI and a compatible desktop AI client through their respective entries",
+        "Run an attributed analysis method using dated evidence and existing grants"
+      ]
+    },
+    {
+      "id": "M5",
+      "goal": "Installation and stability",
+      "deliver": [
+        "NSIS",
+        "sidecar bundle",
+        "clean-machine test",
+        "license notices"
+      ],
+      "gate": [
+        "clean Windows install",
+        "shutdown process cleanup",
+        "soak test"
+      ]
+    }
+  ]
 }

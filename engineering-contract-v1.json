@@ -1,7 +1,7 @@
 {
   "artifact_type": "engineering_contract",
   "contract_id": "market-ai-workbench.v1",
-  "contract_version": "1.8.0",
+  "contract_version": "1.8.1",
   "language": "en-US",
   "normative_terms": {
     "MUST": "MUST be implemented",
@@ -62,40 +62,16 @@
     ],
     "resource_policy": "Responsiveness and stability are quality goals. Evaluate memory, package size, and runtime cost against useful capabilities and actual workloads; a lightweight footprint is not a mandatory product objective.",
     "collaboration_model": {
-      "status": "product_requirements_not_implemented",
-      "human_role": "Set objectives, contribute and challenge hypotheses, decide which investment judgments to adopt, and control the scope of authorized actions.",
-      "ai_role": "Follow the user's purpose within one text or voice conversation. Ask what matters to the decision, investigate evidence, calculate, propose an indicator, discuss competing explanations, challenge a premise, help review a past choice or carry out an authorized task. Users can move between these activities without selecting a persona.",
-      "shared_context": "Ground each turn in the current question, instrument, range, source revision, freshness and relevant operation results. Either participant can point to a chart interval, table row or passage and the other can inspect or correct that selection.",
-      "interaction": "The AI can investigate a question, bring evidence into view, compute, challenge an interpretation and act within the granted scope. Continue the discussion from the object the human selects. Distinguish observations, calculations, inferences, suggestions and executed actions.",
-      "decision_ownership": "The human retains ownership of adopted investment judgments and the resulting market exposure. AI assistance and workflow automation do not guarantee profitable outcomes or constitute an independent mandate to manage capital.",
-      "authorization_principle": "Treat investment risk acceptance and action authorization as separate concerns. A general statement that the human bears market risk grants no additional capability and does not satisfy operation-specific confirmations.",
-      "system_quality": "Distinguish adverse market outcomes from incorrect data, calculation errors, execution defects, and unauthorized actions. The latter require prevention, diagnosis, and correction; human ownership of investment decisions does not relax system correctness requirements.",
-      "delivery": "Deliver these principles through the task dependency graph and the milestone acceptance gates. Add broader collaboration capabilities in response to concrete use cases.",
-      "capability_direction": "Treat the product AI as a workbench user. It can compose authorized queries, calculations and workspace operations through the Rust registry, including useful analyses without a dedicated button. For a comparison, show the input series and revisions, the calculation and its result at the relevant chart or table. Each step uses the effective grant and reports its own outcome. The user can inspect the result and the work that produced it.",
-      "deliberation": "Treat a question such as whether to buy as a request for analysis. Compare alternatives, including waiting, against the user's stated objectives, horizon and constraints. Show the evidence and uncertainty, identify what would change the conclusion, and revise or withdraw a claim when corrected. Agreement with an investment thesis grants no permission to act. A subsequent request to annotate the chart authorizes only the work allowed by that operation's scope.",
-      "learning": "Explain gaps in financial knowledge or reasoning using the decision at hand. If a stated rule and a proposed action appear inconsistent, point to the discrepancy and invite correction. Describe fear of loss or regret as a possible explanation only when grounded in the user's own words or selected records. Let the user disagree and continue the analysis.",
-      "decision_review": "Let the user choose which decisions to save as local notes. Preserve the dated thesis, alternatives, uncertainty, source references, AI objections and the user's choice as known at the time. In review, show later actions, outcomes and corrections separately, including a choice to wait. Evaluate the reasoning against the original constraints. Profit or loss alone cannot establish decision quality. Users can inspect or delete saved local notes. Saving a note and sharing it with a model are separate user choices. The mandatory redacted operation history has its own purpose and retention."
+      "$source": {
+        "path": "contracts/ai-workflows-v1.json",
+        "pointer": "/collaboration_model"
+      }
     },
     "platform": {
-      "v1": "Windows 10/11 x64",
-      "later": [
-        "Linux releases",
-        "macOS releases"
-      ],
-      "later_policy": "Public Linux and macOS releases are deferred. Implement the Ubuntu desktop development host in this contract.",
-      "ubuntu_desktop": {
-        "purpose": "Primary application for day-to-day development and owner experience on Ubuntu.",
-        "entry": "pnpm desktop:dev",
-        "runtime": "Tauri 2 with WebKitGTK. Load the shared React/Vite frontend in the application window and invoke the Rust operation registry through the native bridge.",
-        "browser_preview": "Use pnpm dev:ubuntu and pnpm dev:ubuntu:workspace for optional browser preview and automated frontend tests. Desktop experience acceptance requires an observed native window.",
-        "verification": "M1-031 delivers the development host. Exercise M1-012 in that host before M1-011 on physical Windows. The v1 installer and packaged acceptance run on Windows 10/11 x64.",
-        "development_acceptance": {
-          "check": "ubuntu-desktop-host",
-          "observation": "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots.",
-          "scope": "Retain this field check with M1-031 and M1-012. The Windows release profile uses its own packaged checks."
-        }
-      },
-      "runtime_installation": "A clean installation supports the standard workflows without a user-installed interpreter or Node. Qualify optional capability-specific runtimes and measure their installed and cold-start costs."
+      "$source": {
+        "path": "contracts/desktop-runtime-v1.json",
+        "pointer": "/platform"
+      }
     },
     "release_unit": "A single Windows desktop installer",
     "architecture": "A modular monolithic application core with controlled local workers; not microservices",
@@ -146,116 +122,25 @@
       "brokerage": "Any future live connection is technical access to an account the user opens, funds and authorizes directly with their brokerage or futures firm. The firm handles customer investment funds, executes orders and settles trades. ScopeHub can charge for its software or services. It does not open brokerage accounts for users, pool, receive, custody, transfer or invest customer capital. Qualify CTP and SnapTrade separately for the actual broker, account permissions and operations available. V1 excludes account access and live orders. A CTP market-data session grants neither."
     },
     "data_onboarding": {
-      "entry": "In Settings > Data sources > My data sources, choose a folder the user maintains or configure the user’s own provider API. Show only the fields needed for the selected source. Report source, status, verified instruments, coverage, freshness, units and operations after a trial read. Live provider qualification and the dedicated CTP market-data connection have their own delivery tasks.",
-      "my_data_sources": {
-        "availability": "On a fresh install without a ScopeHub account or data plan, offer Settings > Data sources > My data sources as a first-class entry to select a folder of personally downloaded data or fill a preset credential form or custom API endpoint and credential form. These connections belong to the end user, who obtains free or paid third-party services directly. Also allow optional manual entry or paste of personal records.",
-        "delivery": "M1-030 delivers the local settings and forms and verifies the connection lifecycle with a controlled connector. Live external provider availability requires later M1-009 qualification.",
-        "independence": "Let users test, save, refresh and disconnect their own connections independently. Keep optional ScopeHub data services separately labeled. The two paths share no purchase or checkout, credentials, entitlements, cancellation or billing dependencies. Provider-issued credentials go only to the user's selected connector for its configured destination. ScopeHub services, other connectors and models do not receive them."
-      },
-      "delivery": {
-        "native_csv": "M1-008 delivered the reviewed native CSV folder workflow with session grants and frozen revisions.",
-        "saved_sources": {
-          "task": "M1-028",
-          "delivery": "current-contract",
-          "status": "not_implemented"
-        },
-        "parquet": {
-          "task": "M1-029",
-          "delivery": "current-contract",
-          "status": "not_implemented"
-        },
-        "my_data_sources": {
-          "task": "M1-030",
-          "delivery": "current-contract",
-          "status": "not_implemented"
-        },
-        "external_market_api": {
-          "task": "M1-009",
-          "delivery": "later",
-          "status": "not_implemented"
-        }
-      },
-      "local_files": "CSV and Parquet are the first required readers. Group compatible files across the selected read-only root and its eligible subdirectories. Profile CSV encoding, delimiter and headers, Parquet physical and logical types, and symbol and date placement in columns and paths. Preserve the complete original bytes, source identity and typed records with stable locators. Additional readers require a concrete workflow.",
-      "saved_sources": {
-        "authorization": "From My data sources, a local human explicitly saves a read-only root for one profile and approves a versioned rule whose scope includes automatic append-only publication. This is a separate opt-in available without a ScopeHub account or plan. Selecting a native directory, saving a mapping or publishing a revision never creates it. The existing native grants expire with their session and still require explicit publication.",
-        "identity_and_lifecycle": "Show the bound root, active rule, freshness and pending review in Settings. Allow pause, resume, revoke and explicit rebind. Pause or revoke stops monitoring, reads and future publication under that grant and invalidates pending commits. Before reading and at commit, verify the current profile, grant, reviewed rule version, root and verified child identities, and complete source membership and content. Reject links, reparse points and replacement directories instead of following their paths. Require explicit rebind and review for replacements. Resuming or rebinding reconciles the source within its approved scope.",
-        "reconciliation": "Use filesystem notifications as hints and reconcile on startup and after interrupted or missed notifications. Wait for complete stable input. Distinguish a partial file, temporarily offline root and confirmed removal. Retry transient failures within bounded limits and show freshness separately from availability and coverage. Preserve the last accepted revision through cancellation, failed retries and crashes.",
-        "publication": "Automatically publish complete compatible new files or verified appends within the approved scope only when existing accepted records and their meaning remain intact. Verify the previously accepted prefix or record set. This includes a synced file atomically replaced with the same accepted records plus compatible additions. Stage other replacements, removals, historical corrections and changes in schema or semantics for targeted review with affected files, series, rows and reasons. Preserve alias paths and attributable locators without double-counting. Use one core SQLite transaction for each immutable revision and its idempotent receipt. Duplicate notifications, reordered enumeration and retries must not duplicate data or publication. Isolate affected series so an unrelated valid update can proceed.",
-        "history": "Retain entitled originals, aliases, source digests and typed row locators with the approved rule, calendar and reader or engine versions. Bind historical analyses to immutable input revisions, as-of dates and calculation versions so the same entitled inputs can reproduce results after refresh, correction, detachment or restart. Revoking future source access is separate from withdrawing display or analysis rights on retained revisions. Identify unavailable evidence when current rights prevent replay."
-      },
-      "financial_content": {
-        "common": "Identify instruments, native OHLCV bars, trades, quote or depth snapshots and reference or corporate-action data independently of file format. Distinguish daily bars from auction records and adjustment factors from prices. Preserve identifiers as strings when needed, numeric precision, units, timestamps, timezones, trading days and explicit nulls or missingness. Keep original fields, factor basis and provenance and show which records and joins the reviewed mapping supports. Apply source-declared conventions to each market, including additional regions. Keep source layouts intact and normalize only the fields a chart or analysis needs.",
-        "us_equities": "Keep listing, market feed coverage, timezone, regular or extended sessions, splits and dividend adjustments identifiable.",
-        "chinese_equities": "Preserve exchange and leading-zero symbols, trading calendars, price adjustment basis, volume in shares or lots and turnover units.",
-        "chinese_futures": "Distinguish dated contracts from continuous series, session date from calendar date, cumulative volume from increments, and last trade from settlement. Preserve open interest, units, multiplier and roll method where supplied. Retain distinct same-time snapshots in source order and label snapshot-derived candles as approximate."
-      },
-      "preview": "Show original records alongside mapped values, a sample chart, rejected rows with reasons and unresolved fields. Resolve ambiguities such as trading day, units, auction identity or adjustment before publishing the affected series. Pin verification to the reviewed rule version and complete source revision. Reject publication of stale input or rule versions and require re-verification.",
-      "refresh": "Apply the approved versioned rule deterministically. Preserve original files, their identities, source row locators and the resulting immutable dataset revision. Reuse compatible rules offline and isolate changes for review. The session picker stages refreshes for explicit publication. The saved-source rule can publish compatible additions within its separately approved scope.",
-      "local_tools": {
-        "operations": "Expose bounded profiling, mapping, preview and verification through a bounded local reader and the shared Rust operation registry used by the human and AI. The core provides only authorized inputs and owns publication. Rules are declarative, versioned and editable by hand. AI can draft them from permitted metadata and a minimal explicitly approved sample under the existing disclosure rules. The model is optional for deterministic execution, verification and offline reuse.",
-        "engine_evaluation": "Use the existing reader as a behavioral baseline for M1-029. Evaluate Rust-owned streaming CSV and projected Parquet reads through a native engine on representative multi-year histories. Choose the library and process boundary from measured correctness, peak memory, throughput, cancellation, failure recovery and clean Windows distribution. Register publication through the core single writer. A single control message or rendered page does not set dataset capacity."
-      },
-      "external_api": {
-        "availability": "M1-030 delivers local preset and custom connection forms and controlled-connector tests in the current contract. Live external market provider availability requires later M1-009 qualification for actual access, coverage and use rights.",
-        "configuration": "For a known service, show only the credential fields and connection choices it needs. For an unfamiliar personal or institutional API, offer one local intake for the connection material as supplied, including instructions, endpoints, mixed credential text, request examples or samples. On-device, let the user identify ambiguous secret fields and assign them to the connector without retyping the whole submission. The trusted connector resolves credentials from the platform store for its configured destination. Persist credential references and the reviewed rule; discard the raw paste.",
-        "assistance": "A user can draft a rule manually or ask AI to draft endpoint, authentication field names, filters, pagination and response mapping. Model input is an explicitly curated sanitized projection of only necessary permitted documentation, metadata or sample fields. Preview and approve the exact projection for the named recipient under applicable disclosure rules. Automatic redaction may assist curation but cannot authorize transfer. Keep credential values, raw private requests or responses and unrelated fields out of model input and diagnostics.",
-        "execution": "Approve a versioned rule before any trial or refresh. Enforce read-only endpoints and the configured destination, instrument, range, pagination, rate and resource limits. Apply the same bounds to retries, redirects and page links. No redirect, page or model response can change the destination or expand the grant. Show verified coverage and provenance. Execute only the reviewed declarative rule. Streaming, SDKs and signing require a dedicated reviewed adapter. Never execute generated connector code.",
-        "acceptance": "For later M1-009, start from a fresh installation without a ScopeHub account or plan and use the M1-030 forms in My data sources. Use a provider preset and reviewed custom HTTP mapping to test, save, refresh and disconnect directly obtained connections independently. Verify that a provider-issued credential reaches only its selected connector and configured destination, and that neither connection depends on separately labeled optional ScopeHub services for purchase, checkout, credentials, entitlement, cancellation or billing. Observe authorized bounded reads and pagination and record actual provider access, coverage and rights separately from controlled-connector tests."
-      },
-      "ctp": "Configure the broker identifier, market-data front, environment and required authentication through settings. Establish contract metadata and session rules, then subscribe through the market-data channel. Keep history supplied by files or another API attributable alongside live quotes. Mark gaps and the handoff between sources. Account access and order routing remain outside v1.",
-      "candidates": "TickDB, Alpaca and Massive are market-data candidates. Evaluate Tushare as a documented API and individual AKShare functions against their upstream sources. Study vn.py for CTP market-data callbacks and contract metadata. SnapTrade is a later brokerage candidate. Qualify each candidate for actual coverage, access, rights and operating constraints. ODP is an optional adapter candidate for provider coverage and normalization. Preserve upstream provenance, entitlements and a direct connection path.",
-      "refresh_conflicts": "Group competing rows by selected series and source-defined economic event identity. For native bars, the normalized start time identifies a bar. Coalesce identical values while retaining every source locator. Different values at one key require a validated source correction order or explicit selection in the reviewed native flow. Never choose by directory traversal order. Same-time snapshots retain source order and cannot be deduplicated merely by timestamp. A saved source stages historical corrections and confirmed withdrawals for targeted review before they affect a new revision. A verified compatible append or addition under an active saved rule may publish automatically. Repeated runs and different enumeration orders produce the same accepted inputs. Store file digest, row identity, rule version and calendar basis. Durable mapping and snapshot changes require tested migration, interruption and restore.",
-      "csv_v1_capabilities": "Publish native OHLCV only with identified instrument, adjustment, calendar, timezone, timestamp convention and units. Inspect raw rows, unsupported financial fields and rejected records with their file digest and stable row locator. Preserve leading-zero symbols, source-specific shares/lots, open interest, settlement, multiplier and units when supplied. Keep identified current and prior settlement prices separate from all OHLC fields. Native historical mappings declare closed input. When a recognized source closure flag is present, preserve rows with incomplete or ambiguous closure as raw records with diagnostics. Snapshot-derived candles are separately labeled approximations only when session/date mapping, counter resets, trade evidence and ordering are resolved. Unallocated cumulative baselines and incomplete volume remain unknown; identical timestamps do not imply identical events. Require attributable adjustment factors, session rules and continuous-contract rolls before offering a derived series. Ambiguity prevents publication of the affected series and leaves other accepted series usable."
-    }
-  },
-  "stack": {
-    "ui": {
-      "language": "TypeScript strict",
-      "framework": "React",
-      "build": "Vite",
-      "charts": "Lightweight Charts",
-      "runtime": "Tauri 2 with WebKitGTK on the Ubuntu development desktop and WebView2 on Windows"
-    },
-    "core": {
-      "language": "Rust stable",
-      "framework": "Tauri 2",
-      "async": "Tokio",
-      "serialization": "Serde",
-      "database": "SQLite via rusqlite",
-      "ownership": "All persistence writes go through a single-writer queue in the core"
-    },
-    "workers": {
       "$source": {
-        "path": "contracts/worker-runtime-v1.json",
-        "pointer": "/workers"
+        "path": "contracts/market-data-v1.json",
+        "pointer": "/onboarding"
       }
     },
-    "node": "Used only for builds and frontend development; production does not include a Node.js service",
-    "package_manager": "pnpm",
-    "python_dependency_manager": "uv",
-    "transport": "Use bounded, versioned messages for control and authorized UI projections. The host owns bulk inputs and stages data in bounded batches under the reviewed source revision."
+    "workbench_boundary": "The user owns the whole editable workbench. The trusted core owns financial calculations and the identity of their inputs. The protected host owns access, sensitive confirmations and recovery. A presentation can be replaced while saved evidence, granted rights and workspace state retain their identities."
+  },
+  "stack": {
+    "$source": {
+      "path": "contracts/desktop-runtime-v1.json",
+      "pointer": "/stack"
+    }
   },
   "repository": {
     "paths": {
-      "apps/desktop/ui": "React UI and chart adapter",
-      "apps/desktop/src-tauri": "Tauri entry point and allowlisted bridge",
-      "crates/domain": "Domain types without dependencies on the UI, SQLite, or provider SDKs",
-      "crates/application": "Use cases, permissions, tasks, and workspace operations",
-      "crates/persistence": "SQLite and migrations",
-      "crates/worker-host": "Worker lifecycle and protocol",
-      "crates/platform": "Windows credentials, paths, and process resource limits",
-      "python/worker_runtime": "Protocol input/output and task loop",
-      "python/providers": "Simulated market data and future provider adapters",
-      "python/ai": "Mock AI and model provider interfaces",
-      "python/indicators": "Trusted Python indicator support. The declarative AST evaluator lives in crates/domain and runs through the Rust application.",
-      "contracts/schemas": "JSON Schema, the single source of truth for cross-language message specifications",
-      "contracts/generated": "Generated TS/Rust/Python types; manual edits are prohibited",
-      "tests/fixtures": "Deterministic market data and expected outputs",
-      "tests/contracts": "Cross-language protocol consistency",
-      "tests/integration": "End-to-end process and application integration",
-      "scripts": "Build, generation, test, and packaging entry points",
-      "contracts/decisions": "Machine-readable architecture decision records",
-      "project": "Task continuity, executable check bindings and selected verification evidence"
+      "$source": {
+        "path": "project/development.json",
+        "pointer": "/repository_layout/paths"
+      }
     },
     "dependency_rules": [
       "domain does not depend on other internal layers",
@@ -268,21 +153,12 @@
       "Provider SDKs are confined to providers",
       "Model SDKs are confined to ai/providers"
     ],
-    "required_files": [
-      "Cargo.lock",
-      "pnpm-lock.yaml",
-      "uv.lock",
-      "contracts/decisions/0001-architecture.json",
-      "contracts/decisions/0002-python-trust.json",
-      "contracts/decisions/0004-project-continuity.json",
-      "contracts/contract.json",
-      "contracts/schemas/project.schema.json",
-      "project/tasks.json",
-      "project/checks.json",
-      "contracts/worker-runtime-v1.json",
-      "contracts/storage-v1.json",
-      "tests/fixtures/financial-session-v2.json"
-    ],
+    "required_files": {
+      "$source": {
+        "path": "project/development.json",
+        "pointer": "/repository_layout/required_files"
+      }
+    },
     "continuity": {
       "task_source": "project/tasks.json",
       "check_source": "project/checks.json",
@@ -293,64 +169,12 @@
     },
     "documentation": "No human-facing guides; maintain agent instructions, executable schemas, JSON decisions, machine-readable verification reports, and legally required notices.",
     "development": "project/development.json",
-    "owner_decision_inputs": [
-      {
-        "path": "contracts/reviews/2026-11-22-ubuntu-desktop.json",
-        "pointer": "/owner_direction"
-      },
-      {
-        "path": "contracts/reviews/2026-11-22-source-settings-and-development-inputs.json",
-        "pointer": "/owner_direction"
-      },
-      {
-        "path": "contracts/reviews/2026-11-19-development-and-local-data.json",
-        "pointer": "/owner_direction"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
-        "pointer": "/authority"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
-        "pointer": "/owner_steering"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
-        "pointer": "/publication_scope"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-hosted-ux.json",
-        "pointer": "/separate_decisions"
-      },
-      {
-        "path": "contracts/reviews/2026-11-22-tradingview-desktop-reference.json",
-        "pointer": "/owner_direction"
-      },
-      {
-        "path": "contracts/reviews/2026-11-22-desktop-design-reference.json",
-        "pointer": "/owner_direction"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
-        "pointer": "/owner_direction"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
-        "pointer": "/startup"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
-        "pointer": "/presentation"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-chart-workspace.json",
-        "pointer": "/platform_sequence"
-      },
-      {
-        "path": "contracts/reviews/2026-11-18-contract-closure.json",
-        "pointer": "/owner_direction"
+    "owner_decision_inputs": {
+      "$source": {
+        "path": "project/development.json",
+        "pointer": "/repository_layout/owner_decision_inputs"
       }
-    ]
+    }
   },
   "runtime": {
     "$source": {
@@ -367,43 +191,22 @@
   "domain": {
     "identifiers": "Separate internal opaque IDs from provider codes; do not use display symbols as unique identities",
     "Instrument": {
-      "id": "string",
-      "display_symbol": "string",
-      "name": "string",
-      "asset_class": "Open string; futures/stocks are not an exhaustive closed set",
-      "venue": "string",
-      "currency": "string",
-      "calendar_id": "string",
-      "timezone": "IANA string",
-      "price_tick": "decimal string|null",
-      "quantity_unit": "string",
-      "tradability": "non_tradable|unknown; tradable is not allowed in v1",
-      "metadata": "object",
-      "provider_mappings": "array of provider_id + provider_symbol"
+      "$source": {
+        "path": "contracts/market-data-v1.json",
+        "pointer": "/domain/Instrument"
+      }
     },
     "DatasetDescriptor": {
-      "id": "UUID",
-      "instrument_id": "string",
-      "provider_id": "string",
-      "mode": "simulated|historical|delayed|realtime",
-      "timeframe": "string",
-      "price_adjustment": "raw|provider-defined string",
-      "timezone": "string",
-      "calendar_id": "string",
-      "quantity_unit": "string",
-      "revision": "string",
-      "quality": "fresh|stale|gapped|degraded",
-      "provenance": "object"
+      "$source": {
+        "path": "contracts/market-data-v1.json",
+        "pointer": "/domain/DatasetDescriptor"
+      }
     },
     "Bar": {
-      "time_ms": "UTC epoch milliseconds integer, the start of the bar",
-      "trading_day": "YYYY-MM-DD",
-      "open": "finite number",
-      "high": "finite number",
-      "low": "finite number",
-      "close": "finite number",
-      "volume": "finite number|null",
-      "is_closed": "boolean"
+      "$source": {
+        "path": "contracts/market-data-v1.json",
+        "pointer": "/domain/Bar"
+      }
     },
     "bar_invariants": [
       "low <= open/close <= high",
@@ -416,19 +219,20 @@
     ],
     "series_identity": "SeriesKey identifies the source, instrument, timeframe, adjustment basis, session convention, calendar and quantity unit. A source changes its opaque revision for content or methodology corrections. Calendar and adjustment rules are versioned. Original, adjusted, native and reconstructed variants must remain individually selectable and attributable.",
     "continuous_futures": "Analysis series only, identified separately from actual contracts; metadata declares the construction methodology",
-    "provider_capabilities": [
-      "instrument_search",
-      "historical_bars",
-      "stream_bars",
-      "ticks",
-      "depth",
-      "supported_timeframes",
-      "price_adjustments",
-      "historical_limits"
-    ],
+    "provider_capabilities": {
+      "$source": {
+        "path": "contracts/market-data-v1.json",
+        "pointer": "/domain/provider_capabilities"
+      }
+    },
     "history_snapshots": {
       "selection": "Resolve an explicit series and a half-open UTC bar-start interval [from_ms,to_ms). Include up to warmup_bars observed prior bars explicitly. The frozen snapshot binds the requested source revision, interval, warmup count, observed cutoff and content. A pinned request uses exactly those inputs or returns SNAPSHOT_UNAVAILABLE. No substitute revision, adjustment or source is permitted.",
-      "content": "history-chain-v1 uses SHA-256. Text fields are UTF-8 prefixed by a four-byte unsigned big-endian byte length. The seed starts with ASCII ScopeHub/history-chain-v1 and one NUL, followed by the length-prefixed series fields in order instrument_id, provider_id, timeframe, price_adjustment, session_scope, calendar_id, quantity_unit, then dataset_id, dataset_revision and timezone. Append from_ms, to_ms, warmup_bars and as_of_ms as eight-byte signed big-endian integers. H0 is SHA-256 of that seed. For each ordered bar, hash the preceding 32 raw digest bytes followed by time_ms as an eight-byte signed integer, trading_day as length-prefixed text, OHLC in order as IEEE-754 binary64 big-endian, a zero byte for absent volume or byte one followed by its binary64 value, and a byte 0 or 1 for is_closed. Normalize numeric negative zero to positive zero. The final lowercase hexadecimal digest identifies the exact input, including intermediate live-bar state.",
+      "content": {
+        "$source": {
+          "path": "contracts/market-data-v1.json",
+          "pointer": "/domain/history_snapshots/content"
+        }
+      },
       "pagination": {
         "$source": {
           "path": "contracts/worker-runtime-v1.json",
@@ -444,7 +248,12 @@
     "stream_handoff": {
       "position": "Every streaming snapshot carries the last included stream_id, epoch and sequence. Offline history has a null position. Subscribe after that exact position or subscribe before the snapshot and buffer bounded, attributable events until the snapshot boundary is known. An event identifies its series, epoch, sequence, bar time, observed time and update or correction. The first subsequent sequence is boundary + 1.",
       "recovery": "Ignore identical duplicate positions. Divergent content at one position, a skipped sequence, a new epoch or buffer overflow marks affected coverage uncertain and triggers bounded same-series backfill or an explicit gapped state. Never treat an old epoch as the new epoch or mix a previous selection. An explicit correction of a closed bar produces a new revision without altering frozen historical inputs. A stream becomes complete only after snapshot and contiguous replay agree.",
-      "wire": "The internal 1.1 market.subscribe request carries the selected SeriesKey, frozen snapshot and last included StreamPosition, which must agree with the snapshot source. The core accepts a resume only if stream identity, epoch and precise last position match. A successful response either accepts the boundary or returns backfill_required with a recovery time. Distinguish an in-place partial bar update from an explicit correction carrying its superseded and new revision. A market.stream_gap event reports raw losses, affected half-open interval and expected sequence; no new update can silently close a gap. The host must accept events only from the negotiated market role and advertised subscription. The opt-in synthetic worker replays a finite fixture after an explicit include_stream_position history read. Ordinary history keeps a null position."
+      "wire": {
+        "$source": {
+          "path": "contracts/market-data-v1.json",
+          "pointer": "/domain/stream_handoff/wire"
+        }
+      }
     }
   },
   "operations": {
@@ -461,10 +270,25 @@
     ],
     "authority": "Only the core grants authorization",
     "confirmations": "The core issues a short-lived challenge bound to principal and paired client, session, workspace, operation, target and shared selection, expected revision, digest of canonical arguments, code, parameters, input snapshot and purpose where applicable. A trustworthy local human action approves or rejects it. A worker or external client cannot supply its own approval.",
-    "default_confirmation_ttl_ms": 300000,
-    "replay": "Scope the stable idempotency key to the authenticated principal, paired client identity where used, workspace and operation. Authenticate the caller and validate the request shape, then look up the scoped key before applying the current revision, target and confirmation checks for new work. Reject a reused key with different semantic input. A matching committed retry, including after reconnection within the same scope, recovers the original receipt subject to current disclosure grants and applicable source entitlements. Project any required result fields under those same permissions. If the registered reply cannot be formed within those permissions, return only a permitted status. Never return a raw historical result. Recover the receipt without re-execution or renewed confirmation, even if revisions advanced, the target changed or the original confirmation expired.",
+    "default_confirmation_ttl_ms": {
+      "$source": {
+        "path": "contracts/contract.json",
+        "pointer": "/operation_authorization/default_confirmation_ttl_ms"
+      }
+    },
+    "replay": {
+      "$source": {
+        "path": "contracts/contract.json",
+        "pointer": "/operation_authorization/replay"
+      }
+    },
     "permissions": "Worker role plus operation allowlist; AI has no raw Tauri/file/process/SQL permissions",
-    "tauri": "An allowlist of capabilities for the main window; do not expose general shell, arbitrary filesystem, or arbitrary SQL interfaces to the UI",
+    "tauri": {
+      "$source": {
+        "path": "contracts/contract.json",
+        "pointer": "/operation_authorization/tauri"
+      }
+    },
     "v1_forbidden": [
       "Placing real orders",
       "Accessing accounts",
@@ -474,9 +298,10 @@
       "Arbitrary external URL navigation or remote UI content"
     ],
     "durable_operations": {
-      "commit": "For new work, revalidate the current grant, workspace, target and expected_workspace_revision. Independently revalidate expected_selection_revision for writes bound to shared selection. Atomically consume required approval, apply the mutation, advance the durable workspace revision and persist the immutable operation receipt and scoped idempotency record in the single-writer transaction. Failure before commit has no visible effect. Serial or concurrent duplicates have one commit.",
-      "receipt": "Return the stable operation ID, committed workspace revision, affected target identity and undo eligibility. Recover a lost committed response under /authorization/replay. A stale new request or an unauthorized request returns only the permitted status.",
-      "undo": "Undo targets an eligible operation ID. Check current grant, requested workspace revision, affected object and recorded after-state. Reject conflicting intervening edits without clobbering them. Otherwise record a new inverse operation with its own receipt; repeated retries do not undo twice."
+      "$source": {
+        "path": "contracts/contract.json",
+        "pointer": "/operation_authorization/durable_operations"
+      }
     },
     "data_purposes": {
       "local_display": "Allow only licensed and authorized on-device display. An unknown or forbidden downstream purpose leaves permitted local display usable.",
@@ -486,252 +311,21 @@
     }
   },
   "indicators": {
-    "default_mode": "A declarative expression AST without dynamic code execution",
-    "declarative_ops": [
-      "field",
-      "constant",
-      "add",
-      "subtract",
-      "multiply",
-      "divide",
-      "abs",
-      "lag",
-      "rolling_mean",
-      "rolling_std",
-      "gt",
-      "lt",
-      "and",
-      "or",
-      "param"
-    ],
-    "ast_policy": "Resolve named parameter references against the draft declarations. Validate supplied names, primitive types, finite values, integer period bounds and defaults before hashing; reject duplicate, unknown, missing and ill-typed bindings. Statically type numeric, boolean and nullable expressions, then enforce AST budgets without eval or exec.",
-    "window_semantics": "Use past and current eligible calendar buckets. Scheduled closures add no bucket. A missing expected bucket or null input makes a dependent full window unknown. Cross comparable sessions of the same series, resetting at changes of adjustment, calendar, contract or unadjusted roll discontinuities. lag(0) is the current value; rolling periods are positive integers; rolling_std uses population variance (ddof=0). Division by zero yields null and a diagnostic. Only a frozen snapshot that explicitly includes an open bar can use that observation.",
-    "python_mode": {
-      "enabled_by_default": false,
-      "trust_label": "trusted_code_only_not_secure_sandbox",
-      "entrypoint": "compute(bars, params) -> IndicatorResult",
-      "authorization": "Before every run, show the actual filesystem/network authority of the trusted process, exact code and parameters, input snapshot and approved purpose. Require an eligible source entitlement and explicit local human approval. Any changed input or rerun needs new approval.",
-      "warning": "Separate processes and resource limits do not prevent arbitrary file or network access; do not automatically execute untrusted Python until reliable OS isolation is implemented",
-      "credentials": "Do not pass SDK credentials or inherit unnecessary environment variables",
-      "cwd": "An isolated temporary directory, which must not be described as a file access security boundary",
-      "replay": "The frozen supplied inputs and output are identifiable. Arbitrary trusted code may read external state, so deterministic recomputation is not a general guarantee. Restore the accepted artifact if its use rights permit; otherwise show its reference and reason unavailable. Cache deletion, restart, source changes, revoked rights and editing a layout never trigger Python automatically."
-    },
-    "immutable_versions": true,
-    "execution_input": "Freeze series, revision, visible and warm-up windows, as-of position and exact input bytes. Verify the aggregate bar and byte budgets before execution. Page through only the frozen revision. A changed input, parameter, code or engine produces a distinct computation identity.",
-    "limits": {
-      "$source": {
-        "path": "contracts/worker-runtime-v1.json",
-        "pointer": "/indicator_limits"
-      }
-    },
-    "result": {
-      "series": "array: id, pane, type(line|histogram), points(time_ms,value|null), style",
-      "markers": "array: time_ms, position, label, color",
-      "regions": "array: from_ms,to_ms,label,color",
-      "diagnostics": "array: code,message,severity",
-      "provenance": "Code hash, resolved parameter hash, engine version, immutable input snapshot and result identity. Retain visible output and its source reference at acceptance under the applicable retention entitlement."
-    },
-    "output_policy": "Workers return validated structured data with bounded timestamps, values and approved default styles. HTML, scripts and DOM objects are invalid indicator outputs. The line or histogram type, pane, markers and regions describe supported default drawings. A workbench can bind the same authorized time/value points to a different visual encoding while preserving nulls, computation version, units where applicable and source evidence. A presentation edit does not recompute the indicator.",
-    "lifecycle": [
-      "draft",
-      "running",
-      "preview",
-      "accepted",
-      "rejected",
-      "failed"
-    ],
-    "preview": "Return a task ID immediately. Exactly one terminal message or durable retrievable outcome binds task, draft, preview ID, input snapshot and validated result. Rejected, failed, cancelled or superseded previews cannot be accepted. Commit only the current explicitly accepted matching preview, with its operation receipt; restarting does not replay a computation.",
-    "parameter_and_output": "Resolve defaults and overrides to one typed parameter object for hashing and execution. An integer literal or a declared integer parameter can set a lag or rolling period. Arithmetic accepts numbers, comparisons produce nullable booleans, and logical and/or follow three-valued truth tables. Numeric projections emit a number or null. Boolean marker conditions emit a marker only on true; false and unknown emit none. Reject using booleans as numeric series implicitly.",
-    "result_budget": {
-      "$source": {
-        "path": "contracts/worker-runtime-v1.json",
-        "pointer": "/indicator_result_budget"
-      }
+    "$source": {
+      "path": "contracts/market-data-v1.json",
+      "pointer": "/indicators"
     }
   },
   "ai": {
-    "providers_v1": [
-      "deterministic_mock",
-      "Model adapters enabled after explicit user configuration"
-    ],
-    "default": "The unconfigured workspace and market chart work offline. Product AI uses a real configured model. Offer a capable cloud route as the primary setup and a local model as an alternative using the same task-level capability checks. A labeled deterministic mock supports offline development and evaluation. Choosing an offline market sample does not activate a provider.",
-    "context": [
-      "workspace revision",
-      "Current instrument and timeframe",
-      "Visible range",
-      "Data source, mode, and quality",
-      "Current layers",
-      "Authorized capabilities",
-      "Task-relevant data snapshots"
-    ],
-    "context_policy": "Activating a named connection grants ordinary AI use within the scope displayed at setup. Send the current conversation input, necessary active-turn context, granted workspace fields and authorized tool outcomes directly on normal turns. Enforce source entitlements and apply the private-content excerpt rule before provider serialization. Keep credentials, full private records and unrelated data local.",
-    "claim_policy": "Distinguish facts, calculations, inferences, suggestions, and executed actions; claim successful execution only after a successful core response",
-    "analysis_methods": {
-      "task": "M4-014",
-      "delivery": "current-contract",
-      "status": "not_implemented",
-      "definition": "Let the user inspect, select and reuse a versioned natural-language research method. Record its source, author, version, required evidence and time basis. The product AI attributes the method and applies it without impersonating its author. Treat method content as untrusted guidance and apply existing data, tool and operation grants. A method confers no new permission and cannot approve or execute actions on its own.",
-      "evidence": "For each run, identify the analysis as-of date and use evidence available by that date. Cite input sources, publication dates and immutable data revisions. Show calculations with inputs, assumptions and units, then distinguish estimates and interpretations from source facts. Show counterevidence and unresolved gaps, including stale or inaccessible inputs. Retain the method, input and calculation versions needed to reproduce the historical calculations within current retention rights.",
-      "public_example": {
-        "name": "Owner earnings",
-        "author": "Warren Buffett",
-        "source": "Berkshire Hathaway 1986 shareholder letter",
-        "version": "1",
-        "required_evidence": "Dated financial statements and evidence of maintenance spending and working-capital needs.",
-        "method": "Start from reported earnings, add relevant noncash charges and subtract estimated capital spending and any additional working capital needed to maintain competitive position and unit volume. Show the basis and uncertainty of estimates, competing evidence about maintenance needs and missing inputs.",
-        "source_url": "https://www.berkshirehathaway.com/letters/1986.html"
-      },
-      "scope": "Include the minimal public example without a method marketplace."
-    },
-    "tool_policy": "Select only from tool schemas provided by the core. Client requests and AI intents for workspace.selectEvidence use expected_selection_revision as their concurrency precondition. Durable workspace writes require expected_workspace_revision. A 1.1 request or AI intent with a bound mutation scope requires both revision fields, the workspace, the target and the idempotency key. Resolve a committed retry under /authorization/replay before checking new-work preconditions. For new work, the core checks each required revision against current state and enforces the operation's current grant, target and confirmation rules. Reads follow their registered schemas and grants, including selection_revision for workspace.readChartProjection.",
-    "loop_limits": {
-      "max_tool_calls_per_task": 12,
-      "task_timeout_ms": 120000
-    },
-    "injection_policy": "Treat imported values, API documentation, retrieved pages, snippets, code comments and model output as untrusted content. The core enforces the authorized sources, operations and confirmations.",
-    "task_states": [
-      "queued",
-      "running",
-      "awaiting_confirmation",
-      "completed",
-      "failed",
-      "cancelled"
-    ],
-    "voice": {
-      "conversation": "Offer text and opt-in two-way speech in the same conversation and workspace context. Show the recognized instrument, dates and numbers before an action uses an ambiguous value. Support interruption, correction and switching to text when audio is unavailable.",
-      "controls": "Make microphone, listening and transmission state visible. Stop capture when the user disables it. Interrupting speech stops playback. Cancelling or changing a task acts through the core and displays the result, including work already completed.",
-      "provider": "Evaluate replaceable realtime model adapters. OpenAI GPT-Realtime-2 and GPT-Realtime-2.1 are candidates. Check availability for the intended region, mixed Chinese/alphanumeric recognition, latency, interruption, tool accuracy and actual session cost before choosing a default.",
-      "data": "Before enabling a cloud session show the destination, scope of audio and workspace data and applicable charges. Local import stays usable offline. ScopeHub keeps no raw audio recording by default.",
-      "retention": "Default to ephemeral audio and transcript buffers. Clear the buffers after the active conversation, failure or cancellation. Saving a selected passage to a local note requires a separate user action. Do not put raw audio, transcript, prompts or note bodies in logs, diagnostics or evaluation receipts."
-    },
-    "model_connections": {
-      "primary_cloud_route": {
-        "task": "M4-002",
-        "check": "configured-model-session"
-      },
-      "setup": "In AI settings choose a provider and model, supply the credential it needs or select an entitled ScopeHub AI service. Identify the provider or router, destination, processing scope and charge basis before a connection test or first transmission. Resolve credentials in the trusted connector and exclude their values from prompts, tool replies and diagnostics.",
-      "session_grant": {
-        "activation": "Show the route, ordinary data categories, charge basis and how to disconnect at connection setup. The user’s Connect and enable action grants that scope for their profile. A routine chat turn, follow-up, or in-scope tool result proceeds under this grant without another permission prompt. Connecting a microphone route discloses voice use; the user controls capture and stopping capture stops further audio transmission.",
-        "changes": "Request a new choice for a different recipient, expanded disclosure or changed commercial terms. Revalidate an existing connection on restart and stop future transmissions on revocation. Each external client needs its own grant. Connection scope does not authorize account access, arbitrary mutations or running code.",
-        "private_attachments": "Apply persistence.private_content.transfer to any saved private content that would leave the device. A model connection, remembered chart permission or local retrieval result does not attach a private archive. Local model execution stays on the device unless the user separately chooses a remote recipient.",
-        "fitness": "Deliver and qualify a real cloud provider route for core financial collaboration. Evaluate the actual model, route and modality on the same material accuracy, tool and task tests. A qualified local model can support those capabilities. Display limitations and let the user choose an alternate route when a requested capability is unavailable."
-      },
-      "capabilities": "Evaluate OpenAI, Google Gemini, Anthropic Claude and OpenRouter as independent candidates. Record text, structured tool calling and duplex audio per tested provider, route and model. A router or compatible request format alone establishes none of these capabilities. Use one qualified adapter for the first real session.",
-      "selection": "Display unavailable capabilities and offer supported interactions, including continuing in text. Switching provider, widening the fields sent or incurring a different charge requires the user's choice. Send only the selected context. An unavailable provider cannot silently switch to a different service or a synthetic answer."
-    },
-    "external_clients": {
-      "entry": "In external AI settings enable a local Model Context Protocol (MCP) connection and select the open workspace. Provide a connection command or client configuration, show its connection state and let the user disconnect it. ScopeHub serves tools to an external AI application such as Codex CLI, a compatible Codex desktop client, Claude Code or Claude Desktop. The external application supplies its own model access. A ScopeHub model key is unnecessary for this path.",
-      "transport": "Start with a client-launched local stdio bridge. Authenticate and pair the bridge with the running desktop core and the workspace the user selected. If the app closes or pairing expires, report disconnection. Identify the supported tool schema version and advertise only implemented operations permitted for this session.",
-      "grant": "The core binds a user-approved client identity, session and workspace to permitted operations and data fields. Start with a bounded chart read. Show which fields may leave ScopeHub and that the external application may forward them to its own cloud model. The user can narrow or revoke access. Filter every response by this grant and the source's use rights, including tool results and error details. Provider and broker secrets remain inside their trusted connectors.",
-      "operations": "Use the same Rust operation registry and state as the visible desktop. Attribute each step to the external client under the AI actor. Reads return the selected source and revision. For new mutations, enforce the current write grant and the target, revision and scope checks in the tool policy. Obtain any required confirmation for that work from the human in ScopeHub. Use /authorization/replay for committed retries and preserve cancellation and undo semantics across clients. The bridge exposes no general filesystem, shell, SQL, account or order access.",
-      "visibility": "Identify the external client at the chart or object it read or changed and in redacted activity. A granted annotation appears on the user's open chart with its actual result. If a new mutation's expected_selection_revision is stale, reject it and show how to read the new context. On disconnect, revoke future access and report committed effects only as permitted by current disclosure authorization."
-    },
-    "qualified_session_acceptance": {
-      "material_fields": [
-        "instrument including leading zeros",
-        "quantity and unit",
-        "price and decimal point",
-        "explicit trading date and time zone",
-        "target range and proposed action"
-      ],
-      "oracle": "Use fixed synthetic evidence with independently calculated answers. Test a Chinese utterance containing an alphanumeric symbol, a correction of a decimal or date, an ambiguous number, interruption during speech, cancelled tool work, a denied mutation and continuation in text. Compare the confirmed fields, resource locator, calculated value and core receipt with the fixture before scoring.",
-      "pass": "All action-critical fields and authorization outcomes must match exactly after necessary clarification, including zero unconfirmed writes or success claims. The real text and real duplex sessions each record tested route/model/version, modality, observed timings, interruptions and costs within the approved test scope. Preserve redacted outcomes and independently record usability feedback. Mock runs, unavailable service and text fallback retain their own statuses.",
-      "reference_case": {
-        "$source": {
-          "path": "tests/fixtures/financial-session-v2.json",
-          "pointer": ""
-        }
-      }
+    "$source": {
+      "path": "contracts/ai-workflows-v1.json",
+      "pointer": "/ai"
     }
   },
   "ui": {
-    "design_reference": {
-      "primary": "TradingView Desktop with Supercharts",
-      "url": "https://www.tradingview.com/desktop/",
-      "scope": "Use this as the visual and interaction reference for the shipped chart workspace and ScopeHub-owned controls, including settings, data forms, AI conversations, diagnostics and protected dialogs. Users choose the typography, composition and interactions of their own workbench and may use a different visual reference.",
-      "visual": "Use a common type scale, spacing scale and control sizes. Keep information density, icon style, panel boundaries and semantic color roles consistent across light and dark themes. Apply the chosen rising and falling colors wherever price changes appear. Pair important states with a label, icon or other visible cue.",
-      "interaction": "Keep navigation, toolbars, selection, keyboard focus and the behavior of opening, closing and returning from panels and dialogs consistent. Retain chart gestures on the chart and native folder selection for local data.",
-      "workflows": "Use ScopeHub terminology and controls for the actions available. Source settings show the selected directory or API, connection state and refresh results. AI panels show cited evidence, action previews and any required confirmation.",
-      "comparison": {
-        "method": "Compare one visible task at a time. Record the window size, display scale, theme and input method. Compare chart and panel proportions, text and state contrast, the initial focus, the result of the action and the return to the previous context.",
-        "surfaces": "Review ScopeHub in its native desktop window for integrated acceptance. Identify each reference surface. Public Supercharts can supply observations of shared chart behavior. Identify desktop-only behavior separately.",
-        "shared_chart_url": "https://www.tradingview.com/chart/",
-        "tooling": "Development chooses the observation tools for the question. Record differences that affect the task and the reason for a ScopeHub-specific design."
-      }
-    },
-    "layout": "The default chart workspace follows /ui/design_reference. Show instrument, timeframe, chart style and source status above price, volume and time below, tools on the left and instruments and inspection on the right. Offer a blank starting point alongside the default. Restore the chosen composition when reopening.",
-    "workspace_entry": {
-      "unconfigured": "A fresh profile opens the unconfigured chart default with zero application operations. Offer both a blank workbench and an explicit offline sample. Leaving the sample ends its data access. A saved chart-free workbench reopens without creating a chart or subscribing to its source.",
-      "offline_sample": "An explicit action, a deliberate #demo link or restoration of the same previously chosen sample loads the synthetic chart. Keep the Simulated label visible, including after restart. Leaving clears the preference.",
-      "controls": "Use icons for working actions where they help navigation or chart interaction. Keep essential controls reachable at narrow widths.",
-      "restore": "Restore saved layout and accepted indicator artifacts through the core. A missing or revoked source retains its identity and layout, reports the reason, and sends no unauthorized read. Only reconnect to the same currently authorized source; ask the user to select any replacement. A saved mock choice is separate from data-source selection and external-service grants.",
-      "first_question": "With local data but no configured model, the first question offers model configuration or an explicitly labeled offline mock. No call, transfer, simulated answer or charge occurs until the user chooses."
-    },
-    "controls_scope": "The chart default makes the chart controls below available. A chart-free composition can omit them. Host recovery, access status, activity and sensitive confirmations remain reachable independently of the canvas.",
-    "minimal_controls": [
-      "Instrument search",
-      "Timeframe selection",
-      "Candlestick/line chart switching",
-      "Layer removal",
-      "Task cancellation",
-      "Undo",
-      "Data mode and connection status"
-    ],
-    "chart_adapter": [
-      "setMarketSeries",
-      "updateMarketSeries",
-      "addIndicatorSeries",
-      "addAnnotation",
-      "removeLayer",
-      "setVisibleRange",
-      "getSelection",
-      "dispose"
-    ],
-    "chart_rules": [
-      "No default indicators",
-      "React components do not hold provider SDKs",
-      "AI annotations expose their source and task for inspection",
-      "preview and accepted states are distinguishable",
-      "Clean up chart resources on unmount",
-      "Coalescing updates must not lose the final bar state"
-    ],
-    "states": [
-      "loading",
-      "ready",
-      "empty",
-      "disconnected",
-      "stale",
-      "error",
-      "awaiting_confirmation"
-    ],
-    "security": "Render conversational model text as plain text or restricted Markdown. Keep user-authored and generated executable content outside the privileged shell. Apply the canvas boundary under /ui/customization/extensibility to authored presentations.",
-    "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default",
-    "customization": {
-      "design_goal": "Users can reshape the entire workbench. They can start with a blank canvas, replace the default regions or refine a single detail. They choose which available facts, calculations and actions to bring together, the conditions under which they appear, their visual form and what happens on selection. A workbench can consist entirely of text, evidence and actions. Users can edit directly or ask the embedded AI to make a change from a description, a selected screenshot or a reference URL, then refine the result by hand. TradingView and OpenBB guide the defaults. V1 requires an original chart-free composition, a local edit and a whole-workbench redesign. Reference-image or URL interpretation depends on the selected model and disclosure rights.",
-      "content_rules": "Retain the user's choices of content, filtering, grouping, ordering and interactions so they apply when the underlying information changes. A successfully checked source with no matches may leave the canvas empty. If missing inputs, stale coverage or lost access prevent a reliable answer, make that condition distinguishable from an empty result. Views reference independently owned source records, indicator results and research notes. Keep evidence inspectable within current rights. Every bound action uses the ordinary operation and confirmation rules.",
-      "panels": "In the built-in chart workspace let users move, resize, dock, tab and show or hide whole chart, watchlist, data inspection, AI and activity panels. Keep axes, crosshair and zoom inside the chart. Offer light and dark themes and selectable rising/falling colors with accessible state cues.",
-      "links": "Support optional panel selection groups, using Koyfin dashboards as a secondary reference for that interaction. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
-      "editing": "Direct edits and scoped AI requests operate on the same named workbench and addressable elements. Support a targeted change and replacement of the whole composition, including its data bindings and permitted interactions. Preview, apply, undo, restore and return to the default through versioned operations. Keep source status, activity, recovery and required confirmations accessible from the trusted shell.",
-      "extensibility": "The host supplies scoped, typed data with provenance and accepts only registered operation intents. The canvas owns presentation. M2-003 selects its renderer using a native prototype of the V1 journey. Candidates include a host-interpreted composition and a separately isolated renderer for locally authored code. An executable candidate must demonstrate isolation from native commands, credentials, ambient file and network access, and approval controls. The host must be able to discard a failed or stalled draft and restore the last accepted workbench. Product source and privileged UI are outside the editable surface.",
-      "widgets": {
-        "composition": "Use FINOS Workspace (formerly OpenBB Workspace) as a reference for adding, arranging, resizing and linking built-in views in the chart default. Users may remove every default view, compose across former panel boundaries and bind data to a visual form that has no dedicated built-in widget.",
-        "data_binding": "A data widget declares the kind of records and selection parameters it can display. Source adapters map local files and API responses to typed results. The Rust core supplies authorized views of those results with source identity, revision or as-of time, and applicable units, time basis and coverage. A chart and a table can use the same bars, and either view can use another compatible source. FINOS widget endpoint and parameter descriptions can be translated into optional display hints. Tool identifiers and a raw-data link identify a source. The Rust registry rechecks access, and citations bind a readable data revision.",
-        "source_changes": "The named layout stores widget placement, size and selection links. A view can follow the workspace's active source or pin an opaque reference to compatible data. The profile stores the active chart source separately. My data sources owns connection settings and credentials. Recheck access on restore. Keep the arrangement and show the affected view's status when data is incompatible, disconnected or revoked. Removing a widget leaves its source and data intact."
-      }
-    },
-    "shared_evidence": {
-      "pointing": "The human can select a bar or date range, table row or document passage and ask about it. The AI can proactively reveal another authorized page or panel and highlight the precise target. Follow-up turns use the latest selection from either participant.",
-      "navigation": "Show evidence in place or alongside the current view as appropriate. Allow comparison, pinning and return to the prior instrument, timeframe, viewport and layout. Opening temporary evidence preserves unsaved work.",
-      "attribution": "Identify the source, document or dataset revision, locator and relevant publication or market time. Align time zones when comparing a disclosure with a price move. Label search summaries, source statements, calculations and interpretations distinctly. A changed or inaccessible target shows the available reference and the resulting uncertainty.",
-      "external": "For configured research channels, open the permitted original source in a controlled reader or an approved external handoff. A page, its links and its contents cannot authorize navigation, access credentials or call application tools. A discovery service such as Tavily is optional.",
-      "visible_actions": "Show the target, relevant parameters, preview or progress and core result where the user can inspect the affected object. Highlight mapped columns, preview layers or layout changes there. Offer cancellation while applicable, operation-specific confirmation and undo where supported. Retain redacted activity history for later review.",
-      "selection_ownership": "Hover, pointer movement and unsaved viewport navigation are local presentation. Both 1.1 forms of workspace.selectEvidence, the client request and the AI intent, require target. Set target to null to clear shared selection. Reject omission of target. A workspace object uses kind (chart, layer, layout, dataset or workspace) and object_id. A bar or interval uses chart_interval with a frozen snapshot and range. A table_row or document_passage uses source_id, source_revision and locator. The core checks the workspace, current grant, expected_selection_revision and any non-null target. A successful change advances only selection_revision and publishes the core-owned selection for the workspace. New writes bound to an earlier selection token are stale. Hover alone preserves the token. Preserve and restore unsaved view and independently pinned panels around temporary evidence navigation."
-    },
-    "localization": {
-      "languages": "Ship English and Simplified Chinese first. Register additional BCP 47 languages with a native display name, writing direction and message catalog. Keep engineering documentation and protocol identifiers in English.",
-      "preference": "Use the first supported system language on initial launch, with English as the default. Offer a local language setting, including Follow system. Apply changes in place to the current workspace and restore the preference on the next launch.",
-      "presentation": "Localize application-owned controls, empty states, errors, settings, accessible names and chart labels. Keep messages separate from views, with named arguments and locale plural rules. Format display numbers and dates for the selected language while preserving financial precision, exchange timezones, trading days and original evidence.",
-      "content": "Keep user records, provider data, symbol identifiers, model responses and exports in their original form. Language selection changes presentation independently of chart state, source access, external requests or model configuration."
+    "$source": {
+      "path": "contracts/workbench-v1.json",
+      "pointer": ""
     }
   },
   "persistence": {
@@ -741,170 +335,23 @@
     }
   },
   "fixtures": {
-    "instruments": [
-      "SIM.CN.FUTURE.001",
-      "SIM.CN.STOCK.001",
-      "SIM.US.STOCK.001"
-    ],
-    "label": "All data is synthetic; do not disguise it as real market quotes",
-    "timeframes": [
-      "1m",
-      "5m",
-      "1d"
-    ],
-    "generator": "Use a fixed seed and fixed UTC start time to generate and commit fixtures; tests must not depend on the current time",
-    "cases": [
-      "Normal contiguous data",
-      "Gaps",
-      "Stale data",
-      "Worker interruption",
-      "Updates to unclosed bars",
-      "Samples spanning UTC dates within the same trading day"
-    ]
+    "$source": {
+      "path": "tests/fixtures/market-cases.json",
+      "pointer": ""
+    }
   },
   "delivery": {
-    "installer": "Windows x64 NSIS",
-    "webview2": "Explicitly use the installer bootstrapper strategy; first installation may require internet access. Record this in build-manifest.json and installer messaging; do not promise fully offline installation.",
-    "python": "Distribute workers with the installer; do not require Python on the user system",
-    "build": "Run the Ubuntu development application from source. Build and validate the v1 release natively on Windows x64. Lock dependencies and record build information.",
-    "platform_interfaces": [
-      "credentialStore",
-      "applicationPaths",
-      "processRestrictions",
-      "desktopIntegration"
-    ],
-    "supply_chain": "Build installer resources only from identified sources; do not run download scripts suggested by models; include a dependency inventory and licenses",
-    "final_artifacts": [
-      "Windows NSIS installer",
-      "test-report.json",
-      "build-manifest.json",
-      "third-party-licenses",
-      "Complete source code and lockfiles"
-    ],
-    "verification_evidence": {
-      "field_input": "For a scheduled field check, retain .reports/observations/<check-id>/observation.json plus its referenced PNG files. Identify kind, commit, inputs_sha256, operator, observed_at, surface, each required action as an object with status=passed and an observed description of its actual visible outcome, and screenshot path/sha256 pairs. Ubuntu desktop observations identify the ScopeHub Tauri process and window, Ubuntu and WebKitGTK versions, and the native actions observed there. The integrated observation also records the text, voice, CLI and desktop dispositions. The physical Windows observation additionally identifies its Windows client family, build, architecture, WebView2 and the Ubuntu-reviewed commit. The same execution digest permits a bookkeeping-only commit between observations. Missing primary observations stay blocked. Include the observed Windows OS product type (1 for a client workstation) with family and build. Server builds can share a build number with a client. Hosted publication accepts only a producer-marked screenshot_scope of synthetic for screenshots captured from the synthetic fixture. Personal screenshots and private profiles stay on the device.",
-      "session_input": "A real check writes <check-id>.observation.json under SCOPEHUB_RUN_DIR, containing check, modality, commit, inputs_sha256, provider, route, data_revision, authorized_scope, observed_at and either dataset or model with deployment set to local or cloud. The configured_models summary includes both deployments; cloud_models contains only observed cloud sessions. Installation defaults are independent of either observation. Use short public or opaque aliases for provider, route, data revision, model and dataset (ASCII letters, digits, dots, underscores and hyphens, up to 96 characters, starting with a letter or digit). Record the scope category synthetic-model-qualification, synthetic-voice-qualification or authorized-market-verification for the respective modality. Keep URLs, account names, credentials, grant text and private values out of aliases. Exit 77 records an unavailable authorized session. A successful command without the matching observation cannot establish qualification. Model and voice observations include the redacted qualification object defined by /ai/qualified_session_acceptance/reference_case: confirmed fields, initial and corrected intervals, observed means and snapshot hashes, effects, approved annotation receipt, authorized monetary limit and actual charge. Voice also supplies measured first-audio latency, interruption, capture and follow-up outcomes. Exercise the fixed synthetic private transfer case in text and voice. Record observed completed turns, extra consent prompts and the per-stage digests of private spans sent off-device and accessible to the receiving model, and whether a later request reused the selected private context. Store only the exit code in command logs for private session, field, external-client and credential checks. Keep prompts, bodies and raw audio out of the retained observation, command output and diagnostics.",
-      "candidate_input": "The release check places build-manifest.json in SCOPEHUB_RUN_DIR/candidate and retains the NSIS installer there. The manifest binds commit, inputs_sha256, installer, two Windows observations, and performance by relative path and SHA-256. Windows observations identify the host family (Windows 10/11), numerical build, x64 architecture, WebView2, operator, time, clean-install and upgrade results for the same installer hash. The performance observation binds the same source and installer, CPU, RAM, display scale, refresh rate and raw samples. Use authenticated workflow artifact retrieval for hosted evidence. Each Windows host record includes the workstation product type as well as the family and build. List packaged third-party license and notice files in third_party_licenses as relative path and SHA-256 pairs. The hosted run retains available verified installer bytes, legal notices and typed failed or partial measurements for diagnosis. Passing acceptance requires the full matching installer, manifest, Windows client observations and complete passing measurements."
+    "$source": {
+      "path": "contracts/desktop-runtime-v1.json",
+      "pointer": "/distribution"
     }
   },
-  "milestones": [
-    {
-      "id": "M0",
-      "goal": "Scaffolding and protocol",
-      "deliver": [
-        "Repository",
-        "ADR",
-        "Executable schemas",
-        "Type generation",
-        "An empty Windows Tauri application",
-        "worker handshake"
-      ],
-      "gate": [
-        "protocol tests",
-        "Windows build"
-      ]
-    },
-    {
-      "id": "M1",
-      "goal": "End-to-end simulated market data and independently configured user sources",
-      "deliver": [
-        "mock provider",
-        "Instrument search",
-        "Historical chart",
-        "Live bar updates",
-        "Status and reconnection",
-        "Session-scoped native CSV folder import and reviewed refresh",
-        "Profile-bound saved local sources with reviewed append-only rules (M1-028)",
-        "Typed Parquet alongside CSV with inspectable market semantics (M1-029)",
-        "First-class settings and forms for user folders and direct API connections with controlled-connector tests (M1-030)",
-        "Ubuntu Tauri desktop development entry sharing the Windows frontend and Rust operation registry (M1-031)"
-      ],
-      "gate": [
-        "fixture correctness",
-        "worker failure recovery",
-        "Saved-source authorization, idempotent restart reconciliation and targeted correction review",
-        "Typed CSV and Parquet evidence with reproducible historical calculations",
-        "Fresh-install access without a ScopeHub account or plan and independent API connection lifecycle with a controlled connector",
-        "Native Ubuntu workspace observation before the physical Windows desktop trial"
-      ]
-    },
-    {
-      "id": "M2",
-      "goal": "Operations and persistence",
-      "deliver": [
-        "Operation registry",
-        "Permissions",
-        "Confirmations",
-        "revision",
-        "SQLite",
-        "undo",
-        "Versioned panel layouts with preview and restore",
-        "A user-composed workbench with an optional chart and a renderer selected from native prototype evidence"
-      ],
-      "gate": [
-        "permission tests",
-        "restart restore",
-        "idempotency tests",
-        "A non-preset chart-free composition can be edited, refreshed, undone and reopened"
-      ]
-    },
-    {
-      "id": "M3",
-      "goal": "End-to-end indicators",
-      "deliver": [
-        "AST engine",
-        "output validation",
-        "preview",
-        "accept version",
-        "trusted Python opt-in"
-      ],
-      "gate": [
-        "determinism",
-        "timeout",
-        "preview failure isolation",
-        "trust gating"
-      ]
-    },
-    {
-      "id": "M4",
-      "goal": "End-to-end AI collaboration",
-      "deliver": [
-        "mock AI",
-        "tools",
-        "context",
-        "task cancellation",
-        "operation provenance",
-        "Visible evidence selection across panels",
-        "Opt-in voice and text continuity",
-        "Deliberation and opt-in decision review",
-        "Model-specific capability settings",
-        "Local MCP access to the same authorized workspace",
-        "Reusable natural-language analysis methods (M4-014)"
-      ],
-      "gate": [
-        "AI cannot bypass authorization",
-        "end-to-end scenario",
-        "A buy discussion preserves human judgment and operation scope",
-        "Observe a configured model, Codex CLI and a compatible desktop AI client through their respective entries",
-        "Run an attributed analysis method using dated evidence and existing grants"
-      ]
-    },
-    {
-      "id": "M5",
-      "goal": "Installation and stability",
-      "deliver": [
-        "NSIS",
-        "sidecar bundle",
-        "clean-machine test",
-        "license notices"
-      ],
-      "gate": [
-        "clean Windows install",
-        "shutdown process cleanup",
-        "soak test"
-      ]
+  "milestones": {
+    "$source": {
+      "path": "project/delivery.json",
+      "pointer": "/milestone_outcomes"
     }
-  ],
+  },
   "acceptance": {
     "required": [
       "user-composed-workbench",
@@ -947,14 +394,10 @@
       }
     }
   },
-  "implementation_instructions": [
-    "Start with the M0 foundation. Implement work in task dependency order. Milestones group acceptance and do not require closing a whole earlier group before starting an eligible task. Follow the owner-approved Ubuntu and physical Windows experience sequence.",
-    "Edit canonical wire schemas in contracts/schemas/protocol.schema.json; generate language types and operation schema projections with pnpm generate. This engineering file defines product and engineering requirements, not generated schemas.",
-    "All dynamic operations must pass through the Rust registry first; do not add generic execute/shell/sql tools",
-    "Keep mock implementations until a provider is confirmed; do not temporarily scrape market data from the internet to pretend that integration exists",
-    "Implement the native Ubuntu development host and the Windows v1 release. Reserve other host integrations for a separately approved platform scope.",
-    "Tests cover protocols, identity, permissions, and computation semantics first, then the UI",
-    "Do not implement live trading types, buttons, or tools as hidden placeholders",
-    "State explicitly in the final report whether real data and cloud models are configured; do not exaggerate the completed scope"
-  ]
+  "implementation_instructions": {
+    "$source": {
+      "path": "project/development.json",
+      "pointer": "/repository_layout/implementation_instructions"
+    }
+  }
 }

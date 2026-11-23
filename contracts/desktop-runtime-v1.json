@@ -1,0 +1,76 @@
+{
+  "platform": {
+    "v1": "Windows 10/11 x64",
+    "later": [
+      "Linux releases",
+      "macOS releases"
+    ],
+    "later_policy": "Public Linux and macOS releases are deferred. Implement the Ubuntu desktop development host in this contract.",
+    "ubuntu_desktop": {
+      "purpose": "Primary application for day-to-day development and owner experience on Ubuntu.",
+      "entry": "pnpm desktop:dev",
+      "runtime": "Tauri 2 with WebKitGTK. Load the shared React/Vite frontend in the application window and invoke the Rust operation registry through the native bridge.",
+      "browser_preview": "Use pnpm dev:ubuntu and pnpm dev:ubuntu:workspace for optional browser preview and automated frontend tests. Desktop experience acceptance requires an observed native window.",
+      "verification": "M1-031 delivers the development host. Exercise M1-012 in that host before M1-011 on physical Windows. The v1 installer and packaged acceptance run on Windows 10/11 x64.",
+      "development_acceptance": {
+        "check": "ubuntu-desktop-host",
+        "observation": "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots.",
+        "scope": "Retain this field check with M1-031 and M1-012. The Windows release profile uses its own packaged checks."
+      }
+    },
+    "runtime_installation": "A clean installation supports the standard workflows without a user-installed interpreter or Node. Qualify optional capability-specific runtimes and measure their installed and cold-start costs."
+  },
+  "stack": {
+    "ui": {
+      "language": "TypeScript strict",
+      "framework": "React",
+      "build": "Vite",
+      "charts": "Lightweight Charts",
+      "runtime": "Tauri 2 with WebKitGTK on the Ubuntu development desktop and WebView2 on Windows"
+    },
+    "core": {
+      "language": "Rust stable",
+      "framework": "Tauri 2",
+      "async": "Tokio",
+      "serialization": "Serde",
+      "database": "SQLite via rusqlite",
+      "ownership": "All persistence writes go through a single-writer queue in the core"
+    },
+    "workers": {
+      "$source": {
+        "path": "contracts/worker-runtime-v1.json",
+        "pointer": "/workers"
+      }
+    },
+    "node": "Used only for builds and frontend development; production does not include a Node.js service",
+    "package_manager": "pnpm",
+    "python_dependency_manager": "uv",
+    "transport": "Use bounded, versioned messages for control and authorized UI projections. The host owns bulk inputs and stages data in bounded batches under the reviewed source revision."
+  },
+  "distribution": {
+    "installer": "Windows x64 NSIS",
+    "webview2": "Explicitly use the installer bootstrapper strategy; first installation may require internet access. Record this in build-manifest.json and installer messaging; do not promise fully offline installation.",
+    "python": "Distribute workers with the installer; do not require Python on the user system",
+    "build": "Run the Ubuntu development application from source. Build and validate the v1 release natively on Windows x64. Lock dependencies and record build information.",
+    "platform_interfaces": [
+      "credentialStore",
+      "applicationPaths",
+      "processRestrictions",
+      "desktopIntegration"
+    ],
+    "supply_chain": "Build installer resources only from identified sources; do not run download scripts suggested by models; include a dependency inventory and licenses",
+    "final_artifacts": [
+      "Windows NSIS installer",
+      "test-report.json",
+      "build-manifest.json",
+      "third-party-licenses",
+      "Complete source code and lockfiles"
+    ],
+    "verification_evidence": {
+      "$source": {
+        "path": "project/checks.json",
+        "pointer": "/observation_evidence"
+      }
+    }
+  }
+}

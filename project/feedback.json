@@ -3390,6 +3390,25 @@
         "prevention": "The regression stages the real production projection through the hosted publication path and verifies both a blocked and a passing row. Ubuntu and Windows uploaded verified evidence at 0f9e115 in run 45112936541, and both artifacts were imported."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "engineering-source-expansion-budget",
+      "source": "Independent M0-077 review of the source tree committed as e6adefd.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A synthetic shared graph with nine distinct targets triggered 511 reads. A long acyclic source chain raised RecursionError. A short cycle was already rejected correctly. Project and architecture commands both expand the engineering index.",
+      "task_ids": [
+        "M0-077"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The first recursive reader detected cycles along a path but read a shared document for each reference. Finite deep or shared graphs could exhaust the runtime stack or multiply work.",
+        "correction": "Cache each source document per view and bound both depth and the number of materialized values. Identify the source in limit diagnostics.",
+        "prevention": "The project regression exercises a repeated local fixture with independent depth and total-expansion budgets and verifies one disk read. The full task report passed on 84eff57."
+      },
+      "deferral_reason": null
     }
   ]
 }
