@@ -263,6 +263,23 @@
         "project/dependencies.json",
         "Cargo.lock"
       ]
+    },
+    {
+      "id": "historical-feedback-receipt-cutover",
+      "work": [
+        "M0-084"
+      ],
+      "observed": "On clean c161317, pnpm project:history --base bea74a569b62823e5ce4907250e967bf4596af29 rejected the integrated cookie repair after five protected merges. Bases ada770d and dd58f49 surfaced the release-profile and CSV closures in turn. The review from 8bf926a also rejected an earlier verification finding. The last pre-rule protected main, 2b0d20932d7a51454b216678c4bb0e50df86be56, contains 158 addressed major or critical observations and their contemporaneous task evidence. The next protected merge, 8e4c903c52843d3ac5c0dc7b7d95210d287cac18, introduced observation-bound receipts. The new comparison had applied that requirement retroactively. A follow-up negative at 15ac1e5 removed the first M1-034 receipt while retaining its second valid receipt. The older comparison passed until the cutover also verified its original ordered task evidence.",
+      "earliest_check": "Run the history comparison from the original audit base as well as from the preceding protected merge when verification rules change. The synthetic Git integration cases in python-contracts-workers exercise exact old closures, independent later checkpoints, retained source migration, changed or missing observations, candidate-owned refs and shallow ancestry.",
+      "sources": [
+        "project/feedback.json#historical-feedback-receipt-cutover",
+        "archives/recovery/20261123T132416.954560Z-23b9430d/diagnostic.json",
+        "https://github.com/kacoyi/scopehub/commit/8e4c903c52843d3ac5c0dc7b7d95210d287cac18",
+        "project/evidence/M0-081-bd32880a5e2d73c0.json",
+        "project/evidence/M0-080-32325cd9494ba510.json",
+        "project/evidence/M1-034-ceabb05e45519d51.json",
+        "project/evidence/M1-035-3dbefe52a288f80b.json"
+      ]
     }
   ],
   "maintenance_observations": {
@@ -341,6 +358,17 @@
         "https://github.com/kacoyi/scopehub/pull/58",
         "tests/project/test_ci_artifacts.py",
         "tests/project/test_diagnostic_archive.py"
+      ]
+    },
+    {
+      "tasks": [
+        "M0-084"
+      ],
+      "observed": "The task run at 9b642c9 verified the complete Python suite and project preflight on the original bea74a5 review base. The history command passed from 8bf926a, bea74a5, ada770d, dd58f49, 2b0d209, 8e4c903 and c161317. Removing the first M1-034 receipt while leaving its second valid receipt now fails the long comparison. The isolated Git tests also accept additional evidence and checked diagnostic path relocation while rejecting stale or edited closures.",
+      "evidence": [
+        "project/evidence/M0-084-792ef34baf979930.json",
+        "tests/project/test_delivery.py",
+        "project/feedback.json#historical-feedback-receipt-cutover"
       ]
     }
   ]
