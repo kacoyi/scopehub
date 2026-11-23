@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-033",
   "tasks": [
     {
       "id": "M0-001",
@@ -15268,6 +15268,114 @@
           "change": ["Promote product and prototype work into V1 and bind product acceptance to the released workbench."],
           "data_plan": "Use synthetic records for the prospective journeys and a copy of an existing chart layout for compatibility.",
           "cleanup": "Remove later-only scheduling from live plans and keep the historical proposal and receipts intact."
+        }
+      }
+    },
+    {
+      "id": "M1-033",
+      "title": "Verify the localized workspace entry on Windows",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-032"
+      ],
+      "decision_refs": [
+        "0007",
+        "0025"
+      ],
+      "scope": [
+        "tests/ui/preview-startup.mjs",
+        "tests/localization/desktop.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "acceptance": [
+        "Compare cold and warm Windows evidence for the failed initial Simplified Chinese entry in main run 45101333252, including the limits of the original observations.",
+        "Reproduce the old first-button deadline with a bounded delayed entry. The localized workspace opens within the established readiness budget, and fatal entry, locale mismatch and startup timeout have distinguishable evidence.",
+        "Exercise actual Chinese and English controls, preference persistence and recovery on the protected Windows verification path without retries, product permission changes or broader deadlines."
+      ],
+      "checks": [
+        "desktop-localization",
+        "market-quality-states",
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-033-58e7746f1f68749e.json",
+          "sha256": "56faae5ca58075fd4a2fe80ea52816960c9fe7f4baf80c17b8af90b4c178d948"
+        }
+      ],
+      "next_action": "Verify the exact candidate on Windows. Open the independent pull request against main after PR 49 integrates, then verify the protected integration.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T024037.246404Z-9bf7f2cb",
+          "source_commit": "06cd9eef02dee9450e056772032020bb8f45e95c",
+          "report_sha256": "c9186bf37d02fa4e2db327552ec22dcf528cc80e478d165fe2ef214b876796b3"
+        }
+      ],
+      "plan": {
+        "outcome": "The Windows localization check starts from an observed mounted workspace and preserves specific failure evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/localization/desktop.spec.mjs",
+          "tests/ui/preview-startup.mjs",
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The original five-second localized-control assertion can expire during the asynchronous entry import even when the expected workspace will mount.",
+          "The original observation also allows an entry failure or locale mismatch until additional evidence distinguishes them."
+        ],
+        "risks": [
+          {
+            "failure": "A broad wait hides a failed resource or accepts a workspace in the wrong language.",
+            "checks": [
+              "desktop-localization",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Revert the harness change and retain the original diagnostic and reproduction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/localization/desktop.spec.mjs",
+            "tests/ui/preview-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Product features, permission changes, product startup timing changes, retries and check deadline increases."
+          ],
+          "open_questions": [
+            "Does the retained Windows evidence identify the state of the entry module or the selected locale at failure?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Actual localized accessible names, system and explicit choices, the existing startup and check budgets and English preview callers."
+          ],
+          "change": [
+            "Use the established startup readiness observer and add a bounded regression based on the observed failure mode."
+          ],
+          "data_plan": "Use synthetic preview data and retain unmodified diagnostic bytes in the development archive.",
+          "cleanup": "Remove the standalone initial button wait when the readiness observer covers that transition."
         }
       }
     }
