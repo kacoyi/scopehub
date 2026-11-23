@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-077",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15613,7 +15613,7 @@
       "id": "M0-077",
       "title": "Keep workflow, platform and observation details with their maintainers",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-074",
         "M0-076"
@@ -15641,9 +15641,14 @@
         "generated-contracts",
         "python-contracts-workers"
       ],
-      "next_action": "Relocate remaining details under ADR 0028, verify every effective field against the reviewed base, and exercise the actual consumers.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-077-64ac8cb263cdba1a.json",
+          "sha256": "8ed6269d2fd9a0535ac15721263c0c545748166294e0b265d1b2d8e0aedb0fee"
+        }
+      ],
       "plan": {
         "outcome": "An engineer can change a presentation flow, host profile or observation format at its owner while the top-level product agreement stays readable and older tasks can still navigate to the same rule.",
         "change_types": [
@@ -15716,7 +15721,7 @@
           "cleanup": "Remove the moved details from the root and validate each linked record through its ordinary reader."
         }
       },
-      "closure_reason": null
+      "closure_reason": "On clean source 84eff57 the task checks passed. A whole-record comparison and individual reads verified all 1,325 prior scalar paths, including every operation projection, source fixture and qualification binding. The patch version advanced and the index gained an explicit workbench boundary. The navigation regressions verified bounded depth and shared expansion, single document reads and cycle diagnostics. Renderer and bulk-reader acceptance remain pending."
     }
   ]
 }
