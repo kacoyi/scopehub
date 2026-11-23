@@ -201,6 +201,17 @@ def observed_actions(record, required, *, complete, redacted=False):
                 raise ProjectError(f'Expected the observed outcome of {name}.')
 
 
+def field_host(record):
+    if record['kind'] == 'physical-windows-workspace':
+        if record.get('surface') != 'physical-dual-boot-native-webview2':
+            raise ProjectError('Expected the physical native WebView2 observation.')
+        windows_client(record.get('host'))
+    else:
+        if record.get('surface') != UBUNTU_SURFACE:
+            raise ProjectError('Expected the native Ubuntu Tauri/WebKitGTK workspace.')
+        native_ubuntu(record.get('host'))
+
+
 def hosted_field_record(obs):
     if isinstance(obs, dict) and obs.get('screenshot_scope') != 'synthetic':
         raise LocalFieldObservation('Hosted field observations require synthetic screenshots.')
@@ -212,6 +223,7 @@ def hosted_field_record(obs):
     observed_actions(obs, FIELD_ACTIONS[obs['kind']], complete=True, redacted=True)
     if 'host' in obs:
         redacted_fields(obs['host'], WINDOWS_HOST_FIELDS if windows else UBUNTU_HOST_FIELDS)
+    field_host(obs)
     if 'external_sessions' in obs:
         redacted_fields(obs['external_sessions'], {'text', 'voice', 'cli', 'desktop'})
     images = obs.get('screenshots')
@@ -244,6 +256,7 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
     nonempty(obs, 'operator')
     observed_time(obs)
     if not hosted:
+        field_host(obs)
         observed_actions(obs, FIELD_ACTIONS[key], complete=True)
     if not isinstance(images, list) or not images:
         raise ProjectError('Field observation requires retained screenshots')
@@ -255,7 +268,6 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
             if stream.read(8) != b'\x89PNG\r\n\x1a\n':
                 raise ProjectError('Expected a PNG screenshot')
     if key == 'physical-windows-workspace':
-        windows_client(obs.get('host'))
         reviewed = nonempty(obs, 'ubuntu_reviewed_commit')
         ubuntu = load_project(root)['tasks'].get('M1-012')
         if not ubuntu or ubuntu['status'] != 'done':
@@ -270,12 +282,7 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
             for receipt in receipts
         ):
             raise ProjectError('No matching Ubuntu observation for this execution snapshot')
-        if obs.get('surface') != 'physical-dual-boot-native-webview2':
-            raise ProjectError('Expected the physical native WebView2 observation')
     else:
-        if obs.get('surface') != UBUNTU_SURFACE:
-            raise ProjectError('Expected the native Ubuntu Tauri/WebKitGTK workspace.')
-        native_ubuntu(obs.get('host'))
         statuses = obs.get('external_sessions', {})
         if not isinstance(statuses, dict) or any(
             statuses.get(name) not in {'observed-separately', 'pending'}
@@ -436,7 +443,13 @@ def validate_notice(contents):
         raise ProjectError('Expected a text license or notice.')
 
 
-def hosted_candidate_manifest(manifest, source):
+def owner_workbench_reference(manifest):
+    if 'owner_workbench' not in manifest:
+        raise ProjectError('Candidate lacks the owner workbench observation for this installer.')
+    return retained_reference(manifest['owner_workbench'])
+
+
+def hosted_candidate_manifest(manifest, source, *, require_owner=False):
     redacted_fields(manifest, SOURCE_FIELDS | {'installer', 'windows_observations', 'performance', 'owner_workbench',
                                                'third_party_licenses', 'webview2'})
     bound_source(manifest, source)
@@ -450,8 +463,8 @@ def hosted_candidate_manifest(manifest, source):
         raise ProjectError('Expected at most two Windows client observations.')
     refs = [('installer', installer)]
     refs.extend(('windows', retained_reference(ref)) for ref in observations)
-    if 'owner_workbench' in manifest:
-        refs.append(('owner_workbench', retained_reference(manifest['owner_workbench'])))
+    if require_owner or 'owner_workbench' in manifest:
+        refs.append(('owner_workbench', owner_workbench_reference(manifest)))
     if 'performance' in manifest:
         refs.append(('performance', retained_reference(manifest['performance'])))
     refs.extend(('notice', ref) for ref in release_notices(manifest))
@@ -536,10 +549,11 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
     manifest = evidence_json(manifest_path.read_bytes())
     if not isinstance(manifest, dict):
         raise ProjectError('Missing candidate build manifest')
+    bound_source(manifest, source)
+    owner_ref = owner_workbench_reference(manifest)
     if hosted:
         for _, ref in hosted_candidate_manifest(manifest, source):
             hosted_artifact_path(run_dir, 'candidate/' + ref['path'])
-    bound_source(manifest, source)
     installer = verified_file(directory, manifest.get('installer'))
     if installer.suffix.lower() != '.exe':
         raise ProjectError('Expected the tested NSIS installer')
@@ -567,9 +581,7 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
         observed_time(obs)
     if families != {'Windows 10', 'Windows 11'}:
         raise ProjectError('Missing a supported Windows client family')
-    if 'owner_workbench' not in manifest:
-        raise ProjectError('Candidate lacks the owner workbench observation for this installer.')
-    owner_path = verified_file(directory, manifest['owner_workbench'])
+    owner_path = verified_file(directory, owner_ref)
     candidate_workbench(evidence_json(owner_path.read_bytes()), source, installer_hash, complete=True, hosted=hosted)
     metrics_path = verified_file(directory, manifest.get('performance'))
     metrics = evidence_json(metrics_path.read_bytes()) if hosted else read_json(metrics_path)

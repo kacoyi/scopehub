@@ -690,6 +690,8 @@ class PublicationTests(ProjectFixture):
                     release_artifacts(candidate.parent, report['source'], policy, hosted=hosted)
             with self.subTest(name=name, path='export'), self.assertRaisesRegex(ProjectError, reason):
                 stage_artifacts(self.root, self.destination.with_name(name), self.env)
+            if name == 'missing-reference':
+                self.assertFalse((self.destination.with_name(name) / 'runs/fixture/candidate').exists())
 
     def test_failed_owner_review_retains_redacted_results_and_keeps_local_details_private(self):
         report, candidate, manifest = self.failed_candidate()
