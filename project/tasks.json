@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-076",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15507,7 +15507,7 @@
       "id": "M0-076",
       "title": "Preserve the published acceptance report after assigning catalog IDs",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-074"
       ],
@@ -15529,10 +15529,23 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Run the production progress projection through the strict hosted artifact stager, retain the failing case, then correct the projection and verify staging.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-076-5414a57877a42494.json",
+          "sha256": "22c014390fb3e9502f3b9c7e70bc8384d6a05d84846b9174e0a1b408142baa22"
+        },
+        {
+          "path": "project/evidence/M0-076-93d0fd542d7aa9ec.json",
+          "sha256": "680093ca473d266fc922b1e92665a8b36e07f922205fcdaeef67a2d9673e610f"
+        },
+        {
+          "path": "project/evidence/M0-076-fbca762e9536a795.json",
+          "sha256": "b2e7f1077223dd790e37ff86bcbd049ec958e730ff773f927b28c039cc292430"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The stager rejected the old projection and published the repaired one with the original report schema in local regression and in both native jobs of workflow 45112936541 at 0f9e115. Both downloaded artifacts contained the 25 acceptance rows and were independently imported with their log digests.",
       "plan": {
         "outcome": "A new stable catalog identifier can be used for release gating while ordinary hosted jobs still stage the established public report.",
         "change_types": [
