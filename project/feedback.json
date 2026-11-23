@@ -3452,7 +3452,7 @@
       "id": "release-selection-omits-contract-checks",
       "source": "Repository-wide review and direct comparison of the release selector with readiness bindings at bea74a5.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The 43-check release profile and its candidate verifier omit nine task-cadence obligations for workspace and decision records, indicators, local import, model connections and state migrations. A release run cannot supply this evidence to readiness.",
       "task_ids": [
         "M0-080"
@@ -3460,7 +3460,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Both the harness and candidate verifier independently excluded every task-cadence check before considering release obligations.",
+        "correction": "A shared selection combines the existing release baseline with checks bound by milestones, acceptance, scenarios and explicit release policy. The retained-candidate verifier requires every selected check and its original log.",
+        "prevention": "The production catalog regression covers the nine omissions. Synthetic release runs add independent obligations at all four bindings and exercise platform and implementation limits. Hosted candidate tests verify a complete report and reject a missing selection, missing result or changed log."
+      },
       "deferral_reason": null
     }
   ]

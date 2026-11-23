@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-080",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15842,7 +15842,7 @@
       "id": "M0-080",
       "title": "Run and verify all checks required by the release contract",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-078"
       ],
@@ -15946,10 +15946,15 @@
           "cleanup": "Remove both copies of the cadence-only release selection."
         }
       },
-      "next_action": "Exercise each source of release obligations and verify candidate rejection when a required check or its evidence is missing.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-080-32325cd9494ba510.json",
+          "sha256": "f8ff14d97a255c1bff334ff3f4be671b81ac51e7bd9a63eff7aad25aa4531327"
+        }
+      ],
+      "closure_reason": "The task harness on b0d862c passed environment, project-state and python-contracts-workers. The suite ran 584 tests with three native Windows cases skipped on Linux. The release profile selected all 49 contract-bound checks plus three baseline checks. Candidate regressions covered omitted selection, absent results and changed log bytes. The first workbench demonstration resumes at M2-003."
     }
   ]
 }
