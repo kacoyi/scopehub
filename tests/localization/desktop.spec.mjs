@@ -1,4 +1,6 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
+import { openDesktopPreview } from '../ui/preview-startup.mjs';
 import { openDefaultSample } from '../ui/sample-startup.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
@@ -15,10 +17,10 @@ async function chooseLanguage(page, current, target) {
 test.describe('language preference and recovery', () => {
   test.use({ locale: 'zh-CN' });
 
-  test('follows the system, persists an override across windows, and restores system selection', async ({ page, context }) => {
-    await page.goto('/');
-    await expect(control(page, '打开离线示例')).toBeVisible();
+  test('follows the system, persists an override across windows, and restores system selection', async ({ page, context, baseURL }) => {
+    await openDesktopPreview(page, baseURL);
     await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hans');
+    await expect(control(page, '打开离线示例')).toBeVisible();
     await control(page, '语言设置').click();
     const settings = page.getByRole('dialog', { name: '语言设置' });
     const language = settings.getByRole('combobox', { name: '界面语言' });
@@ -42,9 +44,22 @@ test.describe('language preference and recovery', () => {
     await expect(control(reopened, '语言设置')).toBeVisible();
   });
 
-  test('keeps a localized reload action when the application entry cannot load', async ({ page }) => {
+  test('opens in the system language after a delayed application entry', async ({ page, baseURL }) => {
+    await page.route('**/src/main.tsx', async route => {
+      // Exceed the old 5 s control assertion within the existing 10 s startup budget.
+      await delay(6_200);
+      await route.continue();
+    }, { times: 1 });
+    await openDesktopPreview(page, baseURL);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hans');
+    await expect(control(page, '打开离线示例')).toBeVisible();
+  });
+
+  test('keeps a localized reload action when the application entry cannot load', async ({ page, baseURL }) => {
     await page.route('**/src/main.tsx', route => route.abort('connectionfailed'));
-    await page.goto('/');
+    await expect(openDesktopPreview(page, baseURL)).rejects.toThrow(
+      /\/src\/main\.tsx failed \(net::ERR_CONNECTION_FAILED\)/,
+    );
     const startup = page.getByRole('main', { name: '工作台启动' });
     await expect(startup.getByText('如果工作台一直停在这里，请重新加载此窗口。')).toBeVisible();
     const reload = startup.getByRole('button', { name: '重新加载窗口' });
