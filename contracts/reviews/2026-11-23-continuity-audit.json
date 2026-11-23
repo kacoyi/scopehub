@@ -94,7 +94,8 @@
         "contracts/schemas/protocol.schema.json#/$defs/CsvMappingV1",
         "contracts/schemas/protocol.schema.json#/$defs/PreviewSeries"
       ],
-      "earliest_check": "Require a classification when a declaration is added to the schema. Normalize each source row and report visible conflicts at preview. Repeat complete admission before publishing a revision or committing a folder refresh."
+      "earliest_check": "Require a classification when a declaration is added to the schema. Normalize each source row and report visible conflicts at preview. Repeat complete admission before publishing a revision or committing a folder refresh.",
+      "compatibility": "Tests classify the 20 mapping properties as 15 source semantics and five mapping configuration fields. Independent comparison against the protected source also recovered previously supported dotted or punctuated headers for quantity_unit, price_adjustment and venue and their existing exclusion from raw field bindings."
     },
     {
       "id": "csv-knowledge-cutoff",
@@ -147,7 +148,8 @@
         "tests/project/test_delivery.py",
         "project/checks.json"
       ],
-      "earliest_check": "At intake of new native observations, reject a browser-only host, a missing chart-free operation or source/window evidence that does not match."
+      "earliest_check": "At intake of new native observations, reject a browser-only host, a missing chart-free operation or source/window evidence that does not match.",
+      "hosted_intake": "A synthetic staging test added an extra action with a local-only note to a valid native observation. Staging copied the extra action into the outgoing observation file. Enforce the versioned hosted action list before copying or printing any unexpected field, while preserving local notes and independently readable historical evidence."
     },
     {
       "id": "packaged-owner-evidence",
