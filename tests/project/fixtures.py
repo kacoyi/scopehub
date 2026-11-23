@@ -68,14 +68,14 @@ def records():
     ]
     result = {
         'engineering-contract-v1.json': {'milestones': [{'id': key} for key in milestone_checks],
-                                         'acceptance': {'required': ['Synthetic installed outcome', 'Synthetic model outcome'],
-                                                        'performance': {'initial_bars_to_chart_p95_ms': 1000, 'chart_update_p95_ms': 200}}},
+                                         'acceptance': {'required': ['installed-outcome', 'model-outcome']}},
         'project/tasks.json': {'schema_version': '1.0', 'focus_task_id': 'M0-001', 'tasks': tasks},
         'project/checks.json': {'schema_version': '1.0', 'checks': checks,
                                 'required_change_checks': implemented, 'gate_changes': [],
+                                'desktop_performance': {'initial_bars_to_chart_p95_ms': 1000, 'chart_update_p95_ms': 200},
                                 'milestones': [{'id': key, 'checks': values} for key, values in milestone_checks.items()],
-                                'acceptance': [{'requirement': 'Synthetic installed outcome', 'checks': ['windows-installation']},
-                                               {'requirement': 'Synthetic model outcome', 'checks': ['ai-workflow']}],
+                                'acceptance': [{'id': 'installed-outcome', 'requirement': 'Synthetic installed outcome', 'checks': ['windows-installation']},
+                                               {'id': 'model-outcome', 'requirement': 'Synthetic model outcome', 'checks': ['ai-workflow']}],
                                 'profiles': {'fast': ['environment', 'project-state']}},
         'project/delivery.json': delivery,
         'project/feedback.json': {'schema_version': '1.0', 'items': []},

@@ -176,10 +176,10 @@ def main():
     args = parser.parse_args()
     schema = json.loads(SOURCE.read_text())
     outputs = {GENERATED / name: contents for name, contents in generate(schema).items()}
-    spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text())
-    policy = {'protocol_version': spec['protocol']['version'], **spec['runtime']['defaults']}
-    outputs[GENERATED / 'runtime.json'] = json.dumps(policy, indent=2) + '\n'
     manifest = json.loads((ROOT / 'contracts/contract.json').read_text())
+    worker_contract = json.loads((ROOT / 'contracts/worker-runtime-v1.json').read_text())
+    policy = {'protocol_version': manifest['protocol_version'], **worker_contract['runtime']['defaults']}
+    outputs[GENERATED / 'runtime.json'] = json.dumps(policy, indent=2) + '\n'
     for operation in manifest['operations']:
         default_version = operation.get('wire_since', '1.0')
         # Existing paths keep their original payload contract. Explicitly versioned

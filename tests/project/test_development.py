@@ -167,6 +167,20 @@ class DevelopmentTests(ProjectFixture):
         with self.assertRaisesRegex(ValueError, 'repository-relative'):
             resolve_source(self.root, {'path': '../outside.json', 'pointer': ''})
 
+    def test_engineering_index_resolves_sections_and_historical_nested_pointers(self):
+        reference = {'path': 'engineering-contract-v1.json', 'pointer': '/runtime'}
+        link = {'path': 'worker.json', 'pointer': '/settings'}
+        value = {'scaled/value': [7]}
+        self.save(reference['path'], {'runtime': {'$source': link}})
+        self.save('worker.json', {'settings': value})
+        self.assertEqual(resolve_source(self.root, reference), value)
+        nested = dict(reference, pointer='/runtime/scaled~1value/0')
+        self.assertEqual(resolve_source(self.root, nested), 7)
+        for path in ['../outside.json', './engineering-contract-v1.json']:
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.save(reference['path'], {'runtime': {'$source': dict(link, path=path)}})
+                resolve_source(self.root, nested)
+
     def test_task_context_exposes_the_role_families_and_shared_quality_floor(self):
         self.record['herdr'] = {
             'host': 'Herdr', 'profiles': {'implement': {'family': 'sol'}, 'supervise': {'family': 'astra'}},

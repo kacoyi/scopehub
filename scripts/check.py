@@ -309,7 +309,7 @@ def main():
                     elif check['id'] in FIELD_ACTIONS:
                         result['field_observation'] = field_observation(ROOT, check['id'], hosted=ci is not None)
                     elif check['id'] == 'release-artifacts':
-                        candidate_artifacts = release_artifacts(run_dir, source, project['spec']['acceptance']['performance'],
+                        candidate_artifacts = release_artifacts(run_dir, source, project['catalog']['desktop_performance'],
                                                               hosted=ci is not None)
                 except (OSError, KeyError, ValueError, TypeError) as error:
                     result.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))

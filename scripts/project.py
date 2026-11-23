@@ -309,8 +309,9 @@ def load_project(root=ROOT):
     ]:
         if any(checks[key]['status'] == 'retired' for key in check_ids if key in checks):
             raise ProjectError(f'{label} depends on a retired check')
-    requirements = [item['requirement'] for item in catalog['acceptance']]
-    if len(requirements) != len(set(requirements)) or set(requirements) != set(spec['acceptance']['required']):
+    requirements = [item['id'] for item in catalog['acceptance']]
+    required = spec['acceptance']['required']
+    if len(set(requirements)) != len(requirements) or sorted(requirements) != sorted(required):
         raise ProjectError('Product acceptance bindings differ from the engineering contract')
     for binding in catalog['acceptance']:
         require_refs(binding['checks'], checks, 'Product acceptance')
@@ -844,7 +845,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
     if not isinstance(report.get('candidate_artifacts'), dict):
         raise ProjectError('Release report lacks bound installer and manifest digests')
     return release_artifacts(
-        run_dir, source, project['spec']['acceptance']['performance'], expected=report['candidate_artifacts'],
+        run_dir, source, project['catalog']['desktop_performance'], expected=report['candidate_artifacts'],
         hosted=artifact_root is not None,
     )
 

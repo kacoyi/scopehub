@@ -18,6 +18,28 @@ def repository_path(root, relative):
     return result
 
 
+def engineering_link(root, value, suffix=''):
+    link = value['$source']
+    if (set(value) != {'$source'} or not isinstance(link, dict) or set(link) != {'path', 'pointer'}
+            or not all(isinstance(item, str) for item in link.values())
+            or repository_path(root, link['path']).resolve() == (root / 'engineering-contract-v1.json').resolve()):
+        raise ValueError(f'Invalid engineering source link: {value}')
+    return resolve_source(root, {'path': link['path'], 'pointer': link['pointer'] + suffix})
+
+
+def validate_engineering_links(root, spec):
+    remaining = [spec]
+    while remaining:
+        value = remaining.pop()
+        if isinstance(value, dict):
+            if '$source' in value:
+                engineering_link(root, value)
+            else:
+                remaining.extend(value.values())
+        elif isinstance(value, list):
+            remaining.extend(value)
+
+
 def resolve_source(root, reference):
     """Resolve a JSON Pointer without evaluating instructions from its contents."""
     path = repository_path(root, reference['path'])
@@ -25,7 +47,15 @@ def resolve_source(root, reference):
     pointer = reference['pointer']
     if pointer and not pointer.startswith('/'):
         raise ValueError(f'Invalid JSON Pointer: {pointer}')
-    for token in pointer.split('/')[1:]:
+    tokens = pointer.split('/')[1:]
+    # The engineering index can delegate a whole section to one local record.
+    # Keep its old section and nested pointers usable by historical task plans.
+    for index in range(len(tokens) + 1):
+        if reference['path'] == 'engineering-contract-v1.json' and isinstance(value, dict) and '$source' in value:
+            return engineering_link(root, value, ''.join('/' + part for part in tokens[index:]))
+        if index == len(tokens):
+            return value
+        token = tokens[index]
         # Reject malformed escapes rather than returning the wrong requirement.
         if '~' in token.replace('~0', '').replace('~1', ''):
             raise ValueError(f'Invalid JSON Pointer escape: {pointer}')
@@ -39,7 +69,6 @@ def resolve_source(root, reference):
                 value = value[token]
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ValueError(f'Missing source pointer: {reference}') from error
-    return value
 
 
 def validate_record(root, project, record):

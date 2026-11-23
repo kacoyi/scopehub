@@ -215,7 +215,7 @@ class DeliveryTests(ProjectFixture):
                  third_party_licenses=[notice]),
         )
         report['candidate_artifacts'] = release_artifacts(
-            run_dir, report['source'], load_project(self.root)['spec']['acceptance']['performance']
+            run_dir, report['source'], load_project(self.root)['catalog']['desktop_performance']
         )
         report_path.write_bytes(json_bytes(report))
         return report_path, report

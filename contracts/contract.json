@@ -15,7 +15,8 @@
       "input": "InstrumentSearchInput",
       "output": "InstrumentSearchOutput",
       "implementation": "implemented",
-      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription."
+      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription.",
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "market.getBars",
@@ -29,7 +30,8 @@
       "input": "MarketGetBarsInput",
       "output": "MarketGetBarsOutput",
       "implementation": "implemented",
-      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription."
+      "implementation_scope": "Opt-in synthetic historical reads through the shared Rust registry; no external source or live subscription.",
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "workspace.openInstrument",
@@ -48,7 +50,8 @@
           "input": "WorkspaceOpenInstrumentCommand11",
           "output": "WorkspaceOpenInstrumentReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.setTimeframe",
@@ -68,7 +71,8 @@
           "input": "ChartSetTimeframeCommand11",
           "output": "ChartSetTimeframeReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.setStyle",
@@ -87,7 +91,8 @@
           "input": "ChartSetStyleCommand11",
           "output": "ChartSetStyleReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.addAnnotation",
@@ -106,7 +111,8 @@
           "input": "ChartAddAnnotationCommand11",
           "output": "ChartAddAnnotationReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "chart.removeLayer",
@@ -125,7 +131,8 @@
           "input": "ChartRemoveLayerCommand11",
           "output": "ChartRemoveLayerReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.createDraft",
@@ -145,7 +152,8 @@
           "input": "IndicatorCreateDraftCommand11",
           "output": "IndicatorCreateDraftReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.runPreview",
@@ -165,7 +173,8 @@
           "input": "IndicatorRunPreviewCommand11",
           "output": "IndicatorRunPreviewReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.acceptVersion",
@@ -185,7 +194,8 @@
           "input": "IndicatorAcceptVersionCommand11",
           "output": "IndicatorAcceptVersionReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "indicator.remove",
@@ -205,7 +215,8 @@
           "input": "IndicatorRemoveCommand11",
           "output": "IndicatorRemoveReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "workspace.previewLayout",
@@ -226,7 +237,8 @@
           "input": "WorkspacePreviewLayoutCommand11",
           "output": "WorkspacePreviewLayoutReply11"
         }
-      }
+      },
+      "schema_requirement": "Validate the built-in layout version and interactions at the current workspace and selection revisions. Bind a preview to its exact edit and authenticated scope, with a new receipt for each committed change or inverse."
     },
     {
       "name": "workspace.applyLayout",
@@ -247,7 +259,8 @@
           "input": "WorkspaceApplyLayoutCommand11",
           "output": "WorkspaceApplyLayoutReply11"
         }
-      }
+      },
+      "schema_requirement": "Validate the built-in layout version and interactions at the current workspace and selection revisions. Bind a preview to its exact edit and authenticated scope, with a new receipt for each committed change or inverse."
     },
     {
       "name": "workspace.undo",
@@ -267,7 +280,8 @@
           "input": "WorkspaceUndoCommand11",
           "output": "WorkspaceUndoReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "task.cancel",
@@ -287,7 +301,8 @@
           "input": "TaskCancelRequest11",
           "output": "CancelTaskReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "workspace.getContext",
@@ -306,7 +321,8 @@
           "input": "SharedContextRequest11",
           "output": "SharedContextReply11"
         }
-      }
+      },
+      "schema_requirement": "Generate separate input/output JSON Schemas. Application IDs are opaque strings; workspace revision is a non-negative safe integer; dataset revision is an opaque string."
     },
     {
       "name": "market.readHistoryPage",
@@ -327,7 +343,8 @@
           "input": "MarketHistoryPageRequest",
           "output": "HistoryPageReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the versioned MarketHistoryPageInput and MarketHistoryPageOutput schemas. Legacy market.getBars retains its read-only 1.0 shape."
     },
     {
       "name": "market.subscribe",
@@ -347,7 +364,8 @@
           "input": "MarketSubscriptionRequest",
           "output": "MarketSubscriptionReply11"
         }
-      }
+      },
+      "schema_requirement": "Internal protocol 1.1 subscription for an explicitly selected series and a validated frozen boundary."
     },
     {
       "name": "market.previewLocalImport",
@@ -367,7 +385,8 @@
           "input": "LocalImportPreviewRequest",
           "output": "LocalImportPreviewReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. The trusted local transport identifies the human caller outside the payload. Resolve opaque folder and file identifiers within the current authorized native selection. Bind every preview to the complete file SHA-256 and keep source locators, raw fields and mapping diagnostics in the authorized local view. Worker traffic uses bounded UTF-8 NDJSON."
     },
     {
       "name": "market.saveLocalImportMapping",
@@ -387,7 +406,8 @@
           "input": "SaveLocalImportMappingRequest",
           "output": "SaveLocalImportMappingReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. Available only when explicitly requested by a local human after preview. The Rust registry binds caller and profile to the live native folder selection, requires the reviewed complete-file SHA-256 and derives the source header association. The profile-bound Rust SQLite writer commits one versioned mapping. The payload carries no path, grant or profile."
     },
     {
       "name": "market.loadLocalImportMapping",
@@ -407,7 +427,8 @@
           "input": "LoadLocalImportMappingRequest",
           "output": "LoadLocalImportMappingReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. Available only for a local human and authorized file in the current native selection. The Rust registry resolves the profile and source association. A matching header returns the reviewed mapping and current complete-file SHA-256. A changed header requires review and returns the current digest. An unsaved association returns null for both fields."
     },
     {
       "name": "market.publishLocalImport",
@@ -427,7 +448,8 @@
           "input": "PublishLocalImportRequest",
           "output": "PublishLocalImportReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. A local human explicitly publishes one complete reviewed native CSV series. The Rust registry binds the current selected file, complete source checksum and saved mapping; the authenticated profile writer retains the original bytes and immutable source row provenance."
     },
     {
       "name": "market.listLocalImportRevisions",
@@ -447,7 +469,8 @@
           "input": "ListLocalImportRevisionsRequest",
           "output": "ListLocalImportRevisionsReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. Return a bounded summary page of displayable frozen CSV revisions for the active local human profile. Ascending revision IDs provide a stable exclusive cursor. A caller can opt in to the frozen venue, the first and final bars' trading days, and the final bar's close. The default reply retains its original fields. Listing needs no source directory, returns no source grant or raw content and does not replace read-time authorization."
     },
     {
       "name": "market.readLocalImportRevision",
@@ -467,7 +490,8 @@
           "input": "ReadLocalImportRevisionRequest",
           "output": "ReadLocalImportRevisionReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. Return immutable bars and source row provenance by revision ID in the entitled local human profile. This read requires no directory access and neither refreshes the revision nor grants other data access."
     },
     {
       "name": "market.readLocalImportSourceRow",
@@ -487,7 +511,8 @@
           "input": "ReadLocalImportSourceRowRequest",
           "output": "ReadLocalImportSourceRowReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal."
     },
     {
       "name": "market.previewLocalFolderRefresh",
@@ -507,7 +532,8 @@
           "input": "PreviewLocalFolderRefreshRequest",
           "output": "PreviewLocalFolderRefreshReply11"
         }
-      }
+      },
+      "schema_requirement": "A trusted local human previews the current authorized directory against an entitled frozen single-file or folder revision from that directory. Reuse its saved mapping for compatible complete native bars. Retain all attributable locators for equal bars and surface competing values, replaced files and withdrawal candidates for review. Staging has no publication effect."
     },
     {
       "name": "market.prepareLocalFolderPublication",
@@ -527,7 +553,8 @@
           "input": "PrepareLocalFolderPublicationRequest",
           "output": "PrepareLocalFolderPublicationReply11"
         }
-      }
+      },
+      "schema_requirement": "Build the canonical candidate for one live reviewed preview after the local human chooses every competing bar and acknowledges every withdrawn path and bar. Return the candidate fingerprint and counts."
     },
     {
       "name": "market.publishLocalFolderRefresh",
@@ -547,7 +574,8 @@
           "input": "PublishLocalFolderRefreshRequest",
           "output": "PublishLocalFolderRefreshReply11"
         }
-      }
+      },
+      "schema_requirement": "An explicit local human action publishes the prepared candidate in one guarded profile transaction. Revalidate current complete files and the selected root. Within the same profile, workspace and root association, an entitled replay matches the idempotency key and canonical candidate digest and returns the committed revision without rereading source content. The renewed local folder grant and the transport request or preview identifiers do not define the durable receipt."
     },
     {
       "name": "market.listLocalFolderRevisions",
@@ -567,7 +595,8 @@
           "input": "ListLocalFolderRevisionsRequest",
           "output": "ListLocalFolderRevisionsReply11"
         }
-      }
+      },
+      "schema_requirement": "List entitled immutable folder revisions in stable revision ID order within the local human profile. Listing needs no directory grant."
     },
     {
       "name": "market.readLocalFolderRevision",
@@ -587,7 +616,8 @@
           "input": "ReadLocalFolderRevisionRequest",
           "output": "ReadLocalFolderRevisionReply11"
         }
-      }
+      },
+      "schema_requirement": "Open an entitled frozen folder revision, chosen bars and source-qualified row locators without reopening the directory. A summary-only request omits file and bar details."
     },
     {
       "name": "market.readLocalFolderSourceRow",
@@ -607,7 +637,8 @@
           "input": "ReadLocalFolderSourceRowRequest",
           "output": "ReadLocalFolderSourceRowReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal."
     },
     {
       "name": "market.revokeLocalFolderRevision",
@@ -627,7 +658,8 @@
           "input": "RevokeLocalFolderRevisionRequest",
           "output": "RevokeLocalFolderRevisionReply11"
         }
-      }
+      },
+      "schema_requirement": "An explicit local human action removes display rights for a folder revision. Its stored data and separately entitled lineage remain in the profile."
     },
     {
       "name": "market.revokeLocalImportRevision",
@@ -647,7 +679,8 @@
           "input": "RevokeLocalImportRevisionRequest",
           "output": "RevokeLocalImportRevisionReply11"
         }
-      }
+      },
+      "schema_requirement": "Protocol 1.1 only. An explicit local human action withdraws the active profile's right to display this immutable revision. Repeat requests return the same revision ID. The original and provenance remain in the profile."
     },
     {
       "name": "workspace.readChartProjection",
@@ -668,7 +701,8 @@
           "input": "ReadProjectedChart11",
           "output": "ProjectedChartReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
     },
     {
       "name": "workspace.selectEvidence",
@@ -689,7 +723,8 @@
           "input": "SharedSelectionRequest11",
           "output": "SelectEvidenceReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the registered 1.1 schema and session-bound permissions."
     },
     {
       "name": "decisionNote.save",
@@ -710,7 +745,8 @@
           "input": "DecisionNoteSaveCommand11",
           "output": "DecisionNoteSaveReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
     },
     {
       "name": "decisionNote.read",
@@ -731,7 +767,8 @@
           "input": "DecisionNoteReadCommand11",
           "output": "DecisionNoteReadReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
     },
     {
       "name": "decisionNote.appendOutcome",
@@ -752,7 +789,8 @@
           "input": "DecisionNoteAppendOutcomeCommand11",
           "output": "DecisionNoteAppendOutcomeReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
     },
     {
       "name": "decisionNote.delete",
@@ -773,7 +811,8 @@
           "input": "DecisionNoteDeleteCommand11",
           "output": "DecisionNoteDeleteReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
     },
     {
       "name": "decisionNote.exportBackup",
@@ -794,7 +833,8 @@
           "input": "DecisionNoteExportBackupCommand11",
           "output": "DecisionNoteExportBackupReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
     },
     {
       "name": "decisionNote.previewRestore",
@@ -815,7 +855,8 @@
           "input": "DecisionNotePreviewRestoreCommand11",
           "output": "DecisionNotePreviewRestoreReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
     },
     {
       "name": "decisionNote.restoreBackup",
@@ -836,7 +877,8 @@
           "input": "DecisionNoteRestoreBackupCommand11",
           "output": "DecisionNoteRestoreBackupReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. This operation is unavailable to workers and external clients."
     },
     {
       "name": "privateRecord.read",
@@ -857,7 +899,8 @@
           "input": "PrivateRecordReadCommand11",
           "output": "PrivateRecordReadReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
     },
     {
       "name": "privateRecord.change",
@@ -878,7 +921,8 @@
           "input": "PrivateRecordChangeCommand11",
           "output": "PrivateRecordChangeReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
     },
     {
       "name": "privateRecord.exportBackup",
@@ -899,7 +943,8 @@
           "input": "PrivateRecordExportCommand11",
           "output": "PrivateRecordExportReply11"
         }
-      }
+      },
+      "schema_requirement": "Use the bound local human 1.1 envelope. Saving, correcting, deleting and restoring require a revision-bound approval. The private workspace host supplies identity and current access."
     },
     {
       "name": "ai.textConnection",
@@ -920,7 +965,8 @@
           "input": "AiTextConnectionCommand11",
           "output": "AiTextConnectionReply11"
         }
-      }
+      },
+      "schema_requirement": "The local profile human approves a reviewed destination, model, conversation disclosure and charge basis once. Ordinary text turns use the live session grant. Model replies carry text only."
     }
   ],
   "implemented_wire_behaviors": [

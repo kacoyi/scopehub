@@ -11,8 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def reference_case():
-    spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text(encoding='utf-8'))
-    return spec['ai']['qualified_session_acceptance']['reference_case']
+    return json.loads((ROOT / 'tests/fixtures/financial-session-v2.json').read_text(encoding='utf-8'))
 
 
 def observed_case(deployment='cloud'):

@@ -573,7 +573,7 @@ class PublicationTests(ProjectFixture):
                         third_party_licenses=notices, webview2='downloadBootstrapper')
         save('build-manifest.json', json_bytes(manifest))
         self.add_result(report, 'release-artifacts')
-        policy = load_project(self.root)['spec']['acceptance']['performance']
+        policy = load_project(self.root)['catalog']['desktop_performance']
         report['candidate_artifacts'] = release_artifacts(candidate.parent, report['source'], policy)
         return candidate, manifest
 
@@ -582,7 +582,7 @@ class PublicationTests(ProjectFixture):
         report = self.hosted_report(system='Windows', event='workflow_dispatch')
         candidate, manifest = self.make_candidate(report)
         self.assertTrue((candidate / 'THIRD_PARTY_NOTICES').is_file())
-        policy = load_project(self.root)['spec']['acceptance']['performance']
+        policy = load_project(self.root)['catalog']['desktop_performance']
         for declaration in ({'third_party_licenses': []}, {}):
             without_notices = {key: value for key, value in manifest.items() if key != 'third_party_licenses'}
             (candidate / 'build-manifest.json').write_bytes(json_bytes({**without_notices, **declaration}))
@@ -678,7 +678,7 @@ class PublicationTests(ProjectFixture):
         metrics = read_json(candidate / ref['path'])
         windows = manifest['windows_observations'][0]
         install = read_json(candidate / windows['path'])
-        policy = load_project(self.root)['spec']['acceptance']['performance']
+        policy = load_project(self.root)['catalog']['desktop_performance']
 
         cases = [
             ('slow', [500] * 72000, 'passed', 'no passing bound performance'),

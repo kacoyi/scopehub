@@ -1,0 +1,43 @@
+{
+  "owner": "Rust core",
+  "tables": [
+    "schema_migrations",
+    "workspaces",
+    "workspace_layers",
+    "instrument_cache",
+    "dataset_descriptors",
+    "bar_cache",
+    "indicator_drafts",
+    "indicator_versions",
+    "tasks",
+    "operation_log",
+    "idempotency_records",
+    "settings"
+  ],
+  "sqlite": "WAL; foreign keys enabled; transactional writes; versioned and tested migrations",
+  "local_import_publication": "Schema v5 stores immutable single-file revisions and originally selected file bytes once per SHA-256 in the active profile. Each revision references a reviewed mapping and the ordered source locators contributing to each native bar. A fresh authorized review with the same full mapping and ordered header reuses the current saved revision. During the trusted desktop session, an exact committed v5 mutation request under its original live native selection recovers its original receipt before new-work checks. A publication receipt still requires current display rights. An explicit display-right revocation denies later reads and receipt replay for that revision. Native directory grants for schema v5 single-file and v7 reviewed folder publication remain session-scoped. Entitled profiles can still open frozen data by revision ID after restart. A saved source under /product/data_onboarding/saved_sources requires independent authorization and does not renew a native grant.",
+  "credentials": "Windows Credential Manager; the DB stores references only; mock implementations do not use credentials",
+  "cache": "The cache can be cleared without deleting user indicator versions; do not mix different data sources or price adjustment methodologies",
+  "log": "Record operations, actors, summaries, statuses, and correlation IDs; redact sensitive fields; do not implement full event sourcing",
+  "undo": "Support undo for layer additions and removals, timeframe changes and applied layout edits. Record undo as a new operation. Advertise undo only for supported actions.",
+  "private_content": {
+    "ownership": "Each person owns their ScopeHub records. Scope storage, indexes, backups, retrieval and grants to that user and local profile. The operating-system user’s application-data directory provides the default profile; two isolated profile roots can exercise this boundary. A different local profile, an external assistant and the product development team have no implied access. This requires neither a ScopeHub cloud account nor a shared team database.",
+    "storage": "Authoritative saved conversations, long-term memories, strategies, research and decision notes, annotations and accepted work stay in the user’s local application storage. Apply the same boundary to search indexes, embeddings, summaries and temporary caches. Use local processing for background indexing. A connected provider does not enable remote backup, synchronization, background embedding or training uploads.",
+    "lifecycle": "Respect each content type’s save and retention rules. Raw voice and ordinary transcripts keep their existing ephemeral defaults. Users can inspect, correct or delete saved private material. Remove app-controlled derived copies and apply known deletion markers on restore. Local backup, migration and recovery use the profile boundary and preserve the existing warning for independent older copies.",
+    "transfer": "Preview the exact saved excerpt and its recipient when the user attaches it to a request. Selecting and sending that preview grants the use of those bytes for that request. Exclude surrounding content, other users’ material, private data obtained via tools, and prior private attachments from routine outbound context. Edited bytes, a different destination, or a new request require a new selection. Route remote conversations containing a one-request private excerpt so later ordinary turns do not silently reuse the excerpt or its private paraphrase.",
+    "evidence": "Keep bodies, prompts, embeddings, strategies and transcripts out of source control, routine logs, diagnostics, hosted artifacts and dev-agent context. Use synthetic examples for acceptance. Disclose applicable remote processor retention for material the user chooses to transmit."
+  },
+  "notes_and_restore": {
+    "live": "Persist a note body, attributed excerpts and saved context only on explicit save. Declining leaves no durable note or derived body. Deleting removes all body-bearing live copies, retrieval indexes, cached summaries, model context and local exports controlled by the app. Keep body-free deletion markers keyed to the original profile and note ID for restore.",
+    "audit": "Retain redacted operation ID, principal, timestamp, target identifier, outcome and revision. Exclude note text, quotations, transcripts, prompts, raw input data and model answers from routine logs, diagnostics and receipts. Keep redacted history separate from user content.",
+    "restore": "Preview restoration before modifying live state. Merge known deletion markers from the current profile and backup, applying them after restoring content in the same staged transaction and preserving the current state on failure. Warn before applying an independent older backup that previously deleted content may reappear if its marker is unavailable. Do not claim erasure of copies already exported or transmitted. Require a new grant for external sharing.",
+    "recovery": "Version the backup, schema, mappings, accepted outputs and logical deletion metadata. Exercise process interruption and migration rollback using an untouched backup; verify that the original visible note, permission and deletion state is recoverable.",
+    "decision_note_backup_v1": {
+      "scope": "The user explicitly exports a versioned, profile-bound decision-note archive to a selected local file. The archive contains original decisions, dated outcomes, deletion markers and snapshot metadata. Credentials, grants, other workspace state, operation or idempotency history, caches, and SQLite files or journals remain outside this archive.",
+      "preview": "Validate the archive and its profile and workspace binding and stage a merge in memory. Return body-free effect counts and warn before applying if an older independent copy may contain notes whose deletion markers are unavailable.",
+      "apply": "Require an explicit local human approval for the staged preview. Recheck current binding, grant and workspace revision, then merge missing originals and outcomes and enforce the union of known deletion markers in a single writer transaction. Retain surviving live records absent from the backup. A conflict in a surviving identity fails the merge. Keep the input backup untouched. The apply command and receipt carry no archive bodies.",
+      "capacity": "Validate the complete projected archive before admitting a save, appended outcome or restore preview. Retain existing records when the projected result exceeds the format's size or item limits. Reserve deletion marker space for admitted originals. Continue to permit deletion in profiles that already exceed a backup limit.",
+      "staging_and_view": "Retain only the new rows and deletion markers necessary for a pending restore. Release the stage when its revision is superseded, its approval expires or the session closes. Refresh both local note lists and details when observed revisions change. Revalidate a surviving note without resetting the text or date of its unsubmitted outcome draft. Discard superseded approvals and remove projections and drafts for deleted or unauthorized notes."
+    }
+  }
+}
