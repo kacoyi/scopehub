@@ -646,9 +646,18 @@ class PublicationTests(ProjectFixture):
                     release_artifacts(candidate.parent, report['source'], policy, hosted=hosted)
 
     def test_bound_candidate_remains_compatible_with_hosted_release_readiness(self):
-        self.add_catalog_checks('release-artifacts', 'configured-model-session')
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        # The milestone requires this check even though ordinary change runs omit it.
+        required = next(check for check in catalog['checks'] if check['id'] == 'market-fixtures')
+        required['cadence'] = 'task'
+        catalog_path.write_bytes(json_bytes(catalog))
+        checks = [check['id'] for check in catalog['checks']]
+        self.add_catalog_checks(*checks, 'configured-model-session')
         ledger = self.ledger()
-        task_by_id(ledger, 'M0-001')['checks'].append('configured-model-session')
+        task_by_id(ledger, 'M0-001')['checks'] = [
+            *[key for key in checks if key != 'release-artifacts'], 'configured-model-session',
+        ]
         self.save_ledger(ledger)
         report = self.hosted_report(system='Windows', event='workflow_dispatch')
         candidate, manifest = self.make_candidate(report)
@@ -675,12 +684,28 @@ class PublicationTests(ProjectFixture):
         self.assertFalse((downloaded / 'runs/fixture/product-profile').exists())
         results = {check['id']: check for check in report['checks']}
         project = load_project(self.root)
-        project['checks'] = {key: {'status': 'implemented', 'command': result['command']}
-                             for key, result in results.items()}
-        self.assertEqual(report['candidate_artifacts'], verified_candidate_files(
-            self.root, project, report, results, report['source'], downloaded / '..' / 'windows' / 'test-report.json',
-            downloaded, report['source']['git_head'],
-        ))
+
+        def verify():
+            return verified_candidate_files(
+                self.root, project, report, results, report['source'],
+                downloaded / '..' / 'windows' / 'test-report.json', downloaded, report['source']['git_head'],
+            )
+
+        self.assertEqual(report['candidate_artifacts'], verify())
+        report['selection']['checks'].remove('market-fixtures')
+        with self.assertRaisesRegex(ProjectError, 'did not select all applicable candidate checks'):
+            verify()
+        report['selection']['checks'].append('market-fixtures')
+        required_result = results.pop('market-fixtures')
+        with self.assertRaisesRegex(ProjectError, 'Missing or changed release check evidence: market-fixtures'):
+            verify()
+        results['market-fixtures'] = required_result
+        check_log = downloaded / 'runs/fixture/market-fixtures.log'
+        original = check_log.read_bytes()
+        check_log.write_bytes(b'Synthetic changed check output.')
+        with self.assertRaisesRegex(ProjectError, 'Missing or changed release check evidence: market-fixtures'):
+            verify()
+        check_log.write_bytes(original)
         reference = archive_evidence(self.root, 'M0-001', downloaded / 'test-report.json', downloaded)
         receipt = read_json(self.root / reference['path'])
         self.assertIn('configured-model-session', [item['id'] for item in receipt['checks']])
