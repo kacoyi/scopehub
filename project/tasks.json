@@ -16991,6 +16991,10 @@
         {
           "path": "project/evidence/M2-014-a0180f63561cd12a.json",
           "sha256": "eeb3e36d9c25e1f907a7b341900a79ee92318b641aec3513e09e41c794c56be0"
+        },
+        {
+          "path": "project/evidence/M2-014-2b7ce50e26b3fc19.json",
+          "sha256": "04770871ab25c4468216d991ca39691aa6b05b8ab67dc28e4878bbd4c995c25f"
         }
       ],
       "next_action": "Verify the first composition through the desktop entry, record matched Linux and Windows task results, and return the renderer decision to M2-003.",
