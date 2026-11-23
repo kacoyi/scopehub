@@ -125,8 +125,20 @@ const auxiliaryRoles = new Set([
   'previous settlement price',
   'bar closure flag',
   'declared quantity unit',
+  'declared calendar id',
+  'declared daily start time',
+  'declared instrument kind',
+  'declared record kind',
+  'declared roll method',
+  'declared session scope',
+  'declared timestamp convention',
+  'declared timestamp format',
+  'declared trading day format',
   'declared price adjustment',
   'declared venue',
+  'declared timeframe',
+  'declared timezone',
+  'declared volume semantics',
   'snapshot last price',
   'average price',
   'open interest',
@@ -160,8 +172,25 @@ const missingHeader = new RegExp(
 const auxiliaryHeader = new RegExp(
   '^(' + quotedCsvValue + ') is (.+)\\. Select a native bar field\\.$', 'u',
 );
+const declarationMessages = new Map([
+  ['calendar id', 'The source calendar id is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['daily start time', 'The source daily start time is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['instrument kind', 'The source instrument kind is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['record kind', 'The source record kind is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['roll method', 'The source roll method is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['session scope', 'The source session scope is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['timestamp convention', 'The source timestamp convention is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['timestamp format', 'The source timestamp format is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['trading day format', 'The source trading day format is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['quantity unit', 'The source quantity unit is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['price adjustment', 'The source price adjustment is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['venue', 'The source venue is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['timeframe', 'The source timeframe is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['timezone', 'The source timezone is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+  ['volume basis', 'The source volume basis is {source}. The reviewed value is {reviewed}. Review the mapping.'],
+]);
 const declarationMismatch = new RegExp(
-  '^The source (quantity unit|price adjustment|venue) is (' + quotedCsvValue +
+  '^The source ([a-z ]+) is (' + quotedCsvValue +
   ')\\. The reviewed value is (' + quotedCsvValue + ')\\. Review the mapping\\.$', 'u',
 );
 
@@ -209,18 +238,12 @@ export function localCsvIssueMessage(text: string, code?: string): LocalImportMe
       '{column} is {role}. Select a native bar field.', { column, role: localCsvAuxiliaryRole(role) },
     ));
   }
-  if (code === undefined || code === 'quantity_unit_mismatch' || code === 'price_adjustment_mismatch' || code === 'venue_mismatch') {
+  if (code === undefined || code.endsWith('_mismatch')) {
     const [, field, source, reviewed] = declarationMismatch.exec(text) ?? [];
-    if (source !== undefined && reviewed !== undefined) {
-      if (field === 'quantity unit') return message(
-        'The source quantity unit is {source}. The reviewed value is {reviewed}. Review the mapping.', { source, reviewed },
-      );
-      if (field === 'price adjustment') return message(
-        'The source price adjustment is {source}. The reviewed value is {reviewed}. Review the mapping.', { source, reviewed },
-      );
-      if (field === 'venue') return message(
-        'The source venue is {source}. The reviewed value is {reviewed}. Review the mapping.', { source, reviewed },
-      );
+    if (field && source !== undefined && reviewed !== undefined) {
+      const name = field === 'volume basis' ? 'volume_semantics' : field.replaceAll(' ', '_');
+      const template = declarationMessages.get(field);
+      if (template && matchesCsvIssue(code, name + '_mismatch')) return message(template, { source, reviewed });
     }
   }
   if (matchesCsvIssue(code, 'invalid_header')) {

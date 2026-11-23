@@ -3494,6 +3494,56 @@
       "deferral_reason": null
     },
     {
+      "id": "csv-conflicting-series-declarations",
+      "source": "2026-11-23 repository audit of native CSV preview, publication and readback using a synthetic futures row.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A source row declared timeframe 1m, timezone UTC and cumulative volume while the approved mapping declared 5m, Asia/Shanghai and per_bar. The preview normalized the row and the newly published revision returned 13:10 UTC and volume 150 with the wrong 5m semantics.",
+      "task_ids": [
+        "M1-034"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "local-import-publication",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": {
+        "cause": "The native bar normalizer compared source quantity unit, price adjustment and venue with the mapping, while source timeframe, timezone and volume semantics were treated as auxiliary data without checking their values.",
+        "correction": "Compare each explicit declaration with the reviewed native bar mapping before producing a normalized row. Full-file publication and folder inspection use the same check, retain the locator and display source-specific diagnostics in both desktop languages.",
+        "prevention": "Worker tests cover compatible and conflicting declarations, bounded preview, source locators and alternate valid series. The real desktop bridge verifies late conflicts cannot publish and the frozen readback survives. The folder browser excludes contradictory files from its change set. The M1-034 receipt records these regressions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-csv-declaration-coverage",
+      "source": "2026-11-23 contract audit of the M1-034 implementation with an independent synthetic dated futures source. The clean pre-correction task run is retained at archives/runs/20261123T111435.011662Z-290419cc/test-report.json.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T111435.011662Z-290419cc",
+          "source_commit": "2d5807f4e7ae164bca81012349e61d863d249520",
+          "report_sha256": "975ea74a85ab5a2b3522d24c1cae81a1a13317b203f502e38cad970eec1108e8"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Rows declaring a bar end, a different calendar or session, or an equity instrument still normalized and passed the complete-file check under a bar-start dated futures mapping. The declaration list did not cover the formal mapping and series fields.",
+      "task_ids": [
+        "M1-035"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "local-import-publication",
+        "local-folder-refresh-preview",
+        "desktop-localization"
+      ],
+      "resolution": {
+        "cause": "The normalizer recognized a partial list of economic declarations, independent of the canonical native series and interpretation rules. Unsupported source values could therefore acquire the reviewed mapping semantics.",
+        "correction": "Classify every CsvMappingV1 property. Inspect every applicable unbound semantic declaration, preserving exact identifiers and source formatting, permitted equivalents, the original reserved economic headers and established custom bindings. Whole-file publication and folder review use the same comparison as row preview.",
+        "prevention": "Independent examples and both language catalogs cover every semantic property in the canonical schema. Worker regressions cover conflicting and matching values, historical header aliases, active interpretation rules and data bindings. Real profile publication and folder review verify late conflicts and unchanged accepted data. The failed baseline and passing task receipt are retained."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "maintenance-failure-handoff",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding untriaged-failure-handoff",
       "severity": "major",
