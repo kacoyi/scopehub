@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-084",
   "tasks": [
     {
       "id": "M0-001",
@@ -16759,6 +16759,122 @@
         }
       ],
       "closure_reason": "The clean task harness at a066d05 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic regressions cover explicit text sharing, hosted allowlisted actions, local private annotations, downloaded import, UTC clock drift and rejection before artifact reads. Genuine product observations remain assigned to their existing tasks. Product focus returns to M2-003."
+    },
+    {
+      "id": "M0-084",
+      "title": "Verify historical feedback across the observation-receipt cutover",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-079"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/delivery.json",
+        "contracts/reviews/2026-11-23-continuity-audit.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A comparison spanning the five protected merges from bea74a5 through c161317 recognizes dispositions accepted under the previous evidence format. The original negative recovery remains independently resolvable.",
+        "Require exact historical records from the protected rule introduction, verify the Git ancestry of both comparison endpoints, and preserve the independent obligations of an explicit review base and a previous candidate checkpoint.",
+        "Exercise the normal history and verification preflight entries with multiple merges, synthetic pull-request merges, shallow or unrelated ancestry, newly closed, edited, removed and reopened findings, and an attempt to pass off candidate records as accepted history."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "Long-range audits verify accepted history across the introduction of observation-bound receipts and still reject unsupported serious closures.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "tests/project/test_delivery.py",
+          "project/delivery.json",
+          "contracts/reviews/2026-11-23-continuity-audit.json"
+        ],
+        "hypotheses": [
+          "The comparison applies a new receipt format to several completed corrections that predate its integration. The immutable first parent of the protected introduction identifies the records accepted under the earlier format."
+        ],
+        "risks": [
+          {
+            "failure": "A legitimate audited range rejects a previously verified closure, or the fix recognizes only the first failing feedback ID.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A candidate branch, mutable ref, newer open checkpoint, missing ancestry or changed finding can lend a stale receipt to a new serious closure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Comparing across the cutover silently loses a finding introduced and accepted between the original base and the policy transition.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the original recovery snapshot and revert the comparison change if the historical disposition cannot be independently authenticated or a new closure escapes.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/check.py",
+            "tests/project/test_delivery.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control"
+            }
+          ],
+          "non_goals": [
+            "Changing an accepted task, rewriting historical evidence, altering product behavior, or fetching history during local validation."
+          ],
+          "open_questions": [
+            "Which endpoints can independently establish that an observation was already closed when the protected rule changed?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Task and decision immutability, observation-specific modern receipts, explicit previous checkpoints, independent reviewed imports and offline verification."
+          ],
+          "change": [
+            "Handle comparisons that span the one-time transition to observation-bound receipts using verified Git objects."
+          ],
+          "data_plan": "Read immutable observations in Git and existing receipts in place. Neither format nor stored data needs migration.",
+          "cleanup": "Record the measured recovery and regression in the dated audit, archive the corrected task result and resume M2-003."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T132416.954560Z-23b9430d",
+          "source_commit": "c161317fa351174c8a6197b56101649389403fe2",
+          "report_sha256": "2840545a46d975eab1a99f3baf1b5a510e792be5c29bb40978bb6f04f79cb488"
+        }
+      ],
+      "next_action": "Verify the historical cutover and its independent negative cases in the normal history and harness entries.",
+      "blocker": null,
+      "evidence": [],
+      "closure_reason": null
     }
   ]
 }
