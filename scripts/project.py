@@ -980,6 +980,32 @@ def feedback_git(root, *args):
                                'GIT_NO_REPLACE_OBJECTS': '1', 'GIT_GRAFT_FILE': os.devnull})
 
 
+def verify_feedback_handoff(root, project, commit, old_items, items):
+    """Keep an open finding with live corrective work when its last owner finishes or is removed."""
+    terminal = {'done', 'cancelled'}
+    at_risk = [
+        item for key, item in items.items()
+        if key in old_items and old_items[key]['status'] != 'addressed' and item['status'] == 'open'
+        and (item['severity'] != 'minor' or old_items[key]['severity'] != 'minor')
+        and all(project['tasks'][owner]['status'] in terminal for owner in item['task_ids'])
+    ]
+    if not at_risk:
+        return
+    path = 'project/tasks.json'
+    ledger = feedback_git(root, 'show', f'{commit}:{path}')
+    if ledger.returncode:
+        raise ProjectError(f'Cannot read {path} from local feedback checkpoint {commit}')
+    try:
+        previous = indexed(json.loads(ledger.stdout)['tasks'], 'previous task')
+        for item in at_risk:
+            key = item['id']
+            if any(previous[owner]['status'] not in terminal for owner in old_items[key]['task_ids']):
+                raise ProjectError(f'Open feedback {key} needs an unfinished corrective task before its last owner retires, '
+                                   'or a recorded resolution or deferral.')
+    except (KeyError, TypeError, UnicodeError, json.JSONDecodeError) as error:
+        raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
+
+
 def validate_feedback_checkpoint(root, project, commit, inherited=None):
     """Preserve recorded findings and require verification for a new serious closure."""
     path = 'project/feedback.json'
@@ -998,6 +1024,7 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
         except (TypeError, ValueError, KeyError) as error:
             raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
     items = indexed(project['feedback']['items'], 'feedback')
+    verify_feedback_handoff(root, project, commit, old_items, items)
     for key in old_items.keys() - items.keys():
         raise ProjectError(f'Feedback disappeared: {key}; retain its disposition')
     for key, item in items.items():

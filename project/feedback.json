@@ -3585,6 +3585,43 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "open-finding-loses-last-corrective-owner",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json and archives/runs/20261123T111109.190327Z-1927b151/test-report.json",
+      "observation": "Local preflight accepted completion of the final unfinished owner of a previously registered major defect while the defect remained open. The original task and finding still existed, but ongoing work had no owner.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T111109.190327Z-1927b151",
+          "source_commit": "c6c6a7c520a3afac3227cabcb05b5dad2c4b3d75",
+          "report_sha256": "6d24710c3ea02ccef9adf2a17fae1c5156406a8eb429229724f9cc8a62c0895f"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-079"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "git-context-misattributes-feedback-checkpoint",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json and a Git-launched local project preflight over two independent fixture repositories",
+      "observation": "In one fixture repository an unsupported closure of a major finding failed local project validation. Invoking that same command through an external Git alias in another repository returned success and reported the other repository’s independently accepted checkpoint.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-079"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

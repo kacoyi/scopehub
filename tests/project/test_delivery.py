@@ -1023,6 +1023,31 @@ class DeliveryTests(ProjectFixture):
         self.save_ledger(ledger)
         load_project(self.root)
 
+    def test_retiring_last_open_feedback_owner_requires_a_handoff(self):
+        item = self.feedback()
+        self.save_feedback(item)
+        observed = self.commit_fixture()
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            project_cli.local_feedback_history(self.root, load_project(self.root))
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            review_history(self.root, observed)
+
+        # The original finding survives a handoff and its historical task stays in the record.
+        self.save_feedback({**item, 'task_ids': ['M0-001', 'M0-002']})
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+
+        transferred = self.commit_fixture()
+        self.save_feedback(item)
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            review_history(self.root, transferred)
+
+        # A deliberate deferral stays visible with its reason and release consequences.
+        self.save_feedback({**item, 'status': 'deferred', 'deferral_reason': 'Await a physical host.'})
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+        self.assertTrue(any(item['id'] in reason for reason in readiness(self.root)['blockers']))
+
     def test_working_feedback_checkpoint_is_checked_before_any_verification_commands(self):
         shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
         env = {**os.environ, 'SCOPEHUB_STORAGE': 'off', 'SCOPEHUB_REVIEW_BASE': '', 'SCOPEHUB_CHECKPOINT_BASE': ''}
