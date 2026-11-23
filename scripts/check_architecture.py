@@ -210,9 +210,10 @@ def main():
                 errors.append(f'Worker database access: {relative}')
             if any(name.startswith('providers') for name in imports) and relative.parts[0] not in {'providers', 'worker_runtime'}:
                 errors.append(f'Provider dependency outside data boundary: {relative}')
-    catalog = resolve_source(ROOT, {'path': 'engineering-contract-v1.json', 'pointer': '/operations'})
+    catalog = manifest['operations']
     actual = {op['name']: op for op in catalog}
-    if (catalog != manifest['operations'] or len(catalog) != len(actual)
+    if (spec['operations'] != {'$source': {'path': 'contracts/contract.json', 'pointer': '/operations'}}
+            or len(catalog) != len(actual)
             or set(actual) != set(schema['$defs']['OperationName']['enum'])):
         errors.append('Operation catalog drift')
     for name, op in actual.items():

@@ -94,7 +94,8 @@
           "observation": "On an Ubuntu graphical desktop, pnpm desktop:dev opens the ScopeHub Tauri window. Open the offline sample, use the native folder chooser with a fixture and reopen the workspace. Retain the observed application process, WebKitGTK version, revision, input digest and screenshots.",
           "scope": "Retain this field check with M1-031 and M1-012. The Windows release profile uses its own packaged checks."
         }
-      }
+      },
+      "runtime_installation": "A clean installation supports the standard workflows without a user-installed interpreter or Node. Qualify optional capability-specific runtimes and measure their installed and cold-start costs."
     },
     "release_unit": "A single Windows desktop installer",
     "architecture": "A modular monolithic application core with controlled local workers; not microservices",
@@ -224,9 +225,10 @@
       "ownership": "All persistence writes go through a single-writer queue in the core"
     },
     "workers": {
-      "ownership": "The Rust host owns data admission, publication, cancellation and worker lifetimes. Evaluate native batch readers for ordinary CSV and Parquet. Keep the existing Rust declarative indicator evaluator.",
-      "current": "The existing synthetic market, model, trusted indicator and bounded CSV workers use Python 3.12. Qualify a replacement for each affected workflow before retiring its runtime.",
-      "distribution": "A clean desktop installation supports its standard workflows without a user-installed Python or Node environment. Choose packaging per capability from native installer and cold-start measurements. Load a trusted Python indicator runtime or a provider-specific Python SDK on demand when its workflow requires it."
+      "$source": {
+        "path": "contracts/worker-runtime-v1.json",
+        "pointer": "/workers"
+      }
     },
     "node": "Used only for builds and frontend development; production does not include a Node.js service",
     "package_manager": "pnpm",

@@ -18,13 +18,25 @@ def repository_path(root, relative):
     return result
 
 
-def engineering_link(root, value, suffix=''):
+def engineering_link(root, value):
     link = value['$source']
     if (set(value) != {'$source'} or not isinstance(link, dict) or set(link) != {'path', 'pointer'}
             or not all(isinstance(item, str) for item in link.values())
             or repository_path(root, link['path']).resolve() == (root / 'engineering-contract-v1.json').resolve()):
         raise ValueError(f'Invalid engineering source link: {value}')
-    return resolve_source(root, {'path': link['path'], 'pointer': link['pointer'] + suffix})
+    if link == {'path': 'contracts/contract.json', 'pointer': '/operations'}:
+        # Historical engineering pointers address the negotiated command/reply.
+        # The manifest also carries the original payloads for legacy callers.
+        manifest = json.loads(repository_path(root, link['path']).read_text(encoding='utf-8'))
+        operations = []
+        for operation in manifest['operations']:
+            binding = operation.get('wire_bindings', {}).get(manifest['protocol_version'], operation)
+            record = {field: operation[field] for field in
+                      ('name', 'actors', 'effect', 'confirmation', 'undoable', 'schema_requirement', 'transport')
+                      if field in operation}
+            operations.append({**record, 'input_spec': binding['input'], 'output_spec': binding['output']})
+        return operations
+    return resolve_source(root, link)
 
 
 def validate_engineering_links(root, spec):
@@ -50,9 +62,11 @@ def resolve_source(root, reference):
     tokens = pointer.split('/')[1:]
     # The engineering index can delegate a whole section to one local record.
     # Keep its old section and nested pointers usable by historical task plans.
+    in_index = path.resolve() == (root / 'engineering-contract-v1.json').resolve()
     for index in range(len(tokens) + 1):
-        if reference['path'] == 'engineering-contract-v1.json' and isinstance(value, dict) and '$source' in value:
-            return engineering_link(root, value, ''.join('/' + part for part in tokens[index:]))
+        if in_index and isinstance(value, dict) and '$source' in value:
+            value = engineering_link(root, value)
+            in_index = False
         if index == len(tokens):
             return value
         token = tokens[index]

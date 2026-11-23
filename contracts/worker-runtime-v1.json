@@ -142,5 +142,18 @@
     "max_regions": 500,
     "max_ast_nodes": 256
   },
-  "indicator_result_budget": "A 4 MiB NDJSON limit includes envelope and newline. Validate the input aggregate before scheduling and cap structured output across all chunks as one result. Inline only a fitting frame. For outputs lacking a negotiated bounded result transport reject the whole preview with RESOURCE_LIMIT and ask for a narrower visible interval or fewer series. Never truncate to indicate success. When both sides support the 1.1 indexed artifact, bind every segment to the same task, artifact ID, index and result hash. Display or accept only after validating all indices, declared byte length, final digest and result schema."
+  "indicator_result_budget": "A 4 MiB NDJSON limit includes envelope and newline. Validate the input aggregate before scheduling and cap structured output across all chunks as one result. Inline only a fitting frame. For outputs lacking a negotiated bounded result transport reject the whole preview with RESOURCE_LIMIT and ask for a narrower visible interval or fewer series. Never truncate to indicate success. When both sides support the 1.1 indexed artifact, bind every segment to the same task, artifact ID, index and result hash. Display or accept only after validating all indices, declared byte length, final digest and result schema.",
+  "workers": {
+    "language": "Python 3.12",
+    "roles": [
+      "market",
+      "ai",
+      "indicator"
+    ],
+    "validation": "Generated protocol types and runtime validation",
+    "packaging": "PyInstaller is a standalone packaging candidate for Python capabilities. Select the distribution from tests of the exact Windows package. No build environment is required on the user machine.",
+    "ownership": "The Rust host owns data admission, publication, cancellation and worker lifetimes. Evaluate native batch readers for ordinary CSV and Parquet. Keep the existing Rust declarative indicator evaluator.",
+    "current": "The existing synthetic market, model, trusted indicator and bounded CSV workers use Python 3.12. Qualify a replacement for each affected workflow before retiring its runtime.",
+    "distribution": "A clean desktop installation supports its standard workflows without a user-installed Python or Node environment. Choose packaging per capability from native installer and cold-start measurements. Load a trusted Python indicator runtime or a provider-specific Python SDK on demand when its workflow requires it."
+  }
 }

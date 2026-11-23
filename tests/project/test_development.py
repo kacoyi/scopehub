@@ -2,6 +2,7 @@
 
 import copy
 import json
+from pathlib import Path
 
 from scripts.check_architecture import declared_source_boundaries
 from scripts.development import product_brief, resolve_source, status_view
@@ -180,6 +181,18 @@ class DevelopmentTests(ProjectFixture):
             with self.subTest(path=path), self.assertRaises(ValueError):
                 self.save(reference['path'], {'runtime': {'$source': dict(link, path=path)}})
                 resolve_source(self.root, nested)
+
+    def test_engineering_operation_pointers_select_the_negotiated_command_and_reply(self):
+        root = Path(__file__).resolve().parents[2]
+        path = 'engineering-contract-v1.json'
+        expected = {'input_spec': 'WorkspaceOpenInstrumentCommand11', 'output_spec': 'WorkspaceOpenInstrumentReply11'}
+        row = resolve_source(root, {'path': path, 'pointer': '/operations/2'})
+        self.assertEqual(row['name'], 'workspace.openInstrument')
+        for field, value in expected.items():
+            self.assertEqual(row[field], value)
+            self.assertEqual(resolve_source(root, {'path': path, 'pointer': f'/operations/2/{field}'}), value)
+        for field in ('roles', 'language', 'validation', 'packaging'):
+            self.assertTrue(resolve_source(root, {'path': path, 'pointer': f'/stack/workers/{field}'}))
 
     def test_task_context_exposes_the_role_families_and_shared_quality_floor(self):
         self.record['herdr'] = {
