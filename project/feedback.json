@@ -3447,6 +3447,28 @@
         "prevention": "An alternate caller Git directory exercises repository discovery. The protected staging regression observes both check durations and their difference. A separate run with a disposable caller checkout verified its branch reference and index were preserved."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "locked-cookie-advisory-blocks-integration",
+      "source": "RustSec advisory RUSTSEC-2026-0594 and the online dependency review on bea74a5.",
+      "observation": "The online dependency check rejected cookie 0.18.2 in Cargo.lock. Tauri and Wry resolve it for the desktop. The upstream issue concerns private cookies on fork-capable platforms and excludes Windows from its affected OS list. GitHub's open glib alert is covered by a separate existing disposition.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-081"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T095941.698705Z-187d8246",
+          "source_commit": "bea74a569b62823e5ce4907250e967bf4596af29",
+          "report_sha256": "b92119b9ce93a95b923ca293383925b20416f2c9fa6d143c554468a02a33b0d3"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

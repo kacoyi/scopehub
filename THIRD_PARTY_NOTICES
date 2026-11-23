@@ -254,9 +254,9 @@ crates.io: const-oid 0.10.3
 Declared license: Apache-2.0 OR MIT
 Upstream metadata: https://crates.io/crates/const-oid/0.10.3
 
-crates.io: cookie 0.18.2
+crates.io: cookie 0.18.3
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/cookie/0.18.2
+Upstream metadata: https://crates.io/crates/cookie/0.18.3
 
 crates.io: core-foundation 0.10.1
 Declared license: MIT OR Apache-2.0
