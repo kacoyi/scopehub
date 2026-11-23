@@ -16621,6 +16621,10 @@
         {
           "path": "project/evidence/M0-082-418a59a35f889e32.json",
           "sha256": "3fde37bbf0263f778323c687ad95401bdc58f54da2f964fcd1343097e1b80da9"
+        },
+        {
+          "path": "project/evidence/M0-082-bd7866a5a71777f5.json",
+          "sha256": "2a65b116a7f2e63d7c9405e7815ef7bae3ef43e7e0151393396085da5aef1692"
         }
       ],
       "closure_reason": "The clean task harness at 0381bd2 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic tests cover local and hosted acceptance, archival privacy, downloaded artifacts and release readiness. M1-012, M1-011 and M5-001 own the genuine field and owner trials. Product focus returns to M2-003."
@@ -16748,6 +16752,10 @@
         {
           "path": "project/evidence/M0-083-d877584fc660b52d.json",
           "sha256": "0f58b1c6526e6f315dbd510709f9387d08313cd22cdb46afeb165d1c67bb1a65"
+        },
+        {
+          "path": "project/evidence/M0-083-bd7866a5a71777f5.json",
+          "sha256": "e06407ef70f19a77d68e6092f3e42fd73ec79337ffb204ea2251c227abf3aad8"
         }
       ],
       "closure_reason": "The clean task harness at a066d05 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic regressions cover explicit text sharing, hosted allowlisted actions, local private annotations, downloaded import, UTC clock drift and rejection before artifact reads. Genuine product observations remain assigned to their existing tasks. Product focus returns to M2-003."
