@@ -15852,7 +15852,9 @@
         "THIRD_PARTY_NOTICES",
         "project/tasks.json",
         "project/feedback.json",
-        "project/evidence"
+        "project/evidence",
+        "project/checks.json",
+        "tests/project/test_verification_scheduling.py"
       ],
       "decision_refs": [
         "0004",
@@ -15861,13 +15863,15 @@
       ],
       "acceptance": [
         "Resolve the desktop dependency graph to the published patched cookie 0.18.3. Verify the registry checksum and preserve unrelated package versions, existing grants and license policy.",
-        "Retain the failed online review for cookie 0.18.2 and obtain a fresh passing review on the repaired lock. Recheck the Rust workspace, exact Windows desktop graph, refreshed inventory and notices."
+        "Retain the failed online review for cookie 0.18.2 and obtain a fresh passing review on the repaired lock. Recheck the Rust workspace, exact Windows desktop graph, refreshed inventory and notices.",
+        "Every selected online dependency review runs once immediately after environment and project-state. Its failure reports before expensive checks, a fail-fast run stops there, and ordinary runs retain all other scheduled evidence."
       ],
       "checks": [
         "project-state",
         "architecture",
         "dependency-review",
-        "rust-contracts-workers"
+        "rust-contracts-workers",
+        "python-contracts-workers"
       ],
       "diagnostic_reports": [
         {
@@ -15879,17 +15883,22 @@
       "plan": {
         "outcome": "The release and protected verification use a patched transitive desktop dependency and the ordinary online policy check can pass again.",
         "change_types": [
-          "dependencies"
+          "dependencies",
+          "tooling"
         ],
         "context": [
           "Cargo.lock",
           "project/dependencies.json",
           "project/dependency-inventory.json",
           "scripts/dependencies.py",
-          "apps/desktop/src-tauri/Cargo.toml"
+          "apps/desktop/src-tauri/Cargo.toml",
+          "project/checks.json",
+          "scripts/check.py",
+          "tests/project/test_verification_scheduling.py"
         ],
         "hypotheses": [
-          "The existing Tauri and Wry constraints accept the published cookie 0.18.3 patch without a direct dependency or unrelated upgrades."
+          "The existing Tauri and Wry constraints accept the published cookie 0.18.3 patch without a direct dependency or unrelated upgrades.",
+          "The runner follows catalog order. Moving the existing dependency check earlier will surface the advisory without changing selection or the normal continue-after-failure behavior."
         ],
         "risks": [
           {
@@ -15906,6 +15915,12 @@
               "project-state",
               "dependency-review"
             ]
+          },
+          {
+            "failure": "The online review runs twice, an unselected profile gains a new gate, or early execution silently suppresses later checks in ordinary mode.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Restore the previous graph only as a diagnostic checkpoint with integration on hold. Reassess a compatible patched graph before acceptance.",
@@ -15916,7 +15931,9 @@
           ],
           "entrypoints": [
             "scripts/dependencies.py",
-            "apps/desktop/src-tauri/Cargo.toml"
+            "apps/desktop/src-tauri/Cargo.toml",
+            "project/checks.json",
+            "tests/project/test_verification_scheduling.py"
           ],
           "rules": [
             {
@@ -15941,13 +15958,14 @@
             "Current Tauri integrations, supported Windows desktop and portable crate behavior, existing dependency dispositions and historical evidence."
           ],
           "change": [
-            "Upgrade the locked cookie dependency and refresh its matching inventory and third-party notices."
+            "Upgrade the locked cookie dependency and refresh its matching inventory and third-party notices.",
+            "Schedule the existing online dependency review before expensive checks whenever it is selected."
           ],
           "data_plan": "The change concerns dependency metadata and packaged library code. Existing user data, source bindings and workspace formats retain their current representations.",
           "cleanup": "Keep the original failed online review resolvable and return the product focus to M2-003 after archiving the passing task evidence."
         }
       },
-      "next_action": "Use the published patched crate, compare the resolved package graph and run the same online advisory check that failed on bea74a5.",
+      "next_action": "Verify the online review against the minimum patched graph and exercise an injected failure through the real catalog in ordinary, task, profile and fail-fast modes.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null
