@@ -53,6 +53,7 @@
       "Use current-contract task dependencies to schedule work. Complete physical Windows experience after integrated Ubuntu Tauri desktop acceptance in M1-012. External-session and packaged-release gates require independent evidence."
     ],
     "evolution": [
+      "When first choosing a consequential design, compare how well viable options serve the user's workflow now. For a plausible future change, identify which callers and saved user work would need to move and how to verify the result. Count the present cost of extra interfaces or parallel implementations too. A direct implementation can be the best choice even when replacing it later will take work.",
       "For a refactor, replacement, migration or requirement reset, identify preserved and intentionally changed behavior, affected callers, data handling and cleanup before activation.",
       "Make a small reversible change in its owning module and exercise the affected behavior in the current task. For a consequential rewrite, compare adapting the current implementation with replacing it or retiring it if the agreed workflow no longer needs it. Include the work for callers, verification, data conversion, coexistence and retirement. Use a representative example to resolve an assumption that could change the choice.",
       "A direct replacement can retire the old path in the same change when all supported callers can move together and affected state is absent, disposable synthetic data or demonstrably compatible. Check for saved user work even before launch. When a change needs stages, use existing task dependencies and record a working state, affected callers, an exit check and a recovery point for each stage.",
@@ -575,6 +576,18 @@
       ],
       "delivery": "current-contract",
       "boundary": "The built-in workspace chart, watchlist and inspection panel share a typed, editable definition and profile-local layout store. Registered human and scoped AI edits use the same preview, apply, undo and revision checks. Independent comparison uses the selected simulated catalog. Source restoration uses current profile access. Native Windows and owner review remain separate. Adding or removing widgets and rebinding compatible local or API data across views is planned in M2-012."
+    },
+    {
+      "id": "user-defined-workbench",
+      "source": {
+        "path": "engineering-contract-v1.json",
+        "pointer": "/ui/customization/design_goal"
+      },
+      "task_ids": [
+        "M2-013"
+      ],
+      "delivery": "later",
+      "boundary": "M2-013 exercises the whole-workbench goal with a chart-free review of new disclosures. It is planned separately from the current single-chart delivery. The rendering technology and first-release timing of broader customization remain open."
     },
     {
       "id": "realtime-voice",

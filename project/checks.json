@@ -779,6 +779,15 @@
       "cadence": "task"
     },
     {
+      "id": "chart-free-workbench",
+      "status": "planned",
+      "purpose": "Exercise a user-composed research view over synthetic disclosures and a selected local note. Check conditional visibility on refresh, source inspection, an unavailable input, scoped edits, undo and reopen through the desktop workbench.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
+    },
+    {
       "id": "desktop-localization",
       "status": "implemented",
       "purpose": "Exercise language negotiation, catalog coverage and the user-facing English and Simplified Chinese desktop interface, including state-preserving changes, restart and untouched user data.",
