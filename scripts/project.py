@@ -506,11 +506,22 @@ def validate_delivery(root, project):
         if item['status'] == 'addressed':
             if not item['resolution'] or any(tasks[key]['status'] != 'done' for key in item['task_ids']):
                 raise ProjectError(f"Addressed feedback needs completed corrective work and a resolution: {item['id']}")
-            covered = {key for task_id in item['task_ids'] for key in tasks[task_id]['checks']}
-            if not set(item['regression_checks']).issubset(covered):
-                raise ProjectError(f"Addressed feedback lacks regression evidence: {item['id']}")
         elif item['resolution'] is not None:
             raise ProjectError(f"Unresolved feedback cannot claim a resolution: {item['id']}")
+        regression = set(item['regression_checks'])
+        linked = [tasks[key] for key in item['task_ids']]
+        missing = regression - {key for task in linked for key in task['checks']}
+        if missing:
+            if item['status'] == 'addressed':
+                raise ProjectError(f"Addressed feedback lacks regression evidence: {item['id']}; missing {sorted(missing)}")
+            raise ProjectError(f"Feedback {item['id']} has regression checks without a linked task: {sorted(missing)}")
+        if item['status'] != 'addressed' and item['severity'] in {'major', 'critical'}:
+            for task in linked:
+                if task['status'] == 'active':
+                    planned = {key for risk in task['plan']['risks'] for key in risk['checks']}
+                    uncovered = regression.intersection(task['checks']) - planned
+                    if uncovered:
+                        raise ProjectError(f"Active task {task['id']} must cover feedback {item['id']} in its plan risks: {sorted(uncovered)}")
         if (item['status'] == 'deferred') != bool(item['deferral_reason']):
             raise ProjectError(f"Feedback deferral needs an explicit reason: {item['id']}")
     policy = delivery['release_policy']
@@ -962,26 +973,29 @@ def recover_hosted_checkpoint(root, revision, repository):
         raise ProjectError(f'Previous checkpoint {revision} is not an available Git commit')
 
 
-def review_history(root=ROOT, base=None):
-    """Compare accepted history to the actual reviewed revision, not HEAD by guess."""
-    if not base or set(base) == {'0'}:
-        return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}
-    resolved = subprocess.run(['git', 'rev-parse', '--verify', '--end-of-options', f'{base}^{{commit}}'],
-                              cwd=root, capture_output=True, text=True, check=True).stdout.strip()
-    project = load_project(root)
+def feedback_git(root, *args):
+    # Keep local checks offline even in a partial clone with promised objects.
+    return subprocess.run(['git', *args], cwd=root, capture_output=True,
+                          env={**os.environ, 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': ''})
 
-    def previous(path):
-        result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, capture_output=True)
-        return json.loads(result.stdout) if result.returncode == 0 else None
 
-    ledger = previous('project/tasks.json')
-    old_tasks = indexed(ledger['tasks'], 'previous task') if ledger else {}
-    for key, task in project['tasks'].items():
-        old = old_tasks.get(key, {})
-        if old.get('status') not in {'done', 'cancelled'}:
-            validate_report_references(root, task, f'Task {key}')
-    old_feedback = previous('project/feedback.json')
-    old_items = indexed(old_feedback['items'], 'previous feedback') if old_feedback else {}
+def validate_feedback_checkpoint(root, project, commit):
+    """Preserve recorded findings and require verification for a new serious closure."""
+    path = 'project/feedback.json'
+    original = feedback_git(root, 'show', f'{commit}:{path}')
+    if original.returncode:
+        entry = feedback_git(root, 'ls-tree', '--name-only', commit, '--', path)
+        if entry.returncode or entry.stdout:
+            raise ProjectError(f'Cannot read {path} from local feedback checkpoint {commit}')
+        old_items = {}
+    else:
+        try:
+            records = json.loads(original.stdout)['items']
+            if not isinstance(records, list):
+                raise ValueError('Expected a list of feedback items')
+            old_items = indexed(records, 'previous feedback')
+        except (TypeError, ValueError, KeyError) as error:
+            raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
     items = indexed(project['feedback']['items'], 'feedback')
     for key in old_items.keys() - items.keys():
         raise ProjectError(f'Feedback disappeared: {key}; retain its disposition')
@@ -1011,6 +1025,59 @@ def review_history(root=ROOT, base=None):
         missing = set(item['regression_checks']) - covered
         if missing:
             raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
+
+
+def local_feedback_history(root, project):
+    """Compare the working ledger with available, explicitly identified local checkpoints."""
+    compared = []
+    if not (root / '.git').exists():
+        return {'status': 'not_applicable', 'reason': 'No Git checkout available.'}
+
+    bases = ['HEAD', os.environ.get('SCOPEHUB_REVIEW_BASE'), os.environ.get('SCOPEHUB_CHECKPOINT_BASE')]
+    for base in dict.fromkeys(bases):
+        if not base or set(base) == {'0'}:
+            continue
+        try:
+            commit = feedback_git(root, 'rev-parse', '--verify', '--quiet', '--end-of-options', f'{base}^{{commit}}')
+        except FileNotFoundError:
+            return {'status': 'not_applicable', 'reason': 'The Git executable is unavailable.'}
+        if commit.returncode:
+            if base == 'HEAD':
+                # A newly initialized repository has a symbolic HEAD and no branch ref yet.
+                branch = feedback_git(root, 'symbolic-ref', '--quiet', 'HEAD')
+                if (not branch.returncode and feedback_git(root, 'show-ref', '--verify', '--quiet',
+                                                           os.fsdecode(branch.stdout).strip()).returncode == 1):
+                    continue
+            raise ProjectError(f'Feedback checkpoint is unavailable locally: {base}')
+        sha = commit.stdout.decode('ascii').strip()
+        if sha in compared:
+            continue
+        validate_feedback_checkpoint(root, project, sha)
+        compared.append(sha)
+    if not compared:
+        return {'status': 'not_applicable', 'reason': 'The checkout has no committed checkpoint.'}
+    return {'status': 'passed', 'compared_commits': compared}
+
+
+def review_history(root=ROOT, base=None):
+    """Compare accepted history to the actual reviewed revision, not HEAD by guess."""
+    if not base or set(base) == {'0'}:
+        return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}
+    resolved = subprocess.run(['git', 'rev-parse', '--verify', '--end-of-options', f'{base}^{{commit}}'],
+                              cwd=root, capture_output=True, text=True, check=True).stdout.strip()
+    project = load_project(root)
+
+    def previous(path):
+        result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, capture_output=True)
+        return json.loads(result.stdout) if result.returncode == 0 else None
+
+    ledger = previous('project/tasks.json')
+    old_tasks = indexed(ledger['tasks'], 'previous task') if ledger else {}
+    for key, task in project['tasks'].items():
+        old = old_tasks.get(key, {})
+        if old.get('status') not in {'done', 'cancelled'}:
+            validate_report_references(root, task, f'Task {key}')
+    validate_feedback_checkpoint(root, project, resolved)
     review_operational_report_paths(root, resolved)
     compared = []
     catalog = previous('project/checks.json')
@@ -1245,9 +1312,10 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'check':
-            project = load_project()
+            project = load_project(ROOT)
+            feedback_history = local_feedback_history(ROOT, project)
             result = {'status': 'passed', 'tasks': len(project['tasks']), 'decisions': len(project['decisions']),
-                      'checks': len(project['checks'])}
+                      'checks': len(project['checks']), 'feedback_history': feedback_history}
         elif args.command == 'status':
             if __package__:
                 from .development import status_view

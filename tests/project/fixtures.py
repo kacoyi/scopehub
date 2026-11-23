@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 
 def isolated_git_environment():
-    environment = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith('GIT_') and key not in {'SCOPEHUB_REVIEW_BASE', 'SCOPEHUB_CHECKPOINT_BASE'}}
     environment.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
     return patch.dict(os.environ, environment, clear=True)
 

@@ -27,13 +27,13 @@ try:
     if __package__:
         from .doctor import tool_version
         from .processes import log_tail, run_logged
-        from .project import ProjectError, feedback_fingerprint, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from .project import ProjectError, feedback_fingerprint, file_digest, load_project, local_feedback_history, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
         from .storage import maintain_automatically
         from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
-        from project import ProjectError, feedback_fingerprint, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from project import ProjectError, feedback_fingerprint, file_digest, load_project, local_feedback_history, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
         from storage import maintain_automatically
         from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
 except Exception as error:
@@ -247,6 +247,7 @@ def main():
         print('true' if required else 'false')
         return
     project = load_project(ROOT)
+    local_feedback_history(ROOT, project)
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
     ci = ci_provenance(source, os.environ, ROOT)

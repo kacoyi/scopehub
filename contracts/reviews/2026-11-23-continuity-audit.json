@@ -44,7 +44,8 @@
         "scripts/recovery.py",
         "scripts/ci.py",
         "tests/project/test_delivery.py"
-      ]
+      ],
+      "earliest_check": "Register feedback and activate its owning task. Validate transitions before harness subprocesses. Recheck signals at session startup and handoff."
     },
     {
       "id": "release-check-selection",
@@ -70,7 +71,8 @@
         "scripts/project.py",
         "project/checks.json",
         "project/delivery.json"
-      ]
+      ],
+      "earliest_check": "Select checks from the binding catalog before scheduling the release run. Verify the same coverage again when importing candidate evidence."
     },
     {
       "id": "csv-conflicting-series-declarations",
@@ -86,7 +88,8 @@
         "python/providers/local_folder.py",
         "crates/application/src/local_publication.rs",
         "contracts/market-data-v1.json"
-      ]
+      ],
+      "earliest_check": "Normalize every source row. Show an issue during preview when visible, and repeat complete admission before publication or committing a folder refresh."
     },
     {
       "id": "csv-knowledge-cutoff",
@@ -104,7 +107,8 @@
         "apps/desktop/ui/src/local-preview-chart.tsx",
         "contracts/market-data-v1.json",
         "engineering-contract-v1.json"
-      ]
+      ],
+      "earliest_check": "When the first dated-evidence consumer admits an input, ask when its value was independently knowable. Exercise an eligible disclosure and an unavailable or later correction in that entry."
     },
     {
       "id": "native-renderer-prerequisite",
@@ -120,7 +124,8 @@
         "contracts/decisions/0024-native-ubuntu-development.json",
         "contracts/decisions/0027-v1-user-composed-workbench.json",
         "project/tasks.json"
-      ]
+      ],
+      "earliest_check": "Run the same first native composition and failed-draft recovery on both engines before recording the renderer decision."
     },
     {
       "id": "physical-workbench-observation",
@@ -135,7 +140,8 @@
         "scripts/verification_evidence.py",
         "tests/project/test_delivery.py",
         "project/checks.json"
-      ]
+      ],
+      "earliest_check": "At intake of new native observations, reject a browser-only host, a missing chart-free operation or source/window evidence that does not match."
     },
     {
       "id": "packaged-owner-evidence",
@@ -150,7 +156,8 @@
         "scripts/verification_evidence.py",
         "scripts/ci_artifacts.py",
         "tests/project/test_delivery.py"
-      ]
+      ],
+      "earliest_check": "At candidate evidence intake, require an owner product observation bound to the exact installer hash, before technical readiness can pass."
     },
     {
       "id": "external-client-evidence",
@@ -165,7 +172,8 @@
         "project/delivery.json",
         "scripts/check.py",
         "scripts/ci_artifacts.py"
-      ]
+      ],
+      "earliest_check": "At qualification of the external-client session, require the observations for both client families and their common authorized workspace before publication."
     },
     {
       "id": "relocated-local-profile",
@@ -179,7 +187,8 @@
         "apps/desktop/src-tauri/src/workspace.rs",
         "crates/persistence/src/lib.rs",
         "project/delivery.json"
-      ]
+      ],
+      "earliest_check": "At startup after restore or relocation, verify identity and data access before using credentials or mutating the saved database."
     },
     {
       "id": "large-history-and-binding",
@@ -196,7 +205,8 @@
         "crates/application/src/workspace/evidence.rs",
         "crates/persistence/src/local_dataset.rs",
         "crates/application/src/workspace/indicators.rs"
-      ]
+      ],
+      "earliest_check": "At a saved-source binding or bulk-reader change, run the small-window query, two-revision identity case and the representative bulk benchmark before replacing the old reader."
     },
     {
       "id": "shared-ai-edit",
@@ -212,7 +222,8 @@
         "apps/desktop/ui/src/chart-workspace.tsx",
         "contracts/contract.json",
         "project/tasks.json"
-      ]
+      ],
+      "earliest_check": "At the shared operation entry, reject unimplemented, stale or unauthorized mutations before any state change. Test manual and AI entry, undo and reopen on the same composition."
     }
   ],
   "architecture": {
