@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-081",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15842,7 +15842,7 @@
       "id": "M0-081",
       "title": "Update the locked cookie dependency for RUSTSEC-2026-0594",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-059"
       ],
@@ -15965,10 +15965,15 @@
           "cleanup": "Keep the original failed online review resolvable and return the product focus to M2-003 after archiving the passing task evidence."
         }
       },
-      "next_action": "Verify the online review against the minimum patched graph and exercise an injected failure through the real catalog in ordinary, task, profile and fail-fast modes.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-081-bd32880a5e2d73c0.json",
+          "sha256": "07d568a03562b3ec283b6b13370b1324d0bcf23e7a419ab8c06ce472444b25a3"
+        }
+      ],
+      "closure_reason": "The clean task harness at 3607aa8 passed the online dependency review, project and architecture checks, Python suite and Rust workspace tests. Only the cookie version and checksum changed among 484 Cargo package records. The production-catalog scheduling regression observed the advisory in the third position and ordinary verification continued after the simulated failure. The original failing report and its four logs were verified in the development archive. Product work resumes at M2-003."
     }
   ]
 }
