@@ -3447,6 +3447,21 @@
         "prevention": "An alternate caller Git directory exercises repository discovery. The protected staging regression observes both check durations and their difference. A separate run with a disposable caller checkout verified its branch reference and index were preserved."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "release-selection-omits-contract-checks",
+      "source": "Repository-wide review and direct comparison of the release selector with readiness bindings at bea74a5.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The 43-check release profile and its candidate verifier omit nine task-cadence obligations for workspace and decision records, indicators, local import, model connections and state migrations. A release run cannot supply this evidence to readiness.",
+      "task_ids": [
+        "M0-080"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

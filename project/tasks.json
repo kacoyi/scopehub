@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-080",
   "tasks": [
     {
       "id": "M0-001",
@@ -15837,6 +15837,119 @@
         }
       ],
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
+    },
+    {
+      "id": "M0-080",
+      "title": "Run and verify all checks required by the release contract",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-078"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/project.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The release profile selects its baseline and every check required by a release milestone, acceptance binding, product scenario or explicit release gate, including the nine obligations omitted on bea74a5.",
+        "A newly bound task-cadence check enters release selection automatically. Unbound task and later-only checks stay outside it, ordinary profiles retain their selection, and platform and implementation limits remain visible.",
+        "Candidate verification checks the same selection and authenticates the evidence for each required check. A candidate missing a required check or its evidence is rejected."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "A release run can gather all evidence required by readiness and expose any unavailable obligation to the candidate reviewer.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/project.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "tests/project/test_delivery.py",
+          "tests/project/test_ci_artifacts.py"
+        ],
+        "hypotheses": [
+          "The runner and retained-candidate verifier both filter out task cadence before consulting release obligations."
+        ],
+        "risks": [
+          {
+            "failure": "A task-only prerequisite, later-only check or retired check enters release or ordinary profiles.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new obligation is omitted, a platform or implementation limit passes unnoticed, or a candidate can list a check without proving its execution.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the selector and verifier change together. Preserve earlier diagnostics and rerun candidate verification after repair.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "tests/project/test_delivery.py",
+            "tests/project/test_ci_artifacts.py"
+          ],
+          "rules": [
+            {
+              "path": "project/checks.json",
+              "pointer": "/milestones"
+            },
+            {
+              "path": "project/checks.json",
+              "pointer": "/acceptance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scenarios"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy"
+            }
+          ],
+          "non_goals": [
+            "Implementing planned product checks, running packaged Windows acceptance, changing task cadence or granting release authorization."
+          ],
+          "open_questions": [
+            "Which task-cadence checks have a separately declared release obligation?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The default and named verification profiles, task selection, platform gating, release baseline and candidate evidence validation."
+          ],
+          "change": [
+            "Derive release selection once from versioned product obligations and use it at execution and candidate review."
+          ],
+          "data_plan": "Prior reports and receipts remain readable. Candidates lacking required evidence need a new release run. Product stores retain their existing formats.",
+          "cleanup": "Remove both copies of the cadence-only release selection."
+        }
+      },
+      "next_action": "Exercise each source of release obligations and verify candidate rejection when a required check or its evidence is missing.",
+      "blocker": null,
+      "evidence": [],
+      "closure_reason": null
     }
   ]
 }
