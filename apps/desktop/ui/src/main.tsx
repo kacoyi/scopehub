@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
+import { WorkbenchPrototype } from './workbench-prototype';
 import { ChartWorkspace } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, localImportErrorMessage, previewLocalImport, renderLocalImportMessage, type LocalImportMessage } from './local-import-transport';
@@ -21,6 +22,7 @@ function initialSource(): boolean {
 
 function App() {
   useLocale();
+  const [prototype, setPrototype] = useState(false);
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
   const [local, setLocal] = useState(false);
@@ -113,6 +115,7 @@ function App() {
   } : undefined;
 
   return <>
+    {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
       modelDialogOpen={Boolean(modelChatView)} openModelChat={selection => {
@@ -125,7 +128,7 @@ function App() {
       }}
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
-      retryRestoredSource={retry} onOpenSample={openSample}
+      retryRestoredSource={retry} onOpenSample={openSample} openPrototype={() => setPrototype(true)}
       chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });

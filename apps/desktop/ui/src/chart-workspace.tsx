@@ -73,13 +73,14 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
   revisionAccess: PublishedRevisionAccess;
   openPublished: (() => void) | undefined;
   restoredSource?: RestoredChartSource | undefined;
   restoredSampleInstrument?: string | undefined;
+  openPrototype: () => void;
   onOpenSample?: (() => void) | undefined;
   retryRestoredSource?: (() => void) | undefined;
   chooseSampleInstrument?: ((id: string) => Promise<void>) | undefined;
@@ -316,7 +317,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
       {localActions ? <LocalSourceButtons actions={localActions} /> : openPublished &&
         <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={openPublished}>{t('Open published CSV')}</button>}
       <p>{t('Explore three instruments with offline sample data.')}</p>
-      <button type="button" className="primary" onClick={openSample}>{t('Open offline sample')} <WorkspaceIcon name="arrow" /></button></PlotMessage>;
+      <button type="button" className="primary" onClick={openSample}>{t('Open offline sample')} <WorkspaceIcon name="arrow" /></button>
+      <button type="button" className="secondary-button" onClick={openPrototype}>{t('Open workbench prototype')}</button></PlotMessage>;
   } else if (sample && failure) {
     const catalogFailed = catalog.state === 'error';
     plot = <PlotMessage title={t(failure.message)} error>{failure.retryable && <button type="button" className="primary"
@@ -435,6 +437,9 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
             <span role="status" className="replay-status gap">{t('Replay gap. {reason}', { reason: replayGapReason(replayGap) })}</span>
             <ReplayGapDetails gap={replayGap} />
           </>}
+          {(sample || restoredSource) && <button type="button" className="secondary-button replay-button" onClick={openPrototype}>
+            {t('Open workbench prototype')}
+          </button>}
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Charts by TradingView Lightweight Charts™</a></footer>
         {acceptingIndicators && workspace && history && <details className="chart-indicators">
           <summary>{t('Indicators')}</summary>

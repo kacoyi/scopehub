@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-014",
   "tasks": [
     {
       "id": "M0-001",
@@ -4717,7 +4717,8 @@
       "milestone": "M2",
       "status": "planned",
       "depends_on": [
-        "M2-002"
+        "M2-002",
+        "M2-014"
       ],
       "scope": [
         "apps/desktop",
@@ -4738,13 +4739,85 @@
       "checks": [
         "architecture",
         "operations-workflow",
-        "workbench-renderer-probe"
+        "workbench-renderer-probe",
+        "market-workflow",
+        "ui-build"
       ],
       "evidence": [],
-      "next_action": "Start in the existing host with a blank workbench. Show a chart-free composition with a custom visual encoding of the same frozen synthetic series, break the draft and restore the last accepted view. Make this slice available for inspection as soon as it runs. Then exercise the native Ubuntu and Windows checks and compare the renderer alternative wherever it could change the choice. In parallel, review the staged Ubuntu native host against current main with M1-031. Bind the renderer decision to the same interaction in WebKitGTK and WebView2.",
+      "next_action": "Use the M2-014 interactive slice and its retained native observations. Exercise a binding to an accepted numeric series, measure comparable native interaction and redraw, review the staged Ubuntu host in M1-031 and compare the alternative wherever it could change the renderer choice.",
       "blocker": null,
       "closure_reason": null,
-      "delivery": "current-contract"
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "Open a blank chart-free prototype, compose a view of a frozen synthetic series, change its visual encoding and recover the accepted view after a rejected draft. Use matched native observations to decide the renderer.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/workspace-layout.tsx",
+          "crates/application/src/workspace/layout.rs",
+          "contracts/decisions/0027-v1-user-composed-workbench.json"
+        ],
+        "hypotheses": [
+          "A bounded host-interpreted composition can express the first custom encoding without executable content or additional access."
+        ],
+        "risks": [
+          {
+            "failure": "A failed draft replaces the accepted view, or an edited encoding loses its input identity.",
+            "checks": [
+              "workbench-renderer-probe"
+            ]
+          },
+          {
+            "failure": "A prototype control changes the existing workspace or acquires additional authority.",
+            "checks": [
+              "architecture",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "Browser observations obscure a native runtime difference.",
+            "checks": [
+              "workbench-renderer-probe"
+            ]
+          }
+        ],
+        "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/workspace-layout.tsx",
+            "crates/application/src/workspace/layout.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Persisting a new workspace format, connecting a market source or executing user-supplied code in this prototype."
+          ],
+          "open_questions": [
+            "Can both native engines present and recover the same composition with acceptable interaction latency? Which observed limitation warrants prototyping the alternative?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing chart startup, local workspace state and authorization through the registry."
+          ],
+          "change": [
+            "Expose a separate transient synthetic renderer experiment through the desktop UI."
+          ],
+          "data_plan": "Use a frozen synthetic series and transient draft and accepted values owned by the host. No profile migration.",
+          "cleanup": "Remove or replace the experimental controls when the renderer selection is resolved and the product workbench takes over."
+        }
+      }
     },
     {
       "id": "M0-020",
@@ -16881,6 +16954,115 @@
         }
       ],
       "closure_reason": "The clean task run on 9b642c9 passed with the original failing review base, including project validation and the full Python suite. Seven real review bases passed. Git integration regressions preserve the earlier acceptances and the ordered task receipts while rejecting changed or missing closures, unverified metadata, stale occurrences, candidate-declared history and ambiguous imports. Resume M2-003."
+    },
+    {
+      "id": "M2-014",
+      "title": "Exercise a chart-free synthetic workbench and recover its accepted composition",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-002"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0027"
+      ],
+      "acceptance": [
+        "Open the prototype from the desktop interface. Start blank, compose threshold tiles and a value table over the same identified frozen closes, change a threshold and its user-written label, and select the matching timestamp across both views.",
+        "Reject malformed or unsupported composition drafts, retain the accepted blocks and restore their definition. Returning to the chart preserves the underlying session.",
+        "Exercise the browser interaction on Linux and Windows and the hosted native WebView2 application on Windows. Retain a separate diagnostic for the staged WebKitGTK native host. Keep renderer selection, a persisted indicator binding and release acceptance with their existing tasks."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow",
+        "market-workflow",
+        "ui-build",
+        "renderer-prototype-interaction",
+        "desktop-localization"
+      ],
+      "evidence": [],
+      "next_action": "Verify the first composition through the desktop entry, record matched Linux and Windows task results, and return the renderer decision to M2-003.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "Open the prototype from the desktop interface. Start blank, compose threshold tiles and a value table over the same identified frozen closes, change a threshold and its user-written label, and select the matching timestamp across both views.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/workspace-layout.tsx",
+          "crates/application/src/workspace/layout.rs",
+          "contracts/decisions/0027-v1-user-composed-workbench.json"
+        ],
+        "hypotheses": [
+          "A bounded host-interpreted composition can express the first custom encoding without executable content or additional access."
+        ],
+        "risks": [
+          {
+            "failure": "A failed draft replaces the accepted view, or an edited encoding loses its input identity.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "A prototype control changes the existing workspace or acquires additional authority.",
+            "checks": [
+              "architecture",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "Browser observations obscure a native runtime difference.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          }
+        ],
+        "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "tests/ui/renderer-probe.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Persisting a new workspace format, connecting a market source or executing user-supplied code in this prototype."
+          ],
+          "open_questions": [
+            "Can the same draft, linked selection and recovery be exercised through an actual Windows application window on the hosted runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing chart startup, local workspace state and authorization through the registry."
+          ],
+          "change": [
+            "Expose a separate transient synthetic renderer experiment through the desktop UI."
+          ],
+          "data_plan": "Use a frozen synthetic series and transient draft and accepted values owned by the host. No profile migration.",
+          "cleanup": "Remove or replace the experimental controls when the renderer selection is resolved and the product workbench takes over."
+        }
+      }
     }
   ]
 }
