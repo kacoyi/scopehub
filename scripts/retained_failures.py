@@ -165,7 +165,7 @@ def retained_failure_view(root, reference, *, basis, detail=False, schema=None, 
     try:
         ordinary(directory.parent, directory=True)
         ordinary(directory, directory=True)
-        recent = nlargest(RUN_LIMIT, names())
+        recent = nlargest(RUN_LIMIT + 1, names())
     except FileNotFoundError:
         recent = []
     except (OSError, ValueError):
@@ -174,21 +174,21 @@ def retained_failure_view(root, reference, *, basis, detail=False, schema=None, 
     if isinstance(latest_run, str) and RUN_ID.fullmatch(latest_run) and not latest_seen:
         scan['unavailable'] += 1
         scan['unavailable_run_ids'].append(latest_run)
+    scan['first_omitted_run_id'] = recent.pop() if len(recent) > RUN_LIMIT else None
     scan['older_runs_omitted'] = count - len(recent)
     observations = []
     remaining = SCAN_BYTES
     for position, run in enumerate(recent):
-        if remaining <= 0:
-            scan['bytes_limited'] = True
-            scan['older_runs_omitted'] += len(recent) - position
-            break
         try:
+            if remaining <= 0:
+                raise ScanBudgetReached('Report scan budget exhausted')
             contents = retained_bytes(root, run, 'test-report.json', remaining)
             remaining -= len(contents)
             observations.append((run, *observed_checks(run, contents), contents))
             scan['originals_examined'] += 1
         except ScanBudgetReached:
             scan['bytes_limited'] = True
+            scan['first_omitted_run_id'] = run
             scan['older_runs_omitted'] += len(recent) - position
             break
         except (KeyError, TypeError, ValueError, AttributeError, OSError, RecursionError, OverflowError):
