@@ -81,7 +81,7 @@ function SeriesBlock({ block, selected, select }: {
 }
 
 export function WorkbenchPrototype({ close }: { close: () => void }) {
-  const [accepted, setAccepted] = useState(blank);
+  const [accepted, setAccepted] = useState({ composition: blank, text: encode(blank) });
   const [draft, setDraft] = useState(encode(blank));
   const [preview, setPreview] = useState<Composition>();
   const [error, setError] = useState<Message>();
@@ -110,14 +110,21 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
       if (parsed.blocks.length === maxBlocks) {
         setError(message('A composition supports up to {limit} blocks.', { limit: maxBlocks }));
         setPreview(undefined);
-      } else edit(encode({ ...parsed, blocks: [...parsed.blocks, block] }));
+      } else {
+        const next = encode({ ...parsed, blocks: [...parsed.blocks, block] });
+        if (next.length <= maxLength) edit(next);
+        else {
+          setError(message('Keep the draft within {limit} characters.', { limit: maxLength }));
+          setPreview(undefined);
+        }
+      }
     } else {
       setError(undefined);
       setPreview(parsed);
     }
   }
 
-  const visible = preview ?? accepted;
+  const visible = preview ?? accepted.composition;
   return <dialog className="probe" ref={dialog} aria-labelledby="probe-heading"
     onCancel={event => { event.preventDefault(); close(); }}>
     <header className="probe-header">
@@ -138,9 +145,9 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         <div className="probe-actions">
           <button type="button" className="primary" onClick={() => inspect()}>{t('Preview draft')}</button>
           <button type="button" disabled={!preview} onClick={() => {
-            if (preview) { setAccepted(preview); edit(encode(preview)); }
+            if (preview) { setAccepted({ composition: preview, text: draft }); setPreview(undefined); }
           }}>{t('Accept view')}</button>
-          <button type="button" onClick={() => edit(encode(accepted))}>{t('Restore accepted view')}</button>
+          <button type="button" onClick={() => edit(accepted.text)}>{t('Restore accepted view')}</button>
         </div>
         {error && <p role="alert">{t(error)}</p>}
       </div>

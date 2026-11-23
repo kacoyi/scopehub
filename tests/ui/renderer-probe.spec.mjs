@@ -63,3 +63,18 @@ test('compose from blank, preview a new arrangement, and recover the accepted fr
   await page.getByRole('button', { name: 'Back to chart' }).click();
   await expect(open).toBeVisible();
 });
+
+test('restore preserves the accepted author text including formatting', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open workbench prototype' }).click();
+  const draft = page.getByRole('textbox', { name: 'Composition JSON' });
+  const authored = '{ "version": 1, "blocks": [{"kind":"value-table"}] }';
+  await draft.fill(authored);
+  await page.getByRole('button', { name: 'Preview draft' }).click();
+  await page.getByRole('button', { name: 'Accept view' }).click();
+  await draft.fill('{');
+  await page.getByRole('button', { name: 'Preview draft' }).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await page.getByRole('button', { name: 'Restore accepted view' }).click();
+  await expect(draft).toHaveValue(authored);
+});

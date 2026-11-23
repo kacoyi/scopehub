@@ -21,8 +21,12 @@ const output = process.env.SCOPEHUB_RUN_DIR
   : (process.env.SCOPEHUB_RENDERER_PROBE_REPORT_DIR ??= resolve(root, '.reports', 'renderer-probe', randomUUID()));
 
 export default defineConfig({
-  testDir: '.', testMatch: 'renderer-probe.spec.mjs', workers: 1,
-  metadata: { scope: 'Chromium development-host interaction with the frozen synthetic renderer fixture.' },
+  testDir: '.', workers: 1,
+  projects: [
+    { name: 'Chromium', testMatch: 'renderer-probe.spec.mjs' },
+    ...(process.platform === 'win32' ? [{ name: 'Windows WebView2', testMatch: 'renderer-probe-windows.spec.mjs' }] : []),
+  ],
+  metadata: { scope: 'Frozen synthetic renderer interaction in Chromium and the native WebView2 host on Windows.' },
   outputDir: resolve(output, 'browser'),
   reporter: [['list'], ['json', { outputFile: resolve(output, 'results.json') }]],
   use: { baseURL, viewport: { width: 1366, height: 900 }, screenshot: 'only-on-failure' },
