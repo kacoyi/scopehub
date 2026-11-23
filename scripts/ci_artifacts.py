@@ -200,7 +200,7 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
     try:
         contents = bound_bytes(checked_path(reports, manifest_path), expected['manifest_sha256'] if expected else None)
         manifest = evidence_json(contents)
-        refs = hosted_candidate_manifest(manifest, source)
+        refs = hosted_candidate_manifest(manifest, source, require_owner=expected is not None)
         installer = manifest['installer']
         if expected is not None and installer['sha256'] != expected['installer_sha256']:
             raise PublicationError('Candidate installer differs from the checked release.')
@@ -233,7 +233,7 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
         (destination / manifest_path).write_bytes(contents)
     if expected is not None:
         # The downloaded layout must still pass the same validation as the original run.
-        release_artifacts(destination / run, source, policy, expected=expected)
+        release_artifacts(destination / run, source, policy, expected=expected, hosted=True)
 
 
 def stage_artifacts(root, destination, env):

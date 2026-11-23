@@ -718,6 +718,7 @@
               "observation_sha256"
             ],
             "properties": {
+              "observation_version": { "const": 2 },
               "kind": {
                 "enum": [
                   "ubuntu-workspace-observation",

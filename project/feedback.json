@@ -3596,32 +3596,52 @@
       "id": "native-field-observation-coverage",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding physical-workbench-observation",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T112037.433712Z-5c8a3fdc",
+          "source_commit": "b0919ec30f92169fe6740018a0f5b6bbe6615f9e",
+          "report_sha256": "b934c47409b0693be90dbf2cab774eab845f29d57233b1f8541b8807f242f853"
+        }
+      ],
       "observation": "Existing positive field-observation fixtures pass without dedicated Ubuntu native process and window identity or a physical Windows chart-free edit and reopen. The evolved field requirements need these observations.",
       "task_ids": [
-        "M1-012",
-        "M1-011"
+        "M0-082"
       ],
       "regression_checks": [
-        "ubuntu-workspace-observation",
-        "physical-windows-workspace"
+        "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The existing action lists covered earlier charts. The Ubuntu surface identified a generic graphical workspace and the Windows linkage accepted an Ubuntu receipt without a native host or a chart-free workflow version.",
+        "correction": "Require current observation version 2, the actual ScopeHub Ubuntu process and its window, Ubuntu and WebKitGTK versions, chart-free actions on both hosts and a matching versioned Ubuntu receipt for the physical Windows observation.",
+        "prevention": "Local and hosted negative fixtures exercise old actions, browser surfaces, missing host fields, mismatched process IDs, stale Ubuntu receipts, individual Windows actions and historical receipt and diagnostic reading. The genuine native journeys remain assigned to M1-012 and M1-011."
+      },
       "deferral_reason": null
     },
     {
       "id": "packaged-workbench-owner-observation",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding packaged-owner-evidence",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T112037.433712Z-5c8a3fdc",
+          "source_commit": "b0919ec30f92169fe6740018a0f5b6bbe6615f9e",
+          "report_sha256": "b934c47409b0693be90dbf2cab774eab845f29d57233b1f8541b8807f242f853"
+        }
+      ],
       "observation": "The release-artifact verifier and its positive hosted fixture accept a synthetic candidate without a bound owner workbench observation. The product release policy requires the candidate-specific feedback.",
       "task_ids": [
-        "M5-001"
+        "M0-082"
       ],
       "regression_checks": [
-        "release-artifacts"
+        "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The candidate manifest and acceptance paths bound the installer, OS observations, legal notices and performance, and omitted the required owner workbench trial.",
+        "correction": "Require an explicitly hands-on product-owner observation on the same commit, execution inputs and installer. Validate the observed blank construction, edit, refresh, reopening and feedback. Share an owner summary only when it is explicitly redacted.",
+        "prevention": "Local, hosted staging, downloaded-candidate and readiness fixtures reject missing, substituted, simulated, status-only and failed observations. Qualified partial artifacts and historical diagnostic bytes remain verifiable. Actual product review stays with M5-001."
+      },
       "deferral_reason": null
     },
     {
@@ -3706,6 +3726,58 @@
           "report_sha256": "1a7a9e6ba53ccb2377bb1d248207e4bde0bcb0d181a3b1b114d9bad62e1ba24b"
         }
       ]
+    },
+    {
+      "id": "native-field-local-notes-reach-hosted-artifacts",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T114415.377417Z-98b42a37",
+          "source_commit": "e88c665cacdf091a7def652d2b695d95879ffe35",
+          "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
+        }
+      ],
+      "source": "Independent review of the M0-082 hosted field staging and import path at 872f4b3 using synthetic records.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A field record with synthetic screenshots could publish an unlisted action and its free-text description. The screenshot declaration alone also permitted publishing a device-local note in a required action without a sharing declaration for the text.",
+      "task_ids": [
+        "M0-083"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The native publisher treated a synthetic screenshot declaration as sufficient for the entire record and accepted action names outside the versioned native action set.",
+        "correction": "Require an explicit redacted text sharing declaration alongside synthetic screenshot scope. Check only declared hosted action names before reading values or screenshots and use a fixed diagnostic. Leave private annotations with their local record.",
+        "prevention": "The synthetic regression runs local validation, native hosted validation, artifact staging and downloaded task import with unshared text in an expected action and with extra action names and contents. It verifies that none of the local-only data enters staged bytes or diagnostics and checks the packaged owner action boundary."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "future-manual-observation-counts-as-completed",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T114415.377417Z-98b42a37",
+          "source_commit": "e88c665cacdf091a7def652d2b695d95879ffe35",
+          "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
+        }
+      ],
+      "source": "Independent review of M0-082 at 872f4b3 using a synthetic packaged owner observation dated in 2999.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Local and hosted candidate verification accepted a future-dated owner review after the declared artifact digest was updated. The native field and installation checks likewise validated timezone syntax without checking whether the manual event had happened.",
+      "task_ids": [
+        "M0-083"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The native and candidate consumers parsed timezone-aware observation times without comparing them with the verifier clock.",
+        "correction": "Compare new manual observations with UTC at admission using a five-minute clock allowance. Validate native, packaged owner, Windows installation and supplied performance times with a fixed error for future observations.",
+        "prevention": "Regression tests bind a far-future observation to an otherwise valid candidate and exercise local and hosted validation and staging. Native tests cover zoned times inside and beyond the allowance, immediate rejection before screenshot reads and independent verification of original historical diagnostic bytes."
+      },
+      "deferral_reason": null
     }
   ]
 }

@@ -15,6 +15,26 @@ def task_by_id(ledger, task_id):
     return next(task for task in ledger['tasks'] if task['id'] == task_id)
 
 
+def ubuntu_test_host():
+    return {'os': 'Ubuntu', 'ubuntu_version': '24.04.3', 'webkitgtk_version': '2.50.2',
+            'process_name': 'scopehub-desktop', 'process_id': 123, 'window_id': '0x321', 'window_process_id': 123}
+
+
+def owner_workbench_fixture(identity, installer_sha256):
+    observations = {
+        'workbench-from-blank': 'The fixture note and disclosures appeared in a new chart-free view.',
+        'workbench-edit': 'Moving the note changed the arrangement.',
+        'workbench-refresh': 'A new matching disclosure appeared after the refresh.',
+        'workbench-reopen': 'The saved arrangement and its source binding reopened.',
+    }
+    return dict(identity, observation_version=2, kind='packaged-owner-workbench', installer_sha256=installer_sha256,
+                reviewer_role='product-owner', method='hands-on', operator='fixture-owner',
+                observed_at='2026-01-01T12:00:00Z', sharing_scope='redacted',
+                host={'family': 'Windows 11', 'product_type': 1, 'build': 22631, 'arch': 'x64', 'webview2': 'fixture'},
+                actions={name: {'status': 'passed', 'observed': outcome} for name, outcome in observations.items()},
+                feedback='The fixture owner could find the newest matching disclosure after reopening.')
+
+
 def records():
     def task(key, checks, dependencies=(), plan=False):
         value = {

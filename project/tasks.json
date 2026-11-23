@@ -16494,6 +16494,271 @@
           "cleanup": "Reuse the current harness, recovery and feedback entries. Keep archived observations distinguishable from actionable local diagnostics."
         }
       }
+    },
+    {
+      "id": "M0-082",
+      "title": "Qualify native workbench observations and the owner’s packaged candidate review",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-023"
+      ],
+      "scope": [
+        "scripts/verification_evidence.py",
+        "scripts/ci_artifacts.py",
+        "scripts/diagnostic_archive.py",
+        "contracts/schemas/project.schema.json",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "tests/project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0024",
+        "0027"
+      ],
+      "acceptance": [
+        "Current native observations identify their revision, execution inputs and actual host. Require the native Ubuntu Tauri process and window, Ubuntu and WebKitGTK versions and integrated chart-free actions. The physical Windows WebView2 check requires chart-free editing, scaling, selection, recovery and reopening on inputs accepted by a current Ubuntu observation.",
+        "Candidate acceptance verifies a versioned owner review on the exact source, inputs and installer, including starting blank, reshaping, refreshing and reopening the workbench. Missing, failed or substituted observations block acceptance locally and on hosted import. An authorized publication decision remains separate.",
+        "Keep historical receipts and diagnostics interpretable at their original scope. Preserve qualified failed candidate artifacts and stage only redacted evidence for hosted use. Synthetic fixtures exercise the verifiers while genuine field and owner trials remain with their product tasks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "Local and hosted acceptance reject incomplete native sessions and candidate packages that omit the owner’s observed workbench workflow.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_evidence.py",
+          "scripts/ci_artifacts.py",
+          "scripts/diagnostic_archive.py",
+          "project/checks.json",
+          "project/delivery.json",
+          "contracts/decisions/0024-native-ubuntu-development.json",
+          "contracts/decisions/0027-v1-user-composed-workbench.json",
+          "tests/project/test_delivery.py",
+          "tests/project/test_ci_artifacts.py"
+        ],
+        "hypotheses": [
+          "The same field and candidate validators already serve local checks and hosted intake; a versioned observation can close both gaps without changing product behavior.",
+          "Historical receipts preserve a digest of their original observations and can continue to describe those historical bytes while fresh acceptance requires the current version."
+        ],
+        "risks": [
+          {
+            "failure": "Historical browser or chart-only receipts acquire a native workbench claim, or valid historical diagnostics cannot be checked.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The owner’s review binds a different installer or is missing or incomplete, or malformed observations disclose private details on upload.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve existing receipts and original candidate diagnostics. Hold current acceptance if evidence validation fails and correct the reader before recording new trials.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_evidence.py",
+            "scripts/ci_artifacts.py",
+            "scripts/diagnostic_archive.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy/product_review"
+            },
+            {
+              "path": "contracts/decisions/0024-native-ubuntu-development.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0027-v1-user-composed-workbench.json",
+              "pointer": "/decision"
+            }
+          ],
+          "non_goals": [
+            "Implementing the renderer, running or claiming physical or owner acceptance, altering permissions or authorizing publication."
+          ],
+          "open_questions": [
+            "Can old diagnostics retain every original binding while new owner observations use the same archive layout?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Historical receipts and diagnostic integrity, retained partial candidate measurements, private evidence boundaries and release authorization."
+          ],
+          "change": [
+            "Version new evidence and bind the owner’s observed workbench outcomes to the exact candidate installer.",
+            "Check native host identity and chart-free actions whenever a new field observation is accepted."
+          ],
+          "data_plan": "Only development evidence changes. New observations require an explicit version. Existing product profiles, persistent record formats and historical evidence bytes stay intact.",
+          "cleanup": "Discard fixture-only inputs after the verification. Continue genuine native and packaged acceptance under M1-011, M1-012 and M5-001 and return the task focus to M2-003."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T112037.433712Z-5c8a3fdc",
+          "source_commit": "b0919ec30f92169fe6740018a0f5b6bbe6615f9e",
+          "report_sha256": "b934c47409b0693be90dbf2cab774eab845f29d57233b1f8541b8807f242f853"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-082-418a59a35f889e32.json",
+          "sha256": "3fde37bbf0263f778323c687ad95401bdc58f54da2f964fcd1343097e1b80da9"
+        },
+        {
+          "path": "project/evidence/M0-082-bd7866a5a71777f5.json",
+          "sha256": "2a65b116a7f2e63d7c9405e7815ef7bae3ef43e7e0151393396085da5aef1692"
+        }
+      ],
+      "closure_reason": "The clean task harness at 0381bd2 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic tests cover local and hosted acceptance, archival privacy, downloaded artifacts and release readiness. M1-012, M1-011 and M5-001 own the genuine field and owner trials. Product focus returns to M2-003."
+    },
+    {
+      "id": "M0-083",
+      "title": "Keep local field notes private and verify completed observation times",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-082"
+      ],
+      "scope": [
+        "scripts/verification_evidence.py",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "tests/project/test_ci_artifacts.py",
+        "tests/project/test_delivery.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0024",
+        "0027"
+      ],
+      "acceptance": [
+        "At hosted intake, require explicit sharing_scope=redacted for the observation text and screenshot_scope=synthetic for its screenshots. An unmarked or local summary stays on the device even when the screenshots are synthetic.",
+        "Reject undeclared action keys before inspecting their values or reading screenshots, using a fixed diagnostic. Keep local annotations available locally and verify the original historical diagnostic without giving it current hosted acceptance.",
+        "Exercise hosted field validation, publication and downloaded task evidence import with an unlisted local note and with private text in an otherwise valid action. Check the same action boundary for the packaged owner summary.",
+        "New native and candidate observations require real, timezone-aware completed times. Compare in UTC with a documented clock allowance and fixed diagnostics. Keep historical diagnostic bytes readable."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "Hosted workbench evidence requires an intentionally shared summary and synthetic screenshots. Current manual acceptance requires an observation that has already occurred within the documented clock allowance.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_evidence.py",
+          "scripts/ci_artifacts.py",
+          "scripts/project.py",
+          "scripts/diagnostic_archive.py",
+          "tests/project/test_ci_artifacts.py",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The publisher and importer both invoke the field validator. Validating the versioned action names and both sharing declarations there catches the two observed failures before file copies.",
+          "The existing time parser can distinguish a past observation from a future appointment at each new manual acceptance entry."
+        ],
+        "risks": [
+          {
+            "failure": "A private note, its field name or its contents reach artifacts or logs because its PNG was marked synthetic.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Restricting public records prevents private local annotations or historic diagnostic resolution.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A future appointment is accepted as a completed native or packaged trial, or a valid timezone offset or small clock difference blocks a real observation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the failing hosted evidence local and preserve the original diagnostic while correcting the admission check.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_evidence.py",
+            "scripts/ci_artifacts.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/checks.json",
+              "pointer": "/observation_evidence"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy/product_review"
+            }
+          ],
+          "non_goals": [
+            "Uploading private field materials, inferring or automatically redacting observation text, changing user permissions or providing actual native or product-owner acceptance."
+          ],
+          "open_questions": [
+            "Can the same action whitelist work before staging and after download while preserving local-only annotations?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Private field evidence on the original device, historical diagnostic integrity, exact packaged owner evidence and the renderer task focus."
+          ],
+          "change": [
+            "Require separate affirmative sharing declarations for native field text and screenshots. Reject undeclared hosted actions without echoing their names or values.",
+            "Check new manual native and packaged candidate timestamps against UTC with a five-minute allowance for clock differences."
+          ],
+          "data_plan": "This revision changes development evidence admission. Existing local notes remain readable and historical receipts retain their original scope.",
+          "cleanup": "Record the corrective task and restore M2-003 after binding the regression to the retained failure."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T114415.377417Z-98b42a37",
+          "source_commit": "e88c665cacdf091a7def652d2b695d95879ffe35",
+          "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-083-d877584fc660b52d.json",
+          "sha256": "0f58b1c6526e6f315dbd510709f9387d08313cd22cdb46afeb165d1c67bb1a65"
+        },
+        {
+          "path": "project/evidence/M0-083-bd7866a5a71777f5.json",
+          "sha256": "e06407ef70f19a77d68e6092f3e42fd73ec79337ffb204ea2251c227abf3aad8"
+        }
+      ],
+      "closure_reason": "The clean task harness at a066d05 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic regressions cover explicit text sharing, hosted allowlisted actions, local private annotations, downloaded import, UTC clock drift and rejection before artifact reads. Genuine product observations remain assigned to their existing tasks. Product focus returns to M2-003."
     }
   ]
 }

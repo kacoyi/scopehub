@@ -274,6 +274,16 @@ class DiagnosticArchiveTests(unittest.TestCase):
         result = resolve_diagnostic(locator, self.archive)
         self.assertEqual(result['recorded_status'], 'blocked')
         self.assertTrue(result['manifest_verified'])
+        historical = json.loads(manifest.read_bytes())
+        owner = retain('owner-workbench.json', b'{"actions":{}}')
+        manifest.write_bytes(json.dumps(dict(historical, owner_workbench=owner)).encode())
+        report['candidate_artifacts']['manifest_sha256'] = sha256(manifest.read_bytes())
+        _, locator = self.harness(report)
+        self.assertTrue(resolve_diagnostic(locator, self.archive)['manifest_verified'])
+        (candidate / owner['path']).write_bytes(b'changed owner observation')
+        with self.assertRaisesRegex(DiagnosticArchiveError, 'diagnostic bytes: candidate/owner-workbench.json'):
+            resolve_diagnostic(locator, self.archive)
+        (candidate / owner['path']).write_bytes(b'{"actions":{}}')
         (candidate / performance['path']).write_bytes(b'changed results')
         with self.assertRaisesRegex(DiagnosticArchiveError, 'diagnostic bytes: candidate/performance.json'):
             resolve_diagnostic(locator, self.archive)
