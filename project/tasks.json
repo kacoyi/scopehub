@@ -15100,6 +15100,117 @@
           "cleanup": "Keep the long-term goal in the UI contract and concrete design options in the existing proposal."
         }
       }
+    },
+    {
+      "id": "M0-072",
+      "title": "Define user control of workbench content and the cost of changing its implementation",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-061",
+        "M0-067"
+      ],
+      "scope": [
+        "engineering-contract-v1.json",
+        "AGENTS.md",
+        "project/development.json",
+        "project/checks.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0008",
+        "0016"
+      ],
+      "acceptance": [
+        "The workbench goal covers what users see, when it appears, how they present it and which authorized actions they attach. A chart-free example exercises this beyond arranging panels.",
+        "Initial engineering choices weigh current workflow fit against the cost of a future refactor or replacement. The rules protect saved work and permissions while leaving the host, renderer and workspace representation open to change.",
+        "The project brief and task context identify prospective product acceptance separately from implemented layouts and current release gates."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-072-e28a19bc375eddd6.json",
+          "sha256": "60158564e99b3bd6cfc14a1d8314bd7f26a6ac447cd46dad1bbb0d1dd89f1168"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The six local fast checks and independent read-only review passed at d355f5c. The brief and task context expose M2-013 as planned later work. Comparison against the base confirmed the first-release scope, release gates and protocol. The chart-free interaction awaits implementation and product verification.",
+      "plan": {
+        "outcome": "Future contributors can find the owner's product goal, the initial selection rule and an observable example without assuming a particular UI architecture.",
+        "change_types": ["tooling"],
+        "context": [
+          "engineering-contract-v1.json",
+          "project/development.json",
+          "contracts/reviews/2026-11-22-ai-workspace-canvas.json",
+          "crates/application/src/workspace/layout.rs"
+        ],
+        "hypotheses": [
+          "The current layout operations and evolution rules already cover edits and migrations. The missing decisions concern conditional information selection and how to choose a design before implementation."
+        ],
+        "risks": [
+          {
+            "failure": "A chart-free goal becomes a first-release gate or a fixed document format, or an empty display obscures unavailable data.",
+            "checks": ["project-state", "python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revise the policy and prospective acceptance together if product evidence changes the tradeoff.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "project/development.json", "project/tasks.json"],
+          "rules": [
+            {"path": "engineering-contract-v1.json", "pointer": "/ui/customization"},
+            {"path": "project/development.json", "pointer": "/quality/evolution"}
+          ],
+          "non_goals": ["Implementing a new renderer, granting source access or scheduling a product release."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["Current single-chart commitments, supported saved layouts, existing grants and accepted decisions."],
+          "change": ["Specify a user-defined information view and make future change cost explicit at initial design time."],
+          "data_plan": "Describe future verification with local synthetic records. The contract edit writes no product data.",
+          "cleanup": "Use the existing capability and task views. Restore the native desktop delivery focus after verification."
+        }
+      }
+    },
+    {
+      "id": "M2-013",
+      "title": "Compose a chart-free workbench that shows disclosures since a selected research note",
+      "milestone": "M2",
+      "status": "planned",
+      "delivery": "later",
+      "depends_on": [
+        "M2-002"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "tests"
+      ],
+      "decision_refs": [
+        "0007",
+        "0008",
+        "0016"
+      ],
+      "acceptance": [
+        "Starting from a blank workbench, use the ordinary editing controls to place a selected local note beside matching disclosures. Choose its issuer and use the note's review time as a cutoff. A selection opens the attributed original within current rights. Save the composition without a chart.",
+        "Use a synthetic note about issuer A reviewed at 09:00 UTC. Of disclosures on that date for A at 08:55, B at 09:05 and A at 09:10 UTC, show only the 09:10 item. On refresh, include a new A item at 09:20. A scoped AI edit puts the newest match first; preview, apply, adjust manually, undo and reopen the saved view. Check the ordering, cutoff and evidence identities after each edit.",
+        "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent."
+      ],
+      "checks": [
+        "chart-free-workbench",
+        "workspace-layout"
+      ],
+      "evidence": [],
+      "next_action": "Use local synthetic disclosures and a selected synthetic note to compare ways to express the user's rule. Choose the best fit for this interaction and assess the cost of replacing it with saved workspaces in use.",
+      "blocker": null,
+      "closure_reason": null
     }
   ]
 }

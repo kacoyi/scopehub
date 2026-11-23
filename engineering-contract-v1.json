@@ -19,7 +19,7 @@
     "unknowns": "Do not guess credentials, provider permissions, commercial licenses, or security capabilities; use an explicit blocked status or a simulated implementation",
     "changes": "The development AI owns technical planning and implementation. Record consequential language, process, protocol or architecture changes in an ADR. Consult the owner for unresolved product behavior/scope, user-data consequences, costs, external transmission or permission changes; reuse existing authorization. Technical choices preserving these commitments do not require the owner to select an implementation.",
     "evolution": {
-      "objective": "Keep the cost of modifying a workflow, rewriting a module or retiring a capability low over the life of the product. Reconsider current designs when user experience, a better alternative or engineering evidence changes the tradeoff. Protect the commitments that still apply to users, their saved work and their permissions.",
+      "objective": "Choose the implementation that best serves the current workflow. From the first design, weigh the cost of a later refactor, rewrite or removal alongside usability, correctness, performance and the cost of building and maintaining it today. Revisit the host, renderer, saved workspace representation or wider architecture when experience or a better alternative changes that balance. Protect users' saved work and permissions through the transition.",
       "rules": {
         "path": "project/development.json",
         "pointer": "/quality/evolution"
@@ -56,7 +56,8 @@
       "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
       "Choose features and architectural complexity for demonstrated collaboration needs; avoid unnecessary features and speculative infrastructure.",
       "Keep workflows, modules, and implementation choices open to revision, replacement, and removal.",
-      "Chart analysis and indicator previews are the first delivery scenario, not the permanent boundary of the product."
+      "Chart analysis and indicator previews are the first delivery scenario, not the permanent boundary of the product.",
+      "Users decide what information appears across their workbench, when it appears and how they can inspect or act on it within their granted capabilities. Apply the long-term design goal under /ui/customization."
     ],
     "resource_policy": "Responsiveness and stability are quality goals. Evaluate memory, package size, and runtime cost against useful capabilities and actual workloads; a lightweight footprint is not a mandatory product objective.",
     "collaboration_model": {
@@ -1444,7 +1445,8 @@
     "security": "Render model text as plain text or restricted Markdown with raw HTML disabled; prohibit dynamically generated scripts",
     "licenses": "Include third-party licenses and NOTICE in releases; verify chart library attribution requirements and do not remove branding notices by default",
     "customization": {
-      "design_goal": "The long-term goal is a desktop workbench whose entire visual design belongs to its user. The user can ask the embedded AI to redraw any detail or the whole canvas from a description, a selected screenshot or a reference URL, then continue editing directly. TradingView and OpenBB guide the defaults. A user can discard the original divisions, position visual content freely and present the data and actions available to them in a different form. The current single-chart delivery is specified under extensibility.",
+      "design_goal": "Users can reshape the entire workbench. They can start with a blank canvas, replace the default regions or refine a single detail. They choose which available facts, calculations and actions to bring together, the conditions under which they appear, their visual form and what happens on selection. A workbench can consist entirely of text, evidence and actions. Users can edit directly or ask the embedded AI to make a change from a description, a selected screenshot or a reference URL, then refine the result by hand. TradingView and OpenBB guide the defaults. The current single-chart delivery is specified under extensibility.",
+      "content_rules": "Retain the user's choices of content, filtering, grouping, ordering and interactions so they apply when the underlying information changes. A successfully checked source with no matches may leave the canvas empty. If missing inputs, stale coverage or lost access prevent a reliable answer, make that condition distinguishable from an empty result. Views reference independently owned source records, indicator results and research notes. Keep evidence inspectable within current rights. Every bound action uses the ordinary operation and confirmation rules.",
       "panels": "Let users move, resize, dock, tab and show or hide whole chart, watchlist, data inspection, AI and activity panels. Keep axes, crosshair and zoom inside the chart. Offer light and dark themes and selectable rising/falling colors with accessible state cues.",
       "links": "Support optional panel selection groups, using Koyfin dashboards as a secondary reference for that interaction. Selecting an instrument or time range updates linked panels and leaves an independent comparison pinned.",
       "editing": "Direct manipulation, AI requests and user-authored layout definitions edit the same versioned panel settings, data bindings and allowed interaction mappings. Preview changes, save named layouts, restore a previous layout or return to the default. Keep source status, operation visibility and confirmation controls reachable in custom layouts.",
