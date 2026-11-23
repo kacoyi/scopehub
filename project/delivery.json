@@ -14,17 +14,18 @@
     "start": [
       "Read project:status and project:context; inspect existing changes before editing.",
       "Choose one observable slice; state the outcome, relevant hypotheses, failure risks, verification and recovery before activating it.",
-      "Use project:doctor and check:fast to expose environment and contract defects before expensive work.",
+      "Start with the smallest test or runnable example that answers the current uncertainty. Use project:doctor for environment faults, project:impact for the affected scope and check:fast when broader early feedback is useful.",
       "Inspect project/dependencies.json maintenance.next_review_by and advisory expiry when starting active development. If due, add a bounded maintenance task; fresh known-advisory checks run at every integration. No unattended background repair or automatic merge is implied."
     ],
     "during": [
       "Validate the most consequential unknown first with a fixture, experiment or failing regression.",
-      "Inspect actual behavior against the intended outcome; passing builds do not establish usability.",
+      "Make the first working product interaction available for inspection as soon as it runs. Record the revision and time of an observed demonstration and continue independent work during hosted verification. Owner feedback and engineering verification have separate records.",
       "When new evidence contradicts a plan, record feedback and adjust unfinished work or add a successor task.",
       "Repeat checks after relevant changes, failures or new evidence; avoid retries without a changed hypothesis."
     ],
     "finish": [
-      "Run local fast and affected checks; archive all required task evidence from local or matching hosted verification before marking work done. Do not duplicate expensive hosted checks locally without a debugging need.",
+      "Cover the affected behavior and every required task check on the final execution inputs. Use check:changed, check --task <id> or matching hosted evidence according to coverage. Run an overlapping profile when it adds coverage or helps diagnose a failure. Archive accepted task evidence before completion.",
+      "Match verification depth to the failure consequences. Financial calculations need independently expected values, authorization and native isolation need boundary and failure cases, and persistent changes need migration and recovery. Verify protocol compatibility and changes to the verification machinery through their existing protected checks.",
       "Review changed files and accepted history; retain a concrete next action and current focus.",
       "Report tested behavior, unresolved blockers and the difference between mock, native-runtime and release evidence.",
       "Run release-cadence checks at the actual release boundary or through an affected task; normal changes retain a short deterministic feedback loop.",
@@ -770,7 +771,7 @@
   },
   "source_control": {
     "checkpoint": [
-      "Start a short-lived branch from a reviewed, current main for an independently verifiable outcome or a concurrent writer. Continue on the same branch and pull request for related fixes and acceptance. Name the dependency and integration order when a stacked branch is genuinely required.",
+      "Deliver one observable outcome per short-lived branch and pull request. Keep its contract, implementation, regression and related fixes together in reviewable commits. Start from reviewed current main and name the dependency and integration order for a stacked delivery.",
       "Make a coherent local commit after a meaningful validated outcome, before a risky experiment, and at handoff. Inspect the diff and include only intended project files.",
       "Use a task branch such as codex/<outcome>. For a recognized narrow change, run its selected checks locally. For a change requiring full CI, run the affected tests locally and use the protected jobs for the complete cross-platform suite. Complete the task's required checks with local or matching hosted evidence before marking it done. Retain unresolved failures explicitly in recovery checkpoints.",
       "Use project:checkpoint to inspect the commit, dirty files, locally known upstream distance, current fast checks and slowest checks. It does not fetch or prove remote synchronization.",
@@ -818,6 +819,7 @@
       "Use recorded check durations and job queue time to find the bottleneck. Cache pnpm, uv and Cargo dependencies and build outputs by platform, toolchain and lockfiles; caches never count as test evidence.",
       "Use project:checkpoint for the current checkout and project:timing for retained timing observations. Use project:timing --run <id> or --recent for explicit Actions inspection with pinned official gh and fetch only compact timing artifacts. Save observations under .reports/timing or in the development archive for offline review. Queue spans run creation to job start on the first attempt. Setup, harness step and tail partition the completed job when timestamps are present. Workflow elapsed ends at the last verification job; runner work sums job spans. Summed check durations can overlap and never substitute for elapsed time.",
       "For a new or materially slower required check, record representative before and after elapsed time and runner work, assign the existing implementation or corrective task, and choose scope and cadence against the accepted risk. Preserve required coverage or review its replacement with equivalent evidence. Use normal runs and targeted measurements without duplicating full CI for routine changes.",
+      "Use the generated-contracts comparison in project:timing to observe repeated PR and main work when both successful jobs have matching merge inputs, scope, platform, command and tools. Missing observations stay unknown. Both jobs execute and supply their own results.",
       "When repeated runs exceed the objective, split independent checks into jobs, isolate long stability work, and add measured task-specific selection. Preserve a required aggregate result and explicit coverage of omitted checks.",
       "Keep generated-contract, architecture, task-state and relevant regressions early. Add scheduled validation or paid/self-hosted runners only when an observed need justifies the recurring resource use.",
       "Capability discovery for ci.run returned UNAVAILABLE on 2026-10-14. Use the existing repository GitHub Actions workflow as the explicit fallback; retry discovery if shared CI requirements change."
@@ -849,7 +851,7 @@
       "Reproduce the smallest failing behavior and classify the cause as product defect, scaffold defect, environment issue, incorrect expectation or concrete capability gap. A missing executable is not evidence that source code is wrong; a passing suite is not evidence against an observed defect.",
       "Keep a routine repair within the active task. For consequential new scope, create a corrective task with a plan, record feedback, preserve the interrupted task and next action, and switch focus. Do not rewrite completed task definitions or accepted decisions.",
       "Use a failing regression, contract vector, minimal fixture or bounded experiment to capture the intended behavior before fixing it. Reuse, extend, replace or remove a component according to the concrete need and lifetime cost; register new implemented checks and their scenario or change-type bindings.",
-      "Make the smallest demonstrable repair, run fast and affected checks, and revise the hypothesis when evidence contradicts it. Two attempts with the same failure and unchanged evidence trigger a smaller reproduction or comparison with a reviewed checkpoint, not another identical retry.",
+      "Make the smallest demonstrable repair and run the regression through the affected entry point. Use the broader checks appropriate to its scope and revise the hypothesis when evidence contradicts it. Two failures with the same evidence trigger a smaller reproduction or comparison with a reviewed checkpoint.",
       "Restore normal project validation and required integration checks, archive matching task evidence, close consequential feedback with cause/correction/prevention, then restore focus and resume the interrupted task when unblocked. Preserve unresolved blockers and continue independent work."
     ],
     "guardrails": [
@@ -875,6 +877,7 @@
         "actions": [
           "Use the weekly Review verification timing workflow or pnpm project:timing when due. The read-only hosted job examines up to twelve completed ordinary runs per event and publishes a summary and compact archive. Review passing local fast and completed successful first-attempt PR and main workflows separately by selected profile, platform, runner, Cargo cache observation and exact selected check outcomes. Warm means exact archive restoration, partial means a matched prefix restored, not_restored means an attempted restore reported no matched archive, not_requested means the reviewed task skipped restoration, and unknown means unavailable observations. A missing match can also follow a service or extraction error. Reserve cold for an independently observed empty build target. Build reuse depends on the restored contents and current inputs.",
           "Investigate two objective breaches among the latest three comparable runs, or a median increase of at least 60 seconds and 15 percent between consecutive sets of three comparable runs, even under budget. Compare individual stages and slow checks, record the source and coverage, and assign a corrective task for persistent regressions. Investigate a single outlier and collect more observations without a timing gate. Record missing or changed coverage and start a comparable baseline before making a speed claim.",
+          "For comparable product slices, compare median time from work start to the first observed usable interaction and from PR creation to verified main. Record missing observations explicitly. Review first-attempt failures, retries and defects found after merge alongside elapsed time before changing coverage or cadence.",
           "Apply the elapsed objective across coverage changes within the same feedback scope. Review added and removed checks and compare the latest median to a stable faster three-run window when recent scope expansion follows an improvement. Record missing compact history, keep incomplete and release or task runs available as diagnostics, and advance the review date after recording findings and follow-up.",
           "The 2026-11-21 baseline review found repeated Windows overruns and substantial setup and harness costs across three retained PR and main pairs. M0-046 owns the first repair and its comparable follow-up. Continue retaining the paired platform observations and review again by 2026-11-28."
         ]

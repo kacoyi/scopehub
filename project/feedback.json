@@ -3409,6 +3409,21 @@
         "prevention": "The project regression exercises a repeated local fixture with independent depth and total-expansion budgets and verifies one disk read. The full task report passed on 84eff57."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verification-feedback-repeated-work",
+      "source": "Owner observation of a 3h51m delivery and protected workflow 45118576843 / main workflow 45121572762 for PR 52.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Three real-Git verification-scope regressions launched 430 Git processes on Ubuntu. The Windows Python suite is a major component of the protected feedback path. Existing iteration instructions also prescribe overlapping local checks.",
+      "task_ids": [
+        "M0-078"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
