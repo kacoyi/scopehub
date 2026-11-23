@@ -35,3 +35,35 @@ test('translates owned folder review details and preserves opaque source details
     ...details.slice(7),
   ]);
 });
+
+test('translates native source declaration errors with their code and their unmodified source values', async ({ page }) => {
+  await page.goto('/');
+  const cases = [
+    ['calendar_id', 'calendar id', '日历 ID'], ['daily_start_time', 'daily start time', '每日开始时间'],
+    ['instrument_kind', 'instrument kind', '品种类型'], ['record_kind', 'record kind', '记录类型'],
+    ['roll_method', 'roll method', '换月方法'], ['session_scope', 'session scope', '交易时段范围'],
+    ['timestamp_convention', 'timestamp convention', '时间戳约定'], ['timestamp_format', 'timestamp format', '时间戳格式'],
+    ['trading_day_format', 'trading day format', '交易日格式'],
+  ];
+  const observed = await page.evaluate(async cases => {
+    const { setLocalePreference } = await import('/src/i18n/index.ts');
+    const { folderRefreshFileDetail, localCsvAuxiliaryRole, localImportErrorMessage, renderLocalImportMessage } =
+      await import('/src/local-import-transport.ts');
+    const collect = locale => {
+      setLocalePreference(locale);
+      return cases.map(([code, field]) => {
+        const message = "Review CSV record 2. The source " + field + " is 'SOURCE'. The reviewed value is 'Reviewed'. Review the mapping.";
+        const error = { code: 'DATA_UNAVAILABLE', message, details: { reason: 'csv_review_required', issue_code: code + '_mismatch' } };
+        return [renderLocalImportMessage(localImportErrorMessage(error)), folderRefreshFileDetail(message), localCsvAuxiliaryRole('declared ' + field)];
+      });
+    };
+    return { english: collect('en'), chinese: collect('zh-Hans') };
+  }, cases);
+  for (const [index, [, field, label]] of cases.entries()) {
+    const english = "Review CSV record 2. The source " + field + " is 'SOURCE'. The reviewed value is 'Reviewed'. Review the mapping.";
+    const chineseLabel = label.endsWith(' ID') ? label + ' ' : label;
+    const chinese = "请核对第 2 条 CSV 记录。源数据的" + chineseLabel + "为 'SOURCE'，已核对的值为 'Reviewed'。请检查映射。";
+    expect(observed.english[index]).toEqual([english, english, 'declared ' + field]);
+    expect(observed.chinese[index]).toEqual([chinese, chinese, '声明的' + label]);
+  }
+});

@@ -80,6 +80,16 @@ class NativeCsvDeclarationTests(unittest.TestCase):
                     check_complete_csv(source([*HEADER, field], [*ROW, identifier.swapcase()]), mapping)
                 self.assertEqual(failure.exception.issue['field'], field)
 
+    def test_source_date_format_literals_remain_significant(self):
+        field = 'trading_day_format'
+        literal = FUTURES_MAPPING[field] + ' '
+        with self.assertRaises(CsvReviewRequired):
+            check_complete_csv(source([*HEADER, field], [*ROW, literal]), FUTURES_MAPPING)
+        row = list(ROW)
+        row[2] += ' '
+        own = check_complete_csv(source([*HEADER, field], [*row, literal]), {**FUTURES_MAPPING, field: literal})
+        self.assertEqual(own['bars'][0]['bar']['trading_day'], '2024-07-22')
+
     def test_date_only_civil_clock_and_effective_roll_are_conditional(self):
         row = [*ROW[:1], '20240719', *ROW[2:]]
         for equal in ['09:30', '09:30:00', '09:30:00.000']:
@@ -105,11 +115,11 @@ class NativeCsvDeclarationTests(unittest.TestCase):
             header[header.index(columns[field])] = name
             columns[field] = name
         mapping = {**FUTURES_MAPPING, 'columns': columns}
-        extra = ['Calendar ID', 'vendor.calendar_id', 'revision', 'encoding', 'delimiter']
-        content = source([*header, *extra], [*ROW, FUTURES_MAPPING['calendar_id'], 'opaque calendar', '2024', 'VendorLabel', 'semicolon'])
+        extra = ['Calendar ID', 'vendor.calendar_id', 'time.zone', 'revision', 'encoding', 'delimiter']
+        content = source([*header, *extra], [*ROW, FUTURES_MAPPING['calendar_id'], 'opaque calendar', 'custom property', '2024', 'VendorLabel', 'semicolon'])
         preview = preview_csv(content, mapping)
         self.assertEqual({item['column'] for item in preview['raw_only_columns']}, {'Settlement', 'OpenInterest', *extra})
-        self.assertEqual(preview['rows'][0]['raw_fields'][-4:], ['opaque calendar', '2024', 'VendorLabel', 'semicolon'])
+        self.assertEqual(preview['rows'][0]['raw_fields'][-5:], ['opaque calendar', 'custom property', '2024', 'VendorLabel', 'semicolon'])
         checked = check_complete_csv(content, mapping)
         self.assertEqual(checked['symbol'], 'DEMO2609')
         self.assertEqual(checked['bars'][0]['bar']['close'], 102)

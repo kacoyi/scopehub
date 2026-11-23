@@ -1134,8 +1134,16 @@ base('rejects a late source declaration conflict before publishing a native CSV 
   try {
     await mkdir(folder, { mode: 0o700 });
     await mkdir(profile, { mode: 0o700 });
-    const header = [...future.header, 'timeframe', 'timezone', 'volume_semantics'];
-    const reviewed = ['5m', 'Asia/Shanghai', 'per_bar'];
+    const cases = [
+      ['timeframe', '5m', '1m'], ['timezone', 'Asia/Shanghai', 'UTC'], ['volume_semantics', 'per_bar', 'cumulative'],
+      ['timestamp_convention', 'bar_start', 'bar_end'], ['calendar_id', future.settings.calendar_id, 'cash-only'],
+      ['session_scope', future.settings.session_scope, 'day'], ['instrument_kind', 'dated_future', 'equity'],
+      ['record_kind', 'native_ohlcv', 'quote_snapshot'], ['roll_method', '', 'front-month'],
+      ['timestamp_format', future.settings.timestamp_format, '%Y-%m-%d %H:%S'],
+      ['trading_day_format', future.settings.trading_day_format, '%Y-%d-%m'],
+    ];
+    const header = [...future.header, ...cases.map(([field]) => field)];
+    const reviewed = cases.map(([, expected]) => expected);
     const writeSource = async declarations => {
       const rows = [header, [...future.rows[0], ...reviewed], [...future.rows[1], ...declarations]];
       const csv = rows.map(fields => fields.join(',')).join('\n') + '\n';
@@ -1164,7 +1172,7 @@ base('rejects a late source declaration conflict before publishing a native CSV 
     const read = () => run('market.readLocalImportRevision', { revision_id: revision.revision_id });
     const accepted = await read();
     expect(accepted.result.bars[1].bar).toMatchObject({ time_ms: Date.parse(future.times[1]), volume: 37 });
-    for (const [index, value, field] of [[0, '1m', 'timeframe'], [1, 'UTC', 'timezone'], [2, 'cumulative', 'volume_semantics']]) {
+    for (const [index, [field, , value]] of cases.entries()) {
       const declarations = [...reviewed];
       declarations[index] = value;
       const amended = { ...file, expected_sha256: await writeSource(declarations) };
@@ -1178,6 +1186,10 @@ base('rejects a late source declaration conflict before publishing a native CSV 
           locator: { record_number: 2, line_start: 3, line_end: 3 } },
       });
       expect(rejected.error.message).toContain("'" + value + "'");
+      const full = await run('market.previewLocalImport', { ...amended, mapping, row_limit: 2 });
+      const last = full.result.preview.rows[1];
+      expect(last).toMatchObject({ normalized: null, record_number: 2, issues: [{ field, code: field + '_mismatch' }] });
+      expect(last.raw_fields.at(future.header.length + index)).toBe(value);
     }
     const { result: listed } = await run('market.listLocalImportRevisions', { after_revision_id: null, limit: 8 });
     expect(listed.revisions.map(item => item.revision_id)).toEqual([revision.revision_id]);
@@ -1200,10 +1212,15 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
   try {
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
-    const row = (close, { unit = 'shares', adjustment = 'raw', timeframe = '1d', timezone = 'Asia/Shanghai', volume = 'per_bar' } = {}) => [
-      '000731', '2026-04-14', '4', '8', '3', String(close), '20', unit, adjustment, timeframe, timezone, volume,
+    const declarations = {
+      quantity_unit: 'shares', price_adjustment: 'raw', timeframe: '1d', timezone: 'Asia/Shanghai', volume_semantics: 'per_bar',
+      timestamp_convention: 'bar_start', calendar_id: equity.settings.calendar_id, session_scope: 'day', instrument_kind: 'equity',
+      daily_start_time: '09:30', record_kind: 'native_ohlcv', roll_method: '',
+    };
+    const row = (close, changes = {}) => [
+      '000731', '2026-04-14', '4', '8', '3', String(close), '20', ...Object.values({ ...declarations, ...changes }),
     ];
-    const header = [...equity.header, 'quantity_unit', 'price_adjustment', 'timeframe', 'timezone', 'volume_semantics'];
+    const header = [...equity.header, ...Object.keys(declarations)];
     const csv = (...rows) => [header, ...rows].map(fields => fields.join(',')).join('\n') + '\n';
     await writeFile(join(folder, 'daily.csv'), csv(row(5)));
 
@@ -1238,9 +1255,12 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
 
     const conflictingFiles = [
-      ['lots.csv', { unit: 'lots' }], ['adjusted.csv', { adjustment: 'split_adjusted' }],
+      ['lots.csv', { quantity_unit: 'lots' }], ['adjusted.csv', { price_adjustment: 'split_adjusted' }],
       ['minute.csv', { timeframe: '1m' }], ['utc.csv', { timezone: 'UTC' }],
-      ['cumulative.csv', { volume: 'cumulative' }],
+      ['cumulative.csv', { volume_semantics: 'cumulative' }], ['bar-end.csv', { timestamp_convention: 'bar_end' }],
+      ['calendar.csv', { calendar_id: 'futures-calendar' }], ['session.csv', { session_scope: 'night' }],
+      ['kind.csv', { instrument_kind: 'dated_future' }], ['clock.csv', { daily_start_time: '09:31' }],
+      ['snapshot.csv', { record_kind: 'quote_snapshot' }], ['roll.csv', { roll_method: 'back-adjusted' }],
     ];
     for (const [name, declarations] of conflictingFiles) {
       await writeFile(join(folder, name), csv(row(5, declarations)));
