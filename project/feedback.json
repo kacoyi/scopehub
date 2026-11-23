@@ -3428,6 +3428,25 @@
         "prevention": "The same synchronize, pull request and push scenarios ran three times per revision on Linux. Git invocations via PATH fell from 162 to 76, 136 to 75 and 132 to 61 respectively. Added real repositories cover tag substitution, an extra merge parent and a tracked HEAD path. The ordinary protected run now retains per-case Python timings. Weekly review pairs speed with failures, retries and post-merge defects."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verification-timing-fixture-isolation-and-publication",
+      "source": "Independent M0-078 review of 8bf926a..41c60a8 before protected CI.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A Git directory inherited from the caller could redirect the new timing fixture outside its temporary repository. The first positive comparison also started from a synthetic report that failed the hosted publication schema.",
+      "task_ids": [
+        "M0-078"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The fixture chose a working directory but inherited Git environment overrides. Its compact sample test entered after hosted provenance and schema validation.",
+        "correction": "Isolate the Git environment for synthetic timing and publication repositories. Stage schema-valid reports, named logs and distinct real merge commits through the ordinary Actions artifact entry point before comparing the resulting PR and main samples.",
+        "prevention": "An alternate caller Git directory exercises repository discovery. The protected staging regression observes both check durations and their difference. A separate run with a disposable caller checkout verified its branch reference and index were preserved."
+      },
+      "deferral_reason": null
     }
   ]
 }

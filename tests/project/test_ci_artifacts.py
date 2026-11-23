@@ -12,15 +12,16 @@ import sys
 import tempfile
 from unittest.mock import patch
 
-from scripts import check_chart_history, ci_artifacts, verification_evidence
-from scripts.check import PRIVATE_CHECK_LOGS, redacted_check_log
+from scripts import check_chart_history, ci_artifacts, timing, verification_evidence
+from scripts.check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
 from scripts.ci_artifacts import SCOPE_FILE, PublicationError, prepare_reports, stage_artifacts
 from scripts.diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic
-from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, verified_candidate_files
+from scripts.project import ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, read_json, source_identity, verified_candidate_files
 from scripts.verification_evidence import FIELD_ACTIONS, collect_session, field_observation, integration_validation, release_artifacts
 from tests.contracts.test_qualification import observed_case
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
+from tests.project.test_timing import hosted_job, hosted_run
 
 
 class PublicationTests(ProjectFixture):
@@ -46,7 +47,7 @@ class PublicationTests(ProjectFixture):
         for relative in ['test-report.json', 'runs/fixture/test-report.json']:
             self.write(relative, json_bytes(report))
 
-    def add_catalog_checks(self, *checks):
+    def add_catalog_checks(self, *checks, command=None):
         path = self.root / 'project/checks.json'
         catalog = read_json(path)
         for check_id in checks:
@@ -55,7 +56,7 @@ class PublicationTests(ProjectFixture):
                 check = {'id': check_id, 'purpose': 'Synthetic verification fixture.', 'platforms': 'all',
                          'cadence': 'change', 'timeout_seconds': 10}
                 catalog['checks'].append(check)
-            check.update(status='implemented', command=['synthetic-check'])
+            check.update(status='implemented', command=command or ['synthetic-check'])
         catalog['required_change_checks'] = [
             check['id'] for check in catalog['checks']
             if check['status'] == 'implemented' and check.get('cadence', 'change') == 'change'
@@ -164,11 +165,51 @@ class PublicationTests(ProjectFixture):
         self.assertNotIn(self.sentinel.decode().strip(), summary_text)
         self.assertFalse((Path(outputs['path']) / SCOPE_FILE).exists())
 
-    def scope_env(self, *, profile='full', reason='change_requires_full', count=1):
-        decision = {'profile': profile, 'reason_code': reason, 'base': 'b' * 40,
+    def scope_env(self, *, profile='full', reason='change_requires_full', count=1, base='b' * 40):
+        decision = {'profile': profile, 'reason_code': reason, 'base': base,
                     'checkout': self.env['GITHUB_SHA'], 'change_count': count}
         return {**self.env, 'SCOPEHUB_SCOPE_OUTCOME': 'success', 'SCOPEHUB_SCOPE_PROFILE': profile,
                 'SCOPEHUB_SCOPE_BASE': decision['base'], 'SCOPEHUB_SCOPE_DECISION': json.dumps(decision)}
+
+    def test_protected_staging_produces_comparable_pr_and_main_samples(self):
+        command = ['{python}', 'scripts/generate_contracts.py', '--check']
+        self.add_catalog_checks('generated-contracts', command=command)
+        report = self.hosted_report()
+        base = self.env['GITHUB_SHA']
+        tree = self.git('rev-parse', 'HEAD^{tree}')
+        author = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid']
+        head = self.git(*author, 'commit-tree', tree, '-p', base, '-m', 'topic')
+        self.add_result(report, 'generated-contracts')
+        generator = report['checks'][-1]
+        generator['command'] = [sys.executable, *command[1:]]
+        report['environment']['python'] = '3.12.10'
+        report.update(generated_at='2026-11-20T00:06:00Z', timing={'elapsed_seconds': 6},
+                      selection={'profile': 'full', 'task_id': None, 'checks': [r['id'] for r in report['checks']]})
+        samples, workflows = [], []
+        for run_id, event, ref, seconds in ((11, 'pull_request', 'refs/pull/52/merge', 2),
+                                            (12, 'push', 'refs/heads/main', 3)):
+            merge = self.git(*author, 'commit-tree', tree, '-p', base, '-p', head, '-m', event)
+            self.git('update-ref', '--no-deref', 'HEAD', merge)
+            source_head = head if event == 'pull_request' else merge
+            self.env.update(GITHUB_SHA=merge, GITHUB_REF=ref, GITHUB_BASE_REF='main', GITHUB_EVENT_NAME=event,
+                            GITHUB_RUN_ID=str(run_id), GITHUB_RUN_ATTEMPT='1', SCOPEHUB_SOURCE_HEAD=source_head)
+            env = self.scope_env(base=base)
+            generator['duration_seconds'] = seconds
+            report['source'] = source_identity(self.root)
+            report['ci'] = ci_provenance(report['source'], env, self.root)
+            self.save_report(report)
+            with patch.object(timing, 'tool_version', return_value='rustfmt 1.10.0-stable (b940084d7e 2026-09-28)'):
+                outputs, _, _ = self.stage_job(env)
+            self.assertEqual(read_json(Path(outputs['path']) / SCOPE_FILE)['checkout'], merge)
+            samples.append(read_json(Path(outputs['timing_path'])))
+            run = dict(hosted_run(run_id=run_id), event=event, head_sha=source_head)
+            jobs = [dict(hosted_job(run_id * 10 + index, platform, '00:10', '04:00', 'Run pnpm check',
+                                    '00:30', '03:50', run_id=run_id), head_sha=source_head)
+                    for index, platform in enumerate(('ubuntu', 'windows'))]
+            workflows.append(timing.hosted_timing(run, jobs))
+        comparison, = timing.timing_view(samples, hosted=workflows)['pr_main_comparisons']
+        self.assertEqual((comparison['status'], comparison['pr_seconds'], comparison['main_seconds'],
+                          comparison['main_minus_pr_seconds']), ('comparable', 2, 3, 1))
 
     def test_windows_bundle_contains_typed_scope_and_retains_the_original_failed_report(self):
         report = self.hosted_report(system='Windows', event='push')

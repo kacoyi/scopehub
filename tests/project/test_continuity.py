@@ -18,13 +18,14 @@ from scripts.project import (
     project_definition_hash, read_json, source_identity, task_definition_hash, workfront,
 )
 
-from tests.project.fixtures import records, task_by_id
+from tests.project.fixtures import isolated_git_environment, records, task_by_id
 
 REPO = Path(__file__).resolve().parents[2]
 
 
 class ProjectFixture(unittest.TestCase):
     def setUp(self):
+        self.enterContext(isolated_git_environment())
         # Synthetic repositories must not inherit provenance from the outer CI job.
         isolated_env = patch.dict(os.environ, {'GITHUB_ACTIONS': 'false'})
         isolated_env.start()

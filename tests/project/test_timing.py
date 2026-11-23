@@ -13,6 +13,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 from scripts import ci_artifacts, timing
+from tests.project.fixtures import isolated_git_environment
 
 
 def historical_report():
@@ -276,6 +277,7 @@ class HostedTimingTests(unittest.TestCase):
 
 class PRMainComparisonTests(unittest.TestCase):
     def setUp(self):
+        self.enterContext(isolated_git_environment())
         temp = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(temp)
         self.git('init', '-q')
@@ -339,6 +341,12 @@ class PRMainComparisonTests(unittest.TestCase):
         return comparison
 
     def test_compares_only_generator_durations_on_distinct_merges_with_same_parents_and_tree(self):
+        caller_git = str(self.root / 'outside.git')
+        with patch.dict(os.environ, {'GIT_DIR': caller_git, 'GIT_WORK_TREE': str(self.root.parent)}):
+            with isolated_git_environment():
+                self.assertEqual(Path(self.git('rev-parse', '--absolute-git-dir')).resolve(),
+                                 (self.root / '.git').resolve())
+            self.assertEqual(os.environ['GIT_DIR'], caller_git)
         pr, main = self.observe(self.preview), self.observe(self.main, push=True)
         self.assertNotEqual(self.preview, self.main)
         proof = pr[0]['generated_contracts']

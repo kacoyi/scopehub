@@ -1,5 +1,15 @@
 """Small synthetic project records, independent of the product's task history."""
 
+import os
+from unittest.mock import patch
+
+
+def isolated_git_environment():
+    environment = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    environment.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+    return patch.dict(os.environ, environment, clear=True)
+
+
 def task_by_id(ledger, task_id):
     return next(task for task in ledger['tasks'] if task['id'] == task_id)
 
