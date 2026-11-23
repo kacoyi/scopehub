@@ -8,6 +8,7 @@ const paths = {
   candles: <><path d="M7 2v4m0 10v5m10-18v7m0 7v5" /><rect x="4.5" y="6" width="5" height="10" rx=".7" /><rect x="14.5" y="10" width="5" height="7" rx=".7" /></>,
   line: <><path d="m3 16 5.5-7 4.2 3.4L21 5" /></>,
   watchlist: <><rect x="4.5" y="3.5" width="15" height="17" rx="1.8" /><path d="M8 8h1m2.5 0h4.7M8 12h1m2.5 0h4.7M8 16h1m2.5 0h4.7" /></>,
+  workbench: <><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M10 4v16m0-9h11" /></>,
   table: <><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M3 9h18M3 14h18M9 4v16" /></>,
   database: <><ellipse cx="12" cy="5.5" rx="8" ry="3.3" /><path d="M4 5.5v11.7c0 1.8 3.6 3.3 8 3.3s8-1.5 8-3.3V5.5M4 11.4c0 1.8 3.6 3.3 8 3.3s8-1.5 8-3.3" /></>,
   close: <path d="m6 6 12 12M18 6 6 18" />,

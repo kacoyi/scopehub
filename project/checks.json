@@ -779,6 +779,22 @@
       "cadence": "task"
     },
     {
+      "id": "renderer-prototype-interaction",
+      "status": "implemented",
+      "purpose": "Exercise the blank synthetic renderer prototype, custom encoding, linked selection and rejected draft recovery in Chromium. On Windows also exercise the compiled WebView2 desktop host. Inspect the platform-specific report for coverage.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/renderer-probe.config.mjs"
+      ],
+      "timeout_seconds": 2400,
+      "cadence": "task"
+    },
+    {
       "id": "workbench-renderer-probe",
       "status": "planned",
       "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",

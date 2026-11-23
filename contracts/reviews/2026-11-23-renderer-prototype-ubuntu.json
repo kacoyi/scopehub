@@ -1,0 +1,121 @@
+{
+  "status": "observed",
+  "purpose": "Mixed-source local development prototype, no renderer selection or accepted task or field evidence.",
+  "os": "Ubuntu 26.04.1 LTS",
+  "webkitgtk": "2.52.6",
+  "gtk": "3.24.52",
+  "display": "Xvfb nested X11, 1280x800 Tauri-owned window, software rendering",
+  "host_checkout": "6aee5586e23392fa341d4779bbe92f9936441c97",
+  "host_executable_sha256": "efbd825f60fc34567b6c72d27fcfc5e50e58cdb17d77c87d2b79f4961f8b8529",
+  "ui_git_base": "146cb7344df25f0288b75fd2a1fdfbd2e0b924d2",
+  "fixture_content_sha256": "9d78c6d5c6afdb625f8cf7262b4e2efb3ef95ec4e5c8576d783ded14c3aeb0e2",
+  "actions": [
+    {
+      "control": "Open workbench prototype",
+      "expected": "The canvas is empty. Add a block and preview your draft.",
+      "observed_ms": 10.5
+    },
+    {
+      "control": "Add threshold tiles",
+      "expected": "Preview draft",
+      "observed_ms": 7.4
+    },
+    {
+      "control": "Add value table",
+      "expected": "Preview draft",
+      "observed_ms": 14.5
+    },
+    {
+      "control": "Preview draft",
+      "expected": "Threshold tiles",
+      "observed_ms": 11.8
+    },
+    {
+      "control": "21:01 3499.8 At or above",
+      "expected": "21:01",
+      "observed_ms": 11.3
+    },
+    {
+      "control": "Accept view",
+      "expected": "Accepted view",
+      "observed_ms": 32.6
+    },
+    {
+      "control": "Composition JSON",
+      "expected": "Accepted view",
+      "observed_ms": 295.1
+    },
+    {
+      "control": "Preview draft",
+      "expected": "21:01 3499.8 Under my target",
+      "observed_ms": 13.2
+    },
+    {
+      "control": "Composition JSON",
+      "expected": "Accepted view",
+      "observed_ms": 129.9
+    },
+    {
+      "control": "Preview draft",
+      "expected": "Block 1 has an unsupported kind, field or threshold.",
+      "observed_ms": 19.4
+    },
+    {
+      "control": "Composition JSON",
+      "expected": "Accepted view",
+      "observed_ms": 72.0
+    },
+    {
+      "control": "Preview draft",
+      "expected": "Check the JSON syntax, then preview again.",
+      "observed_ms": 17.0
+    },
+    {
+      "control": "Restore accepted view",
+      "expected": "Accepted view",
+      "observed_ms": 11.9
+    },
+    {
+      "control": "Back to chart",
+      "expected": "Open workbench prototype",
+      "observed_ms": 16.0
+    }
+  ],
+  "timing_scope": "Control invocation to AT-SPI text/surface observation, includes accessibility traversal and excludes GPU frame presentation. Interactions awaiting a pre-existing label provide invocation only.",
+  "observations": {
+    "00-entry.json": "aaa1776baf52741d0ef539e8793115e0edbc7ec48118abb10dc0b29b5a1f6567",
+    "00-entry.png": "ef19aa6a12b7e21a8721056e76e8adc93d02f8d4929549d1a81645bc542eb44c",
+    "01-blank.json": "2514f109c638b5bfbaf426a4b607b3ae80ffeab025d42004632c0e96589b6791",
+    "01-blank.png": "697722d5d25dc75dfcbe6c4b3443fab57daba0b3a016745c3ecae395bc7f8ce0",
+    "02-preview.json": "0e29a91234da3ee4eb77b23f9a516e67e6081c2c625f562ca6ab9b53a542dd96",
+    "02-preview.png": "ffa5b93d99b11664832f5f7313f12659775f60f32f0f6000650e139788f7131c",
+    "02a-selection.json": "87af23ad18679c16dc3c4847c4ea7650caa11a2fc8211364db7727b0413f7294",
+    "02a-selection.png": "72f7be8803ede3dcf3eef8b8f7186a3be67a2654406f7d7c57c88c79ec0b60b1",
+    "03-accepted.json": "dd5a6216233e4a7b4ea1edfcb4316ff5c93b8cc47ec69a3399ca401137186235",
+    "03-accepted.png": "5c693c9a5db2c572a7ec2fac5aa002c7454cfe862ba279ad9a0b03001d6fd457",
+    "03a-authored.json": "58160876a280c3429414873d6ee827a2fafdcace299582057ef8aa99ef85dd53",
+    "03a-authored.png": "5deb64b2afcad2a0df3d04aa9ba72706f9d96081d505d184abc26f6c6237148a",
+    "03b-rejected.json": "17fe069900f6c5e46644331f1118853f28c551cd175f51e4c77f0f22f35aeec6",
+    "03b-rejected.png": "074471d52a84af2f3009773aadd38d74d8d665ffdb67bdd8fd7915a44e4533aa",
+    "04-malformed.json": "b1c70419f3e1b002c9037c0fed8fc1be0059d3b2b8b0c6ac15201ab21e516670",
+    "04-malformed.png": "cdaf1b9beb4ff9093f96d9cc6459fd987cea7e2a406fce15a5640d7e3953ff9b",
+    "05-restored.json": "dd5a6216233e4a7b4ea1edfcb4316ff5c93b8cc47ec69a3399ca401137186235",
+    "05-restored.png": "800c2b6c63da8b700db01d363d1f556d95fdfd96f76ebd1f40f2661fbea76af3",
+    "06-chart.json": "aaa1776baf52741d0ef539e8793115e0edbc7ec48118abb10dc0b29b5a1f6567",
+    "06-chart.png": "ef19aa6a12b7e21a8721056e76e8adc93d02f8d4929549d1a81645bc542eb44c"
+  },
+  "ui_files": {
+    "apps/desktop/ui/src/chart-workspace.tsx": "1ea220fc0856d7f430dc7653c4d60caec799aadffec7018bd924db56d108e8a4",
+    "apps/desktop/ui/src/main.tsx": "d55cab5c078eb57241cd9c3fe494e597d6d6f565abbd79be57fc09040d369c8b",
+    "apps/desktop/ui/src/workbench-prototype.css": "8cb61bd1fba9989bad2eb9983534be394929189b878e9f2ae9c324c42fdbd797",
+    "apps/desktop/ui/src/workbench-prototype.tsx": "62f4d2a53b6bec583c283f38faea5df9362d149fd58264043dfbd23bb16d5431",
+    "apps/desktop/ui/src/workbench-synthetic-closes.json": "4d5af70a683cb57c1db5ccf16844ffa72d92c7b33cd4a67e9c25431837a1b81f",
+    "apps/desktop/ui/src/i18n/locales/zh-Hans/workbench.json": "c901a803c57756b7c3cf843df2877f9fded3514853392e2fa71bcabef9ea75d3"
+  },
+  "observed_window": "ScopeHub, X11 class scopehub-desktop, 1280x800",
+  "observed_child_processes": [
+    "WebKitWebProcess",
+    "WebKitNetworkProcess"
+  ],
+  "fixture_snapshot_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1"
+}

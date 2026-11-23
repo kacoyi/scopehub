@@ -1,0 +1,20 @@
+{
+  "dataset": {
+    "instrument_id": "SIM.CN.FUTURE.001",
+    "timezone": "Asia/Shanghai"
+  },
+  "snapshot": {
+    "dataset_revision": "scopehub-synthetic-v1:20241013:normal",
+    "content_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1"
+  },
+  "bars": [
+    {
+      "time_ms": 1704200400000,
+      "close": 3499.2
+    },
+    {
+      "time_ms": 1704200460000,
+      "close": 3499.8
+    }
+  ]
+}

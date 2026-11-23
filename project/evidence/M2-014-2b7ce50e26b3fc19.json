@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-014",
+  "task_definition_sha256": "18a2d7f5330c956fdcdef86c208e6ab9894322f1516e439c4451e778cf8441fe",
+  "run_id": "20261123T155557.673181Z-a96834fa",
+  "recorded_at": "2026-11-23T15:57:33.273018+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "9327e93b6d301d6b86ca67af87109ca4435fd97270a59abd2349b3572a26affa",
+    "file_count": 570,
+    "git_head": "be199eb4863ee5b312c4e56f8cefedad4751da50",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "2b7ce50e26b3fc19e7fd171db48b9873f315372b6ad74a1209976a87b8b202b5",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/renderer-probe/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/renderer-probe/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/renderer-probe/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d799e74b7a370fb715015740f02872b525d23907f52eb33b8694c34b9ed04c98"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f484456eacb58a3543061c16cfc6873486a28f1321bc371ec1fca327683307a8"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0c2a56c7063718f192282df124c1f30b8ba64881fc01606334cdbd8937a387ee"
+    },
+    {
+      "id": "renderer-prototype-interaction",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/renderer-probe.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "aa0fce2431f2430f718888cbb2c40689990458d4b6287e6b5d24317d05394aeb"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1cb41097dc33a1e1e1fa1cb3dcfcc160f98a4c25258b037e58cc9e8c3f8ae281"
+    }
+  ],
+  "project_definition_sha256": "6d681d43c2a6e1d1201cb85b146dce0bf9aa35e505b9f6ec545d728cfdb86ff9",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
