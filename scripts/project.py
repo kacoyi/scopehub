@@ -998,6 +998,45 @@ def feedback_git(root, *args):
                                'GIT_NO_REPLACE_OBJECTS': '1', 'GIT_GRAFT_FILE': os.devnull})
 
 
+def tasks_at_feedback_checkpoint(root, commit):
+    path = 'project/tasks.json'
+    ledger = feedback_git(root, 'show', f'{commit}:{path}')
+    if ledger.returncode:
+        raise ProjectError(f'Cannot read {path} from local feedback checkpoint {commit}')
+    try:
+        return indexed(json.loads(ledger.stdout)['tasks'], 'previous task')
+    except (KeyError, TypeError, UnicodeError, json.JSONDecodeError) as error:
+        raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
+
+
+def verify_accepted_tasks(root, project, previous_tasks):
+    compared = []
+    for task in previous_tasks:
+        if task['status'] in {'done', 'cancelled'}:
+            current_task = project['tasks'].get(task['id'])
+            # Supplementary CI acceptance may arrive after local completion.
+            # Preserve every accepted field and the complete ordered evidence
+            # prefix; only done tasks may append independently validated receipts.
+            same_record = current_task == task
+            append_only = (
+                task['status'] == 'done' and current_task is not None
+                and {key: value for key, value in current_task.items() if key != 'evidence'}
+                == {key: value for key, value in task.items() if key != 'evidence'}
+                and current_task['evidence'][:len(task['evidence'])] == task['evidence']
+            )
+            if not same_record and not append_only:
+                raise ProjectError(f"Accepted task history changed or disappeared: {task['id']}; add a successor task")
+            for ref in current_task['evidence'][len(task['evidence']):]:
+                # load_project has already checked file digest, schema, task ID,
+                # passing check status and native platform declarations.
+                receipt = read_json(local_path(root, ref['path']))
+                if (receipt['task_definition_sha256'] != task_definition_hash(task)
+                        or not set(task['checks']).issubset(check['id'] for check in receipt['checks'])):
+                    raise ProjectError(f"Appended evidence does not validate the accepted task: {task['id']}")
+            compared.append(task['id'])
+    return compared
+
+
 def verify_feedback_handoff(root, project, commit, old_items, items):
     """Keep an open finding with live corrective work when its last owner finishes or is removed."""
     terminal = {'done', 'cancelled'}
@@ -1009,19 +1048,15 @@ def verify_feedback_handoff(root, project, commit, old_items, items):
     ]
     if not at_risk:
         return
-    path = 'project/tasks.json'
-    ledger = feedback_git(root, 'show', f'{commit}:{path}')
-    if ledger.returncode:
-        raise ProjectError(f'Cannot read {path} from local feedback checkpoint {commit}')
+    previous = tasks_at_feedback_checkpoint(root, commit)
     try:
-        previous = indexed(json.loads(ledger.stdout)['tasks'], 'previous task')
         for item in at_risk:
             key = item['id']
             if any(previous[owner]['status'] not in terminal for owner in old_items[key]['task_ids']):
                 raise ProjectError(f'Open feedback {key} needs an unfinished corrective task before its last owner retires, '
                                    'or a recorded resolution or deferral.')
-    except (KeyError, TypeError, UnicodeError, json.JSONDecodeError) as error:
-        raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
+    except (KeyError, TypeError) as error:
+        raise ProjectError(f'Invalid project/tasks.json at local feedback checkpoint {commit}: {error}') from error
 
 
 def feedback_at(root, commit):
@@ -1117,6 +1152,7 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
     legacy = None
     if ancestor(commit, last_legacy) and ancestor(FEEDBACK_RECEIPT_INTRODUCTION, 'HEAD'):
         legacy = feedback_at(root, last_legacy)
+        verify_accepted_tasks(root, project, tasks_at_feedback_checkpoint(root, last_legacy).values())
         # Compare this endpoint too: the caller's older base cannot see a deletion,
         # edit or recurrence of a finding introduced before the rules changed.
         validate_feedback_changes(root, project, last_legacy, legacy, items)
@@ -1240,7 +1276,6 @@ def compare_history(root, base, inherited=None):
             validate_report_references(root, task, f'Task {key}')
     feedback = validate_feedback_checkpoint(root, project, resolved, inherited)
     review_operational_report_paths(root, resolved)
-    compared = []
     catalog = previous('project/checks.json')
     previous_commands = {check['id']: check.get('command') for check in catalog['checks']} if catalog else {}
     for key, check in project['checks'].items():
@@ -1269,29 +1304,7 @@ def compare_history(root, base, inherited=None):
                 raise ProjectError(f'Established integration gate removed without a reviewed replacement: {key}')
             replaced[key] = replacement
             pending.extend(reversed(replacement['replacement_checks']))
-    for task in ledger['tasks'] if ledger else []:
-        if task['status'] in {'done', 'cancelled'}:
-            current_task = project['tasks'].get(task['id'])
-            # Supplementary CI acceptance may arrive after local completion.
-            # Preserve every accepted field and the complete ordered evidence
-            # prefix; only done tasks may append independently validated receipts.
-            same_record = current_task == task
-            append_only = (
-                task['status'] == 'done' and current_task is not None
-                and {key: value for key, value in current_task.items() if key != 'evidence'}
-                == {key: value for key, value in task.items() if key != 'evidence'}
-                and current_task['evidence'][:len(task['evidence'])] == task['evidence']
-            )
-            if not same_record and not append_only:
-                raise ProjectError(f"Accepted task history changed or disappeared: {task['id']}; add a successor task")
-            for ref in current_task['evidence'][len(task['evidence']):]:
-                # load_project has already checked file digest, schema, task ID,
-                # passing check status and native platform declarations.
-                receipt = read_json(local_path(root, ref['path']))
-                if (receipt['task_definition_sha256'] != task_definition_hash(task)
-                        or not set(task['checks']).issubset(check['id'] for check in receipt['checks'])):
-                    raise ProjectError(f"Appended evidence does not validate the accepted task: {task['id']}")
-            compared.append(task['id'])
+    compared = verify_accepted_tasks(root, project, old_tasks.values())
     paths = subprocess.run(['git', 'ls-tree', '-r', '--name-only', resolved, '--', 'contracts/decisions'],
                            cwd=root, env=env, capture_output=True, text=True, check=True).stdout.splitlines()
     for path in paths:

@@ -16784,7 +16784,8 @@
       "acceptance": [
         "A comparison spanning the five protected merges from bea74a5 through c161317 recognizes dispositions accepted under the previous evidence format. The original negative recovery remains independently resolvable.",
         "Require exact historical records from the protected rule introduction, verify the Git ancestry of both comparison endpoints, and preserve the independent obligations of an explicit review base and a previous candidate checkpoint.",
-        "Exercise the normal history and verification preflight entries with multiple merges, synthetic pull-request merges, shallow or unrelated ancestry, newly closed, edited, removed and reopened findings, and an attempt to pass off candidate records as accepted history."
+        "Exercise the normal history and verification preflight entries with multiple merges, synthetic pull-request merges, shallow or unrelated ancestry, newly closed, edited, removed and reopened findings, and an attempt to pass off candidate records as accepted history.",
+        "Compare the accepted task definitions and ordered receipt references at the cutover. Keep legitimately appended supplemental receipts and reject historical removal, replacement or reordering even for tasks first completed after the requested review base."
       ],
       "checks": [
         "project-state",
@@ -16819,7 +16820,7 @@
             ]
           },
           {
-            "failure": "Comparing across the cutover silently loses a finding introduced and accepted between the original base and the policy transition.",
+            "failure": "Comparing across the cutover silently loses a finding, a completed task or its original ordered receipt when these were accepted between the initial base and the policy transition.",
             "checks": [
               "python-contracts-workers"
             ]

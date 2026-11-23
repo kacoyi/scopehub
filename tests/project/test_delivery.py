@@ -1335,12 +1335,12 @@ class DeliveryTests(ProjectFixture):
                                    '-c', 'commit.gpgsign=false', *args], cwd=self.root, capture_output=True,
                                   check=True, text=True).stdout.strip()
 
-        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         before = self.commit_fixture()
         git('checkout', '-qb', 'receipt-rule')
         (self.root / 'rule.txt').write_text('Synthetic verification rule.\n')
         self.commit_fixture()
         git('checkout', '-qb', 'protected', before)
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         self.save_feedback(self.legacy_feedback())
         observed = self.commit_fixture()
         self.save_feedback(self.legacy_feedback('addressed'))
@@ -1417,6 +1417,28 @@ class DeliveryTests(ProjectFixture):
                 for prior in (observed, last_legacy, introduction):
                     self.check_feedback_range(prior, post_rule, error=message)
                     self.check_feedback_range(post_rule, prior, error=message)
+
+    def test_long_review_preserves_the_closing_task_and_its_original_receipt(self):
+        git, before, observed, last_legacy, introduction = self.feedback_rule_cutover()
+        second = archive_evidence(self.root, 'M0-001', self.report(system='Windows'))
+        ledger = self.ledger()
+        task = task_by_id(ledger, 'M0-001')
+        task['evidence'].append(second)
+        self.save_ledger(ledger)
+        self.check_feedback_range(before)
+        original = task['evidence'][:]
+        for replacement in ([second], list(reversed(original))):
+            with self.subTest(replacement=replacement):
+                task['evidence'] = replacement
+                self.save_ledger(ledger)
+                self.check_feedback_range(before, error='Accepted task history changed')
+        task['evidence'] = original
+        task['closure_reason'] = 'Rewritten historical disposition.'
+        self.save_ledger(ledger)
+        self.check_feedback_range(before, error='Accepted task history changed')
+        task['title'] += ' Edited after acceptance'
+        self.save_ledger(ledger)
+        self.check_feedback_range(before, error='lacks passing evidence for its definition')
 
     def test_verified_source_relocation_remains_auditable_after_another_protected_merge(self):
         git, before, observed, last_legacy, introduction = self.feedback_rule_cutover()
