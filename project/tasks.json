@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-083",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -16230,7 +16230,7 @@
       "id": "M0-083",
       "title": "Keep local field notes private and verify completed observation times",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-082"
       ],
@@ -16343,10 +16343,15 @@
           "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
         }
       ],
-      "next_action": "Reproduce the hosted field leak with synthetic placeholders and correct the shared intake before publication or import.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-083-d877584fc660b52d.json",
+          "sha256": "0f58b1c6526e6f315dbd510709f9387d08313cd22cdb46afeb165d1c67bb1a65"
+        }
+      ],
+      "closure_reason": "The clean task harness at a066d05 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic regressions cover explicit text sharing, hosted allowlisted actions, local private annotations, downloaded import, UTC clock drift and rejection before artifact reads. Genuine product observations remain assigned to their existing tasks. Product focus returns to M2-003."
     }
   ]
 }
