@@ -790,7 +790,7 @@
     {
       "id": "chart-free-workbench",
       "status": "planned",
-      "purpose": "Verify the original chart-free workbench journey with local synthetic evidence. Exercise an AI structural edit, a manual detail, a live rule on refresh, source selection, failure recovery, undo and reopen. In the release profile bind the observation to the exact packaged Windows candidate.",
+      "purpose": "Verify the original chart-free workbench journey with local synthetic evidence. Exercise an AI structural edit, a manual detail, a live rule on refresh, source selection, failure recovery, undo and reopen. Use the native development application for M2-013. For M5-001 and the release profile, bind the observation to the exact packaged Windows candidate.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900,

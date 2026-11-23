@@ -56,7 +56,7 @@
       "Stocks and futures are the initial asset classes; additional asset classes can be introduced as needs emerge.",
       "Choose features and architectural complexity for demonstrated collaboration needs; avoid unnecessary features and speculative infrastructure.",
       "Keep workflows, modules, and implementation choices open to revision, replacement, and removal.",
-      "Chart analysis and indicator previews are the first delivery scenario, not the permanent boundary of the product.",
+      "The first V1 workbench demonstration starts from a blank canvas. The shipped chart default continues to support chart analysis and indicator previews.",
       "Users decide what information appears across their workbench, when it appears and how they can inspect or act on it within their granted capabilities. V1 must demonstrate this on a user-composed, chart-free workbench under /ui/customization."
     ],
     "resource_policy": "Responsiveness and stability are quality goals. Evaluate memory, package size, and runtime cost against useful capabilities and actual workloads; a lightweight footprint is not a mandatory product objective.",

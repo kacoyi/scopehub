@@ -15214,7 +15214,7 @@
         "Use a synthetic note about issuer A reviewed at 09:00 UTC. Of disclosures on that date for A at 08:55, B at 09:05 and A at 09:10 UTC, show only the 09:10 item. On refresh, include a new A item at 09:20. A scoped AI edit puts the newest match first; preview, apply, adjust manually, undo and reopen the saved view. Check the ordering, cutoff and evidence identities after each edit.",
         "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent.",
         "Create and structurally reshape the view using the normal workbench and embedded AI, then refine a single element directly. Use the same released application to express a second arrangement and a different binding without a dedicated product component. Bind the points of a frozen, accepted numeric series to a user-chosen visual property and inspect its exact value and evidence.",
-        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Exercise the native journey for delivery and repeat it against the identified Windows installer for release."
+        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Complete M2-013 by exercising this journey in the native development application. M5-001 owns the subsequent packaged Windows acceptance."
       ],
       "checks": [
         "chart-free-workbench",
