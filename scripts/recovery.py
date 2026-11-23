@@ -1,4 +1,4 @@
-"""Preserve scaffold diagnostics without importing project validation or dependencies.
+"""Preserve scaffold diagnostics without requiring project validation or dependencies.
 
 It runs with the repository Python and -S or an isolated host Python when the
 virtual environment is unavailable. A snapshot preserves inputs for diagnosis.
@@ -10,6 +10,7 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import runpy
 import subprocess
 import sys
 import traceback
@@ -145,6 +146,26 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
                         and item.get('reason_code') not in ('not_selected', 'unsupported_platform', 'earlier_failure')):
                     signal('recorded_check_failure', **observation)
 
+    # The host-Python fallback can run with -I -S and without the rest of the checkout.
+    retained = None
+    try:
+        if __package__:
+            from .retained_failures import retained_failure_view
+        else:
+            retained_failure_view = runpy.run_path(str(Path(__file__).with_name('retained_failures.py')))['retained_failure_view']
+        snapshot = report.get('source')
+        reference = (snapshot.get('sha256'), report.get('project_definition_sha256')) if isinstance(snapshot, dict) else None
+        retained = retained_failure_view(root, reference, basis='latest_recorded_report',
+                                         schema=documents['contracts/schemas/project.schema.json'],
+                                         latest_run=report.get('run_id'))
+        if retained['scan']['coverage'] == 'incomplete':
+            signal('incomplete_retained_run_coverage', detail='Inspect retained_failures.scan for omissions and unverified rechecks.')
+        if retained['matching_inputs']['count']:
+            signal('unrechecked_retained_failures', count=retained['matching_inputs']['count'])
+    except (OSError, KeyError, ImportError, SyntaxError) as error:
+        if (root / '.reports/runs').exists():
+            signal('retained_runs_unavailable', detail=type(error).__name__)
+
     if failure is not None:
         signal('harness_exception', **failure)
     diagnostic = {
@@ -156,6 +177,7 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
         'environment': {'python': platform.python_version(), 'executable': sys.executable,
                         'system': platform.system()},
         'git': git_observation(root), 'files': files, 'signals': signals,
+        'retained_failures': retained,
         'recorded_run': {'run_id': report.get('run_id'), 'status': report.get('status'),
                          'observations': observations},
         'next_steps': [

@@ -15,11 +15,13 @@ from jsonschema import Draft202012Validator, FormatChecker
 if __package__:
     from .development import expand_engineering_sources, resolve_source
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .worktree import WorktreeError, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from worktree import WorktreeError, has_git_metadata
 
@@ -71,6 +73,13 @@ def task_definition_hash(task):
         if key in task:
             definition[key] = task[key]
     return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
+
+
+def feedback_fingerprint(item):
+    # Bind a regression run to the actual observation without publishing its text.
+    diagnostics = sorted(report['report_sha256'] for report in item.get('diagnostic_reports', []))
+    return digest(json_bytes([item['id'], item.get('occurrence', 1), item['observation'],
+                              sorted(item['regression_checks']), diagnostics]))
 
 
 def project_definition_hash(project):
@@ -572,7 +581,7 @@ def periodic_reviews(delivery, today=None):
     return reviews
 
 
-def workfront(root=ROOT, *, report_path=None):
+def workfront(root=ROOT, *, report_path=None, retained_detail=None):
     if __package__:
         from .development import evidence_view
     else:
@@ -597,10 +606,12 @@ def workfront(root=ROOT, *, report_path=None):
     tasks = project['tasks']
     tasks_current = bool(report and report.get('task_definitions') == {
         task['id']: task_definition_hash(task) for task in tasks.values()})
+    project_hash = project_definition_hash(project)
     definitions_current = bool(report and report.get('project_unchanged')
-                               and report.get('project_definition_sha256') == project_definition_hash(project))
+                               and report.get('project_definition_sha256') == project_hash)
     current = inputs_current and tasks_current and definitions_current and report_error is None
-    return {
+    unresolved = [item for item in project['feedback']['items'] if item['status'] != 'addressed']
+    state = {
         'status': 'passed', 'focus': tasks.get(project['ledger']['focus_task_id']),
         'status_scope': 'Project-record consistency only; inspect verification, evidence_overview and release readiness separately.',
         'active_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'active'],
@@ -620,9 +631,19 @@ def workfront(root=ROOT, *, report_path=None):
                          'recorded_status': report.get('status') if report else None},
         'milestones': product_progress(project, report['checks'])[0] if current else None,
         'evidence_overview': evidence_view(root, project, source, report, current, report_error=report_error),
-        'unresolved_feedback': [item for item in project['feedback']['items'] if item['status'] != 'addressed'],
+        'unresolved_feedback': unresolved,
+        'feedback_needing_assignment': [
+            item['id'] for item in unresolved
+            if all(tasks[key]['status'] in {'done', 'cancelled'} for key in item['task_ids'])
+        ],
         'source': source,
     }
+    if retained_detail is not None:
+        state['retained_failures'] = retained_failure_view(
+            root, (source['sha256'], project_hash), basis='current_checkout', detail=retained_detail,
+            latest_run=report.get('run_id') if report else None,
+        )
+    return state
 
 
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
@@ -961,9 +982,35 @@ def review_history(root=ROOT, base=None):
             validate_report_references(root, task, f'Task {key}')
     old_feedback = previous('project/feedback.json')
     old_items = indexed(old_feedback['items'], 'previous feedback') if old_feedback else {}
-    for item in project['feedback']['items']:
-        if item != old_items.get(item['id']):
-            validate_report_references(root, item, f"Feedback {item['id']}")
+    items = indexed(project['feedback']['items'], 'feedback')
+    for key in old_items.keys() - items.keys():
+        raise ProjectError(f'Feedback disappeared: {key}; retain its disposition')
+    for key, item in items.items():
+        old_item = old_items.get(key, {})
+        if item != old_item:
+            validate_report_references(root, item, f'Feedback {key}')
+        occurrence = item.get('occurrence', 1)
+        prior_occurrence = old_item.get('occurrence', 1)
+        if occurrence < prior_occurrence:
+            raise ProjectError(f'Feedback {key} occurrence cannot go backwards')
+        if old_item.get('status') == 'addressed' and item['status'] != 'addressed' and occurrence == prior_occurrence:
+            raise ProjectError(f'Reopening feedback {key} requires a new occurrence')
+        if (item['status'] != 'addressed' or item == old_item
+                or (item['severity'] == 'minor' and old_item.get('severity', 'minor') == 'minor')):
+            continue
+        finding = feedback_fingerprint(item)
+        if (old_item.get('status') == 'addressed' and finding == feedback_fingerprint(old_item)
+                and set(item['task_ids']) == set(old_item['task_ids'])):
+            continue
+        covered = set()
+        for task_id in item['task_ids']:
+            for ref in project['tasks'][task_id]['evidence']:
+                receipt = read_json(local_path(root, ref['path']))
+                if finding in receipt.get('observed_feedback', []):
+                    covered.update(check['id'] for check in receipt['checks'])
+        missing = set(item['regression_checks']) - covered
+        if missing:
+            raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
     review_operational_report_paths(root, resolved)
     compared = []
     catalog = previous('project/checks.json')
@@ -1137,6 +1184,8 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         'project_definition_sha256': report['project_definition_sha256'],
         'claim_scope': 'Completed task at the recorded execution inputs; not a release or current-worktree guarantee.',
     }
+    if 'observed_feedback' in report:
+        receipt['observed_feedback'] = report['observed_feedback']
     if field_records:
         receipt['field_observations'] = field_records
     if ci:
@@ -1204,7 +1253,7 @@ def main():
                 from .development import status_view
             else:
                 from development import status_view
-            result = status_view(workfront(), detail=args.detail)
+            result = status_view(workfront(retained_detail=args.detail), detail=args.detail)
         elif args.command == 'context':
             result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
         elif args.command == 'brief':

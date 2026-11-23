@@ -1,15 +1,16 @@
 """Inspect hosted verification for this repository's exact commit using official gh."""
 
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import re
 import subprocess
 
 if __package__:
-    from .project import ProjectError, source_identity
+    from .project import ProjectError, read_json, source_identity
 else:
-    from project import ProjectError, source_identity
+    from project import ProjectError, read_json, source_identity
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -46,7 +47,7 @@ def classify_runs(runs, head, *, dirty=False, selected=False):
     latest = max(relevant, key=lambda run: (int(run['id']), int(run.get('run_attempt', 1))), default=None)
     if latest is None:
         return {'status': 'blocked', 'reason': 'No hosted verification exists for this commit.', 'run': None}
-    observed = {key: latest.get(key) for key in ['id', 'head_sha', 'status', 'conclusion', 'run_attempt', 'html_url', 'event']}
+    observed = {key: latest.get(key) for key in ['id', 'head_sha', 'status', 'conclusion', 'run_attempt', 'html_url', 'event', 'created_at']}
     if dirty:
         return {'status': 'blocked', 'reason': 'The worktree has uncommitted changes; CI only covers the recorded commit.', 'run': observed}
     if latest['status'] != 'completed':
@@ -59,22 +60,104 @@ def classify_runs(runs, head, *, dirty=False, selected=False):
     return {'status': 'passed', 'reason': 'The latest workflow run for this clean commit succeeded.', 'run': observed}
 
 
+def checkout_branch(root, protected):
+    lines = command(['git', 'status', '--porcelain=v2', '--branch', '--untracked-files=no', '--no-ahead-behind'], root)
+    metadata = dict(line[2:].split(' ', 1) for line in lines.splitlines() if line.startswith('# branch.'))
+    head = metadata['branch.head']
+    upstream = metadata.get('branch.upstream', '')
+    if head == '(detached)':
+        return None
+    # A fresh task branch can track origin/main until its first push. Its
+    # verification still comes from its own pull request.
+    if head != protected and upstream.startswith('origin/') and upstream != 'origin/' + protected:
+        return upstream.removeprefix('origin/')
+    return head
+
+
+def workflow_runs(root, repository, event, *, head=None, branch=None):
+    # Bound the search to its purpose at the API. An unrelated busy workflow or
+    # hundreds of manual runs on the same commit cannot displace the PR/push.
+    endpoint = f'repos/{repository}/actions/workflows/verify.yml/runs'
+    args = ['gh', 'api', '--method', 'GET', endpoint, '-f', f'event={event}']
+    if branch:
+        args.extend(['-f', f'branch={branch}'])
+    if head:
+        args.extend(['-f', f'head_sha={head}', '-f', 'per_page=100', '--paginate', '--slurp'])
+        pages = json.loads(command(args, root))
+    else:
+        # The last completed weekly run remains visible while another is queued,
+        # and while a new commit has only seen change-scoped verification.
+        args.extend(['-f', 'status=completed', '-f', 'per_page=1'])
+        pages = [json.loads(command(args, root))]
+    return [run for page in pages for run in page['workflow_runs']
+            if run.get('path') == WORKFLOW and run.get('event') == event
+            and (head is None or run.get('head_sha') == head)
+            and (branch is None or run.get('head_branch') == branch)
+            and (head is not None or run.get('status') == 'completed')
+            and (event != 'pull_request' or
+                 (run.get('head_repository') or {}).get('full_name', '').casefold() == repository.casefold())]
+
+
+def integration_status(root, repository, source, branch, protected):
+    head = source['git_head']
+    if branch in (protected, None):
+        runs = workflow_runs(root, repository, 'push', head=head, branch=protected)
+        if runs:
+            return classify_runs(runs, head, dirty=source['working_tree_dirty'])
+        if branch == protected:
+            return {'status': 'blocked', 'reason': f'No {protected} push verification exists for this commit.', 'run': None}
+    runs = workflow_runs(root, repository, 'pull_request', head=head, branch=branch)
+    if not runs:
+        return {'status': 'blocked', 'reason': 'No matching pull request verification exists for this commit.', 'run': None}
+    if branch is None and len({run['head_branch'] for run in runs}) > 1:
+        return {'status': 'blocked', 'reason': 'Multiple PR branches match this detached commit. Inspect a specific PR.', 'run': None}
+    return classify_runs(runs, head, dirty=source['working_tree_dirty'])
+
+
+def independent_status(root, repository, event, branch, head=None):
+    try:
+        runs = workflow_runs(root, repository, event, head=head, branch=branch)
+    except (ProjectError, subprocess.TimeoutExpired, OSError, KeyError, ValueError) as error:
+        return {'status': 'unavailable', 'run': None, 'reason': str(error)}
+    if not runs:
+        return {'status': 'missing', 'run': None}
+    observed = classify_runs(runs, head or runs[0]['head_sha'])
+    return {'status': observed['status'], 'run': observed['run']}
+
+
+def weekly_freshness(observation):
+    created = (observation.get('run') or {}).get('created_at')
+    if not isinstance(created, str):
+        return 'unknown'
+    try:
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(created.replace('Z', '+00:00'))
+    except (ValueError, TypeError, OverflowError):
+        return 'unknown'
+    if age < timedelta(0):
+        return 'unknown'
+    return 'recent' if age <= timedelta(days=8) else 'overdue'
+
+
 def status(root=ROOT, run_id=None):
     if run_id is not None and run_id < 1:
         raise ProjectError('Run ID must be positive')
     repository = github_identity(root)
     source = source_identity(root)
-    if not source['git_head']:
+    head = source['git_head']
+    if not head:
         raise ProjectError('Commit a source checkpoint before requesting hosted verification')
     if run_id:
-        runs = [json.loads(command(['gh', 'api', f'repos/{repository}/actions/runs/{run_id}'], root))]
+        run = json.loads(command(['gh', 'api', f'repos/{repository}/actions/runs/{run_id}'], root))
+        result = classify_runs([run], head, dirty=source['working_tree_dirty'], selected=True)
     else:
-        response = json.loads(command(['gh', 'api', '--method', 'GET',
-                                       f'repos/{repository}/actions/runs',
-                                       '-f', f"head_sha={source['git_head']}", '-f', 'per_page=100'], root))
-        # A weekly run has its own evidence and cannot replace the push or PR being inspected.
-        runs = [run for run in response['workflow_runs'] if run.get('event') != 'schedule']
-    result = classify_runs(runs, source['git_head'], dirty=source['working_tree_dirty'], selected=run_id is not None)
+        protected = read_json(root / 'project/branch-protection.json')['branch']
+        branch = checkout_branch(root, protected)
+        result = integration_status(root, repository, source, branch, protected)
+        result['manual_verification'] = independent_status(root, repository, 'workflow_dispatch', branch, head)
+        weekly = independent_status(root, repository, 'schedule', protected)
+        weekly['freshness'] = weekly_freshness(weekly)
+        weekly['requires_review'] = weekly['status'] != 'passed' or weekly['freshness'] != 'recent'
+        result['weekly_regression'] = weekly
     result.update(repository=repository, head_sha=source['git_head'],
                   claim_scope='The run covers its reported check selection for this commit. Task and release acceptance have separate evidence.')
     if result['run']:

@@ -3447,6 +3447,114 @@
         "prevention": "An alternate caller Git directory exercises repository discovery. The protected staging regression observes both check durations and their difference. A separate run with a disposable caller checkout verified its branch reference and index were preserved."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "maintenance-failure-handoff",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding untriaged-failure-handoff",
+      "severity": "major",
+      "status": "open",
+      "observation": "A narrower passing run dropped an earlier executed failure from startup and recovery, an unrelated manual run could cover the normal CI failure, and unchanged historical evidence could close a newly reported defect.",
+      "task_ids": [
+        "M0-079"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-semantic-reassessment",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations",
+      "severity": "major",
+      "status": "open",
+      "observation": "The synthetic published revision retains original raw timezone, timeframe and volume declarations that conflict with its normalized bars. Correcting admission for new data leaves older frozen revisions and any analyses pinned to them in need of an attributable review path.",
+      "task_ids": [
+        "M1-029"
+      ],
+      "regression_checks": [
+        "local-folder-import"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "local-csv-observation-cutoff",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-knowledge-cutoff",
+      "severity": "major",
+      "status": "open",
+      "observation": "The frozen CSV chart returns the last bar start plus one millisecond as its numeric coverage bound. A daily close or later correction has no established availability at that instant. Existing synthetic-only analysis and display paths guard this case. At the first dated-evidence admission, reject unknown availability, exercise the daily close and correction, and retain the original snapshot hash on reopen.",
+      "task_ids": [
+        "M4-014"
+      ],
+      "regression_checks": [
+        "analysis-method-replay"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "native-field-observation-coverage",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding physical-workbench-observation",
+      "severity": "major",
+      "status": "open",
+      "observation": "Existing positive field-observation fixtures pass without dedicated Ubuntu native process and window identity or a physical Windows chart-free edit and reopen. The evolved field requirements need these observations.",
+      "task_ids": [
+        "M1-012",
+        "M1-011"
+      ],
+      "regression_checks": [
+        "ubuntu-workspace-observation",
+        "physical-windows-workspace"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "packaged-workbench-owner-observation",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding packaged-owner-evidence",
+      "severity": "major",
+      "status": "open",
+      "observation": "The release-artifact verifier and its positive hosted fixture accept a synthetic candidate without a bound owner workbench observation. The product release policy requires the candidate-specific feedback.",
+      "task_ids": [
+        "M5-001"
+      ],
+      "regression_checks": [
+        "release-artifacts"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "external-client-observation-publication",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding external-client-evidence",
+      "severity": "major",
+      "status": "open",
+      "observation": "The current private-log and hosted observation formats cannot retain the two independent client observations required for qualification. The executable release check itself is still planned.",
+      "task_ids": [
+        "M4-005"
+      ],
+      "regression_checks": [
+        "configured-external-ai-clients"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "same-user-profile-restore",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding relocated-local-profile",
+      "severity": "minor",
+      "status": "open",
+      "observation": "A synthetic same-user profile reopened its frozen data at the original location. Moving the complete profile made it return INTERNAL_ERROR until moved back. A supported recovery or explicit rebind must preserve the original database and access boundaries.",
+      "task_ids": [
+        "M5-001"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "windows-installation"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -996,6 +996,77 @@ class DeliveryTests(ProjectFixture):
         self.assertFalse(result['release_ready'])
         self.assertTrue(any('fixture-defect' in blocker for blocker in result['blockers']))
 
+    def test_feedback_intake_survives_history_and_stale_task_evidence(self):
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        observed = self.commit_fixture()
+        self.assertEqual(['fixture-defect'], workfront(self.root)['feedback_needing_assignment'])
+
+        self.save_feedback(self.feedback('addressed'))
+        with self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+            review_history(self.root, observed)
+
+        # A run which saw the observation can be checkpointed before closure.
+        self.save_feedback(self.feedback())
+        code, verified = self.run_harness(('--task', 'M0-001'))
+        self.assertEqual(0, code)
+        self.assertTrue(verified['observed_feedback'])
+        extra = archive_evidence(self.root, 'M0-001', self.root / '.reports/test-report.json')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['evidence'].append(extra)
+        self.save_ledger(ledger)
+        checkpoint = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+        self.assertEqual('passed', review_history(self.root, checkpoint)['status'])
+        self.assertEqual([], workfront(self.root)['feedback_needing_assignment'])
+
+        resolved = self.commit_fixture()
+        amended = self.feedback('addressed')
+        amended['observation'] += ' A distinct second failure was observed.'
+        self.save_feedback(amended)
+        for base in (observed, resolved):
+            with self.subTest(base=base), self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+                review_history(self.root, base)
+
+        reopened = self.feedback()
+        self.save_feedback(reopened)
+        with self.assertRaisesRegex(ProjectError, 'requires a new occurrence'):
+            review_history(self.root, resolved)
+        reopened['occurrence'] = 2
+        self.save_feedback(reopened)
+        self.assertEqual('passed', review_history(self.root, resolved)['status'])
+        recurrence = self.commit_fixture()
+        closed_again = dict(self.feedback('addressed'), occurrence=2)
+        self.save_feedback(closed_again)
+        for base in (resolved, recurrence):
+            with self.subTest(base=base), self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+                review_history(self.root, base)
+        self.save_feedback(self.feedback())
+        with self.assertRaisesRegex(ProjectError, 'cannot go backwards'):
+            review_history(self.root, recurrence)
+        self.save_feedback(reopened)
+        code, rerun = self.run_harness(('--task', 'M0-001'))
+        self.assertEqual(0, code)
+        self.assertNotEqual(verified['observed_feedback'], rerun['observed_feedback'])
+        receipt = archive_evidence(self.root, 'M0-001', self.root / '.reports/test-report.json')
+        task_by_id(ledger, 'M0-001')['evidence'].append(receipt)
+        self.save_ledger(ledger)
+        self.save_feedback(closed_again)
+        self.assertEqual('passed', review_history(self.root, recurrence)['status'])
+
+        path = self.root / 'project/feedback.json'
+        path.write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+        with self.assertRaisesRegex(ProjectError, 'Feedback disappeared: fixture-defect'):
+            review_history(self.root, observed)
+
+    def test_newly_recorded_resolution_requires_post_base_regression_evidence(self):
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        before_finding = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        with self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+            review_history(self.root, before_finding)
+
     def test_history_rejects_rewritten_decisions_and_reopened_completed_tasks(self):
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         base = self.commit_fixture()

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-079",
   "tasks": [
     {
       "id": "M0-001",
@@ -4741,7 +4741,7 @@
         "workbench-renderer-probe"
       ],
       "evidence": [],
-      "next_action": "Start in the existing host with a blank workbench. Show a chart-free composition with a custom visual encoding of the same frozen synthetic series, break the draft and restore the last accepted view. Make this slice available for inspection as soon as it runs. Then exercise the native Ubuntu and Windows checks and compare the renderer alternative wherever it could change the choice.",
+      "next_action": "Start in the existing host with a blank workbench. Show a chart-free composition with a custom visual encoding of the same frozen synthetic series, break the draft and restore the last accepted view. Make this slice available for inspection as soon as it runs. Then exercise the native Ubuntu and Windows checks and compare the renderer alternative wherever it could change the choice. In parallel, review the staged Ubuntu native host against current main with M1-031. Bind the renderer decision to the same interaction in WebKitGTK and WebView2.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract"
@@ -15837,6 +15837,114 @@
         }
       ],
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
+    },
+    {
+      "id": "M0-079",
+      "title": "Keep observed maintenance failures actionable across development sessions",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-078"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "scripts",
+        "tests",
+        "project",
+        "contracts/reviews",
+        "contracts/schemas/project.schema.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0026"
+      ],
+      "acceptance": [
+        "At normal session startup identify retained failed checks after a newer passing selection omitted them. Keep the original run identifiable and treat an equivalent completed check on the same platform separately from a skipped, stale, unrelated or incomplete check.",
+        "A consequential finding remains connected to corrective work and an observable regression until resolved. Protect recorded findings from silent removal, and distinguish the ordinary main verification run from independent manual or scheduled observations.",
+        "Record the November 23 repository assessment, assign its demonstrated defects and native, data and release evidence gaps to concrete work, and preserve the blank-workbench product focus for independent work."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the failed-check handoff, add a regression through normal project status and CI inspection, and register the independently observed correctness and release findings.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An engineer opening the repository can pick up a recorded failure or corrective action without a report from the product owner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "project/feedback.json",
+          "scripts/project.py",
+          "scripts/ci.py",
+          "scripts/recovery.py",
+          "scripts/check.py"
+        ],
+        "hypotheses": [
+          "A narrower successful check can hide an untriaged failure from startup and recovery even while its original per-run report remains.",
+          "The existing local reports and feedback ledger can support a durable handoff without a background writer or a new remote service."
+        ],
+        "risks": [
+          {
+            "failure": "A skipped or unrelated run clears a failure, observations become acceptance evidence, or expected platform omissions become incidents.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Concurrent or malformed diagnostic files hide other findings, or loss of a feedback record silently drops the repair.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the session and repository tooling. Original run reports and the reviewed findings remain readable in their existing formats.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/check.py",
+            "scripts/recovery.py",
+            "scripts/ci.py",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing product scope, adding a hosted repair agent, sending private logs, or running paid services."
+          ],
+          "open_questions": [
+            "Which retained signals can be cleared by an equivalent successful check, and which need an explicit engineering disposition?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Report schemas, source identities, task receipts, protected integration and release acceptance."
+          ],
+          "change": [
+            "Retained failures and active corrective work appear in the normal development handoff."
+          ],
+          "data_plan": "Read local synthetic verification and repository records. The change does not access user profiles or change product persistence.",
+          "cleanup": "Reuse the current harness, recovery and feedback entries. Keep archived observations distinguishable from actionable local diagnostics."
+        }
+      }
     }
   ]
 }

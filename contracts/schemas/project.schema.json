@@ -620,9 +620,15 @@
       ],
       "additionalProperties": false
     },
+    "ObservedFeedback": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+      "uniqueItems": true
+    },
     "Evidence": {
       "type": "object",
       "properties": {
+        "observed_feedback": {"$ref": "#/$defs/ObservedFeedback"},
         "schema_version": {
           "const": "1.0"
         },
@@ -1189,6 +1195,7 @@
                 "type": "string",
                 "minLength": 1
               },
+              "occurrence": {"type": "integer", "minimum": 1},
               "diagnostic_reports": {
                 "$ref": "#/$defs/DiagnosticReports"
               },
@@ -1286,6 +1293,7 @@
     "HarnessReport": {
       "type": "object",
       "properties": {
+        "observed_feedback": {"$ref": "#/$defs/ObservedFeedback"},
         "report_version": {
           "const": "2.0"
         },
