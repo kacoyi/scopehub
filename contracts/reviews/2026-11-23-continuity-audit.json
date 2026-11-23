@@ -252,5 +252,27 @@
         "Cargo.lock"
       ]
     }
-  ]
+  ],
+  "maintenance_observations": {
+    "primary_checkout_retained_history": {
+      "observed_at": "2026-11-23T10:10:00Z",
+      "readable_originals": 106,
+      "unavailable_originals": 2,
+      "unresolved_same_input_checks": 0,
+      "other_or_unverified_input_checks": 16,
+      "scope": "The scan used the reviewed primary checkout. An October 13 historical report predates the current selection and input identity fields; its existing M0-001 and M0-002 receipts remain historical. A November 18 run directory contains partial logs without a final report. Neither can certify a current recheck. The 16 other-input check signals concern older executions and need their own attribution.",
+      "unavailable_run_ids": [
+        "20261013T144655.651411Z-7636d530",
+        "20261118T122308.823320Z-4cb2dbc5"
+      ]
+    },
+    "weekly_regression": {
+      "observed_at": "2026-11-23T10:11:00Z",
+      "workflow_state": "active",
+      "completed_scheduled_runs": 0,
+      "scope": "The configured weekly workflow was active on main before the November 23 window. A later full main-push run supplied separate Ubuntu and Windows evidence. The cause of the missing scheduled event is unverified. The dated periodic review checks the next window and preserves failed or missing schedules independently.",
+      "follow_up": "project/delivery.json#/scaffold_maintenance/periodic_reviews",
+      "full_main_run": "https://github.com/kacoyi/scopehub/actions/runs/45133726159"
+    }
+  }
 }

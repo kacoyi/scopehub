@@ -976,10 +976,11 @@ def recover_hosted_checkpoint(root, revision, repository):
 def feedback_git(root, *args):
     # Keep local checks offline even in a partial clone with promised objects.
     return subprocess.run(['git', *args], cwd=root, capture_output=True,
-                          env={**os.environ, 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': ''})
+                          env={**os.environ, 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': '',
+                               'GIT_NO_REPLACE_OBJECTS': '1', 'GIT_GRAFT_FILE': os.devnull})
 
 
-def validate_feedback_checkpoint(root, project, commit):
+def validate_feedback_checkpoint(root, project, commit, inherited=None):
     """Preserve recorded findings and require verification for a new serious closure."""
     path = 'project/feedback.json'
     original = feedback_git(root, 'show', f'{commit}:{path}')
@@ -1012,6 +1013,8 @@ def validate_feedback_checkpoint(root, project, commit):
         if (item['status'] != 'addressed' or item == old_item
                 or (item['severity'] == 'minor' and old_item.get('severity', 'minor') == 'minor')):
             continue
+        if key not in old_items and inherited and item == inherited.get(key):
+            continue
         finding = feedback_fingerprint(item)
         if (old_item.get('status') == 'addressed' and finding == feedback_fingerprint(old_item)
                 and set(item['task_ids']) == set(old_item['task_ids'])):
@@ -1025,44 +1028,94 @@ def validate_feedback_checkpoint(root, project, commit):
         missing = set(item['regression_checks']) - covered
         if missing:
             raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
+    return old_items
+
+
+def feedback_commit(root, ref):
+    if not ref or set(ref) == {'0'}:
+        return None
+    commit = feedback_git(root, 'rev-parse', '--verify', '--quiet', '--end-of-options', f'{ref}^{{commit}}')
+    if not commit.returncode:
+        return commit.stdout.decode('ascii').strip()
+    if ref == 'HEAD':
+        branch = feedback_git(root, 'symbolic-ref', '--quiet', 'HEAD')
+        if (not branch.returncode and feedback_git(root, 'show-ref', '--verify', '--quiet',
+                                                   os.fsdecode(branch.stdout).strip()).returncode == 1):
+            return None
+    raise ProjectError(f'Feedback checkpoint is unavailable locally: {ref}')
+
+
+def protected_feedback_base(root, head):
+    path = root / 'project/branch-protection.json'
+    if not head or not path.is_file():
+        return {'source': 'none', 'reason': 'No committed HEAD or protected branch configuration.'}
+    policy = read_json(path)
+    branch = policy.get('branch') if isinstance(policy, dict) else None
+    if not isinstance(branch, str) or not branch or feedback_git(root, 'check-ref-format', f'refs/heads/{branch}').returncode:
+        raise ProjectError('Invalid configured protected branch for local feedback comparison')
+    ref = f'refs/remotes/origin/{branch}'
+    if feedback_git(root, 'show-ref', '--verify', '--quiet', ref).returncode == 1:
+        return {'source': 'none', 'ref': ref, 'reason': 'No local tracking ref for the protected branch.'}
+    tip = feedback_commit(root, ref)
+    result = feedback_git(root, 'merge-base', '--all', head, tip)
+    commits = result.stdout.decode('ascii').splitlines()
+    observation = {'source': 'local_protected_merge_base', 'ref': ref, 'tracking_commit': tip}
+    if result.returncode == 1 or len(commits) > 1:
+        return {**observation, 'reason': 'The local histories have no unique common ancestor.'}
+    if result.returncode or len(commits) != 1:
+        raise ProjectError(f'Cannot determine the local common ancestor of HEAD and {ref}')
+    return {**observation, 'commit': commits[0]}
+
+
+def reviewed_feedback_imports(items, reviewed, head):
+    # A candidate's own checkout or advertised source head cannot confirm an older disposition.
+    if head and reviewed and reviewed not in {head, os.environ.get('SCOPEHUB_SOURCE_HEAD')}:
+        return items
+    return {}
 
 
 def local_feedback_history(root, project):
-    """Compare the working ledger with available, explicitly identified local checkpoints."""
-    compared = []
+    """Report the local comparison inputs. A cached tracking ref only supplies its common history."""
     if not (root / '.git').exists():
         return {'status': 'not_applicable', 'reason': 'No Git checkout available.'}
-
-    bases = ['HEAD', os.environ.get('SCOPEHUB_REVIEW_BASE'), os.environ.get('SCOPEHUB_CHECKPOINT_BASE')]
-    for base in dict.fromkeys(bases):
-        if not base or set(base) == {'0'}:
-            continue
-        try:
-            commit = feedback_git(root, 'rev-parse', '--verify', '--quiet', '--end-of-options', f'{base}^{{commit}}')
-        except FileNotFoundError:
-            return {'status': 'not_applicable', 'reason': 'The Git executable is unavailable.'}
-        if commit.returncode:
-            if base == 'HEAD':
-                # A newly initialized repository has a symbolic HEAD and no branch ref yet.
-                branch = feedback_git(root, 'symbolic-ref', '--quiet', 'HEAD')
-                if (not branch.returncode and feedback_git(root, 'show-ref', '--verify', '--quiet',
-                                                           os.fsdecode(branch.stdout).strip()).returncode == 1):
-                    continue
-            raise ProjectError(f'Feedback checkpoint is unavailable locally: {base}')
-        sha = commit.stdout.decode('ascii').strip()
-        if sha in compared:
-            continue
-        validate_feedback_checkpoint(root, project, sha)
-        compared.append(sha)
+    try:
+        head = feedback_commit(root, 'HEAD')
+    except FileNotFoundError:
+        return {'status': 'not_applicable', 'reason': 'The Git executable is unavailable.'}
+    explicit = os.environ.get('SCOPEHUB_REVIEW_BASE')
+    basis = ({'source': 'explicit', 'commit': feedback_commit(root, explicit)} if explicit
+             else protected_feedback_base(root, head))
+    reviewed = basis.get('commit')
+    checkpoint = feedback_commit(root, os.environ.get('SCOPEHUB_CHECKPOINT_BASE'))
+    compared = []
+    imports = {}
+    for sha in dict.fromkeys([reviewed, head, checkpoint]):
+        if sha:
+            records = validate_feedback_checkpoint(root, project, sha, imports)
+            if explicit and sha == reviewed:
+                imports = reviewed_feedback_imports(records, reviewed, head)
+            compared.append(sha)
     if not compared:
         return {'status': 'not_applicable', 'reason': 'The checkout has no committed checkpoint.'}
-    return {'status': 'passed', 'compared_commits': compared}
+    return {'status': 'passed', 'compared_commits': compared, 'review_basis': basis}
 
 
-def review_history(root=ROOT, base=None):
-    """Compare accepted history to the actual reviewed revision, not HEAD by guess."""
+def review_history(root=ROOT, base=None, *, checkpoint_base=None, fetch_missing_checkpoint=False):
+    result, records = compare_history(root, base)
+    if checkpoint_base and checkpoint_base != base:
+        if fetch_missing_checkpoint:
+            if os.environ.get('GITHUB_ACTIONS') != 'true':
+                raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
+            recover_hosted_checkpoint(root, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
+        imports = reviewed_feedback_imports(records, result.get('base_commit'), feedback_commit(root, 'HEAD'))
+        result['previous_checkpoint'], _ = compare_history(root, checkpoint_base, imports)
+    return result
+
+
+def compare_history(root, base, inherited=None):
+    """Return the reviewed base ledger only after the complete history comparison passes."""
     if not base or set(base) == {'0'}:
-        return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}
+        return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}, {}
     resolved = subprocess.run(['git', 'rev-parse', '--verify', '--end-of-options', f'{base}^{{commit}}'],
                               cwd=root, capture_output=True, text=True, check=True).stdout.strip()
     project = load_project(root)
@@ -1077,7 +1130,7 @@ def review_history(root=ROOT, base=None):
         old = old_tasks.get(key, {})
         if old.get('status') not in {'done', 'cancelled'}:
             validate_report_references(root, task, f'Task {key}')
-    validate_feedback_checkpoint(root, project, resolved)
+    feedback = validate_feedback_checkpoint(root, project, resolved, inherited)
     review_operational_report_paths(root, resolved)
     compared = []
     catalog = previous('project/checks.json')
@@ -1142,7 +1195,7 @@ def review_history(root=ROOT, base=None):
                 raise ProjectError(f"Accepted decision history changed or disappeared: {decision['id']}; supersede it")
             compared.append(decision['id'])
     return {'status': 'passed', 'base_commit': resolved, 'preserved_records': compared,
-            'gate_replacements': list(replaced.values())}
+            'gate_replacements': list(replaced.values())}, feedback
 
 
 def archive_evidence(root, task_id, report_path, artifact_root=None):
@@ -1343,14 +1396,8 @@ def main():
         elif args.command == 'readiness':
             result = readiness(report_path=args.report, artifact_root=args.artifact_root, candidate=args.candidate)
         elif args.command == 'history':
-            result = review_history(ROOT, args.base)
-            checkpoint_base = os.environ.get('SCOPEHUB_CHECKPOINT_BASE')
-            if checkpoint_base and checkpoint_base != args.base:
-                if args.fetch_missing_checkpoint:
-                    if os.environ.get('GITHUB_ACTIONS') != 'true':
-                        raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
-                    recover_hosted_checkpoint(ROOT, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
-                result['previous_checkpoint'] = review_history(ROOT, checkpoint_base)
+            result = review_history(ROOT, args.base, checkpoint_base=os.environ.get('SCOPEHUB_CHECKPOINT_BASE'),
+                                    fetch_missing_checkpoint=args.fetch_missing_checkpoint)
         elif args.command == 'checkpoint':
             result = checkpoint()
         elif args.command == 'diagnostic':

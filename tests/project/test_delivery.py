@@ -1090,6 +1090,93 @@ class DeliveryTests(ProjectFixture):
         with self.assertRaisesRegex(ProjectError, 'Invalid project/feedback.json at local feedback checkpoint'):
             project_cli.local_feedback_history(self.root, load_project(self.root))
 
+    def test_two_parent_feedback_import_is_confined_to_exact_reviewed_dispositions(self):
+        def git(*args):
+            return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
+                                   '-c', 'commit.gpgsign=false', *args], cwd=self.root, check=True, capture_output=True).stdout
+
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        fork = self.commit_fixture()
+        git('checkout', '-qb', 'fixture-feature')
+        (self.root / 'feature.txt').write_text('Independent branch.\n')
+        absent = self.commit_fixture()
+        self.save_feedback(self.feedback())
+        open_checkpoint = self.commit_fixture()
+        git('checkout', '-qb', 'fixture-reviewed', fork)
+        accepted = self.feedback('addressed')
+        self.save_feedback(accepted)
+        reviewed = self.commit_fixture()
+        git('checkout', '-qb', 'fixture-merge', absent)
+        git('merge', '--no-edit', '--no-ff', reviewed)
+        self.assertEqual([absent, reviewed], git('show', '-s', '--format=%P', 'HEAD').decode().split())
+
+        def checks(base=reviewed, checkpoint=absent, *, error=None):
+            env = {'SCOPEHUB_REVIEW_BASE': base, 'SCOPEHUB_CHECKPOINT_BASE': checkpoint}
+            with patch.dict(os.environ, env):
+                for command in (lambda: project_cli.local_feedback_history(self.root, load_project(self.root)),
+                                lambda: review_history(self.root, base, checkpoint_base=checkpoint)):
+                    if error:
+                        with self.assertRaisesRegex(ProjectError, error):
+                            command()
+                    else:
+                        self.assertEqual('passed', command()['status'])
+
+        checks()
+        checks(checkpoint=open_checkpoint, error='new regression evidence')
+        checks(base='HEAD', error='new regression evidence')
+        checks(base='', error='new regression evidence')
+        with patch.dict(os.environ, {'SCOPEHUB_SOURCE_HEAD': reviewed}):
+            checks(error='new regression evidence')
+        # A source-label edit also defeats the import exception although the regression fingerprint is unchanged.
+        self.save_feedback(dict(accepted, source='Edited on the candidate branch.'))
+        checks(error='new regression evidence')
+        self.save_feedback(self.feedback())
+        checks(error='requires a new occurrence')
+        self.save_feedback(dict(accepted, occurrence=2))
+        checks(error='new regression evidence')
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+        checks(error='Feedback disappeared')
+
+    def test_default_feedback_preflight_uses_the_locally_observed_protected_merge_base(self):
+        def git(*args):
+            return subprocess.run(['git', *args], cwd=self.root, capture_output=True, check=True).stdout
+
+        def check(*, expected=0):
+            proc = subprocess.run([sys.executable, str(self.root / 'scripts/project.py'), 'check'], cwd=self.root,
+                                  capture_output=True, text=True, timeout=30)
+            self.assertEqual(expected, proc.returncode, (proc.stdout, proc.stderr))
+            return json.loads(proc.stdout)
+
+        shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        (self.root / 'project/branch-protection.json').write_bytes(json_bytes({'branch': 'fixture-main'}))
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        fork = self.commit_fixture()
+        ref = 'refs/remotes/origin/fixture-main'
+        git('update-ref', ref, fork)
+        git('checkout', '-qb', 'fixture-work')
+        (self.root / 'feature.txt').write_text('Work in progress.\n')
+        legitimate = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        self.assertIn('new regression evidence', check(expected=1)['error'])
+        self.commit_fixture()
+        self.assertIn('new regression evidence', check(expected=1)['error'])
+        git('checkout', '-qb', 'fixture-advanced-main', fork)
+        pending = self.feedback()
+        extra = dict(pending, id='only-on-advanced-main')
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': [pending, extra]}))
+        advanced = self.commit_fixture()
+        git('update-ref', ref, advanced)
+        git('checkout', '--detach', legitimate)
+        result = check()['feedback_history']
+        self.assertEqual([fork, legitimate], result['compared_commits'])
+        self.assertEqual({'source': 'local_protected_merge_base', 'ref': ref, 'tracking_commit': advanced, 'commit': fork},
+                         result['review_basis'])
+        git('update-ref', '-d', ref)
+        result = check()['feedback_history']
+        self.assertEqual([legitimate], result['compared_commits'])
+        self.assertEqual(('none', ref), (result['review_basis']['source'], result['review_basis']['ref']))
+
     def test_feedback_intake_survives_history_and_stale_task_evidence(self):
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         self.save_feedback(self.feedback())
