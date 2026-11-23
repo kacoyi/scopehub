@@ -17,12 +17,14 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
+    from .verification_scope import checkout_git_environment
     from .worktree import WorktreeError, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
+    from verification_scope import checkout_git_environment
     from worktree import WorktreeError, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,14 +190,15 @@ def validate_report_references(root, record, label):
 def review_operational_report_paths(root, base):
     # Check only changed lines and untracked operational files so inherited
     # references, fixtures and generated outputs retain their existing scope.
+    env = checkout_git_environment()
     diff = ['git', '--literal-pathspecs', 'diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames']
     changed = subprocess.check_output(
-        [*diff, '--name-only', '--diff-filter=AMT', '-z', base, '--', *OPERATIONAL_PATHS], cwd=root,
+        [*diff, '--name-only', '--diff-filter=AMT', '-z', base, '--', *OPERATIONAL_PATHS], cwd=root, env=env,
     )
     for relative in os.fsdecode(changed).split('\0'):
         if not is_operational_path(relative):
             continue
-        patch = subprocess.check_output([*diff, '--unified=0', base, '--', relative], cwd=root)
+        patch = subprocess.check_output([*diff, '--unified=0', base, '--', relative], cwd=root, env=env)
         in_hunk = False
         for line in patch.decode(errors='replace').splitlines():
             if line.startswith('@@ '):
@@ -203,7 +206,7 @@ def review_operational_report_paths(root, base):
             elif in_hunk and line.startswith('+'):
                 require_portable_report_paths(root, line[1:], f'Operational file {relative}')
     untracked = subprocess.check_output(
-        ['git', 'ls-files', '--others', '--exclude-standard', '-z', '--', *OPERATIONAL_PATHS], cwd=root,
+        ['git', 'ls-files', '--others', '--exclude-standard', '-z', '--', *OPERATIONAL_PATHS], cwd=root, env=env,
     )
     for relative in os.fsdecode(untracked).split('\0'):
         if is_operational_path(relative):
@@ -215,9 +218,10 @@ def review_operational_report_paths(root, base):
 
 def source_identity(root=ROOT):
     """Hash current non-ignored files without following symlinks or reading .git."""
+    env = checkout_git_environment()
     result = subprocess.run(
         ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'],
-        cwd=root, capture_output=True, check=True,
+        cwd=root, env=env, capture_output=True, check=True,
     )
     entries = []
     for relative in sorted(set(result.stdout.decode('utf-8').split('\0')) - {''}):
@@ -231,8 +235,8 @@ def source_identity(root=ROOT):
             entries.append([relative, 'file', file_digest(path)])
     if not entries:
         raise ProjectError('No execution inputs found in the Git worktree')
-    head = subprocess.run(['git', 'rev-parse', '--verify', 'HEAD'], cwd=root, capture_output=True, text=True)
-    status = subprocess.run(['git', 'status', '--porcelain'], cwd=root, capture_output=True, check=True, text=True)
+    head = subprocess.run(['git', 'rev-parse', '--verify', 'HEAD'], cwd=root, env=env, capture_output=True, text=True)
+    status = subprocess.run(['git', 'status', '--porcelain'], cwd=root, env=env, capture_output=True, check=True, text=True)
     return {
         'snapshot_kind': 'execution-inputs-v1',
         'sha256': digest(json.dumps(entries, separators=(',', ':')).encode('utf-8')),
@@ -698,15 +702,16 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
 
 def checkpoint(root=ROOT):
     state = workfront(root)
+    env = checkout_git_environment()
     branch = subprocess.run(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD'],
-                            cwd=root, capture_output=True, text=True)
+                            cwd=root, env=env, capture_output=True, text=True)
     upstream = subprocess.run(['git', 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
-                              cwd=root, capture_output=True, text=True)
+                              cwd=root, env=env, capture_output=True, text=True)
     tracking = upstream.stdout.strip() if upstream.returncode == 0 else None
     ahead = behind = None
     if tracking:
         counts = subprocess.run(['git', 'rev-list', '--left-right', '--count', f'HEAD...{tracking}'],
-                                cwd=root, capture_output=True, text=True, check=True).stdout.split()
+                                cwd=root, env=env, capture_output=True, text=True, check=True).stdout.split()
         ahead, behind = map(int, counts)
     project = load_project(root)
     report = read_json(root / '.reports/test-report.json') if state['verification']['current'] else {}
@@ -949,9 +954,10 @@ def recover_hosted_checkpoint(root, revision, repository):
     if not re.fullmatch(r'[A-Za-z0-9-]+/[A-Za-z0-9_.-]+', repository):
         raise ProjectError('Hosted history requires the GitHub verification repository')
 
+    env = checkout_git_environment()
     def object_type():
         return subprocess.run(['git', '--no-replace-objects', 'cat-file', '-t', '--', revision],
-                              cwd=root, capture_output=True)
+                              cwd=root, env=env, capture_output=True)
 
     found = object_type()
     if found.returncode:
@@ -963,7 +969,7 @@ def recover_hosted_checkpoint(root, revision, repository):
                                       'fetch', '--no-tags',
                                       '--no-write-fetch-head', '--no-recurse-submodules', '--', origin, revision],
                                      cwd=root, capture_output=True, timeout=60,
-                                     env={**os.environ, 'GIT_TERMINAL_PROMPT': '0'})
+                                     env={**env, 'GIT_TERMINAL_PROMPT': '0'})
         except subprocess.TimeoutExpired:
             raise ProjectError(f'Timed out retrieving previous checkpoint {revision} from {repository}') from None
         if fetched.returncode:
@@ -976,7 +982,7 @@ def recover_hosted_checkpoint(root, revision, repository):
 def feedback_git(root, *args):
     # Keep local checks offline even in a partial clone with promised objects.
     return subprocess.run(['git', *args], cwd=root, capture_output=True,
-                          env={**os.environ, 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': '',
+                          env={**checkout_git_environment(), 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': '',
                                'GIT_NO_REPLACE_OBJECTS': '1', 'GIT_GRAFT_FILE': os.devnull})
 
 
@@ -1143,12 +1149,13 @@ def compare_history(root, base, inherited=None):
     """Return the reviewed base ledger only after the complete history comparison passes."""
     if not base or set(base) == {'0'}:
         return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}, {}
+    env = checkout_git_environment()
     resolved = subprocess.run(['git', 'rev-parse', '--verify', '--end-of-options', f'{base}^{{commit}}'],
-                              cwd=root, capture_output=True, text=True, check=True).stdout.strip()
+                              cwd=root, env=env, capture_output=True, text=True, check=True).stdout.strip()
     project = load_project(root)
 
     def previous(path):
-        result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, capture_output=True)
+        result = subprocess.run(['git', 'show', f'{resolved}:{path}'], cwd=root, env=env, capture_output=True)
         return json.loads(result.stdout) if result.returncode == 0 else None
 
     ledger = previous('project/tasks.json')
@@ -1212,7 +1219,7 @@ def compare_history(root, base, inherited=None):
                     raise ProjectError(f"Appended evidence does not validate the accepted task: {task['id']}")
             compared.append(task['id'])
     paths = subprocess.run(['git', 'ls-tree', '-r', '--name-only', resolved, '--', 'contracts/decisions'],
-                           cwd=root, capture_output=True, text=True, check=True).stdout.splitlines()
+                           cwd=root, env=env, capture_output=True, text=True, check=True).stdout.splitlines()
     for path in paths:
         if not path.endswith('.json'):
             continue
@@ -1258,7 +1265,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
             raise ProjectError('CI evidence belongs to another commit or checkout')
         if report['source']['working_tree_dirty']:
             raise ProjectError('CI evidence must describe a clean checkout')
-        remote = subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=root,
+        remote = subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=root, env=checkout_git_environment(),
                                 capture_output=True, text=True, check=True).stdout.strip()
         if remote not in {f"https://github.com/{ci['repository']}", f"https://github.com/{ci['repository']}.git"}:
             raise ProjectError('CI repository differs from the configured HTTPS origin')

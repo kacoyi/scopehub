@@ -8,6 +8,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import runpy
@@ -63,10 +64,14 @@ def read_control(root, relative):
 
 
 def git_observation(root):
+    # This bootstrap must work even when every other repository module is unavailable.
+    global_config = {'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'}
+    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_') or key in global_config}
+    env.update(GIT_NO_LAZY_FETCH='1', GIT_ALLOW_PROTOCOL='')
     observed = {}
     for name, args in [('head', ['rev-parse', 'HEAD']), ('working_tree', ['status', '--short'])]:
         try:
-            result = subprocess.run(['git', '--no-optional-locks', *args], cwd=root, timeout=10, capture_output=True,
+            result = subprocess.run(['git', '--no-optional-locks', *args], cwd=root, env=env, timeout=10, capture_output=True,
                                     text=True, encoding='utf-8', errors='replace')
             observed[name] = result.stdout.strip() if result.returncode == 0 else None
             if result.returncode:

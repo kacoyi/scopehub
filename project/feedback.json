@@ -3610,7 +3610,7 @@
     },
     {
       "id": "git-context-misattributes-feedback-checkpoint",
-      "source": "contracts/reviews/2026-11-23-continuity-audit.json and a Git-launched local project preflight over two independent fixture repositories",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json and a Git-launched local project preflight over two independent fixture repositories, archives/runs/20261123T112336.451128Z-4b84eb5b/test-report.json",
       "observation": "In one fixture repository an unsupported closure of a major finding failed local project validation. Invoking that same command through an external Git alias in another repository returned success and reported the other repository’s independently accepted checkpoint.",
       "severity": "major",
       "status": "open",
@@ -3621,7 +3621,14 @@
         "python-contracts-workers"
       ],
       "resolution": null,
-      "deferral_reason": null
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T112336.451128Z-4b84eb5b",
+          "source_commit": "bdf5f738f5d8b38f94e85310dbdede90d6980989",
+          "report_sha256": "1a7a9e6ba53ccb2377bb1d248207e4bde0bcb0d181a3b1b114d9bad62e1ba24b"
+        }
+      ]
     }
   ]
 }

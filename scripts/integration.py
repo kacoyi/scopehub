@@ -12,12 +12,12 @@ if __package__:
     from .ci import WORKFLOW, classify_runs, command, github_identity
     from .project import ProjectError, load_project, read_json, review_history, source_identity
     from .protection import violations
-    from .verification_scope import SCOPED_PROFILES, committed_scope
+    from .verification_scope import SCOPED_PROFILES, checkout_git_environment, committed_scope
 else:
     from ci import WORKFLOW, classify_runs, command, github_identity
     from project import ProjectError, load_project, read_json, review_history, source_identity
     from protection import violations
-    from verification_scope import SCOPED_PROFILES, committed_scope
+    from verification_scope import SCOPED_PROFILES, checkout_git_environment, committed_scope
 
 ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
@@ -56,7 +56,7 @@ def job_checkout(root, repository, job_id):
     with tempfile.TemporaryFile(mode='w+', encoding='utf-8', errors='replace') as log:
         result = subprocess.run(['gh', 'api', '--allow-escape-sequences',
                                  f'repos/{repository}/actions/jobs/{job_id}/logs'],
-                                cwd=root, stdout=log, stderr=subprocess.PIPE, timeout=30)
+                                cwd=root, env=checkout_git_environment(), stdout=log, stderr=subprocess.PIPE, timeout=30)
         if result.returncode:
             detail = result.stderr.decode('utf-8', errors='replace').strip()
             raise ProjectError(f'Cannot read checkout evidence for GitHub job {job_id}: {detail}')
@@ -169,7 +169,7 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
 def delivery_scope(root, project, base):
     """Use actual base history and validated receipts, not a supplied task list."""
     history = review_history(root, base)
-    previous_file = subprocess.run(['git', 'show', f'{base}:project/tasks.json'], cwd=root,
+    previous_file = subprocess.run(['git', 'show', f'{base}:project/tasks.json'], cwd=root, env=checkout_git_environment(),
                                    capture_output=True, check=False)
     previous = {task['id']: task for task in json.loads(previous_file.stdout)['tasks']} if previous_file.returncode == 0 else {}
     changed = [task for key, task in project['tasks'].items() if task != previous.get(key)]
@@ -257,7 +257,7 @@ def inspect(root=ROOT, pr_number=None):
     base = pr['baseRefOid']
     command(['git', 'cat-file', '-e', f'{base}^{{commit}}'], root)
     ancestry = subprocess.run(['git', 'merge-base', '--is-ancestor', base, pr['headRefOid']],
-                              cwd=root, capture_output=True, check=False)
+                              cwd=root, env=checkout_git_environment(), capture_output=True, check=False)
     if ancestry.returncode not in {0, 1}:
         raise ProjectError('PR history is not available locally; fetch the reviewed head and base, then inspect again.')
     scope = delivery_scope(root, project, base)

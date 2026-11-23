@@ -27,13 +27,13 @@ try:
     if __package__:
         from .doctor import tool_version
         from .processes import log_tail, run_logged
-        from .project import ProjectError, feedback_fingerprint, file_digest, load_project, local_feedback_history, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from .project import ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project, local_feedback_history, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
         from .storage import maintain_automatically
         from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
-        from project import ProjectError, feedback_fingerprint, file_digest, load_project, local_feedback_history, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from project import ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project, local_feedback_history, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
         from storage import maintain_automatically
         from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
 except Exception as error:
@@ -257,7 +257,7 @@ def main():
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
     run_dir = REPORTS / 'runs' / run_id
     run_dir.mkdir(parents=True)
-    env = dict(os.environ)
+    env = checkout_git_environment()
     if not (env.get('CI') or env.get('GITHUB_ACTIONS')):
         env.setdefault('CARGO_INCREMENTAL', '0')
     env['SCOPEHUB_RUN_DIR'] = str(run_dir)
@@ -389,7 +389,7 @@ def main():
     if not source_unchanged:
         # Retain changed paths, not file contents, to diagnose unexpected build writes.
         report['worktree_changes'] = subprocess.run(
-            ['git', 'status', '--short'], cwd=ROOT, capture_output=True, check=True,
+            ['git', 'status', '--short'], cwd=ROOT, env=env, capture_output=True, check=True,
             text=True, encoding='utf-8', errors='replace',
         ).stdout.splitlines()
     validate_model(ROOT, 'HarnessReport', report)

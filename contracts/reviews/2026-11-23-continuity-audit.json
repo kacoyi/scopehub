@@ -43,9 +43,11 @@
         "scripts/project.py",
         "scripts/recovery.py",
         "scripts/ci.py",
-        "tests/project/test_delivery.py"
+        "tests/project/test_delivery.py",
+        "scripts/verification_scope.py"
       ],
-      "earliest_check": "Register feedback and activate its owning task. Validate transitions before harness subprocesses. Recheck signals at session startup and handoff."
+      "earliest_check": "Register feedback and activate its owning task. Validate transitions before harness subprocesses. Recheck signals at session startup and handoff.",
+      "checkout_identity": "An external Git alias could make a check in one checkout accept the caller repository’s historical feedback disposition. A second checkout also supplied the wrong local account marker. Exercise the same checks directly and through Git in both directions, including the resulting source and receipt."
     },
     {
       "id": "release-check-selection",
