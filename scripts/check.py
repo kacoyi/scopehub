@@ -27,13 +27,13 @@ try:
     if __package__:
         from .doctor import tool_version
         from .processes import log_tail, run_logged
-        from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, release_checks, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
         from .storage import maintain_automatically
         from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
-        from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, release_checks, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
         from storage import maintain_automatically
         from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
 except Exception as error:
@@ -185,7 +185,7 @@ def select_checks(project, *, profile=None, task_id=None):
         return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
     if profile:
         if profile == 'release':
-            return {key for key, check in project['checks'].items() if check['status'] != 'retired' and check.get('cadence') != 'task'}
+            return release_checks(project)
         if profile not in project['catalog'].get('profiles', {}):
             raise ProjectError(f'Unknown check profile: {profile}')
         return set(project['catalog']['profiles'][profile])
