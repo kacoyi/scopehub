@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-074",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15276,7 +15276,7 @@
       "id": "M0-074",
       "title": "Separate product invariants from local data implementations and evidence",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-073"
       ],
@@ -15305,8 +15305,13 @@
         "architecture",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Move the duplicated records to their owning contracts and checks, update readers, then exercise generation, release gating and qualification against the same independent cases.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-074-f2a35e8d92a0cbe9.json",
+          "sha256": "c35f0552c58149d12299cfdde980da7f1d88969534e97b0602ffa3d09773e463"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "plan": {
         "outcome": "A developer can change a private import transport or a test fixture without rewriting the product promise, while compatibility and release checks still use the reviewed inputs.",
@@ -15376,7 +15381,7 @@
           "cleanup": "Remove copied operation definitions, test oracle bytes, private transport budgets and duplicated UI procedures from the root."
         }
       },
-      "closure_reason": null
+      "closure_reason": "At 64a2652 the task checks passed and an independent review resolved every historical scalar pointer, compared all negotiated operation records with the base and confirmed the release evidence bindings. Native large-file import, optional Python packaging and upstream provider qualification retain their separate pending evidence."
     }
   ]
 }
