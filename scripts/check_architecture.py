@@ -179,10 +179,11 @@ def desktop_capability_errors(root):
 
 def valid_operation_actors(operation, declared_actors):
     actors = operation['actors']
+    if not isinstance(actors, list) or not actors or any(actor not in declared_actors for actor in actors):
+        return False
     if operation.get('transport') == 'private_workspace':
         return actors == ['user']
-    return (isinstance(actors, list) and bool(actors)
-            and all(actor in declared_actors for actor in actors) and len(set(actors)) == len(actors))
+    return len(set(actors)) == len(actors)
 
 
 def main():

@@ -26,6 +26,7 @@ class ArchitectureTests(unittest.TestCase):
         for actors in (['ai'], ['system'], ['user', 'ai']):
             self.assertFalse(valid_operation_actors({'actors': actors, 'transport': 'private_workspace'}, roles))
         self.assertTrue(valid_operation_actors({'actors': ['user'], 'transport': 'private_workspace'}, roles))
+        self.assertFalse(valid_operation_actors({'actors': ['user'], 'transport': 'private_workspace'}, ['ai']))
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
