@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-034",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15842,7 +15842,7 @@
       "id": "M1-034",
       "title": "Reject conflicting explicit CSV series declarations before publication",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-008"
       ],
@@ -15876,10 +15876,15 @@
         "local-import-publication",
         "local-folder-refresh-preview"
       ],
-      "evidence": [],
-      "next_action": "Exercise the conflicting source declarations through the worker and desktop bridge, then verify complete-file publication and folder refresh.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-034-ceabb05e45519d51.json",
+          "sha256": "0018f0376617494ac42b81f2582bef70ee6b144d029757c71bd118012db5ee81"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "On clean implementation b8b76dc the task checks passed. Worker regressions preserve raw source declarations and locate late conflicts, while valid independent series and blank declaration cells normalize as reviewed. The Rust desktop bridge rejected each field independently at record 2, left a single accepted revision and returned its original frozen bars. The folder browser excluded the conflicting files, preserved competing valid sources and kept the accepted chart open. Desktop localization verified both languages.",
       "plan": {
         "outcome": "A reviewed native bar has compatible source and mapping semantics for timeframe, timezone and volume; conflicting original fields remain accessible for review.",
         "change_types": [
