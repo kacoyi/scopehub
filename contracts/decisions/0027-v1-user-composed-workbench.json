@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "id": "0027",
+  "title": "Require a user-composed workbench for V1 and select the renderer by prototype",
+  "status": "accepted",
+  "recorded_at": "2026-11-23",
+  "context": "The default chart and named panel layouts are useful, but their acceptance checks can pass while every available presentation still requires a prebuilt widget. The chart-free demonstration was previously scheduled for later.",
+  "decision": "Make an original, user-editable workbench a V1 release gate. Qualify candidate renderers on a representative composition before committing to a runtime. The durable interface carries authorized data with its identity and accepts scoped action intents. Keep the editable presentation independent of the host's credentials, confirmations, recovery and source records.",
+  "authority": "On 2026-11-23 the owner selected V1 release acceptance for the malleable workbench and delegated rendering technology selection to prototype evidence. This changes the release scope. Execution of arbitrary code, new data disclosure and service purchases retain their own authorization.",
+  "alternatives": [
+    {
+      "option": "Ship configurable chart panels and evaluate whole-workbench composition after V1.",
+      "reason": "A user could complete every chart-layout check without ever creating a presentation the product team had not supplied."
+    },
+    {
+      "option": "Specify two WebViews, a JS compiler and a fixed workspace source format now.",
+      "reason": "Those choices carry costs for isolation, responsiveness, compatibility and migration. The prototype can compare them against a host-rendered composition using the same user outcome."
+    }
+  ],
+  "consequences": [
+    "M2-003 records the native prototype and the reasons for selecting or rejecting a renderer. M2-013 delivers the user journey; chart-free-workbench is required on the release candidate. Prototype results and prior chart receipts establish only their own scope.",
+    "Tauri is the existing host. Evaluate the same layout, selection, redraw and recovery on Ubuntu and Windows. Assess a bundled Chromium host if an observed platform difference or isolation limitation justifies its packaging, update and migration costs.",
+    "A same-window view can inherit window-level capabilities. Qualify any executable canvas independently, including network restrictions and recovery when rendering stops responding. A prototype uses synthetic data and grants no general runtime permission.",
+    "Retain existing chart layouts, chart gestures, indicator versions, notes and source rights. A release check exercises user-created work and the last accepted revision. The plugin marketplace and strategy backtesting platform remain outside the V1 scope."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0008", "0016", "0024"],
+  "revisit_when": "Native evidence shows that a candidate cannot express the target workbench, preserve a saved user's composition, isolate its authority or recover reliably at acceptable cost.",
+  "references": [
+    "https://v2.tauri.app/security/capabilities/#remote-api-access",
+    "https://v2.tauri.app/reference/acl/capability/#windows",
+    "https://v2.tauri.app/reference/webview-versions/",
+    "https://www.electronjs.org/docs/latest/tutorial/security"
+  ]
+}

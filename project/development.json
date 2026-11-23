@@ -586,8 +586,8 @@
       "task_ids": [
         "M2-013"
       ],
-      "delivery": "later",
-      "boundary": "M2-013 exercises the whole-workbench goal with a chart-free review of new disclosures. It is planned separately from the current single-chart delivery. The rendering technology and first-release timing of broader customization remain open."
+      "delivery": "current-contract",
+      "boundary": "V1 requires an original chart-free workbench that users can build, revise, refresh and reopen. M2-013 owns the product journey and the release check. Built-in layout receipts cover the chart default."
     },
     {
       "id": "realtime-voice",
@@ -602,7 +602,7 @@
       "boundary": "Opt-in duplex speech shares text context and core permissions. A real session must be observed separately from mock evaluation."
     },
     {
-      "id": "custom-panel-code",
+      "id": "workbench-renderer-selection",
       "source": {
         "path": "engineering-contract-v1.json",
         "pointer": "/ui/customization/extensibility"
@@ -610,8 +610,8 @@
       "task_ids": [
         "M2-003"
       ],
-      "delivery": "later",
-      "boundary": "Evaluate a separately isolated renderer only when declarative layouts cannot express a concrete panel. Runtime execution needs a future scoped decision."
+      "delivery": "current-contract",
+      "boundary": "M2-003 selects a renderer using native evidence about expressiveness, editing, resource use, authority and recovery. Running user-authored code in an isolated renderer is a candidate subject to that decision."
     },
     {
       "id": "model-provider-choice",

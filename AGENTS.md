@@ -17,7 +17,7 @@ Follow `engineering-contract-v1.json` and `contracts/contract.json`. The scaffol
 
 - Build for close human–AI financial collaboration: market understanding, analysis, decision-making, and authorized operations. Stocks and futures are the initial asset classes, with room for additional types.
 - Select features and complexity for concrete collaboration needs. A lightweight footprint is not a mandatory objective; avoid unnecessary features and speculative infrastructure.
-- The first chart-and-indicator workflow is an initial delivery scenario. The long-term goal in `engineering-contract-v1.json#/ui/customization` gives users control over what appears across the whole workbench, under what conditions, in what form and with which authorized interactions.
+- V1 requires a workbench that users can compose from a blank canvas, reshape with the embedded AI and reopen with their data bindings. Users choose what appears, when, in what form and with which authorized interactions. Deliver the chart default alongside it. Select the renderer from native prototype evidence under ADR 0027 and verify the product with the separate chart-free release gate.
 - Product AI should actively investigate, compute, challenge assumptions, and perform authorized operations. Human ownership of investment judgments does not imply a guarantee of profit or an independent capital-management mandate for the AI.
 - For the product AI, acceptance of market risk grants no additional permissions. Keep investment judgment, operation authorization, and system correctness distinct; data and execution defects remain engineering failures to prevent and correct.
 

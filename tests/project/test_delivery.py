@@ -26,6 +26,26 @@ from scripts.verification_evidence import integration_validation, release_artifa
 
 
 class DeliveryTests(ProjectFixture):
+    def test_chart_and_prototype_passes_cannot_satisfy_the_v1_workbench_gate(self):
+        project = load_project(project_cli.ROOT)
+        gate = 'chart-free-workbench'
+        self.assertIn(gate, harness.select_checks(project, profile='release'))
+        self.assertIn(gate, project['delivery']['release_policy']['required_checks'])
+        self.assertIn(gate, harness.select_checks(project, task_id='M2-013'))
+        self.assertEqual('current-contract', project['tasks']['M2-013']['delivery'])
+
+        # Give every other check a passing result, including the chart and renderer probe.
+        results = [{'id': key, 'status': 'passed'} for key in project['checks'] if key != gate]
+        for result, expected in (([], 'blocked'), ([{'id': gate, 'status': 'blocked'}], 'blocked'),
+                                 ([{'id': gate, 'status': 'failed'}], 'failed'),
+                                 ([{'id': gate, 'status': 'passed'}], 'passed')):
+            with self.subTest(result=result):
+                milestones, acceptance = product_progress(project, results + result)
+                workbench, = (row for row in acceptance if gate in row['checks'])
+                self.assertEqual(expected, workbench['status'])
+                milestone = next(row for row in milestones if row['id'] == 'M2')
+                self.assertEqual(expected, milestone['verification'])
+
     def test_recurring_review_becomes_due_and_exposes_the_action(self):
         delivery = load_project(self.root)['delivery']
         before, = periodic_reviews(delivery, date(2026, 11, 27))

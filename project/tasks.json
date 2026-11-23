@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-031",
+  "focus_task_id": "M0-073",
   "tasks": [
     {
       "id": "M0-001",
@@ -956,7 +956,8 @@
       "milestone": "M5",
       "status": "planned",
       "depends_on": [
-        "M4-001"
+        "M4-001",
+        "M2-013"
       ],
       "scope": [
         "apps/desktop/src-tauri",
@@ -975,7 +976,8 @@
         "Verify packaged worker cleanup, stability, credential boundaries and dependency notices.",
         "Bind release artifacts to a committed source revision, lockfiles, build environment and actual acceptance evidence.",
         "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
-        "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate."
+        "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate.",
+        "Exercise the chart-free workbench with the released renderer on the exact candidate installer and bind the result to its hash."
       ],
       "checks": [
         "windows-installation",
@@ -983,7 +985,8 @@
         "credential-boundaries",
         "release-artifacts",
         "dependency-review",
-        "state-migrations"
+        "state-migrations",
+        "chart-free-workbench"
       ],
       "evidence": [],
       "next_action": "Implement packaging and execute clean-machine, stability and release acceptance checks.",
@@ -4256,7 +4259,8 @@
         "Open the Ubuntu-reviewed revision using pnpm desktop:dev on the physical Windows 10/11 x64 desktop and observe the native WebView2 window.",
         "Exercise the unconfigured entry, synthetic chart, selection, timeframe, chart style, resizing, crosshair, table and exit. Retain the revision, Windows runtime and on-screen observations with screenshots.",
         "Record any experience feedback supplied by the owner in their own terms and retain any engineering defects for correction.",
-        "Link the Windows observation to the commit reviewed in the native Ubuntu Tauri window and match its execution-input digest. A bookkeeping-only commit that attaches an Ubuntu receipt is recorded separately. Changed executable inputs require a renewed Ubuntu observation before the physical trial."
+        "Link the Windows observation to the commit reviewed in the native Ubuntu Tauri window and match its execution-input digest. A bookkeeping-only commit that attaches an Ubuntu receipt is recorded separately. Changed executable inputs require a renewed Ubuntu observation before the physical trial.",
+        "Reopen and edit a chart-free composition on the physical Windows desktop. Compare the behavior with the Ubuntu-reviewed revision, including display scaling, selection and recovery."
       ],
       "checks": [
         "windows-native-build",
@@ -4709,7 +4713,7 @@
     },
     {
       "id": "M2-003",
-      "title": "Evaluate isolated user-authored panel code beyond layout bindings",
+      "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
       "status": "planned",
       "depends_on": [
@@ -4723,21 +4727,24 @@
       "decision_refs": [
         "0004",
         "0007",
-        "0008"
+        "0008",
+        "0027"
       ],
       "acceptance": [
-        "Demonstrate a user need outside declarative panels. Document the rendering and interaction boundary, declared permissions, versioning, removal and recovery before proposing runtime execution.",
-        "Any prototype must demonstrate isolation from product code, native credentials and approval controls. A prototype does not authorize installation or execution in a user workspace."
+        "Use a chart-free composition of local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
+        "Keep privileged controls and the last accepted view in the host. Exercise a failed or stalled draft. For an executable candidate verify the effective native, file and network isolation on both platforms and record the limits. A container name or an iframe embedded in a privileged window is insufficient evidence.",
+        "Record the source revision, native runtime versions, synthetic inputs, observations, decision and revisit conditions. Choose a viable option by evidence, or report the gap. Prototype approval grants no new product data access or code execution rights."
       ],
       "checks": [
         "architecture",
-        "operations-workflow"
+        "operations-workflow",
+        "workbench-renderer-probe"
       ],
       "evidence": [],
-      "next_action": "Select a concrete custom panel that needs a new renderer and compare isolated extension designs against the existing declarative interface.",
+      "next_action": "Prototype the non-preset presentation and host recovery path with a small synthetic fixture. Start with the existing host and compare a bundled Chromium alternative if a native difference materially affects the outcome.",
       "blocker": null,
       "closure_reason": null,
-      "delivery": "later"
+      "delivery": "current-contract"
     },
     {
       "id": "M0-020",
@@ -4868,7 +4875,8 @@
         "M1-030",
         "M1-031",
         "M2-012",
-        "M1-032"
+        "M1-032",
+        "M2-013"
       ],
       "scope": [
         "project/tasks.json",
@@ -4891,7 +4899,8 @@
         "Exercise the local bridge against the visible Ubuntu chart and review a saved decision. Track actual CLI and desktop client observations under M4-005 on supported hosts, including Windows when required.",
         "Complete all Ubuntu-local scenarios in the native Tauri/WebKitGTK application launched with pnpm desktop:dev. Bind the observed actions and screenshots to that application process and window, the source revision and execution-input digest. Record actual model, audio and external-client observations separately. Use the accepted Ubuntu inputs for the physical Windows trial.",
         "Observe saved-directory catch-up, a Parquet daily/auction source with a missing session and a cited research method on the integrated Ubuntu workspace. Record native Windows and eligible real service trials separately.",
-        "In the native workspace, arrange and save a chart and an inspection widget, switch to a second compatible source, then reopen the layout. Compare the shared controls and the widget composition journey once those actions can be exercised together."
+        "In the native workspace, arrange and save a chart and an inspection widget, switch to a second compatible source, then reopen the layout. Compare the shared controls and the widget composition journey once those actions can be exercised together.",
+        "In the native Ubuntu application, build, change and reopen the chart-free workbench from M2-013. Retain the observed user-defined presentation and source behavior separately from the default chart observations."
       ],
       "checks": [
         "ubuntu-preview",
@@ -13439,7 +13448,7 @@
         "architecture"
       ],
       "evidence": [],
-      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. See contracts/reviews/2026-11-22-ai-workspace-canvas.json for the broader proposal to redesign any part of the workbench from text or a visual reference and its open release-scope decisions.",
+      "next_action": "Start with the built-in inspection table and main chart. Specify the minimum bar fields and compatible source references against the existing layout definition, then test a local fixture and a controlled API adapter with equivalent bars. The chart default is one starting point. ADR 0027 and M2-013 define the separate mandatory workbench journey.",
       "blocker": null,
       "closure_reason": null
     },
@@ -15183,9 +15192,10 @@
       "title": "Compose a chart-free workbench that shows disclosures since a selected research note",
       "milestone": "M2",
       "status": "planned",
-      "delivery": "later",
+      "delivery": "current-contract",
       "depends_on": [
-        "M2-002"
+        "M2-002",
+        "M2-003"
       ],
       "scope": [
         "apps/desktop",
@@ -15196,21 +15206,65 @@
       "decision_refs": [
         "0007",
         "0008",
-        "0016"
+        "0016",
+        "0027"
       ],
       "acceptance": [
         "Starting from a blank workbench, use the ordinary editing controls to place a selected local note beside matching disclosures. Choose its issuer and use the note's review time as a cutoff. A selection opens the attributed original within current rights. Save the composition without a chart.",
         "Use a synthetic note about issuer A reviewed at 09:00 UTC. Of disclosures on that date for A at 08:55, B at 09:05 and A at 09:10 UTC, show only the 09:10 item. On refresh, include a new A item at 09:20. A scoped AI edit puts the newest match first; preview, apply, adjust manually, undo and reopen the saved view. Check the ordering, cutoff and evidence identities after each edit.",
-        "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent."
+        "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent.",
+        "Create and structurally reshape the view using the normal workbench and embedded AI, then refine a single element directly. Use the same released application to express a second arrangement and a different binding without a dedicated product component. Bind the points of a frozen, accepted numeric series to a user-chosen visual property and inspect its exact value and evidence.",
+        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Exercise the native journey for delivery and repeat it against the identified Windows installer for release."
       ],
       "checks": [
         "chart-free-workbench",
         "workspace-layout"
       ],
       "evidence": [],
-      "next_action": "Use local synthetic disclosures and a selected synthetic note to compare ways to express the user's rule. Choose the best fit for this interaction and assess the cost of replacing it with saved workspaces in use.",
+      "next_action": "Use the renderer chosen in M2-003 to implement the release journey. Start with a frozen local fixture and support targeted and structural edits to the same composition.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M0-073",
+      "title": "Make a user-composed workbench a first-release acceptance gate",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": ["M0-072"],
+      "decision_refs": ["0007", "0008", "0016", "0024", "0027"],
+      "scope": ["AGENTS.md", "engineering-contract-v1.json", "contracts", "project", "tests/project"],
+      "acceptance": [
+        "Align V1 scope, desktop defaults, input and rendering boundaries, indicator presentation, prototype selection and contributor guidance with the owner's release decision.",
+        "The project brief, task graph, acceptance map and release profile require a workbench built from a blank canvas beyond built-in panels. Passing every other check leaves this requirement blocked until the product check passes.",
+        "Keep the commercial exclusions, shared operation authority, saved layouts and existing gates. Distinguish contract verification from rendering, isolation and packaged product evidence."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "Update the contract, schedule the prototype and confirm that omitting the product check blocks acceptance.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A first release made entirely of preset panels cannot satisfy the workbench acceptance requirement.",
+        "change_types": ["tooling"],
+        "context": ["engineering-contract-v1.json", "contracts/contract.json", "project/checks.json", "project/delivery.json", "project/development.json", "apps/desktop/src-tauri/capabilities/main.json", "scripts/check.py", "scripts/project.py"],
+        "hypotheses": ["The existing acceptance and release machinery can enforce the new owner decision through its normal selectors and readiness calculation."],
+        "risks": [{"failure": "A task-only check gets omitted from release, a prototype counts as acceptance or a default chart becomes mandatory again.", "checks": ["project-state", "python-contracts-workers"]}],
+        "rollback": "Revise an unsuitable renderer after prototype evidence while keeping the owner-approved product gate. Keep older supported layouts readable.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "project/tasks.json", "project/checks.json", "project/delivery.json"],
+          "rules": [{"path": "project/development.json", "pointer": "/quality/evolution"}, {"path": "project/delivery.json", "pointer": "/release_policy"}],
+          "non_goals": ["Shipping a renderer, granting new runtime access or retiring accepted capabilities."],
+          "open_questions": ["Which renderer meets the interaction, isolation and recovery requirements on both native hosts?"]
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["The first chart journey, existing data and indicator formats, permissions and accepted task history."],
+          "change": ["Promote product and prototype work into V1 and bind product acceptance to the released workbench."],
+          "data_plan": "Use synthetic records for the prospective journeys and a copy of an existing chart layout for compatibility.",
+          "cleanup": "Remove later-only scheduling from live plans and keep the historical proposal and receipts intact."
+        }
+      }
     }
   ]
 }
