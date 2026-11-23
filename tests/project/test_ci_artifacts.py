@@ -660,6 +660,26 @@ class PublicationTests(ProjectFixture):
                     archive_evidence(self.root, 'M0-001', downloaded / 'test-report.json', downloaded)
                 self.assertEqual(error, str(imported.exception))
 
+    def test_future_field_time_fails_before_screenshots_but_historical_diagnostic_is_readable(self):
+        check, report, directory, _, record, manifest, result = self.make_field_record()
+        contents = json_bytes(dict(record, observed_at='2999-01-01T12:00:00+08:00'))
+        manifest.write_bytes(contents)
+        result['field_observation']['observation_sha256'] = digest(contents)
+        self.save_report(report)
+        error = 'Completed evidence cannot have a future observation time.'
+        for hosted in (False, True):
+            with (self.subTest(hosted=hosted), patch.object(verification_evidence, 'verified_file') as read_image,
+                  self.assertRaises(ProjectError) as direct):
+                field_observation(self.root, check, hosted=hosted)
+            self.assertEqual(error, str(direct.exception))
+            read_image.assert_not_called()
+        with self.assertRaises(ProjectError) as publication:
+            stage_artifacts(self.root, self.destination, self.env)
+        self.assertEqual(error, str(publication.exception))
+        self.assertFalse((self.destination / 'observations').exists())
+        locator = diagnostic_locator(self.reports / 'test-report.json')
+        self.assertEqual([f'{directory}/observation.json'], resolve_diagnostic(locator, self.reports)['verified_observations'])
+
     def make_candidate(self, report):
         candidate = self.reports / 'runs/fixture/candidate'
         identity = {'commit': report['source']['git_head'], 'inputs_sha256': report['source']['sha256']}
@@ -772,6 +792,11 @@ class PublicationTests(ProjectFixture):
                                      release_artifacts(candidate.parent, report['source'], policy)['installer_sha256'])
                     with self.assertRaisesRegex(ProjectError, 'explicitly redacted'):
                         release_artifacts(candidate.parent, report['source'], policy, hosted=True)
+                if name == 'extra-action':
+                    policy = load_project(self.root)['catalog']['desktop_performance']
+                    with self.assertRaises(ProjectError) as failure:
+                        release_artifacts(candidate.parent, report['source'], policy, hosted=True)
+                    self.assertEqual('Hosted workbench observation has an unrecognized action.', str(failure.exception))
                 destination = self.destination.with_name(name)
                 self.assertTrue(stage_artifacts(self.root, destination, self.env))
                 published = destination / 'runs/fixture/candidate'

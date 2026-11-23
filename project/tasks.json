@@ -16260,7 +16260,7 @@
         "python-contracts-workers"
       ],
       "plan": {
-        "outcome": "Only the versioned, intentionally shared redacted native workbench record may be published or imported as hosted evidence.",
+        "outcome": "Hosted workbench evidence requires an intentionally shared summary and synthetic screenshots. Current manual acceptance requires an observation that has already occurred within the documented clock allowance.",
         "change_types": [
           "tooling"
         ],
@@ -16285,6 +16285,12 @@
           },
           {
             "failure": "Restricting public records prevents private local annotations or historic diagnostic resolution.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A future appointment is accepted as a completed native or packaged trial, or a valid timezone offset or small clock difference blocks a real observation.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -16323,12 +16329,20 @@
             "Private field evidence on the original device, historical diagnostic integrity, exact packaged owner evidence and the renderer task focus."
           ],
           "change": [
-            "Require separate affirmative sharing declarations for native field text and screenshots. Reject undeclared hosted actions without echoing their names or values."
+            "Require separate affirmative sharing declarations for native field text and screenshots. Reject undeclared hosted actions without echoing their names or values.",
+            "Check new manual native and packaged candidate timestamps against UTC with a five-minute allowance for clock differences."
           ],
           "data_plan": "This revision changes development evidence admission. Existing local notes remain readable and historical receipts retain their original scope.",
           "cleanup": "Record the corrective task and restore M2-003 after binding the regression to the retained failure."
         }
       },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T114415.377417Z-98b42a37",
+          "source_commit": "e88c665cacdf091a7def652d2b695d95879ffe35",
+          "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
+        }
+      ],
       "next_action": "Reproduce the hosted field leak with synthetic placeholders and correct the shared intake before publication or import.",
       "blocker": null,
       "evidence": [],

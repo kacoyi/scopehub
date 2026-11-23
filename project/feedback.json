@@ -3660,6 +3660,13 @@
     },
     {
       "id": "native-field-local-notes-reach-hosted-artifacts",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T114415.377417Z-98b42a37",
+          "source_commit": "e88c665cacdf091a7def652d2b695d95879ffe35",
+          "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
+        }
+      ],
       "source": "Independent review of the M0-082 hosted field staging and import path at 872f4b3 using synthetic records.",
       "severity": "major",
       "status": "open",
@@ -3675,6 +3682,13 @@
     },
     {
       "id": "future-manual-observation-counts-as-completed",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T114415.377417Z-98b42a37",
+          "source_commit": "e88c665cacdf091a7def652d2b695d95879ffe35",
+          "report_sha256": "9a33beff41cb2cd9aefa35bb942266906302a630184acf1c74af1ce52e4c10f4"
+        }
+      ],
       "source": "Independent review of M0-082 at 872f4b3 using a synthetic packaged owner observation dated in 2999.",
       "severity": "major",
       "status": "open",

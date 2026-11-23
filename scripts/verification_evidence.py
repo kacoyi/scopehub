@@ -1,7 +1,7 @@
 """Check retained field observations, release artifacts and measurement samples."""
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 from math import ceil
 import os
@@ -22,6 +22,7 @@ SESSION_CHECKS = {
     'configured-market-source': ('real_market_data', 'market'),
 }
 WORKBENCH_OBSERVATION_VERSION = 2
+MANUAL_CLOCK_ALLOWANCE = timedelta(minutes=5)
 UBUNTU_SURFACE = 'native-ubuntu-tauri-webkitgtk'
 WORKBENCH_EDIT = {'workbench-edit', 'workbench-recover', 'workbench-reopen'}
 OWNER_WORKBENCH_ACTIONS = {'workbench-from-blank', 'workbench-edit', 'workbench-refresh', 'workbench-reopen'}
@@ -61,7 +62,7 @@ SAMPLE_COUNTS = {'cold_first_frame_ms': 20, 'warm_first_frame_ms': 20,
 
 
 class LocalFieldObservation(ProjectError):
-    """The observation has no attestation that its screenshots are synthetic."""
+    """The producer kept some part of the field observation local."""
 
 
 def hosted_artifact_path(root, relative, *, directory=False):
@@ -116,7 +117,7 @@ def nonempty(record, key):
     return value
 
 
-def observed_time(record):
+def observed_time(record, *, completed=False):
     timestamp = nonempty(record, 'observed_at')
     try:
         moment = datetime.fromisoformat(timestamp)
@@ -124,6 +125,8 @@ def observed_time(record):
         raise ProjectError('Expected a timezone-aware observation time') from error
     if moment.tzinfo is None:
         raise ProjectError('Expected a timezone-aware observation time')
+    if completed and moment > datetime.now(timezone.utc) + MANUAL_CLOCK_ALLOWANCE:
+        raise ProjectError('Completed evidence cannot have a future observation time.')
     return timestamp
 
 
@@ -186,14 +189,19 @@ def observed_actions(record, required, *, complete, redacted=False):
     actions = record.get('actions')
     if not isinstance(actions, dict):
         raise ProjectError('Expected interactive workbench actions.')
+    if redacted and actions.keys() - required:
+        raise ProjectError('Hosted workbench observation has an unrecognized action.')
     if complete and (missing := required - actions.keys()):
         raise ProjectError(f'Field observation lacks required actions: {", ".join(sorted(missing))}')
-    for name, result in actions.items():
+    for name in actions:
+        if name not in required:
+            continue
+        result = actions[name]
         if redacted:
             redacted_fields(result, {'status', 'observed'})
         if not isinstance(result, dict) or result.get('status') not in ('passed', 'failed', 'blocked', 'not_run'):
             raise ProjectError(f'Invalid field action outcome: {name}')
-        if complete and (name in required or redacted) and result['status'] != 'passed':
+        if complete and result['status'] != 'passed':
             raise ProjectError(f'Field action did not pass: {name}')
         if result['status'] != 'not_run' or 'observed' in result:
             outcome = nonempty(result, 'observed')
@@ -213,13 +221,14 @@ def field_host(record):
 
 
 def hosted_field_record(obs):
-    if isinstance(obs, dict) and obs.get('screenshot_scope') != 'synthetic':
-        raise LocalFieldObservation('Hosted field observations require synthetic screenshots.')
+    if isinstance(obs, dict) and (obs.get('screenshot_scope') != 'synthetic' or obs.get('sharing_scope') != 'redacted'):
+        raise LocalFieldObservation('Hosted field observations require synthetic screenshots and an explicitly redacted summary.')
     windows = isinstance(obs, dict) and obs.get('kind') == 'physical-windows-workspace'
     field_metadata = {'host', 'observation_version', 'ubuntu_reviewed_commit' if windows else 'external_sessions'}
     redacted_fields(obs, SOURCE_FIELDS | field_metadata | {'kind', 'operator', 'observed_at', 'surface', 'actions',
-                                                          'screenshots', 'screenshot_scope'})
+                                                          'screenshots', 'screenshot_scope', 'sharing_scope'})
     current_workbench_observation(obs)
+    observed_time(obs, completed=True)
     observed_actions(obs, FIELD_ACTIONS[obs['kind']], complete=True, redacted=True)
     if 'host' in obs:
         redacted_fields(obs['host'], WINDOWS_HOST_FIELDS if windows else UBUNTU_HOST_FIELDS)
@@ -254,7 +263,7 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
         raise ProjectError('Field observation requires recoverable clean source')
     bound_source(obs, source)
     nonempty(obs, 'operator')
-    observed_time(obs)
+    observed_time(obs, completed=True)
     if not hosted:
         field_host(obs)
         observed_actions(obs, FIELD_ACTIONS[key], complete=True)
@@ -497,7 +506,7 @@ def hosted_candidate_observation(record, kind, source, installer_sha256):
         if not nonempty(record, 'operator').isprintable():
             raise ProjectError('Expected a redacted operator label.')
     if kind == 'windows' or 'observed_at' in record:
-        observed_time(record)
+        observed_time(record, completed=True)
     for key in ('clean_install', 'upgrade'):
         if (kind == 'windows' or key in record) and record.get(key) not in ('passed', 'failed', 'blocked', 'not_run'):
             raise ProjectError('Expected a typed Windows installation result.')
@@ -526,7 +535,7 @@ def candidate_workbench(record, source, installer_sha256, *, complete, hosted):
     if record.get('reviewer_role') != 'product-owner' or record.get('method') != 'hands-on':
         raise ProjectError('The packaged workbench requires a hands-on observation by the product owner.')
     nonempty(record, 'operator')
-    observed_time(record)
+    observed_time(record, completed=True)
     windows_client(record.get('host'))
     if hosted and not nonempty(record['host'], 'webview2').isprintable():
         raise ProjectError('Expected a redacted WebView2 version.')
@@ -534,8 +543,6 @@ def candidate_workbench(record, source, installer_sha256, *, complete, hosted):
         feedback = nonempty(record, 'feedback')
         if hosted and not feedback.isprintable():
             raise ProjectError('Expected the observed owner feedback.')
-    if hosted and isinstance(record.get('actions'), dict) and record['actions'].keys() - OWNER_WORKBENCH_ACTIONS:
-        raise ProjectError('Unexpected action in the redacted owner workbench observation.')
     observed_actions(record, OWNER_WORKBENCH_ACTIONS, complete=complete, redacted=hosted)
 
 
@@ -578,7 +585,7 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
                 'Windows observation lacks a passing installation and upgrade for this installer'
             )
         nonempty(obs, 'operator')
-        observed_time(obs)
+        observed_time(obs, completed=True)
     if families != {'Windows 10', 'Windows 11'}:
         raise ProjectError('Missing a supported Windows client family')
     owner_path = verified_file(directory, owner_ref)
@@ -589,6 +596,8 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
         raise ProjectError('Invalid performance observation')
     if hosted:
         hosted_candidate_observation(metrics, 'performance', source, installer_hash)
+    elif 'observed_at' in metrics:
+        observed_time(metrics, completed=True)
     bound_source(metrics, source)
     windows_client(metrics.get('host'))
     for key in ['cpu', 'ram', 'display_scale', 'refresh_rate']:
@@ -621,7 +630,7 @@ def main(root=ROOT):
     try:
         print(json.dumps(field_observation(root, kind, hosted=hosted)))
     except LocalFieldObservation:
-        print('The field observation is local because its screenshots are not declared synthetic.')
+        print('The field observation is local. Hosted admission requires synthetic screenshots and an explicitly redacted summary.')
         raise SystemExit(77)
     except (OSError, ValueError, TypeError, KeyError) as error:
         if hosted:

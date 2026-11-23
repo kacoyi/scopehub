@@ -551,6 +551,8 @@ class DeliveryTests(ProjectFixture):
         observation_path.write_bytes(json_bytes(dict(obs, observed_at=near)))
         for hosted in (False, True):
             self.assertEqual(2, field_observation(self.root, key, hosted=hosted)['observation_version'])
+        late = (datetime.now(timezone.utc) + timedelta(minutes=6)).astimezone(offset).isoformat()
+        check_variation(dict(obs, observed_at=late), 'future observation time')
         self.assertEqual(obs['external_sessions'], result['external_sessions'])
         failed = dict(obs, actions={**obs['actions'], 'reconnect': {'status': 'failed', 'observed': 'No chart'}})
         (directory / 'observation.json').write_bytes(json_bytes(failed))
@@ -624,6 +626,11 @@ class DeliveryTests(ProjectFixture):
                         field_observation(self.root, key, hosted=hosted)
             obs_path.write_bytes(json_bytes(win))
             self.assertEqual(key, field_observation(self.root, key)['kind'])
+            obs_path.write_bytes(json_bytes(dict(win, observed_at='2999-01-01T01:00:00-05:00')))
+            for hosted in (False, True):
+                with self.subTest(hosted=hosted), self.assertRaisesRegex(ProjectError, 'future observation time'):
+                    field_observation(self.root, key, hosted=hosted)
+            obs_path.write_bytes(json_bytes(win))
             historical = {**receipt, 'field_observations': {'ubuntu-workspace-observation': {
                 'kind': 'ubuntu-workspace-observation', 'surface': 'ubuntu-graphical-workspace'}}}
             ubuntu_path.write_bytes(json_bytes(historical))
