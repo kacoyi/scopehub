@@ -3414,7 +3414,7 @@
       "id": "verification-feedback-repeated-work",
       "source": "Owner observation of a 3h51m delivery and protected workflow 45118576843 / main workflow 45121572762 for PR 52.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Three real-Git verification-scope regressions launched 430 Git processes on Ubuntu. The Windows Python suite is a major component of the protected feedback path. Existing iteration instructions also prescribe overlapping local checks.",
       "task_ids": [
         "M0-078"
@@ -3422,7 +3422,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Fixture builders repeatedly read an unchanged commit and initialized Git configuration in four processes per repository. The selector verified checkout metadata and each pull request parent in separate Git calls, including for unusable events. Local feedback instructions also prescribed overlapping profiles.",
+        "correction": "Read immutable identities together and reuse commits already observed by each isolated fixture. Group a product slice with its contract and regression, show the first usable interaction early and select feedback profiles for their added coverage.",
+        "prevention": "The same synchronize, pull request and push scenarios ran three times per revision on Linux. Git invocations via PATH fell from 162 to 76, 136 to 75 and 132 to 61 respectively. Added real repositories cover tag substitution, an extra merge parent and a tracked HEAD path. The ordinary protected run now retains per-case Python timings. Weekly review pairs speed with failures, retries and post-merge defects."
+      },
       "deferral_reason": null
     }
   ]

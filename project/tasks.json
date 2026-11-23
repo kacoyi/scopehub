@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-078",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15727,7 +15727,7 @@
       "id": "M0-078",
       "title": "Shorten the feedback loop for one verified delivery",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-077"
       ],
@@ -15820,10 +15820,15 @@
           "cleanup": "Remove redundant lookups and reconcile the old overlapping feedback guidance with the existing harness entrypoints."
         }
       },
-      "next_action": "Measure the three unchanged selector scenarios, implement the targeted optimizations and compare candidate behavior and native timing.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-078-f60a4e0911c7b8bd.json",
+          "sha256": "4b31bd0a9131cd9c5ec23d56fb1665c5526f5ab3aa73b68fa4832273d5be6de8"
+        }
+      ],
+      "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
     }
   ]
 }
