@@ -80,7 +80,8 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     started = time.monotonic()
     executable = shutil.which(argv[0])
     if not executable:
-        return {'id': name, 'status': 'blocked', 'command': argv, 'reason': f'Executable unavailable: {argv[0]}'}
+        return {'id': name, 'status': 'blocked', 'command': argv, 'reason_code': 'executable_unavailable',
+                'reason': f'Executable unavailable: {argv[0]}'}
     log_path = run_dir / f'{name}.log'
     print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout})
     private = name in PRIVATE_CHECK_LOGS

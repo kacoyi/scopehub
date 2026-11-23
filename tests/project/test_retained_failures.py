@@ -2,10 +2,12 @@
 
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 from unittest.mock import patch
 
 from scripts import recovery, retained_failures
@@ -161,6 +163,94 @@ class RetainedFailureTests(ProjectFixture):
         self.assertEqual(first.parent.name, signal['first_failed_run'])
         self.assertTrue(signal['requires_observation_review'])
         self.assertEqual(1, view['scan']['unverified_rechecks'])
+
+    def test_unavailable_executable_survives_a_narrow_green_until_a_verified_rerun(self):
+        shutil.copytree(SCRIPTS, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        with tempfile.TemporaryDirectory() as outside:
+            executable = Path(outside) / ('scopehub-test-tool.exe' if os.name == 'nt' else 'scopehub-test-tool')
+            command = [str(executable), *(['/d', '/c', 'exit', '0'] if os.name == 'nt' else [])]
+            catalog_path = self.root / 'project/checks.json'
+            catalog = read_json(catalog_path)
+            next(row for row in catalog['checks'] if row['id'] == 'rust-lints')['command'] = command
+            catalog_path.write_bytes(json_bytes(catalog))
+            env = {**os.environ, 'SCOPEHUB_STORAGE': 'off'}
+
+            def invoke(script, *args, code=0):
+                process = subprocess.run([sys.executable, str(self.root / 'scripts' / script), *args], cwd=self.root,
+                                         env=env, capture_output=True, text=True, timeout=30)
+                self.assertEqual(code, process.returncode, (process.stdout, process.stderr))
+                return process.stdout
+
+            latest = self.root / '.reports' / 'test-report.json'
+            invoke('check.py', '--task', 'M0-001', code=1)
+            original = read_json(latest)
+            blocked = next(row for row in original['checks'] if row['id'] == 'rust-lints')
+            self.assertEqual('blocked', blocked['status'])
+            self.assertNotIn('log', blocked)
+            self.assertNotIn('exit_code', blocked)
+            invoke('check.py', '--task', 'M0-004')
+            self.assertEqual('passed', read_json(latest)['status'])
+            path = self.root / '.reports' / 'runs' / original['run_id'] / 'test-report.json'
+
+            def observed_blocker():
+                state = json.loads(invoke('project.py', 'status'))
+                self.assertEqual(0, state['retained_failures']['matching_inputs']['count'])
+                group = state['retained_failures']['environment_blockers']['matching_inputs']
+                recovery_state = json.loads(invoke('recovery.py'))
+                self.assertEqual(group, recovery_state['retained_failures']['environment_blockers']['matching_inputs'])
+                return group, [row['kind'] for row in recovery_state['signals']]
+
+            group, signals = observed_blocker()
+            item, = group['items']
+            self.assertEqual(('rust-lints', 'executable_unavailable', False, original['run_id']),
+                             (item['check_id'], item['reason_code'], item['executed'], item['run_id']))
+            self.assertIn('unrechecked_environment_blockers', signals)
+            self.assertNotIn('unrechecked_retained_failures', signals)
+            self.assertEqual('executable_unavailable', blocked.pop('reason_code'))
+            path.write_bytes(json_bytes(original))
+            self.assertEqual(group, observed_blocker()[0])
+            if os.name == 'nt':
+                shutil.copy2(os.environ['COMSPEC'], executable)
+            else:
+                executable.write_text('#!/bin/sh\nexit 0\n')
+                executable.chmod(0o755)
+            invoke('check.py', '--task', 'M0-001')
+            later = next(row for row in read_json(latest)['checks'] if row['id'] == 'rust-lints')
+            log = self.root / later['log']
+            valid = log.read_bytes()
+            log.write_bytes(valid + b'changed')
+            self.assertEqual(1, observed_blocker()[0]['count'])
+            log.write_bytes(valid)
+            group, signals = observed_blocker()
+            self.assertEqual(0, group['count'])
+            self.assertNotIn('unrechecked_environment_blockers', signals)
+
+    def test_expected_omissions_do_not_mask_or_create_environment_blockers(self):
+        first = self.observed(1, {'rust-lints': 'blocked'}, status='blocked')
+        report = read_json(first)
+        unavailable = next(row for row in report['checks'] if row['id'] == 'rust-lints')
+        unavailable['reason'] = 'Executable unavailable: ' + unavailable['command'][0]
+        first.write_bytes(json_bytes(report))
+        self.observed(2, {'rust-lints': 'passed'}, environment=dict(self.base['environment'], system='Windows'))
+        self.observed(3, {'rust-lints': 'passed'}, project_definition_sha256='b' * 64)
+        self.observed(4, {'rust-lints': 'failed'})
+        view = self.handoff()
+        self.assertEqual(1, view['environment_blockers']['matching_inputs']['count'])
+        self.assertEqual(1, view['matching_inputs']['count'])
+        for reason in ('not_selected', 'not_implemented', 'retired', 'unsupported_platform', 'observation_unavailable', 'earlier_failure'):
+            unavailable['reason_code'] = reason
+            first.write_bytes(json_bytes(report))
+            self.assertEqual(0, self.handoff()['environment_blockers']['matching_inputs']['count'], reason)
+        del unavailable['reason_code']
+        report['selection']['checks'] = []
+        first.write_bytes(json_bytes(report))
+        self.assertEqual(0, self.handoff()['environment_blockers']['matching_inputs']['count'])
+        report['selection']['checks'] = ['rust-lints']
+        first.write_bytes(json_bytes(report))
+        self.observed(5, {'rust-lints': 'passed'})
+        result = self.handoff()
+        self.assertEqual(0, result['environment_blockers']['matching_inputs']['count'])
+        self.assertEqual(0, result['matching_inputs']['count'])
 
     def test_stale_report_evidence_and_scan_limits_are_explicit(self):
         self.observed(1, {'rust-lints': 'failed'})

@@ -160,6 +160,9 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
                                          latest_run=report.get('run_id'))
         if retained['scan']['coverage'] == 'incomplete':
             signal('incomplete_retained_run_coverage', detail='Inspect retained_failures.scan for omissions and unverified rechecks.')
+        blocked = retained['environment_blockers']['matching_inputs']['count']
+        if blocked:
+            signal('unrechecked_environment_blockers', count=blocked)
         if retained['matching_inputs']['count']:
             signal('unrechecked_retained_failures', count=retained['matching_inputs']['count'])
     except (OSError, KeyError, ImportError, SyntaxError) as error:

@@ -36,7 +36,7 @@
       "work": [
         "M0-079"
       ],
-      "observed": "A failed executable check was followed by a narrower green task on identical inputs. Both project status and recovery lost the original failure signal while its immutable run file still existed. A manual green hosted run on the same commit could also supersede a failed integration report in project:ci. A new major finding could be declared addressed solely with an earlier task receipt. Independent review of the first repair also reproduced an invalid report clearing a failure and a reopened finding reusing the receipt from its preceding occurrence.",
+      "observed": "A failed executable check was followed by a narrower green task on identical inputs. Both project status and recovery lost the original failure signal while its immutable run file still existed. A manual green hosted run on the same commit could also supersede a failed integration report in project:ci. A new major finding could be declared addressed solely with an earlier task receipt. Independent review of the first repair also reproduced an invalid report clearing a failure and a reopened finding reusing the receipt from its preceding occurrence. A second real harness task also hid an earlier missing executable. Retained startup and recovery now carry this unexecuted environment blocker separately until the same installed tool passes a verified rerun.",
       "acceptance": "Retain the failing check and run across an omission. Distinguish current, historical and unavailable observations. Separate push, PR, manual and scheduled results. Bind closure of new consequential findings to regression verification performed with the actual observation present.",
       "sources": [
         "scripts/check.py",
@@ -255,7 +255,7 @@
   ],
   "maintenance_observations": {
     "primary_checkout_retained_history": {
-      "observed_at": "2026-11-23T10:10:00Z",
+      "observed_at": "2026-11-23T10:10:33Z",
       "readable_originals": 106,
       "unavailable_originals": 2,
       "unresolved_same_input_checks": 0,
@@ -267,7 +267,7 @@
       ]
     },
     "weekly_regression": {
-      "observed_at": "2026-11-23T10:11:00Z",
+      "observed_at": "2026-11-23T10:11:47Z",
       "workflow_state": "active",
       "completed_scheduled_runs": 0,
       "scope": "The configured weekly workflow was active on main before the November 23 window. A later full main-push run supplied separate Ubuntu and Windows evidence. The cause of the missing scheduled event is unverified. The dated periodic review checks the next window and preserves failed or missing schedules independently.",

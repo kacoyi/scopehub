@@ -67,7 +67,7 @@ def invalid_constant(value):
 
 
 def observed_checks(run, data):
-    """Project completed checks. An omission supplies no failure or recheck."""
+    """Identify executed checks and selected commands whose executable was missing."""
     report = json.loads(data, object_pairs_hook=unique_keys, parse_constant=invalid_constant)
     if report['report_version'] != '2.0' or report['run_id'] != run or report['status'] not in {'passed', 'failed', 'blocked'}:
         raise ValueError('Invalid original report')
@@ -101,19 +101,26 @@ def observed_checks(run, data):
         ):
             raise ValueError('Invalid check result')
         if status == 'blocked':
-            continue
-        if key not in selected or not command or (status == 'failed' and report['status'] != 'failed'):
-            raise ValueError('Inconsistent executed check')
-        if (row.get('log') != f'.reports/runs/{run}/{key}.log' or not DIGEST.fullmatch(row['log_sha256'])
-                or status == 'passed' and (type(row.get('exit_code')) is not int or row['exit_code'] != 0 or row.get('reason_code'))):
-            raise ValueError('Unbound executed check')
+            code = row.get('reason_code')
+            if (key not in selected or not command or not (code == 'executable_unavailable'
+                    or code is None and row.get('reason') == f'Executable unavailable: {command[0]}')):
+                continue
+            executed_fields = ('log', 'log_sha256', 'exit_code', 'duration_seconds', 'observation', 'field_observation')
+            if report['status'] == 'passed' or any(field in row for field in executed_fields):
+                raise ValueError('An unavailable executable cannot have an execution result')
+        else:
+            if key not in selected or not command or (status == 'failed' and report['status'] != 'failed'):
+                raise ValueError('Inconsistent executed check')
+            if (row.get('log') != f'.reports/runs/{run}/{key}.log' or not DIGEST.fullmatch(row['log_sha256'])
+                    or status == 'passed' and (type(row.get('exit_code')) is not int or row['exit_code'] != 0 or row.get('reason_code'))):
+                raise ValueError('Unbound executed check')
         normalized = ('{python}', *command[1:]) if command[0] == env['python_executable'] else tuple(command)
         identity = (inputs, project, system, arch.casefold(), key, normalized)
         # A report with qualified field or session evidence still needs its dedicated verifier.
         observation = ('field_observation' in row or 'observation' in row or key == 'release-artifacts'
                        or row.get('reason_code') == 'missing_acceptance_evidence'
                        or 'scripts/verification_evidence.py' in command)
-        checks.append((identity, status, row['log_sha256'], observation))
+        checks.append((identity, status, row.get('log_sha256'), observation))
     return started, finished, stable, checks
 
 
@@ -195,17 +202,21 @@ def retained_failure_view(root, reference, *, basis, detail=False, schema=None, 
         valid_report = None
         for identity, status, log_digest, observation in checks:
             key = identity[4]
-            group = (identity, stable)
-            previous = pending.get(group)
-            if status == 'failed':
+            if status in {'failed', 'blocked'}:
+                group = (identity, stable, status)
+                previous = pending.get(group)
                 if previous is None:
                     pending[group] = (end, run, observation, run)
                 else:
                     latest = max((end, run), previous[:2])
                     pending[group] = (*latest, observation or previous[2], previous[3])
-            elif stable and previous and previous[0] <= start:
-                if observation or previous[2]:
+            elif stable and pending:
+                candidates = [(identity, stable, outcome) for outcome in ('failed', 'blocked')]
+                candidates = [group for group in candidates if group in pending and pending[group][0] <= start]
+                rechecked = [group for group in candidates if not observation and not pending[group][2]]
+                if len(rechecked) != len(candidates):
                     scan['unverified_rechecks'] += 1
+                if not rechecked:
                     continue
                 if valid_report is None:
                     if validator is None and not scan['schema_unavailable']:
@@ -239,24 +250,35 @@ def retained_failure_view(root, reference, *, basis, detail=False, schema=None, 
                 except (OSError, ValueError):
                     scan['unverified_rechecks'] += 1
                     continue
-                del pending[group]
+                for group in rechecked:
+                    del pending[group]
 
     scan['coverage'] = 'complete' if count else 'no_retained_runs'
     if scan['older_runs_omitted'] or scan['unavailable'] or scan['unverified_rechecks'] or scan['bytes_limited']:
         scan['coverage'] = 'incomplete'
-    groups = {'matching_inputs': [], 'other_or_unverified_inputs': []}
-    for (identity, stable), (_, run, observation, first_run) in sorted(pending.items(), key=lambda row: row[1], reverse=True):
-        inputs, project, system, arch, key, _ = identity
+    outcomes = {outcome: {'matching_inputs': [], 'other_or_unverified_inputs': []} for outcome in ('failed', 'blocked')}
+    for (identity, stable, outcome), (_, run, observation, first_run) in sorted(pending.items(), key=lambda row: row[1], reverse=True):
+        inputs, project, system, arch, key, command = identity
         name = 'matching_inputs' if stable and (inputs, project) == reference else 'other_or_unverified_inputs'
         report_path = (directory / run / 'test-report.json').relative_to(root).as_posix()
-        groups[name].append({'check_id': key, 'run_id': run, 'first_failed_run': first_run, 'report': report_path,
-                             'system': system, 'machine': arch, 'inputs_sha256': inputs, 'stable_inputs': stable,
-                             'requires_observation_review': observation})
+        item = {'check_id': key, 'run_id': run, 'report': report_path, 'system': system, 'machine': arch,
+                'inputs_sha256': inputs, 'stable_inputs': stable, 'requires_observation_review': observation}
+        if outcome == 'blocked':
+            item.update(first_blocked_run=first_run, reason_code='executable_unavailable', executed=False)
+            if command[0].isprintable() and len(command[0]) <= 256:
+                item['executable'] = command[0]
+        else:
+            item['first_failed_run'] = first_run
+        outcomes[outcome][name].append(item)
+
+    def summarize(groups):
+        return {name: {'count': len(items), 'items': items if detail else items[:(10 if name == 'matching_inputs' else 3)]}
+                for name, items in groups.items()}
+
     return {
-        'basis': basis, 'scan': scan,
-        **{name: {'count': len(items), 'items': items if detail else items[:(10 if name == 'matching_inputs' else 3)]}
-           for name, items in groups.items()},
+        'basis': basis, 'scan': scan, **summarize(outcomes['failed']),
+        'environment_blockers': summarize(outcomes['blocked']),
         'scope': 'Local check diagnostics. Matching rechecks use the same execution and project inputs, command and platform. '
-                 'Without schema validation, rechecks remain pending. Other inputs need separate triage. '
+                 'An unavailable executable left the selected check unexecuted. Without schema validation, rechecks remain pending. Other inputs need separate triage. '
                  'Product, field and release acceptance use their own evidence.',
     }
