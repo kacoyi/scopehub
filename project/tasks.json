@@ -16987,7 +16987,12 @@
         "renderer-prototype-interaction",
         "desktop-localization"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-014-a0180f63561cd12a.json",
+          "sha256": "eeb3e36d9c25e1f907a7b341900a79ee92318b641aec3513e09e41c794c56be0"
+        }
+      ],
       "next_action": "Verify the first composition through the desktop entry, record matched Linux and Windows task results, and return the renderer decision to M2-003.",
       "blocker": null,
       "closure_reason": null,
