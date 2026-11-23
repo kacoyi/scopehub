@@ -8,16 +8,16 @@ import re
 import subprocess
 
 if __package__:
-    from .project import ProjectError, read_json, source_identity
+    from .project import ProjectError, checkout_git_environment, read_json, source_identity
 else:
-    from project import ProjectError, read_json, source_identity
+    from project import ProjectError, checkout_git_environment, read_json, source_identity
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
 
 
 def command(argv, root=ROOT):
-    result = subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(argv, cwd=root, env=checkout_git_environment(), capture_output=True, text=True, timeout=30)
     if result.returncode:
         # Authentication failures belong to gh; never inspect credential files.
         raise ProjectError(f'{argv[0]} command failed: {result.stderr.strip()}')
@@ -30,7 +30,7 @@ def github_identity(root=ROOT):
     if not match:
         raise ProjectError('Expected a GitHub HTTPS origin without embedded credentials')
     marker = subprocess.run(['git', 'config', '--local', '--get', 'github.account'],
-                            cwd=root, capture_output=True, text=True, check=False)
+                            cwd=root, env=checkout_git_environment(), capture_output=True, text=True, check=False)
     if marker.returncode or not marker.stdout.strip():
         raise ProjectError('Set the owner-approved local github.account marker before authenticated operations')
     account = marker.stdout.strip()

@@ -114,6 +114,17 @@ def json_object(data):
     return value
 
 
+def checkout_git_environment():
+    # Git aliases and hooks export repository-local state. Keep transport, global configuration and CI identity.
+    # `git rev-parse --local-env-vars` identifies the standard repository and inline configuration selectors.
+    local = {'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_COMMON_DIR', 'GIT_CONFIG', 'GIT_CONFIG_COUNT',
+             'GIT_CONFIG_PARAMETERS', 'GIT_DIR', 'GIT_GRAFT_FILE', 'GIT_IMPLICIT_WORK_TREE', 'GIT_INDEX_FILE',
+             'GIT_INTERNAL_SUPER_PREFIX', 'GIT_NAMESPACE', 'GIT_OBJECT_DIRECTORY', 'GIT_PREFIX',
+             'GIT_QUARANTINE_PATH', 'GIT_REPLACE_REF_BASE', 'GIT_SHALLOW_FILE', 'GIT_WORK_TREE'}
+    return {key: value for key, value in os.environ.items()
+            if key not in local and not key.startswith(('GIT_CONFIG_KEY_', 'GIT_CONFIG_VALUE_'))}
+
+
 def git(root, *args):
     options = ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false']
     if os.name != 'nt':
@@ -121,7 +132,7 @@ def git(root, *args):
     result = subprocess.run(
         ['git', '--no-replace-objects', '--no-optional-locks', *options, *args],
         cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
-        env={**os.environ, 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1'},
+        env={**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1'},
     )
     if result.returncode:
         raise ScopeError('Git could not verify the comparison.')
@@ -553,13 +564,13 @@ def main():
     if args.run:
         if decision['base'] is not None:
             history = [sys.executable, 'scripts/project.py', 'history', '--base', decision['base']]
-            result = subprocess.run(history, cwd=root, check=False)
+            result = subprocess.run(history, cwd=root, check=False, env=checkout_git_environment())
             if result.returncode:
                 return result.returncode
         command = [sys.executable, 'scripts/check.py']
         if profile in SCOPED_PROFILES:
             command.extend(('--profile', profile))
-        return subprocess.run(command, cwd=root, check=False).returncode
+        return subprocess.run(command, cwd=root, check=False, env=checkout_git_environment()).returncode
     return 0
 
 

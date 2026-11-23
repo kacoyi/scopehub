@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import base64
 import subprocess
 import sys
@@ -14,6 +15,7 @@ import tempfile
 from unittest.mock import patch
 
 from scripts import check as harness
+from scripts import ci
 from scripts import project as project_cli
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
@@ -1085,6 +1087,31 @@ class DeliveryTests(ProjectFixture):
         self.save_ledger(ledger)
         load_project(self.root)
 
+    def test_retiring_last_open_feedback_owner_requires_a_handoff(self):
+        item = self.feedback()
+        self.save_feedback(item)
+        observed = self.commit_fixture()
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            project_cli.local_feedback_history(self.root, load_project(self.root))
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            review_history(self.root, observed)
+
+        # The original finding survives a handoff and its historical task stays in the record.
+        self.save_feedback({**item, 'task_ids': ['M0-001', 'M0-002']})
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+
+        transferred = self.commit_fixture()
+        self.save_feedback(item)
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            review_history(self.root, transferred)
+
+        # A deliberate deferral stays visible with its reason and release consequences.
+        self.save_feedback({**item, 'status': 'deferred', 'deferral_reason': 'Await a physical host.'})
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+        self.assertTrue(any(item['id'] in reason for reason in readiness(self.root)['blockers']))
+
     def test_working_feedback_checkpoint_is_checked_before_any_verification_commands(self):
         shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
         env = {**os.environ, 'SCOPEHUB_STORAGE': 'off', 'SCOPEHUB_REVIEW_BASE': '', 'SCOPEHUB_CHECKPOINT_BASE': ''}
@@ -1324,6 +1351,78 @@ class DeliveryTests(ProjectFixture):
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'Accepted task history changed'):
             review_history(self.root, base)
+
+    def test_git_subprocess_cannot_borrow_another_checkout_for_feedback_history_or_evidence(self):
+        shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        probe = next(row for row in catalog['checks'] if row['id'] == 'rust-lints')
+        probe['command'] = ['{python}', '-c', 'from pathlib import Path; import subprocess; '
+                            'root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip(); '
+                            'raise SystemExit(Path(root).resolve() != Path.cwd().resolve())']
+        catalog_path.write_bytes(json_bytes(catalog))
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        target_head = self.commit_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            other = Path(directory) / 'caller'
+            subprocess.run(['git', 'clone', '--quiet', '--no-local', str(self.root), str(other)], check=True)
+            self.save_feedback(self.feedback('addressed'))
+            shutil.copyfile(self.root / 'project/feedback.json', other / 'project/feedback.json')
+            subprocess.run(['git', 'add', 'project/feedback.json'], cwd=other, check=True)
+            subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                            '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Preserve a distinct legacy disposition'],
+                           cwd=other, check=True)
+
+            def from_caller(script, *args, code=0, root=self.root, isolated=False):
+                command = [Path(sys.executable).as_posix(), *(['-I', '-S'] if isolated else []),
+                           (root / 'scripts' / script).as_posix(), *args]
+                alias = f'!cd {shlex.quote(root.as_posix())} && ' + shlex.join(command)
+                result = subprocess.run(['git', '--git-dir=' + (other / '.git').as_posix(), '--work-tree=' + other.as_posix(),
+                                         '-c', 'alias.verify-target=' + alias, 'verify-target'], cwd=other,
+                                        capture_output=True, text=True, timeout=30, env={**os.environ, 'SCOPEHUB_STORAGE': 'off'})
+                self.assertEqual(code, result.returncode, (result.stdout, result.stderr))
+                return result.stdout
+
+            for checkout, repo, account in ((self.root, 'fixture/target', 'target-user'), (other, 'fixture/caller', 'caller-user')):
+                subprocess.run(['git', 'config', '--local', 'remote.origin.url', f'https://github.com/{repo}.git'], cwd=checkout, check=True)
+                subprocess.run(['git', 'config', '--local', 'github.account', account], cwd=checkout, check=True)
+            real_command = ci.command
+            def github(argv, root):
+                if argv[0] == 'git':
+                    return real_command(argv, root)
+                if argv[1:3] == ['auth', 'switch']:
+                    self.assertEqual('target-user', argv[-1])
+                return 'target-user'
+            with (patch.dict(os.environ, {'GIT_DIR': str(other / '.git'), 'GIT_WORK_TREE': str(other)}),
+                  patch.object(ci, 'command', side_effect=github)):
+                self.assertEqual('fixture/target', ci.github_identity(self.root))
+
+            rejected = json.loads(from_caller('project.py', 'check', code=1))
+            self.assertIn('Closing feedback fixture-defect requires new regression evidence', rejected['error'])
+            self.assertIn('new regression evidence', json.loads(from_caller('check.py', '--task', 'M0-001', code=1))['error'])
+            self.save_feedback(self.feedback())
+            (self.root / 'implementation.py').write_text('value = 2\n')
+            self.assertEqual([target_head], json.loads(from_caller('project.py', 'check'))['feedback_history']['compared_commits'])
+            self.assertEqual(target_head, json.loads(from_caller('project.py', 'history', '--base', 'HEAD'))['base_commit'])
+            self.assertEqual(target_head, json.loads(from_caller('recovery.py', isolated=True))['git']['head'])
+            self.assertEqual(target_head, json.loads(from_caller('verification_scope.py', '--base', 'HEAD'))['checkout'])
+
+            from_caller('check.py', '--task', 'M0-001')
+            report = self.root / '.reports/test-report.json'
+            source = read_json(report)['source']
+            self.assertEqual(source_identity(self.root), source)
+            self.assertTrue(source['working_tree_dirty'])
+            receipt = json.loads(from_caller('project.py', 'record', 'M0-001', '--report', report.as_posix()))
+            self.assertEqual(source, read_json(self.root / receipt['path'])['source'])
+
+            # The target can also be a registered Git worktree with a .git file and a shared object store.
+            linked = Path(directory) / 'linked'
+            subprocess.run(['git', 'worktree', 'add', '--quiet', '--detach', str(linked), target_head], cwd=self.root, check=True)
+            self.assertTrue((linked / '.git').is_file())
+            state = json.loads(from_caller('project.py', 'status', root=linked))
+            self.assertEqual(target_head, state['source']['git_head'])
+            self.assertFalse(state['source']['working_tree_dirty'])
 
     def test_history_json_is_read_as_utf8_under_a_legacy_windows_locale(self):
         base = self.commit_fixture()

@@ -3605,6 +3605,58 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "open-finding-loses-last-corrective-owner",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json and archives/runs/20261123T111109.190327Z-1927b151/test-report.json",
+      "observation": "Local preflight accepted completion of the final unfinished owner of a previously registered major defect while the defect remained open. The original task and finding still existed, but ongoing work had no owner.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T111109.190327Z-1927b151",
+          "source_commit": "c6c6a7c520a3afac3227cabcb05b5dad2c4b3d75",
+          "report_sha256": "6d24710c3ea02ccef9adf2a17fae1c5156406a8eb429229724f9cc8a62c0895f"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-079"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The local ledger checked finding IDs and test ownership, but losing the final unfinished corrective task only produced a later status signal.",
+        "correction": "Compare the prior and current owners before harness execution and in protected history. Require a transfer, verified resolution or deliberate deferral when the last unfinished owner retires.",
+        "prevention": "A real temporary Git project finishes and removes its last owner, tests a valid transfer and an explicit deferral, and keeps intake available for a new defect discovered after earlier work finished."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "git-context-misattributes-feedback-checkpoint",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json and a Git-launched local project preflight over two independent fixture repositories, archives/runs/20261123T112336.451128Z-4b84eb5b/test-report.json",
+      "observation": "In one fixture repository an unsupported closure of a major finding failed local project validation. Invoking that same command through an external Git alias in another repository returned success and reported the other repository’s independently accepted checkpoint.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-079"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Git-launched commands inherited the caller’s repository, index and object selectors while validating files in a second checkout.",
+        "correction": "Resolve project history, source identity, check subprocesses, recovery and receipt provenance against the target checkout, clearing inherited repository-local Git selectors.",
+        "prevention": "Use independent repositories and a registered worktree to verify both false acceptance and false rejection, the identity seen inside a check, and the archived receipt."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T112336.451128Z-4b84eb5b",
+          "source_commit": "bdf5f738f5d8b38f94e85310dbdede90d6980989",
+          "report_sha256": "1a7a9e6ba53ccb2377bb1d248207e4bde0bcb0d181a3b1b114d9bad62e1ba24b"
+        }
+      ]
     }
   ]
 }
