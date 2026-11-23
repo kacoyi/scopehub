@@ -1,0 +1,278 @@
+{
+  "kind": "engineering_review",
+  "date": "2026-11-23",
+  "source_commit": "bea74a569b62823e5ce4907250e967bf4596af29",
+  "scope": "Repository-wide review of the product contract, runnable financial workflows, durable state, verification, delivery dependencies and maintenance handoff.",
+  "verdict": "Implementation can continue on the existing architecture. The reviewed release profile cannot satisfy all of its own gates. Source-semantic errors can also reach a frozen revision through the current CSV publication path.",
+  "baseline": {
+    "tasks": {
+      "total": 146,
+      "done": 126,
+      "planned_current": 15,
+      "planned_later": 5,
+      "ready_current": 5,
+      "ready_later": 3
+    },
+    "checks": {
+      "implemented": 44,
+      "planned": 20
+    },
+    "operations": {
+      "implemented_catalog_entries": 41,
+      "planned_catalog_entries": 5
+    },
+    "workflows": {
+      "current_commit_ci": "https://github.com/kacoyi/scopehub/actions/runs/45133726159",
+      "ubuntu_change_checks_passed": 27,
+      "windows_change_checks_passed": 28,
+      "local_ubuntu_change_checks_passed": 27
+    },
+    "evidence": "The standard local Linux run completed on the host with 27 passing checks and no failed checks. Windows, release, task-only and planned gates kept their own dispositions. An earlier sandbox run denied loopback and browser access. No physical Windows trial, real market feed, billable AI session, installer or release verification was run in this assessment."
+  },
+  "findings": [
+    {
+      "id": "untriaged-failure-handoff",
+      "priority": "high",
+      "work": [
+        "M0-079"
+      ],
+      "observed": "A failed executable check was followed by a narrower green task on identical inputs. Both project status and recovery lost the original failure signal while its immutable run file still existed. A manual green hosted run on the same commit could also supersede a failed integration report in project:ci. A new major finding could be declared addressed solely with an earlier task receipt. Independent review of the first repair also reproduced an invalid report clearing a failure and a reopened finding reusing the receipt from its preceding occurrence. A second real harness task also hid an earlier missing executable. Retained startup and recovery now carry this unexecuted environment blocker separately until the same installed tool passes a verified rerun.",
+      "acceptance": "Retain the failing check and run across an omission. Distinguish current, historical and unavailable observations. Separate push, PR, manual and scheduled results. Bind closure of new consequential findings to regression verification performed with the actual observation present.",
+      "sources": [
+        "scripts/check.py",
+        "scripts/project.py",
+        "scripts/recovery.py",
+        "scripts/ci.py",
+        "tests/project/test_delivery.py"
+      ],
+      "earliest_check": "Register feedback and activate its owning task. Validate transitions before harness subprocesses. Recheck signals at session startup and handoff."
+    },
+    {
+      "id": "release-check-selection",
+      "priority": "high",
+      "work": [
+        "M0-080"
+      ],
+      "observed": "The release profile selects 43 checks. Milestone, scenario, acceptance and explicit release obligations reference 49 distinct checks. Nine required checks have task cadence. The runner and candidate verifier both exclude them while readiness requires them in the same report.",
+      "omitted": [
+        "decision-note-lifecycle",
+        "indicator-workflow",
+        "local-folder-import",
+        "model-connection-replay",
+        "model-connection-workflow",
+        "private-record-lifecycle",
+        "state-migrations",
+        "workspace-layout",
+        "workspace-widget-bindings"
+      ],
+      "acceptance": "Derive the candidate selection for both producers and consumers from the release obligations. Check production catalog coverage and rejection of a missing required result.",
+      "sources": [
+        "scripts/check.py",
+        "scripts/project.py",
+        "project/checks.json",
+        "project/delivery.json"
+      ],
+      "earliest_check": "Select checks from the binding catalog before scheduling the release run. Verify the same coverage again when importing candidate evidence."
+    },
+    {
+      "id": "csv-conflicting-series-declarations",
+      "priority": "high",
+      "work": [
+        "M1-034",
+        "M1-029"
+      ],
+      "observed": "A synthetic CSV used the admitted 5m, Asia/Shanghai, per_bar mapping. A later row explicitly identified its timeframe as 1m, its timezone as UTC and its volume semantics as cumulative. The current desktop bridge previewed, published and read it back with no issue. The 21:10 UTC timestamp became 13:10 UTC and 150 became the volume for one 5m bar. The frozen raw locator still showed the contrary declarations.",
+      "acceptance": "Reject contradictory semantics at preview, full-file publication and folder refresh, including a conflict beyond the preview. Keep unaffected files usable. For older revisions, use preserved raw locators to identify affected data and offer an attributable reassessment.",
+      "sources": [
+        "python/providers/csv_bar_mapping.py",
+        "python/providers/local_folder.py",
+        "crates/application/src/local_publication.rs",
+        "contracts/market-data-v1.json"
+      ],
+      "earliest_check": "Normalize every source row. Show an issue during preview when visible, and repeat complete admission before publication or committing a folder refresh."
+    },
+    {
+      "id": "csv-knowledge-cutoff",
+      "priority": "high-for-replay",
+      "work": [
+        "M4-014"
+      ],
+      "observed": "The local chart operation returns a FrozenSnapshot whose as_of_ms equals the last closed CSV bar start plus one millisecond. This is a deterministic coverage bound. There is no independent time at which the closing price or later correction could have been known. The exposed number is unsuitable for dated evidence. The ordinary CSV UI labels the raw row as bar start. The current trusted-Python, model-evidence and quality-panel routes that use the synthetic snapshot have separate source guards. The review did not observe a user or model receiving a false historical conclusion.",
+      "acceptance": "At admission to a dated analysis, require independently established availability or return an explicit unavailable result. Exercise a daily close and later correction against an earlier replay, and reopen the original hash unchanged. Keep ordinary chart coverage and import time distinct from the time when the value was knowable.",
+      "sources": [
+        "crates/application/src/workspace/evidence.rs",
+        "crates/application/src/workspace/evidence/sample.rs",
+        "crates/application/src/workspace/indicators/trusted.rs",
+        "apps/desktop/ui/src/workspace-panels.tsx",
+        "apps/desktop/ui/src/local-preview-chart.tsx",
+        "contracts/market-data-v1.json",
+        "engineering-contract-v1.json"
+      ],
+      "earliest_check": "When the first dated-evidence consumer admits an input, ask when its value was independently knowable. Exercise an eligible disclosure and an unavailable or later correction in that entry."
+    },
+    {
+      "id": "native-renderer-prerequisite",
+      "priority": "critical-path",
+      "work": [
+        "M2-003",
+        "M1-031"
+      ],
+      "observed": "M2-003 can start a synthetic prototype. Its dual-engine decision also needs an Ubuntu native surface. Main explicitly rejects non-Windows Tauri builds. The separately staged Ubuntu host has partial historical evidence. At the review base main and codex/ubuntu-native-workspace had 118 and 3 unique commits respectively.",
+      "acceptance": "Review the staged changes against current main. Run the same composition, failed draft recovery and interaction in WebKitGTK and WebView2. Record native host and runtime versions before selecting the renderer.",
+      "sources": [
+        "apps/desktop/src-tauri/src/main.rs",
+        "contracts/decisions/0024-native-ubuntu-development.json",
+        "contracts/decisions/0027-v1-user-composed-workbench.json",
+        "project/tasks.json"
+      ],
+      "earliest_check": "Before enabling Ubuntu as a supported native host, re-evaluate the existing glib advisory disposition against the new target graph. Then run the same first native composition and failed-draft recovery on both engines before recording the renderer decision."
+    },
+    {
+      "id": "physical-workbench-observation",
+      "priority": "high-at-native-acceptance",
+      "work": [
+        "M1-012",
+        "M1-011"
+      ],
+      "observed": "The installed field verifiers still accept the prior Ubuntu and Windows action lists. They do not establish the newly required native Ubuntu process/window/runtime evidence or a chart-free edit and reopen on the physical Windows desktop.",
+      "acceptance": "Version the observation and its native host, recovery and chart-free action requirements. Old observations remain readable at their original scope. Missing required actions or a browser-only substitution must fail new acceptance.",
+      "sources": [
+        "scripts/verification_evidence.py",
+        "tests/project/test_delivery.py",
+        "project/checks.json"
+      ],
+      "earliest_check": "At intake of new native observations, reject a browser-only host, a missing chart-free operation or source/window evidence that does not match."
+    },
+    {
+      "id": "packaged-owner-evidence",
+      "priority": "high-at-release",
+      "work": [
+        "M5-001"
+      ],
+      "observed": "The positive local and hosted release fixtures can return technical readiness without retaining the owner's blank-workbench experience on the tested installer. Current hosted manifest and artifact fields omit a bound record for it. release-artifacts remains planned.",
+      "acceptance": "Bind redacted owner feedback to the exact candidate installer, revision and exercised actions. Reject a missing record or a record taken on a different build. Retain raw private observations locally.",
+      "sources": [
+        "project/delivery.json",
+        "scripts/verification_evidence.py",
+        "scripts/ci_artifacts.py",
+        "tests/project/test_delivery.py"
+      ],
+      "earliest_check": "At candidate evidence intake, require an owner product observation bound to the exact installer hash, before technical readiness can pass."
+    },
+    {
+      "id": "external-client-evidence",
+      "priority": "at-client-qualification",
+      "work": [
+        "M4-005"
+      ],
+      "observed": "The external-client check is planned and has no command. The current private-check runner would retain only its redacted exit-code log. Its hosted publication path cannot retain structured proof of both the CLI and desktop clients required by the scenario.",
+      "acceptance": "Retain independent, privacy-safe client family, version, host, outcome and shared workspace selection. Reject a single-client result and a mismatched workspace.",
+      "sources": [
+        "project/checks.json",
+        "project/delivery.json",
+        "scripts/check.py",
+        "scripts/ci_artifacts.py"
+      ],
+      "earliest_check": "At qualification of the external-client session, require the observations for both client families and their common authorized workspace before publication."
+    },
+    {
+      "id": "relocated-local-profile",
+      "priority": "at-upgrade-and-recovery",
+      "work": [
+        "M5-001"
+      ],
+      "observed": "In a temporary same-user profile the desktop test bridge could reopen a frozen revision at its original path. After moving the whole directory it returned nonretryable INTERNAL_ERROR. Moving it back restored access. The binding uses the absolute directory name and the persisted database identity.",
+      "acceptance": "Exercise the supported same-user restore to a new location and a negative cross-user case on an actual candidate. Preserve tombstones, original data and consent boundaries. Define a clear recovery path when rebinding needs explicit approval.",
+      "sources": [
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "crates/persistence/src/lib.rs",
+        "project/delivery.json"
+      ],
+      "earliest_check": "At startup after restore or relocation, verify identity and data access before using credentials or mutating the saved database."
+    },
+    {
+      "id": "large-history-and-binding",
+      "priority": "before-saved-sources",
+      "work": [
+        "M1-028",
+        "M1-029",
+        "M2-012"
+      ],
+      "observed": "The checked CSV implementation reads bounded whole files and caps publication at 10,000 source records. A retained daily source assessment has 18,463,529 rows. Each local snapshot also uses one publication UUID for instrument, dataset and revision, while current indicator window reads load and validate the entire stored JSON.",
+      "acceptance": "Use the existing representative bulk benchmark and a normal small-window query. Demonstrate two revisions of one instrument, separate follow-current and pin-revision bindings, bounded memory, cancellation, restart and stable attribution.",
+      "sources": [
+        "contracts/decisions/0028-bulk-data-and-contract-ownership.json",
+        "crates/application/src/workspace/evidence.rs",
+        "crates/persistence/src/local_dataset.rs",
+        "crates/application/src/workspace/indicators.rs"
+      ],
+      "earliest_check": "At a saved-source binding or bulk-reader change, run the small-window query, two-revision identity case and the representative bulk benchmark before replacing the old reader."
+    },
+    {
+      "id": "shared-ai-edit",
+      "priority": "before-chart-free-delivery",
+      "work": [
+        "M4-001",
+        "M2-013"
+      ],
+      "observed": "The connected selected-chart tool currently reads the selection. The native product also has manual layout operations. The normal configured AI turn still needs a sanctioned path from a structural edit proposal through preview, apply, undo and reopen. A manual chart-style toggle alone cannot verify the planned shared chart.setStyle operation.",
+      "acceptance": "Show the same scoped layout change from a local manual action and a connected or replayed AI proposal, including denied, stale and failed drafts. Keep actual route qualification and offline replay independently visible.",
+      "sources": [
+        "crates/application/src/workspace/text_connection.rs",
+        "apps/desktop/ui/src/chart-workspace.tsx",
+        "contracts/contract.json",
+        "project/tasks.json"
+      ],
+      "earliest_check": "At the shared operation entry, reject unimplemented, stale or unauthorized mutations before any state change. Test manual and AI entry, undo and reopen on the same composition."
+    }
+  ],
+  "architecture": {
+    "retain": [
+      "Shared Rust operation registry, separate authorization and executable schemas.",
+      "Core single-writer transactions, immutable local revisions and independently verified evidence.",
+      "Cross-language contract fixtures, platform-specific CI, recovery diagnostics and the separate native and release gates."
+    ],
+    "evolve_with_work": [
+      "Split the workspace transaction interface along an actual new responsibility when adding composition or saved sources. Keep the single transactional commit.",
+      "Keep developer-loop and release evidence separate. Before optimizing evidence invalidation across branches, measure how often unrelated project-definition changes force expensive reruns."
+    ]
+  },
+  "maintenance_owner": "The development AI triages in an active owner-started session. GitHub runs the configured periodic checks and produces evidence between sessions. An unresolved finding retains its corrective task, failure evidence and regression. Personal data, paid services, release and authority changes keep their existing approval boundaries.",
+  "subsequent_findings": [
+    {
+      "id": "updated-rust-advisory",
+      "work": [
+        "M0-081"
+      ],
+      "observed": "After the baseline audit, the online dependency check in the Ubuntu run for the CSV correction rejected the locked cookie 0.18.2 for RUSTSEC-2026-0594. It was the only failed check in that report. GitHub Dependabot alert 1 concerns glib and has an existing, separately scoped disposition.",
+      "earliest_check": "Recheck the live dependency inventory when a new advisory is reported. Test the smallest pinned update, validate license inventory, and rerun the protected workflows for the affected revisions.",
+      "sources": [
+        "https://github.com/kacoyi/scopehub/actions/runs/45149535246",
+        "project/dependencies.json",
+        "Cargo.lock"
+      ]
+    }
+  ],
+  "maintenance_observations": {
+    "primary_checkout_retained_history": {
+      "observed_at": "2026-11-23T10:10:33Z",
+      "readable_originals": 106,
+      "unavailable_originals": 2,
+      "unresolved_same_input_checks": 0,
+      "other_or_unverified_input_checks": 16,
+      "scope": "The scan used the reviewed primary checkout. An October 13 historical report predates the current selection and input identity fields; its existing M0-001 and M0-002 receipts remain historical. A November 18 run directory contains partial logs without a final report. Neither can certify a current recheck. The 16 other-input check signals concern older executions and need their own attribution.",
+      "unavailable_run_ids": [
+        "20261013T144655.651411Z-7636d530",
+        "20261118T122308.823320Z-4cb2dbc5"
+      ]
+    },
+    "weekly_regression": {
+      "observed_at": "2026-11-23T10:11:47Z",
+      "workflow_state": "active",
+      "completed_scheduled_runs": 0,
+      "scope": "The configured weekly workflow was active on main before the November 23 window. A later full main-push run supplied separate Ubuntu and Windows evidence. The cause of the missing scheduled event is unverified. The dated periodic review checks the next window and preserves failed or missing schedules independently.",
+      "follow_up": "project/delivery.json#/scaffold_maintenance/periodic_reviews",
+      "full_main_run": "https://github.com/kacoyi/scopehub/actions/runs/45133726159"
+    }
+  }
+}

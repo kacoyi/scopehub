@@ -1,5 +1,6 @@
 """Reject stale hosted results and preserve provenance when importing native evidence."""
 
+from datetime import datetime, timedelta, timezone
 import json
 import shutil
 import subprocess
@@ -19,7 +20,9 @@ class HostedStatusTests(unittest.TestCase):
 
     def run_record(self, **changes):
         return {'id': 10, 'head_sha': self.head, 'path': ci.WORKFLOW, 'status': 'completed',
-                'conclusion': 'success', 'run_attempt': 1, 'event': 'pull_request',
+                'conclusion': 'success', 'run_attempt': 1, 'event': 'pull_request', 'head_branch': 'main',
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'head_repository': {'full_name': 'fixture/scopehub'},
                 'html_url': 'https://github.com/fixture/scopehub/actions/runs/10', **changes}
 
     def test_other_commits_and_workflows_do_not_count(self):
@@ -47,30 +50,119 @@ class HostedStatusTests(unittest.TestCase):
         self.assertEqual('blocked', ci.classify_runs([self.run_record()], self.head, selected=True)['status'])
         self.assertEqual('passed', ci.classify_runs([self.run_record()], self.head)['status'])
 
-    def test_weekly_regression_cannot_cover_a_failed_or_missing_integration(self):
+    def inspect(self, records, *, branch='main', upstream=None, unavailable=None):
         source = {'git_head': self.head, 'working_tree_dirty': False}
-        scheduled = self.run_record(id=11, event='schedule')
-        failed_push = self.run_record(event='push', conclusion='failure')
-        for history, expected in (([scheduled, failed_push], 'failed'), ([scheduled], 'blocked')):
-            with (self.subTest(expected=expected), patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
-                  patch.object(ci, 'source_identity', return_value=source),
-                  patch.object(ci, 'command', return_value=json.dumps({'workflow_runs': history}))):
-                self.assertEqual(expected, ci.status()['status'])
-        with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
-              patch.object(ci, 'source_identity', return_value=source),
-              patch.object(ci, 'command', return_value=json.dumps(scheduled))):
-            self.assertIn('Scheduled full change regression', ci.status(run_id=11)['claim_scope'])
+        requests = []
+        repository = 'fixture/scopehub'
 
-    def test_manual_status_covers_the_recorded_selection(self):
-        source = {'git_head': self.head, 'working_tree_dirty': False}
-        runs = {'workflow_runs': [self.run_record(event='workflow_dispatch')]}
-        with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+        def command(argv, root):
+            if argv[0] == 'git':
+                lines = [f'# branch.head {branch}']
+                if upstream:
+                    lines.append(f'# branch.upstream {upstream}')
+                return '\n'.join(lines)
+            self.assertIn(f'repos/{repository}/actions/workflows/verify.yml/runs', argv)
+            query = dict(argv[i + 1].split('=', 1) for i, flag in enumerate(argv) if flag == '-f')
+            requests.append(query)
+            if query['event'] == unavailable:
+                raise ProjectError('Hosted data unavailable')
+            values = [r for r in records if r['event'] == query['event'] and r['path'] == ci.WORKFLOW
+                      and all(r[key] == query[arg] for arg, key in
+                              [('head_sha', 'head_sha'), ('branch', 'head_branch'), ('status', 'status')] if arg in query)]
+            values.sort(key=lambda r: (r['id'], r['run_attempt']), reverse=True)
+            if '--paginate' in argv:
+                self.assertIn('--slurp', argv)
+                return json.dumps([{'workflow_runs': [r]} for r in values] or [{'workflow_runs': []}])
+            return json.dumps({'workflow_runs': values[:int(query['per_page'])]})
+
+        with (patch.object(ci, 'github_identity', return_value=repository),
               patch.object(ci, 'source_identity', return_value=source),
-              patch.object(ci, 'command', return_value=json.dumps(runs)) as command):
-            result = ci.status()
+              patch.object(ci, 'read_json', return_value={'branch': 'main'}),
+              patch.object(ci, 'command', side_effect=command)):
+            return ci.status(), requests
+
+    def test_main_push_keeps_its_own_status_with_manual_and_weekly_results(self):
+        manual = self.run_record(id=12, event='workflow_dispatch')
+        weekly = self.run_record(id=13, event='schedule')
+        failed_push = self.run_record(event='push', conclusion='failure')
+        result, queries = self.inspect([manual, weekly, failed_push])
+        self.assertEqual(('failed', 10), (result['status'], result['run']['id']))
+        self.assertEqual(('passed', 12), (result['manual_verification']['status'], result['manual_verification']['run']['id']))
+        self.assertFalse(result['weekly_regression']['requires_review'])
+        self.assertEqual([{'event': event, 'branch': 'main', 'head_sha': self.head, 'per_page': '100'}
+                          for event in ['push', 'workflow_dispatch']], queries[:2])
+        self.assertEqual({'event': 'schedule', 'branch': 'main', 'status': 'completed', 'per_page': '1'}, queries[2])
+        result, _ = self.inspect([manual, weekly])
+        self.assertEqual(('blocked', None), (result['status'], result['run']))
+        self.assertEqual('passed', result['manual_verification']['status'])
+
+    def test_weekly_attention_survives_a_new_head_narrow_pass_or_queued_weekly(self):
+        push = self.run_record(id=16, event='push')
+        failed = self.run_record(id=11, head_sha='b' * 40, event='schedule', conclusion='failure')
+        queued = self.run_record(id=17, event='schedule', status='queued', conclusion=None)
+        result, _ = self.inspect([push, failed, queued])
         self.assertEqual('passed', result['status'])
-        self.assertIn('selection recorded in this manual run', result['claim_scope'])
-        command.assert_called_once()
+        weekly = result['weekly_regression']
+        self.assertTrue(weekly['requires_review'])
+        self.assertEqual(('failed', 11, 'b' * 40), (weekly['status'], weekly['run']['id'], weekly['run']['head_sha']))
+        recovered, _ = self.inspect([push, failed, dict(queued, status='completed', conclusion='success')])
+        self.assertFalse(recovered['weekly_regression']['requires_review'])
+        missing, _ = self.inspect([push], unavailable='schedule')
+        self.assertEqual('passed', missing['status'])
+        self.assertEqual('unavailable', missing['weekly_regression']['status'])
+        self.assertTrue(missing['weekly_regression']['requires_review'])
+
+    def test_weekly_missing_expired_or_undated_remains_visible_with_successful_main(self):
+        main = self.run_record(event='push')
+        old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+        for records, outcome, freshness in [
+            ([], 'missing', 'unknown'),
+            ([self.run_record(event='schedule', created_at=old)], 'passed', 'overdue'),
+            ([self.run_record(event='schedule', created_at=None)], 'passed', 'unknown'),
+        ]:
+            with self.subTest(outcome=outcome, freshness=freshness):
+                result, _ = self.inspect([main, *records])
+                self.assertEqual('passed', result['status'])
+                weekly = result['weekly_regression']
+                self.assertEqual((outcome, freshness, True),
+                                 (weekly['status'], weekly['freshness'], weekly['requires_review']))
+
+    def test_task_branch_requires_its_own_origin_pr_even_at_a_shared_commit(self):
+        ours = self.run_record(id=14, head_branch='feature', conclusion='failure')
+        other = self.run_record(id=24, head_branch='other')
+        fork = self.run_record(id=22, head_branch='feature', head_repository={'full_name': 'another/scopehub'})
+        manual = self.run_record(id=23, head_branch='feature', event='workflow_dispatch')
+        result, queries = self.inspect([ours, other, fork, manual, self.run_record(id=25, event='push')],
+                                       branch='local-alias', upstream='origin/feature')
+        self.assertEqual(('failed', 14), (result['status'], result['run']['id']))
+        self.assertEqual(('pull_request', 'feature', self.head),
+                         (queries[0]['event'], queries[0]['branch'], queries[0]['head_sha']))
+        self.assertEqual(23, result['manual_verification']['run']['id'])
+        first_push, _ = self.inspect([ours, self.run_record(id=25, event='push')], branch='feature', upstream='origin/main')
+        self.assertEqual(('failed', 14), (first_push['status'], first_push['run']['id']))
+
+    def test_detached_source_checks_the_main_push_or_unambiguous_pr(self):
+        prs = [self.run_record(head_branch='one'), self.run_record(id=11, head_branch='two')]
+        push = self.run_record(id=8, event='push', conclusion='failure')
+        for history, expected, observed in [([*prs, push], 'failed', 8), (prs[:1], 'passed', 10),
+                                             (prs, 'blocked', None)]:
+            with self.subTest(history=history):
+                result, _ = self.inspect(history, branch='(detached)')
+                self.assertEqual(expected, result['status'])
+                self.assertEqual(observed, (result['run'] or {}).get('id'))
+
+    def test_explicit_manual_and_weekly_status_preserve_selection_scope(self):
+        source = {'git_head': self.head, 'working_tree_dirty': False}
+        for event, scope in [('workflow_dispatch', 'selection recorded in this manual run'),
+                             ('schedule', 'Scheduled full change regression')]:
+            with (self.subTest(event=event), patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+                  patch.object(ci, 'source_identity', return_value=source),
+                  patch.object(ci, 'command', return_value=json.dumps(self.run_record(id=11, event=event))) as call):
+                result = ci.status(run_id=11)
+                self.assertEqual('blocked', result['status'])
+                self.assertEqual(event, result['run']['event'])
+                self.assertIn(scope, result['claim_scope'])
+                call.assert_called_once_with(['gh', 'api', 'repos/fixture/scopehub/actions/runs/11'], ci.ROOT)
 
 
 class HostedEvidenceTests(ProjectFixture):

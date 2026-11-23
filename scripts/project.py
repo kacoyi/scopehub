@@ -15,11 +15,13 @@ from jsonschema import Draft202012Validator, FormatChecker
 if __package__:
     from .development import expand_engineering_sources, resolve_source
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .worktree import WorktreeError, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from worktree import WorktreeError, has_git_metadata
 
@@ -71,6 +73,13 @@ def task_definition_hash(task):
         if key in task:
             definition[key] = task[key]
     return digest(json.dumps(definition, sort_keys=True, separators=(',', ':')).encode('utf-8'))
+
+
+def feedback_fingerprint(item):
+    # Bind a regression run to the actual observation without publishing its text.
+    diagnostics = sorted(report['report_sha256'] for report in item.get('diagnostic_reports', []))
+    return digest(json_bytes([item['id'], item.get('occurrence', 1), item['observation'],
+                              sorted(item['regression_checks']), diagnostics]))
 
 
 def project_definition_hash(project):
@@ -497,11 +506,22 @@ def validate_delivery(root, project):
         if item['status'] == 'addressed':
             if not item['resolution'] or any(tasks[key]['status'] != 'done' for key in item['task_ids']):
                 raise ProjectError(f"Addressed feedback needs completed corrective work and a resolution: {item['id']}")
-            covered = {key for task_id in item['task_ids'] for key in tasks[task_id]['checks']}
-            if not set(item['regression_checks']).issubset(covered):
-                raise ProjectError(f"Addressed feedback lacks regression evidence: {item['id']}")
         elif item['resolution'] is not None:
             raise ProjectError(f"Unresolved feedback cannot claim a resolution: {item['id']}")
+        regression = set(item['regression_checks'])
+        linked = [tasks[key] for key in item['task_ids']]
+        missing = regression - {key for task in linked for key in task['checks']}
+        if missing:
+            if item['status'] == 'addressed':
+                raise ProjectError(f"Addressed feedback lacks regression evidence: {item['id']}; missing {sorted(missing)}")
+            raise ProjectError(f"Feedback {item['id']} has regression checks without a linked task: {sorted(missing)}")
+        if item['status'] != 'addressed' and item['severity'] in {'major', 'critical'}:
+            for task in linked:
+                if task['status'] == 'active':
+                    planned = {key for risk in task['plan']['risks'] for key in risk['checks']}
+                    uncovered = regression.intersection(task['checks']) - planned
+                    if uncovered:
+                        raise ProjectError(f"Active task {task['id']} must cover feedback {item['id']} in its plan risks: {sorted(uncovered)}")
         if (item['status'] == 'deferred') != bool(item['deferral_reason']):
             raise ProjectError(f"Feedback deferral needs an explicit reason: {item['id']}")
     policy = delivery['release_policy']
@@ -572,7 +592,7 @@ def periodic_reviews(delivery, today=None):
     return reviews
 
 
-def workfront(root=ROOT, *, report_path=None):
+def workfront(root=ROOT, *, report_path=None, retained_detail=None):
     if __package__:
         from .development import evidence_view
     else:
@@ -597,10 +617,12 @@ def workfront(root=ROOT, *, report_path=None):
     tasks = project['tasks']
     tasks_current = bool(report and report.get('task_definitions') == {
         task['id']: task_definition_hash(task) for task in tasks.values()})
+    project_hash = project_definition_hash(project)
     definitions_current = bool(report and report.get('project_unchanged')
-                               and report.get('project_definition_sha256') == project_definition_hash(project))
+                               and report.get('project_definition_sha256') == project_hash)
     current = inputs_current and tasks_current and definitions_current and report_error is None
-    return {
+    unresolved = [item for item in project['feedback']['items'] if item['status'] != 'addressed']
+    state = {
         'status': 'passed', 'focus': tasks.get(project['ledger']['focus_task_id']),
         'status_scope': 'Project-record consistency only; inspect verification, evidence_overview and release readiness separately.',
         'active_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'active'],
@@ -620,9 +642,19 @@ def workfront(root=ROOT, *, report_path=None):
                          'recorded_status': report.get('status') if report else None},
         'milestones': product_progress(project, report['checks'])[0] if current else None,
         'evidence_overview': evidence_view(root, project, source, report, current, report_error=report_error),
-        'unresolved_feedback': [item for item in project['feedback']['items'] if item['status'] != 'addressed'],
+        'unresolved_feedback': unresolved,
+        'feedback_needing_assignment': [
+            item['id'] for item in unresolved
+            if all(tasks[key]['status'] in {'done', 'cancelled'} for key in item['task_ids'])
+        ],
         'source': source,
     }
+    if retained_detail is not None:
+        state['retained_failures'] = retained_failure_view(
+            root, (source['sha256'], project_hash), basis='current_checkout', detail=retained_detail,
+            latest_run=report.get('run_id') if report else None,
+        )
+    return state
 
 
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
@@ -941,10 +973,149 @@ def recover_hosted_checkpoint(root, revision, repository):
         raise ProjectError(f'Previous checkpoint {revision} is not an available Git commit')
 
 
-def review_history(root=ROOT, base=None):
-    """Compare accepted history to the actual reviewed revision, not HEAD by guess."""
+def feedback_git(root, *args):
+    # Keep local checks offline even in a partial clone with promised objects.
+    return subprocess.run(['git', *args], cwd=root, capture_output=True,
+                          env={**os.environ, 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': '',
+                               'GIT_NO_REPLACE_OBJECTS': '1', 'GIT_GRAFT_FILE': os.devnull})
+
+
+def validate_feedback_checkpoint(root, project, commit, inherited=None):
+    """Preserve recorded findings and require verification for a new serious closure."""
+    path = 'project/feedback.json'
+    original = feedback_git(root, 'show', f'{commit}:{path}')
+    if original.returncode:
+        entry = feedback_git(root, 'ls-tree', '--name-only', commit, '--', path)
+        if entry.returncode or entry.stdout:
+            raise ProjectError(f'Cannot read {path} from local feedback checkpoint {commit}')
+        old_items = {}
+    else:
+        try:
+            records = json.loads(original.stdout)['items']
+            if not isinstance(records, list):
+                raise ValueError('Expected a list of feedback items')
+            old_items = indexed(records, 'previous feedback')
+        except (TypeError, ValueError, KeyError) as error:
+            raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
+    items = indexed(project['feedback']['items'], 'feedback')
+    for key in old_items.keys() - items.keys():
+        raise ProjectError(f'Feedback disappeared: {key}; retain its disposition')
+    for key, item in items.items():
+        old_item = old_items.get(key, {})
+        if item != old_item:
+            validate_report_references(root, item, f'Feedback {key}')
+        occurrence = item.get('occurrence', 1)
+        prior_occurrence = old_item.get('occurrence', 1)
+        if occurrence < prior_occurrence:
+            raise ProjectError(f'Feedback {key} occurrence cannot go backwards')
+        if old_item.get('status') == 'addressed' and item['status'] != 'addressed' and occurrence == prior_occurrence:
+            raise ProjectError(f'Reopening feedback {key} requires a new occurrence')
+        if (item['status'] != 'addressed' or item == old_item
+                or (item['severity'] == 'minor' and old_item.get('severity', 'minor') == 'minor')):
+            continue
+        if key not in old_items and inherited and item == inherited.get(key):
+            continue
+        finding = feedback_fingerprint(item)
+        if (old_item.get('status') == 'addressed' and finding == feedback_fingerprint(old_item)
+                and set(item['task_ids']) == set(old_item['task_ids'])):
+            continue
+        covered = set()
+        for task_id in item['task_ids']:
+            for ref in project['tasks'][task_id]['evidence']:
+                receipt = read_json(local_path(root, ref['path']))
+                if finding in receipt.get('observed_feedback', []):
+                    covered.update(check['id'] for check in receipt['checks'])
+        missing = set(item['regression_checks']) - covered
+        if missing:
+            raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
+    return old_items
+
+
+def feedback_commit(root, ref):
+    if not ref or set(ref) == {'0'}:
+        return None
+    commit = feedback_git(root, 'rev-parse', '--verify', '--quiet', '--end-of-options', f'{ref}^{{commit}}')
+    if not commit.returncode:
+        return commit.stdout.decode('ascii').strip()
+    if ref == 'HEAD':
+        branch = feedback_git(root, 'symbolic-ref', '--quiet', 'HEAD')
+        if (not branch.returncode and feedback_git(root, 'show-ref', '--verify', '--quiet',
+                                                   os.fsdecode(branch.stdout).strip()).returncode == 1):
+            return None
+    raise ProjectError(f'Feedback checkpoint is unavailable locally: {ref}')
+
+
+def protected_feedback_base(root, head):
+    path = root / 'project/branch-protection.json'
+    if not head or not path.is_file():
+        return {'source': 'none', 'reason': 'No committed HEAD or protected branch configuration.'}
+    policy = read_json(path)
+    branch = policy.get('branch') if isinstance(policy, dict) else None
+    if not isinstance(branch, str) or not branch or feedback_git(root, 'check-ref-format', f'refs/heads/{branch}').returncode:
+        raise ProjectError('Invalid configured protected branch for local feedback comparison')
+    ref = f'refs/remotes/origin/{branch}'
+    if feedback_git(root, 'show-ref', '--verify', '--quiet', ref).returncode == 1:
+        return {'source': 'none', 'ref': ref, 'reason': 'No local tracking ref for the protected branch.'}
+    tip = feedback_commit(root, ref)
+    result = feedback_git(root, 'merge-base', '--all', head, tip)
+    commits = result.stdout.decode('ascii').splitlines()
+    observation = {'source': 'local_protected_merge_base', 'ref': ref, 'tracking_commit': tip}
+    if result.returncode == 1 or len(commits) > 1:
+        return {**observation, 'reason': 'The local histories have no unique common ancestor.'}
+    if result.returncode or len(commits) != 1:
+        raise ProjectError(f'Cannot determine the local common ancestor of HEAD and {ref}')
+    return {**observation, 'commit': commits[0]}
+
+
+def reviewed_feedback_imports(items, reviewed, head):
+    # A candidate's own checkout or advertised source head cannot confirm an older disposition.
+    if head and reviewed and reviewed not in {head, os.environ.get('SCOPEHUB_SOURCE_HEAD')}:
+        return items
+    return {}
+
+
+def local_feedback_history(root, project):
+    """Report the local comparison inputs. A cached tracking ref only supplies its common history."""
+    if not (root / '.git').exists():
+        return {'status': 'not_applicable', 'reason': 'No Git checkout available.'}
+    try:
+        head = feedback_commit(root, 'HEAD')
+    except FileNotFoundError:
+        return {'status': 'not_applicable', 'reason': 'The Git executable is unavailable.'}
+    explicit = os.environ.get('SCOPEHUB_REVIEW_BASE')
+    basis = ({'source': 'explicit', 'commit': feedback_commit(root, explicit)} if explicit
+             else protected_feedback_base(root, head))
+    reviewed = basis.get('commit')
+    checkpoint = feedback_commit(root, os.environ.get('SCOPEHUB_CHECKPOINT_BASE'))
+    compared = []
+    imports = {}
+    for sha in dict.fromkeys([reviewed, head, checkpoint]):
+        if sha:
+            records = validate_feedback_checkpoint(root, project, sha, imports)
+            if explicit and sha == reviewed:
+                imports = reviewed_feedback_imports(records, reviewed, head)
+            compared.append(sha)
+    if not compared:
+        return {'status': 'not_applicable', 'reason': 'The checkout has no committed checkpoint.'}
+    return {'status': 'passed', 'compared_commits': compared, 'review_basis': basis}
+
+
+def review_history(root=ROOT, base=None, *, checkpoint_base=None, fetch_missing_checkpoint=False):
+    result, records = compare_history(root, base)
+    if checkpoint_base and checkpoint_base != base:
+        if fetch_missing_checkpoint:
+            if os.environ.get('GITHUB_ACTIONS') != 'true':
+                raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
+            recover_hosted_checkpoint(root, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
+        imports = reviewed_feedback_imports(records, result.get('base_commit'), feedback_commit(root, 'HEAD'))
+        result['previous_checkpoint'], _ = compare_history(root, checkpoint_base, imports)
+    return result
+
+
+def compare_history(root, base, inherited=None):
+    """Return the reviewed base ledger only after the complete history comparison passes."""
     if not base or set(base) == {'0'}:
-        return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}
+        return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}, {}
     resolved = subprocess.run(['git', 'rev-parse', '--verify', '--end-of-options', f'{base}^{{commit}}'],
                               cwd=root, capture_output=True, text=True, check=True).stdout.strip()
     project = load_project(root)
@@ -959,11 +1130,7 @@ def review_history(root=ROOT, base=None):
         old = old_tasks.get(key, {})
         if old.get('status') not in {'done', 'cancelled'}:
             validate_report_references(root, task, f'Task {key}')
-    old_feedback = previous('project/feedback.json')
-    old_items = indexed(old_feedback['items'], 'previous feedback') if old_feedback else {}
-    for item in project['feedback']['items']:
-        if item != old_items.get(item['id']):
-            validate_report_references(root, item, f"Feedback {item['id']}")
+    feedback = validate_feedback_checkpoint(root, project, resolved, inherited)
     review_operational_report_paths(root, resolved)
     compared = []
     catalog = previous('project/checks.json')
@@ -1028,7 +1195,7 @@ def review_history(root=ROOT, base=None):
                 raise ProjectError(f"Accepted decision history changed or disappeared: {decision['id']}; supersede it")
             compared.append(decision['id'])
     return {'status': 'passed', 'base_commit': resolved, 'preserved_records': compared,
-            'gate_replacements': list(replaced.values())}
+            'gate_replacements': list(replaced.values())}, feedback
 
 
 def archive_evidence(root, task_id, report_path, artifact_root=None):
@@ -1137,6 +1304,8 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         'project_definition_sha256': report['project_definition_sha256'],
         'claim_scope': 'Completed task at the recorded execution inputs; not a release or current-worktree guarantee.',
     }
+    if 'observed_feedback' in report:
+        receipt['observed_feedback'] = report['observed_feedback']
     if field_records:
         receipt['field_observations'] = field_records
     if ci:
@@ -1196,15 +1365,16 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'check':
-            project = load_project()
+            project = load_project(ROOT)
+            feedback_history = local_feedback_history(ROOT, project)
             result = {'status': 'passed', 'tasks': len(project['tasks']), 'decisions': len(project['decisions']),
-                      'checks': len(project['checks'])}
+                      'checks': len(project['checks']), 'feedback_history': feedback_history}
         elif args.command == 'status':
             if __package__:
                 from .development import status_view
             else:
                 from development import status_view
-            result = status_view(workfront(), detail=args.detail)
+            result = status_view(workfront(retained_detail=args.detail), detail=args.detail)
         elif args.command == 'context':
             result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
         elif args.command == 'brief':
@@ -1226,14 +1396,8 @@ def main():
         elif args.command == 'readiness':
             result = readiness(report_path=args.report, artifact_root=args.artifact_root, candidate=args.candidate)
         elif args.command == 'history':
-            result = review_history(ROOT, args.base)
-            checkpoint_base = os.environ.get('SCOPEHUB_CHECKPOINT_BASE')
-            if checkpoint_base and checkpoint_base != args.base:
-                if args.fetch_missing_checkpoint:
-                    if os.environ.get('GITHUB_ACTIONS') != 'true':
-                        raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
-                    recover_hosted_checkpoint(ROOT, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
-                result['previous_checkpoint'] = review_history(ROOT, checkpoint_base)
+            result = review_history(ROOT, args.base, checkpoint_base=os.environ.get('SCOPEHUB_CHECKPOINT_BASE'),
+                                    fetch_missing_checkpoint=args.fetch_missing_checkpoint)
         elif args.command == 'checkpoint':
             result = checkpoint()
         elif args.command == 'diagnostic':
