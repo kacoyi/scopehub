@@ -401,21 +401,25 @@ def ci_base(root, checkout, env):
                 or env.get('GITHUB_REF') != f'refs/pull/{number.token}/merge'):
             raise ScopeError('The pull request number does not match the GitHub merge ref.')
         pull = event['pull_request']
-        base = exact_commit(root, pull['base']['sha'])
-        head = exact_commit(root, pull['head']['sha'])
-        parents = git(root, 'rev-list', '--parents', '-n', '1', checkout).split()
-        if parents != [value.encode('ascii') for value in (checkout, base, head)]:
-            raise ScopeError('The checkout does not have the event base and head as its two parents.')
+        base = oid(pull['base']['sha'])
+        head = oid(pull['head']['sha'])
         preview = pull.get('merge_commit_sha')
         if preview is not None:
             preview = oid(preview)
         if event.get('action') == 'synchronize':
-            # A synchronize payload can retain the previous preview SHA. The Actions
-            # checkout and both current parents were verified above.
+            # A synchronize payload can retain the previous preview SHA.
             if oid(event.get('after')) != head:
                 raise ScopeError('The synchronized head does not match the pull request head.')
         elif preview is not None and preview != checkout:
             raise ScopeError('The event merge SHA does not match the checkout.')
+        # ^@ lists every parent in order. Peeling the event IDs in the same
+        # lookup also proves that each names the commit itself, including
+        # when an event supplies the object ID of an annotated tag.
+        resolved = git(root, 'rev-parse', '--revs-only', f'{checkout}^@',
+                       f'{base}^{{commit}}', f'{head}^{{commit}}', '--')
+        expected = [base.encode('ascii'), head.encode('ascii')]
+        if resolved.splitlines() != expected + expected:
+            raise ScopeError('The checkout does not have the event base and head as its two parents.')
         return base
 
     if event.get('ref') != 'refs/heads/main' or env.get('GITHUB_REF') != 'refs/heads/main':
@@ -430,14 +434,19 @@ def ci_base(root, checkout, env):
 def preview(root, *, base_ref='origin/main', ci_env=None):
     decision = full_decision()
     try:
-        checked_ref = git(root, 'rev-parse', '--verify', 'HEAD').strip().decode('ascii')
-        head = decision['checkout'] = exact_commit(root, checked_ref)
+        shallow, checked_ref, commit = git(
+            root, 'rev-parse', '--revs-only', '--is-shallow-repository', 'HEAD', 'HEAD^{commit}', '--',
+        ).splitlines()
+        if checked_ref != commit:
+            raise ScopeError('A required Git object is not the named commit.')
+        head = decision['checkout'] = oid(commit.decode('ascii'))
         if ci_env is None:
             try:
                 base = decision['base'] = resolve_commit(root, base_ref)
             except ScopeError:
                 raise ScopeError('The local base ref could not be resolved to a commit.') from None
-        require_complete_history(root)
+        if shallow != b'false':
+            raise ScopeError('Shallow or unverifiable Git history.')
         if ci_env is not None:
             base = ci_base(root, head, ci_env)
         require_ancestor(root, base, head)

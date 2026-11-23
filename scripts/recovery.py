@@ -163,7 +163,7 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
             'Preserve the failed run and reproduce the first actionable failure; classify product defect, scaffold defect, environment issue, incorrect expectation or concrete capability gap.',
             'Read project/delivery.json scaffold_maintenance and AGENTS.md; retain the interrupted task and create or update bounded repair work with a regression.',
             'If project records cannot be validated, make only the minimal bootstrap repair first, then restore normal validation and record the work before completion.',
-            'Run fast and affected checks, archive matching acceptance evidence, close feedback and resume the interrupted task. This diagnostic cannot support task completion.',
+            'Verify the repair with its regression and required task checks. Use the passing report for completion, retain this diagnostic with the original failure, close feedback and resume the interrupted task.',
         ],
         'recovery_command': RECOVERY_COMMAND, 'bootstrap_commands': BOOTSTRAP_COMMANDS,
         'limitations': [

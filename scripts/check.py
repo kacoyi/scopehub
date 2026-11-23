@@ -199,7 +199,7 @@ TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {
     'architecture': ['{python}', 'scripts/check_architecture.py'],
     'python-types': ['{python}', '-m', 'mypy'],
     'python-contracts-workers': ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
-                                 '-p', 'test_*.py', '-v', '--durations', '10'],
+                                 '-p', 'test_*.py', '-v', '--durations', '0'],
     'dependency-review': ['{python}', 'scripts/dependencies.py'],
 }
 PROFILE_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {

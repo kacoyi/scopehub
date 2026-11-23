@@ -5,13 +5,15 @@ from io import StringIO
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from scripts import timing
+from scripts import ci_artifacts, timing
+from tests.project.fixtures import isolated_git_environment
 
 
 def historical_report():
@@ -271,6 +273,131 @@ class HostedTimingTests(unittest.TestCase):
         self.assertEqual(1, metrics['total']['sample_count'])
         self.assertEqual(0, metrics['check_work']['sample_count'])
         self.assertIsNone(metrics['check_work']['recent_median_seconds'])
+
+
+class PRMainComparisonTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(isolated_git_environment())
+        temp = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(temp)
+        self.git('init', '-q')
+        self.tree = self.git('mktree')
+        self.base = self.commit('base')
+        self.head = self.commit('PR head', self.base)
+        self.preview = self.commit('PR preview', self.base, self.head)
+        self.main = self.commit('main merge', self.base, self.head)
+
+    def git(self, *args, contents=''):
+        return subprocess.run(
+            ['git', '-c', 'user.name=Timing Fixture', '-c', 'user.email=timing@example.test',
+             *args], cwd=self.root, input=contents, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+
+    def commit(self, message, *parents, tree=None):
+        return self.git('commit-tree', tree or self.tree,
+                        *(arg for parent in parents for arg in ('-p', parent)), '-m', message)
+
+    def observe(self, commit, *, push=False, edit_report=None, rustfmt=None, platform='ubuntu', ref=None):
+        run_id = 12 if push else 11
+        run = dict(hosted_run(run_id=run_id), event='push' if push else 'pull_request',
+                   head_sha=commit if push else self.head)
+        jobs = [
+            dict(hosted_job(run_id * 10 + index, name, '00:10', '04:00', 'Run pnpm check',
+                            '00:30', '03:50', run_id=run_id), head_sha=run['head_sha'])
+            for index, name in enumerate(('ubuntu', 'windows'))
+        ]
+        report = fast_report(20, 190)
+        report['source'].update(git_head=commit, sha256='c' * 64, working_tree_dirty=False)
+        report['selection']['profile'] = 'full'
+        report['selection']['checks'].append('generated-contracts')
+        report['checks'].append({'id': 'generated-contracts', 'status': 'passed', 'exit_code': 0,
+                                 'command': ['/fixture/python', 'scripts/generate_contracts.py', '--check'],
+                                 'duration_seconds': 5 if push else 3})
+        report['environment'].update(python='3.12.12', python_executable='/fixture/python')
+        if platform == 'windows':
+            report['environment'].update(system='Windows', machine='AMD64')
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(run_id), 'run_attempt': '1',
+                        'event': run['event'], 'head_sha': run['head_sha'], 'checkout_sha': commit}
+        if edit_report:
+            edit_report(report)
+        self.git('update-ref', '--no-deref', 'HEAD', commit)
+        env = {'GITHUB_SHA': commit, 'GITHUB_BASE_REF': 'main',
+               'SCOPEHUB_SCOPE_BASE': self.base, 'SCOPEHUB_SCOPE_OUTCOME': 'success',
+               'GITHUB_REF': ref or ('refs/heads/main' if push else 'refs/pull/52/merge')}
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / 'verification'
+            destination.mkdir()
+            (destination / 'test-report.json').write_text(json.dumps(report), encoding='utf-8')
+            with (patch.object(ci_artifacts, 'ROOT', self.root),
+                  patch.object(timing, 'tool_version',
+                               return_value=rustfmt or 'rustfmt 1.10.0-stable (b940084d7e 2026-09-28)')):
+                path, _ = ci_artifacts.stage_timing(destination, env, has_report=True)
+            sample = json.loads(path.read_text(encoding='utf-8'))
+        return sample, timing.hosted_timing(run, jobs)
+
+    def compare(self, *observations):
+        samples, workflows = zip(*observations)
+        comparison, = timing.timing_view(samples, hosted=workflows)['pr_main_comparisons']
+        return comparison
+
+    def test_compares_only_generator_durations_on_distinct_merges_with_same_parents_and_tree(self):
+        caller_git = str(self.root / 'outside.git')
+        with patch.dict(os.environ, {'GIT_DIR': caller_git, 'GIT_WORK_TREE': str(self.root.parent)}):
+            with isolated_git_environment():
+                self.assertEqual(Path(self.git('rev-parse', '--absolute-git-dir')).resolve(),
+                                 (self.root / '.git').resolve())
+            self.assertEqual(os.environ['GIT_DIR'], caller_git)
+        pr, main = self.observe(self.preview), self.observe(self.main, push=True)
+        self.assertNotEqual(self.preview, self.main)
+        proof = pr[0]['generated_contracts']
+        self.assertEqual([self.base, self.head], proof['parents'])
+        self.assertEqual(self.tree, proof['tree'])
+        self.assertNotIn('/fixture/python', json.dumps(proof))
+        old_main = {key: value for key, value in main[0].items() if key != 'generated_contracts'}
+        for observations in ((pr, main, (old_main, main[1])), (pr, (old_main, main[1]), main)):
+            with self.subTest(first_main=observations[1][0].keys()):
+                comparison = self.compare(*observations)
+                self.assertEqual(
+                    {'repository': 'fixture/scopehub', 'check': 'generated-contracts', 'platform': 'Linux',
+                     'main_run_id': '12', 'pr_run_id': '11', 'status': 'comparable',
+                     'pr_seconds': 3, 'main_seconds': 5, 'main_minus_pr_seconds': 2},
+                    comparison,
+                )
+
+    def test_missing_or_changed_proof_keeps_comparison_unknown(self):
+        different_tree = self.git('mktree', contents=f'040000 tree {self.tree}\tother\n')
+        other_base = self.commit('other base')
+        main = self.observe(self.main, push=True)
+        for name, pr in (
+            ('tree', self.observe(self.commit('different tree', self.base, self.head, tree=different_tree))),
+            ('base', self.observe(self.commit('different base', other_base, self.head))),
+            ('reversed parents', self.observe(self.commit('reversed', self.head, self.base))),
+            ('nonmerge', self.observe(self.head)),
+            ('tag', self.observe(self.preview, ref='refs/tags/main')),
+            ('platform', self.observe(self.preview, platform='windows')),
+            ('dirty checkout', self.observe(self.preview, edit_report=lambda r: r['source'].update(working_tree_dirty=True))),
+            ('different inputs', self.observe(self.preview, edit_report=lambda r: r['source'].update(sha256='d' * 64))),
+            ('changed Python', self.observe(self.preview, edit_report=lambda r: r['environment'].update(python='3.12.11'))),
+            ('changed rustfmt', self.observe(self.preview, rustfmt='rustfmt 1.0.0 (aaaa 2026-01-01)')),
+            ('missing rustfmt', self.observe(self.preview, rustfmt='unavailable')),
+            ('changed command', self.observe(self.preview, edit_report=lambda r: r['checks'][-1]['command'].pop())),
+            ('different scope', self.observe(self.preview, edit_report=lambda r: r['selection'].update(profile='tooling'))),
+            ('not selected', self.observe(self.preview, edit_report=lambda r: r['selection']['checks'].pop())),
+            ('missing duration', self.observe(self.preview, edit_report=lambda r: r['checks'][-1].pop('duration_seconds'))),
+        ):
+            with self.subTest(name=name):
+                comparison = self.compare(pr, main)
+                self.assertEqual('unknown', comparison['status'])
+                self.assertNotIn('main_minus_pr_seconds', comparison)
+
+        # An older compact artifact is still usable for the ordinary timing reviews.
+        pr_sample, workflow = self.observe(self.preview)
+        del pr_sample['generated_contracts']
+        self.assertEqual('unknown', self.compare((pr_sample, workflow), main)['status'])
+        view = timing.timing_view([pr_sample, main[0]], hosted=[workflow, main[1]])
+        self.assertEqual(2, len(view['reviews']))
+        tagged = self.observe(self.main, push=True, ref='refs/tags/main')
+        self.assertEqual('unknown', self.compare(self.observe(self.preview), tagged)['status'])
 
 
 class TimingRegressionTests(unittest.TestCase):

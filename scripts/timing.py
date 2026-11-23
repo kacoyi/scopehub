@@ -12,9 +12,11 @@ import subprocess
 from tempfile import TemporaryDirectory
 
 if __package__:
-    from .verification_scope import SCOPED_PROFILES
+    from .doctor import tool_version
+    from .verification_scope import SCOPED_PROFILES, ScopeError, git
 else:
-    from verification_scope import SCOPED_PROFILES
+    from doctor import tool_version
+    from verification_scope import SCOPED_PROFILES, ScopeError, git
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -47,6 +49,12 @@ HOSTED_BUDGET = 15 * 60
 MAX_RECENT = 12
 DEFAULT_RECENT = 8
 COMPACT_LIMIT = 128 * 1024
+GENERATED_CHECK = 'generated-contracts'
+GENERATED_COMMAND = ['{python}', 'scripts/generate_contracts.py', '--check']
+GENERATOR_VERSIONS = {
+    'python': r'\d+\.\d+\.\d+',
+    'rustfmt': r'rustfmt [0-9.]+(?:-[a-z]+)? \([0-9a-f]+ \d{4}-\d{2}-\d{2}\)',
+}
 
 
 class TimingError(ValueError):
@@ -112,6 +120,51 @@ def commit_id(value):
 
 def positive_id(value):
     return bool(re.fullmatch(r'[1-9][0-9]*', str(value)))
+
+
+def merge_ref(event, ref):
+    return isinstance(ref, str) and (
+        (event == 'push' and ref == 'refs/heads/main')
+        or (event == 'pull_request' and bool(re.fullmatch(r'refs/pull/[1-9][0-9]*/merge', ref)))
+    )
+
+
+def generator_version(tool, version):
+    return isinstance(version, str) and bool(re.fullmatch(GENERATOR_VERSIONS[tool], version))
+
+
+def generated_contracts_sample(report, root, env):
+    """Observe the reviewed generator invocation without retaining machine paths."""
+    ci = report.get('ci') or {}
+    checkout = ci.get('checkout_sha')
+    ref = env.get('GITHUB_REF')
+    comparison_base = env.get('SCOPEHUB_SCOPE_BASE')
+    if (not commit_id(checkout) or checkout != env.get('GITHUB_SHA') or not merge_ref(ci.get('event'), ref)
+            or env.get('SCOPEHUB_SCOPE_OUTCOME') != 'success' or not commit_id(comparison_base)
+            or (ci['event'] == 'pull_request' and env.get('GITHUB_BASE_REF') != 'main')):
+        return None
+    selected = report.get('selection', {}).get('checks', [])
+    rows = [row for row in report.get('checks', []) if row.get('id') == GENERATED_CHECK]
+    environment = report.get('environment', {})
+    python = environment.get('python')
+    executable = environment.get('python_executable')
+    if (GENERATED_CHECK not in selected or len(rows) != 1 or rows[0].get('status') != 'passed'
+            or not executable or rows[0].get('command') != [executable, *GENERATED_COMMAND[1:]]
+            or rows[0].get('exit_code') != 0 or not generator_version('python', python)):
+        return None
+    try:
+        # Resolve the actual checkout object. No fetching, replacements or grafts.
+        oid, tree, *parents = git(root, 'show', '-s', '--format=%H %T %P', 'HEAD', '--').decode('ascii').split()
+    except (ScopeError, OSError, subprocess.SubprocessError, ValueError):
+        return None
+    if (oid != checkout or not all(map(commit_id, [tree, *parents])) or len(parents) != 2
+            or parents[0] != comparison_base):
+        return None
+    rustfmt = tool_version('rustfmt', root)
+    if not generator_version('rustfmt', rustfmt):
+        return None
+    return {'checkout': checkout, 'ref': ref, 'tree': tree, 'parents': parents, 'comparison_base': comparison_base,
+            'command': GENERATED_COMMAND, 'tools': {'python': python, 'rustfmt': rustfmt}}
 
 
 def report_sample(report, *, cache=None):
@@ -318,6 +371,10 @@ def ci_key(ci):
     return tuple(ci.get(key) for key in ('repository', 'run_id', 'run_attempt', 'event', 'head_sha'))
 
 
+def sample_core(sample):
+    return {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts'}}
+
+
 def merge_samples(samples, hosted):
     clock = {ci_key(run): run for run in hosted}
     observations = {}
@@ -326,13 +383,15 @@ def merge_samples(samples, hosted):
         key = (*ci_key(ci), sample['platform']) if ci else ('local', sample['run_id'], sample['platform'])
         previous = observations.get(key)
         if previous and previous != sample:
-            # The compact artifact can add a cache observation to an otherwise identical report.
-            if dict(previous, cache='unknown') != dict(sample, cache='unknown') or (
-                previous['cache'] != 'unknown' and sample['cache'] != 'unknown'
-            ):
+            # Compact artifacts can add observations absent from older samples and full reports.
+            previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
+            caches = {previous['cache'], sample['cache']} - {'unknown'}
+            if (sample_core(previous) != sample_core(sample) or len(caches) > 1
+                    or (previous_proof is not None and proof is not None and previous_proof != proof)):
                 raise TimingError(f'Conflicting timing observations for {sample["run_id"]}')
-            if sample['cache'] == 'unknown':
-                continue
+            sample = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
+            if previous_proof is not None and proof is None:
+                sample['generated_contracts'] = previous_proof
         observations[key] = sample
     for sample in observations.values():
         ci = sample['ci']
@@ -356,6 +415,64 @@ def coverage_key(sample):
 
 def observation_id(row):
     return row['ci']['run_id'] if row['ci'] else row['run_id']
+
+
+def generated_contracts_proof(sample):
+    ci = sample['ci']
+    proof = sample.get('generated_contracts')
+    if not isinstance(proof, dict):
+        return None
+    parents = proof.get('parents')
+    tools = proof.get('tools')
+    if (sample['review_exclusion'] is not None or sample.get('working_tree_dirty') is not False
+            or not sample['arch'] or not sample.get('inputs_sha256')
+            or proof.get('checkout') != ci['checkout_sha'] or not commit_id(proof.get('tree'))
+            or not isinstance(parents, list) or len(parents) != 2 or not all(map(commit_id, parents))
+            or proof.get('comparison_base') != parents[0]
+            or not merge_ref(ci['event'], proof.get('ref'))
+            or proof.get('command') != GENERATED_COMMAND or not isinstance(tools, dict)
+            or not all(generator_version(tool, tools.get(tool)) for tool in GENERATOR_VERSIONS)
+            or GENERATED_CHECK not in sample['selected']):
+        return None
+    if ci['head_sha'] != (ci['checkout_sha'] if ci['event'] == 'push' else parents[1]):
+        return None
+    return proof
+
+
+def pr_main_comparisons(samples):
+    """Compare only the measured generator check on the same validated merge inputs."""
+    pull_requests = defaultdict(list)
+    for sample in samples:
+        ci = sample['ci']
+        if ci and ci['event'] == 'pull_request':
+            pull_requests[ci['repository'], sample['platform'], ci['head_sha']].append(sample)
+    for main in samples:
+        ci = main['ci']
+        if not ci or ci['event'] != 'push':
+            continue
+        proof = generated_contracts_proof(main)
+        row = {'repository': ci['repository'], 'main_run_id': ci['run_id'], 'platform': main['platform'],
+               'check': GENERATED_CHECK, 'status': 'unknown'}
+        candidates = pull_requests.get((ci['repository'], main['platform'], proof['parents'][1])) if proof else None
+        if not candidates:
+            yield {**row, 'reason': 'No proven main merge and matching PR sample on this platform.'}
+        for pr in candidates or ():
+            pair = {**row, 'pr_run_id': observation_id(pr)}
+            pr_proof = generated_contracts_proof(pr)
+            if (not pr_proof or pr['profile'] != main['profile'] or coverage_key(pr) != coverage_key(main)
+                    or pr['arch'] != main['arch'] or pr['inputs_sha256'] != main['inputs_sha256']
+                    or any(pr_proof[key] != proof[key] for key in ('tree', 'parents', 'tools'))):
+                yield {**pair, 'reason': 'Merge, execution inputs or toolchain do not have matching proof.'}
+                continue
+            timings = [next((duration(check['duration_seconds']) for check in sample['checks']
+                             if check['id'] == GENERATED_CHECK and check['status'] == 'passed'
+                             and check['exit_code'] == 0), None) for sample in (pr, main)]
+            if None in timings:
+                yield {**pair, 'reason': 'Passing check durations are unavailable.'}
+                continue
+            pr_seconds, main_seconds = timings
+            yield {**pair, 'status': 'comparable', 'pr_seconds': pr_seconds, 'main_seconds': main_seconds,
+                   'main_minus_pr_seconds': round(main_seconds - pr_seconds, 3)}
 
 
 def metric_review(rows, metric, objective, *, compare_growth=True):
@@ -466,6 +583,7 @@ def timing_view(samples, *, hosted=()):
         objectives.append({'repository': repository, 'event': event, 'runner_label': runner, 'profile': profile,
                            'platform': platform, 'arch': arch, **objective_review(rows, metric, budget)})
     return {'samples': merged, 'hosted': hosted, 'reviews': reviews, 'objective_reviews': objectives,
+            'pr_main_comparisons': list(pr_main_comparisons(merged)),
             'next_action': ('Review objective breaches and material growth, then collect missing comparable observations.'
                             if reviews else 'Retain a measured fast run or a hosted change report with matching Actions jobs.')}
 
@@ -601,6 +719,11 @@ def review_summary(view):
                      f"investigate {metric['growth_seconds']:+.0f}s median growth.")
     if findings[8:]:
         lines.append(f'- {len(findings) - 8} more stage findings are in the archive.')
+    comparisons = view.get('pr_main_comparisons', [])
+    if comparisons:
+        comparable = sum(row['status'] == 'comparable' for row in comparisons)
+        lines.append(f'- The generated-contracts timing review found {comparable} comparable PR and main pairs '
+                     f'and {len(comparisons) - comparable} observations with insufficient proof.')
     if view['input_issues']:
         lines.append(f"- {len(view['input_issues'])} collection or input issues. Inspect the saved timing review.")
     return '\n'.join(lines) + '\n'

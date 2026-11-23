@@ -92,7 +92,7 @@
         "test_*.py",
         "-v",
         "--durations",
-        "10"
+        "0"
       ],
       "timeout_seconds": 900,
       "windows_timeout_seconds": 1200

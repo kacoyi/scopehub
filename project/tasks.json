@@ -4741,7 +4741,7 @@
         "workbench-renderer-probe"
       ],
       "evidence": [],
-      "next_action": "Prototype the non-preset presentation and host recovery path with a small synthetic fixture. Start with the existing host and compare a bundled Chromium alternative if a native difference materially affects the outcome.",
+      "next_action": "Start in the existing host with a blank workbench. Show a chart-free composition with a custom visual encoding of the same frozen synthetic series, break the draft and restore the last accepted view. Make this slice available for inspection as soon as it runs. Then exercise the native Ubuntu and Windows checks and compare the renderer alternative wherever it could change the choice.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract"
@@ -15722,6 +15722,121 @@
         }
       },
       "closure_reason": "On clean source 84eff57 the task checks passed. A whole-record comparison and individual reads verified all 1,325 prior scalar paths, including every operation projection, source fixture and qualification binding. The patch version advanced and the index gained an explicit workbench boundary. The navigation regressions verified bounded depth and shared expansion, single document reads and cycle diagnostics. Renderer and bulk-reader acceptance remain pending."
+    },
+    {
+      "id": "M0-078",
+      "title": "Shorten the feedback loop for one verified delivery",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-077"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "project",
+        "scripts",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Run the same real-Git pull request, synchronize and push regressions with fewer process launches. Preserve the conservative fallback for unverifiable inputs and compare the cost with the reviewed baseline.",
+        "Use existing focused, task, protected and release checks at the point where they establish the relevant behavior. Keep one demonstrable product outcome, its contract and its regression in one delivery.",
+        "Expose a read-only timing observation for comparable pull-request and main checks. Keep required jobs, native acceptance, task receipts and merge authority independently verified."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "An engineer gets earlier feedback on the first usable workbench slice and can measure where subsequent verification time goes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "scripts/verification_scope.py",
+          "scripts/timing.py",
+          "tests/project/test_verification_scope.py"
+        ],
+        "hypotheses": [
+          "Real Git processes used for repeated checkout and event lookups account for a measurable share of the slow selector cases.",
+          "Existing hosted reports can identify a bounded deterministic comparison without affecting execution or acceptance."
+        ],
+        "risks": [
+          {
+            "failure": "A faster comparison accepts a stale event, a tag or a different checkout, or test fixtures share mutable state.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A timing observation is mistaken for accepted evidence, or the new guidance drops a required gate.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the tooling and policy change together. Original diagnostics, hosted reports and the protected verification path remain available.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_scope.py",
+            "scripts/timing.py",
+            "tests/project/test_verification_scope.py",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/iteration_policy"
+            }
+          ],
+          "non_goals": [
+            "Changing branch protection, reusing acceptance receipts across commits, selecting a product renderer or waiving native and release checks."
+          ],
+          "open_questions": [
+            "How much of the measured cost disappears with the same Git scenarios and assertions?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real Git behavior, independent native verification, protected checks and release gates."
+          ],
+          "change": [
+            "Avoid duplicate process launches and redundant local feedback; record the basis for evaluating repeated hosted work."
+          ],
+          "data_plan": "Only development records and tooling change. Product stores and user workspaces retain their existing formats.",
+          "cleanup": "Remove redundant lookups and reconcile the old overlapping feedback guidance with the existing harness entrypoints."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-078-f60a4e0911c7b8bd.json",
+          "sha256": "4b31bd0a9131cd9c5ec23d56fb1665c5526f5ab3aa73b68fa4832273d5be6de8"
+        },
+        {
+          "path": "project/evidence/M0-078-eb110949954e714f.json",
+          "sha256": "ca0db6d284e052f8e03e7733270e91043705aa9015ceb96e4f094bba3f67c9ad"
+        },
+        {
+          "path": "project/evidence/M0-078-61c8405549e2e9f2.json",
+          "sha256": "e409d25e6cb7b84b7aaf0f641000f2c1048e076be37f860b613ae3ddd13e1873"
+        }
+      ],
+      "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
     }
   ]
 }

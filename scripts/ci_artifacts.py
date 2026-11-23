@@ -10,7 +10,7 @@ import tempfile
 if __package__:
     from .check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
     from .project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
-    from .timing import TIMING_FILE, job_summary, report_sample
+    from .timing import TIMING_FILE, generated_contracts_sample, job_summary, report_sample
     from .verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
@@ -20,7 +20,7 @@ if __package__:
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
     from project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
-    from timing import TIMING_FILE, job_summary, report_sample
+    from timing import TIMING_FILE, generated_contracts_sample, job_summary, report_sample
     from verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
@@ -338,6 +338,8 @@ def stage_timing(destination, env, *, has_report):
             },
         }
     sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'))
+    if has_report and (comparison := generated_contracts_sample(report, ROOT, env)):
+        sample['generated_contracts'] = comparison
     timing_path = destination.parent / TIMING_FILE
     timing_path.write_bytes(json_bytes(sample))
     if has_report:

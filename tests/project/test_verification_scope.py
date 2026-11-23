@@ -40,11 +40,13 @@ class VerificationScopeTest(unittest.TestCase):
                     if not key.startswith(('GITHUB_', 'GIT_'))}
         self.env['GIT_CONFIG_NOSYSTEM'] = '1'
         self.env['GIT_CONFIG_GLOBAL'] = os.devnull
-        self.git('init', '--initial-branch=main', '--object-format=sha1')
-        self.git('config', 'user.name', 'Scope Fixture')
-        self.git('config', 'user.email', 'scope@example.invalid')
-        self.git('config', 'core.autocrlf', 'false')
-        self.git('config', 'commit.gpgsign', 'false')
+        self.git('init', '--initial-branch=main', '--object-format=sha1', '--template=')
+        with (self.root / '.git' / 'config').open('ab') as config:
+            config.write(
+                b'\n[user]\n\tname = Scope Fixture\n\temail = scope@example.invalid\n'
+                b'[core]\n\tautocrlf = false\n'
+                b'[commit]\n\tgpgsign = false\n'
+            )
         self.write('.gitignore', '*.ignored\n')
         self.write('AGENTS.md', '# Contributor guidance\n')
         self.write('README.md', '# Documentation\n')
@@ -113,7 +115,7 @@ class VerificationScopeTest(unittest.TestCase):
         self.write(path, value)
 
     def head(self):
-        return self.git('rev-parse', 'HEAD').strip().decode('ascii')
+        return self.git('rev-parse', '--verify', 'HEAD').strip().decode('ascii')
 
     def commit(self, message):
         self.git('add', '-A')
@@ -138,13 +140,13 @@ class VerificationScopeTest(unittest.TestCase):
         self.assertTrue(decision['reason'])
         return decision, lines[1:]
 
-    def ci(self, event, *, name='push', checkout=None, cwd=None, extra_env=None):
+    def ci(self, event, *, checkout, name='push', cwd=None, extra_env=None):
         self.event_file.write_text(
             json.dumps(event) if isinstance(event, dict) else event, encoding='utf-8',
         )
         self.output.write_text('existing=value\n', encoding='utf-8')
         env = {
-            **self.env, 'GITHUB_EVENT_NAME': name, 'GITHUB_SHA': checkout or self.head(),
+            **self.env, 'GITHUB_EVENT_NAME': name, 'GITHUB_SHA': checkout,
             'GITHUB_EVENT_PATH': str(self.event_file), 'GITHUB_OUTPUT': str(self.output),
             'GITHUB_REF': PR_REF if name == 'pull_request' else 'refs/heads/main',
             **(extra_env or {}),
@@ -169,12 +171,12 @@ class VerificationScopeTest(unittest.TestCase):
                          f"existing=value\nprofile={decision['profile']}\ndecision={expected}\n")
         return decision
 
-    def push(self, **overrides):
-        return {'ref': 'refs/heads/main', 'before': self.base, 'after': self.head(), **overrides}
+    def push(self, checkout, **overrides):
+        return {'ref': 'refs/heads/main', 'before': self.base, 'after': checkout, **overrides}
 
-    def pull(self, base, head, *, number=PR_NUMBER):
+    def pull(self, base, head, merge, *, number=PR_NUMBER):
         return {'number': number, 'pull_request': {
-            'base': {'sha': base}, 'head': {'sha': head}, 'merge_commit_sha': self.head(),
+            'base': {'sha': base}, 'head': {'sha': head}, 'merge_commit_sha': merge,
         }}
 
     def assert_local(self, profile, count, *args):
@@ -195,7 +197,7 @@ class VerificationScopeTest(unittest.TestCase):
             self.write(path, data)
         self.assert_local('records', len(paths))
         head = self.commit('reviewed records')
-        decision = self.ci(self.push())
+        decision = self.ci(self.push(head), checkout=head)
         self.assertEqual((decision['profile'], decision['change_count']), ('records', len(paths)))
         self.assertEqual(decision, committed_scope(self.root, self.base, head))
 
@@ -205,8 +207,8 @@ class VerificationScopeTest(unittest.TestCase):
         ))
         self.edit(CONTRACT, lambda doc: doc.update(clarifications=['Clearer statement']))
         self.assert_local('records', 2)
-        self.commit('wording only')
-        self.assertEqual(self.ci(self.push())['profile'], 'records')
+        head = self.commit('wording only')
+        self.assertEqual(self.ci(self.push(head), checkout=head)['profile'], 'records')
 
     def test_structure_or_executable_values_in_prose_files_require_full(self):
         changes = {
@@ -263,8 +265,8 @@ class VerificationScopeTest(unittest.TestCase):
         self.assert_local('full', 4)
         self.git('restore', '--staged', '--worktree', '--', HERDR_TEST, DEVELOPMENT)
         self.assert_local('localization', 2)
-        self.commit('localization and records')
-        self.assertEqual(self.ci(self.push())['profile'], 'localization')
+        head = self.commit('localization and records')
+        self.assertEqual(self.ci(self.push(head), checkout=head)['profile'], 'localization')
 
     def test_authority_and_launcher_changes_require_full(self):
         amendments = {
@@ -281,8 +283,8 @@ class VerificationScopeTest(unittest.TestCase):
                 self.git('restore', '--', path)
         self.assert_local('records', 1)
         self.write(REVIEW, {'publication_scope': 'publish and merge', 'observation': 'Initial record'})
-        self.commit('change publication authorization')
-        decision = self.ci(self.push())
+        head = self.commit('change publication authorization')
+        decision = self.ci(self.push(head), checkout=head)
         self.assertEqual((decision['profile'], decision['change_count']), ('full', 2))
 
     def test_development_only_allows_declarative_herdr_routing(self):
@@ -309,8 +311,8 @@ class VerificationScopeTest(unittest.TestCase):
             self.assert_local('full', 1)
             self.git('restore', '--', DEVELOPMENT)
         self.edit(DEVELOPMENT, routing[0])
-        self.commit('reviewed model routing')
-        self.assertEqual(self.ci(self.push())['profile'], 'tooling')
+        head = self.commit('reviewed model routing')
+        self.assertEqual(self.ci(self.push(head), checkout=head)['profile'], 'tooling')
 
     def test_malformed_herdr_efforts_require_full_for_explicit_commit_and_ci(self):
         for malformed in (['high'], {'effort': 'high'}):
@@ -318,7 +320,7 @@ class VerificationScopeTest(unittest.TestCase):
                 self.git('restore', '--source', self.base, '--', DEVELOPMENT)
                 self.edit(DEVELOPMENT, lambda doc: doc['herdr']['reasoning_efforts'].append(malformed))
                 head = self.commit('malformed effort in Herdr routing')
-                decision = self.ci(self.push())
+                decision = self.ci(self.push(head), checkout=head)
                 self.assertEqual((decision['profile'], decision['change_count']), ('full', 1))
                 self.assertEqual(decision, committed_scope(self.root, self.base, head))
 
@@ -386,9 +388,9 @@ class VerificationScopeTest(unittest.TestCase):
         self.git('config', 'diff.renames', 'copies')
         self.git('mv', '--', 'README.md', 'other.md')
         self.assert_local('full', 2)
-        self.commit('move documentation')
-        self.assertEqual(self.ci(self.push())['change_count'], 2)
-        self.assertEqual(self.ci(self.push())['profile'], 'full')
+        head = self.commit('move documentation')
+        self.assertEqual(self.ci(self.push(head), checkout=head)['change_count'], 2)
+        self.assertEqual(self.ci(self.push(head), checkout=head)['profile'], 'full')
         self.git('rm', '--', LEDGER)
         self.assert_local('full', 1, '--base', 'HEAD')
 
@@ -412,7 +414,7 @@ class VerificationScopeTest(unittest.TestCase):
 
     def test_conflict_hidden_entries_and_dirty_ci_require_full(self):
         self.write('README.md', '# Conflicting change\n')
-        self.assertEqual(self.ci(self.push())['profile'], 'full')
+        self.assertEqual(self.ci(self.push(self.base), checkout=self.base)['profile'], 'full')
         self.git('update-index', '--assume-unchanged', '--', 'README.md')
         decision, _ = self.cli()
         self.assertEqual(decision['profile'], 'full')
@@ -437,24 +439,25 @@ class VerificationScopeTest(unittest.TestCase):
         self.write('base-only.py', 'this is already on main\n')
         base = self.commit('advance main')
         self.git('merge', '--no-ff', 'topic', '-m', 'test merge')
-        event = self.pull(base, topic)
-        decision = self.ci(event, name='pull_request')
+        merge = self.head()
+        event = self.pull(base, topic, merge)
+        decision = self.ci(event, checkout=merge, name='pull_request')
         self.assertEqual((decision['profile'], decision['base'], decision['checkout'], decision['change_count']),
-                         ('records', base, self.head(), 1))
-        self.assertEqual(decision, committed_scope(self.root, base, self.head()))
+                         ('records', base, merge, 1))
+        self.assertEqual(decision, committed_scope(self.root, base, merge))
         event['pull_request']['merge_commit_sha'] = None
-        self.assertEqual(self.ci(event, name='pull_request'), decision)
+        self.assertEqual(self.ci(event, checkout=merge, name='pull_request'), decision)
         del event['pull_request']['merge_commit_sha']
-        self.assertEqual(self.ci(event, name='pull_request'), decision)
+        self.assertEqual(self.ci(event, checkout=merge, name='pull_request'), decision)
         for number in (None, True, 0, -PR_NUMBER, float(PR_NUMBER), str(PR_NUMBER), PR_NUMBER + 1):
             with self.subTest(number=number):
-                bad_number = self.pull(base, topic, number=number)
-                result = self.ci(bad_number, name='pull_request')
+                bad_number = self.pull(base, topic, merge, number=number)
+                result = self.ci(bad_number, checkout=merge, name='pull_request')
                 self.assertEqual(result['profile'], 'full')
                 self.assertIn('merge ref', result['reason'])
         for ref in (None, f'refs/pull/{PR_NUMBER}/head', 'refs/heads/main', f'refs/pull/{PR_NUMBER + 1}/merge'):
             with self.subTest(ref=ref):
-                result = self.ci(event, name='pull_request', extra_env={'GITHUB_REF': ref})
+                result = self.ci(event, checkout=merge, name='pull_request', extra_env={'GITHUB_REF': ref})
                 self.assertEqual(result['profile'], 'full')
                 self.assertIn('merge ref', result['reason'])
 
@@ -475,10 +478,9 @@ class VerificationScopeTest(unittest.TestCase):
             self.git('switch', '--detach', self.base)
             self.git('merge', '--no-ff', 'topic', '-m', 'current preview')
             checkout = self.head()
-            event = self.pull(self.base, topic)
+            event = self.pull(self.base, topic, old_preview)
             event.update(action='synchronize', after=topic)
-            event['pull_request']['merge_commit_sha'] = old_preview
-            decision = self.ci(event, name='pull_request')
+            decision = self.ci(event, checkout=checkout, name='pull_request')
             self.assertEqual((decision['profile'], decision['base'], decision['checkout'], decision['change_count']),
                              (profile, self.base, checkout, count))
             for bad_event, extra in (
@@ -487,9 +489,10 @@ class VerificationScopeTest(unittest.TestCase):
                     (event, {'GITHUB_SHA': old_preview}),
                     (event, {'GITHUB_REF': 'refs/pull/32/merge'}),
                     ({**event, 'pull_request': {**event['pull_request'], 'merge_commit_sha': 'invalid'}}, {}),
-                    ({**event, 'after': first_head, 'pull_request': self.pull(self.base, first_head)['pull_request']}, {}),
+                    ({**event, 'after': first_head,
+                      'pull_request': self.pull(self.base, first_head, checkout)['pull_request']}, {}),
                     ({**event, 'pull_request': {**event['pull_request'], 'base': {'sha': first_head}}}, {})):
-                result = self.ci(bad_event, name='pull_request', extra_env=extra)
+                result = self.ci(bad_event, checkout=checkout, name='pull_request', extra_env=extra)
                 self.assertEqual((result['profile'], result['change_count']), ('full', None))
 
     def test_pr_merge_only_changes_are_included_and_wrong_parents_are_rejected(self):
@@ -500,48 +503,86 @@ class VerificationScopeTest(unittest.TestCase):
         self.git('merge', '--no-ff', '--no-commit', 'topic')
         self.write(APP, 'export const mergeOnlyChange = true;\n')
         merge = self.commit('merge with executable difference')
-        decision = self.ci(self.pull(self.base, topic), name='pull_request')
+        decision = self.ci(self.pull(self.base, topic, merge), checkout=merge, name='pull_request')
         self.assertEqual((decision['profile'], decision['change_count']), ('full', 2))
-        for event in (self.pull(topic, self.base), self.pull(self.base, merge)):
-            rejected = self.ci(event, name='pull_request')
+        for event in (self.pull(topic, self.base, merge), self.pull(self.base, merge, merge)):
+            rejected = self.ci(event, checkout=merge, name='pull_request')
             self.assertEqual(rejected['profile'], 'full')
             self.assertIn('parents', rejected['reason'])
-        stale = self.pull(self.base, topic)
-        stale['pull_request']['merge_commit_sha'] = topic
-        self.assertIn('merge SHA', self.ci(stale, name='pull_request')['reason'])
+        stale = self.pull(self.base, topic, topic)
+        self.assertIn('merge SHA', self.ci(stale, checkout=merge, name='pull_request')['reason'])
         self.git('switch', '--detach', topic)
-        event = self.pull(self.base, topic)
-        self.assertIn('parents', self.ci(event, name='pull_request')['reason'])
+        event = self.pull(self.base, topic, topic)
+        self.assertIn('parents', self.ci(event, checkout=topic, name='pull_request')['reason'])
+
+    def test_pr_requires_exact_commit_ids_and_exactly_two_parents(self):
+        self.git('switch', '-c', 'topic')
+        self.write('README.md', '# PR text\n')
+        topic = self.commit('edit PR text')
+        self.git('switch', 'main')
+        self.git('merge', '--no-ff', 'topic', '-m', 'two-parent preview')
+        merge = self.head()
+        decision = self.ci(self.pull(self.base, topic, merge), checkout=merge, name='pull_request')
+        self.assertEqual((decision['profile'], decision['change_count']), ('records', 1))
+
+        for field, parent in (('base', self.base), ('head', topic)):
+            with self.subTest(tag_for=field):
+                tag = f'fixture-{field}'
+                self.git('tag', '-am', f'annotated {field} tag', tag, parent)
+                tag_oid = self.git('rev-parse', '--verify', tag).strip().decode('ascii')
+                event = self.pull(self.base, topic, merge)
+                event['pull_request'][field]['sha'] = tag_oid
+                rejected = self.ci(event, checkout=merge, name='pull_request')
+                self.assertEqual((rejected['profile'], rejected['change_count']), ('full', None))
+
+        extra = self.git('commit-tree', f'{self.base}^{{tree}}', '-p', self.base, '-m',
+                         'unrelated third parent').strip().decode('ascii')
+        octopus = self.git('commit-tree', f'{merge}^{{tree}}', '-p', self.base, '-p', topic,
+                           '-p', extra, '-m', 'three-parent preview').strip().decode('ascii')
+        self.git('switch', '--detach', octopus)
+        rejected = self.ci(self.pull(self.base, topic, octopus), checkout=octopus, name='pull_request')
+        self.assertEqual((rejected['profile'], rejected['change_count']), ('full', None))
+        self.assertIn('parents', rejected['reason'])
 
     def test_push_uses_full_before_to_after_range_and_requires_event_identity(self):
         self.write('Cargo.toml', '[workspace]\n')
         self.commit('build change earlier in push')
         self.write('README.md', '# Latest commit is prose\n')
         head = self.commit('edit prose')
-        decision = self.ci(self.push())
+        event = self.push(head)
+        decision = self.ci(event, checkout=head)
         self.assertEqual((decision['profile'], decision['change_count']), ('full', 2))
         for overrides in (
             {'before': '0' * 40}, {'before': 'a' * 40}, {'before': 'HEAD'}, {'before': None},
             {'after': self.base}, {'ref': 'refs/heads/other'}, {'forced': True}, {'deleted': True},
         ):
             with self.subTest(overrides=overrides):
-                self.assertEqual(self.ci(self.push(**overrides))['profile'], 'full')
-        self.assertIn('GITHUB_SHA', self.ci(self.push(), checkout=self.base)['reason'])
-        self.assertEqual(self.ci(self.push(), extra_env={'GITHUB_SHA': ''})['profile'], 'full')
+                self.assertEqual(self.ci(self.push(head, **overrides), checkout=head)['profile'], 'full')
+        self.assertIn('GITHUB_SHA', self.ci(event, checkout=self.base)['reason'])
+        self.assertEqual(self.ci(event, checkout=head, extra_env={'GITHUB_SHA': ''})['profile'], 'full')
         for ref in (None, 'refs/heads/topic'):
-            result = self.ci(self.push(), extra_env={'GITHUB_REF': ref})
+            result = self.ci(event, checkout=head, extra_env={'GITHUB_REF': ref})
             self.assertEqual(result['profile'], 'full')
             self.assertIn('push to main', result['reason'])
-        self.assertEqual(self.ci(self.push(), name='schedule')['profile'], 'full')
-        self.assertEqual(self.ci('{"ref":"bad","ref":"duplicate"}')['profile'], 'full')
-        self.assertEqual(self.ci(self.push(), extra_env={'GITHUB_EVENT_PATH': ''})['profile'], 'full')
+        self.assertEqual(self.ci(event, checkout=head, name='schedule')['profile'], 'full')
+        self.assertEqual(self.ci('{"ref":"bad","ref":"duplicate"}', checkout=head)['profile'], 'full')
+        self.assertEqual(self.ci(event, checkout=head, extra_env={'GITHUB_EVENT_PATH': ''})['profile'], 'full')
         self.git('switch', '--detach', self.base)
         self.write('README.md', '# Text on divergent history\n')
-        self.commit('divergent checkout')
-        decision = self.ci(self.push(before=head))
+        divergent = self.commit('divergent checkout')
+        decision = self.ci(self.push(divergent, before=head), checkout=divergent)
         self.assertEqual(decision['profile'], 'full')
         self.assertIn('ancestor', decision['reason'])
-        self.assertEqual(committed_scope(self.root, head, self.head())['profile'], 'full')
+        self.assertEqual(committed_scope(self.root, head, divergent)['profile'], 'full')
+
+    def test_tracked_head_path_does_not_obscure_checkout(self):
+        self.write('HEAD', 'A tracked file named HEAD\n')
+        base = self.commit('track HEAD as a file')
+        self.write('README.md', '# Documentation edit\n')
+        head = self.commit('edit documentation')
+        decision = self.ci(self.push(head, before=base), checkout=head)
+        self.assertEqual((decision['profile'], decision['base'], decision['checkout'], decision['change_count']),
+                         ('records', base, head, 1))
 
     def test_committed_scope_checks_commit_objects_independently_of_worktree(self):
         self.write('README.md', '# Committed documentation\n')
@@ -549,31 +590,31 @@ class VerificationScopeTest(unittest.TestCase):
         self.git('tag', '-am', 'fixture tag', 'fixture-tag')
         tag_sha = self.git('rev-parse', 'fixture-tag').strip().decode('ascii')
         self.write(APP, 'export const dirty = true;\n')
-        self.assertEqual(self.ci(self.push())['profile'], 'full')
+        self.assertEqual(self.ci(self.push(head), checkout=head)['profile'], 'full')
         self.assertEqual(committed_scope(self.root, self.base, head)['profile'], 'records')
         self.assertEqual(committed_scope(self.root, self.base, tag_sha)['profile'], 'full')
 
     def test_missing_base_empty_comparison_and_shallow_history_require_full(self):
         decision = self.assert_local('full', 0)
         self.assertIn('no changes', decision['reason'])
-        decision = self.ci(self.push())
+        decision = self.ci(self.push(self.base), checkout=self.base)
         self.assertEqual((decision['profile'], decision['change_count']), ('full', 0))
         decision = self.assert_local('full', None, '--base', 'missing')
         self.assertIsNone(decision['base'])
         self.assertIn('base ref', decision['reason'])
         self.write('README.md', '# Document change\n')
-        self.commit('documentation')
+        head = self.commit('documentation')
         clone = self.root.parent / 'shallow'
         self.git('clone', '--depth=1', self.root.as_uri(), str(clone))
-        self.assertIn('Shallow', self.ci(self.push(), cwd=clone)['reason'])
-        self.assertEqual(committed_scope(clone, self.base, self.head())['profile'], 'full')
+        self.assertIn('Shallow', self.ci(self.push(head), checkout=head, cwd=clone)['reason'])
+        self.assertEqual(committed_scope(clone, self.base, head)['profile'], 'full')
 
     def test_opaque_paths_never_reach_action_outputs_or_decision(self):
         name = ('contracts/reviews/2026-11-22-不透明\nprofile=records.json' if os.name != 'nt'
                 else 'contracts/reviews/2026-11-22-不透明 profile=records.json')
         self.write(name, {'reviewed_on': '2026-11-22'})
-        self.commit('opaque path')
-        decision = self.ci(self.push())
+        head = self.commit('opaque path')
+        decision = self.ci(self.push(head), checkout=head)
         self.assertEqual((decision['profile'], decision['change_count']), ('full', 1))
         self.assertNotIn('profile=records', json.dumps(decision))
 
