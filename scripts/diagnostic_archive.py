@@ -248,7 +248,10 @@ def _verify_candidate(directory, report):
     if not isinstance(windows, list) or not isinstance(notices, list):
         raise DiagnosticArchiveError('Missing candidate observations or notices')
     seen = {'build-manifest.json'}
-    for ref in [installer, *windows, manifest.get('performance'), *notices]:
+    references = [installer, *windows, manifest.get('performance'), *notices]
+    if 'owner_workbench' in manifest:
+        references.append(manifest['owner_workbench'])
+    for ref in references:
         if not isinstance(ref, dict):
             raise DiagnosticArchiveError('Invalid candidate manifest file reference')
         path = ref.get('path')

@@ -8,7 +8,6 @@ import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import stat
-import re
 from statistics import median
 
 if __package__:
@@ -22,6 +21,10 @@ SESSION_CHECKS = {
     'configured-voice-session': ('configured_models', 'voice'),
     'configured-market-source': ('real_market_data', 'market'),
 }
+WORKBENCH_OBSERVATION_VERSION = 2
+UBUNTU_SURFACE = 'native-ubuntu-tauri-webkitgtk'
+WORKBENCH_EDIT = {'workbench-edit', 'workbench-recover', 'workbench-reopen'}
+OWNER_WORKBENCH_ACTIONS = {'workbench-from-blank', 'workbench-edit', 'workbench-refresh', 'workbench-reopen'}
 FIELD_ACTIONS = {
     'physical-windows-workspace': {
         'unconfigured-entry',
@@ -32,8 +35,8 @@ FIELD_ACTIONS = {
         'resize',
         'crosshair',
         'data-inspection',
-        'exit',
-    },
+        'exit', 'workbench-selection', 'workbench-display-scaling',
+    } | WORKBENCH_EDIT,
     'ubuntu-workspace-observation': {
         'history',
         'live',
@@ -45,10 +48,13 @@ FIELD_ACTIONS = {
         'mock-ai',
         'evidence-selection',
         'decision-review',
-        'local-bridge',
-    },
+        'local-bridge', 'workbench-from-blank', 'workbench-ai-reshape', 'workbench-manual-detail',
+        'workbench-refresh', 'workbench-source-selection', 'workbench-undo',
+    } | WORKBENCH_EDIT,
 }
 WINDOWS_HOST_FIELDS = {'family', 'product_type', 'build', 'arch', 'webview2'}
+UBUNTU_HOST_FIELDS = {'os', 'ubuntu_version', 'webkitgtk_version', 'process_name', 'process_id',
+                      'window_id', 'window_process_id'}
 SOURCE_FIELDS = {'commit', 'inputs_sha256'}
 SAMPLE_COUNTS = {'cold_first_frame_ms': 20, 'warm_first_frame_ms': 20,
                  'update_to_present_ms': 72000, 'private_bytes_per_minute': 120}
@@ -157,22 +163,55 @@ def windows_client(host):
     return family
 
 
+def current_workbench_observation(record):
+    version = record.get('observation_version')
+    if type(version) is not int or version != WORKBENCH_OBSERVATION_VERSION:
+        raise ProjectError('Current workbench acceptance requires observation_version 2.')
+
+
+def native_ubuntu(host):
+    if not isinstance(host, dict) or host.get('os') != 'Ubuntu':
+        raise ProjectError('Expected the native Ubuntu host.')
+    for field in ('ubuntu_version', 'webkitgtk_version'):
+        if not re.fullmatch(r'[0-9]+\.[0-9]+(?:\.[0-9]+)*', nonempty(host, field)):
+            raise ProjectError(f'Expected the observed numerical {field}.')
+    pid = host.get('process_id')
+    if (host.get('process_name') != 'scopehub-desktop' or type(pid) is not int or pid <= 0
+            or type(host.get('window_process_id')) is not int or host['window_process_id'] != pid
+            or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:-]{0,95}', nonempty(host, 'window_id'))):
+        raise ProjectError('Expected the ScopeHub process and its own observed native window.')
+
+
+def observed_actions(record, required, *, complete, redacted=False):
+    actions = record.get('actions')
+    if not isinstance(actions, dict):
+        raise ProjectError('Expected interactive workbench actions.')
+    if complete and (missing := required - actions.keys()):
+        raise ProjectError(f'Field observation lacks required actions: {", ".join(sorted(missing))}')
+    for name, result in actions.items():
+        if redacted:
+            redacted_fields(result, {'status', 'observed'})
+        if not isinstance(result, dict) or result.get('status') not in ('passed', 'failed', 'blocked', 'not_run'):
+            raise ProjectError(f'Invalid field action outcome: {name}')
+        if complete and (name in required or redacted) and result['status'] != 'passed':
+            raise ProjectError(f'Field action did not pass: {name}')
+        if result['status'] != 'not_run' or 'observed' in result:
+            outcome = nonempty(result, 'observed')
+            if (redacted and not outcome.isprintable()) or outcome.strip().casefold() in ('passed', 'failed', 'blocked', 'not_run'):
+                raise ProjectError(f'Expected the observed outcome of {name}.')
+
+
 def hosted_field_record(obs):
     if isinstance(obs, dict) and obs.get('screenshot_scope') != 'synthetic':
         raise LocalFieldObservation('Hosted field observations require synthetic screenshots.')
-    field_metadata = ({'host', 'ubuntu_reviewed_commit'} if isinstance(obs, dict)
-                      and obs.get('kind') == 'physical-windows-workspace' else {'external_sessions'})
+    windows = isinstance(obs, dict) and obs.get('kind') == 'physical-windows-workspace'
+    field_metadata = {'host', 'observation_version', 'ubuntu_reviewed_commit' if windows else 'external_sessions'}
     redacted_fields(obs, SOURCE_FIELDS | field_metadata | {'kind', 'operator', 'observed_at', 'surface', 'actions',
                                                           'screenshots', 'screenshot_scope'})
-    actions = obs.get('actions')
-    if not isinstance(actions, dict):
-        raise ProjectError('Expected redacted field actions.')
-    for action in actions.values():
-        redacted_fields(action, {'status', 'observed'})
-        if action.get('status') != 'passed' or not nonempty(action, 'observed').isprintable():
-            raise ProjectError('Expected a redacted field outcome.')
+    current_workbench_observation(obs)
+    observed_actions(obs, FIELD_ACTIONS[obs['kind']], complete=True, redacted=True)
     if 'host' in obs:
-        redacted_fields(obs['host'], WINDOWS_HOST_FIELDS)
+        redacted_fields(obs['host'], WINDOWS_HOST_FIELDS if windows else UBUNTU_HOST_FIELDS)
     if 'external_sessions' in obs:
         redacted_fields(obs['external_sessions'], {'text', 'voice', 'cli', 'desktop'})
     images = obs.get('screenshots')
@@ -193,9 +232,10 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
     else:
         directory = local_path(reports_root, relative)
         record_path = local_path(directory, 'observation.json')
-    obs = evidence_json(record_path.read_bytes()) if hosted else read_json(record_path)
+    obs = evidence_json(record_path.read_bytes())
     if not isinstance(obs, dict) or obs.get('kind') != key:
         raise ProjectError('Expected a typed interactive field observation')
+    current_workbench_observation(obs)
     images = hosted_field_record(obs) if hosted else obs.get('screenshots')
     source = source_identity(root)
     if source['working_tree_dirty']:
@@ -203,14 +243,8 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
     bound_source(obs, source)
     nonempty(obs, 'operator')
     observed_time(obs)
-    actions = obs.get('actions')
-    if not isinstance(actions, dict) or not FIELD_ACTIONS[key].issubset(actions):
-        raise ProjectError('Field observation lacks required actions')
-    for action in FIELD_ACTIONS[key]:
-        result = actions[action]
-        if not isinstance(result, dict) or result.get('status') != 'passed':
-            raise ProjectError(f'Field action did not pass: {action}')
-        nonempty(result, 'observed')
+    if not hosted:
+        observed_actions(obs, FIELD_ACTIONS[key], complete=True)
     if not isinstance(images, list) or not images:
         raise ProjectError('Field observation requires retained screenshots')
     for ref in images:
@@ -230,15 +264,18 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
         if not any(
             receipt['source']['sha256'] == source['sha256']
             and receipt['source']['git_head'] == reviewed
-            and 'ubuntu-workspace-observation' in receipt.get('field_observations', {})
+            and (field := receipt.get('field_observations', {}).get('ubuntu-workspace-observation', {}))
+            and field.get('observation_version') == WORKBENCH_OBSERVATION_VERSION
+            and field.get('surface') == UBUNTU_SURFACE and field.get('commit') == reviewed
             for receipt in receipts
         ):
             raise ProjectError('No matching Ubuntu observation for this execution snapshot')
         if obs.get('surface') != 'physical-dual-boot-native-webview2':
             raise ProjectError('Expected the physical native WebView2 observation')
     else:
-        if obs.get('surface') != 'ubuntu-graphical-workspace':
-            raise ProjectError('Expected the graphical Ubuntu workspace observation')
+        if obs.get('surface') != UBUNTU_SURFACE:
+            raise ProjectError('Expected the native Ubuntu Tauri/WebKitGTK workspace.')
+        native_ubuntu(obs.get('host'))
         statuses = obs.get('external_sessions', {})
         if not isinstance(statuses, dict) or any(
             statuses.get(name) not in {'observed-separately', 'pending'}
@@ -247,6 +284,7 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
             raise ProjectError('Record the independent external-session disposition')
     result = {
         'kind': key,
+        'observation_version': WORKBENCH_OBSERVATION_VERSION,
         'commit': obs['commit'],
         'surface': obs['surface'],
         'observation_sha256': file_digest(record_path),
@@ -399,7 +437,7 @@ def validate_notice(contents):
 
 
 def hosted_candidate_manifest(manifest, source):
-    redacted_fields(manifest, SOURCE_FIELDS | {'installer', 'windows_observations', 'performance',
+    redacted_fields(manifest, SOURCE_FIELDS | {'installer', 'windows_observations', 'performance', 'owner_workbench',
                                                'third_party_licenses', 'webview2'})
     bound_source(manifest, source)
     if 'webview2' in manifest and manifest['webview2'] not in ('downloadBootstrapper', 'embedBootstrapper'):
@@ -412,6 +450,8 @@ def hosted_candidate_manifest(manifest, source):
         raise ProjectError('Expected at most two Windows client observations.')
     refs = [('installer', installer)]
     refs.extend(('windows', retained_reference(ref)) for ref in observations)
+    if 'owner_workbench' in manifest:
+        refs.append(('owner_workbench', retained_reference(manifest['owner_workbench'])))
     if 'performance' in manifest:
         refs.append(('performance', retained_reference(manifest['performance'])))
     refs.extend(('notice', ref) for ref in release_notices(manifest))
@@ -422,6 +462,9 @@ def hosted_candidate_manifest(manifest, source):
 
 
 def hosted_candidate_observation(record, kind, source, installer_sha256):
+    if kind == 'owner_workbench':
+        candidate_workbench(record, source, installer_sha256, complete=False, hosted=True)
+        return
     fields = SOURCE_FIELDS | {'host', 'installer_sha256', 'operator', 'observed_at', 'clean_install', 'upgrade'}
     host_fields = WINDOWS_HOST_FIELDS
     if kind == 'performance':
@@ -452,6 +495,37 @@ def hosted_candidate_observation(record, kind, source, installer_sha256):
             raise ProjectError('Expected a boolean final-frame observation.')
 
 
+def candidate_workbench(record, source, installer_sha256, *, complete, hosted):
+    if not isinstance(record, dict) or record.get('kind') != 'packaged-owner-workbench':
+        raise ProjectError('Expected a typed packaged owner workbench observation.')
+    current_workbench_observation(record)
+    bound_source(record, source)
+    if record.get('installer_sha256') != installer_sha256:
+        raise ProjectError('The owner workbench observation belongs to another installer.')
+    if hosted:
+        if record.get('sharing_scope') != 'redacted':
+            raise ProjectError('Hosted owner workbench evidence requires an explicitly redacted review.')
+        redacted_fields(record, SOURCE_FIELDS | {'kind', 'observation_version', 'installer_sha256', 'host', 'method',
+                        'operator', 'reviewer_role', 'observed_at', 'actions', 'feedback', 'sharing_scope'})
+        redacted_fields(record.get('host'), WINDOWS_HOST_FIELDS)
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,95}', nonempty(record, 'operator')):
+            raise ProjectError('Expected a redacted operator label.')
+    if record.get('reviewer_role') != 'product-owner' or record.get('method') != 'hands-on':
+        raise ProjectError('The packaged workbench requires a hands-on observation by the product owner.')
+    nonempty(record, 'operator')
+    observed_time(record)
+    windows_client(record.get('host'))
+    if hosted and not nonempty(record['host'], 'webview2').isprintable():
+        raise ProjectError('Expected a redacted WebView2 version.')
+    if complete or 'feedback' in record:
+        feedback = nonempty(record, 'feedback')
+        if hosted and not feedback.isprintable():
+            raise ProjectError('Expected the observed owner feedback.')
+    if hosted and isinstance(record.get('actions'), dict) and record['actions'].keys() - OWNER_WORKBENCH_ACTIONS:
+        raise ProjectError('Unexpected action in the redacted owner workbench observation.')
+    observed_actions(record, OWNER_WORKBENCH_ACTIONS, complete=complete, redacted=hosted)
+
+
 def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
     if hosted:
         manifest_path = hosted_artifact_path(run_dir, 'candidate/build-manifest.json')
@@ -459,7 +533,7 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
     else:
         directory = local_path(run_dir, 'candidate')
         manifest_path = local_path(directory, 'build-manifest.json')
-    manifest = evidence_json(manifest_path.read_bytes()) if hosted else read_json(manifest_path)
+    manifest = evidence_json(manifest_path.read_bytes())
     if not isinstance(manifest, dict):
         raise ProjectError('Missing candidate build manifest')
     if hosted:
@@ -493,6 +567,10 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
         observed_time(obs)
     if families != {'Windows 10', 'Windows 11'}:
         raise ProjectError('Missing a supported Windows client family')
+    if 'owner_workbench' not in manifest:
+        raise ProjectError('Candidate lacks the owner workbench observation for this installer.')
+    owner_path = verified_file(directory, manifest['owner_workbench'])
+    candidate_workbench(evidence_json(owner_path.read_bytes()), source, installer_hash, complete=True, hosted=hosted)
     metrics_path = verified_file(directory, manifest.get('performance'))
     metrics = evidence_json(metrics_path.read_bytes()) if hosted else read_json(metrics_path)
     if not isinstance(metrics, dict):

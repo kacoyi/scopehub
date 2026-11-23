@@ -16088,6 +16088,13 @@
           "cleanup": "Discard fixture-only inputs after the verification. Continue genuine native and packaged acceptance under M1-011, M1-012 and M5-001 and return the task focus to M2-003."
         }
       },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T112037.433712Z-5c8a3fdc",
+          "source_commit": "b0919ec30f92169fe6740018a0f5b6bbe6615f9e",
+          "report_sha256": "b934c47409b0693be90dbf2cab774eab845f29d57233b1f8541b8807f242f853"
+        }
+      ],
       "next_action": "Exercise the existing false positives, implement the versioned validators and verify local, staging, import and diagnostic paths.",
       "blocker": null,
       "evidence": [],

@@ -233,7 +233,7 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
         (destination / manifest_path).write_bytes(contents)
     if expected is not None:
         # The downloaded layout must still pass the same validation as the original run.
-        release_artifacts(destination / run, source, policy, expected=expected)
+        release_artifacts(destination / run, source, policy, expected=expected, hosted=True)
 
 
 def stage_artifacts(root, destination, env):
