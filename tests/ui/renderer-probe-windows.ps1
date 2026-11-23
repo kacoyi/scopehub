@@ -84,6 +84,16 @@ try {
     if ($window.Current.ProcessId -ne $app.Id) { throw 'Unexpected native window owner.' }
     Invoke-Button 'Open workbench prototype'
     Wait-Name 'The canvas is empty. Add a block and preview your draft.'
+    $sourceName = "Frozen synthetic closes $([char]0x00B7) SIM.CN.FUTURE.001"
+    $source = Wait-ForProbe 'frozen source disclosure' { Find-Control $sourceName $null }
+    $pattern = $null
+    if ($source.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$pattern)) {
+        $pattern.Expand()
+    } else {
+        $source.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    }
+    $hash = '3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1'
+    Wait-Name $hash
     Invoke-Button 'Add threshold tiles'
     Invoke-Button 'Add value table'
     $timer = [Diagnostics.Stopwatch]::StartNew()
@@ -126,7 +136,7 @@ try {
         os_version = [Environment]::OSVersion.VersionString
         runtime_version = (Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion
         binary_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash.ToLowerInvariant()
-        fixture = '3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1'
+        fixture = $hash
         measurement = 'UI Automation invocation to accessible result, including polling'
         compose_ms = $composeMs; edit_ms = $editMs; recovery_ms = $recoverMs
     } | ConvertTo-Json -Compress | Write-Output
