@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-073",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15229,7 +15229,7 @@
       "id": "M0-073",
       "title": "Make a user-composed workbench a first-release acceptance gate",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M0-072"],
       "decision_refs": ["0007", "0008", "0016", "0024", "0027"],
       "scope": ["AGENTS.md", "engineering-contract-v1.json", "contracts", "project", "tests/project"],
@@ -15239,10 +15239,15 @@
         "Keep the commercial exclusions, shared operation authority, saved layouts and existing gates. Distinguish contract verification from rendering, isolation and packaged product evidence."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "Update the contract, schedule the prototype and confirm that omitting the product check blocks acceptance.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-073-fc0e8d303655bc0f.json",
+          "sha256": "6ed592c593c9cb768ee02656a8d63d21f540bde4af343a34fbd38befaa0b4224"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Verified contract 1.7.0, both current-contract tasks and the required release check at bac2583. The regression covered missing, blocked, failed and passing gate results. Independent review confirmed the blank-canvas priority and the separate native-development and packaged acceptance stages. Renderer selection and product behavior await their own evidence.",
       "plan": {
         "outcome": "A first release made entirely of preset panels cannot satisfy the workbench acceptance requirement.",
         "change_types": ["tooling"],
