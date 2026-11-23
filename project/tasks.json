@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-014",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -16959,7 +16959,7 @@
       "id": "M2-014",
       "title": "Exercise a chart-free synthetic workbench and recover its accepted composition",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-002"
       ],
@@ -16995,11 +16995,23 @@
         {
           "path": "project/evidence/M2-014-2b7ce50e26b3fc19.json",
           "sha256": "04770871ab25c4468216d991ca39691aa6b05b8ab67dc28e4878bbd4c995c25f"
+        },
+        {
+          "path": "project/evidence/M2-014-e58a7efd08d55d17.json",
+          "sha256": "ed2c8e4fc6d880adb6c26acd050f3a19f5207f418832a95330fbc776c2614f28"
+        },
+        {
+          "path": "project/evidence/M2-014-98b0e1eaf14edf3b.json",
+          "sha256": "8dbbf884aaee31184faf47ad70f74c2efdf9fc1b50572286d74022151335d38f"
+        },
+        {
+          "path": "project/evidence/M2-014-3b9ac863cdad68a4.json",
+          "sha256": "bbb4be9fac45863ba9ec60a555e8039f0767742adbc6c69bb087946ee7a07b2e"
         }
       ],
-      "next_action": "Verify the first composition through the desktop entry, record matched Linux and Windows task results, and return the renderer decision to M2-003.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Hosted task run 45212031396 passed all selected checks on Linux and Windows at be199eb. Chromium verified linked selection and authored draft recovery. Windows UI Automation exercised the compiled desktop window, disclosed the matching frozen snapshot, composed the tiles and table, changed the threshold and label, rejected an unsupported edit and restored the accepted definition. The WebView2 runtime was 157.0.4341.46. A separate Linux browser observation retained the active five-minute synthetic chart and its eight bars on return. The staged WebKitGTK observation retains its original host and UI identities. Renderer selection and release acceptance remain open.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "Open the prototype from the desktop interface. Start blank, compose threshold tiles and a value table over the same identified frozen closes, change a threshold and its user-written label, and select the matching timestamp across both views.",

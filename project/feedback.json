@@ -3810,7 +3810,7 @@
       "source": "Hosted M2-014 task run 45209214956, Linux market-workflow log and screenshot. Local 1450-pixel replay geometry diagnostic in the renderer-probe checkout.",
       "observation": "The US daily replay produced four distinct price paints for three correct legend observations. The hosted screenshot shows the attribution wrapping below the prototype action. A narrow local replay changes the footer height from 33 to 59 pixels when status text appears, resizing the price canvas during playback.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-014"
       ],
@@ -3824,7 +3824,11 @@
           "report_sha256": "7e697c04cb75ce6ceabdd4297f74a8d65e7510aaf7f52d12db6b9063e2dcb7fe"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The new footer action pushed the attribution to a second line when playback status appeared. The canvas resized and painted the same prices on a different scale.",
+        "correction": "Move the configured-chart prototype action into the chart tools and retain the empty-state entry.",
+        "prevention": "The unchanged three-instrument replay assertions passed at the same narrow diagnostic viewport and in both hosted task jobs at be199eb. They still require the original, intermediate and terminal paints with their independent price and position checks."
+      },
       "deferral_reason": null
     }
   ]
