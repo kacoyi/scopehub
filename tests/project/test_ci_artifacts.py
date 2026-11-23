@@ -537,7 +537,7 @@ class PublicationTests(ProjectFixture):
             stage_artifacts(self.root, self.destination, self.env)
         self.assertFalse((self.destination / 'test-report.json').exists())
 
-    def test_field_import_keeps_only_manifest_and_referenced_synthetic_screenshots(self):
+    def make_field_record(self):
         check = 'ubuntu-workspace-observation'
         self.add_catalog_checks(check)
         ledger = self.ledger()
@@ -555,7 +555,7 @@ class PublicationTests(ProjectFixture):
             'kind': check, 'commit': report['source']['git_head'], 'inputs_sha256': report['source']['sha256'],
             'operator': 'synthetic operator', 'observed_at': '2026-01-01T12:00:00Z',
             'observation_version': 2, 'host': ubuntu_test_host(),
-            'surface': 'native-ubuntu-tauri-webkitgtk', 'screenshot_scope': 'synthetic',
+            'surface': 'native-ubuntu-tauri-webkitgtk', 'screenshot_scope': 'synthetic', 'sharing_scope': 'redacted',
             'actions': dict.fromkeys(FIELD_ACTIONS[check], {'status': 'passed', 'observed': 'Synthetic outcome.'}),
             'external_sessions': dict.fromkeys(['text', 'voice', 'cli', 'desktop'], 'pending'),
             'screenshots': [{'path': 'fixture.png', 'sha256': digest(image)}],
@@ -564,6 +564,10 @@ class PublicationTests(ProjectFixture):
         result = next(item for item in report['checks'] if item['id'] == check)
         result['field_observation'] = field_observation(self.root, check)
         self.save_report(report)
+        return check, report, directory, image, record, manifest, result
+
+    def test_field_import_keeps_only_manifest_and_referenced_synthetic_screenshots(self):
+        check, report, directory, image, record, manifest, result = self.make_field_record()
         manifest_relative = f'{directory}/observation.json'
         local_locator = diagnostic_locator(self.reports / 'test-report.json')
         self.assertEqual([manifest_relative], resolve_diagnostic(local_locator, self.reports)['verified_observations'])
@@ -603,6 +607,58 @@ class PublicationTests(ProjectFixture):
         historical.pop('observation_version')
         historical['surface'] = 'ubuntu-graphical-workspace'
         validate_model(self.root, 'Evidence', receipt)
+
+    def test_hosted_field_admission_redacts_unknown_actions_and_requires_explicit_text_sharing(self):
+        check, report, directory, _, record, manifest, result = self.make_field_record()
+        downloaded = self.reports / 'ci/10/privacy'
+        shutil.copytree(self.reports / 'runs/fixture', downloaded / 'runs/fixture')
+        (downloaded / directory).mkdir(parents=True)
+        shutil.copyfile(manifest.parent / 'fixture.png', downloaded / directory / 'fixture.png')
+        key = 'fictional-private-action-label'
+        note = 'A fictional private annotation retained on this fixture device.'
+        private_action = {'status': 'passed', 'observed': note}
+        unmarked = {k: v for k, v in record.items() if k != 'sharing_scope'}
+        declared_action = {**record['actions'], 'decision-review': private_action}
+        cases = [
+            ('extra', dict(record, actions={**record['actions'], key: private_action}), False),
+            ('extra-untyped', dict(record, actions={**record['actions'], key: [note]}), False),
+            ('unmarked', dict(unmarked, actions=declared_action), True),
+            ('unmarked-extra', dict(unmarked, actions={**declared_action, key: private_action}), True),
+            ('local', dict(record, sharing_scope='local', actions=declared_action), True),
+        ]
+        for name, item, local_only in cases:
+            with self.subTest(name=name):
+                contents = json_bytes(item)
+                manifest.write_bytes(contents)
+                result['field_observation'] = field_observation(self.root, check)
+                self.save_report(report)
+                local = diagnostic_locator(self.reports / 'test-report.json')
+                self.assertEqual([f'{directory}/observation.json'], resolve_diagnostic(local, self.reports)['verified_observations'])
+                error = ('Hosted field observations require synthetic screenshots and an explicitly redacted summary.'
+                         if local_only else 'Hosted workbench observation has an unrecognized action.')
+                with (patch.object(verification_evidence, 'verified_file') as read_image,
+                      self.assertRaises(ProjectError) as direct):
+                    field_observation(self.root, check, hosted=True)
+                self.assertEqual(error, str(direct.exception))
+                read_image.assert_not_called()
+                staging = self.destination.with_name(name)
+                if local_only:
+                    self.assertTrue(stage_artifacts(self.root, staging, self.env))
+                else:
+                    with self.assertRaises(ProjectError) as publication:
+                        stage_artifacts(self.root, staging, self.env)
+                    self.assertEqual(error, str(publication.exception))
+                self.assertFalse((staging / 'observations').exists())
+                for path in staging.rglob('*'):
+                    if path.is_file():
+                        self.assertNotIn(note.encode(), path.read_bytes())
+                        self.assertNotIn(key.encode(), path.read_bytes())
+                (downloaded / directory / 'observation.json').write_bytes(contents)
+                for path in ('test-report.json', 'runs/fixture/test-report.json'):
+                    (downloaded / path).write_bytes(json_bytes(report))
+                with self.assertRaises(ProjectError) as imported:
+                    archive_evidence(self.root, 'M0-001', downloaded / 'test-report.json', downloaded)
+                self.assertEqual(error, str(imported.exception))
 
     def make_candidate(self, report):
         candidate = self.reports / 'runs/fixture/candidate'
@@ -667,6 +723,7 @@ class PublicationTests(ProjectFixture):
             ('installer', dict(owner, installer_sha256='0' * 64), 'another installer'),
             ('role', dict(owner, reviewer_role='engineer'), 'product owner'),
             ('simulated', dict(owner, method='automated-replay'), 'hands-on'),
+            ('future', dict(owner, observed_at='2999-01-01T12:00:00Z'), 'future observation time'),
             ('feedback', dict(owner, feedback=''), 'feedback'),
             ('failed-edit', dict(owner, actions={**owner['actions'], 'workbench-edit': {
                 'status': 'failed', 'observed': 'The saved arrangement did not change.'}}), 'did not pass'),
@@ -702,6 +759,8 @@ class PublicationTests(ProjectFixture):
             ('private', dict(owner, sharing_scope='local', feedback=self.sentinel.decode()), False),
             ('extra', dict(owner, private_profile=self.sentinel.decode()), False),
             ('unmarked', {k: v for k, v in owner.items() if k != 'sharing_scope'}, False),
+            ('extra-action', dict(owner, actions={**owner['actions'], 'fictional-private-action-label': {
+                'status': 'passed', 'observed': self.sentinel.decode()}}), False),
         ):
             with self.subTest(name=name):
                 self.replace_candidate_record(candidate, ref, review)
@@ -723,6 +782,21 @@ class PublicationTests(ProjectFixture):
                 for path in published.rglob('*'):
                     if path.is_file():
                         self.assertNotIn(self.sentinel, path.read_bytes())
+
+    def test_completed_candidate_host_and_optional_performance_time_cannot_be_in_the_future(self):
+        self.add_catalog_checks('release-artifacts')
+        report = self.hosted_report(system='Windows', event='workflow_dispatch')
+        candidate, manifest = self.make_candidate(report)
+        policy = load_project(self.root)['catalog']['desktop_performance']
+        for ref in (manifest['windows_observations'][0], manifest['performance']):
+            with self.subTest(ref=ref['path']):
+                original = read_json(candidate / ref['path'])
+                self.replace_candidate_record(candidate, ref, dict(original, observed_at='2999-01-01T12:00:00Z'))
+                (candidate / 'build-manifest.json').write_bytes(json_bytes(manifest))
+                for hosted in (False, True):
+                    with self.subTest(hosted=hosted), self.assertRaisesRegex(ProjectError, 'future observation time'):
+                        release_artifacts(candidate.parent, report['source'], policy, hosted=hosted)
+                self.replace_candidate_record(candidate, ref, original)
 
     def test_bound_candidate_remains_compatible_with_hosted_release_readiness(self):
         self.add_catalog_checks('release-artifacts', 'configured-model-session')

@@ -1,7 +1,7 @@
 """Exercise false completion, stale decisions and delivery feedback with isolated records."""
 
 from contextlib import redirect_stdout
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from io import StringIO
 import json
 import os
@@ -512,7 +512,8 @@ class DeliveryTests(ProjectFixture):
             'inputs_sha256': source['sha256'],
             'operator': 'synthetic operator',
             'observed_at': '2026-01-01T12:00:00Z',
-            'surface': 'native-ubuntu-tauri-webkitgtk', 'host': ubuntu_test_host(), 'screenshot_scope': 'synthetic',
+            'surface': 'native-ubuntu-tauri-webkitgtk', 'host': ubuntu_test_host(),
+            'screenshot_scope': 'synthetic', 'sharing_scope': 'redacted',
             'actions': dict.fromkeys(names, {'status': 'passed', 'observed': 'Observed synthetic test outcome.'}),
             'external_sessions': dict.fromkeys(['text', 'voice', 'cli', 'desktop'], 'pending'),
             'screenshots': [{'path': 'fixture.png', 'sha256': digest(image)}],
@@ -531,6 +532,9 @@ class DeliveryTests(ProjectFixture):
                       'workbench-refresh', 'workbench-source-selection', 'workbench-undo', 'workbench-recover',
                       'workbench-reopen'}
         obs['actions'].update(dict.fromkeys(chart_free, {'status': 'passed', 'observed': 'Visible fixture outcome.'}))
+        for timestamp, error in (('2999-01-01T02:00:00+02:00', 'future observation time'),
+                                 ('2026-01-01T12:00:00', 'timezone-aware')):
+            check_variation(dict(obs, observed_at=timestamp), error)
         for surface in ('ubuntu-graphical-workspace', 'chromium-app-mode', 'standalone-vite'):
             check_variation(dict(obs, surface=surface), 'native Ubuntu')
         for field in ('os', 'ubuntu_version', 'webkitgtk_version', 'process_name', 'process_id', 'window_id', 'window_process_id'):
@@ -542,6 +546,11 @@ class DeliveryTests(ProjectFixture):
         observation_path.write_bytes(json_bytes(obs))
         result = field_observation(self.root, key)
         self.assertEqual(2, result['observation_version'])
+        offset = timezone(timedelta(hours=-7))
+        near = (datetime.now(timezone.utc) + timedelta(minutes=4)).astimezone(offset).isoformat()
+        observation_path.write_bytes(json_bytes(dict(obs, observed_at=near)))
+        for hosted in (False, True):
+            self.assertEqual(2, field_observation(self.root, key, hosted=hosted)['observation_version'])
         self.assertEqual(obs['external_sessions'], result['external_sessions'])
         failed = dict(obs, actions={**obs['actions'], 'reconnect': {'status': 'failed', 'observed': 'No chart'}})
         (directory / 'observation.json').write_bytes(json_bytes(failed))
@@ -575,7 +584,7 @@ class DeliveryTests(ProjectFixture):
         ]
         win = {
             'kind': key,
-            'observation_version': 2, 'screenshot_scope': 'synthetic',
+            'observation_version': 2, 'screenshot_scope': 'synthetic', 'sharing_scope': 'redacted',
             'commit': source['git_head'],
             'inputs_sha256': source['sha256'],
             'operator': 'test operator',

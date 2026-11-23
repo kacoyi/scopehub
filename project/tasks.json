@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-083",
   "tasks": [
     {
       "id": "M0-001",
@@ -16225,6 +16225,114 @@
         }
       ],
       "closure_reason": "The clean task harness at 0381bd2 passed environment, project validation and the Python suite with both exact feedback fingerprints. The negative run and its three logs remain independently resolvable. Synthetic tests cover local and hosted acceptance, archival privacy, downloaded artifacts and release readiness. M1-012, M1-011 and M5-001 own the genuine field and owner trials. Product focus returns to M2-003."
+    },
+    {
+      "id": "M0-083",
+      "title": "Keep local field notes private and verify completed observation times",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-082"
+      ],
+      "scope": [
+        "scripts/verification_evidence.py",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "tests/project/test_ci_artifacts.py",
+        "tests/project/test_delivery.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0024",
+        "0027"
+      ],
+      "acceptance": [
+        "At hosted intake, require explicit sharing_scope=redacted for the observation text and screenshot_scope=synthetic for its screenshots. An unmarked or local summary stays on the device even when the screenshots are synthetic.",
+        "Reject undeclared action keys before inspecting their values or reading screenshots, using a fixed diagnostic. Keep local annotations available locally and verify the original historical diagnostic without giving it current hosted acceptance.",
+        "Exercise hosted field validation, publication and downloaded task evidence import with an unlisted local note and with private text in an otherwise valid action. Check the same action boundary for the packaged owner summary.",
+        "New native and candidate observations require real, timezone-aware completed times. Compare in UTC with a documented clock allowance and fixed diagnostics. Keep historical diagnostic bytes readable."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "Only the versioned, intentionally shared redacted native workbench record may be published or imported as hosted evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_evidence.py",
+          "scripts/ci_artifacts.py",
+          "scripts/project.py",
+          "scripts/diagnostic_archive.py",
+          "tests/project/test_ci_artifacts.py",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The publisher and importer both invoke the field validator. Validating the versioned action names and both sharing declarations there catches the two observed failures before file copies.",
+          "The existing time parser can distinguish a past observation from a future appointment at each new manual acceptance entry."
+        ],
+        "risks": [
+          {
+            "failure": "A private note, its field name or its contents reach artifacts or logs because its PNG was marked synthetic.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Restricting public records prevents private local annotations or historic diagnostic resolution.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the failing hosted evidence local and preserve the original diagnostic while correcting the admission check.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/verification_evidence.py",
+            "scripts/ci_artifacts.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/checks.json",
+              "pointer": "/observation_evidence"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/release_policy/product_review"
+            }
+          ],
+          "non_goals": [
+            "Uploading private field materials, inferring or automatically redacting observation text, changing user permissions or providing actual native or product-owner acceptance."
+          ],
+          "open_questions": [
+            "Can the same action whitelist work before staging and after download while preserving local-only annotations?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Private field evidence on the original device, historical diagnostic integrity, exact packaged owner evidence and the renderer task focus."
+          ],
+          "change": [
+            "Require separate affirmative sharing declarations for native field text and screenshots. Reject undeclared hosted actions without echoing their names or values."
+          ],
+          "data_plan": "This revision changes development evidence admission. Existing local notes remain readable and historical receipts retain their original scope.",
+          "cleanup": "Record the corrective task and restore M2-003 after binding the regression to the retained failure."
+        }
+      },
+      "next_action": "Reproduce the hosted field leak with synthetic placeholders and correct the shared intake before publication or import.",
+      "blocker": null,
+      "evidence": [],
+      "closure_reason": null
     }
   ]
 }

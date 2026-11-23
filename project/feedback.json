@@ -3657,6 +3657,36 @@
           "report_sha256": "1a7a9e6ba53ccb2377bb1d248207e4bde0bcb0d181a3b1b114d9bad62e1ba24b"
         }
       ]
+    },
+    {
+      "id": "native-field-local-notes-reach-hosted-artifacts",
+      "source": "Independent review of the M0-082 hosted field staging and import path at 872f4b3 using synthetic records.",
+      "severity": "major",
+      "status": "open",
+      "observation": "A field record with synthetic screenshots could publish an unlisted action and its free-text description. The screenshot declaration alone also permitted publishing a device-local note in a required action without a sharing declaration for the text.",
+      "task_ids": [
+        "M0-083"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "future-manual-observation-counts-as-completed",
+      "source": "Independent review of M0-082 at 872f4b3 using a synthetic packaged owner observation dated in 2999.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Local and hosted candidate verification accepted a future-dated owner review after the declared artifact digest was updated. The native field and installation checks likewise validated timezone syntax without checking whether the manual event had happened.",
+      "task_ids": [
+        "M0-083"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
