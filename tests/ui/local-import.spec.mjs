@@ -1122,6 +1122,72 @@ base('stages additions, aliases, conflicts and withdrawals against a frozen loca
   }
 });
 
+base('rejects a late source declaration conflict before publishing a native CSV revision', {
+  tag: '@profile-local-csv',
+}, async () => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-csv-series-'));
+  const folder = join(temporary, 'source');
+  const profile = join(temporary, 'profile');
+  let bridge;
+  try {
+    await mkdir(folder, { mode: 0o700 });
+    await mkdir(profile, { mode: 0o700 });
+    const header = [...future.header, 'timeframe', 'timezone', 'volume_semantics'];
+    const reviewed = ['5m', 'Asia/Shanghai', 'per_bar'];
+    const writeSource = async declarations => {
+      const rows = [header, [...future.rows[0], ...reviewed], [...future.rows[1], ...declarations]];
+      const csv = rows.map(fields => fields.join(',')).join('\n') + '\n';
+      await writeFile(join(folder, 'night.csv'), csv);
+      return createHash('sha256').update(csv).digest('hex');
+    };
+    const hash = await writeSource(reviewed);
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const run = (operation, payload) => bridge.request('execute_operation', {
+      operation, requestId: randomUUID(), payload: { version: 1, ...payload },
+    });
+    const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+    const file = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: hash };
+    const mapping = {
+      version: 1, revision: 'night-session', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+      timestamp_convention: 'bar_start', volume_semantics: 'per_bar', ...future.settings, columns: future.columns,
+    };
+    const initialPreview = { ...file, mapping, row_limit: 1 };
+    expect((await run('market.previewLocalImport', initialPreview)).result.preview.rows[0].symbol).toBe('CU2605');
+    const saved = await run('market.saveLocalImportMapping', initialPreview);
+    expect(saved.error).toBeUndefined();
+    const publish = source => run('market.publishLocalImport', {
+      ...source, review_revision: saved.result.record.review_revision,
+    });
+    const { result: { revision } } = await publish(file);
+    const read = () => run('market.readLocalImportRevision', { revision_id: revision.revision_id });
+    const accepted = await read();
+    expect(accepted.result.bars[1].bar).toMatchObject({ time_ms: Date.parse(future.times[1]), volume: 37 });
+    for (const [index, value, field] of [[0, '1m', 'timeframe'], [1, 'UTC', 'timezone'], [2, 'cumulative', 'volume_semantics']]) {
+      const declarations = [...reviewed];
+      declarations[index] = value;
+      const amended = { ...file, expected_sha256: await writeSource(declarations) };
+      const { result: { preview } } = await run('market.previewLocalImport', { ...amended, mapping, row_limit: 1 });
+      expect(preview.rows).toHaveLength(1);
+      expect(preview.rows[0].normalized).toMatchObject({ time_ms: Date.parse(future.times[0]), volume: 31 });
+      const rejected = await publish(amended);
+      expect(rejected.error).toMatchObject({
+        code: 'DATA_UNAVAILABLE',
+        details: { reason: 'csv_review_required', issue_code: field + '_mismatch', field,
+          locator: { record_number: 2, line_start: 3, line_end: 3 } },
+      });
+      expect(rejected.error.message).toContain("'" + value + "'");
+    }
+    const { result: listed } = await run('market.listLocalImportRevisions', { after_revision_id: null, limit: 8 });
+    expect(listed.revisions.map(item => item.revision_id)).toEqual([revision.revision_id]);
+    expect(await read()).toEqual(accepted);
+  } finally {
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
 base('reviews explicit CSV declarations and competing bars with source provenance', {
   tag: '@profile-folder-refresh',
 }, async ({ page }) => {
@@ -1134,10 +1200,10 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
   try {
     await mkdir(profile, { mode: 0o700 });
     await mkdir(folder, { mode: 0o700 });
-    const row = (close, unit = 'shares', adjustment = 'raw') => [
-      '000731', '2026-04-14', '4', '8', '3', String(close), '20', unit, adjustment,
+    const row = (close, { unit = 'shares', adjustment = 'raw', timeframe = '1d', timezone = 'Asia/Shanghai', volume = 'per_bar' } = {}) => [
+      '000731', '2026-04-14', '4', '8', '3', String(close), '20', unit, adjustment, timeframe, timezone, volume,
     ];
-    const header = [...equity.header, 'quantity_unit', 'price_adjustment'];
+    const header = [...equity.header, 'quantity_unit', 'price_adjustment', 'timeframe', 'timezone', 'volume_semantics'];
     const csv = (...rows) => [header, ...rows].map(fields => fields.join(',')).join('\n') + '\n';
     await writeFile(join(folder, 'daily.csv'), csv(row(5)));
 
@@ -1171,8 +1237,14 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     const frozen = page.getByRole('region', { name: 'Frozen local CSV chart' });
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
 
-    await writeFile(join(folder, 'lots.csv'), csv(row(5, 'lots')));
-    await writeFile(join(folder, 'adjusted.csv'), csv(row(5, 'shares', 'split_adjusted')));
+    const conflictingFiles = [
+      ['lots.csv', { unit: 'lots' }], ['adjusted.csv', { adjustment: 'split_adjusted' }],
+      ['minute.csv', { timeframe: '1m' }], ['utc.csv', { timezone: 'UTC' }],
+      ['cumulative.csv', { volume: 'cumulative' }],
+    ];
+    for (const [name, declarations] of conflictingFiles) {
+      await writeFile(join(folder, name), csv(row(5, declarations)));
+    }
     await writeFile(join(folder, 'competing.csv'), csv(row(6), row(7)));
 
     const review = page.getByRole('region', { name: 'Folder refresh review' });
@@ -1183,10 +1255,10 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     expect(staged.review_id).toMatch(/^[0-9a-f]{64}$/);
     expect(staged.publication_allowed).toBe(false);
     await expect(review.getByRole('button', { name: 'Review folder publication' })).toHaveCount(0);
-    for (const [path, declaration] of [['lots.csv', 'lots'], ['adjusted.csv', 'split_adjusted']]) {
+    for (const [path, declarations] of conflictingFiles) {
       const file = staged.files.find(source => source.relative_path === path);
       expect.soft(file, `${path} requires an explicit declaration review`).toMatchObject({ review: 'invalid_rows' });
-      expect.soft(file?.detail, `${path} identifies its contradictory declaration`).toContain(declaration);
+      expect.soft(file?.detail, `${path} identifies its contradictory declaration`).toContain(Object.values(declarations)[0]);
     }
     const bar = staged.bars.find(item => item.time_ms === Date.parse(equity.times[0]));
     expect.soft(bar.status, 'same-file corrected prices require review').toBe('conflict');

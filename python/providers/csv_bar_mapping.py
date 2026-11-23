@@ -17,6 +17,9 @@ _SERIES_DECLARATIONS = {
     'quantityunit': 'quantity_unit',
     'priceadjustment': 'price_adjustment',
     'venue': 'venue',
+    'timeframe': 'timeframe',
+    'timezone': 'timezone',
+    'volumesemantics': 'volume_semantics',
 }
 _SETTLEMENT_NAMES = {name + suffix for name in ('settle', 'settlement') for suffix in ('', 'price', 'px')}
 _CURRENT_SETTLEMENT = _SETTLEMENT_NAMES | {
@@ -216,6 +219,9 @@ def native_mapping(mapping: Mapping[str, object], header: list[str], issues: lis
         'quantity_unit': series['quantity_unit'],
         'price_adjustment': series['price_adjustment'],
         'venue': series['venue'],
+        'timeframe': series['timeframe'],
+        'timezone': series['timezone'],
+        'volume_semantics': 'per_bar',
     }
     declarations = tuple(
         (index, declaration, reviewed[declaration])
@@ -284,8 +290,10 @@ def normalize_bar(values: list[str], mapping: _NativeMapping) -> tuple[str, Bar]
 
     for index, field, expected in mapping.declarations:
         declared = values[index].strip()
-        if declared and declared.casefold() != expected.casefold():
-            label = field.replace('_', ' ')
+        # Timeframe units (m/M) and IANA zone keys are case-sensitive identities.
+        matches = declared == expected if field in {'timeframe', 'timezone'} else declared.casefold() == expected.casefold()
+        if declared and not matches:
+            label = 'volume basis' if field == 'volume_semantics' else field.replace('_', ' ')
             raise BarFieldError(preview_issue(
                 f'{field}_mismatch', field,
                 f'The source {label} is {declared[:80]!r}. The reviewed value is {expected[:80]!r}. Review the mapping.',

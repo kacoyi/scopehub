@@ -3447,6 +3447,23 @@
         "prevention": "An alternate caller Git directory exercises repository discovery. The protected staging regression observes both check durations and their difference. A separate run with a disposable caller checkout verified its branch reference and index were preserved."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "csv-conflicting-series-declarations",
+      "source": "2026-11-23 repository audit of native CSV preview, publication and readback using a synthetic futures row.",
+      "severity": "major",
+      "status": "open",
+      "observation": "A source row declared timeframe 1m, timezone UTC and cumulative volume while the approved mapping declared 5m, Asia/Shanghai and per_bar. The preview normalized the row and the newly published revision returned 13:10 UTC and volume 150 with the wrong 5m semantics.",
+      "task_ids": [
+        "M1-034"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "local-import-publication",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

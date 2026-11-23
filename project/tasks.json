@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-034",
   "tasks": [
     {
       "id": "M0-001",
@@ -15837,6 +15837,126 @@
         }
       ],
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
+    },
+    {
+      "id": "M1-034",
+      "title": "Reject conflicting explicit CSV series declarations before publication",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "python/providers",
+        "apps/desktop/ui/src",
+        "tests/integration",
+        "tests/localization/folder-messages.spec.mjs",
+        "tests/ui/local-import.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0008",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "A native CSV row explicitly declaring a different timeframe, timezone or quantity convention remains inspectable with its original values and locator. Its normalized bar cannot enter a new file or folder revision. Report the conflicting field through the normal desktop import entry and its English and Simplified Chinese presentation.",
+        "Check new publication and folder review against the entire source, including a conflict beyond the preview window. A failed refresh preserves the last accepted snapshot. Verified matching declarations and established mappings for sources without these columns continue to work; separate files can declare different supported series."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "market-workflow",
+        "local-import-publication",
+        "local-folder-refresh-preview"
+      ],
+      "evidence": [],
+      "next_action": "Exercise the conflicting source declarations through the worker and desktop bridge, then verify complete-file publication and folder refresh.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A reviewed native bar has compatible source and mapping semantics for timeframe, timezone and volume; conflicting original fields remain accessible for review.",
+        "change_types": [
+          "market-fixtures",
+          "ui"
+        ],
+        "context": [
+          "python/providers/csv_bar_mapping.py",
+          "python/providers/local_folder.py",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "tests/ui/local-import.spec.mjs",
+          "contracts/market-data-v1.json"
+        ],
+        "hypotheses": [
+          "The shared native bar normalizer can enforce source declarations consistently for preview, complete-file publication and folder changes. The existing UI issue transport can localize each field and retain source values."
+        ],
+        "risks": [
+          {
+            "failure": "A late or repeated conflict enters an immutable revision after a limited preview.",
+            "checks": [
+              "python-contracts-workers",
+              "local-import-publication",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A legitimate declaration, a previous supported dataset or the localized diagnostic loses its meaning.",
+            "checks": [
+              "desktop-localization",
+              "local-import-publication",
+              "market-fixtures"
+            ]
+          }
+        ],
+        "rollback": "Retain failing synthetic CSV inputs and receipts. Correct the import checks on a reviewed branch before accepting another affected revision.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "ui"
+          ],
+          "entrypoints": [
+            "python/providers/csv_bar_mapping.py",
+            "python/providers/local_folder.py",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "tests/ui/local-import.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/csv_v1_capabilities"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/series_identity"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            }
+          ],
+          "non_goals": [
+            "Migrating existing immutable revisions, inferring market metadata from prices, adding timezone aliases, or converting cumulative quantities."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing publication and readback of compatible reviewed series, raw field values and locators, immutable revision identity and the current single-writer transaction."
+          ],
+          "change": [
+            "Apply the reviewed declaration comparisons to explicit source timeframe, timezone and volume semantics before normalization."
+          ],
+          "data_plan": "Use synthetic local fixtures. New writes must obey the rule. Previously stored snapshots retain their recorded bytes and identities.",
+          "cleanup": "Reuse the existing row-declaration path and discard rejected new staging through normal publication and folder review."
+        }
+      }
     }
   ]
 }
