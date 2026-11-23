@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-072",
+  "focus_task_id": "M1-031",
   "tasks": [
     {
       "id": "M0-001",
@@ -15105,7 +15105,7 @@
       "id": "M0-072",
       "title": "Define user control of workbench content and the cost of changing its implementation",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-061",
         "M0-067"
@@ -15131,10 +15131,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Update the contracts and check the later chart-free example through the normal project views.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-072-e28a19bc375eddd6.json",
+          "sha256": "60158564e99b3bd6cfc14a1d8314bd7f26a6ac447cd46dad1bbb0d1dd89f1168"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The six local fast checks and independent read-only review passed at d355f5c. The brief and task context expose M2-013 as planned later work. Comparison against the base confirmed the first-release scope, release gates and protocol. The chart-free interaction awaits implementation and product verification.",
       "plan": {
         "outcome": "Future contributors can find the owner's product goal, the initial selection rule and an observable example without assuming a particular UI architecture.",
         "change_types": ["tooling"],
