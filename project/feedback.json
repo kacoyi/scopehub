@@ -3371,6 +3371,25 @@
           "report_sha256": "6fd06399e41c7dc5ba89b5fe97174d6308d8f488aa2424428ba16bc5b40b9813"
         }
       ]
+    },
+    {
+      "id": "acceptance-catalog-id-hosted-report",
+      "source": "PR 51 Ubuntu evidence staging, jobs 137478170107 and 137483255003. The staging step failed before an uploadable report was produced. https://github.com/kacoyi/scopehub/actions/runs/45111025193/job/137483255003 The original failed-step log is retained at .reports/ci/45111025193/ubuntu/staging-failure.log (SHA-256 430d80ab5816e53faa63a0f2e3e2527ddc2df3ce674db4895134fa687a26bc8d).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The verifier ran successfully but evidence staging rejected its output. Validating the locally generated report against HostedHarnessReport reproduced the rejected acceptance/0 field id. Catalog rows gained that stable identifier and product_progress copied it into the published object.",
+      "task_ids": [
+        "M0-076"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The progress projection copied every acceptance catalog field into the public report. The strict hosted schema correctly rejected the new catalog ID. The old staging fixtures omitted the production acceptance projection.",
+        "correction": "Publish only the requirement, check IDs and observed status. Keep stable IDs in the engineering index and check catalog.",
+        "prevention": "The regression stages the real production projection through the hosted publication path and verifies both a blocked and a passing row. Ubuntu and Windows uploaded verified evidence at 0f9e115 in run 45112936541, and both artifacts were imported."
+      },
+      "deferral_reason": null
     }
   ]
 }

@@ -1,0 +1,159 @@
+{
+  "runtime": {
+    "processes": {
+      "core": "The sole trusted control plane",
+      "market": "One simulated market data worker with reused subscriptions",
+      "ai": "Start one worker when there is an AI task",
+      "indicator": "Start a short-lived child process for each code computation; release it on completion"
+    },
+    "lifecycle": [
+      "Perform a handshake after startup",
+      "Terminate immediately on incompatible versions or roles",
+      "On request cancellation, signal the correlated request and wait up to cancel_grace_ms. Terminate the process tree only for a dedicated execution or a failed/suspect shared worker requiring recovery.",
+      "Application shutdown must clean up all workers",
+      "Use exponential backoff and a bounded retry count for market restarts",
+      "ai/indicator failures must not interrupt market data"
+    ],
+    "defaults": {
+      "handshake_timeout_ms": 5000,
+      "heartbeat_interval_ms": 5000,
+      "heartbeat_timeout_ms": 15000,
+      "cancel_grace_ms": 1000,
+      "indicator_timeout_ms": 10000,
+      "indicator_memory_limit_mb": 512,
+      "market_restart_max_attempts": 5,
+      "ui_flush_interval_ms": 100,
+      "max_message_bytes": 4194304,
+      "max_pending_requests": 128
+    },
+    "flow_control": "Use bounded queues; UI updates may be coalesced; dropping raw data must emit a data quality event with a count; silent drops are prohibited",
+    "stdout": "Only protocol messages are allowed",
+    "stderr": "Structured diagnostics; do not output credentials, complete prompts, or sensitive content from user code",
+    "cancellation": {
+      "request": "A transport cancel addresses one request. A task cancellation addresses the owning task, pending confirmations, outstanding child calls and drafts. Suppress late replies and duplicate terminal outcomes. Stop audio playback separately from cancelling work.",
+      "clocks": "The 120000 ms active task deadline is measured on a monotonic clock across all running steps. Pause it only while awaiting a human, bounded by the remaining challenge TTL of at most 300000 ms measured from issue. Whichever active deadline applies first ends the attempt; reject a late approval. Cancellation or terminal failure invalidates unconsumed challenges.",
+      "workers": "Keep other tasks and market subscriptions running when cancellation succeeds on a shared worker. If the shared worker fails its cancellation deadline and cannot isolate the request, mark other requests interrupted, close that worker, restart with bounded backoff and resume subscriptions from their last confirmed position.",
+      "commit": "Before commit discard tentative work and temporary output. After commit retain the receipt and report the committed effects even when the parent task is cancelled. Undo is a separate authorized operation."
+    }
+  },
+  "protocol": {
+    "version": "1.1",
+    "encoding": "UTF-8 NDJSON, one JSON object per line",
+    "message_types": [
+      "hello",
+      "request",
+      "response",
+      "event",
+      "cancel",
+      "heartbeat"
+    ],
+    "common": {
+      "protocol_version": "string",
+      "message_id": "UUID",
+      "type": "enum",
+      "timestamp_ms": "UTC epoch milliseconds integer"
+    },
+    "request": {
+      "request_id": "UUID",
+      "task_id": "UUID|null",
+      "operation": "allowlisted string",
+      "payload": "operation-specific object"
+    },
+    "response": {
+      "request_id": "UUID",
+      "ok": "boolean",
+      "result": "object|null",
+      "error": "Error|null; error is required when ok=false"
+    },
+    "event": {
+      "stream_id": "string",
+      "sequence": "Within one subscription epoch the next sequence is previous + 1. Duplicate delivery preserves the original content. Gaps require recovery; sequence alone cannot identify a series.",
+      "event": "allowlisted string",
+      "payload": "object"
+    },
+    "hello": {
+      "role": "market|ai|indicator",
+      "worker_version": "string",
+      "supported_protocols": "array",
+      "capabilities": "array"
+    },
+    "error": {
+      "code": "enum",
+      "message": "non-sensitive string",
+      "retryable": "boolean",
+      "details": "object"
+    },
+    "error_codes": [
+      "INVALID_ARGUMENT",
+      "UNSUPPORTED_CAPABILITY",
+      "PERMISSION_DENIED",
+      "CONFIRMATION_REQUIRED",
+      "CANCELLED",
+      "TIMEOUT",
+      "WORKER_EXITED",
+      "PROTOCOL_MISMATCH",
+      "DATA_UNAVAILABLE",
+      "STALE_CONTEXT",
+      "RESOURCE_LIMIT",
+      "OUTPUT_INVALID",
+      "PROVIDER_NOT_CONFIGURED",
+      "INTERNAL_ERROR",
+      "BUSY",
+      "SNAPSHOT_UNAVAILABLE"
+    ],
+    "validation": [
+      "Generate executable JSON Schemas for every message and operation payload",
+      "Explicitly set additionalProperties=false; extension fields are allowed only in explicit metadata",
+      "Reject NaN/Infinity",
+      "Reject oversized messages",
+      "Correlate by request_id; do not rely on response order",
+      "Cancellation and duplicate requests have explicit terminal states",
+      "Fail closed on unknown protocol major versions"
+    ],
+    "ai_channel": "The worker requests a proposed tool call with a task and a distinct call identity. The core authorizes against the calling session and returns a private correlated tool result. Only successful core receipts justify describing an action as executed. The private reply is never advertised as a public tool.",
+    "local_import_worker": {
+      "startup": "A dedicated one-shot worker advertises market.previewLocalImport and the private market.checkLocalImport and market.inspectLocalFolderSource capabilities in a validated 1.1 hello. The Rust host authorizes the local human and resolves the current selection before supplying any source bytes. The synthetic market worker has no local-file capability.",
+      "input": "Private UTF-8 NDJSON frame version 1 carries request_id, byte_count, sha256, mapping and one of row_limit, complete or inspect_refresh. Each following frame carries version, request_id, zero-based index and canonical base64 data. All chunks except the last contain 192 KiB of source bytes. Check complete byte count, ordered indices, EOF and SHA-256 before analysis. Do not include source paths, caller identity or grants.",
+      "output": "Return one correlated UTF-8 NDJSON terminal frame with the preview, complete normalization, read-only inspection or a sanitized failure. Every frame includes its envelope and newline in the 4 MiB limit. Preview samples up to 500 rows from complete input of at most 4 MiB. Publication and inspection check at most 10,000 source records under the same byte budgets. Check explicit source quantity unit, price adjustment and venue against the reviewed mapping. Inspection retains all competing values and locators at a bar start for review. Publication requires an unambiguous complete normalization. A result that cannot fit returns RESOURCE_LIMIT without partial rows. Cancel or discard the private worker on interrupted or superseded reads.",
+      "scope": "Implemented one-shot CSV transport for bounded files. These limits qualify this protocol and its current worker. The bulk reader evaluation has an independent dataset capacity."
+    },
+    "compatibility": {
+      "legacy": "The 1.0 envelopes and projections remain available for legacy callers. They support the bounded historical read contract. Current operations requiring immutable market input, current grants, a selection or a durable receipt use the negotiated 1.1 profile.",
+      "selection": "Validate the asserted worker role and the highest mutually supported profile, intersect advertised capabilities with the core role and implemented operation allowlists, and require the capabilities for the requested action. Ignore unknown optional capabilities. Reject an incompatible major or missing required capability with a sanitized reason. A lower profile never grants new operations.",
+      "lifetime": "Pin version, role and capabilities for the life of each worker connection. Renegotiate on reconnect. Re-pair and reauthorize an external client for a changed scope before accepting more work. An old client may retain its explicitly supported reads. Writes requiring unavailable revision, target, projection or receipt checks require an upgrade."
+    },
+    "message_scopes": "The canonical root union defines the legal messages for each negotiated version. Worker role, transport direction, task ownership and capability checks narrow structural validity. A registered planned type never advertises an implemented operation.",
+    "error_handling": {
+      "busy": "BUSY reports temporary admission pressure. Retry after the active request completes, within the retry budget.",
+      "limits": "RESOURCE_LIMIT reports a hard byte, count or concurrency budget on the requested workload. A size failure requires paging or a smaller request. Retrying the identical oversized request cannot help.",
+      "snapshot": "SNAPSHOT_UNAVAILABLE identifies an expired, corrected or offline requested input that the source cannot reconstruct. Show the original reference and offer a separately requested latest read."
+    },
+    "envelope_profiles": {
+      "discovery": "For every public operation, input_spec and output_spec in this contract name canonical JSON Schema definitions. The current manifest wire_bindings name the complete versioned commands and replies when present. The unversioned manifest input/output name the payload projections. For instrument.search and market.getBars the host uses the negotiated legacy lane and its unchanged payloads.",
+      "legacy": "The request, response, event, cancel and heartbeat field summaries here describe the 1.0 base profile. Their union members in the canonical schema are authoritative for 1.0.",
+      "current": "Version 1.1 adds distinct, direction-checked message variants. Scoped mutations carry scope and intent, and return a correlated outcome with the receipt on commitment. Shared selections, projected reads, indicator tasks, market pages and private worker deliveries each have their own explicitly identified messages in the canonical root union."
+    }
+  },
+  "history_pagination": "The 4 MiB NDJSON frame budget includes its envelope, escaping and line terminator. Each page is measured in encoded bytes and may contain fewer bars than requested. The first offset is zero. Each continuation binds the frozen hash, next bar index, previous bar time and prefix hash. Subsequent calls echo that snapshot and cursor. A terminal null cursor and offset plus count equal to total are required for complete coverage. Reject empty non-terminal pages, crossed snapshots, discontinuous indices and mismatched digests. Cancel or a missing revision discards incomplete results. If metadata or a single record cannot fit, or the bounded snapshot exceeds 100000 bars including warmup, return RESOURCE_LIMIT and offer a smaller range. BUSY means transient contention and may be retried unchanged.",
+  "indicator_limits": {
+    "max_bars": 100000,
+    "max_series": 16,
+    "max_markers": 2000,
+    "max_regions": 500,
+    "max_ast_nodes": 256
+  },
+  "indicator_result_budget": "A 4 MiB NDJSON limit includes envelope and newline. Validate the input aggregate before scheduling and cap structured output across all chunks as one result. Inline only a fitting frame. For outputs lacking a negotiated bounded result transport reject the whole preview with RESOURCE_LIMIT and ask for a narrower visible interval or fewer series. Never truncate to indicate success. When both sides support the 1.1 indexed artifact, bind every segment to the same task, artifact ID, index and result hash. Display or accept only after validating all indices, declared byte length, final digest and result schema.",
+  "workers": {
+    "language": "Python 3.12",
+    "roles": [
+      "market",
+      "ai",
+      "indicator"
+    ],
+    "validation": "Generated protocol types and runtime validation",
+    "packaging": "PyInstaller is a standalone packaging candidate for Python capabilities. Select the distribution from tests of the exact Windows package. No build environment is required on the user machine.",
+    "ownership": "The Rust host owns data admission, publication, cancellation and worker lifetimes. Evaluate native batch readers for ordinary CSV and Parquet. Keep the existing Rust declarative indicator evaluator.",
+    "current": "The existing synthetic market, model, trusted indicator and bounded CSV workers use Python 3.12. Qualify a replacement for each affected workflow before retiring its runtime.",
+    "distribution": "A clean desktop installation supports its standard workflows without a user-installed Python or Node environment. Choose packaging per capability from native installer and cold-start measurements. Load a trusted Python indicator runtime or a provider-specific Python SDK on demand when its workflow requires it."
+  }
+}

@@ -9,7 +9,7 @@
     {
       "name": "Tauri sidecars",
       "url": "https://v2.tauri.app/develop/sidecar/",
-      "use": "Package native Python workers without a user-installed interpreter; M5"
+      "use": "Evaluate Tauri sidecars for capabilities that need a separate runtime. Qualify the actual package on Windows without a user-installed interpreter."
     },
     {
       "name": "Tauri Windows installer",
@@ -23,12 +23,15 @@
       "docs": "https://tradingview.github.io/lightweight-charts/docs"
     },
     {
-      "name": "OpenBB Workspace",
-      "url": "https://docs.openbb.co/workspace/analysts/dashboards",
+      "name": "FINOS Workspace (formerly OpenBB Workspace)",
+      "url": "https://github.com/finos-labs/finos-workspace",
       "docs": "https://docs.openbb.co/workspace/developers/json-specs/widgets-json-reference",
       "parameter_linking": "https://docs.openbb.co/workspace/analysts/widgets/interacting-with-data",
-      "use": "Reference for arranging and resizing widgets and sharing selected parameters among related views. The widget specification illustrates how a view describes its expected data and display settings. ScopeHub resolves approved sources through its own adapters and Rust operations.",
-      "dependency_status": "not_adopted"
+      "use": "The widget metadata binds endpoints, data arguments and default display. The MCP data tool accepts an exact widget identity and explicit arguments. Use these as an optional integration reference. In ScopeHub custom views consume authorized data independently of a widget and identify the frozen evidence revision.",
+      "dependency_status": "not_adopted",
+      "reviewed_revision": "e9bcd6a9eeddea1dcf5bf58e6d2abaf752eb7baf",
+      "source_example": "https://github.com/finos-labs/finos-workspace/blob/e9bcd6a9eeddea1dcf5bf58e6d2abaf752eb7baf/docs/examples/reference-backend/widgets.json",
+      "source_tool": "https://github.com/finos-labs/finos-workspace/blob/e9bcd6a9eeddea1dcf5bf58e6d2abaf752eb7baf/agent/mcp-server/src/tools/workspace/get-widget-data.ts"
     },
     {
       "name": "JSON Schema",
@@ -71,6 +74,15 @@
       "name": "Playwright",
       "url": "https://playwright.dev/docs/test-intro",
       "use": "Pinned 1.65.1 development-only Chromium 159.0.8154.6 verification. Includes the upstream Windows TCP source-port randomization fix (Playwright #43605). Uses the real Rust/Python backend through a substitute WebView transport. Packaged desktop acceptance is verified separately."
+    },
+    {
+      "name": "Open Data Platform (ODP V5)",
+      "url": "https://github.com/openbq-org/OpenBB",
+      "reviewed_revision": "869cfed12599e1fd313a2ff186c5b39fa7d3a4a5",
+      "docs": "https://docs.openbb.co/odp/python/faqs/license",
+      "source": "https://github.com/openbq-org/OpenBB/blob/869cfed12599e1fd313a2ff186c5b39fa7d3a4a5/openbb_platform/core/openbb_core/provider/abstract/fetcher.py",
+      "use": "Candidate for M1-009. Its Fetcher transforms a query, extracts provider data and normalizes results. Compare one provider against direct access with actual entitlement and provenance. ODP V5 has Apache-2.0 licensing, V4 retains AGPL and provider data has separate terms.",
+      "dependency_status": "candidate_not_integrated"
     }
   ]
 }

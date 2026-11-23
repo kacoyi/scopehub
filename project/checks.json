@@ -730,7 +730,7 @@
     {
       "id": "parquet-market-import",
       "status": "planned",
-      "purpose": "Observe CSV/Parquet mapping, equity and auction identity, adjustment basis, units, missing values, provenance and recovery through the local product.",
+      "purpose": "Observe CSV/Parquet mapping, equity and auction identity, adjustment basis, units, missing values, provenance and recovery through the local product. Exercise multi-year synthetic minute data beyond the current CSV byte and record ceilings. Verify exact counts, bounded memory, cancellation and an atomic revision against independent expected values.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900
@@ -892,26 +892,30 @@
       "requirement": "From a blank workbench, the user and embedded AI compose an original chart-free view from authorized data and actions. Locally edit it, refresh its data, inspect evidence, undo and reopen it without a product rebuild. Recover the accepted view after a failed draft.",
       "checks": [
         "chart-free-workbench"
-      ]
+      ],
+      "id": "user-composed-workbench"
     },
     {
       "requirement": "A clean Windows x64 system without Python/Node can install and run simulated mode",
       "checks": [
         "windows-installation"
-      ]
+      ],
+      "id": "clean-windows-installation"
     },
     {
       "requirement": "Open all three synthetic instruments and switch timeframes; the UI explicitly displays simulated",
       "checks": [
         "market-workflow"
-      ]
+      ],
+      "id": "historical-markets"
     },
     {
       "requirement": "After disconnecting the market worker, its status is visible and recovery uses bounded retries without duplicate subscriptions",
       "checks": [
         "market-workflow",
         "market-recovery"
-      ]
+      ],
+      "id": "market-interruption"
     },
     {
       "requirement": "Mock AI creates a declarative abnormal-volatility indicator based on user requirements; preview, acceptance, removal, and undo all complete",
@@ -919,27 +923,31 @@
         "ai-workflow",
         "indicator-workflow",
         "operations-workflow"
-      ]
+      ],
+      "id": "indicator-authoring"
     },
     {
       "requirement": "AI tools and user operations use the same registry; direct requests for unauthorized operations are rejected",
       "checks": [
         "operations-workflow",
         "ai-workflow"
-      ]
+      ],
+      "id": "shared-authority"
     },
     {
       "requirement": "For new work, existing confirmations become invalid when parameters, the code hash or a bound workspace or selection revision changes",
       "checks": [
         "operations-workflow",
         "indicator-workflow"
-      ]
+      ],
+      "id": "bound-confirmation"
     },
     {
       "requirement": "Indicator timeouts, exceptions, and invalid output neither interrupt market data nor overwrite accepted indicators",
       "checks": [
         "indicator-workflow"
-      ]
+      ],
+      "id": "isolated-indicator-failure"
     },
     {
       "requirement": "Closing and reopening restores the workspace and indicator versions without re-executing previous AI tasks",
@@ -947,19 +955,22 @@
         "operations-workflow",
         "indicator-workflow",
         "state-migrations"
-      ]
+      ],
+      "id": "durable-workspace"
     },
     {
       "requirement": "Logs, the database, and worker environments contain no plaintext credentials",
       "checks": [
         "credential-boundaries"
-      ]
+      ],
+      "id": "credential-confidentiality"
     },
     {
       "requirement": "No worker child processes remain alive after application shutdown",
       "checks": [
         "runtime-stability"
-      ]
+      ],
+      "id": "worker-shutdown"
     },
     {
       "requirement": "Generated types have no uncommitted differences; schemas and validation in all three languages are consistent",
@@ -969,13 +980,15 @@
         "typescript-contracts",
         "python-contracts-workers",
         "rust-contracts-workers"
-      ]
+      ],
+      "id": "protocol-conformance"
     },
     {
       "requirement": "Select a local CSV directory, correct an import preview and refresh it with new files. Source revisions and rejected records are inspectable and repeat imports are idempotent.",
       "checks": [
         "local-folder-import"
-      ]
+      ],
+      "id": "local-csv-revisions"
     },
     {
       "requirement": "Preview, apply, name, restore and revert a single-chart layout. Manual and AI edits use the same panel settings, linked selections and allowed interactions. Compatible widgets can share authorized data and keep their arrangement when the user changes source.",
@@ -984,28 +997,32 @@
         "operations-workflow",
         "ai-workflow",
         "workspace-widget-bindings"
-      ]
+      ],
+      "id": "default-chart-layout"
     },
     {
       "requirement": "The human and AI can each point to a versioned workspace object, reveal evidence in another panel, refine the selection and return to the previous view.",
       "checks": [
         "ai-workflow",
         "ai-replay-evaluations"
-      ]
+      ],
+      "id": "shared-evidence"
     },
     {
       "requirement": "AI operations show their target, preview or progress and actual outcome in the affected view. Confirmation, denial, failure and cancellation remain visible.",
       "checks": [
         "ai-workflow",
         "operations-workflow"
-      ]
+      ],
+      "id": "visible-ai-actions"
     },
     {
       "requirement": "An explicitly enabled real voice session supports spoken discussion, interruption and text follow-up under the same operation permissions. A denied or interrupted request has an observable outcome.",
       "checks": [
         "configured-voice-session",
         "credential-boundaries"
-      ]
+      ],
+      "id": "voice-continuation"
     },
     {
       "requirement": "Starting from a buy question, compare evidence, revise a challenged premise, and perform only a separately authorized workspace change. Reopen a user-saved decision and distinguish the original rationale from the later outcome.",
@@ -1013,7 +1030,8 @@
         "ai-workflow",
         "ai-replay-evaluations",
         "state-migrations"
-      ]
+      ],
+      "id": "evidence-based-decision"
     },
     {
       "requirement": "Choose a provider and model independently of market data. Show verified capabilities, destination and applicable charges, handle an unsupported feature, and exercise a configured model on an evidence-based discussion.",
@@ -1021,46 +1039,53 @@
         "configured-model-session",
         "ai-replay-evaluations",
         "credential-boundaries"
-      ]
+      ],
+      "id": "model-selection"
     },
     {
       "requirement": "An opted-in local MCP client reads the selected chart and, with a write grant, adds a reversible annotation to the same open workspace. The UI attributes the action. Denied, stale and revoked requests preserve the workspace and respect output permissions.",
       "checks": [
         "external-ai-bridge",
         "operations-workflow"
-      ]
+      ],
+      "id": "external-mcp-access"
     },
     {
       "requirement": "Observe Codex CLI and one compatible desktop AI client separately reading the open chart and applying a scoped annotation. Verify the visible result and undo on each supported test host.",
       "checks": [
         "configured-external-ai-clients"
-      ]
+      ],
+      "id": "external-client-acceptance"
     },
     {
       "requirement": "On a fresh install without a ScopeHub account or data plan, open Settings > Data sources > My data sources, select a folder of personally downloaded data and configure the user's own endpoint and fixture credentials in the API form. Test, save, refresh and disconnect independently with a controlled connector. Verify optional ScopeHub data services are labeled separately. Opt in to the read-only saved folder and approve a versioned rule. Publish compatible appends once across notifications, retry and restart. Stage a historical correction or removal for review, stop publication after pause or revocation, and require explicit rebind before using a replacement root. Reopen the prior entitled revision.",
       "checks": [
         "my-data-source-settings",
         "saved-directory-refresh"
-      ]
+      ],
+      "id": "saved-data-sources"
     },
     {
       "requirement": "Profile, map, preview and verify CSV and Parquet market fixtures offline. Inspect typed daily and auction records, leading-zero symbols, units, missing values and adjustment-factor provenance. Reject publication under a stale rule and reproduce an analysis from the retained source and rule revisions.",
       "checks": [
         "parquet-market-import"
-      ]
+      ],
+      "id": "local-data-preparation"
     },
     {
       "requirement": "Select the public owner-earnings analysis method and run it on dated evidence. Show its author, source and version, as-of inputs, calculations, counterevidence and gaps. Repeat from the same evidence and verify that selecting the method grants no additional tool or data access.",
       "checks": [
         "analysis-method-replay"
-      ]
+      ],
+      "id": "replay-analysis-method"
     },
     {
       "requirement": "Use the desktop in English or Simplified Chinese, follow the system language or save an override, and change languages with a chart and a draft open. Preserve the selected market evidence and original user content across the change.",
       "checks": [
         "desktop-localization",
         "local-import-ui"
-      ]
+      ],
+      "id": "desktop-language"
     }
   ],
   "profiles": {
@@ -1164,5 +1189,14 @@
     "desktop-workspace-transport",
     "desktop-localization"
   ],
-  "gate_changes": []
+  "gate_changes": [],
+  "desktop_performance": {
+    "profile": "Record CPU/RAM/Windows/WebView2 versions; release build; 10000 bars; one chart; mock stream at 10 updates/s",
+    "initial_bars_to_chart_p95_ms": 1000,
+    "chart_update_p95_ms": 200,
+    "continuous_run_minutes": 120,
+    "memory_policy": "Sample total process-tree private bytes once per minute for 120 minutes. Discard the first 10 samples and compare the medians of eleven consecutive ten-sample windows. Growth above the greater of 32 MiB or 10 percent of the first median, with at least eight of ten window-to-window increases, fails. Growth above that threshold with fewer increases is inconclusive and requires investigation and another retained run. A complete series below or at the threshold passes this bounded observation.",
+    "measurement": "Use the identified release installer and record Windows family/build, WebView2, CPU, RAM, display scale and refresh rate. Run the same fixed 10,000-bar dataset in a fresh app process for 20 cold chart loads and in one reused process for 20 warm loads. Report each group separately. Use nearest-rank p95 from user request to first presented frame containing all requested bars. Both groups must meet the first-chart limit.",
+    "updates": "For 120 minutes at 10 ordered updates per second measure publication to the first presented chart frame carrying that position or a later coalesced position. Attribute every update to a visible frame. All 72,000 positions and the final closed bar must be accounted for. Missing samples or an unpainted final bar block acceptance."
+  }
 }

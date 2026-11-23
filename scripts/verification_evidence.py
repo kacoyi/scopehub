@@ -290,7 +290,7 @@ def collect_session(run_dir, key, source):
             from .session_qualification import validate_qualification
         else:
             from session_qualification import validate_qualification
-        case = read_json(ROOT / 'engineering-contract-v1.json')['ai']['qualified_session_acceptance']['reference_case']
+        case = read_json(ROOT / 'tests/fixtures/financial-session-v2.json')
         try:
             result['qualification_case'] = validate_qualification(obs, case)
         except ValueError as error:

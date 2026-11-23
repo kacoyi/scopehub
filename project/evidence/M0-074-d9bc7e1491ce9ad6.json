@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-074",
+  "task_definition_sha256": "3040d26929065209edacf51bb3d6faae9a871b5f9566580a84b2766912003f3d",
+  "run_id": "20261123T041540.066293Z-9c07e080",
+  "recorded_at": "2026-11-23T04:17:45.208382+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "fc78ab1abd22b294b1f40b091f3b32cfc1cbd38f649ec380b1f9ddde95b655c5",
+    "file_count": 554,
+    "git_head": "fcb282324e7b82d26b71580eca70282445efbb31",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "d9bc7e1491ce9ad63be813b45e7c048f734577a0a4c4f5c8603efb28b33be032",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/dev/scopehub/repo/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/dev/scopehub/repo/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fa16a5251c38c767f40205f794f7d061ed58242c7829ab1f08b3744e46937ab0"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/dev/scopehub/repo/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "25ddfb4aac890e3c2356d1fbeca76e2a08aae37d9dddead107b25b3654f822e5"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/dev/scopehub/repo/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/dev/scopehub/repo/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "10"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1a55eca08a6ab5077c560c43b936d495c4027267e9a8f017553512cfdbbffaf2"
+    }
+  ],
+  "project_definition_sha256": "b9954c314b520e84253ec9290db2cb3a8a2b2630cf7a9f9fe9a53fb7ef33b001",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

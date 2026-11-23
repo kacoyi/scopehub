@@ -9,8 +9,10 @@ import subprocess
 from jsonschema import validators
 
 if __package__:
+    from .development import resolve_source, validate_engineering_links
     from .rust_workspace import workspace_packages
 else:
+    from development import resolve_source, validate_engineering_links
     from rust_workspace import workspace_packages
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -175,9 +177,19 @@ def desktop_capability_errors(root):
     return errors
 
 
+def valid_operation_actors(operation, declared_actors):
+    actors = operation['actors']
+    if not isinstance(actors, list) or not actors or any(actor not in declared_actors for actor in actors):
+        return False
+    if operation.get('transport') == 'private_workspace':
+        return actors == ['user']
+    return len(set(actors)) == len(actors)
+
+
 def main():
     errors = []
     spec = json.loads((ROOT / 'engineering-contract-v1.json').read_text(encoding='utf-8'))
+    validate_engineering_links(ROOT, spec)
     manifest = json.loads((ROOT / 'contracts/contract.json').read_text(encoding='utf-8'))
     schema = json.loads((ROOT / manifest['schema']).read_text(encoding='utf-8'))
     for path in spec['repository']['required_files']:
@@ -207,25 +219,30 @@ def main():
                 errors.append(f'Worker database access: {relative}')
             if any(name.startswith('providers') for name in imports) and relative.parts[0] not in {'providers', 'worker_runtime'}:
                 errors.append(f'Provider dependency outside data boundary: {relative}')
-    expected = {op['name']: op for op in spec['operations']}
-    actual = {op['name']: op for op in manifest['operations']}
-    if set(actual) != set(expected) or set(expected) != set(schema['$defs']['OperationName']['enum']):
+    catalog = manifest['operations']
+    actual = {op['name']: op for op in catalog}
+    if (spec['operations'] != {'$source': {'path': 'contracts/contract.json', 'pointer': '/operations'}}
+            or len(catalog) != len(actual)
+            or set(actual) != set(schema['$defs']['OperationName']['enum'])):
         errors.append('Operation catalog drift')
-    for name in actual.keys() & expected.keys():
-        for key in ['effect', 'confirmation', 'undoable', 'actors']:
-            if actual[name][key] != expected[name][key]:
-                errors.append(f'Operation policy drift: {name}.{key}')
-        if actual[name].get('transport') != expected[name].get('transport'):
-            errors.append(f'Operation policy drift: {name}.transport')
-        binding = actual[name].get('wire_bindings', {}).get(manifest['protocol_version'], actual[name])
-        for direction in ['input', 'output']:
-            if expected[name][direction + '_spec'] != binding[direction] or binding[direction] not in schema['$defs']:
-                errors.append(f'Engineering operation binding differs from the negotiated schema: {name}.{direction}')
-            if actual[name][direction] not in schema['$defs']:
-                errors.append(f'Missing operation schema: {name}.{direction}')
-    if (schema['$defs']['ProtocolVersion11']['const'] != spec['protocol']['version']
+    for name, op in actual.items():
+        if (op['effect'] not in {'read', 'workspace', 'draft', 'compute', 'persist', 'control'}
+                or type(op['undoable']) is not bool
+                or not (type(op['confirmation']) is bool or op['confirmation'] == 'python_only')
+                or not valid_operation_actors(op, spec['authorization']['actors'])
+                or op.get('transport') not in (None, 'private_workspace')):
+            errors.append(f'Invalid operation authority: {name}')
+        versions = op.get('wire_bindings', {})
+        if not set(versions).issubset(manifest['compatible_protocol_versions']):
+            errors.append(f'Unsupported wire binding: {name}')
+        for binding in [op, *versions.values()]:
+            for direction in ['input', 'output']:
+                if binding[direction] not in schema['$defs']:
+                    errors.append(f'Missing operation schema: {name}.{direction}')
+    version = resolve_source(ROOT, {'path': 'engineering-contract-v1.json', 'pointer': '/protocol/version'})
+    if (schema['$defs']['ProtocolVersion11']['const'] != version
             or schema['$defs']['ProtocolVersion']['const'] != '1.0'
-            or manifest['protocol_version'] != spec['protocol']['version']):
+            or manifest['protocol_version'] != version):
         errors.append('Protocol version drift')
     for name, definition in schema['$defs'].items():
         if definition.get('type') == 'object' and name != 'Metadata' and definition.get('additionalProperties') is not False:

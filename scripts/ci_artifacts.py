@@ -314,7 +314,7 @@ def stage_artifacts(root, destination, env):
                          and report['status'] in {'failed', 'blocked'}
                          and {'windows-installation', 'runtime-stability'}.intersection(executed))
     if 'release-artifacts' in executed or attempted_release:
-        stage_candidate(reports, destination, run, report, project['spec']['acceptance']['performance'],
+        stage_candidate(reports, destination, run, report, project['catalog']['desktop_performance'],
                         expected=candidate)
 
     if scope is not None:

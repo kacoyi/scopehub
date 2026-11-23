@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "id": "0028",
+  "title": "Separate bulk market data from control messages and assign one owner to each contract detail",
+  "status": "accepted",
+  "recorded_at": "2026-11-23",
+  "context": "The current Rust host sends a bounded CSV to a one-shot Python process. Python buffers the decoded file and returns one terminal frame including complete results. The retained A-share assessment includes an 18,463,529-row daily Parquet file and eighteen yearly minute partitions per interval. The application already evaluates its declarative indicator AST in Rust. The engineering index duplicated 46 operations and 25 acceptance procedures and embedded fixed financial test answers. A local synthetic CSV probe through the existing worker published 10,000 distinct daily records from 360,044 bytes. With one more distinct record it returned RESOURCE_LIMIT at 360,080 bytes. This establishes the current admission boundary.",
+  "decision": "Keep source access, publication, revisions and authorization in the trusted core. Design bulk import around sequential or projected reads and bounded batches. Return limited previews, progress and revision handles through the control channel. Compare native CSV and Parquet readers under M1-029. Bind the public wire types to executable schemas and the operation policies to the catalog consumed by Rust. Store the implemented worker profile, supported storage behavior, release procedures and synthetic reference answers with their consumers.",
+  "authority": "Implementation ownership under ADR 0007 and the existing offline CSV/Parquet requirement under ADR 0023. M1-029 selects the reader and process boundary with measured evidence. This decision changes engineering ownership and evaluation criteria. The approved product scope, data rights and release gates continue.",
+  "alternatives": [
+    {
+      "option": "Raise the current file and record constants and return the full normalized result in one message.",
+      "reason": "The input and output can each exceed their respective bound. The existing worker retains the complete file before it parses it. More memory and a larger UTF-8 frame would still scale with dataset size."
+    },
+    {
+      "option": "Require DuckDB, Polars, a separate Rust process or a Python distribution for all installations now.",
+      "reason": "The current assessment observed typed data and joins in an isolated development environment. It did not exercise a distributable reader or compare its footprint and recovery with a streaming implementation."
+    },
+    {
+      "option": "Use a widget manifest as the required workspace language.",
+      "reason": "FINOS Workspace supplies data endpoint metadata and configurable display defaults. A custom ScopeHub view can bind the same evidence to an original presentation, independently of that catalog."
+    }
+  ],
+  "consequences": [
+    "For native ingestion, bind a scoped input stream or staged immutable file to the approved root, mapping and content digest. Verify original record locators and frozen revision identity. Cancel or revoke before publication without exposing partial data. Old revisions and original-row lookup survive a cutover. SQLite publication stays with the single writer.",
+    "Compare a simple streaming CSV reader with a projected native Parquet reader, including DuckDB through Rust bindings and Polars when its workload fit warrants it. Limit batches, memory and staging disk independently of the total history. CSV parsing, Parquet decoding and durable writes can allocate. Record actual copy, memory and runtime costs.",
+    "Qualify the base installer and optional Python components independently on Windows using their exact bytes, process lifetimes, activation delays and observed protection events. Existing Python market and AI workflows need equivalents or compatible packaging before removing their runtime. Trusted scripts retain explicit approval and their existing trust policy.",
+    "FINOS workspace metadata and MCP argument bindings can inform a read adapter and data citation. The raw view may fetch data again, so pin the same version or label a newer read. ODP V5 is a candidate under M1-009. Compare the underlying provider entitlement and data identity with a direct connection. The owner has not selected a provider, purchased service or approved an external data transfer.",
+    "Existing private CSV limits and SQLite publication generations still apply to their supported versions. The root engineering contract names product obligations and links their technical owners. Stable product acceptance IDs stay in the root. Checks, including the blank-workbench gate, own the detailed procedure and measured evidence."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0001",
+    "0002",
+    "0007",
+    "0013",
+    "0023",
+    "0027"
+  ],
+  "revisit_when": "A measured native reader fails a required mapping or exceeds the resource envelope, an optional execution backend lacks equivalent clean-machine distribution, or a compatibility record cannot represent a supported consumer.",
+  "references": [
+    "project/assessments/a-share-parquet-20261122.json",
+    "https://www.finos.org/blog/the-agentic-desktop-announcing-finos-workspace",
+    "https://docs.openbb.co/workspace/developers/json-specs/widgets-json-reference",
+    "https://docs.openbb.co/odp/python/faqs/license",
+    "https://pyinstaller.org/en/stable/operating-mode.html"
+  ]
+}
