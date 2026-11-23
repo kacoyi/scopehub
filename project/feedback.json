@@ -3480,7 +3480,7 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Rows declaring a bar end, a different calendar or session, or an equity instrument still normalized and passed the complete-file check under a bar-start dated futures mapping. The declaration list did not cover the formal mapping and series fields.",
       "task_ids": [
         "M1-035"
@@ -3491,7 +3491,11 @@
         "local-folder-refresh-preview",
         "desktop-localization"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The normalizer recognized a partial list of economic declarations, independent of the canonical native series and interpretation rules. Unsupported source values could therefore acquire the reviewed mapping semantics.",
+        "correction": "Classify every CsvMappingV1 property. Inspect every applicable unbound semantic declaration, preserving exact identifiers and source formatting, permitted equivalents, the original reserved economic headers and established custom bindings. Whole-file publication and folder review use the same comparison as row preview.",
+        "prevention": "Independent examples and both language catalogs cover every semantic property in the canonical schema. Worker regressions cover conflicting and matching values, historical header aliases, active interpretation rules and data bindings. Real profile publication and folder review verify late conflicts and unchanged accepted data. The failed baseline and passing task receipt are retained."
+      },
       "deferral_reason": null
     }
   ]

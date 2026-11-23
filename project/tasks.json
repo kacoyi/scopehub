@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-035",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15967,7 +15967,7 @@
       "id": "M1-035",
       "title": "Validate every explicit native CSV series declaration against the reviewed mapping",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-034"
       ],
@@ -16003,10 +16003,15 @@
         "local-import-publication",
         "local-folder-refresh-preview"
       ],
-      "evidence": [],
-      "next_action": "Verify all semantic fields against the canonical schema, then exercise whole-file publication and folder review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-035-3dbefe52a288f80b.json",
+          "sha256": "500d480c1e8983ddaf81f04d2e6850bb6da88934f002d0b1667d93d8b6bdc778"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The clean implementation 52a4c01 passed the task checks. Workers reject each of 15 explicit contradictions at the recorded late source row, verify all 20 mapping fields have a defined role and preserve accepted equivalents, custom bindings and established reserved aliases. The real publication bridge retained the only accepted revision after failures. Folder review excluded the contradictory files while preserving a genuine price conflict and the frozen chart. Both desktop languages cover every semantic field. The pre-correction diagnostic is linked to the feedback.",
       "plan": {
         "outcome": "Explicit source conventions and reviewed native bar semantics agree for each row that can enter a frozen revision.",
         "change_types": [
