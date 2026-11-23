@@ -1322,6 +1322,150 @@ class DeliveryTests(ProjectFixture):
         (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
         checks(error='Feedback disappeared')
 
+    def legacy_feedback(self, status='open'):
+        item = self.feedback(status)
+        item['source'] = 'Original check at .reports/runs/field-1/test-report.json.'
+        item['diagnostic_reports'] = [{'run_id': 'field-1', 'source_commit': '1' * 40, 'report_sha256': '2' * 64}]
+        return item
+
+    def feedback_rule_cutover(self):
+        """Build two protected merges around an independently selected receipt-format introduction."""
+        def git(*args):
+            return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
+                                   '-c', 'commit.gpgsign=false', *args], cwd=self.root, capture_output=True,
+                                  check=True, text=True).stdout.strip()
+
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        before = self.commit_fixture()
+        git('checkout', '-qb', 'receipt-rule')
+        (self.root / 'rule.txt').write_text('Synthetic verification rule.\n')
+        self.commit_fixture()
+        git('checkout', '-qb', 'protected', before)
+        self.save_feedback(self.legacy_feedback())
+        observed = self.commit_fixture()
+        self.save_feedback(self.legacy_feedback('addressed'))
+        last_legacy = self.commit_fixture()
+        git('merge', '--quiet', '--no-ff', '--no-edit', 'receipt-rule')
+        introduction = git('rev-parse', 'HEAD')
+        self.assertEqual(last_legacy, git('rev-parse', 'HEAD^1'))
+        self.enterContext(patch.object(project_cli, 'FEEDBACK_RECEIPT_INTRODUCTION', introduction))
+        # The candidate is a synthetic PR merge with the rule on its base parent.
+        git('checkout', '-qb', 'candidate', last_legacy)
+        (self.root / 'feature.txt').write_text('Separate feature.\n')
+        self.commit_fixture()
+        git('checkout', '-q', 'protected')
+        git('merge', '--quiet', '--no-ff', '--no-edit', 'candidate')
+        return git, before, observed, last_legacy, introduction
+
+    def check_feedback_range(self, base, checkpoint=None, *, error=None):
+        env = {'SCOPEHUB_REVIEW_BASE': base, 'SCOPEHUB_CHECKPOINT_BASE': checkpoint or ''}
+        with patch.dict(os.environ, env):
+            for command in (lambda: review_history(self.root, base, checkpoint_base=checkpoint),
+                            lambda: project_cli.local_feedback_history(self.root, load_project(self.root))):
+                if error:
+                    with self.assertRaisesRegex(ProjectError, error):
+                        command()
+                else:
+                    self.assertEqual('passed', command()['status'])
+
+    def test_feedback_range_crosses_protected_rule_introduction_with_exact_legacy_rows(self):
+        git, before, observed, last_legacy, introduction = self.feedback_rule_cutover()
+        for base in (before, observed, last_legacy, introduction):
+            with self.subTest(base=base):
+                self.check_feedback_range(base)
+        self.check_feedback_range(observed, before)
+        accepted = self.legacy_feedback('addressed')
+        # An already closed observation may relocate its source without pretending to recur.
+        # Inheriting that same legacy resolution for a newly seen closure needs the exact row.
+        self.save_feedback({**accepted, 'source': 'Verified retained public observation.'})
+        self.check_feedback_range(introduction)
+        self.check_feedback_range(last_legacy)
+        self.check_feedback_range(observed, error='new regression evidence')
+        for edit in ({'source': 'Edited source.'}, {'observation': 'Different failure.'}, {'occurrence': 2},
+                     {'resolution': {**accepted['resolution'], 'cause': 'Edited after review.'}}):
+            with self.subTest(edit=edit):
+                self.save_feedback({**accepted, **edit})
+                self.check_feedback_range(before, error='new regression evidence')
+        self.save_feedback(self.legacy_feedback())
+        self.check_feedback_range(before, error='requires a new occurrence')
+        self.save_feedback({**self.legacy_feedback(), 'occurrence': 2})
+        self.check_feedback_range(before)
+        self.save_feedback(dict(accepted, id='new-major-closure'))
+        self.check_feedback_range(before, error='Feedback disappeared')
+        path = self.root / 'project/feedback.json'
+        path.write_bytes(json_bytes({'schema_version': '1.0', 'items': [accepted, dict(accepted, id='new-major-closure')]}))
+        self.check_feedback_range(before, error='Closing feedback new-major-closure requires new regression evidence')
+
+    def test_legacy_disposition_cannot_overrule_a_later_checkpoint_or_working_candidate(self):
+        git, before, observed, last_legacy, introduction = self.feedback_rule_cutover()
+        candidate = git('rev-parse', 'HEAD')
+        accepted = self.legacy_feedback('addressed')
+        for row, message in ((self.legacy_feedback(), 'new regression evidence'),
+                             ({**self.legacy_feedback(), 'occurrence': 2}, 'occurrence cannot go backwards'),
+                             (None, 'new regression evidence')):
+            with self.subTest(row=row):
+                git('checkout', '--quiet', '--detach', introduction)
+                if row:
+                    self.save_feedback(row)
+                else:
+                    (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+                post_rule = self.commit_fixture()
+                # A dirty restoration over the current candidate must also be checked.
+                self.save_feedback(accepted)
+                self.check_feedback_range(before, error=message)
+                git('checkout', '--quiet', '--detach', '--force', candidate)
+                for prior in (observed, last_legacy, introduction):
+                    self.check_feedback_range(prior, post_rule, error=message)
+                    self.check_feedback_range(post_rule, prior, error=message)
+
+    def test_verified_source_relocation_remains_auditable_after_another_protected_merge(self):
+        git, before, observed, last_legacy, introduction = self.feedback_rule_cutover()
+        accepted = self.legacy_feedback('addressed')
+        source = accepted['source'].replace('.reports/', 'archives/')
+        git('checkout', '-qb', 'relocate')
+        self.save_feedback({**accepted, 'source': source})
+        self.check_feedback_range(introduction)
+        self.commit_fixture()
+        git('checkout', '--quiet', 'protected')
+        git('merge', '--quiet', '--no-ff', '--no-edit', 'relocate')
+        self.check_feedback_range(before, observed)
+        self.check_feedback_range(last_legacy)
+        for edited in (source.replace('field-1', 'unverified'), source.replace('Original check', 'Another report'),
+                       source.replace('archives/', 'vendor/archives/'), source.replace('.json.', '.json.copy.')):
+            with self.subTest(edited=edited):
+                self.save_feedback({**accepted, 'source': edited})
+                with self.assertRaisesRegex(ProjectError, 'new regression evidence|nonlocal report path'):
+                    review_history(self.root, before)
+        for field, value in (('source_commit', '3' * 40), ('report_sha256', '4' * 64)):
+            with self.subTest(field=field):
+                self.save_feedback({**accepted, 'source': source,
+                                    'diagnostic_reports': [{**accepted['diagnostic_reports'][0], field: value}]})
+                self.check_feedback_range(before, error='new regression evidence')
+
+    def test_unrelated_candidate_and_shallow_history_cannot_claim_the_receipt_cutover(self):
+        git, before, observed, last_legacy, introduction = self.feedback_rule_cutover()
+        merged = git('rev-parse', 'HEAD')
+        git('checkout', '--quiet', '--detach', observed)
+        self.save_feedback(self.legacy_feedback('addressed'))
+        (self.root / 'candidate-rule.txt').write_text('Candidate-declared cutover.\n')
+        forged = self.commit_fixture()
+        git('update-ref', 'refs/remotes/origin/main', forged)
+        git('replace', forged, merged)
+        with patch.dict(os.environ, {'SCOPEHUB_FEEDBACK_RECEIPT_INTRODUCTION': forged}):
+            self.check_feedback_range(before, error='new regression evidence')
+        git('replace', '-d', forged)
+        git('checkout', '--quiet', '--detach', merged)
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+        removed = self.commit_fixture()
+        git('checkout', '--quiet', '--detach', merged)
+        # A separate review base has the row, but the second checkpoint's ancestry is cut off.
+        (self.root / '.git/shallow').write_text(removed + '\n', encoding='ascii')
+        self.check_feedback_range(last_legacy, removed, error='new regression evidence')
+        # All objects are readable, but Git cannot prove the introduction's parent.
+        (self.root / '.git/shallow').write_text(introduction + '\n', encoding='ascii')
+        self.check_feedback_range(before, error='new regression evidence')
+        self.check_feedback_range(merged)
+
     def test_default_feedback_preflight_uses_the_locally_observed_protected_merge_base(self):
         def git(*args):
             return subprocess.run(['git', *args], cwd=self.root, capture_output=True, check=True).stdout

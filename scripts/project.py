@@ -43,6 +43,9 @@ DIAGNOSTIC_FILENAMES = {'test-report.json', 'diagnostic.json'}
 LOGICAL_ARCHIVE_PATH = re.compile(
     r'archives/(?:runs/([^/]+)/test-report\.json|recovery/([^/]+)/diagnostic\.json)'
 )
+# The protected merge that introduced observation-bound feedback receipts. Its immutable
+# first parent contains the last dispositions accepted under the previous contract.
+FEEDBACK_RECEIPT_INTRODUCTION = '8e4c903c52843d3ac5c0dc7b7d95210d287cac18'
 
 
 class ProjectError(ValueError):
@@ -1021,24 +1024,51 @@ def verify_feedback_handoff(root, project, commit, old_items, items):
         raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
 
 
-def validate_feedback_checkpoint(root, project, commit, inherited=None):
-    """Preserve recorded findings and require verification for a new serious closure."""
+def feedback_at(root, commit):
     path = 'project/feedback.json'
     original = feedback_git(root, 'show', f'{commit}:{path}')
     if original.returncode:
         entry = feedback_git(root, 'ls-tree', '--name-only', commit, '--', path)
         if entry.returncode or entry.stdout:
             raise ProjectError(f'Cannot read {path} from local feedback checkpoint {commit}')
-        old_items = {}
-    else:
-        try:
-            records = json.loads(original.stdout)['items']
-            if not isinstance(records, list):
-                raise ValueError('Expected a list of feedback items')
-            old_items = indexed(records, 'previous feedback')
-        except (TypeError, ValueError, KeyError) as error:
-            raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
-    items = indexed(project['feedback']['items'], 'feedback')
+        return {}
+    try:
+        records = json.loads(original.stdout)['items']
+        if not isinstance(records, list):
+            raise ValueError('Expected a list of feedback items')
+        return indexed(records, 'previous feedback')
+    except (TypeError, ValueError, KeyError) as error:
+        raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
+
+
+def retained_legacy_disposition(item, accepted):
+    if item == accepted:
+        return True
+    if not accepted or {**accepted, 'source': item['source']} != item:
+        return False
+    # A recorded locator binds the same run, source commit and original bytes after
+    # its move to the durable archive. Only its complete path token may change.
+    moves = {}
+    for locator in accepted.get('diagnostic_reports', []):
+        for directory, filename in (('runs', 'test-report.json'), ('recovery', 'diagnostic.json')):
+            path = f"{directory}/{locator['run_id']}/{filename}"
+            for prefix in ('.reports/', './.reports/'):
+                moves[prefix + path] = 'archives/' + path
+    if not moves:
+        return False
+    pieces = re.compile(f'({PATH_TOKEN.pattern})')
+    original, current = pieces.split(accepted['source']), pieces.split(item['source'])
+    if len(original) != len(current):
+        return False
+    for old, new in zip(original, current):
+        if old != new:
+            path = old.rstrip('.!?:')
+            if path not in moves or new != moves[path] + old[len(path):]:
+                return False
+    return True
+
+
+def validate_feedback_changes(root, project, commit, old_items, items, *, inherited=None, legacy=None):
     verify_feedback_handoff(root, project, commit, old_items, items)
     for key in old_items.keys() - items.keys():
         raise ProjectError(f'Feedback disappeared: {key}; retain its disposition')
@@ -1057,6 +1087,8 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
             continue
         if key not in old_items and inherited and item == inherited.get(key):
             continue
+        if legacy and retained_legacy_disposition(item, legacy.get(key)):
+            continue
         finding = feedback_fingerprint(item)
         if (old_item.get('status') == 'addressed' and finding == feedback_fingerprint(old_item)
                 and set(item['task_ids']) == set(old_item['task_ids'])):
@@ -1070,6 +1102,39 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
         missing = set(item['regression_checks']) - covered
         if missing:
             raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
+
+
+def validate_feedback_checkpoint(root, project, commit, inherited=None):
+    """Recognize an older closure only across the actual protected rule transition."""
+    old_items = feedback_at(root, commit)
+    items = indexed(project['feedback']['items'], 'feedback')
+    last_legacy = f'{FEEDBACK_RECEIPT_INTRODUCTION}^1'
+    # A shallow or unrelated checkout may not prove the crossing. Its ordinary
+    # comparison still requires full current evidence for every changed closure.
+    def ancestor(earlier, later):
+        return feedback_git(root, 'merge-base', '--is-ancestor', earlier, later).returncode == 0
+
+    legacy = None
+    if ancestor(commit, last_legacy) and ancestor(FEEDBACK_RECEIPT_INTRODUCTION, 'HEAD'):
+        legacy = feedback_at(root, last_legacy)
+        # Compare this endpoint too: the caller's older base cannot see a deletion,
+        # edit or recurrence of a finding introduced before the rules changed.
+        validate_feedback_changes(root, project, last_legacy, legacy, items)
+        # A working-tree edit cannot use an old disposition to close an observation
+        # that is open on the checked-out candidate, even with only a long review base.
+        head_items = feedback_at(root, 'HEAD')
+        if head_items != items:
+            validate_feedback_changes(root, project, 'HEAD', head_items, items)
+    elif inherited and any(key not in old_items and item == items.get(key) for key, item in inherited.items()):
+        if ancestor(FEEDBACK_RECEIPT_INTRODUCTION, commit):
+            # A descendant already inherited these records through the cutover. Its
+            # missing row is not an independent branch importing a new finding.
+            pinned = feedback_at(root, last_legacy)
+            inherited = {key: item for key, item in inherited.items() if key not in pinned}
+        elif feedback_git(root, 'rev-parse', '--is-shallow-repository').stdout.strip() == b'true':
+            # Missing parents cannot establish whether this was a legitimate new import.
+            inherited = {}
+    validate_feedback_changes(root, project, commit, old_items, items, inherited=inherited, legacy=legacy)
     return old_items
 
 
