@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.verification_scope import SCOPED_PROFILES, committed_scope, repository_root
+from scripts.verification_scope import SCOPED_PROFILES, checkout_git_environment, committed_scope, repository_root
 
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts' / 'verification_scope.py'
@@ -200,6 +200,15 @@ class VerificationScopeTest(unittest.TestCase):
         decision = self.ci(self.push(head), checkout=head)
         self.assertEqual((decision['profile'], decision['change_count']), ('records', len(paths)))
         self.assertEqual(decision, committed_scope(self.root, self.base, head))
+
+    def test_every_git_local_selector_requires_an_explicit_checkout_policy(self):
+        local = set(self.git('rev-parse', '--local-env-vars').decode('ascii').splitlines())
+        selectors = {key: 'foreign' for key in local}
+        selectors.update(GIT_CONFIG_KEY_0='core.worktree', GIT_CONFIG_VALUE_0='foreign')
+        # Disabling replace objects only narrows object lookup. Hosted history intentionally sets it.
+        retained = {'GIT_NO_REPLACE_OBJECTS': '1', 'GITHUB_ACTIONS': 'true', 'GIT_CONFIG_GLOBAL': 'fixture-global'}
+        with patch.dict(os.environ, {**selectors, **retained}, clear=True):
+            self.assertEqual(retained, checkout_git_environment())
 
     def test_prose_fields_allow_existing_strings_and_fixed_length_lists(self):
         self.edit(ENGINEERING, lambda doc: doc['product'].update(

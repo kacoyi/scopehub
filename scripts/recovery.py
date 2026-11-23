@@ -1,4 +1,4 @@
-"""Preserve scaffold diagnostics without importing project validation or dependencies.
+"""Preserve scaffold diagnostics without requiring project validation or dependencies.
 
 It runs with the repository Python and -S or an isolated host Python when the
 virtual environment is unavailable. A snapshot preserves inputs for diagnosis.
@@ -8,8 +8,10 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
+import runpy
 import subprocess
 import sys
 import traceback
@@ -62,10 +64,14 @@ def read_control(root, relative):
 
 
 def git_observation(root):
+    # This bootstrap must work even when every other repository module is unavailable.
+    global_config = {'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'}
+    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_') or key in global_config}
+    env.update(GIT_NO_LAZY_FETCH='1', GIT_ALLOW_PROTOCOL='')
     observed = {}
     for name, args in [('head', ['rev-parse', 'HEAD']), ('working_tree', ['status', '--short'])]:
         try:
-            result = subprocess.run(['git', '--no-optional-locks', *args], cwd=root, timeout=10, capture_output=True,
+            result = subprocess.run(['git', '--no-optional-locks', *args], cwd=root, env=env, timeout=10, capture_output=True,
                                     text=True, encoding='utf-8', errors='replace')
             observed[name] = result.stdout.strip() if result.returncode == 0 else None
             if result.returncode:
@@ -145,6 +151,29 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
                         and item.get('reason_code') not in ('not_selected', 'unsupported_platform', 'earlier_failure')):
                     signal('recorded_check_failure', **observation)
 
+    # The host-Python fallback can run with -I -S and without the rest of the checkout.
+    retained = None
+    try:
+        if __package__:
+            from .retained_failures import retained_failure_view
+        else:
+            retained_failure_view = runpy.run_path(str(Path(__file__).with_name('retained_failures.py')))['retained_failure_view']
+        snapshot = report.get('source')
+        reference = (snapshot.get('sha256'), report.get('project_definition_sha256')) if isinstance(snapshot, dict) else None
+        retained = retained_failure_view(root, reference, basis='latest_recorded_report',
+                                         schema=documents['contracts/schemas/project.schema.json'],
+                                         latest_run=report.get('run_id'))
+        if retained['scan']['coverage'] == 'incomplete':
+            signal('incomplete_retained_run_coverage', detail='Inspect retained_failures.scan for omissions and unverified rechecks.')
+        blocked = retained['environment_blockers']['matching_inputs']['count']
+        if blocked:
+            signal('unrechecked_environment_blockers', count=blocked)
+        if retained['matching_inputs']['count']:
+            signal('unrechecked_retained_failures', count=retained['matching_inputs']['count'])
+    except (OSError, KeyError, ImportError, SyntaxError) as error:
+        if (root / '.reports/runs').exists():
+            signal('retained_runs_unavailable', detail=type(error).__name__)
+
     if failure is not None:
         signal('harness_exception', **failure)
     diagnostic = {
@@ -156,6 +185,7 @@ def diagnose(root=ROOT, *, task_id=None, save=False, failure=None):
         'environment': {'python': platform.python_version(), 'executable': sys.executable,
                         'system': platform.system()},
         'git': git_observation(root), 'files': files, 'signals': signals,
+        'retained_failures': retained,
         'recorded_run': {'run_id': report.get('run_id'), 'status': report.get('status'),
                          'observations': observations},
         'next_steps': [

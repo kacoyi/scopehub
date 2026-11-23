@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import base64
 import subprocess
 import sys
@@ -14,6 +15,7 @@ import tempfile
 from unittest.mock import patch
 
 from scripts import check as harness
+from scripts import ci
 from scripts import project as project_cli
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
@@ -1076,6 +1078,283 @@ class DeliveryTests(ProjectFixture):
         self.assertFalse(result['release_ready'])
         self.assertTrue(any('fixture-defect' in blocker for blocker in result['blockers']))
 
+    def test_feedback_intake_and_active_plan_assign_each_regression_to_linked_work(self):
+        item = self.feedback()
+        item['regression_checks'] = ['environment']
+        for severity, status in [('minor', 'open'), ('critical', 'deferred')]:
+            item.update(severity=severity, status=status, deferral_reason='Needs a native target.' if status == 'deferred' else None)
+            self.save_feedback(item)
+            with self.subTest(severity=severity), self.assertRaisesRegex(ProjectError, 'fixture-defect.*without a linked task.*environment'):
+                load_project(self.root)
+
+        item.update(task_ids=['M0-001', 'M4-001'], regression_checks=['rust-lints', 'ai-workflow'])
+        self.save_feedback(item)
+        load_project(self.root)
+        ledger = self.ledger()
+        task = task_by_id(ledger, 'M0-001')
+        task['status'] = 'active'
+        self.save_ledger(ledger)
+        with self.assertRaisesRegex(ProjectError, r"M0-001.*fixture-defect.*plan risks: \['rust-lints'\]"):
+            load_project(self.root)
+        item['severity'] = 'minor'
+        self.save_feedback(item)
+        load_project(self.root)
+        item['severity'] = 'major'
+        self.save_feedback(item)
+        task['plan']['risks'].append({'failure': 'The reported fixture defect recurs.', 'checks': ['rust-lints']})
+        self.save_ledger(ledger)
+        load_project(self.root)
+
+    def test_retiring_last_open_feedback_owner_requires_a_handoff(self):
+        item = self.feedback()
+        self.save_feedback(item)
+        observed = self.commit_fixture()
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            project_cli.local_feedback_history(self.root, load_project(self.root))
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            review_history(self.root, observed)
+
+        # The original finding survives a handoff and its historical task stays in the record.
+        self.save_feedback({**item, 'task_ids': ['M0-001', 'M0-002']})
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+
+        transferred = self.commit_fixture()
+        self.save_feedback(item)
+        with self.assertRaisesRegex(ProjectError, 'fixture-defect.*unfinished corrective task'):
+            review_history(self.root, transferred)
+
+        # A deliberate deferral stays visible with its reason and release consequences.
+        self.save_feedback({**item, 'status': 'deferred', 'deferral_reason': 'Await a physical host.'})
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+        self.assertTrue(any(item['id'] in reason for reason in readiness(self.root)['blockers']))
+
+    def test_working_feedback_checkpoint_is_checked_before_any_verification_commands(self):
+        shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        env = {**os.environ, 'SCOPEHUB_STORAGE': 'off', 'SCOPEHUB_REVIEW_BASE': '', 'SCOPEHUB_CHECKPOINT_BASE': ''}
+
+        def invoke(script, *args, expected=0):
+            result = subprocess.run([sys.executable, str(self.root / 'scripts' / script), *args], cwd=self.root,
+                                    env=env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(expected, result.returncode, (result.stdout, result.stderr))
+            return result.stdout
+
+        # An old archived receipt predates the finding and must not qualify the closure.
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        observed = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        runs = self.root / '.reports' / 'runs'
+        original_runs = set(runs.iterdir())
+        for script, args in [('project.py', ('check',)), ('check.py', ('--task', 'M0-001'))]:
+            with self.subTest(script=script):
+                result = json.loads(invoke(script, *args, expected=1))
+                self.assertIn('Closing feedback fixture-defect requires new regression evidence', result['error'])
+                if script == 'check.py':
+                    self.assertTrue((self.root / result['recovery_snapshot']).is_file())
+                self.assertEqual(original_runs, set(runs.iterdir()))
+
+        # A known review base also detects an unsupported closure already committed on the branch.
+        self.commit_fixture()
+        env['SCOPEHUB_REVIEW_BASE'] = observed
+        self.assertIn('new regression evidence', json.loads(invoke('project.py', 'check', expected=1))['error'])
+        item = self.feedback()
+        self.save_feedback(item)
+        self.assertIn('requires a new occurrence', json.loads(invoke('project.py', 'check', expected=1))['error'])
+        item['occurrence'] = 2
+        self.save_feedback(item)
+        invoke('check.py', '--task', 'M0-001')
+        receipt = archive_evidence(self.root, 'M0-001', self.root / '.reports' / 'test-report.json')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['evidence'].append(receipt)
+        self.save_ledger(ledger)
+        self.save_feedback(dict(self.feedback('addressed'), occurrence=2))
+        verified = json.loads(invoke('project.py', 'check'))
+        self.assertEqual(2, len(verified['feedback_history']['compared_commits']))
+        invoke('check.py', '--task', 'M0-001')
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+        self.assertIn('Feedback disappeared: fixture-defect', json.loads(invoke('project.py', 'check', expected=1))['error'])
+
+    def test_feedback_checkpoint_preserves_legacy_receipts_and_identifies_missing_local_history(self):
+        project = load_project(self.root)
+        with patch.dict(os.environ, {'SCOPEHUB_REVIEW_BASE': '', 'SCOPEHUB_CHECKPOINT_BASE': ''}):
+            self.assertEqual('not_applicable', project_cli.local_feedback_history(self.root, project)['status'])
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback('addressed'))
+        legacy = self.commit_fixture()
+        project = load_project(self.root)
+        with patch.dict(os.environ, {'SCOPEHUB_REVIEW_BASE': legacy, 'SCOPEHUB_CHECKPOINT_BASE': legacy}):
+            self.assertEqual([legacy], project_cli.local_feedback_history(self.root, project)['compared_commits'])
+        with patch.dict(os.environ, {'SCOPEHUB_REVIEW_BASE': 'missing-review-base'}):
+            with self.assertRaisesRegex(ProjectError, 'unavailable locally: missing-review-base'):
+                project_cli.local_feedback_history(self.root, project)
+        with tempfile.TemporaryDirectory() as outside:
+            self.assertEqual('not_applicable', project_cli.local_feedback_history(Path(outside), project)['status'])
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'items': {}}))
+        self.commit_fixture()
+        self.save_feedback(self.feedback())
+        with self.assertRaisesRegex(ProjectError, 'Invalid project/feedback.json at local feedback checkpoint'):
+            project_cli.local_feedback_history(self.root, load_project(self.root))
+
+    def test_two_parent_feedback_import_is_confined_to_exact_reviewed_dispositions(self):
+        def git(*args):
+            return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
+                                   '-c', 'commit.gpgsign=false', *args], cwd=self.root, check=True, capture_output=True).stdout
+
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        fork = self.commit_fixture()
+        git('checkout', '-qb', 'fixture-feature')
+        (self.root / 'feature.txt').write_text('Independent branch.\n')
+        absent = self.commit_fixture()
+        self.save_feedback(self.feedback())
+        open_checkpoint = self.commit_fixture()
+        git('checkout', '-qb', 'fixture-reviewed', fork)
+        accepted = self.feedback('addressed')
+        self.save_feedback(accepted)
+        reviewed = self.commit_fixture()
+        git('checkout', '-qb', 'fixture-merge', absent)
+        git('merge', '--no-edit', '--no-ff', reviewed)
+        self.assertEqual([absent, reviewed], git('show', '-s', '--format=%P', 'HEAD').decode().split())
+
+        def checks(base=reviewed, checkpoint=absent, *, error=None):
+            env = {'SCOPEHUB_REVIEW_BASE': base, 'SCOPEHUB_CHECKPOINT_BASE': checkpoint}
+            with patch.dict(os.environ, env):
+                for command in (lambda: project_cli.local_feedback_history(self.root, load_project(self.root)),
+                                lambda: review_history(self.root, base, checkpoint_base=checkpoint)):
+                    if error:
+                        with self.assertRaisesRegex(ProjectError, error):
+                            command()
+                    else:
+                        self.assertEqual('passed', command()['status'])
+
+        checks()
+        checks(checkpoint=open_checkpoint, error='new regression evidence')
+        checks(base='HEAD', error='new regression evidence')
+        checks(base='', error='new regression evidence')
+        with patch.dict(os.environ, {'SCOPEHUB_SOURCE_HEAD': reviewed}):
+            checks(error='new regression evidence')
+        # A source-label edit also defeats the import exception although the regression fingerprint is unchanged.
+        self.save_feedback(dict(accepted, source='Edited on the candidate branch.'))
+        checks(error='new regression evidence')
+        self.save_feedback(self.feedback())
+        checks(error='requires a new occurrence')
+        self.save_feedback(dict(accepted, occurrence=2))
+        checks(error='new regression evidence')
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+        checks(error='Feedback disappeared')
+
+    def test_default_feedback_preflight_uses_the_locally_observed_protected_merge_base(self):
+        def git(*args):
+            return subprocess.run(['git', *args], cwd=self.root, capture_output=True, check=True).stdout
+
+        def check(*, expected=0):
+            proc = subprocess.run([sys.executable, str(self.root / 'scripts/project.py'), 'check'], cwd=self.root,
+                                  capture_output=True, text=True, timeout=30)
+            self.assertEqual(expected, proc.returncode, (proc.stdout, proc.stderr))
+            return json.loads(proc.stdout)
+
+        shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        (self.root / 'project/branch-protection.json').write_bytes(json_bytes({'branch': 'fixture-main'}))
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        fork = self.commit_fixture()
+        ref = 'refs/remotes/origin/fixture-main'
+        git('update-ref', ref, fork)
+        git('checkout', '-qb', 'fixture-work')
+        (self.root / 'feature.txt').write_text('Work in progress.\n')
+        legitimate = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        self.assertIn('new regression evidence', check(expected=1)['error'])
+        self.commit_fixture()
+        self.assertIn('new regression evidence', check(expected=1)['error'])
+        git('checkout', '-qb', 'fixture-advanced-main', fork)
+        pending = self.feedback()
+        extra = dict(pending, id='only-on-advanced-main')
+        (self.root / 'project/feedback.json').write_bytes(json_bytes({'schema_version': '1.0', 'items': [pending, extra]}))
+        advanced = self.commit_fixture()
+        git('update-ref', ref, advanced)
+        git('checkout', '--detach', legitimate)
+        result = check()['feedback_history']
+        self.assertEqual([fork, legitimate], result['compared_commits'])
+        self.assertEqual({'source': 'local_protected_merge_base', 'ref': ref, 'tracking_commit': advanced, 'commit': fork},
+                         result['review_basis'])
+        git('update-ref', '-d', ref)
+        result = check()['feedback_history']
+        self.assertEqual([legitimate], result['compared_commits'])
+        self.assertEqual(('none', ref), (result['review_basis']['source'], result['review_basis']['ref']))
+
+    def test_feedback_intake_survives_history_and_stale_task_evidence(self):
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        observed = self.commit_fixture()
+        self.assertEqual(['fixture-defect'], workfront(self.root)['feedback_needing_assignment'])
+
+        self.save_feedback(self.feedback('addressed'))
+        with self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+            review_history(self.root, observed)
+
+        # A run which saw the observation can be checkpointed before closure.
+        self.save_feedback(self.feedback())
+        code, verified = self.run_harness(('--task', 'M0-001'))
+        self.assertEqual(0, code)
+        self.assertTrue(verified['observed_feedback'])
+        extra = archive_evidence(self.root, 'M0-001', self.root / '.reports/test-report.json')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['evidence'].append(extra)
+        self.save_ledger(ledger)
+        checkpoint = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        self.assertEqual('passed', review_history(self.root, observed)['status'])
+        self.assertEqual('passed', review_history(self.root, checkpoint)['status'])
+        self.assertEqual([], workfront(self.root)['feedback_needing_assignment'])
+
+        resolved = self.commit_fixture()
+        amended = self.feedback('addressed')
+        amended['observation'] += ' A distinct second failure was observed.'
+        self.save_feedback(amended)
+        for base in (observed, resolved):
+            with self.subTest(base=base), self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+                review_history(self.root, base)
+
+        reopened = self.feedback()
+        self.save_feedback(reopened)
+        with self.assertRaisesRegex(ProjectError, 'requires a new occurrence'):
+            review_history(self.root, resolved)
+        reopened['occurrence'] = 2
+        self.save_feedback(reopened)
+        self.assertEqual('passed', review_history(self.root, resolved)['status'])
+        recurrence = self.commit_fixture()
+        closed_again = dict(self.feedback('addressed'), occurrence=2)
+        self.save_feedback(closed_again)
+        for base in (resolved, recurrence):
+            with self.subTest(base=base), self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+                review_history(self.root, base)
+        self.save_feedback(self.feedback())
+        with self.assertRaisesRegex(ProjectError, 'cannot go backwards'):
+            review_history(self.root, recurrence)
+        self.save_feedback(reopened)
+        code, rerun = self.run_harness(('--task', 'M0-001'))
+        self.assertEqual(0, code)
+        self.assertNotEqual(verified['observed_feedback'], rerun['observed_feedback'])
+        receipt = archive_evidence(self.root, 'M0-001', self.root / '.reports/test-report.json')
+        task_by_id(ledger, 'M0-001')['evidence'].append(receipt)
+        self.save_ledger(ledger)
+        self.save_feedback(closed_again)
+        self.assertEqual('passed', review_history(self.root, recurrence)['status'])
+
+        path = self.root / 'project/feedback.json'
+        path.write_bytes(json_bytes({'schema_version': '1.0', 'items': []}))
+        with self.assertRaisesRegex(ProjectError, 'Feedback disappeared: fixture-defect'):
+            review_history(self.root, observed)
+
+    def test_newly_recorded_resolution_requires_post_base_regression_evidence(self):
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        before_finding = self.commit_fixture()
+        self.save_feedback(self.feedback('addressed'))
+        with self.assertRaisesRegex(ProjectError, 'new regression evidence'):
+            review_history(self.root, before_finding)
+
     def test_history_rejects_rewritten_decisions_and_reopened_completed_tasks(self):
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
         base = self.commit_fixture()
@@ -1090,6 +1369,78 @@ class DeliveryTests(ProjectFixture):
         self.save_ledger(ledger)
         with self.assertRaisesRegex(ProjectError, 'Accepted task history changed'):
             review_history(self.root, base)
+
+    def test_git_subprocess_cannot_borrow_another_checkout_for_feedback_history_or_evidence(self):
+        shutil.copytree(Path(harness.__file__).parent, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        probe = next(row for row in catalog['checks'] if row['id'] == 'rust-lints')
+        probe['command'] = ['{python}', '-c', 'from pathlib import Path; import subprocess; '
+                            'root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip(); '
+                            'raise SystemExit(Path(root).resolve() != Path.cwd().resolve())']
+        catalog_path.write_bytes(json_bytes(catalog))
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.save_feedback(self.feedback())
+        target_head = self.commit_fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            other = Path(directory) / 'caller'
+            subprocess.run(['git', 'clone', '--quiet', '--no-local', str(self.root), str(other)], check=True)
+            self.save_feedback(self.feedback('addressed'))
+            shutil.copyfile(self.root / 'project/feedback.json', other / 'project/feedback.json')
+            subprocess.run(['git', 'add', 'project/feedback.json'], cwd=other, check=True)
+            subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                            '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Preserve a distinct legacy disposition'],
+                           cwd=other, check=True)
+
+            def from_caller(script, *args, code=0, root=self.root, isolated=False):
+                command = [Path(sys.executable).as_posix(), *(['-I', '-S'] if isolated else []),
+                           (root / 'scripts' / script).as_posix(), *args]
+                alias = f'!cd {shlex.quote(root.as_posix())} && ' + shlex.join(command)
+                result = subprocess.run(['git', '--git-dir=' + (other / '.git').as_posix(), '--work-tree=' + other.as_posix(),
+                                         '-c', 'alias.verify-target=' + alias, 'verify-target'], cwd=other,
+                                        capture_output=True, text=True, timeout=30, env={**os.environ, 'SCOPEHUB_STORAGE': 'off'})
+                self.assertEqual(code, result.returncode, (result.stdout, result.stderr))
+                return result.stdout
+
+            for checkout, repo, account in ((self.root, 'fixture/target', 'target-user'), (other, 'fixture/caller', 'caller-user')):
+                subprocess.run(['git', 'config', '--local', 'remote.origin.url', f'https://github.com/{repo}.git'], cwd=checkout, check=True)
+                subprocess.run(['git', 'config', '--local', 'github.account', account], cwd=checkout, check=True)
+            real_command = ci.command
+            def github(argv, root):
+                if argv[0] == 'git':
+                    return real_command(argv, root)
+                if argv[1:3] == ['auth', 'switch']:
+                    self.assertEqual('target-user', argv[-1])
+                return 'target-user'
+            with (patch.dict(os.environ, {'GIT_DIR': str(other / '.git'), 'GIT_WORK_TREE': str(other)}),
+                  patch.object(ci, 'command', side_effect=github)):
+                self.assertEqual('fixture/target', ci.github_identity(self.root))
+
+            rejected = json.loads(from_caller('project.py', 'check', code=1))
+            self.assertIn('Closing feedback fixture-defect requires new regression evidence', rejected['error'])
+            self.assertIn('new regression evidence', json.loads(from_caller('check.py', '--task', 'M0-001', code=1))['error'])
+            self.save_feedback(self.feedback())
+            (self.root / 'implementation.py').write_text('value = 2\n')
+            self.assertEqual([target_head], json.loads(from_caller('project.py', 'check'))['feedback_history']['compared_commits'])
+            self.assertEqual(target_head, json.loads(from_caller('project.py', 'history', '--base', 'HEAD'))['base_commit'])
+            self.assertEqual(target_head, json.loads(from_caller('recovery.py', isolated=True))['git']['head'])
+            self.assertEqual(target_head, json.loads(from_caller('verification_scope.py', '--base', 'HEAD'))['checkout'])
+
+            from_caller('check.py', '--task', 'M0-001')
+            report = self.root / '.reports/test-report.json'
+            source = read_json(report)['source']
+            self.assertEqual(source_identity(self.root), source)
+            self.assertTrue(source['working_tree_dirty'])
+            receipt = json.loads(from_caller('project.py', 'record', 'M0-001', '--report', report.as_posix()))
+            self.assertEqual(source, read_json(self.root / receipt['path'])['source'])
+
+            # The target can also be a registered Git worktree with a .git file and a shared object store.
+            linked = Path(directory) / 'linked'
+            subprocess.run(['git', 'worktree', 'add', '--quiet', '--detach', str(linked), target_head], cwd=self.root, check=True)
+            self.assertTrue((linked / '.git').is_file())
+            state = json.loads(from_caller('project.py', 'status', root=linked))
+            self.assertEqual(target_head, state['source']['git_head'])
+            self.assertFalse(state['source']['working_tree_dirty'])
 
     def test_history_json_is_read_as_utf8_under_a_legacy_windows_locale(self):
         base = self.commit_fixture()

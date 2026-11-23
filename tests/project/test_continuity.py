@@ -318,6 +318,13 @@ class ContinuityTests(ProjectFixture):
 
 
 class FixtureIsolationTests(unittest.TestCase):
+    def test_feedback_comparisons_use_only_the_fixture_history(self):
+        external = {'SCOPEHUB_REVIEW_BASE': 'outer-pr-base', 'SCOPEHUB_CHECKPOINT_BASE': 'outer-checkpoint'}
+        with patch.dict(os.environ, external):
+            with isolated_git_environment():
+                self.assertFalse(external.keys() & os.environ.keys())
+            self.assertEqual(external, {key: os.environ[key] for key in external})
+
     def test_setup_copies_only_the_canonical_schema(self):
         fixture = ProjectFixture()
         try:

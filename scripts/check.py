@@ -27,13 +27,21 @@ try:
     if __package__:
         from .doctor import tool_version
         from .processes import log_tail, run_logged
-        from .project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, release_checks, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from .project import (
+            ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project,
+            local_feedback_history, product_progress, project_definition_hash, release_checks, source_identity,
+            task_definition_hash, validate_model, verify_primary_model, windows_x64,
+        )
         from .storage import maintain_automatically
         from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
-        from project import ProjectError, file_digest, load_project, project_definition_hash, product_progress, release_checks, source_identity, task_definition_hash, validate_model, verify_primary_model, windows_x64
+        from project import (
+            ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project,
+            local_feedback_history, product_progress, project_definition_hash, release_checks, source_identity,
+            task_definition_hash, validate_model, verify_primary_model, windows_x64,
+        )
         from storage import maintain_automatically
         from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
 except Exception as error:
@@ -80,7 +88,8 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     started = time.monotonic()
     executable = shutil.which(argv[0])
     if not executable:
-        return {'id': name, 'status': 'blocked', 'command': argv, 'reason': f'Executable unavailable: {argv[0]}'}
+        return {'id': name, 'status': 'blocked', 'command': argv, 'reason_code': 'executable_unavailable',
+                'reason': f'Executable unavailable: {argv[0]}'}
     log_path = run_dir / f'{name}.log'
     print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout})
     private = name in PRIVATE_CHECK_LOGS
@@ -247,6 +256,7 @@ def main():
         print('true' if required else 'false')
         return
     project = load_project(ROOT)
+    local_feedback_history(ROOT, project)
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
     ci = ci_provenance(source, os.environ, ROOT)
@@ -255,7 +265,7 @@ def main():
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
     run_dir = REPORTS / 'runs' / run_id
     run_dir.mkdir(parents=True)
-    env = dict(os.environ)
+    env = checkout_git_environment()
     if not (env.get('CI') or env.get('GITHUB_ACTIONS')):
         env.setdefault('CARGO_INCREMENTAL', '0')
     env['SCOPEHUB_RUN_DIR'] = str(run_dir)
@@ -374,17 +384,27 @@ def main():
             'A dirty-worktree digest identifies tested inputs but does not independently preserve their source bytes.',
         ],
     }
+    findings = sorted(
+        feedback_fingerprint(item) for item in project['feedback']['items']
+        if item['status'] != 'addressed' and item['severity'] != 'minor'
+        and (not args.task or args.task in item['task_ids'])
+        and selected.intersection(item['regression_checks'])
+    )
+    if findings:
+        report['observed_feedback'] = findings
     if ci:
         report['ci'] = ci
     if not source_unchanged:
         # Retain changed paths, not file contents, to diagnose unexpected build writes.
         report['worktree_changes'] = subprocess.run(
-            ['git', 'status', '--short'], cwd=ROOT, capture_output=True, check=True,
+            ['git', 'status', '--short'], cwd=ROOT, env=env, capture_output=True, check=True,
             text=True, encoding='utf-8', errors='replace',
         ).stdout.splitlines()
     validate_model(ROOT, 'HarnessReport', report)
     contents = json.dumps(report, indent=2) + '\n'
-    (run_dir / 'test-report.json').write_text(contents, encoding='utf-8')
+    original = run_dir / 'test-report.tmp'
+    original.write_text(contents, encoding='utf-8')
+    original.replace(run_dir / 'test-report.json')
     latest = REPORTS / f'{run_id}.tmp'
     latest.write_text(contents, encoding='utf-8')
     latest.replace(REPORTS / 'test-report.json')
