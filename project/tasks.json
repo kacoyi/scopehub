@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-033",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15275,7 +15275,7 @@
       "id": "M1-033",
       "title": "Verify the localized workspace entry on Windows",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-032"
       ],
@@ -15304,11 +15304,19 @@
         {
           "path": "project/evidence/M1-033-58e7746f1f68749e.json",
           "sha256": "56faae5ca58075fd4a2fe80ea52816960c9fe7f4baf80c17b8af90b4c178d948"
+        },
+        {
+          "path": "project/evidence/M1-033-8ba7a928dfb79a18.json",
+          "sha256": "e577774dd44aca025cd8ae8d66c591f1c90569120c332a8f454e18dbc2af096e"
+        },
+        {
+          "path": "project/evidence/M1-033-6fd06399e41c7dc5.json",
+          "sha256": "abe8a766926bc714fe5217fb6eba62e3e06efa4ad459523757b3628c4d5e349b"
         }
       ],
-      "next_action": "Verify the exact candidate on Windows. Open the independent pull request against main after PR 49 integrates, then verify the protected integration.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "All local checks and matching hosted Ubuntu and Windows task checks passed. Run 45105648304 verified exact implementation commit 01c5aab0ce32ca6467996aa10a1671938bfd407d. The Windows Chromium run passed all 15 localization cases, including the original preference journey in 1.1 seconds, delayed startup in 6.5 seconds and fatal-entry recovery. The same run verified the separate stalled-entry timeout and both fatal-entry startup diagnostics. The original report and controlled comparison remain archived, and the original runner's trigger could not be established. Focus returns to M2-003. Protected integration remains a separate step.",
       "diagnostic_reports": [
         {
           "run_id": "20261123T024037.246404Z-9bf7f2cb",
