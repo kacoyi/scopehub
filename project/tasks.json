@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-035",
   "tasks": [
     {
       "id": "M0-001",
@@ -15960,6 +15960,137 @@
           ],
           "data_plan": "Use synthetic local fixtures. New writes must obey the rule. Previously stored snapshots retain their recorded bytes and identities.",
           "cleanup": "Reuse the existing row-declaration path and discard rejected new staging through normal publication and folder review."
+        }
+      }
+    },
+    {
+      "id": "M1-035",
+      "title": "Validate every explicit native CSV series declaration against the reviewed mapping",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-034"
+      ],
+      "scope": [
+        "contracts/market-data-v1.json",
+        "python/providers",
+        "apps/desktop/ui/src",
+        "tests/integration",
+        "tests/localization/folder-messages.spec.mjs",
+        "tests/ui/local-import.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0008",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Classify every CsvMappingV1 property and every PreviewSeries field. Every applicable explicit source convention is compared before normalization, with original fields and source locators retained on rejection. A newly added semantic field must fail a contract-to-behavior coverage test until its handling and negative case exist.",
+        "Preserve file decoding and named column bindings, established matching forms, case-sensitive identifiers, unknown provider columns and valid independent series. Distinguish continuous roll rules and date-only civil clocks from fields that do not apply to the current mapping.",
+        "Prove that a conflict after a bounded preview prevents complete-file and folder publication, leaves the accepted frozen data readable and is actionable through existing English and Simplified Chinese diagnostics."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "python-types",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "market-workflow",
+        "local-import-publication",
+        "local-folder-refresh-preview"
+      ],
+      "evidence": [],
+      "next_action": "Verify all semantic fields against the canonical schema, then exercise whole-file publication and folder review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Explicit source conventions and reviewed native bar semantics agree for each row that can enter a frozen revision.",
+        "change_types": [
+          "market-fixtures",
+          "ui"
+        ],
+        "context": [
+          "python/providers/csv_bar_mapping.py",
+          "python/providers/local_folder.py",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "tests/ui/local-import.spec.mjs",
+          "contracts/market-data-v1.json",
+          "contracts/schemas/protocol.schema.json"
+        ],
+        "hypotheses": [
+          "A declaration index derived from the fields of the existing PreviewSeries and the native mapping rules can share the established normalizer for complete-file publication, preview and folder inspection. Independent schema coverage and per-field examples can detect an omitted future rule."
+        ],
+        "risks": [
+          {
+            "failure": "A newly introduced or late source rule escapes bounded preview and reaches frozen storage.",
+            "checks": [
+              "python-contracts-workers",
+              "local-import-publication",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "Source-specific identities, valid formatting conventions or arbitrary provider columns are confused with reserved metadata.",
+            "checks": [
+              "desktop-localization",
+              "local-import-publication",
+              "market-fixtures"
+            ]
+          }
+        ],
+        "rollback": "Keep synthetic reproductions and current frozen data available through their original revision IDs. Rebuild any corrected series through the existing reviewed publication workflow.",
+        "implementation": {
+          "modules": [
+            "providers",
+            "ui"
+          ],
+          "entrypoints": [
+            "python/providers/csv_bar_mapping.py",
+            "python/providers/local_folder.py",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "tests/ui/local-import.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/csv_v1_capabilities"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/domain/series_identity"
+            },
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/CsvMappingV1"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/PreviewSeries"
+            }
+          ],
+          "non_goals": [
+            "Changing stored revisions, guessing provider-specific column synonyms, converting end-labeled bars or introducing new permission or execution paths."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing publication and readback of compatible reviewed series, raw field values and locators, immutable revision identity and the current single-writer transaction."
+          ],
+          "change": [
+            "Check every explicitly named applicable series or bar convention with the field-specific comparison policy. Bind behavioral coverage to the canonical schema."
+          ],
+          "data_plan": "Use synthetic local fixtures. New writes must obey the rule. Previously stored snapshots retain their recorded bytes and identities.",
+          "cleanup": "Keep one declaration index and one normalizer for preview, publication and folder review."
         }
       }
     }
