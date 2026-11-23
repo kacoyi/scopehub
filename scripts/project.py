@@ -507,7 +507,20 @@ def validate_delivery(root, project):
     policy = delivery['release_policy']
     require_refs(policy['required_milestones'], {gate['id'] for gate in project['catalog']['milestones']}, 'Release milestones')
     require_refs(policy['required_checks'], checks, 'Release checks')
+    if any(checks[key]['status'] == 'retired' for key in policy['required_checks']):
+        raise ProjectError('Release policy depends on a retired check')
     project.update(delivery=delivery, feedback=feedback)
+
+
+def release_checks(project):
+    selected = {key for key, check in project['checks'].items()
+                if check['status'] != 'retired' and check.get('cadence') != 'task'}
+    catalog = project['catalog']
+    delivery = project['delivery']
+    selected.update(delivery['release_policy']['required_checks'])
+    for binding in [*catalog['milestones'], *catalog['acceptance'], *delivery['scenarios']]:
+        selected.update(binding['checks'])
+    return selected
 
 
 def summarize_verification(check_ids, results):
@@ -817,11 +830,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
         run_dir / 'test-report.json',
     }:
         raise ProjectError('Expected the retained local report or its original per-run copy')
-    applicable = {
-        key
-        for key, item in project['checks'].items()
-        if item['status'] != 'retired' and item.get('cadence') != 'task'
-    }
+    applicable = release_checks(project)
     if set(report['selection'].get('checks', [])) != applicable:
         raise ProjectError('The release report did not select all applicable candidate checks')
     for key in applicable:

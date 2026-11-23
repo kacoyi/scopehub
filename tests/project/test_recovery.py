@@ -244,7 +244,7 @@ class RecoveryTests(unittest.TestCase):
         # A minimal project interface isolates the entry point from the live task ledger.
         (self.root / 'scripts/project.py').write_text(
             'class ProjectError(Exception): pass\n'
-            'file_digest = project_definition_hash = product_progress = local_path = read_json = None\n'
+            'file_digest = project_definition_hash = product_progress = release_checks = local_path = read_json = None\n'
             'source_identity = task_definition_hash = validate_model = verify_primary_model = windows_x64 = None\n'
             'def load_project(root): raise ProjectError("malformed task ledger")\n', encoding='utf-8')
         process = self.invoke('check.py')

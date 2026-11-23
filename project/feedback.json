@@ -3449,6 +3449,51 @@
       "deferral_reason": null
     },
     {
+      "id": "locked-cookie-advisory-blocks-integration",
+      "source": "RustSec advisory RUSTSEC-2026-0594 and the online dependency review on bea74a5.",
+      "observation": "The online dependency check rejected cookie 0.18.2 in Cargo.lock. Tauri and Wry resolve it for the desktop. The upstream issue concerns private cookies on fork-capable platforms and excludes Windows from its affected OS list. GitHub's open glib alert is covered by a separate existing disposition.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-081"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T095941.698705Z-187d8246",
+          "source_commit": "bea74a569b62823e5ce4907250e967bf4596af29",
+          "report_sha256": "b92119b9ce93a95b923ca293383925b20416f2c9fa6d143c554468a02a33b0d3"
+        }
+      ],
+      "resolution": {
+        "cause": "Cargo.lock retained cookie 0.18.2 when RustSec published RUSTSEC-2026-0594. The shared online review detected it, but ran after expensive checks on a full selection.",
+        "correction": "Resolve the published 0.18.3 patch under the existing Tauri and Wry constraints. Update the inventory and notices, and move the selected dependency review immediately after environment and project-state.",
+        "prevention": "The ordinary online gate rejected the original locked version and passed on the repaired graph. A scheduling regression injects the same check failure into real catalog selections and verifies early failure, ordinary completion and fail-fast termination."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "release-selection-omits-contract-checks",
+      "source": "Repository-wide review and direct comparison of the release selector with readiness bindings at bea74a5.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The 43-check release profile and its candidate verifier omit nine task-cadence obligations for workspace and decision records, indicators, local import, model connections and state migrations. A release run cannot supply this evidence to readiness.",
+      "task_ids": [
+        "M0-080"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Both the harness and candidate verifier independently excluded every task-cadence check before considering release obligations.",
+        "correction": "A shared selection combines the existing release baseline with checks bound by milestones, acceptance, scenarios and explicit release policy. The retained-candidate verifier requires every selected check and its original log.",
+        "prevention": "The production catalog regression covers the nine omissions. Synthetic release runs add independent obligations at all four bindings and exercise platform and implementation limits. Hosted candidate tests verify a complete report and reject a missing selection, missing result or changed log."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "csv-conflicting-series-declarations",
       "source": "2026-11-23 repository audit of native CSV preview, publication and readback using a synthetic futures row.",
       "severity": "major",

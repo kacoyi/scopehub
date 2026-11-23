@@ -138,6 +138,42 @@ class VerificationSchedulingTests(unittest.TestCase):
 
 
 class HostedSchedulingTests(ProjectFixture):
+    def test_online_dependency_failure_is_reported_before_expensive_selected_checks(self):
+        project = harness.load_project(harness.ROOT)
+
+        def execute(name, command, env, run_dir, timeout):
+            failed = name == 'dependency-review'
+            log = run_dir / f'{name}.log'
+            log.write_text('Synthetic scheduling observation.\n', encoding='utf-8')
+            return {'id': name, 'command': command, 'status': 'failed' if failed else 'passed',
+                    'exit_code': 1 if failed else 0, 'log': log.relative_to(self.root).as_posix(),
+                    'log_sha256': harness.file_digest(log)}
+
+        for args in ([], ['--fail-fast'], ['--profile', 'tooling'], ['--task', 'M0-081']):
+            with (self.subTest(args=args), patch.object(harness, 'load_project', return_value=project),
+                  patch.object(harness, 'ROOT', self.root), patch.object(harness, 'REPORTS', self.root / '.reports'),
+                  patch.object(harness, 'ci_provenance', return_value=None), patch.object(harness, 'maintain_automatically'),
+                  patch.object(harness, 'tool_version', return_value='fixture'),
+                  patch.object(harness.platform, 'system', return_value='Linux'),
+                  patch.object(harness, 'execute', side_effect=execute) as executed,
+                  patch.object(sys, 'argv', ['check.py', *args]), redirect_stdout(StringIO()),
+                  self.assertRaises(SystemExit) as stopped):
+                harness.main()
+            self.assertEqual(1, stopped.exception.code)
+            calls = [call.args[0] for call in executed.call_args_list]
+            first = ['environment', 'project-state', 'dependency-review']
+            self.assertEqual(first, calls[:3])
+            report = read_json(self.root / '.reports/test-report.json')
+            selected = set(report['selection']['checks'])
+            applicable = {key for key in selected if project['checks'][key]['status'] == 'implemented'
+                          and project['checks'][key]['platforms'] == 'all'}
+            if '--fail-fast' in args:
+                self.assertEqual(first, calls)
+                rows = {row['id']: row for row in report['checks']}
+                self.assertEqual('earlier_failure', rows['python-contracts-workers']['reason_code'])
+            else:
+                self.assertCountEqual(applicable, calls)
+
     def test_full_and_narrow_runs_keep_catalog_order_and_platform_budgets(self):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
