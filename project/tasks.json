@@ -15273,6 +15273,122 @@
       }
     },
     {
+      "id": "M1-033",
+      "title": "Verify the localized workspace entry on Windows",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-032"
+      ],
+      "decision_refs": [
+        "0007",
+        "0025"
+      ],
+      "scope": [
+        "tests/ui/preview-startup.mjs",
+        "tests/localization/desktop.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "acceptance": [
+        "Compare cold and warm Windows evidence for the failed initial Simplified Chinese entry in main run 45101333252, including the limits of the original observations.",
+        "Reproduce the old first-button deadline with a bounded delayed entry. The localized workspace opens within the established readiness budget, and fatal entry, locale mismatch and startup timeout have distinguishable evidence.",
+        "Exercise actual Chinese and English controls, preference persistence and recovery on the protected Windows verification path without retries, product permission changes or broader deadlines."
+      ],
+      "checks": [
+        "desktop-localization",
+        "market-quality-states",
+        "python-contracts-workers",
+        "project-state"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-033-58e7746f1f68749e.json",
+          "sha256": "56faae5ca58075fd4a2fe80ea52816960c9fe7f4baf80c17b8af90b4c178d948"
+        },
+        {
+          "path": "project/evidence/M1-033-8ba7a928dfb79a18.json",
+          "sha256": "e577774dd44aca025cd8ae8d66c591f1c90569120c332a8f454e18dbc2af096e"
+        },
+        {
+          "path": "project/evidence/M1-033-6fd06399e41c7dc5.json",
+          "sha256": "abe8a766926bc714fe5217fb6eba62e3e06efa4ad459523757b3628c4d5e349b"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All local checks and matching hosted Ubuntu and Windows task checks passed. Run 45105648304 verified exact implementation commit 01c5aab0ce32ca6467996aa10a1671938bfd407d. The Windows Chromium run passed all 15 localization cases, including the original preference journey in 1.1 seconds, delayed startup in 6.5 seconds and fatal-entry recovery. The same run verified the separate stalled-entry timeout and both fatal-entry startup diagnostics. The original report and controlled comparison remain archived, and the original runner's trigger could not be established. Focus returns to M2-003. Protected integration remains a separate step.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T024037.246404Z-9bf7f2cb",
+          "source_commit": "06cd9eef02dee9450e056772032020bb8f45e95c",
+          "report_sha256": "c9186bf37d02fa4e2db327552ec22dcf528cc80e478d165fe2ef214b876796b3"
+        }
+      ],
+      "plan": {
+        "outcome": "The Windows localization check starts from an observed mounted workspace and preserves specific failure evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/localization/desktop.spec.mjs",
+          "tests/ui/preview-startup.mjs",
+          "tests/ubuntu-preview/market-quality.spec.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The original five-second localized-control assertion can expire during the asynchronous entry import even when the expected workspace will mount.",
+          "The original observation also allows an entry failure or locale mismatch until additional evidence distinguishes them."
+        ],
+        "risks": [
+          {
+            "failure": "A broad wait hides a failed resource or accepts a workspace in the wrong language.",
+            "checks": [
+              "desktop-localization",
+              "market-quality-states"
+            ]
+          }
+        ],
+        "rollback": "Revert the harness change and retain the original diagnostic and reproduction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/localization/desktop.spec.mjs",
+            "tests/ui/preview-startup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/localization"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Product features, permission changes, product startup timing changes, retries and check deadline increases."
+          ],
+          "open_questions": [
+            "Does the retained Windows evidence identify the state of the entry module or the selected locale at failure?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Actual localized accessible names, system and explicit choices, the existing startup and check budgets and English preview callers."
+          ],
+          "change": [
+            "Use the established startup readiness observer and add a bounded regression based on the observed failure mode."
+          ],
+          "data_plan": "Use synthetic preview data and retain unmodified diagnostic bytes in the development archive.",
+          "cleanup": "Remove the standalone initial button wait when the readiness observer covers that transition."
+        }
+      }
+    },
+    {
       "id": "M0-074",
       "title": "Separate product invariants from local data implementations and evidence",
       "milestone": "M0",

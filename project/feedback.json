@@ -3340,6 +3340,37 @@
           "report_sha256": "32540b8d527c5fde0e3262dc8635de9cf93fc0114488a8c663094a9d7a21d5f6"
         }
       ]
+    },
+    {
+      "id": "windows-localized-workspace-first-button",
+      "source": "Authenticated main Windows run 45101333252, archives/runs/20261123T024037.246404Z-9bf7f2cb/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Desktop localization was the only failed check in run 45101333252. Its first Simplified Chinese sample-button assertion expired after 5000 ms at desktop.spec.mjs:20. The other 13 cases passed. The original log references a screenshot and error context absent from the published artifact. The warm Cargo build took 0.25 seconds and the check took 23.203 seconds. Nearby warm Windows runs 45070244999 and 45098363813 passed in 14.531 and 17.938 seconds. These are whole-check timings and leave the original entry and locale at expiry unknown. A controlled 6.2-second main-module delay reproduced the assertion locally while the startup page was already in Chinese. Under the same delay the repaired check reached the Chinese workspace in 6.9 seconds. A local pair with fresh browser contexts and the same Vite server mounted in 243 ms after forced optimization and 207 ms after the graph was warm. An English context mounted normally and exposed the English label, isolating a locale mismatch from startup readiness. The retained comparison is archives/observations/M1-033/local-startup-comparison/SHA256SUMS (SHA-256 a63778aa4067258f633985df2c54707c8a3b1243b67c072e28c164b72466310a).",
+      "task_ids": [
+        "M1-033"
+      ],
+      "regression_checks": [
+        "desktop-localization"
+      ],
+      "resolution": {
+        "cause": "The test started a five-second language-specific control assertion at document load while the application entry was still importing asynchronously. The controlled delay confirmed that the assertion could expire on an already localized startup page. The original Windows diagnostic cannot establish the reason for that run's missing control.",
+        "correction": "Observe a mounted desktop through the shared preview startup helper and its existing ten-second budget, then assert the document locale and real localized button. Use the same observer to report the terminal entry failure in the localized recovery case.",
+        "prevention": "The bounded 6.2-second delay, localized preference and reload flows and shared fatal and stalled startup checks passed on Ubuntu and Windows in run 45105648304 at 01c5aab. The native Windows report is retained at archives/runs/20261123T032538.318226Z-f085ac2b/test-report.json (SHA-256 6fd06399e41c7dc5ba89b5fe97174d6308d8f488aa2424428ba16bc5b40b9813)."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261123T024037.246404Z-9bf7f2cb",
+          "source_commit": "06cd9eef02dee9450e056772032020bb8f45e95c",
+          "report_sha256": "c9186bf37d02fa4e2db327552ec22dcf528cc80e478d165fe2ef214b876796b3"
+        },
+        {
+          "run_id": "20261123T032538.318226Z-f085ac2b",
+          "source_commit": "01c5aab0ce32ca6467996aa10a1671938bfd407d",
+          "report_sha256": "6fd06399e41c7dc5ba89b5fe97174d6308d8f488aa2424428ba16bc5b40b9813"
+        }
+      ]
     }
   ]
 }

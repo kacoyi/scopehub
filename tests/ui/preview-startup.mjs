@@ -33,7 +33,7 @@ function describe(resource) {
   return `HTTP ${resource.status}${resource.finished ? '' : ' (body pending)'}`;
 }
 
-async function openPreview(page, baseURL, mountControls, timeout, workspaceMounted) {
+async function openPreview(page, baseURL, mountLocators, timeout, workspaceMounted) {
   const origin = new URL(baseURL).origin;
   const resources = new Map();
   const terminal = Promise.withResolvers();
@@ -80,7 +80,7 @@ async function openPreview(page, baseURL, mountControls, timeout, workspaceMount
     if (!response?.ok()) return `Document navigation returned HTTP ${response?.status() ?? 'unknown'}`;
     stage = 'application mount';
     try {
-      const visible = Promise.all(mountControls.map(name => control(page, name).waitFor({ state: 'visible', timeout })));
+      const visible = Promise.all(mountLocators.map(locator => locator.waitFor({ state: 'visible', timeout })));
       await (workspaceMounted ? Promise.race([visible, workspaceMounted]) : visible);
     } catch (error) {
       return error.name === 'TimeoutError' ? `Startup exceeded ${timeout} ms` : 'Could not observe application controls';
@@ -102,7 +102,11 @@ async function openPreview(page, baseURL, mountControls, timeout, workspaceMount
 }
 
 export function openUnconfiguredPreview(page, baseURL, { timeout = workspaceTimeoutMs } = {}) {
-  return openPreview(page, baseURL, ['Open offline sample', 'Data sources'], timeout);
+  return openPreview(page, baseURL, [control(page, 'Open offline sample'), control(page, 'Data sources')], timeout);
+}
+
+export function openDesktopPreview(page, baseURL) {
+  return openPreview(page, baseURL, [page.locator('main.workstation')], workspaceTimeoutMs);
 }
 
 export async function openWorkspacePreview(page, baseURL, endpoint, { snapshotTimeout = snapshotTimeoutMs } = {}) {
@@ -162,7 +166,7 @@ export async function openWorkspacePreview(page, baseURL, endpoint, { snapshotTi
   try {
     // The snapshot request comes from the mounted React application's effect.
     // A fast request can reach the runner before Playwright observes the controls.
-    await openPreview(page, baseURL, ['Data sources'], workspaceTimeoutMs, first.promise);
+    await openPreview(page, baseURL, [control(page, 'Data sources')], workspaceTimeoutMs, first.promise);
     // Register before navigation to catch a fast reply and start this independent
     // budget at mount so a slow module graph cannot use the snapshot's time.
     timer = setTimeout(() => failure.resolve(`Snapshot exceeded ${snapshotTimeout} ms`), snapshotTimeout);
