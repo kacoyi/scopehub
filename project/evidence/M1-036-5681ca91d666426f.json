@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-036",
+  "task_definition_sha256": "2c4f1b45e759e4ada6f4bef3d85b43330fa0f88e0e680daf510c3e80c06648b7",
+  "run_id": "20261124T111243.896584Z-55f1626d",
+  "recorded_at": "2026-11-24T11:15:05.388482+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "0137f1fac56679e39e92bfb6b5a61173a3b5791e7b8d57178321859b814a9c7d",
+    "file_count": 581,
+    "git_head": "118c6efd201b3cf2f3c0c9ee5cfe7f925b3cdc3b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "5681ca91d666426ff0c14f530e320604d36280bffce1c9b7716f923aa22fa9d0",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/personal-source-entry/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/personal-source-entry/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d9c7b0d1f54992aa91a2db897276a812771bfe9a4c54c413095e8296bc5ac8f7"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e076e77d3352f498a8814485c58178381dae3bbe12b48e86b978761af3a40a48"
+    },
+    {
+      "id": "local-import-ui",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/local-import.playwright.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ee1aed456cb58701e4e5f14f177d2081ee98fb594d4b15bce61542de5cf9da98"
+    },
+    {
+      "id": "local-import-publication",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/personal-source-entry/.venv/bin/python",
+        "scripts/check_local_import_publication.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a065b7b3464fba10b25e3b18689a5e66919ed79ad52e93cccf7c775e5f3635b4"
+    }
+  ],
+  "project_definition_sha256": "3501aa0f7f13c6007d34fdb87629ab22e85aa5c164cd877b9b421b032ea03bd9",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1baae2145f52a969f39a0ad728853b97336bc4e30ef296dfe1ad708e7e8bcd2b"
+  ]
+}

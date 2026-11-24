@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
@@ -26,6 +26,8 @@ function App() {
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
   const [local, setLocal] = useState(false);
+  const chartReturnFocus = useRef<HTMLElement | null>(null);
+  const backToChart = useRef<HTMLButtonElement>(null);
   const [folder, setFolder] = useState<LocalFolderCatalog | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [pickerError, setPickerError] = useState<LocalImportMessage>();
@@ -47,6 +49,13 @@ function App() {
   const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };
   const currentModelSelection = !local && !targetRevoked && modelSelection?.selectionRevision === snapshot?.selection_revision
     ? modelSelection : undefined;
+  useLayoutEffect(() => {
+    if (local) backToChart.current?.focus();
+    else {
+      chartReturnFocus.current?.focus();
+      chartReturnFocus.current = null;
+    }
+  }, [local]);
   useEffect(() => {
     const navigate = () => {
       const chosen = window.location.hash === '#demo';
@@ -79,20 +88,22 @@ function App() {
     if (localWorkspace && supportsSourcePreference) void localWorkspace.chooseSource({ kind: 'none' }).then(leave, () => {});
     else leave();
   };
-  const chooseFolder = useCallback(async () => {
+  const chooseFolder = useCallback(async (returnFocus?: HTMLElement) => {
     const picked = await chooseLocalCsvFolder();
     if (picked) {
+      if (returnFocus) chartReturnFocus.current = returnFocus;
       setFolder(picked);
       setLocal(true);
     }
     return picked;
   }, []);
-  const chooseFromWorkspace = async () => {
+  const chooseFromWorkspace = async (returnFocus: HTMLElement) => {
     setChoosing(true);
     setPickerError(undefined);
-    try { await chooseFolder(); }
+    try { return Boolean(await chooseFolder(returnFocus)); }
     catch (error) {
       setPickerError(localImportErrorMessage(error) ?? message('The local CSV folder could not be opened.'));
+      return false;
     } finally { setChoosing(false); }
   };
   const openSample = () => {
@@ -107,16 +118,20 @@ function App() {
     }
   };
   const localActions = hasLocalCsvPicker() ? {
-    choose: () => { void chooseFromWorkspace(); },
+    choose: chooseFromWorkspace,
     openRevision: () => setOpeningRevision(true),
-    resume: folder ? () => setLocal(true) : undefined,
+    resume: folder ? (returnFocus: HTMLElement) => {
+      chartReturnFocus.current = returnFocus;
+      setLocal(true);
+    } : undefined,
+    folderName: folder?.display_name,
     choosing,
     error: pickerError === undefined ? undefined : renderLocalImportMessage(pickerError),
   } : undefined;
 
   return <>
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
-    {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
+    <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} active={!local}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
       modelDialogOpen={Boolean(modelChatView)} openModelChat={selection => {
         setModelSelection(selection);
@@ -133,13 +148,14 @@ function App() {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });
         }
-      } : undefined} />}
+      } : undefined} />
     {folder && <div hidden={!local}>
       <main className="workstation local-workstation">
         <header className="topbar local-source-bar">
           <div className="brand" aria-label="ScopeHub"><span className="brand-mark" aria-hidden="true">S</span><strong>ScopeHub</strong></div>
           <span className="local-source-label"><i aria-hidden="true" />{t('Local CSV')}</span>
           <div className="local-source-controls">
+            <button type="button" ref={backToChart} className="secondary-button" onClick={() => setLocal(false)}>{t('Back to chart')}</button>
             <LanguageSettings />
             <button type="button" className="secondary-button" aria-haspopup="dialog" onClick={() => setOpeningRevision(true)}>{t('Open published CSV')}</button>
             <button type="button" className="secondary-button" onClick={openSample}>{t('Open offline sample')}</button>

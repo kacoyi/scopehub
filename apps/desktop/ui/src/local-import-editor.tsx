@@ -68,9 +68,48 @@ const actionText = {
 };
 
 const columnFields = [
-  ['symbol', 'Symbol column'], ['timestamp', 'Timestamp column'], ['trading_day', 'Trading day column'],
-  ['open', 'Open column'], ['high', 'High column'], ['low', 'Low column'], ['close', 'Close column'], ['volume', 'Volume column'],
+  ['symbol', 'Symbol column', ['symbol', 'ticker', 'contract', '证券代码', '合约代码']],
+  ['timestamp', 'Timestamp column', ['timestamp', 'datetime', 'bar_start', 'bar_start_time', 'barstart', 'barstarttime', '时间戳']],
+  ['trading_day', 'Trading day column', ['trading_day', 'trading_date', 'trade_date', 'tradingday', 'tradingdate', 'tradedate', '交易日']],
+  ['open', 'Open column', ['open', 'open_price', 'openprice', '开盘价']],
+  ['high', 'High column', ['high', 'high_price', 'highprice', '最高价']],
+  ['low', 'Low column', ['low', 'low_price', 'lowprice', '最低价']],
+  ['close', 'Close column', ['close', 'close_price', 'closeprice', '收盘价']],
+  ['volume', 'Volume column', ['volume', 'bar_volume', 'barvolume', '成交量']],
 ] as const;
+
+const unmappedColumnReason = 'No supported bar field is mapped to this column.';
+
+function canBindColumn(column: string) {
+  return column.length > 0 && (column.length <= 1_024 || (column.length <= 2_048 && [...column].length <= 1_024));
+}
+
+function draftColumnsFromHeaders(preview: CsvPreview, bound: CsvColumnMappingV1 | undefined) {
+  if (preview.header.length === 0 || preview.issues.some(issue => issue.field === 'header' || issue.code === 'decode_failed')) return;
+
+  // Reuse the reader's classifications for raw-only columns, including source declarations.
+  const auxiliary = new Set(preview.raw_only_columns
+    .filter(({ reason }) => reason !== unmappedColumnReason).map(({ column }) => column));
+  const headers = preview.header.filter(column => !auxiliary.has(column)).map(column => ({
+    column, key: column.trim().toLowerCase().replace(/[ _-]+/g, '_'),
+  }));
+  const assigned = new Set(Object.values(bound ?? {}));
+  const fill: CsvColumnMappingV1 = {};
+  const unresolved: { label: string; candidates: string[] }[] = [];
+  for (const [field, label, aliases] of columnFields) {
+    if (bound?.[field] !== undefined) continue;
+    const candidates = headers.filter(({ key }) => aliases.some(alias => alias === key)).map(({ column }) => column);
+    const [candidate] = candidates;
+    // An overlength alias still makes the field ambiguous, even when it cannot be bound.
+    if (candidate !== undefined && candidates.length === 1 && canBindColumn(candidate) && !assigned.has(candidate)) {
+      fill[field] = candidate;
+      assigned.add(candidate);
+    } else {
+      unresolved.push({ label, candidates });
+    }
+  }
+  return { fill, unresolved };
+}
 
 const seriesFields = [
   ['venue', 'Venue', 'Exchange or venue', 256], ['timeframe', 'Timeframe', '1m, 5m or 1d', 256],
@@ -155,7 +194,7 @@ function ImportAlert({ failure }: { failure: Failure }) {
 function rawOnlyReason(reason: string) {
   const preserved = /^Preserved for review as (.+)\.$/.exec(reason);
   if (preserved?.[1]) return t('Preserved for review as {role}.', { role: localCsvAuxiliaryRole(preserved[1]) });
-  if (reason === 'No supported bar field is mapped to this column.' || reason === 'Previous settlement price') return t(reason);
+  if (reason === unmappedColumnReason || reason === 'Previous settlement price') return t(reason);
   return reason;
 }
 
@@ -255,6 +294,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [draft, setDraft] = useState(newMapping);
   const [rowLimit, setRowLimit] = useState(50);
   const [inspection, setInspection] = useState<Inspection>();
+  const [suggestionSourceHash, setSuggestionSourceHash] = useState<string>();
   const [approved, setApproved] = useState<ApprovedMapping>();
   const [publishedRecord, setPublished] = useState<PublishedLocalImportRevision>();
   const [frozenChart, setFrozen] = useState<FrozenChartResult>();
@@ -340,8 +380,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     && mapped.preview.rows.some(row => row.normalized?.is_closed) ? inspection : undefined;
   const savedDraft = approved?.draft === draft ? approved : undefined;
   const publishable = savedDraft && reviewed?.output.sha256 === savedDraft.sha256 ? savedDraft : undefined;
-  const columns = [...new Set((visible?.header ?? []).filter(column => column.length > 0
-    && (column.length <= 1_024 || (column.length <= 2_048 && [...column].length <= 1_024))))];
+  const columns = [...new Set((visible?.header ?? []).filter(canBindColumn))];
+  const suggestions = native && visible ? draftColumnsFromHeaders(visible, draft.columns) : undefined;
   let noVolume = 'No volume column';
   while (columns.includes(noVolume)) noVolume += ' ';
 
@@ -356,6 +396,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       if (!value) delete next[key];
       return next;
     });
+    if (key === 'encoding' || key === 'delimiter' || key === 'record_kind') setSuggestionSourceHash(undefined);
     setFailure(undefined);
     setProgress(undefined);
     clearMappingFeedback();
@@ -374,10 +415,21 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     clearMappingFeedback();
   }
 
+  function applyHeaderSuggestions() {
+    if (!suggestions || !visible) return;
+    setSuggestionSourceHash(visible.file_sha256);
+    if (Object.keys(suggestions.fill).length === 0) return;
+    setDraft({ ...draft, columns: { ...draft.columns, ...suggestions.fill } });
+    setFailure(undefined);
+    setProgress(undefined);
+    clearMappingFeedback();
+  }
+
   function selectFile(id: string) {
     setFileId(id);
     setDraft(newMapping());
     setInspection(undefined);
+    setSuggestionSourceHash(undefined);
     setApproved(undefined);
     setLoadedSourceHash(undefined);
     setFailure(undefined);
@@ -501,6 +553,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setMappingNotice(message('The CSV header has changed. Inspect the current raw rows and review the mapping.'));
       } else if (reply.record && reply.source_sha256) {
         setDraft(reply.record.mapping);
+        setSuggestionSourceHash(undefined);
         setApproved({ draft: reply.record.mapping, sha256: reply.source_sha256, record: reply.record });
         setLoadedSourceHash(reply.source_sha256);
         if (observed?.sha256 !== reply.source_sha256) setInspection(undefined);
@@ -721,6 +774,25 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         {native && <fieldset className="local-import-card" disabled={busy || !file}>
           <legend>{t('Bar mapping')}</legend>
           {columns.length === 0 && <p className="local-import-muted">{t('Inspect raw rows to load column names.')}</p>}
+          <div className="local-import-draft">
+            <button type="button" className="secondary-button" disabled={!suggestions} onClick={applyHeaderSuggestions}>{t('Draft mapping from headers')}</button>
+            {suggestions && visible?.file_sha256 === suggestionSourceHash && <div role="status">
+              <p>{t('Review the column selections and complete the source declarations.')}</p>
+              {suggestions.unresolved.length > 0 && <ul className="local-import-issues">
+                {suggestions.unresolved.map(({ label, candidates }) => {
+                  const [header] = candidates;
+                  const overlength = candidates.some(candidate => !canBindColumn(candidate));
+                  return <li key={label}>
+                    <strong>{t(label)}</strong>{' · '}
+                    {header === undefined ? t('No recognized header') : overlength
+                      ? t('At least one matching header is too long to bind.') : candidates.length === 1
+                        ? t('Header “{header}” is already bound', { header })
+                        : t('Choose among {headers}', { headers: candidates.map(header => `“${header}”`).join(', ') })}
+                  </li>;
+                })}
+              </ul>}
+            </div>}
+          </div>
           <div className="local-import-fields">
             {columnFields.map(([key, label]) => {
               const name = draft.columns?.[key];

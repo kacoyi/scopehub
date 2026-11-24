@@ -4091,6 +4091,28 @@
       "deferral_reason": null
     },
     {
+      "id": "csv-header-draft-overlength-ambiguity",
+      "source": "Independent Astra review of d32e221 retained in archives/observations/m1-037-118c6ef/m1-036-037-astra-d32e221.txt (SHA-256 c369fc32277c638c01c2a0e420ef2ba052a411d071fa26f0880f1b5bc56213d4). The original failing run is retained at archives/runs/20261124T111043.682851Z-363ffbde/test-report.json.",
+      "observation": "The CSV reader preserves distinct raw headers Close and Close followed by 1020 spaces, with respective values 101 and 202. Both match the draft's close alias after trimming. The editor discards the overlength name before counting candidates and silently binds Close, selecting 101 without an ambiguity warning.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M1-037"],
+      "regression_checks": ["local-import-publication"],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111043.682851Z-363ffbde",
+          "source_commit": "d32e221e3eeb69b3ac437136b7d54efb5e9310cb",
+          "report_sha256": "ad31c0f84945e305c9a0e48a41db87d9d58fb3c10fbdc08719c2ab9bd7a1b41f"
+        }
+      ],
+      "resolution": {
+        "cause": "The editor discarded an overlength header before counting all observed aliases for a price field.",
+        "correction": "Count every observed matching header and apply the binding length limit only after establishing a unique candidate. A person can explicitly bind a valid header when the draft is ambiguous.",
+        "prevention": "The Rust-backed editor regression retains the two distinct close prices, checks the unresolved draft and the manually selected close of 101, and separately checks the single unbindable header."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "verification-overrun-without-timely-remediation",
       "verification_budget": {
         "repository": "kacoyi/scopehub",
@@ -4118,6 +4140,16 @@
           "run_id": "20261124T093734.046540Z-27df2492",
           "source_commit": "a6d9460d6bc5fffa533117350ceec175d8f49fec",
           "report_sha256": "eb41a70ccdd5cd1f45eb9624218d5c92fd77ef9b612a017fc7f923daaae58714"
+        },
+        {
+          "run_id": "20261124T100902.462170Z-1acba3cf",
+          "source_commit": "0bcda4327c27cb475277ea798de7eb736feede58",
+          "report_sha256": "69580af9bb9570af65933dd6404548033a4ee240962957d2c845ad4b3a97288b"
+        },
+        {
+          "run_id": "20261124T105051.224210Z-56f42223",
+          "source_commit": "00715fe0d00d4f5c3925561e5bc9df13703e0d12",
+          "report_sha256": "c95dfae108ee28c9a5e09612774dcd311d22c3104e67f93deff6447b1e5a5984"
         }
       ],
       "resolution": null,

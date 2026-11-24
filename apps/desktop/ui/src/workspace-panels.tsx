@@ -1,4 +1,4 @@
-import { formatNumber, message, t, type Message } from './i18n';
+import { formatNumber, message, t } from './i18n';
 import { assetLabel, instrumentName, price, priceChange, symbol, unitLabel } from './instrument-display';
 import {
   isClosedBarGapRevision, isSampleRevision, sampleDateStart, sampleRevisionInstrument, sampleRevisions,
@@ -13,25 +13,26 @@ export type Panel = 'watchlist' | 'data' | 'sources';
 export const panelLabels: Record<Panel, string> = { watchlist: 'Watchlist', data: 'Data window', sources: 'Data sources' };
 
 export type LocalSourceActions = {
-  choose: () => void;
+  choose: (returnFocus: HTMLElement) => Promise<boolean>;
   openRevision: () => void;
-  resume: (() => void) | undefined;
+  resume: ((returnFocus: HTMLElement) => void) | undefined;
+  folderName: string | undefined;
   choosing: boolean;
-  error: Message | string | undefined;
+  error: string | undefined;
 };
 
 export function LocalSourceButtons({ actions }: { actions: LocalSourceActions }) {
   return <div className="local-source-actions">
-    <button type="button" className="secondary-button" disabled={actions.choosing} onClick={actions.choose}>
+    <button type="button" className="secondary-button" disabled={actions.choosing} onClick={event => { void actions.choose(event.currentTarget); }}>
       {t('Choose local CSV folder')}
     </button>
     <button type="button" className="secondary-button" aria-haspopup="dialog" disabled={actions.choosing} onClick={actions.openRevision}>
       {t('Open published CSV')}
     </button>
-    {actions.resume && <button type="button" className="secondary-button" disabled={actions.choosing} onClick={actions.resume}>
+    {actions.resume && <button type="button" className="secondary-button" disabled={actions.choosing} onClick={event => actions.resume?.(event.currentTarget)}>
       {t('Back to local CSV preview')}
     </button>}
-    {actions.error && <p role="alert">{typeof actions.error === 'string' ? actions.error : t(actions.error)}</p>}
+    {actions.error && <p role="alert">{actions.error}</p>}
   </div>;
 }
 

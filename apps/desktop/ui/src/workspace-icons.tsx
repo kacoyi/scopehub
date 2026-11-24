@@ -11,6 +11,7 @@ const paths = {
   workbench: <><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M10 4v16m0-9h11" /></>,
   table: <><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M3 9h18M3 14h18M9 4v16" /></>,
   database: <><ellipse cx="12" cy="5.5" rx="8" ry="3.3" /><path d="M4 5.5v11.7c0 1.8 3.6 3.3 8 3.3s8-1.5 8-3.3V5.5M4 11.4c0 1.8 3.6 3.3 8 3.3s8-1.5 8-3.3" /></>,
+  settings: <><path d="M4 6h5m4 0h7M4 12h10m4 0h2M4 18h2m4 0h10" /><circle cx="11" cy="6" r="2" /><circle cx="16" cy="12" r="2" /><circle cx="8" cy="18" r="2" /></>,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   chevron: <path d="m8 10 4 4 4-4" />,
   expand: <path d="M8 3H3v5m13-5h5v5m0 8v5h-5M8 21H3v-5" />,
