@@ -217,8 +217,9 @@ function Studio({ ask, close, reopen, onSaved, hasWorkspace, workspace, series, 
       layer_id: series.layer, version_id: series.version, result_hash: series.resultHash, series_id: series.id,
     };
     try {
-      const result = await workspace.previewLayout({ action: 'save', name: name.trim(),
-        definition: { ...layout.definition, authored_view: view } }, snapshot.workspace.revision);
+      const definition = { ...layout.definition, authored_view: view };
+      delete definition.research_view;
+      const result = await workspace.previewLayout({ action: 'save', name: name.trim(), definition }, snapshot.workspace.revision);
       if (!dialog.current?.open) return;
       await workspace.applyLayout(result.command);
       onSaved();

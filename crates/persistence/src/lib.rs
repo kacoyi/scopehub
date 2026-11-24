@@ -43,7 +43,8 @@ const PRIVATE_RECORD_SCHEMA_VERSION: i64 = 8;
 const WORKSPACE_LAYOUT_SCHEMA_VERSION: i64 = 9;
 const INDICATOR_VERSIONS_SCHEMA_VERSION: i64 = 10;
 const AUTHORED_LAYOUT_SCHEMA_VERSION: i64 = 11;
-const SCHEMA_VERSION: i64 = AUTHORED_LAYOUT_SCHEMA_VERSION;
+const RESEARCH_SAMPLE_SCHEMA_VERSION: i64 = 12;
+const SCHEMA_VERSION: i64 = RESEARCH_SAMPLE_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -278,6 +279,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     // the profile before any authored definition can be committed.
     if version < AUTHORED_LAYOUT_SCHEMA_VERSION {
         record_migration(connection, AUTHORED_LAYOUT_SCHEMA_VERSION)?;
+    }
+    if version < RESEARCH_SAMPLE_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("research_sample.sql"))?;
+        record_migration(connection, RESEARCH_SAMPLE_SCHEMA_VERSION)?;
     }
     Ok(())
 }
@@ -569,6 +574,38 @@ struct SqliteTransaction<'a> {
 }
 
 impl WorkspaceTransaction for SqliteTransaction<'_> {
+    fn research_sample(&self) -> Result<scopehub_application::ResearchSampleState, Error> {
+        self.connection
+            .query_row(
+                "SELECT access, revision, refreshed FROM research_sample WHERE workspace_id = ?1",
+                [&self.binding.workspace_id],
+                |row| {
+                    let access: String = row.get(0)?;
+                    Ok(scopehub_application::ResearchSampleState {
+                        access: serde_json::from_value(serde_json::Value::String(access))
+                            .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                        revision: revision(row, 1)?,
+                        refreshed: row.get(2)?,
+                    })
+                },
+            )
+            .optional()
+            .map(|state| state.unwrap_or_default())
+            .map_err(store_error)
+    }
+
+    fn write_research_sample(
+        &mut self,
+        state: &scopehub_application::ResearchSampleState,
+    ) -> Result<(), Error> {
+        self.connection.execute(
+            "INSERT INTO research_sample(workspace_id, access, revision, refreshed) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(workspace_id) DO UPDATE SET access = excluded.access, revision = excluded.revision, refreshed = excluded.refreshed",
+            params![self.binding.workspace_id, state.access.as_str(), i64::try_from(state.revision).map_err(|_| failure(ErrorCode::RESOURCELIMIT))?, state.refreshed],
+        ).map_err(store_error)?;
+        Ok(())
+    }
+
     fn state(&self) -> Result<WorkspaceState, Error> {
         state(self.connection, &self.binding.workspace_id)
     }

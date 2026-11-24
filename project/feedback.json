@@ -3873,14 +3873,18 @@
       "source": "Hosted Windows run 45314545439, workbench-drawing-runtime.log. The separate native folder-chooser observation belongs to the independent verifier.",
       "observation": "Three Chromium accepted-series tests reached the private handoff wait before any drawing was admitted. The fixture reconstructed a native profile ID by hashing a Node realpath. The writer derives its ID from Rust canonicalization and attests the stored binding. The existing frozen-source reopen fixture reads that binding from the disposable profile.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-003"
       ],
       "regression_checks": [
         "workbench-drawing-runtime"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture derived a second profile identifier from a platform-specific path representation.",
+        "correction": "Open the published profile using its stored Rust binding and private handoff.",
+        "prevention": "Windows run 45331634154, workbench-drawing-runtime.log, records the period-2, period-5 and embedded revision Chromium cases passing on the repaired fixture. The separate native revocation observation uses the same frozen renderer."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
@@ -3944,6 +3948,25 @@
         "cause": "Named reopen and blank create initialized the same studio from the active workspace layout.",
         "correction": "Keep separate entry intents. A blank studio starts with no program, binding or name, refuses an existing name, and becomes a saved view only after a committed save.",
         "prevention": "The normal-entry regression saved B, reopened the edited A and checked its controls. Holding and releasing the frozen-chart read restored A while already open. Independent fresh zh-CN sessions confirmed the corrected blank and named entries on port 1470. Observation archives/observations/m2-023-authored-view-1d71972/manifest.json, SHA-256 5f0a6cab0ffd405e9c9d86e0dedeab1508b7031834695ea0171de2666bba554b."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "held-research-entitlement-read",
+      "source": "M2-024 normal-entry Chromium run b862c3a6-6c49-4fd2-85c8-f356168f0400, retained results.json and browser failure screenshot in this task checkout; test research-workbench.spec.mjs, held entitlement.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The local research source committed revocation through a second authenticated request while the browser held an earlier successful entitlement reply. Six seconds later the previously opened synthetic disclosure body was still visible and the periodic recheck had not resumed.",
+      "task_ids": [
+        "M2-024"
+      ],
+      "regression_checks": [
+        "research-workbench"
+      ],
+      "resolution": {
+        "cause": "A pending source request prevented another check and retained the last affirmative display projection indefinitely.",
+        "correction": "Expire the display grant and the outstanding request locally after three seconds. Resume status checks independently of a late native reply and ignore every superseded result.",
+        "prevention": "The actual workspace regression holds an earlier authorized response, revokes through another authenticated request, checks disappearance before release, then verifies stale content cannot return. The original six-second failure and screenshot are independently retained under archives/observations/m2-024-held-read-b862c3a6; results.json SHA-256 176c4fec4e45101cb89db5b1420192f6505aaf1b7dbcc61d8b9975b05fbaee8d."
       },
       "deferral_reason": null
     }

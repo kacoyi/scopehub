@@ -1,0 +1,133 @@
+[
+  {
+    "name": "research source enablement binds the observed source revision",
+    "operation": "research.sample",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000001",
+      "timestamp_ms": 1704153600000,
+      "request_id": "00000000-0000-4000-8000-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "research.sample",
+        "arguments": {
+          "action": "connect",
+          "expected_revision": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "research original requires a source revision",
+    "operation": "research.sample",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000001",
+      "timestamp_ms": 1704153600000,
+      "request_id": "00000000-0000-4000-8000-000000000002",
+      "type": "request",
+      "scope": {
+        "workspace_id": "synthetic-workspace"
+      },
+      "intent": {
+        "operation": "research.sample",
+        "arguments": {
+          "action": "original",
+          "note_id": "note-a",
+          "record_id": "a-0910"
+        }
+      }
+    }
+  },
+  {
+    "name": "unconfigured research sample returns no content",
+    "operation": "research.sample",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000001",
+      "timestamp_ms": 1704153600000,
+      "request_id": "00000000-0000-4000-8000-000000000002",
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "research.sample",
+        "result": {
+          "access": "unconfigured",
+          "revision": 0,
+          "notes": [],
+          "disclosures": []
+        }
+      }
+    }
+  },
+  {
+    "name": "research source metadata cannot include an original body",
+    "operation": "research.sample",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000001",
+      "timestamp_ms": 1704153600000,
+      "request_id": "00000000-0000-4000-8000-000000000002",
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "research.sample",
+        "result": {
+          "access": "unconfigured",
+          "revision": 0,
+          "notes": [],
+          "disclosures": [
+            {
+              "id": "a-0910",
+              "issuer": "A",
+              "title": "Update",
+              "published_at_ms": 1704186600000,
+              "body": "Original text"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "revoked research coverage cannot carry a cached note",
+    "operation": "research.sample",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "message_id": "00000000-0000-4000-8000-000000000001",
+      "timestamp_ms": 1704153600000,
+      "request_id": "00000000-0000-4000-8000-000000000002",
+      "type": "response",
+      "outcome": {
+        "state": "completed",
+        "operation": "research.sample",
+        "result": {
+          "access": "revoked",
+          "revision": 2,
+          "notes": [],
+          "disclosures": [],
+          "note": {
+            "id": "note-a",
+            "issuer": "A",
+            "title": "Issuer A review",
+            "reviewed_at_ms": 1704186000000,
+            "body": "Synthetic review"
+          }
+        }
+      }
+    }
+  }
+]

@@ -33,7 +33,7 @@ class ProtocolTests(unittest.TestCase):
     def test_private_workspace_vectors_and_worker_separation(self):
         registry = Registry().with_resource(SCHEMA['$id'], Resource.from_contents(SCHEMA))
         examples = []
-        for name in ('decision-note-protocol-cases.json', 'private-record-protocol-cases.json',
+        for name in ('decision-note-protocol-cases.json', 'research-sample-protocol-cases.json', 'private-record-protocol-cases.json',
                      'ai-text-connection-protocol-cases.json'):
             examples.extend(json.loads((ROOT / 'tests/fixtures' / name).read_text()))
         for example in examples:

@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-003",
+  "task_definition_sha256": "51fb4b326cda59c60b617149d106b0a5c7a8e82c47b2f5be62b8b5bae785f637",
+  "run_id": "20261124T052614.003614Z-78632031",
+  "recorded_at": "2026-11-24T05:28:24.792880+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c7dc060d464caadae5e3134b58bbefb21336347bba32c03656ebdc1af8376c7d",
+    "file_count": 607,
+    "git_head": "63f4a3202c8bf8778165f2cd3c9374a48a93cb6b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "cc8363a2abd58937feb0ca75eead03884a5681a96bc467db39f1eafc09081373",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/workbench-code-runtime/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/workbench-code-runtime/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/workbench-code-runtime/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "018fe935fa8540c7b43282e1dbcdb6035edcd022399b0bb09f43614840c45cd2"
+    },
+    {
+      "id": "workbench-renderer-probe",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/workbench-code-runtime/.venv/bin/python",
+        "scripts/renderer_probe.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c91a5fa0381674117529fa70b8f39db468464743b53afca21ad0c4e57f2a64c0"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "09846e177205999941682eca63ffb2813532383dfd617f9f20acb5e144da9423"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "81c8100a3b51c665d1ed29a929040b59cd10a415a1bfbf4f576e66068a0831ef"
+    },
+    {
+      "id": "workbench-authored-composition",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "workbench-authoring.spec.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e041fd20dec84f3fb88f4d4a1d196d2513062e48efea879c47f64a317edf9b91"
+    },
+    {
+      "id": "indicator-declarative-preview",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs",
+        "--grep",
+        "indicator-preview",
+        "--grep-invert",
+        "runs trusted Python once"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6ef83a5ed9a054a05f22fc3fbdebbb2efab378562a6a0b0ce300bac59ada249e"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b51ade09077b8143bf4a411fc93cae3e60c0101cdc497684e4ccbc51115ef5db"
+    },
+    {
+      "id": "workbench-drawing-runtime",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "drawing-workbench.spec.mjs",
+        "drawing-series.spec.mjs",
+        "accepted-drawing.spec.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62d11ca41c74dfaaf4041be1198af5aff218c4c7dd3e8122ba7aaee86ffb9b8c"
+    }
+  ],
+  "project_definition_sha256": "318e50fd14952923ff7ce5efc639f2ac34d0ea2dfbe5ff59a1e96aab701b4815",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "63a1b170fc367ca817e2560a03f84a8b862afab7d016d0a6d8190786b26c9bcd",
+    "6a4008ace04ccc465a640ecd1911cc5d914e0704c9f587e5ab707331ba6a1d59"
+  ]
+}

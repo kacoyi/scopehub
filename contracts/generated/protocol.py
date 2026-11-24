@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=2508b13a207b8a8b993fe9f1c8a7c8fc5e02707b39f8a732bdfacec59c923c2f. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=c7c791b789f8fd89bff36453998951863fa875a01483be93d38354f25c1a7fdf. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout', 'ai.textConnection']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout', 'ai.textConnection', 'research.sample']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -2599,6 +2599,7 @@ class WorkspaceLayout11(TypedDict):
     link_selection: bool
     pinned_instrument: OpaqueId | None
     authored_view: NotRequired[SavedSeriesDrawing11]
+    research_view: NotRequired[SavedResearchView11]
 class NamedWorkspaceLayout11(TypedDict):
     name: str | None
     definition: WorkspaceLayout11
@@ -2790,3 +2791,68 @@ class SavedSeriesDrawing11(TypedDict):
     version_id: Uuid
     series_id: OpaqueId
     result_hash: Hash
+class ResearchViewParameters11(TypedDict):
+    size: int
+class SavedResearchView11(TypedDict):
+    version: int
+    program: str
+    parameters: ResearchViewParameters11
+    source_id: Literal['scopehub.synthetic.research.v1']
+    note_id: str
+class ResearchNote11(TypedDict):
+    id: str
+    issuer: str
+    title: str
+    reviewed_at_ms: Timestamp
+class ResearchNoteOriginal11(TypedDict):
+    id: str
+    issuer: str
+    title: str
+    reviewed_at_ms: Timestamp
+    body: str
+class ResearchDisclosure11(TypedDict):
+    id: str
+    issuer: str
+    title: str
+    published_at_ms: Timestamp
+class ResearchDisclosureOriginal11(TypedDict):
+    id: str
+    issuer: str
+    title: str
+    published_at_ms: Timestamp
+    body: str
+class ResearchSampleInput(TypedDict):
+    action: Literal['status', 'connect', 'disconnect', 'revoke', 'refresh', 'read', 'original']
+    expected_revision: NotRequired[Revision]
+    note_id: NotRequired[str]
+    record_id: NotRequired[str]
+class ResearchSampleOutput(TypedDict):
+    access: Literal['unconfigured', 'connected', 'disconnected', 'revoked']
+    revision: Revision
+    notes: list[ResearchNote11]
+    note: NotRequired[ResearchNoteOriginal11]
+    disclosures: list[ResearchDisclosure11]
+    original: NotRequired[ResearchDisclosureOriginal11]
+class ResearchSampleIntent11(TypedDict):
+    operation: Literal['research.sample']
+    arguments: ResearchSampleInput
+class ResearchSampleCommand11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: DecisionNoteUuid11
+    scope: DecisionNoteReadScope11
+    intent: ResearchSampleIntent11
+class ResearchSampleCompleted11(TypedDict):
+    state: Literal['completed']
+    operation: Literal['research.sample']
+    result: ResearchSampleOutput
+ResearchSampleOutcome11 = ResearchSampleCompleted11 | ScopedFailure11
+class ResearchSampleReply11(TypedDict):
+    protocol_version: ProtocolVersion11
+    message_id: DecisionNoteUuid11
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: DecisionNoteUuid11
+    outcome: ResearchSampleOutcome11

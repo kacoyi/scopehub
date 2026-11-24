@@ -5,7 +5,14 @@
   "fingerprint": "2b1dd83b49712b08a83e07493a226c2443749a516c8680094511059dc1ffac11",
   "pennant_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
   "pennant_fingerprint": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
-  "recommendation": "Provisional engineering preference for isolated QuickJS geometry in the existing Tauri host, with trusted host-owned controls, text and accessible data readouts. Keep the host-interpreted tree available for document-style views. Final renderer selection remains open.",
+  "recommendation": "Select editable author definitions with replaceable presentation as the workbench architecture. The fixed-host trials produced new geometry, mappings, local controls and scoped edits from independently authored source. Catalogue assembly alone fails the contract. Use the isolated QuickJS guest as the engineering baseline for authored plotting. Windows reproduced both accepted-output presentations on ef0a1e1 and trusted crosshair endpoints on the separate 5f9f32d chart adapter. The open ef0a1e1 Windows view cleared after registered revocation on the same synthetic profile (run 45331634154). An authorable host-interpreted grammar remains eligible for other presentation needs if it passes the same expressiveness criterion.",
+  "remaining_chart_free_journey": {
+    "task": "M2-013",
+    "check": "chart-free-workbench",
+    "create": "In the native workbench, start blank and ask the embedded AI to place a selected local research note beside attributed disclosures. Author the text, arrangement and issuer/time condition. For issuer A reviewed at 09:00 UTC, show A at 09:10, exclude A at 08:55 and B at 09:05, and include A at 09:20 on refresh. Selecting a match opens the attributed original through the host under current rights.",
+    "edit_and_reopen": "Ask the embedded AI to put the newest match first. Preview and accept the edit, refine one element directly, undo, save and reopen. Verify ordering, cutoff and evidence identity. Exercise a second arrangement with a different binding using the same application. A rejected or stalled draft must leave the accepted view usable.",
+    "coverage": "Distinguish an authorized read with no matches from a disconnected source. Reopen after revocation and check current rights while retaining the user's composition. These steps are pending under the existing M2-013 journey."
+  },
   "shared_workload": {
     "scope": "Live UI of both candidates, ordinary embedded author and revise turns through a controlled local provider. Real authoring handoff by external Codex is separately evidenced by the three sealed cases.",
     "input": "Pinned two-minute synthetic futures observations, snapshot 3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1. Display volume lengths, select the later minute, revise the same lengths to close prices, reject an invalid presentation and restore the accepted result.",
@@ -22,7 +29,7 @@
     {
       "dimension": "Numeric ownership and projections",
       "tree": "Host binds approved fields, applies meter scales and owns inspection. It cannot position arbitrary marks on the shared time/value frame.",
-      "drawing": "Host provides time/value mappings with fit and expand on a dedicated synthetic reference viewport, or a chart-free frame. Accepted-series programs receive a time key and finite-or-null value only. Two presentations preserve one approved core version, including the warm-up null. Formula execution remains in the Rust-controlled calculation path. Live market-chart crosshair synchronization remains unmeasured."
+      "drawing": "Host provides time/value mappings with fit and expand on a dedicated synthetic reference viewport, or a chart-free frame. Accepted-series programs receive a time key and finite-or-null value only. Two presentations preserve one approved core version, including the warm-up null. Formula execution remains in the Rust-controlled calculation path. The separate combined candidate has native chart-coordinate evidence indexed below."
     },
     {
       "dimension": "Isolation and failure",
@@ -71,16 +78,256 @@
       "index": "visibility-index.json in the ubuntu_binding directory",
       "plot_rgb_sha256": "6e0b9b157e7d79908b7269fae7a2eb891e297d1e2edc498c369271376baf10b5",
       "observation": "The 598-byte guest painted the expected rectangle in the real Tauri debug application on Ubuntu with WebKitGTK 2.52.6. All 19 named interfaces were undefined. The accepted, timed-out and restored plot crops were 861 by 323 with identical RGB bytes. The source was restored and the host returned to the chart. The 419 ms upper bound includes polling and screenshot acquisition. This exercise observed public names and confined recovery."
+    },
+    "windows_native": {
+      "workflow_run": 45317944953,
+      "run_id": "20261124T031639.600588Z-ad54b852",
+      "test_head": "875518367e627aecc8964f58b4ee416b1c576847",
+      "report_sha256": "5d269c2405f3948ff57d9d16f42161ebff765e6b119e93a334eb8fee51501215",
+      "scope": "The ef0a1e1 UI on WebView2 157.0.4341.46 admitted the public-name guest and retained its accepted mark during timeout. Source restoration and return to chart succeeded. The accepted and restored captures matched at 743x280, and the aligned 743x278 interior matched the timeout capture. Input to visible timeout took 384 ms including UI Automation polling. The three Chromium workspace handoff cases passed. The native CSV workflow subsequently stopped at a null UI Automation name while inspecting raw rows, before publication, indicator confirmation, studio binding or revocation.",
+      "full_wizard_retry": {
+        "workflow_run": 45319720229,
+        "test_head": "359b69d46d098187f5d2620ea9eeb3bcb7b5eb64",
+        "run_id": "20261124T033049.491752Z-116990e7",
+        "report_sha256": "ea0dc56aefc401730e921d9279b119f70244b144f81a5254baa6ec2a92eb06a2",
+        "observation": "The independent native window again demonstrated guest recovery. The wizard reached mapping, saving, publication, opening the frozen chart and invoking Run preview. The test timed out waiting for Accept preview. Native indicator confirmation, studio binding and revocation still require evidence."
+      },
+      "prepared_profile": {
+        "fixture_commit": "8feb85b3ed3ef42cd989753d6f0546c066512c96",
+        "command": "node tests/ui/prepare-native-series-profile.mjs <absolute-scratch-directory> <new-absolute-app-data-directory>",
+        "scope": "A separate test entry publishes the synthetic CSV with the existing Rust test bridge, explicitly confirms the indicator through the ordinary private workspace UI and selects the revision. It closes the writer and returns the revision, layer, version, series ID and result hash. Linux Chromium reopened the exact disposable path and verified the original four UTC rows. A native reader can now be exercised independently of automating the whole CSV wizard.",
+        "first_native_read": {
+          "workflow_run": 45320389416,
+          "run_id": "20261124T033632.391519Z-e9d59d2e",
+          "source_commit": "5246c2177d5d4cbe1a86e7b29ee14337cd137f84",
+          "report_sha256": "c33e19862d37bd85573767190dfa3b24ae97cc48378ee4abb0e2070e9e70ef70",
+          "log_sha256": "b188e96f2955fa8b6bdc63fe720e624b3823c4c08895b6431aa787d8af089f7d",
+          "observation": "A confirmed disposable profile reached the native studio. The driver selected a version by ordinal; it did not record the resulting UUID. Numeric series never appeared; the final window showed Accepted series unavailable without a version picker. The read response and reason for source unavailability were not observed."
+        },
+        "restored_chart": {
+          "workflow_run": 45322330414,
+          "run_id": "20261124T035400.234638Z-00733fa9",
+          "source_commit": "7da2d51c8385285a2dafc679304858c40c0d9441",
+          "report_sha256": "48394840b86ab3ef716cd125869f1d129b08e404c5994d5471a6257da5f7b6bf",
+          "log_sha256": "b79810093d302ed87bda1b39aff703c4b0e47c5b46be9ade03680c711e40d3a3",
+          "observation": "Normal startup restored FIX 1d with 2026-02-06 close 16 and volume 140 on WebView2 157.0.4341.46. A redundant reopen attempted SetValue on a disabled Revision ID before the studio was reached. The confirmed version was 74d50c75-6af7-4821-bc0e-fb76cb9fb8e3; no native series binding was observed in this run."
+        },
+        "accepted_binding": {
+          "version": "44550794-cec1-44d0-9ca8-ac62b76ddee6",
+          "result_hash": "b84eb0de1ef8862c77774a0addc0e2626ea6d8bb3c5e32b97b26b5fc58ac03d9",
+          "workflow_run": 45323933286,
+          "run_id": "20261124T040820.330496Z-7fd56970",
+          "source_commit": "fd3017aff727b61aceef9519e9ed204f4884bf70",
+          "report_sha256": "7b90b0e32c0f7d1aa7c9b6f56fe8b76ec54e10d44c30a0936fa745c82fd6405b",
+          "log_sha256": "ebd92afa7a7e128a6bdda7e154fcea6789fe46e806af1810130ffc169d1ed0e6",
+          "check_outcome": "failed",
+          "observation": "After trusted Rust import and explicit Chromium confirmation, the original ef0a1e1 WebView2 window opened the exact accepted mean. Two authored programs painted three rings or three strips with the missing point marked at 732 by 275. Selection displayed 115 at Feb 4 and Unavailable at Feb 3. Choosing standard deviation cleared the previous drawing, readout and undo. Subsequent native automation could not reach Remove frozen chart access, so no revocation was observed. A separate full native wizard reached Cancel preview during computation. Its indicator confirmation was unverified."
+        },
+        "repeated_binding": {
+          "workflow_run": 45326569164,
+          "run_id": "20261124T043054.712595Z-36cc67ef",
+          "source_commit": "36e2621327a0ebb9546b661c59f25d7381314e84",
+          "report_sha256": "51f69d999aa5894d5d517be52dd05fbb64d4fabf7d05eb1c2b3dde354429a498",
+          "log_sha256": "c050976a70b58d97f38c4d1ade5d0e611ebda91ab6fc6f46c6f9b0ac9f7de4eb",
+          "check_outcome": "failed",
+          "observation": "The ef0a1e1 WebView2 window again bound mean, version 09fada16-a57b-4ca4-99af-39bbc78a3398, result 6ab9ff8ccfab43114170f1efdff10e101fe61f817a7ed0db974eb8793dc24fec. Both authored views measured 732 by 275. Selection preserved the missing row and 115; changing series cleared the old state. The native revision details exposed Remove frozen chart access. The pointer could not hit the owned control and the confirmation step was never reached."
+        },
+        "live_revocation_startup": {
+          "workflow_run": 45326837501,
+          "run_id": "20261124T043355.611834Z-4b989ac1",
+          "source_commit": "bc125c3287b5a39f3473b189566b186014059753",
+          "report_sha256": "1d1c044eb0e91c08829bdafc50127169d8948f907a6382cb9ce8521a4777ddc8",
+          "log_sha256": "00bfe0b397f427a050076761a24daf0878f190c00d9ffda6da46335b30a215d3",
+          "check_outcome": "failed",
+          "observation": "The dedicated live revocation run prepared the confirmed synthetic profile. The captured 1120 by 760 RGB client image was entirely black and the driver never found the WebView document. It did not reach a bound scene or issue revocation."
+        },
+        "live_revocation_window_retry": {
+          "workflow_run": 45328389514,
+          "run_id": "20261124T044711.021763Z-9e001f7d",
+          "source_commit": "1236b76245b4ff80d1973e45be8150b1ecbf46ee",
+          "report_sha256": "857b766778c4491849df886263855f117de55b9b5140e0da926bb14b28c5b3ce",
+          "log_sha256": "ca0a802c80bb73fcb5b601d9bed64c86347a49a20e61aebb43a9a459789ed75c",
+          "check_outcome": "failed",
+          "observation": "On the frozen ef0a1e1 UI, the corrected native driver found the WebView2 157 document in the application window (PID 5500, HWND 196988). After reopening the frozen chart the studio exposed the prepared version 9acd65a1-e678-45ac-b97d-c008cad4cd5e as a list item. The keyboard-focus check stopped the driver before it chose that item. The studio remained on the blank canvas. No selected output, revocation receipt or post-revocation clearance was observed."
+        },
+        "live_revocation_picker_recovery": {
+          "workflow_run": 45329982212,
+          "run_id": "20261124T050047.286635Z-5875b056",
+          "source_commit": "2434e1adcfd3243e459638852a3d9697aea0a4aa",
+          "report_sha256": "7acdefa7da905ca3176b04040a1fa012b49c7af668c6f535d6991a0a6cbfdfea",
+          "log_sha256": "e12afda3cc88e6f7fcf551f366fed8bad376a0227a0c3f207b1ac2742605d5f2",
+          "check_outcome": "failed",
+          "observation": "On the ef0a1e1 UI, the prepared WebView2 window restored the FIX daily chart with close 16 and volume 140. At binding-interrupted the studio showed Accepted series unavailable and a blank canvas. After the driver attempted Back to chart, the next captured accessibility tree still showed Drawing studio, now with its version combobox and a blank canvas. The driver timed out waiting for the chart. No exact version selection, accepted-output display or revocation occurred. The captures contain no workspace error code to identify the cause."
+        },
+        "live_revocation_observed": {
+          "workflow_run": 45331634154,
+          "run_id": "20261124T051456.193062Z-e034934b",
+          "source_commit": "e8714238603b824efb28632e9a0d5f9bc24b47df",
+          "report_sha256": "6661a3e830f771f6aa789521e855496780b87c86c2f507bb8683650c243fce7e",
+          "check_outcome": "passed",
+          "archive": "archives/runs/20261124T051456.193062Z-e034934b/test-report.json",
+          "version": "f0db458d-bc25-4ad9-8bc6-cd9cb53e9d5d",
+          "result_hash": "3fc41fa523ba9f00a89770c83a266a21769abe9c4760be0bb427810cae023955",
+          "observation": "WebView2 157, PID 6376, HWND 393682 on ef0a1e1. Normal selection displayed three rings, Feb 4 value 115 and undo. A second registered client revoked revision 665892da-1bdf-467f-bbf7-9a8ff4e889b7 and returned a matching receipt. The same open window reported unavailable and dropped identity, geometry, readout and undo. The retained before/after images contain 303 then zero ring-color pixels in the former 732 by 275 plot."
+        }
+      }
     }
   },
   "open": [
-    "Windows matching is pending for the accepted-series and public visibility/recovery workloads. Hosted run 45314545439 failed during test setup in the Chromium private handoff and the native folder chooser. The original report and logs are retained. Hosted retry 45316222536 includes the test-only aef3d48 profile-binding fix and the independent native chooser fix. The matching Ubuntu accepted-series and public visibility observations are verified.",
-    "Main chart viewport and crosshair linkage, persisted workbench binding/default migration and representative end-user feedback remain open under the recorded tasks. Installer, physical release and live external-client qualification remain separate."
+    "Windows native wizard completion, focus-retry attribution and follow-up file-picker cancellation use separate observations. The original frozen binding and real live revocation are verified.",
+    "Ubuntu and Windows chart endpoint mapping have matched native evidence on the identified chart revisions. Continuous Windows hover timing, whole-workbench composition and reopen, and physical release qualification retain separate scopes. The major composition feedback remains open."
   ],
-  "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
+  "revisit": "Revisit the isolated plotting baseline if a native view retains privileged data after the host learns of a real revocation, or if a verified renderer-specific boundary, coordinate or recovery failure survives a host fix. The original frozen implementation passed this revocation observation on both hosted Windows and Ubuntu. M2-013 owns durable composition and reopen; external client pairing and physical installation have independent checks.",
   "verification": [
     "pnpm exec playwright test --config tests/ui/renderer-comparison.config.mjs",
     "uv run python scripts/renderer_probe.py --retained-only --archive-root /mnt/storage_2/scopehub-dev/archives",
     "SCOPEHUB_ARCHIVE_ROOT=/mnt/storage_2/scopehub-dev/archives pnpm check --task M2-003"
-  ]
+  ],
+  "combined_chart": {
+    "candidate": "602260e861b1781d79fc1a145bbf4642c5d6da6c",
+    "fingerprint": "76538825c899f014b9e666a3a7e506ccc52a29df9e93121c474a72728c426a7d",
+    "guest": "tests/fixtures/workbench/chart-price-anchors.js",
+    "guest_sha256": "ac20d9a0cbd4624a36913c75d08df015b2e26602357f62a4e71600df83ded47e",
+    "ubuntu_index": "archives/worktrees/507bc0c0a7363d39dfba327705db7a77ee0a568c/files/.reports/m2-017-native/ubuntu-index.json",
+    "index_sha256": "af571cc1289a9fa57bb729b48c8c30af69b433cbadad2766e79a8d2abff609d9",
+    "report_sha256": "e38383d87360463ac65b2b0ee723a7a753a22f9ee5a53dddc1dbbe0ff8de7471",
+    "ubuntu": "Ubuntu 26.04.1, Tauri development host 6aee5586, WebKitGTK 2.52.6. A native GTK file selection loaded the frozen program on the synthetic one-minute futures chart. The two rings tracked candle pixels at 1380x920, 1040x805 and 1300x940. The crosshair and selected bar agreed on 13:00 UTC at 3499.2 CNY and 13:01 UTC at 3499.8 CNY. Moving to the price axis cleared the readout. Zoom clipped both rings and Fit restored them. Switching to 5m cleared the program binding.",
+    "review": "Verified the 53 indexed originals, Git tree and guest bytes. In the centered 5 by 5 patches the earlier and later candle colors occupied 21 and 13 pixels, 17 and 17 pixels, and 21 and 17 pixels at the three sizes. These are observed native chart pixels on Xvfb.",
+    "hover_continuity": "The coordinator observed six alternating hovers on the two chart candles at this freeze. On each hover all accepted overlay marks disappeared for about 83 ms (five measured animation frames) before repainting. The final anchor and readout were correct. The native evidence above measures endpoints. Continuous crosshair redraw has an open regression owned by the chart-coordinate follow-up.",
+    "windows_run": 45318214792,
+    "windows_test_head": "507bc0c0a7363d39dfba327705db7a77ee0a568c",
+    "windows_run_id": "20261124T031808.381854Z-26d46421",
+    "windows_report_sha256": "b0c6e9887e331976ae101a66e29779e52016856ccf7116a27730a84b5f37b211",
+    "windows": "The debug executable launched with WebView2 157.0.4341.46. The native automation requested an unsupported InvokePattern before retaining any chart-alignment capture. Native Windows chart anchors, clipping and crosshair still await observation.",
+    "windows_retry": {
+      "workflow_run": 45319501119,
+      "test_head": "289597bedfa89b33b8a696b538f2a93773dfd917",
+      "run_id": "20261124T032938.425462Z-b8f82341",
+      "report_sha256": "a6b7a11614261ffbb4d515e626d9ec4ed43582e4976d938e41230e6e9d8fb711",
+      "observation": "On WebView2 157 the owned file chooser opened and the draft capture found two ring candidates. The center candle-color assertion failed before the test saved that frame. The original report cannot distinguish a projection error from a pixel-classification error. Accepted native Windows alignment remains open."
+    },
+    "windows_narrow_draft": {
+      "workflow_run": 45321026838,
+      "run_id": "20261124T034228.297184Z-b962abb3",
+      "source_commit": "84c03a78cec72de714c058ec34239c1b712d6f2b",
+      "report_sha256": "1a06de225113f86462f1bc6bca611b017aa0a700fdb3b9b9c996bb3f023a0e89",
+      "log_sha256": "bd5526b4bb80411a92a39b2da76bf336a831ca50ab3ede5339c75f721b44e472",
+      "observation": "With both panels open, two draft centres in the same PrintWindow crop were 38 and 35 pixels below the respective candle body close. The following client and screen captures showed candles without rings. Acceptance was unconfirmed. M2-019 owns the narrow-window defect."
+    },
+    "windows_accepted": {
+      "workflow_run": 45322526317,
+      "run_id": "20261124T035626.391743Z-7395ed59",
+      "source_commit": "f4fce4703f33a52233ba3348dcd1b5c52d2b3021",
+      "report_sha256": "b3473a70e73eb789cba7d316fe5ca41f6f3aaacd6d3c228bf725917cb1ddafd8",
+      "log_sha256": "a6f48e4dcde505831ab31fcbf1afcab1833e110e4fb5574e429d183c65d11fd7",
+      "observation": "After closing the side panels in the same frozen 602260e application, the native file and Accept controls worked. The wide accepted centres were at rows 360 and 327.5 against body closes 361 and 328. The resized centres and closes both measured 320 and 291. Zoom clipped both rings, Fit restored them and 5m removed the binding. These are owned-window PrintWindow pixels. The chart extended beyond the runner screen. All three trusted time-and-close hover assertions timed out; continuous hover and precise Windows pointer mapping remain unverified."
+    },
+    "corrected_windows": {
+      "candidate": "5f9f32d1207b94b71cb18caf48ac9b6a006edc64",
+      "fingerprint": "1227094d0ef9a114bcd44148bd164339e0186a26b5c9da6bb1d36f97ab7f5dd2",
+      "workflow_run": 45324249998,
+      "run_id": "20261124T041041.169433Z-554a11b8",
+      "source_commit": "8cbfa36b81695a1b25d905709a81107d9eed653f",
+      "report_sha256": "44116278875652d8bdae97af243bd9c4e3100620d52feea5b0eb66681f9a23c1",
+      "log_sha256": "30a9b85373bd87f8065e5f4890a2ac64a677d20a07df52b046de3c6e2592404b",
+      "check_outcome": "passed",
+      "observation": "The owned Windows Tauri/WebView2 window accepted the guest in its original narrow layout. The two native ring centres were within 0 to 0.5 pixels of the body close edges. Five stationary samples retained the draft. Foreground native pointer position and crosshair readout agreed at 13:01Z/3499.8, then 13:00Z/3499.2 after resize, and 13:01Z/3499.8 after Fit. Zoom clipped and the 5m selection removed the binding. The 20 captured PNG files and input logs qualify the observed endpoints; continuous Windows frame sampling remains unmeasured."
+    }
+  },
+  "chart_hover_correction": {
+    "task": "M2-018",
+    "candidate": "0ea5876bf2fe2afc065fa2b2c7b470e7cf232a28",
+    "fingerprint": "32ccf18147088862697a8e41b02cd2844e01f66af4226020d9e5b16f48248ab8",
+    "archive": "archives/observations/m2-018-crosshair-consistency-452236f/manifest.json",
+    "manifest_sha256": "7a06eee96dbadabb3424feae8a7f6aeb3334035584d6b50067fc96a931c7b9e8",
+    "tested_source": "452236f1511fdef13c4bf0b4340613bc0f69eef9",
+    "scope": "On the corrected stationary synthetic chart the coordinator observed six alternating pointer movements in zh-CN Chromium. Across 84 animation callbacks the base marks stayed visible and the old selection decoration never accompanied the new readout. The new decoration appeared after 100 to 115 ms. This samples browser state during callbacks. Native display timing remains unmeasured on this revision.",
+    "independent": "The retained workload includes delayed and rejected selection. A rapid A to B to A sequence held radii at 5 and 5 during B and ended at 8 and 5 on A. The archive records the earlier failing cases alongside the correction.",
+    "ubuntu_native": {
+      "archive": "archives/observations/m2-018-native-hover-0ea5876/manifest.json",
+      "manifest_sha256": "63947ab0489411ae5df24434e982a1822998d81ddf7e813c65846f4af35152e1",
+      "host": "6aee5586e23392fa341d4779bbe92f9936441c97",
+      "candidate": "0ea5876bf2fe2afc065fa2b2c7b470e7cf232a28",
+      "binary_sha256": "62a8e0c150abd7c03ae59c9719d29e71d44fe7df84a8c01c593e05f9e9c9f82e",
+      "method": "Ubuntu 26.04.1 Tauri with WebKitGTK 2.52.6 on private Xvfb. The GTK chooser opened the frozen chart guest. At a stationary 1380x920 window, six alternating pointer movements switched between 13:00 UTC at 3499.2 CNY and 13:01 UTC at 3499.8 CNY. Two mark crops and the visible time/price were sampled from the same native image. The text templates were calibrated against AT-SPI and the selected candle. The archive retains every sampled crop.",
+      "corrected": "All 272 native samples showed both marks, and every selected emphasis matched the trusted readout in the same image. Sixty samples showed the neutral pair. First observed matching emphasis ranged from 112.075 to 138.011 ms after input, median 120.034 ms over six movements. The largest interval between consecutive samples was 12.1 ms.",
+      "baseline": "The same sampler on the archived 602260e executable saw both marks absent in 62 of 273 samples, with gaps on each of six movements. All sample classifications were recomputed from the retained pixels. Timing includes input dispatch, screenshot acquisition and polling. This is native window sampling on a virtual display."
+    }
+  },
+  "ownership": {
+    "data_and_operations": "The Rust registry owns formulas, versioned numeric results, source grants, operation authorization and confirmation. The host binds a selected revision, version, series and result hash under current rights. Finite-or-null observations and exact readouts retain their original UTC keys, with an unknown output unit when the artifact supplies none.",
+    "coordinates": "The host projects time and value into the current viewport and supplies trusted crosshair and selection identity. The guest can combine projected anchors with freely positioned geometry in chart-linked or axis-free views.",
+    "presentation": "The editable definition owns arrangement, visual mapping and non-privileged interaction. Its rendering backend can be replaced without changing the identity or authority of a data source. Native drawing and selection were observed. Ordinary authored text, evidence arrangement, conditions and local interaction in a reopened user-defined workbench remain part of M2-013. The 900-character bound and geometry-only API describe the prototype."
+  },
+  "focus_recheck": {
+    "task": "M2-020",
+    "product_commit": "a221f6a56054690cc79cdda908dd072e6259165c",
+    "fingerprint": "5e7123269354a78cc29ea98e2564fb8d1040e96513a20122092a1de42cea00a7",
+    "receipt": "project/evidence/M2-020-075c49f6e8a29c9a.json at d3c166f980188da1e33a0dec3c3f3734e39f718f",
+    "baseline_manifest": "archives/observations/m2-020-focus-admission-ef0a1e1/manifest.json",
+    "sha256": "c93837ac4294d205f353fceb01e6e099fecac8d49429b614f0b6b64d929d80fb",
+    "scope": "A genuine 429 on Chromium focus stranded the frozen picker despite an authorized read of the same hash. The corrective runtime passed six Chromium/Rust cases including delayed accepted output, explicit denial, expiry, source switch, studio closure and real revocation. This controlled causal comparison is independent of the earlier Windows observation.",
+    "ubuntu_native": {
+      "manifest": "archives/observations/m2-020-independent-focus-a221f6a-8ee2c1c/manifest.json",
+      "sha256": "4ad98ea77409793d2f5a192d0a7f2ccd95611e84885d18ab6e85b78fb5793293",
+      "observation": "Normal focus transfer to a separate GTK window and back preserved the same confirmed mean, three rings and Feb 4 selection with value 115. No BUSY was injected. Cancelling a file chooser on this runtime closed the studio."
+    },
+    "windows_native": {
+      "workflow_run": 45324104705,
+      "run_id": "20261124T041021.809104Z-10126a33",
+      "source_commit": "8ee2c1c95c04ec4cb84b36728cf86f12f536fc1b",
+      "report_sha256": "863f47dd275fcefd6f721f58f68386ee50d6374e1755c0a1f40c032b6baef082",
+      "log_sha256": "ff1a52a95383aa006965cbc7c254fc1a2f743b0187a735237b3aaff3c2d3164e",
+      "check_outcome": "failed",
+      "observation": "With the a221f6a UI the native workspace displayed FIX 1d close 16, volume 140. The driver reported an empty exposed option before typing the requested version prefix and Enter; the subsequent tree was the main chart. An exact selected version, writer BUSY, a denied read or revocation was not observed."
+    },
+    "windows_selection_retry": {
+      "workflow_run": 45326561018,
+      "run_id": "20261124T043040.996656Z-f1546c7c",
+      "source_commit": "6c3c21585194f38f42d3780efbc7c50d883dc9c8",
+      "report_sha256": "dbafa097bba53ff7b2ff76b420923d5055fe75d5e551a4db7539f1764b145725",
+      "log_sha256": "63b3881fda70581292bcb8cd67e30e9a085c24dbbe413a3bb8711c398d6b23d2",
+      "check_outcome": "failed",
+      "observation": "The a221f6a studio remained open and its Accepted version combobox was present. The native test waited for the exact selectable UUID 740d52b9-337a-47eb-bf60-172d853ba7c6, including after reopening the frozen chart, and timed out without confirming that option. This run supplies no evidence of selection, revocation or a writer BUSY response."
+    }
+  },
+  "file_chooser_cancellation": {
+    "task": "M2-022",
+    "pr": 68,
+    "candidate": "fd391449e5e02ef0f2c93de88108883299d6a50d",
+    "fingerprint": "ac6ccaa804f86d03e3b69d14b5dd0bc187d5e013595a5247078f9b82fe68deb9",
+    "manifest": "archives/observations/m2-022-file-cancel-fd39144/manifest.json",
+    "sha256": "910b0519c7b56461100b5cd5a9544310bb8e1d395672919e0c05bfa4e909f616",
+    "observation": "Production assets in an ephemeral WebKitGTK window proved a trusted bubbling file-input cancel closed the parent dialog. On the correction the same chooser Escape retained the accepted source and all four sample marks. A direct dialog Escape then closed the studio. The real Rust/Chromium comparison separately retained the exact accepted version, hash, three rings, 115 readout and undo.",
+    "independent_native": {
+      "manifest": "archives/observations/m2-022-independent-cancel-fd39144/manifest.json",
+      "sha256": "fd343e7bf3161133bf8e5c0389ca69ffe1f471d05a4293bd093ab73c200c22c9",
+      "host_binary_sha256": "5a6613dec4e2de8f54c8b2161e7fd3efad102f347b74b8dbc3e5bd045e7b8935",
+      "scope": "The independent Ubuntu Tauri/WebKitGTK 2.52.6 window confirmed a synthetic mean. After reading Feb 4 at 115, both clicking the native picker Cancel and pressing Escape in a second file chooser preserved the selected result, enabled undo and identical RGB extents for all three rings. Escape in the studio itself returned to the FIX chart."
+    },
+    "local_preview": {
+      "port": 1468,
+      "ui": "fd391449e5e02ef0f2c93de88108883299d6a50d",
+      "route": "Private launcher, Open blank AI workbench, Drawing studio, select the accepted version and mean, open either standalone file and accept its preview.",
+      "programs": [
+        "tests/fixtures/workbench/accepted-series-dots.js",
+        "tests/fixtures/workbench/accepted-series-strips.js"
+      ],
+      "synthetic_version": "22130180-3492-4f87-90bd-456443448510",
+      "result_hash": "cf7e03f1e813963d014fc2a065a43f92b7c377a04d34dad04ee80a360170f7bf",
+      "observation": "A disposable localhost profile was published through Rust and explicitly confirmed in the ordinary Chromium UI. A second zh-CN browser opened the private launcher, selected the exact version and observed the UTC rows Feb 3 to 6: unavailable, 115, 125, 135. Three circles and three strips plus a missing mark use the same result."
+    },
+    "windows_selection": {
+      "workflow_run": 45331715811,
+      "run_id": "20261124T051559.955751Z-aea352b4",
+      "source_commit": "5709472d144b6ccea41aa530f1c24872bdfeeec6",
+      "report_sha256": "426cbba7513cbb95a454d858c1fbcd03f097755514a21b894940d45e64481301",
+      "observed": "WebView2 157 restored FIX and the version picker. In both captures it still displayed Choose an accepted version. No series, 115 readout, revocation or unavailable status was observed. This run did not establish the cause."
+    }
+  },
+  "independent_native_archive": {
+    "path": "archives/observations/m2-003-independent-native-5709472/manifest.json",
+    "sha256": "afcacf9a5f7e8b0325e5a8d782078586fc5e61dbb5ecf8f121a9bda81f74ccb6",
+    "scope": "Index of 23 hosted workflows, native development observations and frozen-runtime receipts. Both platforms are attributed to their source and runtime fingerprint."
+  }
 }

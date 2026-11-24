@@ -43,6 +43,7 @@ for (const example of read('../fixtures/protocol-cases.json')) {
 
 const privateWorkspaceCases = [
   ...read('../fixtures/decision-note-protocol-cases.json'),
+  ...read('../fixtures/research-sample-protocol-cases.json'),
   ...read('../fixtures/private-record-protocol-cases.json'),
   ...read('../fixtures/ai-text-connection-protocol-cases.json'),
 ];

@@ -5,7 +5,7 @@ use std::sync::Barrier;
 use scopehub_application::{Actor, OperationRegistry, READ_OPERATIONS, WorkspaceAccess};
 use scopehub_domain::protocol::ErrorCode;
 use scopehub_persistence::{OpenWorkspaceError, SqliteWorkspace};
-use serde_json::json;
+use serde_json::{Value, json};
 use support::{Profile, access, assert_committed, assert_failed, binding, set, store, undo};
 use uuid::Uuid;
 
@@ -914,6 +914,24 @@ fn layout_preview_is_actor_bound_and_a_failed_commit_keeps_the_previous_layout()
 
 #[test]
 fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_replay() {
+    let marker = "// series free\n// local private definition\ncircle(8,8,4,0);";
+    let id = Uuid::new_v4().to_string();
+    let drawing = json!({
+        "api":"series-drawing-1", "source":marker, "scalars":[], "stroke":3,
+        "dataset_id":id,"dataset_revision":"original","layer_id":id,"version_id":id,
+        "series_id":"mean","result_hash":"a".repeat(64)
+    });
+    check_private_layout("authored_view", drawing);
+    check_private_layout(
+        "research_view",
+        json!({
+            "version":1,"program":"[\"text\",\"private\"]","parameters":{"size":16},
+            "source_id":"scopehub.synthetic.research.v1","note_id":"note-a"
+        }),
+    );
+}
+
+fn check_private_layout(field: &str, attachment: Value) {
     use scopehub_application::{
         APPLY_LAYOUT, LAYOUT_ID, LOCAL_WORKSPACE_OPERATIONS, PREVIEW_LAYOUT,
     };
@@ -943,13 +961,7 @@ fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_repl
         .unwrap()
         .active;
     let mut definition = serde_json::to_value(layout.definition).unwrap();
-    let marker = "// series free\n// local private definition\ncircle(8,8,4,0);";
-    let id = Uuid::new_v4().to_string();
-    definition["authored_view"] = json!({
-        "api":"series-drawing-1", "source":marker, "scalars":[], "stroke":3,
-        "dataset_id":id,"dataset_revision":"original","layer_id":id,"version_id":id,
-        "series_id":"mean","result_hash":"a".repeat(64)
-    });
+    definition[field] = attachment.clone();
     let edit = json!({"action":"save","name":"Review","definition":definition});
     let preview = make(PREVIEW_LAYOUT, 0, json!({"edit": edit}));
     assert_failed(
@@ -977,7 +989,12 @@ fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_repl
             .unwrap()
             .layouts
             .unwrap();
-        assert!(snapshot.active.definition.authored_view.is_none());
+        assert!(
+            serde_json::to_value(snapshot.active.definition)
+                .unwrap()
+                .get(field)
+                .is_none()
+        );
     }
     let mut public = registry
         .workspace_snapshot(&ai)
@@ -993,7 +1010,7 @@ fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_repl
         .unwrap();
     assert!(
         result["outcome"]["result"]["layout"]["definition"]
-            .get("authored_view")
+            .get(field)
             .is_none()
     );
     let token = &result["outcome"]["result"]["preview_token"];
@@ -1003,7 +1020,7 @@ fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_repl
         assert_eq!(result["outcome"]["state"], "committed");
         assert!(
             result["outcome"]["result"]["definition"]
-                .get("authored_view")
+                .get(field)
                 .is_none()
         );
     }
@@ -1013,5 +1030,8 @@ fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_repl
         .layouts
         .unwrap()
         .active;
-    assert_eq!(current.definition.authored_view.unwrap().source, marker);
+    assert_eq!(
+        serde_json::to_value(current.definition).unwrap()[field],
+        attachment
+    );
 }

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { WorkbenchPrototype } from './workbench-prototype';
+import { ResearchWorkbench } from './research-workbench';
 import { DrawingWorkbench } from './drawing-workbench';
 import { WorkbenchAuthoring } from './workbench-authoring';
 import type { WorkbenchAuthoringTurn } from './workbench-composition';
@@ -26,7 +27,7 @@ function initialSource(): boolean {
 function App() {
   useLocale();
   const [prototype, setPrototype] = useState(false);
-  const [authoring, setAuthoring] = useState<'tree' | 'drawing' | 'saved-drawing' | undefined>(() =>
+  const [authoring, setAuthoring] = useState<'tree' | 'drawing' | 'saved-drawing' | 'research' | 'saved-research' | undefined>(() =>
     new URLSearchParams(location.search).get('renderer') === 'drawing' ? 'drawing' : undefined);
   const drawingSession = useRef(0);
   const session = drawingSession.current;
@@ -145,7 +146,10 @@ function App() {
       }}
       sourceUnavailable={source?.kind === 'frozen' && !drawingSnapshot && restored?.status !== 'loading'}
       bindingSnapshot={drawingSnapshot} access={revisionAccess} workspace={localWorkspace} hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
-    {authoring === 'tree' && <WorkbenchAuthoring close={closeWorkbench} ask={askWorkbench}
+    {(authoring === 'research' || authoring === 'saved-research') && <ResearchWorkbench
+      key={authoring} reopen={authoring === 'saved-research'} workspace={localWorkspace} close={closeWorkbench} ask={askWorkbench} />}
+    {authoring === 'tree'  && <WorkbenchAuthoring close={closeWorkbench} ask={askWorkbench}
+      openResearch={() => { setAuthoringTurn(undefined); setAuthoring('research'); }}
       openDrawing={() => { setAuthoringTurn(undefined); setAuthoring('drawing'); }} />}
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
@@ -160,7 +164,7 @@ function App() {
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample} openPrototype={() => setPrototype(true)}
-      openAuthoring={() => setAuthoring('tree')} openSavedView={() => setAuthoring('saved-drawing')}
+      openAuthoring={() => setAuthoring('tree')} openSavedView={() => setAuthoring(workspace?.snapshot?.layouts?.active.definition.research_view ? 'saved-research' : 'saved-drawing')}
       chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });

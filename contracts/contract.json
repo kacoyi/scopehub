@@ -967,6 +967,28 @@
         }
       },
       "schema_requirement": "The local profile human approves a reviewed destination, model, conversation disclosure and charge basis once. Ordinary text turns use the live session grant. Model replies carry text only."
+    },
+    {
+      "name": "research.sample",
+      "effect": "control",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "transport": "private_workspace",
+      "input": "ResearchSampleInput",
+      "output": "ResearchSampleOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Authenticated local human workspace, explicit synthetic research source only. Source authorization and coverage revisions are stored locally. Metadata and originals are separately requested, with current source rights checked in the registry.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "ResearchSampleCommand11",
+          "output": "ResearchSampleReply11"
+        }
+      },
+      "schema_requirement": "Use the private local workspace 1.1 envelope. Identity and current permission come from the trusted local host. No worker or external client access."
     }
   ],
   "implemented_wire_behaviors": [
