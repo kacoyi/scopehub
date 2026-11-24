@@ -4948,6 +4948,51 @@
         "prevention": "Use matching real commands with default and inherited ignored SIGCHLD. Require both explicit failures to retain exit 7 and keep the separate success and cancellation observations. Retain t104 review and regression records."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-stock-five-minute-replay-skips-partial-observation",
+      "source": "Authenticated protected main workflow 45421408601 attempt 1 at 4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab. The retained index at archives/observations/m0-093-protected-main-45421408601/index.json binds the original Windows browser producer report with SHA-256 c8fce1acfcfb21fa7a19643a401709d07f65e9b801502701c3bfab879d1b094e. Original archives/observations/m0-093-protected-main-45421408601/windows-browser/runs/windows-change-45421408601-1/market-workflow.log SHA-256 4ed52f390ef490a2746161f11a9886f536da817f8cb0670878638a4ec526487c.",
+      "observation": "The Windows case searches and replays three simulated instruments in one chart session reached the 5-minute stock Close-price final legend. The captured observations omitted the partial bar with Close 12.17 and volume 520 before the closed bar with Close 12.16 and volume 530. The exact sequence comparison failed at market-workflow.spec.mjs:337.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-093"
+      ],
+      "regression_checks": [
+        "market-workflow"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-indicator-accepted-output-undefined",
+      "source": "Authenticated protected main workflow 45421408601 attempt 1 at 4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab. The retained index at archives/observations/m0-093-protected-main-45421408601/index.json binds the original Windows browser producer report with SHA-256 c8fce1acfcfb21fa7a19643a401709d07f65e9b801502701c3bfab879d1b094e. Original archives/observations/m0-093-protected-main-45421408601/windows-browser/runs/windows-change-45421408601-1/workspace-timeframe.log SHA-256 f6c35560ad9cd5fb877c5838b21fdd47618258c94e42f05430bac63ec5526c3f.",
+      "observation": "The Windows case indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation requested indicator_accepted_output for the saved layer. The accepted output was undefined when workspace.spec.mjs:976 read its document, so the artifact and snapshot assertions did not complete.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-093"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-second-private-review-cancellation-not-visible",
+      "source": "Authenticated protected main workflow 45421408601 attempt 1 at 4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab. The retained index at archives/observations/m0-093-protected-main-45421408601/index.json binds the original Linux report with SHA-256 5be9075e9247b19039102cc8a2fdbba6d76d95107fa253185143a8bd92a11171. Original archives/observations/m0-093-protected-main-45421408601/linux/runs/20261124T150647.584014Z-6b350ddc/workspace-timeframe.log SHA-256 b390f573a7424c5bd03d40b66c678b5942df034d788f4b78062bccecf43e6211.",
+      "observation": "The Linux case private record review cancellation leaves the other window approval intact created two reviews and clicked Cancel review in the second window. Action cancelled. was not visible in that Private records dialog at workspace.spec.mjs:4434 within the existing deadline. The first-window save assertions had not yet run.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-093"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
