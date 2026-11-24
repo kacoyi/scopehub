@@ -988,14 +988,15 @@ def linked_timing_window(history, reports, growth_baseline):
     return [], []
 
 
-def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents):
+def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents, indexed_conflicts):
     rows = [sample for sample in samples if has_hosted_inputs(sample) and matches_budget_scope(sample, scope)]
     required_reports = reports | growth_baseline
     linked = [row for row in rows if report_key(row) in required_reports]
     attempts = defaultdict(set)
     for row in linked:
         attempts[report_key(row)].add(ci_key(row['ci']))
-    conflicts = {key for key, identities in attempts.items() if len(identities) > 1}
+    conflicts = required_reports & indexed_conflicts
+    conflicts.update(key for key, identities in attempts.items() if len(identities) > 1)
     linked = [row for row in linked if report_key(row) not in conflicts]
     unavailable = sorted(required_reports - {report_key(row) for row in linked})
     # All linked observations in this scope bound the correction, even when they belong to another cohort.
@@ -1073,7 +1074,7 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
             'comparisons': comparisons, 'next_action': None if recovered else action}, cutoffs
 
 
-def budget_follow_up(view, feedback, tasks, *, root=ROOT):
+def budget_follow_up(view, feedback, tasks, *, root=ROOT, indexed_conflicts=frozenset()):
     @cache
     def ancestor(base, head):
         try:
@@ -1111,7 +1112,8 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT):
         if scope['event'] in NORMAL_EVENTS:
             growth_baseline = {report_key(row) for row in spec.get('growth_baseline', ())}
             recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports, growth_baseline,
-                                                        view.get('samples', ()), ancestor, checkout_parents)
+                                                        view.get('samples', ()), ancestor, checkout_parents,
+                                                        indexed_conflicts)
             for cohort, cutoff in cutoffs.items():
                 key = scope_key, cohort
                 recovered_cohorts[key] = max(recovered_cohorts.get(key, cutoff), cutoff)
@@ -1324,6 +1326,7 @@ def index_retained_captures(root):
 
 def linked_capture_inputs(directories, keys, recent, issues):
     captures = defaultdict(set)
+    claimants = defaultdict(set)
     for directory in directories:
         for key in keys:
             links = link_directory(directory, key)
@@ -1333,8 +1336,14 @@ def linked_capture_inputs(directories, keys, recent, issues):
                 for marker in links.glob('ci-*.json'):
                     if CANONICAL_CAPTURE.fullmatch(marker.name):
                         captures[directory / marker.name].add(key)
+                        claimants[key].add(marker.name)
             except (OSError, RuntimeError, TimingError) as error:
                 issues.append({'report': key, 'error': str(error)})
+    # A second indexed claimant is durable evidence of ambiguity even if its capture or clock is unavailable.
+    for (run, source), names in claimants.items():
+        if len(names) > 1:
+            issues.append({'run_id': run, 'source_commit': source, 'linked_timing_conflict': True,
+                           'capture_files': sorted(names), 'error': 'Multiple indexed captures claim the timing identity.'})
     samples, hosted = [], []
     for path in sorted(captures.keys() - set(recent)):
         try:
@@ -1396,12 +1405,15 @@ def retained_budget_inputs(root, feedback=()):
 
 
 def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
+    indexed_conflicts = {report_key(note) for note in issues if isinstance(note, dict)
+                         and note.get('linked_timing_conflict') is True
+                         and short_label(note.get('run_id')) and commit_id(note.get('source_commit'))}
     try:
         view = timing_view(samples, hosted=hosted, issues=issues)
-        follow_up = budget_follow_up(view, feedback, tasks, root=root)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root, indexed_conflicts=indexed_conflicts)
     except TIMING_INPUT_ERRORS as error:
         view = {'objective_reviews': [], 'reviews': []}
-        follow_up = budget_follow_up(view, feedback, tasks, root=root)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root, indexed_conflicts=indexed_conflicts)
         issues.append({'error': str(error)})
     return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
             'elapsed_observations': [

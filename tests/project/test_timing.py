@@ -1458,6 +1458,19 @@ class RecentTimingTests(unittest.TestCase):
         ambiguous = timing.offline_budget_status(root, [finding], {})['budget_recovery'][0]['recovery']
         self.assertEqual('pending', ambiguous['status'])
         self.assertEqual([missing_key], ambiguous['conflicting_reports'])
+        for absent in ('clock', 'capture'):
+            with self.subTest(absent=absent):
+                if absent == 'clock':
+                    self.write_archive(another, duplicate, [])
+                else:
+                    another.unlink()
+                views = [timing.offline_budget_status(root, [finding], {}),
+                         timing.ci_budget_status(root, 'fixture/scopehub', None)]
+                for view in views:
+                    recovery = view['budget_recovery'][0]['recovery']
+                    self.assertEqual('pending', recovery['status'])
+                    self.assertEqual([missing_key], recovery['conflicting_reports'])
+                    self.assertIn(missing_key, recovery['unavailable_reports'])
 
     def test_two_fresh_worktrees_share_timing_intake_and_reuse_live_assignment(self):
         self.enterContext(isolated_git_environment())

@@ -19762,7 +19762,7 @@
             ]
           },
           {
-            "failure": "Missing or contradictory exact inputs look like recovery, a stale success overrides a known failed attempt, or indexing failures change the regular CI verdict.",
+            "failure": "Missing or contradictory exact inputs look like recovery, including when one indexed claimant lacks a clock or compact file, a stale success overrides a known failed attempt, or indexing failures change the regular CI verdict.",
             "checks": [
               "python-contracts-workers"
             ]

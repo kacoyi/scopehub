@@ -5195,6 +5195,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-hidden-by-missing-clock-or-capture",
+      "source": "Standard Astra read-only review of 77bf40bca029942544f5bfd77f1f7e0b4ee073b5, archives/observations/m0-097-linked-timing-review/astra-77bf40b.txt, SHA-256 d6ef15d14a000186a1ea9277f19638f7640754bc0fd07d2b67e86c8390e09690.",
+      "observation": "After the automatic and manual windows rotated, two indexed attempts declared the same linked original report identity. Ordinary status and regular CI reported the conflict with both clocks present, then incorrectly reported recovery when one indexed attempt lacked its clock or its original compact file.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-097"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
