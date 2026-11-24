@@ -1,0 +1,203 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-024",
+  "task_definition_sha256": "083fba28709bb9e2eb25b456ec41de10b1795bf7a571ef6380ce7f5cb1a5dfe7",
+  "run_id": "20261124T055055.613102Z-f4e2f5d2",
+  "recorded_at": "2026-11-24T05:55:41.354837+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "f0655ac326cdd060b812bfa3f4d57554406491750f5b6ab1bf7bae039b7e4c20",
+    "file_count": 621,
+    "git_head": "550afbfa9117c030e591894aa9c9eee8317086e0",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "c99bd51215ed8ba8e939be6f4ebb49c052371ffbbdb0b8d118e0472f0204ce6c",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/chart-free-notes/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "research-workbench",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "research-workbench.spec.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8373c6c3b9903e33f0a1677ea7e31a547e6bbbe5895bbac6335746f04ff1c34a"
+    },
+    {
+      "id": "workbench-authored-composition",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "workbench-authoring.spec.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b2536f9ac6855922d046e13b6595881530a3b28b6c9a737de12525537dee9e23"
+    },
+    {
+      "id": "workspace-layout",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workspace-layout.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "22d0419a47b9153e1041b5964409394a917400b424b1cc43190c6778361cebf4"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/chart-free-notes/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb8ab813a7d8651316783d4969a57713b55822fc094647b6a95ad56c513d690f"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5cb44a3d0c27217e941d34a5f60028239b3298e5f5b745eea567d648b2adbf26"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/chart-free-notes/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9470b882e07c47cc401c9fb46bd8a1ebd02c30f48da1fdb9305b21024f471c30"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/chart-free-notes/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a29e35cd01644e2bc62c32f2fd8ba113873fc85f71f7275b8ae01357a70d6e31"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fa8f913ba765ca6b3026c65edf3d7536d3a3a08aafc1f0061889f92d2816528a"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2cd9e2bffc7f2eab9f24cb5754fe35d19fbdc0a6a5e461a4770e2bcd2824715a"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/chart-free-notes/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3273b7e0e1ae520482c22bf07e54bc538c51599cd9eda47929c5e53bae082344"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f0bb1eb17ff61d88ad43e78d1233272635c872da617d4ee9e3a872b262165de8"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3de457a67d1a80a6651f939eb2072687dec862f4a1eaf9c3dae2d7a86a050bfc"
+    }
+  ],
+  "project_definition_sha256": "6901f3b551bfe81025f492f9fecc5ee15db8d8b4a04381442b27fbca3bad9b39",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1f6869f20b6806d3ddbe77e6732404830fb3291b606c0129c6f205b581989644"
+  ]
+}

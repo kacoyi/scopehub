@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-024",
+  "focus_task_id": "M2-013",
   "tasks": [
     {
       "id": "M0-001",
@@ -17697,7 +17697,7 @@
       "id": "M2-024",
       "title": "Compose and reopen a local synthetic research view through the ordinary workbench",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-003",
         "M2-015",
@@ -17734,10 +17734,15 @@
         "state-migrations",
         "desktop-localization"
       ],
-      "evidence": [],
-      "next_action": "Exercise original creation and structural revision with a controlled local model, then replay the same saved rules against refreshed and unavailable synthetic source records.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-024-c99bd51215ed8ba8.json",
+          "sha256": "fa2b6ec355b03645496bda340ecd0ce719d82d00def9d89e117e927f45de0561"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "On clean candidate 550afbfa9117c030e591894aa9c9eee8317086e0 all selected task checks passed. The ordinary embedded turn used a controlled local peer, preserved private literals in a long existing tree during a targeted revision, and kept source bodies local. Two actual matches demonstrated descending order after refresh in Chromium. The independent native Ubuntu WebKitGTK trial used a held-out second arrangement, different issuer binding, original inspection, rejected draft, named saves and three process restarts. Its 95 verified attachments include 25 window captures; its single match cannot independently prove sort direction. Archive: archives/observations/m2-024-independent-research-550afbf/manifest.json, SHA-256 503a1b510682286b059cb914112b17c52544edcac4fc948a6babad98a03bca40. M2-013 remains planned for the broader journey and owner experience. Development is paused after M2-024 at the owner’s request.",
       "plan": {
         "outcome": "A named chart-free composition re-evaluates editable record instructions against the current authorized synthetic research source.",
         "change_types": [
