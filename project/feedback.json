@@ -4849,6 +4849,38 @@
         "prevention": "Exercise busy and unavailable capture followed immediately by offline reread while twelve newer cold runs remain present. Preserve a separate successful identity and its qualifying elapsed measurement."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-producer-serial-pair-over-budget",
+      "source": "Authenticated attempts 45407009232, 45407157664, and 45410634661. Official job clocks, per-check measurements, and the over-budget observation are retained under archives/observations/m0-091-python-lane/.",
+      "observation": "Main 45407009232 passed in 1192 seconds. Its Python producer alone ended at second 961 with 641.344 seconds of Python and 136.750 seconds of market recovery. Parallel PR 45407157664 passed in 905 seconds with Python last, split between 543.906 and 118.046 seconds. The subsequent seeded full main still had Python running at the 900-second boundary after the other producers succeeded.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "posix-market-recovery-leaves-preview-on-interrupt",
+      "source": "Real bounded Linux interruption in archives/observations/m0-091-python-lane/local-80301fc/bounded-cancel-market-only/observation.json and bounded-cancel-overlapped/observation.json in the same parent directory.",
+      "observation": "Interrupting the ordinary standalone market-recovery command left its Vite listener and descendants alive in separate POSIX process groups. A paired overlap reproduced the issue while both command reports recorded interrupted and 34 simultaneous observations showed separate writable paths. Probe-owned leftovers were identified by their run directory and explicitly reaped. Windows uses a separate Job Object path, which this observation did not exercise.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

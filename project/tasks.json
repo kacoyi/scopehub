@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-092",
   "tasks": [
     {
       "id": "M0-001",
@@ -18981,6 +18981,122 @@
           ],
           "data_plan": "Keep the replay cursor and one appended bar in memory under the current block. Keep fixture replay revisions separate from the frozen revisions. No profile changes.",
           "cleanup": "Use the bounded fixture as input for the later native presentation observer without expanding this prototype into a general transport."
+        }
+      }
+    },
+    {
+      "id": "M0-092",
+      "title": "Shorten the Windows Python producer without leaving check processes behind",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/processes.py",
+        "scripts/process_tree.py",
+        "scripts/windows_job.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Shorten the verified full pull-request and protected main Windows Python producer, retaining the original 696 named Python cases, 12 market-recovery cases, commands, deadlines, outcomes, logs and attached results.",
+        "Run the original accepted and refused controls at the scheduler and native process boundaries. Both selected commands retain independent ordinary failures. Cancellation reaps the owned Windows child tree and releases the loopback endpoint. Repair the separately reproduced POSIX listener leak through real serial and overlapping market recovery.",
+        "Compare end-to-end elapsed and runner work using the existing first-attempt clocks and exact cache state. Preserve all unrelated selections, the protected aggregate, and the original over-budget evidence."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "evidence": [],
+      "next_action": "Prove safe admission and interruption for the measured Windows pair, coordinate the POSIX cleanup repair, and review the exact combined candidate before requesting a normal hosted observation.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The full Windows producer shortens its serial critical path while actual failure, cancellation, and original named evidence remain observable.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "scripts/process_tree.py",
+          "scripts/windows_job.py",
+          "tests/project/test_verification_scheduling.py",
+          "tests/project/test_processes.py",
+          ".github/workflows/verify.yml",
+          "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+        ],
+        "hypotheses": [
+          "Main 45407009232 finished in 1192 seconds and used 556 runner seconds for first-time Windows cache saves. The Python producer still ended at second 961, independently over 900. Product PR 45407157664 took 905 seconds with Python last. The seeded follow-up main 45410634661 was still in the Python harness past second 900 after the other producers passed.",
+          "The existing bounded command-overlap runner may shorten the split Python producer when both commands are selected. A four-CPU Linux A/B used 115.329 seconds serial and 70.304 seconds overlapped with 670 Python and 12 browser results identical. The official Windows Python source executes 696 cases and has its own process ownership mechanism."
+        ],
+        "risks": [
+          {
+            "failure": "An overlap starts on the wrong route, omits a selected command, shares a writable output or port, hides an ordinary failure, or changes original log and result order.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A failed or cancelled command leaves a sibling process or a native child listener running, or an interrupted producer can appear to have passed.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Initial cache creation or Linux timings are counted as steady Windows recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the Windows pair scheduling if native isolation, failure handling, or measured elapsed does not support it. Retain all original timings and the independently reproduced POSIX cleanup finding.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "scripts/windows_job.py",
+            "scripts/process_tree.py",
+            "tests/project/test_verification_scheduling.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No new hosted runners, privileges, changed check commands, or edits to the M0-087 or M0-091 task definitions or governed finding identity."
+          ],
+          "open_questions": [
+            "Does a genuine Windows Job Object interruption reap the actual child tree and release its endpoint?",
+            "How much of the measured serial pair time can overlap on the standard Windows runner without changing coverage or cleanup?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Catalog order, published artifacts and exact logs, positive and negative checks, protected source identity, all ordinary scoped and release paths."
+          ],
+          "change": [
+            "Use bounded scheduling on the measured Windows pair after demonstrating native isolation and coordinate the disjoint POSIX cleanup repair."
+          ],
+          "data_plan": "Retain exact producer clocks, restored keys, cache save records, matching names and results, and separate local process observations under archives/observations/m0-091-python-lane/.",
+          "cleanup": "Verify the child-owned listener and descendants have stopped after interruption on each applicable process ownership path."
         }
       }
     }
