@@ -5472,6 +5472,36 @@
           "report_sha256": "d3f533758abe4b8d7221870305611c49e267cc967115fa6f8131d35be4f6e697"
         }
       ]
+    },
+    {
+      "id": "profile-pool-ancestor-regression-depends-on-ordinary-capacity",
+      "source": "Independent Astra Standard review of f6625175407eb511dadca66dd83a58a0dbe7b854. Retained at archives/observations/m0-102-native-correction/astra-f662517.txt.",
+      "observation": "The native ancestor regression asserted its positive profile came from the shared pool after calling a helper that legitimately falls back to single preparation after sixty-four claims. A repeated or bigger run could fail before the real writer and negative cases.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "profile-pool-legacy-acl-control-can-escape-cleanup",
+      "source": "Independent Astra Standard review of f6625175407eb511dadca66dd83a58a0dbe7b854. Retained at archives/observations/m0-102-native-correction/astra-f662517.txt.",
+      "observation": "The original-mode control recorded the directory only after the Python child successfully returned its marker. If the directory was created and the result was lost, teardown did not own or remove it. The production scratch and protected child ACL policy have no finding in this review.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

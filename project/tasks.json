@@ -20470,6 +20470,18 @@
               "rust-contracts-workers",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "A large or repeated browser run exhausts the ordinary shared pool before the new native control opens its positive profile.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The special 0700 ACL fixture creates a directory before its Python process reports success, leaving the control outside cleanup ownership.",
+            "checks": [
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Keep both official runs and any focused native diagnostics. Revert only the preparation correction if it cannot retain the original refusal and cleanup contract.",
