@@ -4117,7 +4117,7 @@
       "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f and focused confirmation on d1d04a3, retained under archives/observations/m4-016-d1d04a3/. Local browser reproduction at archives/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
       "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M4-016"],
       "regression_checks": ["model-connection-workflow"],
       "diagnostic_reports": [{
@@ -4125,7 +4125,11 @@
         "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
         "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
       }],
-      "resolution": null,
+      "resolution": {
+        "cause": "Citation navigation checked the new workspace snapshot while the composer continued to use the opening selection.",
+        "correction": "Use the existing citation snapshot to invalidate only a composer binding superseded by same-workspace selection authority. Keep the draft and retain newer valid selections.",
+        "prevention": "A real peer clears the selection. The browser verifies the draft and answer, fences the submit handler, observes no model traffic, and makes the same draft sendable after selecting a newer valid bar. A separate case preserves an already-valid newer binding when an older citation is rejected."
+      },
       "deferral_reason": null
     },
     {
@@ -4133,7 +4137,7 @@
       "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f and focused confirmation on d1d04a3, retained under archives/observations/m4-016-d1d04a3/. Local browser reproduction at archives/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
       "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The browser reproduction lost focus and moved the transcript scroll offset from 20 to 689 pixels after only a local snapshot read.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M4-016"],
       "regression_checks": ["model-connection-workflow"],
       "diagnostic_reports": [{
@@ -4141,7 +4145,11 @@
         "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
         "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
       }],
-      "resolution": null,
+      "resolution": {
+        "cause": "The return flag drove both reopening focus and ordinary transcript scrolling. Rejection changed the flag while the same citation remained open.",
+        "correction": "Keep focus and scroll in the evidence reading state after a rejection. A deliberate submit clears that state so ordinary follow-up behavior resumes.",
+        "prevention": "The browser retries an earlier citation with Enter after a real peer clears the selection. It checks the focused row, exact transcript offset and local-only request. A separate deliberate follow-up verifies normal composer focus."
+      },
       "deferral_reason": null
     }
   ]

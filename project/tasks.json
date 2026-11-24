@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-016",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -18100,6 +18100,10 @@
         {
           "path": "project/evidence/M4-015-a4c775e206591482.json",
           "sha256": "72b4f9a599fdd8d97d66bca0bfe2b3e4f4d1d2b5b29a01fcec93a06b8f81f462"
+        },
+        {
+          "path": "project/evidence/M4-015-ab3c5abff32e88b7.json",
+          "sha256": "6cc2d46950e962800e58ebe73015be57ca7784ca23bccf303e102316e9be5de1"
         }
       ],
       "next_action": null,
@@ -18166,7 +18170,7 @@
       "id": "M4-016",
       "title": "Keep rejected chart evidence and the question composer consistent",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M4-015"],
       "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json"],
       "decision_refs": ["0007", "0019"],
@@ -18176,10 +18180,15 @@
         "A keyboard retry of a returned citation after revocation keeps the citation focused and preserves the transcript reading position. Deliberate follow-up retains normal composer focus and scrolling. Rejected navigation creates no model operation or provider request."
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "model-connection-workflow"],
-      "evidence": [],
-      "next_action": "Verify the corrective candidate and archive its passing checks for focused Astra review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M4-016-4a2e783a5d4c61b0.json",
+          "sha256": "68eb47bc1762f39b8b0120764505846169764395c2d0a1725d43518909cbf022"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Astra confirmed both corrections on d1d04a3. Both citation task suites passed on merge 325610b using Linux Chromium and the existing local synthetic model peer. The focused personal CSV test also opened Settings, previewed a corrected mapping through the portable Rust bridge, restored Settings focus, and resumed the same review. Its browser report is retained at .reports/m4-csv-integration-325610b/browser-results.json. No hosted or native Windows verification was performed by this local run.",
       "plan": {
         "outcome": "A rejected citation leaves the reader at that citation and prevents the composer from reusing a binding already shown to be stale.",
         "change_types": ["ui"],
