@@ -5005,6 +5005,23 @@
         "prevention": "Retain the ordinary case and both fault controls, including zero second-window writes and the independent first approval. The final t103 Standard review of b3b4cb50 passed the natural timing recheck. Originals and review are indexed at archives/observations/m0-093-private-review-natural-b3b4cb5/index.json with SHA-256 376690433cf9fa2e79f764880061dc761ef096b3dabc46963913c41e14aaa440. The combined local task passed. The matching protected Linux result is pending."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "worker-interruption-skips-visible-reconnecting",
+      "source": "Authenticated full pull request 82 workflow 45429086512 attempt 1 at PR head c300005fd77778c851096ba04bebd72af84ad952 and checked-out merge 4c8fcf533b3a19f59c77b2feb585c419dde01c34. The retained original Windows browser producer and Linux reports and logs are indexed at archives/observations/m0-095-protected-pr-45429086512/index.json with SHA-256 99e62f041fe9556c30c83f8b17a3e37f0069ed718715ec47c231774f429b5532. Windows browser producer report SHA-256 9344d8f2e614f2a0212e8f55d7fdcc7b576d13bd53ff4e5e82fdd9fa9648f094 and check log SHA-256 9ecffa7b80a3d9b7e7b89bb3badab6c29c42d45efd8e2b2c91059d24ed84574e. Linux report SHA-256 203efaced85475e95b15a7cf7ee03da2ab62cd701d3673df44371ab020b1c00a and check log SHA-256 2b42f8fce8ba013014ee4494275f67ddcdc1f00304cb89057f1fd0384f86a2b2.",
+      "observation": "On both Windows and Ubuntu, the named case resumes one real chart stream after its confirmed worker exits failed at worker-interruption.spec.mjs:99. The captured UI went from Synthetic replay in progress to Market worker resumed, omitting Market worker reconnecting… with the confirmed Close 3501.2, volume 120 and Offline. The trace contained the frozen, confirmed and final closed bar values. The later raw frame assertions were not reached. The M0-093 local task had classified the change as stream-slice, but its delivery mapping did not select market-worker-interruption, so the exact regression first surfaced in the protected PR.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-095"
+      ],
+      "regression_checks": [
+        "project-state",
+        "market-workflow",
+        "market-worker-interruption"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

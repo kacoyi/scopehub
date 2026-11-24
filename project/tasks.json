@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-095",
   "tasks": [
     {
       "id": "M0-001",
@@ -19295,6 +19295,149 @@
           ],
           "data_plan": "Use synthetic data and retain the exact original outputs and review inputs. Keep each corrective regression linked to its observed finding.",
           "cleanup": "Keep the original failed source diagnostic and the three positive and negative regression outcomes alongside the final recovery evidence."
+        }
+      }
+    },
+    {
+      "id": "M0-095",
+      "title": "Preserve visible replay recovery after a real worker exit",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-093"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/use-sample-replay.ts",
+        "tests/ubuntu-preview/worker-interruption.spec.mjs",
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Keep the original named worker interruption case and its actual worker kill. Show reconnecting and then resumed with the unchanged confirmed bar and Offline connection before the final close. Keep frozen history, one logical subscription, exact recovery positions and raw frame order.",
+        "Keep the original stock replay case and show the partial Close 12.17 and volume 520 on the legend and price canvas before the final close when real worker bytes arrive in one chunk. Preserve rejection of invalid order and cancellation on instrument change.",
+        "Include the existing worker interruption case in future active stream-slice plans. Ordinary project validation rejects an active plan missing that check and accepts the complete plan. Preserve completed plans and receipts.",
+        "Retain both protected failures, focused regression evidence and independent review. Verify the exact updated PR 82 with both protected platform results. The subsequent ordinary main timing remains with M0-091."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-fixtures",
+        "market-recovery",
+        "market-live-stream",
+        "market-worker-interruption"
+      ],
+      "evidence": [],
+      "next_action": "Give the registered baseline to the replay implementation owner, review the two observable replay paths and delivery mapping, and integrate the smallest verified repair into PR 82.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The same chart preserves intrabar price observations and displays real reconnecting and resumed states in order, and active replay change plans require the worker interruption check.",
+        "change_types": [
+          "tooling",
+          "ui",
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-sample-replay.ts",
+          "apps/desktop/ui/src/market-replay.ts",
+          "tests/ubuntu-preview/worker-interruption.spec.mjs",
+          "tests/ubuntu-preview/worker-interruption.config.mjs",
+          "tests/ubuntu-preview/interrupt_owned_worker.py",
+          "tests/ubuntu-preview/market-workflow.spec.mjs",
+          "project/delivery.json",
+          "project/checks.json",
+          "scripts/project.py"
+        ],
+        "hypotheses": [
+          "Both original DOM traces contain frozen, confirmed and closed values, with a jump from replay in progress to resumed after the owned worker exit. The first failing assertion is the missing reconnecting state. Inspect delivery and display sequencing without assuming the later raw frame assertions ran.",
+          "The partial price display and the recovery projection traverse the same replay UI. Separately reproduce one-chunk stock delivery and a real worker exit so a fix for either observation cannot hide loss of the other.",
+          "M0-093 declared stream-slice, but that mapping required only market-live-stream and ui-build. The unchanged roughly four-second interruption case was not selected by the local task."
+        ],
+        "risks": [
+          {
+            "failure": "Adjacent recovery frames collapse into resumed or display the final bar before reconnecting and resumed are both visible with the same confirmed bar and Offline connection.",
+            "checks": [
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "The repair drops the stock partial legend or price-line observation in one chunk, accepts an invalid sequence, or updates an already replaced instrument.",
+            "checks": [
+              "market-workflow",
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "The recovery misses its genuine owned worker exit, changes subscription or position validation, mutates frozen history, or weakens deadlines or failed recovery.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "A new or active stream-slice plan omits market-worker-interruption, or the repair makes accepted plans and receipts invalid.",
+            "checks": [
+              "project-state"
+            ]
+          },
+          {
+            "failure": "The UI works only in the fixture or crosses a declared module boundary.",
+            "checks": [
+              "ui-build",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the two original failed platform artifacts and both focused distinctions. If the candidate fails either, revert its replay implementation independently and repair the display boundary with the original checks intact.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-sample-replay.ts",
+            "tests/ubuntu-preview/worker-interruption.spec.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/change_types"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No protocol, worker supervision, scheduler, CI scope or release changes. No edits to completed M0-093, its receipt, or the open M0-091 budget finding."
+          ],
+          "open_questions": [
+            "Which display commit boundary causes the observed missing state when recovery frames are adjacent?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real worker exit and restart, frozen bars, existing state labels, sequence validation, cancellation, named assertions and deadlines."
+          ],
+          "change": [
+            "Make adjacent legitimate replay observations visibly ordered and require the existing interruption regression for active stream-slice changes."
+          ],
+          "data_plan": "Use the existing synthetic series and retain original process, frame and visual observations without data or protocol migration.",
+          "cleanup": "Keep the protected artifact index, both focused cases, delivery validation control and independent review with the repair."
         }
       }
     }
