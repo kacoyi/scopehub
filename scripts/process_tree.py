@@ -93,6 +93,8 @@ def reap_linux_children():
 def supervise_linux_market_check(result_fd, argv):
     import ctypes
 
+    # An inherited SIG_IGN would autoreap children and discard their status.
+    signal.signal(signal.SIGCHLD, signal.SIG_DFL)
     prctl = ctypes.CDLL(None, use_errno=True).prctl
     prctl.argtypes = [ctypes.c_int] + [ctypes.c_ulong] * 4
     if prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
@@ -102,7 +104,9 @@ def supervise_linux_market_check(result_fd, argv):
         exit_code = reason = None
         try:
             if not select.select([0], [], [], 0)[0]:
-                command = subprocess.Popen(argv, stdin=subprocess.DEVNULL)
+                # Preserve the command's own session so a group signal cannot
+                # kill the supervisor that will reap its detached descendants.
+                command = subprocess.Popen(argv, stdin=subprocess.DEVNULL, start_new_session=True)
                 while (exit_code := command.poll()) is None:
                     if select.select([0], [], [], .02)[0]:
                         break
