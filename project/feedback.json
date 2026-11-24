@@ -4849,6 +4849,105 @@
         "prevention": "Exercise busy and unavailable capture followed immediately by offline reread while twelve newer cold runs remain present. Preserve a separate successful identity and its qualifying elapsed measurement."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-producer-serial-pair-over-budget",
+      "source": "Authenticated attempts 45407009232, 45407157664, and 45410634661. Official job clocks, per-check measurements, and the over-budget observation are retained under archives/observations/m0-091-python-lane/.",
+      "observation": "Main 45407009232 passed in 1192 seconds. Its Python producer alone ended at second 961 with 641.344 seconds of Python and 136.750 seconds of market recovery. Parallel PR 45407157664 passed in 905 seconds with Python last, split between 543.906 and 118.046 seconds. The subsequent seeded full main still had Python running at the 900-second boundary after the other producers succeeded.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The full Windows Python producer serialized Python contracts and market recovery. The seeded main still took 1011 seconds with the Python producer last after the cache-save work had gone away.",
+        "correction": "Run the two original selected commands through the existing bounded overlap runner only in the full Windows Python producer when both are selected and have their ordinary isolated prerequisites. Retain the commands, deadlines, logs, and artifacts.",
+        "prevention": "Retain the exact lane-admission regression and the cold-seed and warm-main scheduling observations. Require the actual protected full PR timing and the native Windows interruption result before integration. M0-091 retains the ordinary main budget measurement."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "posix-market-recovery-leaves-preview-on-interrupt",
+      "source": "Real bounded Linux interruption in archives/observations/m0-091-python-lane/local-80301fc/bounded-cancel-market-only/observation.json and bounded-cancel-overlapped/observation.json in the same parent directory.",
+      "observation": "Interrupting the ordinary standalone market-recovery command left its Vite listener and descendants alive in separate POSIX process groups. A paired overlap reproduced the issue while both command reports recorded interrupted and 34 simultaneous observations showed separate writable paths. Probe-owned leftovers were identified by their run directory and explicitly reaped. Windows uses a separate Job Object path, which this observation did not exercise.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The real Linux Playwright and package launcher descendants left the original process group, so stopping that group left the Vite listener behind on both serial and overlapping runs.",
+        "correction": "Enable explicit Linux ownership for market recovery under a dedicated subreaper and reap the owned descendants independently of their process groups.",
+        "prevention": "Interrupt the real serial and overlapped market commands after the listener and bridge start. Verify that owned processes exit and the ports release while the unrelated control remains live. Preserve the passing named Chromium control and the exact process observations."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-pair-interrupt-waits-for-unbounded-future",
+      "source": "Independent Standard Astra review of 582404ab1eb0e4e935d42a305cb16e7380da6b6b over M0-092 intake 1d4c587.",
+      "observation": "When market recovery finished first, the main thread blocked in the unbounded Python future wait. A pending interrupt was only serviced after the Python worker exited, and the resulting interruption lost both terminal rows. A completed recovery log and the still-running Python listener must be handled independently of their completion order.",
+      "severity": "critical",
+      "status": "addressed",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "After market recovery passed first, an unbounded future wait delayed the main-thread interrupt handler until Python exited and allowed KeyboardInterrupt to discard both terminal rows.",
+        "correction": "Service the main-thread signal handler with the same bounded future wait in both the normal and interruption paths. Leave each command deadline and terminal result intact.",
+        "prevention": "Exercise both first-finisher orders with real listening processes. Require the first row to remain passed, the interrupted row to remain failed with its reason, the listener to release, and both transcript rows and original log digests to survive. Native Windows Job Object coverage remains an exact PR gate."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "posix-market-recovery-supervisor-dies-on-group-termination",
+      "source": "Independent Standard Astra t104 review of d96094ea1045a82d58fb2fe973914fb7c6cf2b2b. Original review archives/observations/m0-092-review/astra-d96094e-hold.txt, SHA-256 e4b997e9051a699cc36a9a222b631a926a6fae842472c8e446686368e68a5a9d.",
+      "observation": "The real process-group SIGTERM also terminated the Linux supervisor. The check returned cleanup_failed and an owned detached child remained alive after return. The direct-command termination control preserved -15.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The contained command shared its process group with the Linux supervisor. A group SIGTERM killed the supervisor with its command and left an owned detached descendant alive.",
+        "correction": "Start the command in its own process session so group termination reaches the command and leaves the supervisor running to reap the owned process tree.",
+        "prevention": "Exercise real group SIGTERM and the direct-command control, retain the actual -15 exit, and verify that the owned detached descendant is gone and the unrelated control survives. Keep the independent t104 red and approved correction evidence."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "posix-market-recovery-ignored-sigchld-loses-command-failure",
+      "source": "Independent Standard Astra t104 review of d96094ea1045a82d58fb2fe973914fb7c6cf2b2b. Original review archives/observations/m0-092-review/astra-d96094e-hold.txt, SHA-256 e4b997e9051a699cc36a9a222b631a926a6fae842472c8e446686368e68a5a9d.",
+      "observation": "The same command exited explicitly with status 7 under both environments. A supervisor inheriting SIGCHLD ignored reported exit 0 instead of 7, and automatic reaping invalidated the held-child identity premise.",
+      "severity": "critical",
+      "status": "addressed",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "Inherited ignored SIGCHLD made Linux automatically reap the command before the supervisor collected the original status. The same ordinary exit 7 was reported as exit 0.",
+        "correction": "Restore the default SIGCHLD disposition in the isolated supervisor before launching the command so it can collect the original exit and preserve owned identities through cleanup.",
+        "prevention": "Use matching real commands with default and inherited ignored SIGCHLD. Require both explicit failures to retain exit 7 and keep the separate success and cancellation observations. Retain t104 review and regression records."
+      },
+      "deferral_reason": null
     }
   ]
 }

@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-092",
+  "task_definition_sha256": "b48aca221a3a4dd6d318ecb048e364c95b6c64692450fc682e859e922f12221e",
+  "run_id": "20261124T144219.080813Z-f7b52102",
+  "recorded_at": "2026-11-24T14:45:29.495286+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c47c6887c2880e789a53c5706f806864ae9d1bcb8740c9ed214784d4b1e002be",
+    "file_count": 584,
+    "git_head": "9415bb08ee351831110df404627b33053b00cfd0",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "672bfc8ef74dae7de08daa30f9f91191f208cd22f8a86daa43d96cd5e1bd0d47",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/windows-python-recovery-time/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-python-recovery-time/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d9f6b82e78fe520e50c8eefe4b8ac02005fa2c951e529d2aebea0cf517d238bf"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-python-recovery-time/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "41951cfdb76fd15002312170529eefff3c5e51c35c43b70c8c9cb3d4568331c0"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "86279552943687c2bb8ebd6cc423a8a80e0ea37a746240a58326b89d490ddb98"
+    }
+  ],
+  "project_definition_sha256": "97f3b5cc6bb02ec15789c73f55357bb466dc8136f80bee392626334d9f8b8434",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "2b1564153128160133051c4cd9633fffedf80def250f3132e1e5fa1dd80c55d4",
+    "42659932a3f73fb98dab1dfe251bc5a7eff5e4b41ab7e1e7134311829ce4fd16",
+    "7644e3557a807e6191def245a9d928428f64fd7ec2822173f6070dae58f64dc4",
+    "84272ad9cb9f9b0477bdd18d0eea1cbc476624f869b762a4e66d5675dd5a4aca",
+    "b6c4bf211fc31206a44e0de0ebfd68f566843f9cfceb53fc2d22d13c28ac40d6"
+  ]
+}

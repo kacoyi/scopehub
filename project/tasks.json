@@ -18983,6 +18983,147 @@
           "cleanup": "Use the bounded fixture as input for the later native presentation observer without expanding this prototype into a general transport."
         }
       }
+    },
+    {
+      "id": "M0-092",
+      "title": "Shorten the Windows Python producer without leaving check processes behind",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/processes.py",
+        "scripts/process_tree.py",
+        "scripts/windows_job.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Demonstrate the bounded Windows producer change in a paired run and in the exact full protected PR review. Retain the original 696 named Python cases, 12 market-recovery cases, commands, deadlines, outcomes, logs and attached results.",
+        "Run the original accepted and refused controls at the scheduler and native process boundaries. Both selected commands retain independent ordinary failures. Cancellation reaps the owned Windows child tree and releases the loopback endpoint. Repair the separately reproduced POSIX listener leak through real serial and overlapping market recovery.",
+        "Compare the actual protected PR elapsed and runner work with the retained first-attempt controls and exact cache state before integration. Preserve unrelated selections and the original over-budget evidence. M0-091 owns the subsequent ordinary protected-main measurement."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-092-672bfc8ef74dae7d.json",
+          "sha256": "7a7551d2db764aa92a453cd334b68621ee11933457c5b1297ac2f46b610a3471"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The exact combined Linux task passed all four checks on 9415bb08, including 700 Python cases and all 12 market-recovery cases. Both independent Standard Astra re-reviews passed. The original report and review evidence are retained in archives/observations/m0-092-review/index.json. Local technical verification is complete. Protected integration still requires the exact full PR to pass the native Windows Job Object interruption case and to record actual Windows wall time and runner work against the retained controls. The subsequent ordinary protected-main budget measurement remains with M0-091 and its open governed finding.",
+      "plan": {
+        "outcome": "The full Windows producer shortens its serial critical path while actual failure, cancellation, and original named evidence remain observable.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "scripts/process_tree.py",
+          "scripts/windows_job.py",
+          "tests/project/test_verification_scheduling.py",
+          "tests/project/test_processes.py",
+          ".github/workflows/verify.yml",
+          "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+        ],
+        "hypotheses": [
+          "Main 45407009232 finished in 1192 seconds and used 556 runner seconds for first-time Windows cache saves. The Python producer still ended at second 961, independently over 900. Product PR 45407157664 took 905 seconds with Python last. Seeded main 45410634661 passed in 1011 seconds with Python last and both other producer caches already seeded. The two checks took 664.031 and 138.625 seconds. Full overlap at unchanged durations projects about 872 seconds, with only 28 seconds of margin before measurement.",
+          "The existing bounded command-overlap runner may shorten the split Python producer when both commands are selected. A four-CPU Linux A/B used 115.329 seconds serial and 70.304 seconds overlapped with 670 Python and 12 browser results identical. The official Windows Python source executes 696 cases and has its own process ownership mechanism."
+        ],
+        "risks": [
+          {
+            "failure": "An overlap starts on the wrong route, omits a selected command, shares a writable output or port, hides an ordinary failure, or changes original log and result order.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "A failed or cancelled command leaves a sibling process or a native child listener running, or an interrupted producer can appear to have passed.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "An interrupt arriving after the first successful check waits for the second check to finish and loses either terminal result or its log.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The contained command terminates its own group and takes the supervisor with it, leaving an owned detached child alive.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Inherited ignored SIGCHLD discards the actual command exit status or the identity of an owned child before cleanup.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Initial cache creation or Linux timings are counted as steady Windows recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the Windows pair scheduling if native isolation, failure handling, or measured elapsed does not support it. Retain all original timings and the independently reproduced POSIX cleanup finding.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "scripts/windows_job.py",
+            "scripts/process_tree.py",
+            "tests/project/test_verification_scheduling.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No new hosted runners, privileges, changed check commands, or edits to the M0-087 or M0-091 task definitions or governed finding identity."
+          ],
+          "open_questions": [
+            "Does a genuine Windows Job Object interruption reap the actual child tree and release its endpoint?",
+            "How much of the measured serial pair time can overlap on the standard Windows runner without changing coverage or cleanup?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Catalog order, published artifacts and exact logs, positive and negative checks, protected source identity, all ordinary scoped and release paths."
+          ],
+          "change": [
+            "Use bounded scheduling on the measured Windows pair after demonstrating native isolation and coordinate the disjoint POSIX cleanup repair."
+          ],
+          "data_plan": "Retain exact producer clocks, restored keys, cache save records, matching names and results, and separate local process observations under archives/observations/m0-091-python-lane/.",
+          "cleanup": "Verify the child-owned listener and descendants have stopped after interruption on each applicable process ownership path."
+        }
+      }
     }
   ]
 }

@@ -1,7 +1,7 @@
 """Local verification entry point; report actual results and unverified gates."""
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 import json
 import os
@@ -100,8 +100,11 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     log_path = run_dir / f'{name}.log'
     print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout})
     private = name in PRIVATE_CHECK_LOGS
+    # Playwright, pnpm and the history bridge can leave the initial Linux group.
+    containment = {'contain_linux_tree': True} if sys.platform == 'linux' and name == 'market-recovery' else {}
     exit_code, reason = run_logged([executable, *argv[1:]], cwd=ROOT, env=env,
-                                  log_path=os.devnull if private else log_path, timeout=timeout, cancel=cancel)
+                                  log_path=os.devnull if private else log_path, timeout=timeout, cancel=cancel,
+                                  **containment)
     if private:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_bytes(redacted_check_log(exit_code))
@@ -183,16 +186,23 @@ def run_overlapped(checks, env, run_dir, *, system):
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
             python = executor.submit(run, checks[0])
+
+            def wait_for_python():
+                # Service the main-thread signal handler even after the other check has returned.
+                while not python.done():
+                    wait((python,), timeout=.25)
+                return python.result()
+
             try:
                 for check in checks[1:]:
                     if cancelled():
                         break
                     results[check['id']] = run(check)
                 try:
-                    result = python.result()
+                    result = wait_for_python()
                 except KeyboardInterrupt:
                     cancel.set()
-                    result = python.result()
+                    result = wait_for_python()
                     if result.get('reason_code') not in STOP_REASONS:
                         raise
                 results[checks[0]['id']] = result
@@ -349,7 +359,15 @@ def main():
                             'reason_code': 'unsupported_platform', 'reason': 'Requires native Windows x64.'})
         else:
             if overlap and check['id'] == 'python-contracts-workers':
-                window = build_window(catalog, selected, environment, index)
+                if args.ci_windows_lane == 'python':
+                    # Only the full Windows Python producer has isolated browser prerequisites.
+                    window = [check]
+                    window.extend(recovery for recovery in catalog[index + 1:]
+                                  if recovery['id'] == 'market-recovery' and recovery['id'] in selected
+                                  and recovery['status'] == 'implemented'
+                                  and (recovery['platforms'] == 'all' or windows_x64(environment)))
+                else:
+                    window = build_window(catalog, selected, environment, index)
                 if len(window) > 1:
                     concurrent_results = run_overlapped(window, env, run_dir, system=environment['system'])
             result = concurrent_results.pop(check['id'], None)
