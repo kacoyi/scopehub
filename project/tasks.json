@@ -18102,7 +18102,7 @@
         "workspace-timeframe"
       ],
       "evidence": [],
-      "next_action": "Re-review the isolated POSIX CLI stdout listener observer and the prior workspace readiness corrections. Keep the original local stalls unattributed and measure the regular full Windows critical path against the warm controls.",
+      "next_action": "Review the isolated reopened history observer budget against the controlled late and missing terminal cases. Keep the original local stalls unattributed and measure the regular full Windows critical path against the warm controls.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18197,6 +18197,10 @@
           },
           {
             "failure": "The POSIX CLI readiness observer accepts a notice from stderr or loses a valid split stdout notice when stderr arrives between chunks.",
+            "checks": ["workspace-timeframe"]
+          },
+          {
+            "failure": "The reopened history observer spends part of a physical retry's terminal budget on the intentional first-response hold, or accepts a missing terminal when given the fixture's hold allowance.",
             "checks": ["workspace-timeframe"]
           }
         ],
