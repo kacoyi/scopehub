@@ -5,7 +5,7 @@
   "fingerprint": "2b1dd83b49712b08a83e07493a226c2443749a516c8680094511059dc1ffac11",
   "pennant_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
   "pennant_fingerprint": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
-  "recommendation": "Select editable author definitions with replaceable presentation as the workbench architecture. The fixed-host trials produced new geometry, mappings, local controls and scoped edits from independently authored source. Catalogue assembly alone fails the contract. Use the isolated QuickJS guest as the engineering baseline for authored plotting. Native Windows accepted-output binding and trusted crosshair input still have the implementation-specific limits below. An authorable host-interpreted grammar remains eligible for other presentation needs if it passes the same expressiveness criterion.",
+  "recommendation": "Select editable author definitions with replaceable presentation as the workbench architecture. The fixed-host trials produced new geometry, mappings, local controls and scoped edits from independently authored source. Catalogue assembly alone fails the contract. Use the isolated QuickJS guest as the engineering baseline for authored plotting. Windows reproduced both accepted-output presentations on ef0a1e1 and trusted crosshair endpoints on the separate 5f9f32d chart adapter. Live Windows revocation clearance remains open. An authorable host-interpreted grammar remains eligible for other presentation needs if it passes the same expressiveness criterion.",
   "remaining_chart_free_journey": {
     "task": "M2-013",
     "check": "chart-free-workbench",
@@ -111,15 +111,26 @@
           "report_sha256": "48394840b86ab3ef716cd125869f1d129b08e404c5994d5471a6257da5f7b6bf",
           "log_sha256": "b79810093d302ed87bda1b39aff703c4b0e47c5b46be9ade03680c711e40d3a3",
           "observation": "Normal startup restored FIX 1d with 2026-02-06 close 16 and volume 140 on WebView2 157.0.4341.46. A redundant reopen attempted SetValue on a disabled Revision ID before the studio was reached. The confirmed version was 74d50c75-6af7-4821-bc0e-fb76cb9fb8e3; no native series binding was observed in this run."
+        },
+        "accepted_binding": {
+          "version": "44550794-cec1-44d0-9ca8-ac62b76ddee6",
+          "result_hash": "b84eb0de1ef8862c77774a0addc0e2626ea6d8bb3c5e32b97b26b5fc58ac03d9",
+          "workflow_run": 45323933286,
+          "run_id": "20261124T040820.330496Z-7fd56970",
+          "source_commit": "fd3017aff727b61aceef9519e9ed204f4884bf70",
+          "report_sha256": "7b90b0e32c0f7d1aa7c9b6f56fe8b76ec54e10d44c30a0936fa745c82fd6405b",
+          "log_sha256": "ebd92afa7a7e128a6bdda7e154fcea6789fe46e806af1810130ffc169d1ed0e6",
+          "check_outcome": "failed",
+          "observation": "After trusted Rust import and explicit Chromium confirmation, the original ef0a1e1 WebView2 window opened the exact accepted mean. Two authored programs painted three rings or three strips with the missing point marked at 732 by 275. Selection displayed 115 at Feb 4 and Unavailable at Feb 3. Choosing standard deviation cleared the previous drawing, readout and undo. Subsequent native automation could not reach Remove frozen chart access, so no revocation was observed. A separate full native wizard reached Cancel preview during computation. Its indicator confirmation was unverified."
         }
       }
     }
   },
   "open": [
-    "Verify native Windows selection of the exact accepted version, original nullable output, both presentations and clearance on real revocation. Compare the already frozen readers through the prepared native entry. A restored raw chart alone establishes only the source identity.",
-    "Retain the difference between Windows chart pixels and trusted hover. Ubuntu has both. Original and corrected hover continuity and narrow-window measurements belong to their respective revisions. M2-013 owns saved user-defined text, conditions, interactions and reopen. The major composition feedback stays open."
+    "Observe actual revocation of the bound version on Windows and clearance of the open view, readout and undo. The original runtime already demonstrated both accepted presentations and source switching there. The corrected focus runtime has a separate unqualified Windows picker observation.",
+    "Ubuntu and Windows chart endpoint mapping have matched native evidence on the identified chart revisions. Continuous Windows hover timing, whole-workbench composition and reopen, and physical release qualification retain separate scopes. The major composition feedback remains open."
   ],
-  "revisit": "Revisit the QuickJS plotting baseline if a normal native binding cannot deliver the exact selected version and clear it on actual revocation, or if trusted pointer and viewport coordinates cannot remain aligned after the host adapter is corrected. A demonstrated renderer-specific isolation or recovery failure would also change the choice. Source wizard automation, persistence of the whole workbench, paired external clients, and installer qualification have their own checks.",
+  "revisit": "Revisit the isolated plotting baseline if a native view retains privileged data after the host learns of a real revocation, or if a verified renderer-specific boundary, coordinate or recovery failure survives a host fix. Current Windows evidence stops before revocation is issued. M2-013 owns durable composition and reopen; external client pairing and physical installation have independent checks.",
   "verification": [
     "pnpm exec playwright test --config tests/ui/renderer-comparison.config.mjs",
     "uv run python scripts/renderer_probe.py --retained-only --archive-root /mnt/storage_2/scopehub-dev/archives",
@@ -163,6 +174,17 @@
       "report_sha256": "b3473a70e73eb789cba7d316fe5ca41f6f3aaacd6d3c228bf725917cb1ddafd8",
       "log_sha256": "a6f48e4dcde505831ab31fcbf1afcab1833e110e4fb5574e429d183c65d11fd7",
       "observation": "After closing the side panels in the same frozen 602260e application, the native file and Accept controls worked. The wide accepted centres were at rows 360 and 327.5 against body closes 361 and 328. The resized centres and closes both measured 320 and 291. Zoom clipped both rings, Fit restored them and 5m removed the binding. These are owned-window PrintWindow pixels. The chart extended beyond the runner screen. All three trusted time-and-close hover assertions timed out; continuous hover and precise Windows pointer mapping remain unverified."
+    },
+    "corrected_windows": {
+      "candidate": "5f9f32d1207b94b71cb18caf48ac9b6a006edc64",
+      "fingerprint": "1227094d0ef9a114bcd44148bd164339e0186a26b5c9da6bb1d36f97ab7f5dd2",
+      "workflow_run": 45324249998,
+      "run_id": "20261124T041041.169433Z-554a11b8",
+      "source_commit": "8cbfa36b81695a1b25d905709a81107d9eed653f",
+      "report_sha256": "44116278875652d8bdae97af243bd9c4e3100620d52feea5b0eb66681f9a23c1",
+      "log_sha256": "30a9b85373bd87f8065e5f4890a2ac64a677d20a07df52b046de3c6e2592404b",
+      "check_outcome": "passed",
+      "observation": "The owned Windows Tauri/WebView2 window accepted the guest in its original narrow layout. The two native ring centres were within 0 to 0.5 pixels of the body close edges. Five stationary samples retained the draft. Foreground native pointer position and crosshair readout agreed at 13:01Z/3499.8, then 13:00Z/3499.2 after resize, and 13:01Z/3499.8 after Fit. Zoom clipped and the 5m selection removed the binding. The 20 captured PNG files and input logs qualify the observed endpoints; continuous Windows frame sampling remains unmeasured."
     }
   },
   "chart_hover_correction": {
@@ -197,6 +219,47 @@
     "receipt": "project/evidence/M2-020-075c49f6e8a29c9a.json at d3c166f980188da1e33a0dec3c3f3734e39f718f",
     "baseline_manifest": "archives/observations/m2-020-focus-admission-ef0a1e1/manifest.json",
     "sha256": "c93837ac4294d205f353fceb01e6e099fecac8d49429b614f0b6b64d929d80fb",
-    "scope": "A genuine 429 on Chromium focus stranded the frozen picker despite an authorized read of the same hash. The corrective runtime passed six Chromium/Rust cases including delayed accepted output, explicit denial, expiry, source switch, studio closure and real revocation. This controlled causal comparison is independent of the earlier Windows observation."
+    "scope": "A genuine 429 on Chromium focus stranded the frozen picker despite an authorized read of the same hash. The corrective runtime passed six Chromium/Rust cases including delayed accepted output, explicit denial, expiry, source switch, studio closure and real revocation. This controlled causal comparison is independent of the earlier Windows observation.",
+    "ubuntu_native": {
+      "manifest": "archives/observations/m2-020-independent-focus-a221f6a-8ee2c1c/manifest.json",
+      "sha256": "4ad98ea77409793d2f5a192d0a7f2ccd95611e84885d18ab6e85b78fb5793293",
+      "observation": "Normal focus transfer to a separate GTK window and back preserved the same confirmed mean, three rings and Feb 4 selection with value 115. No BUSY was injected. Cancelling a file chooser on this runtime closed the studio."
+    },
+    "windows_native": {
+      "workflow_run": 45324104705,
+      "run_id": "20261124T041021.809104Z-10126a33",
+      "source_commit": "8ee2c1c95c04ec4cb84b36728cf86f12f536fc1b",
+      "report_sha256": "863f47dd275fcefd6f721f58f68386ee50d6374e1755c0a1f40c032b6baef082",
+      "log_sha256": "ff1a52a95383aa006965cbc7c254fc1a2f743b0187a735237b3aaff3c2d3164e",
+      "check_outcome": "failed",
+      "observation": "With the a221f6a UI the native workspace displayed FIX 1d close 16, volume 140. The driver reported an empty exposed option before typing the requested version prefix and Enter; the subsequent tree was the main chart. An exact selected version, writer BUSY, a denied read or revocation was not observed."
+    }
+  },
+  "file_chooser_cancellation": {
+    "task": "M2-022",
+    "pr": 68,
+    "candidate": "fd391449e5e02ef0f2c93de88108883299d6a50d",
+    "fingerprint": "ac6ccaa804f86d03e3b69d14b5dd0bc187d5e013595a5247078f9b82fe68deb9",
+    "manifest": "archives/observations/m2-022-file-cancel-fd39144/manifest.json",
+    "sha256": "910b0519c7b56461100b5cd5a9544310bb8e1d395672919e0c05bfa4e909f616",
+    "observation": "Production assets in an ephemeral WebKitGTK window proved a trusted bubbling file-input cancel closed the parent dialog. On the correction the same chooser Escape retained the accepted source and all four sample marks. A direct dialog Escape then closed the studio. The real Rust/Chromium comparison separately retained the exact accepted version, hash, three rings, 115 readout and undo.",
+    "independent_native": {
+      "manifest": "archives/observations/m2-022-independent-cancel-fd39144/manifest.json",
+      "sha256": "fd343e7bf3161133bf8e5c0389ca69ffe1f471d05a4293bd093ab73c200c22c9",
+      "host_binary_sha256": "5a6613dec4e2de8f54c8b2161e7fd3efad102f347b74b8dbc3e5bd045e7b8935",
+      "scope": "The independent Ubuntu Tauri/WebKitGTK 2.52.6 window confirmed a synthetic mean. After reading Feb 4 at 115, both clicking the native picker Cancel and pressing Escape in a second file chooser preserved the selected result, enabled undo and identical RGB extents for all three rings. Escape in the studio itself returned to the FIX chart."
+    },
+    "local_preview": {
+      "port": 1468,
+      "ui": "fd391449e5e02ef0f2c93de88108883299d6a50d",
+      "route": "Private launcher, Open blank AI workbench, Drawing studio, select the accepted version and mean, open either standalone file and accept its preview.",
+      "programs": [
+        "tests/fixtures/workbench/accepted-series-dots.js",
+        "tests/fixtures/workbench/accepted-series-strips.js"
+      ],
+      "synthetic_version": "22130180-3492-4f87-90bd-456443448510",
+      "result_hash": "cf7e03f1e813963d014fc2a065a43f92b7c377a04d34dad04ee80a360170f7bf",
+      "observation": "A disposable localhost profile was published through Rust and explicitly confirmed in the ordinary Chromium UI. A second zh-CN browser opened the private launcher, selected the exact version and observed the UTC rows Feb 3 to 6: unavailable, 115, 125, 135. Three circles and three strips plus a missing mark use the same result."
+    }
   }
 }
