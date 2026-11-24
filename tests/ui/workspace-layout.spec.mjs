@@ -4,12 +4,11 @@ import { once } from 'node:events';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { painted } from './chart-pixels.mjs';
-import { startLocalImportBridge } from './local-import-bridge.mjs';
+import { readPublishedWorkspaceProfile, startLocalImportBridge } from './local-import-bridge.mjs';
 import { control } from './workspace-controls.mjs';
 import { closeWorkspaceService, spawnWorkspaceService } from './workspace-service.mjs';
 
@@ -643,16 +642,12 @@ async function withPublishedCsv(use) {
       const { record } = await market('saveLocalImportMapping', { ...input, row_limit: 10, mapping });
       ({ revision } = await market('publishLocalImport', { ...input, review_revision: record.review_revision }));
     });
-    const directory = join(app, 'workspace-dev');
-    const db = new DatabaseSync(join(directory, 'workspace.sqlite3'), { readOnly: true });
-    let id;
-    try { ({ profile_id: id } = db.prepare('SELECT profile_id FROM profile_binding WHERE singleton = 1').get()); }
-    finally { db.close(); }
+    const profile = readPublishedWorkspaceProfile(app);
     const revoke = () => throughDesktop(async (_bridge, market) => {
       const result = await market('revokeLocalImportRevision', { version: 1, revision_id: revision.revision_id });
       expect(result.revision_id).toBe(revision.revision_id);
     });
-    await use({ profile: { directory, id, workspaceId: 'main' }, revision, revoke });
+    await use({ profile, revision, revoke });
   } finally { await rm(temp, { recursive: true, force: true }); }
 }
 

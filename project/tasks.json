@@ -4772,6 +4772,7 @@
         ],
         "risks": [
           {"failure": "A standalone projection is mistaken for shared chart coordinates or leaves a stale crosshair observation at the pane edge.", "checks": ["chart-coordinate-prototype"]},
+          {"failure": "Reconstructing a Rust-created profile ID from a Node path can prevent the private handoff on Windows. Reopen the published synthetic profile using its persisted binding and repeat all three accepted-series tests with the ordinary private handoff on Windows.", "checks": ["workbench-drawing-runtime"]},
           {"failure": "A passing browser or older native drawing is misattributed to a different runtime. Bind native comparisons to the exact guest bytes, measured frame and runtime; exercise a rejected input and verify restoration.", "checks": ["workbench-renderer-probe"]},
           {"failure": "A removed or superseded grant leaves geometry or values visible, a null is replaced by zero, or a source unit is attributed to an unrelated output.", "checks": ["workbench-drawing-runtime"]},
           {

@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect } from '@playwright/test';
-import { startLocalImportBridge } from './local-import-bridge.mjs';
+import { readPublishedWorkspaceProfile, startLocalImportBridge } from './local-import-bridge.mjs';
 import { withWorkspace } from './ai-workflow-fixture.mjs';
 
 const csv = 'Date,Symbol,Open,High,Low,Close,Volume\n'
@@ -47,8 +47,7 @@ export async function prepareSeries(browser, root, period = 2) {
     const { record } = await market('saveLocalImportMapping', { ...input, row_limit: 10, mapping });
     return (await market('publishLocalImport', { ...input, review_revision: record.review_revision })).revision.revision_id;
   });
-  const directory = await realpath(join(root, 'app/workspace-dev'));
-  const profile = { directory, id: 'desktop-development:' + digest(directory), workspaceId: 'main' };
+  const profile = readPublishedWorkspaceProfile(join(root, 'app'));
   let identity;
   await withWorkspace(browser, profile, async (page, dispatch) => {
     await button(page, 'Open published CSV').click();
