@@ -20836,7 +20836,7 @@
           "open_questions": [
             "Native Windows runtime equivalence, normal GUI-subsystem pipe handling and current protected timing require ordinary Windows evidence. Linux GNU cross checking and linking establish compilation and same-image composition only.",
             "Compare equivalent split explicit rules through both the historical managed descriptor reader and the ordinary native writer on Windows. Source review has identified the mechanism and did not observe a hosted ACL anomaly.",
-            "The raw/managed comparison includes two and three same-user grants with equal scope, two equal full-control masks with exactly representable child scopes, and a partial split across different scopes that must still fail. Leave order-sensitive compaction outside this compatibility allowance."
+            "The raw/managed comparison includes two and three same-user grants with equal scope, two equal full-control masks with exactly representable child scopes, and a partial split across different scopes that must still fail. Compare ordinary ordered pairs and mixed allowed principals against the prior canonical order and one-pass compaction, including order-dependent acceptance and refusal."
           ]
         },
         "evolution": {
