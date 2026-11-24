@@ -1,7 +1,9 @@
-"""Bounded cleanup for an already owned process group or Windows Job."""
+"""Bounded cleanup for verification subprocesses."""
 
+import json
 import os
 from pathlib import Path
+import select
 import signal
 import subprocess
 import sys
@@ -25,8 +27,30 @@ class ProcessJob(Protocol):
     def stop(self) -> None: ...
 
 
-def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None) -> None:
+def start_linux_market_check(argv, **options):
+    # The subreaper belongs to one check, never to the multithreaded harness.
+    read_fd, write_fd = os.pipe()
+    with os.fdopen(write_fd, 'wb') as result:
+        try:
+            process = subprocess.Popen(
+                [sys._base_executable, '-I', '-S', __file__, str(result.fileno()), *argv],
+                stdin=subprocess.PIPE, pass_fds=(result.fileno(),), **options,
+            )
+        except BaseException:
+            os.close(read_fd)
+            raise
+    return process, os.fdopen(read_fd, 'rb')
+
+
+def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *, result_pipe=None):
     """Checks are trusted local programs, not a sandbox for hostile code."""
+    if result_pipe is not None:
+        # Closing the control pipe requests cancellation. The supervisor
+        # reports only after all its children have been reaped.
+        with result_pipe:
+            if process.wait(timeout=10) != 0 or not (result := result_pipe.read(128)):
+                raise OSError('Linux market recovery process supervisor failed')
+        return json.loads(result)
     if sys.platform == 'win32':
         assert job is not None
         job.stop()
@@ -42,3 +66,53 @@ def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None) -
             if time.monotonic() >= deadline:
                 raise OSError('Verification process group still has live members')
             time.sleep(.01)
+
+
+def reap_linux_children():
+    # A subreaper adopts orphaned descendants, even across sessions. These
+    # are exact child PIDs and cannot be reused before this process waits.
+    children = Path(f'/proc/self/task/{os.getpid()}/children')
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+        except ChildProcessError:
+            return
+        if pid:
+            continue
+        if time.monotonic() >= deadline:
+            raise OSError('Linux market recovery still has live descendants')
+        for child in children.read_text('ascii').split():
+            try:
+                os.kill(int(child), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        time.sleep(.01)
+
+
+def supervise_linux_market_check(result_fd, argv):
+    import ctypes
+
+    prctl = ctypes.CDLL(None, use_errno=True).prctl
+    prctl.argtypes = [ctypes.c_int] + [ctypes.c_ulong] * 4
+    if prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
+        raise OSError(ctypes.get_errno(), 'Cannot supervise Linux market recovery descendants')
+
+    with os.fdopen(result_fd, 'wb') as result:
+        exit_code = reason = None
+        try:
+            if not select.select([0], [], [], 0)[0]:
+                command = subprocess.Popen(argv, stdin=subprocess.DEVNULL)
+                while (exit_code := command.poll()) is None:
+                    if select.select([0], [], [], .02)[0]:
+                        break
+        except OSError as error:
+            print(f'Cannot start check: {error}', file=sys.stderr)
+            reason = 'launch_error'
+        finally:
+            reap_linux_children()
+        result.write(json.dumps([exit_code, reason]).encode('ascii'))
+
+
+if __name__ == '__main__':
+    supervise_linux_market_check(int(sys.argv[1]), sys.argv[2:])
