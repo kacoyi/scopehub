@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-029",
+  "task_definition_sha256": "0af9fef7d9ec7f683ac1f3e8f609541e49e7d4d6e7eaa46a5f185cb8e29e60f8",
+  "run_id": "20261124T100436.520707Z-59b89969",
+  "recorded_at": "2026-11-24T10:05:09.714704+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "989ba94c59bcebb5d7394ca38ac75b193c5f057abc102652c0b684e25ec38fe2",
+    "file_count": 578,
+    "git_head": "fa23e6c85b093cb35850d99339b927f9f8d5813f",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "f196da6afa415d925ac626398429152d3e718d2ab6950b971054d14618a01adb",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/series-frame-probe/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/series-frame-probe/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c4a003dd96970c6486124e9d45a2f83013c19d8d64c407bebaab18c90832faae"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d0c425a33f6849d5235d9d8e5240da5c6e09dbe532be66000c2c678fae94ed06"
+    },
+    {
+      "id": "renderer-prototype-interaction",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/renderer-probe.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "33f3e5ff0679fb431ca4625f183335c251e515ffc96e407b26e7644912650828"
+    }
+  ],
+  "project_definition_sha256": "a78eca802a701d1b8ab02b68d7574ac269b2322683a618de62279a15c2b76b02",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
