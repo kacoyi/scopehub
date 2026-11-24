@@ -122,6 +122,24 @@
           "log_sha256": "ebd92afa7a7e128a6bdda7e154fcea6789fe46e806af1810130ffc169d1ed0e6",
           "check_outcome": "failed",
           "observation": "After trusted Rust import and explicit Chromium confirmation, the original ef0a1e1 WebView2 window opened the exact accepted mean. Two authored programs painted three rings or three strips with the missing point marked at 732 by 275. Selection displayed 115 at Feb 4 and Unavailable at Feb 3. Choosing standard deviation cleared the previous drawing, readout and undo. Subsequent native automation could not reach Remove frozen chart access, so no revocation was observed. A separate full native wizard reached Cancel preview during computation. Its indicator confirmation was unverified."
+        },
+        "repeated_binding": {
+          "workflow_run": 45326569164,
+          "run_id": "20261124T043054.712595Z-36cc67ef",
+          "source_commit": "36e2621327a0ebb9546b661c59f25d7381314e84",
+          "report_sha256": "51f69d999aa5894d5d517be52dd05fbb64d4fabf7d05eb1c2b3dde354429a498",
+          "log_sha256": "c050976a70b58d97f38c4d1ade5d0e611ebda91ab6fc6f46c6f9b0ac9f7de4eb",
+          "check_outcome": "failed",
+          "observation": "The ef0a1e1 WebView2 window again bound mean, version 09fada16-a57b-4ca4-99af-39bbc78a3398, result 6ab9ff8ccfab43114170f1efdff10e101fe61f817a7ed0db974eb8793dc24fec. Both authored views measured 732 by 275. Selection preserved the missing row and 115; changing series cleared the old state. The native revision details exposed Remove frozen chart access. The pointer could not hit the owned control and the confirmation step was never reached."
+        },
+        "live_revocation_startup": {
+          "workflow_run": 45326837501,
+          "run_id": "20261124T043355.611834Z-4b989ac1",
+          "source_commit": "bc125c3287b5a39f3473b189566b186014059753",
+          "report_sha256": "1d1c044eb0e91c08829bdafc50127169d8948f907a6382cb9ce8521a4777ddc8",
+          "log_sha256": "00bfe0b397f427a050076761a24daf0878f190c00d9ffda6da46335b30a215d3",
+          "check_outcome": "failed",
+          "observation": "The dedicated live revocation run prepared the confirmed synthetic profile. The captured 1120 by 760 RGB client image was entirely black and the driver never found the WebView document. It did not reach a bound scene or issue revocation."
         }
       }
     }
@@ -233,6 +251,15 @@
       "log_sha256": "ff1a52a95383aa006965cbc7c254fc1a2f743b0187a735237b3aaff3c2d3164e",
       "check_outcome": "failed",
       "observation": "With the a221f6a UI the native workspace displayed FIX 1d close 16, volume 140. The driver reported an empty exposed option before typing the requested version prefix and Enter; the subsequent tree was the main chart. An exact selected version, writer BUSY, a denied read or revocation was not observed."
+    },
+    "windows_selection_retry": {
+      "workflow_run": 45326561018,
+      "run_id": "20261124T043040.996656Z-f1546c7c",
+      "source_commit": "6c3c21585194f38f42d3780efbc7c50d883dc9c8",
+      "report_sha256": "dbafa097bba53ff7b2ff76b420923d5055fe75d5e551a4db7539f1764b145725",
+      "log_sha256": "63b3881fda70581292bcb8cd67e30e9a085c24dbbe413a3bb8711c398d6b23d2",
+      "check_outcome": "failed",
+      "observation": "The a221f6a studio remained open and its Accepted version combobox was present. The native test waited for the exact selectable UUID 740d52b9-337a-47eb-bf60-172d853ba7c6, including after reopening the frozen chart, and timed out without confirming that option. This run supplies no evidence of selection, revocation or a writer BUSY response."
     }
   },
   "file_chooser_cancellation": {
