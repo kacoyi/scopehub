@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import type { AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
+import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from 'react';
+import type { AiTextChartClose, AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
 import { message, t, useLocale, type Message } from './i18n';
 import { CloudCredentialSettings, providerName, RouteDisclosure } from './model-chat-settings';
 import {
@@ -9,6 +9,8 @@ import {
 import './model-chat.css';
 
 export type ModelChatView = 'question' | 'settings';
+export type ModelChartAnchor = { turnId: string; selection: ModelChartSelection; row: AiTextChartClose };
+type EvidenceFeedback = { anchor: ModelChartAnchor; unavailable: boolean; returned: boolean };
 type Proposal = ModelResult<'propose'>;
 type PendingTurn = {
   id: string;
@@ -24,7 +26,7 @@ type CompletedTurn = {
   question: string | undefined;
   model: string;
   text: string;
-  evidence: AiTextChartEvidence | undefined;
+  chart: { evidence: AiTextChartEvidence; selection: ModelChartSelection } | undefined;
   chartRequested: boolean;
 };
 
@@ -90,25 +92,42 @@ function intervalLabel(range: VisibleRange) {
     : t('{start} to {end} (end excluded)', { start, end: new Date(range.to_ms).toISOString() });
 }
 
-function ChartEvidence({ evidence }: { evidence: AiTextChartEvidence }) {
+function ChartEvidence({ evidence, selection, turnId, feedback, returnButton, working, checking, reveal }: {
+  evidence: AiTextChartEvidence; selection: ModelChartSelection; turnId: string;
+  feedback: EvidenceFeedback | undefined; returnButton: Ref<HTMLButtonElement>; working: boolean; checking: boolean;
+  reveal: (anchor: ModelChartAnchor) => void;
+}) {
+  const unavailableId = useId();
+  const target = feedback?.anchor.turnId === turnId ? feedback : undefined;
   return <section className="model-evidence" aria-label={t('Chart evidence used')}>
     <h3>{t('Chart evidence used')}</h3>
     <dl className="model-route">
       <dt>{t('Interval (UTC)')}</dt><dd>{intervalLabel(evidence.range)}</dd>
       <dt>{t('Offline sample')}</dt><dd><bdi>{evidence.source_reference}</bdi></dd>
+      <dt>{t('Instrument')}</dt><dd><bdi>{selection.instrumentId}</bdi></dd>
+      <dt>{t('Timeframe')}</dt><dd><bdi>{selection.timeframe}</bdi></dd>
       <dt>{t('Revision')}</dt><dd><bdi>{evidence.revision}</bdi></dd>
     </dl>
     <table aria-label={t('Selected chart closes')}>
-      <thead><tr><th scope="col">{t('Bar start (UTC)')}</th><th scope="col">{t('Close', undefined, 'price')}</th></tr></thead>
+      <thead><tr><th scope="col">{t('Bar start (UTC)')}</th><th scope="col">{t('Close', undefined, 'price')}</th><td /></tr></thead>
       <tbody>{evidence.rows.map(row => {
         const time = new Date(row.time_ms).toISOString();
-        return <tr key={row.time_ms}><td><time dateTime={time}>{time}</time></td><td>{row.close}</td></tr>;
+        const current = target?.anchor.row.time_ms === row.time_ms ? target : undefined;
+        return <tr key={row.time_ms}><td><time dateTime={time}>{time}</time></td><td>{row.close}</td><td>
+          <button ref={current?.returned ? returnButton : undefined} type="button" className="secondary-button" disabled={working}
+            aria-disabled={checking || undefined}
+            aria-describedby={current?.unavailable ? unavailableId : undefined}
+            onClick={() => reveal({ turnId, selection, row })}>{t('Show on chart')}</button>
+        </td></tr>;
       })}</tbody>
     </table>
+    {target?.unavailable && <p className="model-error" role="alert" id={unavailableId}>
+      {t('This cited bar is unavailable on the current chart. The original chart or selection may have changed.')}
+    </p>}
   </section>;
 }
 
-export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection }: {
+export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection, evidenceFeedback, checkingEvidence, revealChartBar }: {
   workspaceId: string | undefined;
   theme: 'light' | 'dark' | undefined;
   view: ModelChatView | undefined;
@@ -116,12 +135,16 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   chartSelection: ModelChartSelection | undefined;
   invalidChartSelectionRevision: number | undefined;
   discardChartSelection: () => void;
+  evidenceFeedback: EvidenceFeedback | undefined;
+  checkingEvidence: boolean;
+  revealChartBar: (anchor: ModelChartAnchor) => void;
 }) {
   useLocale();
   const heading = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const questionField = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
+  const returnButton = useRef<HTMLButtonElement>(null);
   const action = useRef<AbortController | undefined>(undefined);
   const pollController = useRef<AbortController | undefined>(undefined);
   const pollInFlight = useRef<Promise<void> | undefined>(undefined);
@@ -147,6 +170,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   const cancellable = trackedTurn?.observation === 'checking-send' ? undefined : trackedTurn;
   const [staleSelectionRevision, setStaleSelectionRevision] = useState<number>();
   const visible = view !== undefined;
+  const returnedToAnswer = evidenceFeedback?.returned === true;
   const chartScope = connection?.route.scope === 'conversation_text_and_sample_closes';
   const selection = chartScope ? chartSelection : undefined;
   const usingOpenAi = provider === 'openai_responses';
@@ -275,17 +299,18 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   useEffect(() => {
     if (!visible) return;
     dialog.current?.showModal();
-    refresh();
+    if (returnedToAnswer) returnButton.current?.focus();
+    else refresh();
   }, [visible]);
 
   useEffect(() => {
-    if (view === 'question' && !working && !connectionUnconfirmed && !trackedTurn) questionField.current?.focus();
-  }, [view, working, connectionUnconfirmed, trackedTurn]);
+    if (view === 'question' && !returnedToAnswer && !working && !connectionUnconfirmed && !trackedTurn) questionField.current?.focus();
+  }, [view, working, connectionUnconfirmed, trackedTurn, returnedToAnswer]);
 
   useEffect(() => {
     const log = transcript.current;
-    if (log) log.scrollTop = log.scrollHeight;
-  }, [turns, view]);
+    if (log && !returnedToAnswer) log.scrollTop = log.scrollHeight;
+  }, [turns, view, returnedToAnswer]);
 
   useEffect(() => {
     if (!workspaceId || !pending || working) return;
@@ -327,7 +352,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
         }
         setError(undefined);
         setTurns(previous => [...previous, {
-          id, question: submitted, model: turn.model, text: turn.text, evidence, chartRequested: Boolean(selected),
+          id, question: submitted, model: turn.model, text: turn.text,
+          chart: evidence && selected ? { evidence, selection: selected } : undefined, chartRequested: Boolean(selected),
         }]);
         if (submitted !== undefined) {
           setQuestion('');
@@ -596,7 +622,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           {turns.map(turn => <article key={turn.id} className="model-turn">
             {turn.question && <div className="model-question"><h3>{t('You')}</h3><p dir="auto">{turn.question}</p></div>}
             <div className="model-answer"><h3>{t('Model')} <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.text}</p></div>
-            {turn.evidence ? <ChartEvidence evidence={turn.evidence} />
+            {turn.chart ? <ChartEvidence {...turn.chart} turnId={turn.id} feedback={evidenceFeedback} working={working}
+              checking={checkingEvidence} returnButton={returnButton} reveal={revealChartBar} />
               : turn.chartRequested && <p className="model-muted">{t('No chart evidence used.')}</p>}
           </article>)}
         </div>

@@ -18,6 +18,8 @@ type Props = {
   appearance?: ChartAppearance;
   selectedBarTime?: number | undefined;
   activateBar?: ((bar: Bar) => void) | undefined;
+  evidenceRow?: Pick<Bar, 'time_ms' | 'close'> | undefined;
+  returnToAnswer?: () => void;
 };
 
 function chartLocalization(locale: string): HistoryChartLocalization {
@@ -26,19 +28,22 @@ function chartLocalization(locale: string): HistoryChartLocalization {
 
 const barNumberOptions: Intl.NumberFormatOptions = { useGrouping: false, maximumSignificantDigits: 21 };
 
-export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, appearance = defaultChartAppearance, selectedBarTime, activateBar, indicatorPreview, acceptedIndicators }: Props) {
+export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, appearance = defaultChartAppearance, selectedBarTime, activateBar, indicatorPreview, acceptedIndicators, evidenceRow, returnToAnswer }: Props) {
   const locale = useLocale();
   const container = useRef<HTMLDivElement>(null);
   const firstStyle = useRef(style);
+  const answerButton = useRef<HTMLButtonElement>(null);
   const onActivate = useRef(activateBar);
   const lastProjection = useRef<readonly Bar[]>(history.bars);
   const bars = repairedBars ?? history.bars;
   const priceTick = instrument.price_tick;
+  const evidenceTime = evidenceRow ? new Date(evidenceRow.time_ms).toISOString() : undefined;
   const ticker = instrument.id.startsWith('SIM.') ? instrument.id : instrument.display_symbol;
   const [selected, setSelected] = useState<Bar | undefined>(history.bars.at(-1));
   const [failed, setFailed] = useState(false);
   const [indicatorFailed, setIndicatorFailed] = useState(false);
   useEffect(() => { onActivate.current = activateBar; }, [activateBar]);
+  useEffect(() => { if (evidenceRow) answerButton.current?.focus(); }, [evidenceRow]);
   useLayoutEffect(() => {
     if (!container.current) return;
     setSelected(history.bars.at(-1));
@@ -90,6 +95,11 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
         <span>{t('Volume')} <b>{selected.volume === null ? t('Unknown') : formatNumber(selected.volume, barNumberOptions)}</b></span>
         <span className="legend-day">{t('Trading day')} <b>{selected.trading_day}</b></span>
         <span className={selected.is_closed ? 'bar-phase' : 'bar-phase partial'}>{selected.is_closed ? t('Closed bar') : t('Partial bar')}</span>
+      </div>}
+      {evidenceRow && <div className="chart-evidence-anchor" role="group" aria-label={t('Cited bar')}>
+        <span><strong>{t('Cited bar')}</strong> <time dateTime={evidenceTime}>{evidenceTime}</time></span>
+        <span>{t('Close', undefined, 'price')} <b>{formatNumber(evidenceRow.close, barNumberOptions)}</b></span>
+        <button ref={answerButton} type="button" className="secondary-button" onClick={() => returnToAnswer?.()}>{t('Back to answer')}</button>
       </div>}
     </div>
     {indicatorFailed && <p className="chart-notice" role="alert">{t('The indicator layer could not be displayed.')}</p>}

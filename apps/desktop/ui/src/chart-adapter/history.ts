@@ -45,6 +45,7 @@ export interface HistoryChartHandle {
   setAppearance(appearance: ChartAppearance): void;
   setLocale(localization: HistoryChartLocalization): void;
   setSelectedBar(time: number | undefined): void;
+  revealEvidenceBar(reference: Pick<Bar, 'time_ms' | 'close'>): (() => void) | undefined;
   replaceBars(bars: readonly Bar[]): void;
   updateLast(bar: Bar): void;
   setIndicatorLayers(preview: IndicatorChartLayer | undefined, accepted: readonly IndicatorChartLayer[]): void;
@@ -152,8 +153,17 @@ export function mountHistoryChart(
     let markerPlugin = createSeriesMarkers<Time>(priceSeries, []);
     const regionsOverlay = mountIndicatorRegions(priceSeries.getPane(), timeScale, localization.regionLabels);
     let indicatorMarkers: SeriesMarker<Time>[] = [];
+    let evidenceBar: Bar | undefined;
     let indicatorSeries: (ISeriesApi<'Line'> | ISeriesApi<'Histogram'>)[] = [];
     let indicatorLayers: (IndicatorChartLayer & { preview: boolean })[] = [];
+
+    function renderMarkers(markers = indicatorMarkers) {
+      const evidenceColor = appearance.theme === 'dark' ? '#ffd166' : '#805900';
+      markerPlugin.setMarkers(evidenceBar ? [...markers, {
+        time: timestamp(evidenceBar), position: 'atPriceMiddle', price: evidenceBar.close,
+        color: evidenceColor, shape: 'circle', size: 0.6,
+      } as const].sort((a, b) => Number(a.time) - Number(b.time)) : markers);
+    }
 
     function renderIndicatorLayers(layers: typeof indicatorLayers) {
       const nextSeries: typeof indicatorSeries = [];
@@ -186,7 +196,7 @@ export function mountHistoryChart(
             }));
           }
         }
-        markerPlugin.setMarkers(markers);
+        renderMarkers(markers);
       } catch (error) {
         for (const series of nextSeries) chart.removeSeries(series);
         throw error;
@@ -262,7 +272,8 @@ export function mountHistoryChart(
         markerPlugin.detach();
         chart.removeSeries(priceSeries);
         priceSeries = next;
-        markerPlugin = createSeriesMarkers(priceSeries, indicatorMarkers);
+        markerPlugin = createSeriesMarkers(priceSeries, []);
+        renderMarkers();
         style = nextStyle;
         if (range) timeScale.setVisibleLogicalRange(range);
       },
@@ -273,6 +284,7 @@ export function mountHistoryChart(
         if (style === 'candlestick') (priceSeries as ISeriesApi<'Candlestick'>).applyOptions(candleColors());
         else (priceSeries as ISeriesApi<'Line'>).applyOptions({ color: chartThemes[next.theme].price });
         volumes.setData(bars.map(volume));
+        if (evidenceBar) renderMarkers();
       },
       setLocale(next) {
         if (next.locale === localization.locale && next.regionLabels.preview === localization.regionLabels.preview
@@ -302,6 +314,29 @@ export function mountHistoryChart(
         }
         const selected = displayedBar();
         if (selected) select(selected);
+      },
+      revealEvidenceBar(reference) {
+        const bar = lookup.get(reference.time_ms / 1000);
+        const range = timeScale.getVisibleLogicalRange();
+        const index = bar ? timeScale.timeToIndex(timestamp(bar)) : null;
+        if (!bar?.is_closed || bar.close !== reference.close || !range || index === null || evidenceBar) return;
+        const scale = priceSeries.priceScale();
+        const autoScale = scale.options().autoScale;
+        const priceRange = scale.getVisibleRange();
+        if (index <= range.from || index >= range.to) {
+          const half = (range.to - range.from) / 2;
+          timeScale.setVisibleLogicalRange({ from: index - half, to: index + half });
+        }
+        if (!autoScale && priceRange && (bar.close <= priceRange.from || bar.close >= priceRange.to)) scale.setAutoScale(true);
+        evidenceBar = bar;
+        renderMarkers();
+        return () => {
+          evidenceBar = undefined;
+          renderMarkers();
+          timeScale.setVisibleLogicalRange(range);
+          if (autoScale) scale.setAutoScale(true);
+          else if (priceRange) scale.setVisibleRange(priceRange);
+        };
       },
       replaceBars(nextBars) {
         const range = timeScale.getVisibleLogicalRange();

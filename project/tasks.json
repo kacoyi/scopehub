@@ -17761,10 +17761,11 @@
         "architecture",
         "ui-build",
         "market-workflow",
-        "model-connection-workflow"
+        "model-connection-workflow",
+        "desktop-localization"
       ],
       "evidence": [],
-      "next_action": "Connect a cited row to the real chart through an ordinary button, then show the valid and stale cases using the existing local model fixture.",
+      "next_action": "Run the task checks against the local candidate and retain the evidence for review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17779,11 +17780,11 @@
           "tests/ui/ai-workflow.config.mjs"
         ],
         "hypotheses": [
-          "Current scoped chart context and the evidence returned with the completed model turn can support a local, temporary chart anchor."
+          "The completed turn and its submitted selection can identify the chart. The local workspace snapshot verifies current authority without rereading the cited bar or calling the model."
         ],
         "risks": [
           {
-            "failure": "A shared UTC time highlights a bar from a different instrument, timeframe or revision, or navigation dispatches another model request.",
+            "failure": "A matching timestamp highlights a bar on a different chart or after another client cleared the selection, or navigation changes the saved chart, transcript, or model traffic.",
             "checks": [
               "model-connection-workflow"
             ]
@@ -17809,9 +17810,7 @@
           "non_goals": [
             "Live external services, new credentials, model permission changes, investment advice and arbitrary document navigation are outside this slice."
           ],
-          "open_questions": [
-            "Which fields on the actual turn and chart establish an exact match before the chart is highlighted?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",
@@ -17821,7 +17820,7 @@
           "change": [
             "A researcher can follow a close price cited in a conversation to its exact bar on the current authorized chart and return to the same answer."
           ],
-          "data_plan": "Use only already authorized returned chart evidence. Keep the temporary highlight and navigation state in the window.",
+          "data_plan": "Compare the returned source reference, revision and interval with the selection submitted for that turn. Recheck the local workspace and selection revision, then match the displayed source, instrument, timeframe, frozen snapshot hash, and exact closed-bar timestamp and close. Keep the temporary marker and viewport restoration in memory.",
           "cleanup": "Keep one path for the underlying action and remove any superseded local interaction while maintaining its callers."
         }
       }

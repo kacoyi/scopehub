@@ -632,7 +632,29 @@ async function expectChartAnswer(page, bar) {
   await expect(evidence).toContainText(`Bar starting ${new Date(bar.time_ms).toISOString()}`);
   const rows = evidence.getByRole('table', { name: 'Selected chart closes' }).getByRole('row');
   await expect(rows).toHaveCount(2);
-  await expect(rows.nth(1).getByRole('cell')).toHaveText([new Date(bar.time_ms).toISOString(), String(bar.close)]);
+  await expect(rows.nth(1).getByRole('cell')).toHaveText([new Date(bar.time_ms).toISOString(), String(bar.close), 'Show on chart']);
+}
+
+const chartCanvas = page => page.getByRole('region', { name: 'Price chart' }).locator('canvas').first();
+const citedBar = page => page.getByRole('group', { name: 'Cited bar' });
+const showCitedBar = answer => control(answer, 'Show on chart');
+const unavailableCitedBar = 'This cited bar is unavailable on the current chart. The original chart or selection may have changed.';
+
+function chartPaint(canvas) {
+  const { width, height } = canvas;
+  const data = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+  const rgb = index => data[index] * 0x10000 + data[index + 1] * 0x100 + data[index + 2];
+  let markerPixels = 0;
+  let candles = 0;
+  for (let pixel = 0; pixel < data.length; pixel += 4) {
+    const color = rgb(pixel);
+    if (color === 0xffd166) markerPixels += 1;
+    // Compare candle geometry without the SDK's independently painted one-pixel price line.
+    if ((color === 0x43d4ac || color === 0xf17d85) && color === rgb(pixel + width * 4)) {
+      candles = Math.imul(candles, 31) + pixel | 0;
+    }
+  }
+  return { width, height, candles, markerPixels };
 }
 
 test('selected chart conversation negotiates the bounded tool through the owned HTTP peer', async ({ browser }, testInfo) => {
@@ -641,8 +663,11 @@ test('selected chart conversation negotiates the bounded tool through the owned 
     await seedDisplayOnlyChart(profile, csvRevision, csvBar);
     await withWorkspace(browser, profile, async (page, dispatch) => {
       const activations = [];
+      const navigationRequests = [];
+      let observeNavigation = false;
       page.on('request', request => {
         if (isAction(request, 'activate')) activations.push(request.postDataJSON().request_id);
+        if (observeNavigation) navigationRequests.push([new URL(request.url()).pathname, request.postDataJSON()]);
       });
       peer.respond(chartReply);
       const observation = { readOnlyTables: [], selections: [], projections: [] };
@@ -651,6 +676,8 @@ test('selected chart conversation negotiates the bounded tool through the owned 
         await openSampleChart(page);
         const first = await selectChartBar(page, intervalA);
         observation.selections.push(first.selection_revision);
+        await control(page, 'Pan').click();
+        for (let zoom = 0; zoom < 3; zoom += 1) await control(page, 'Zoom in').click();
         const beforeA = persistedRows(profile);
         const manual = await dispatch({
           type: 'request', protocol_version: '1.1', operation: 'workspace.readChartProjection',
@@ -671,12 +698,55 @@ test('selected chart conversation negotiates the bounded tool through the owned 
         await expectChartAnswer(page, intervalA);
         expect(persistedRows(profile), 'Tool turn A leaves all persisted table rows unchanged').toEqual(beforeA);
 
+        const canvas = chartCanvas(page);
+        const viewport = await canvas.evaluate(chartPaint);
+        expect(viewport.markerPixels).toBe(0);
+        const firstAnswer = chat(page).getByRole('article').filter({ hasText: closeAnswer(intervalA) });
+        const showFirst = showCitedBar(firstAnswer);
+        await expect(firstAnswer).toContainText('SIM.CN.FUTURE.001');
+        await expect(firstAnswer).toContainText('1m');
+        const draft = 'Unsent synthetic follow-up.';
+        await question(page).fill(draft);
+        const beforeNavigation = await dispatch({ type: 'snapshot' });
+        observeNavigation = true;
+        await showFirst.press('Enter');
+        await expect(chat(page)).toBeHidden();
+        await expect(citedBar(page)).toContainText(new Date(intervalA.time_ms).toISOString());
+        await expect(citedBar(page)).toContainText(`Close ${intervalA.close}`);
+        const back = control(citedBar(page), 'Back to answer');
+        await expect(back).toBeFocused();
+        await expect.poll(async () => (await canvas.evaluate(chartPaint)).markerPixels).toBeGreaterThan(0);
+        await testInfo.attach('cited-bar-on-original-chart', { body: await page.screenshot(), contentType: 'image/png' });
+        await back.press('Enter');
+        await expect(showFirst).toBeFocused();
+        await expect(question(page)).toHaveValue(draft);
+        await expect(firstAnswer.getByText(closeAnswer(intervalA), { exact: true })).toBeVisible();
+        await expect(citedBar(page)).toBeHidden();
+        await expect.poll(() => canvas.evaluate(chartPaint)).toEqual(viewport);
+        await expect(control(page, 'Pan')).toHaveAttribute('aria-pressed', 'true');
+        expect(await dispatch({ type: 'snapshot' })).toEqual(beforeNavigation);
+        expect(persistedRows(profile), 'Following and returning preserve every persisted table row').toEqual(beforeA);
+        expect(peer.traffic).toHaveLength(2);
+        expect(navigationRequests.splice(0), 'Following and returning only check local selection metadata')
+          .toEqual([[workspaceEndpoint, { type: 'snapshot' }]]);
+        observeNavigation = false;
+
         await control(chat(page), 'Close').click();
         const corrected = await selectChartBar(page, intervalB);
         expect(corrected.selection_revision).toBe(first.selection_revision + 1);
         observation.selections.push(corrected.selection_revision);
         const beforeB = persistedRows(profile);
         await openChat(page);
+        await expect(showFirst).toBeEnabled();
+        observeNavigation = true;
+        await showFirst.click();
+        await expect(firstAnswer.getByRole('alert')).toHaveText(unavailableCitedBar);
+        await expect(showFirst).toBeFocused();
+        await expect(chat(page)).toBeVisible();
+        await expect(citedBar(page)).toBeHidden();
+        expect(navigationRequests.splice(0), 'A stale selection only checks local selection metadata')
+          .toEqual([[workspaceEndpoint, { type: 'snapshot' }]]);
+        observeNavigation = false;
         const correction = 'Use the corrected selected interval and tell me its close.';
         // Lose the accepted send and first tool-continuation poll. Subsequent
         // terminal replies carry a valid shape but the wrong frozen revision.
@@ -726,12 +796,29 @@ test('selected chart conversation negotiates the bounded tool through the owned 
         expect(persistedRows(profile), 'Tool turn B leaves all persisted table rows unchanged').toEqual(beforeB);
         await testInfo.attach('two-selected-intervals', { body: await page.screenshot(), contentType: 'image/png' });
 
+        const secondAnswer = chat(page).getByRole('article').filter({ hasText: closeAnswer(intervalB) });
+        await showCitedBar(secondAnswer).click();
+        await expect(citedBar(page)).toBeVisible();
+        await control(page, '5m').click();
+        await expect(secondAnswer.getByRole('alert')).toHaveText(unavailableCitedBar);
+        await expect(showCitedBar(secondAnswer)).toBeFocused();
+        await expect(citedBar(page)).toBeHidden();
+        await expect(page.locator('.history')).toHaveAttribute('data-timeframe', '5m');
+
         await control(chat(page), 'Close').click();
         const csv = await inspectManualCsv(page, csvRevision);
         observation.selections.push(csv.selection_revision);
         const beforeDenied = persistedRows(profile);
         const workspaceBefore = await dispatch({ type: 'snapshot' });
         await openChat(page);
+        await expect(showFirst).toBeEnabled();
+        observeNavigation = true;
+        await showFirst.click();
+        await expect(firstAnswer.getByRole('alert')).toHaveText(unavailableCitedBar);
+        await expect(citedBar(page)).toBeHidden();
+        expect(navigationRequests, 'A mismatched source only checks local selection metadata')
+          .toEqual([[workspaceEndpoint, { type: 'snapshot' }]]);
+        observeNavigation = false;
         await send(page, 'What is the selected CSV close?');
         await expect(chat(page).getByText('Selected chart data is unavailable to this model connection.', { exact: true })).toBeVisible();
         expect(peer.traffic, 'The display-only source is denied before any provider request').toHaveLength(4);
@@ -748,6 +835,35 @@ test('selected chart conversation negotiates the bounded tool through the owned 
       }
     });
   }));
+});
+
+test('chart evidence navigation fails closed after another client clears the shared selection', async ({ browser }) => {
+  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
+    peer.respond(chartReply);
+    await openSampleChart(page);
+    const selection = await selectChartBar(page, intervalA);
+    await askBeforeSetup(page);
+    await activateRoute(page, await propose(page, peer.origin, true));
+    await send(page);
+    await expectChartAnswer(page, intervalA);
+    const answer = chat(page).getByRole('article').filter({ hasText: closeAnswer(intervalA) });
+
+    const cleared = await dispatch({
+      type: 'request', protocol_version: '1.1', operation: 'workspace.selectEvidence',
+      request_id: randomUUID(), message_id: randomUUID(), timestamp_ms: Date.now(),
+      workspace_id: selection.workspace_id, expected_selection_revision: selection.selection_revision, target: null,
+    });
+    expect(cleared).toMatchObject({ ok: true, result: { selection: {
+      target: null, selection_revision: selection.selection_revision + 1,
+    } } });
+    const afterClear = persistedRows(profile);
+    await showCitedBar(answer).click();
+    await expect(answer.getByRole('alert')).toHaveText(unavailableCitedBar);
+    await expect(answer.getByText(closeAnswer(intervalA), { exact: true })).toBeVisible();
+    await expect(citedBar(page)).toBeHidden();
+    expect(peer.traffic).toHaveLength(2);
+    expect(persistedRows(profile)).toEqual(afterClear);
+  })));
 });
 
 test('rotating a pending chart selection blocks tool data and cancellation discards a pending final reply', async ({ browser }, testInfo) => {

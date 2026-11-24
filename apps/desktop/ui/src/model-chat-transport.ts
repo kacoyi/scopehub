@@ -8,9 +8,13 @@ export type ModelResult<Action extends AiTextConnectionInput['action']> =
 export type ModelConnection = NonNullable<ModelResult<'status'>['connection']>;
 export type ModelRoute = ModelConnection['route'];
 export type ModelChartSelection = {
+  workspaceId: string;
   selectionRevision: number;
   sourceReference: string;
   datasetRevision: string;
+  snapshotHash: string;
+  instrumentId: string;
+  timeframe: string;
   range: VisibleRange;
 };
 export type OpenAiCredential = {
