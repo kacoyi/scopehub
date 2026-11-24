@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-020",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17336,7 +17336,7 @@
       "id": "M2-020",
       "title": "Recover an authorized drawing binding after focus admission contention",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-015"
       ],
@@ -17356,8 +17356,13 @@
         "workbench-drawing-runtime",
         "market-workflow"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the admitted and rejected reads using the existing confirmed synthetic profile, then verify recovery and terminal outcomes.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-020-075c49f6e8a29c9a.json",
+          "sha256": "c916d2a1fbefd3121ddd1f06597bd606d56a014a9185555bdae17f7a6d985f95"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
