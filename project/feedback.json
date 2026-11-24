@@ -4949,6 +4949,21 @@
         "prevention": "Use matching real commands with default and inherited ignored SIGCHLD. Require both explicit failures to retain exit 7 and keep the separate success and cancellation observations. Retain t104 review and regression records."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-recovery-timing-provenance",
+      "source": "Independent read-only Astra Standard review of 7abe0e0, retained at archives/observations/m0-094-astra-7abe0e0/review.txt (SHA-256 165a8d6fa3ae8120dc40b43d3dfc1d5ee68d7d868d6b6296c9c6ced492c5dcc7).",
+      "observation": "The new timing reader admitted a four-producer run as warm without its producer cache map, serialized a conflicting cache observation as an invalid synthesized record that disappeared on reload, and accepted ambiguous raw jobs with the fourth producer and its aggregate marker absent as complete legacy timing. The retained workflow and protected aggregate passed the separate routing and failure review.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-094"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

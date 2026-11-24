@@ -19220,6 +19220,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "The four-producer timing reader promotes a sample without producer cache provenance, discards a conflicting original during archive reload, or accepts an incomplete unmarked layout as legacy.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep M0-091 open and park the local candidate if the ordinary product repair meets the budget, if setup independence fails, or if stronger verification no longer establishes comparable coverage and provenance.",
