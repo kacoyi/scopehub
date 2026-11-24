@@ -89,9 +89,9 @@ jobs:
             echo 'split=true' >> "$GITHUB_OUTPUT"
           fi
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        if: steps.lane.outputs.skip != 'true'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        if: steps.lane.outputs.skip != 'true'
         with:
           node-version: '24'
           cache: pnpm
@@ -104,10 +104,10 @@ jobs:
       - run: uv sync --locked
         if: steps.lane.outputs.skip != 'true'
       - run: pnpm install --frozen-lockfile
-        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        if: steps.lane.outputs.skip != 'true'
       - name: Check browser and build-output prerequisites
         id: build_setup
-        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        if: steps.lane.outputs.skip != 'true'
         env:
           SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
           SCOPEHUB_SCOPE: ${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}
@@ -137,7 +137,7 @@ jobs:
           fi
       - name: Select the Cargo cache key
         id: cargo_keys
-        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true'
         env:
           SCOPEHUB_WINDOWS_LANE: ${{ steps.lane.outputs.split == 'true' && matrix.lane || '' }}
           TOOLCHAIN_HASH: ${{ hashFiles('rust-toolchain.toml') }}
@@ -146,7 +146,12 @@ jobs:
         run: |
           prefix="$RUNNER_OS-$RUNNER_ARCH-cargo-"
           legacy="$prefix$TOOLCHAIN_HASH-"
-          primary="$prefix${SCOPEHUB_WINDOWS_LANE:+$SCOPEHUB_WINDOWS_LANE-}$TOOLCHAIN_HASH-"
+          cache_lane="$SCOPEHUB_WINDOWS_LANE"
+          # Market recovery builds the same history bridge as the browser lane.
+          if [ "$cache_lane" = python ]; then
+            cache_lane=browser
+          fi
+          primary="$prefix${cache_lane:+$cache_lane-}$TOOLCHAIN_HASH-"
           printf 'primary=%s\nlegacy=%s\n' "$primary$LOCK_HASH" "$legacy$LOCK_HASH" >> "$GITHUB_OUTPUT"
           {
             echo 'fallback<<CACHE_KEYS'
@@ -168,7 +173,7 @@ jobs:
           key: ${{ steps.cargo_keys.outputs.primary }}
           restore-keys: ${{ steps.cargo_keys.outputs.fallback }}
       - name: Install and start the pinned chart-test browser
-        if: *cargo_required
+        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -262,8 +267,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Save the Cargo cache for this selection
-        # A split lane may seed only its own key on main, never the complete key.
-        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true')) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+        # Split cache owners seed their own keys on main. Python only restores the browser key.
+        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && matrix.lane != 'python')) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
