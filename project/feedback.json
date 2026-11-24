@@ -5169,7 +5169,7 @@
       "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
       "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-097"
       ],
@@ -5193,7 +5193,11 @@
           "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Bounded recent capture and local review selection also governed explicitly linked historical timing identities.",
+        "correction": "Index original canonical compact captures by exact harness report and checkout identity in shared Git timing storage. Ordinary status and CI consult only requested linked entries beyond the unchanged recent windows. One standalone offline command indexes pre-existing captures.",
+        "prevention": "Exercise both window boundaries and shared lookup from an independent worktree, verify new ordinary intake indexes its captures and reread exact retained failure authority."
+      },
       "deferral_reason": null
     },
     {
@@ -5201,14 +5205,18 @@
       "source": "Standard Astra read-only review of 77bf40bca029942544f5bfd77f1f7e0b4ee073b5, archives/observations/m0-097-linked-timing-review/astra-77bf40b.txt, SHA-256 d6ef15d14a000186a1ea9277f19638f7640754bc0fd07d2b67e86c8390e09690.",
       "observation": "After the automatic and manual windows rotated, two indexed attempts declared the same linked original report identity. Ordinary status and regular CI reported the conflict with both clocks present, then incorrectly reported recovery when one indexed attempt lacked its clock or its original compact file.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-097"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Comparison treated only claimants with a currently eligible clock as conflicting.",
+        "correction": "Use the persistent indexed claimants for each requested original identity before checking clock eligibility. Keep that identity unavailable and conflicting when another indexed attempt loses its clock or its capture.",
+        "prevention": "Replay complete, missing-clock and missing-capture conflicts through ordinary offline status and regular CI alongside an independent qualifying recovery."
+      },
       "deferral_reason": null
     }
   ]

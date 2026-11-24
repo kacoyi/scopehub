@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-097",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19712,7 +19712,7 @@
       "id": "M0-097",
       "title": "Retain exact linked verification timing across bounded history",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-087"
       ],
@@ -19735,10 +19735,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Review the exact linked-history candidate, then retain a matching task verification receipt.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-097-3a293e4ffdc873f7.json",
+          "sha256": "e605be098c818d944d5f0960af05954e949e50b0b8508af3151ee6d758a0cd63"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Standard Astra approved exact source 6241372d7e6b95902fa721c2c8f393b8c869dbb0. One matching offline Linux task run, 20261124T171439.340023Z-42549823, passed the environment, project state and Python contracts and workers checks and observed both registered findings. The actual shared migration indexed 23 retained captures and an independent worktree read every linked control with no manual timing archive. No hosted or protected integration claim is made by this receipt.",
       "plan": {
         "outcome": "A maintainer sees qualifying linked timing evidence after recent history rotates or a fresh worktree opens.",
         "change_types": [
