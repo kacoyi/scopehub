@@ -780,24 +780,41 @@ pub(super) fn credential_failure(error: CredentialError) -> Error {
 }
 
 #[cfg(test)]
+pub(crate) static NATIVE_TEST_PROFILE_SLOT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+std::thread_local! {
+    pub(crate) static PROFILE_PREPARATION_ATTEMPT: std::cell::RefCell<Option<std::sync::mpsc::Sender<usize>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(test)]
 pub(crate) fn lock_test_profile_preparation(
     slot: &std::sync::Mutex<()>,
 ) -> std::sync::MutexGuard<'_, ()> {
+    if let Some(observer) = PROFILE_PREPARATION_ATTEMPT.with_borrow_mut(Option::take) {
+        let _ = observer.send(std::ptr::from_ref(slot).addr());
+    }
     slot.lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-#[cfg(all(test, windows))]
-pub(crate) fn lock_native_test_profile_preparation() -> std::sync::MutexGuard<'static, ()> {
-    // Explicit fixtures and real bridge opens share the Windows test process's
-    // helper budget. Acquire before starting either deadline-bound ACL call.
-    static SLOT: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    lock_test_profile_preparation(&SLOT)
+#[cfg(test)]
+pub(crate) fn lock_native_test_profile_preparation() -> Option<std::sync::MutexGuard<'static, ()>> {
+    // Windows test paths share the helper budget before starting either ACL call.
+    // The integrated regression also exercises this admission path on other hosts.
+    (cfg!(windows) || PROFILE_PREPARATION_ATTEMPT.with_borrow(Option::is_some))
+        .then(|| lock_test_profile_preparation(&NATIVE_TEST_PROFILE_SLOT))
+}
+
+#[cfg(test)]
+pub(crate) fn open_bound_workspace_for_test(path: &Path) -> Result<(), Error> {
+    BoundWorkspace::open(path).map(drop)
 }
 
 impl BoundWorkspace {
     fn open(app_local_data: &Path) -> Result<Self, Error> {
-        #[cfg(all(test, windows))]
+        #[cfg(test)]
         let _preparation = lock_native_test_profile_preparation();
         let directory = app_local_data.join(WORKSPACE_DIRECTORY);
         SqliteWorkspace::prepare_profile_root(&directory)

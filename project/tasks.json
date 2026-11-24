@@ -18253,6 +18253,10 @@
           {
             "failure": "The shared slot bypasses native ACL checks, changes production admission or holds test work after a failure or unwind.",
             "checks": ["rust-contracts-workers"]
+          },
+          {
+            "failure": "The fixture and application open switch to disconnected slots while the isolated mutex-release regression still passes.",
+            "checks": ["rust-contracts-workers"]
           }
         ],
         "rollback": "Revert only the desktop test slot change if matching native coverage still fails or the slot interferes with the independent workspace behaviors. Preserve both occurrences and their diagnostics.",
