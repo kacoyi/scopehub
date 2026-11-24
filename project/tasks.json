@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-021",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17089,7 +17089,7 @@
       "id": "M2-021",
       "title": "Clarify the workbench renderer expressiveness criterion",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-002"
       ],
@@ -17106,8 +17106,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Compare the original entry and linked acceptance criteria, verify the sole contract change and archive the task checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-021-4137cb26746ba269.json",
+          "sha256": "b805a398bd31bd0928a6e6fafe97e73ca803d983130da55854f32ea6b767bddd"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
