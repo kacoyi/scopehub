@@ -5392,6 +5392,22 @@
         "prevention": "Reproduce premature headers and socket destruction before correction. Verify after correction that both complete refusals return 429. Witness a real committed draft, discard the caller response, explicitly resend the exact command in the test and compare its receipt. Reject different content under the same key and preserve the original receipt. The real transport controls and t9p approval are retained at archives/observations/m0-101-draft-delivery/index.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "profile-pool-external-deadline-can-outlive-bridge",
+      "source": "Independent Astra Standard review of c3e616a7c5b8f11edeea7c5f4e0fc83e64746886. Retained at archives/observations/m0-102-profile-pool/astra-c3e616a.txt.",
+      "observation": "The browser fixture external deadline terminates the directly started workspace bridge. Its ten-second PowerShell deadline starts after spawning the helper, so the outer deadline can win before bridge-driven cleanup. Setup then removes the pool even when the PowerShell descendant may still write. The existing controlled test only exercised a direct process.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
