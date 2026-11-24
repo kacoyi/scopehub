@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-037",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -12995,7 +12995,7 @@
         "operations-workflow"
       ],
       "evidence": [],
-      "next_action": "Build the independent settings entry with the local directory picker and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
+      "next_action": "Extend the settings entry delivered in M1-036 with saved connection details and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
       "blocker": null,
       "closure_reason": null
     },
@@ -17768,6 +17768,10 @@
         {
           "path": "project/evidence/M1-036-a9c4ee10ae2a3d0d.json",
           "sha256": "9e4e3c2ebe122c4bc2e00e0b46ca4cd1d6a026eb8417c601baa8480a9b6193b3"
+        },
+        {
+          "path": "project/evidence/M1-036-5681ca91d666426f.json",
+          "sha256": "5a4f623de064d360a4704d3d439aaa4bf6f0f350b477ac38b2eab0408f50ecd7"
         }
       ],
       "next_action": null,
@@ -17957,7 +17961,7 @@
       "id": "M1-037",
       "title": "Draft CSV column mappings from the selected file headers",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-008",
         "M0-051"
@@ -17985,8 +17989,13 @@
         "local-import-ui",
         "local-import-publication"
       ],
-      "evidence": [],
-      "next_action": "Independently recheck the corrected overlength-header ambiguity and the retained Rust-backed regression before recording acceptance.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-037-5681ca91d666426f.json",
+          "sha256": "a10cec396b62009c2341cca8f115d4783e099afa2cb43efb38a49969d8c9af06"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "plan": {
