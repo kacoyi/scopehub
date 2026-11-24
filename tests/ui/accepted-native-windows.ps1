@@ -32,7 +32,7 @@ function Show-NativeState([string]$stage) {
 function Contains-UIElement($ancestor,$node) {
     $walker=[Windows.Automation.TreeWalker]::RawViewWalker
     for ($i=0; $i -lt 40 -and $node -and $ancestor; $i++) {
-        if ($ui::Compare($ancestor,$node)) { return $true }
+        if ([Windows.Automation.Automation]::Compare($ancestor,$node)) { return $true }
         $node=$walker.GetParent($node)
     }
     return $false
@@ -160,7 +160,7 @@ function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
         $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
         $walker=[Windows.Automation.TreeWalker]::ControlViewWalker
         for ($i=0; $i -lt 8 -and $hit; $i++) {
-            if ($ui::Compare($b,$hit)) {
+            if ([Windows.Automation.Automation]::Compare($b,$hit)) {
                 [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
                 Write-Host "Verified owned pointer activation of $label at ($x,$y)."
                 return $true
