@@ -19006,9 +19006,9 @@
         "0007"
       ],
       "acceptance": [
-        "Shorten the verified full pull-request and protected main Windows Python producer, retaining the original 696 named Python cases, 12 market-recovery cases, commands, deadlines, outcomes, logs and attached results.",
+        "Demonstrate the bounded Windows producer change in a paired run and in the exact full protected PR review. Retain the original 696 named Python cases, 12 market-recovery cases, commands, deadlines, outcomes, logs and attached results.",
         "Run the original accepted and refused controls at the scheduler and native process boundaries. Both selected commands retain independent ordinary failures. Cancellation reaps the owned Windows child tree and releases the loopback endpoint. Repair the separately reproduced POSIX listener leak through real serial and overlapping market recovery.",
-        "Compare end-to-end elapsed and runner work using the existing first-attempt clocks and exact cache state. Preserve all unrelated selections, the protected aggregate, and the original over-budget evidence."
+        "Compare the actual protected PR elapsed and runner work with the retained first-attempt controls and exact cache state before integration. Preserve unrelated selections and the original over-budget evidence. M0-091 owns the subsequent ordinary protected-main measurement."
       ],
       "checks": [
         "project-state",
@@ -19035,7 +19035,7 @@
           "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
         ],
         "hypotheses": [
-          "Main 45407009232 finished in 1192 seconds and used 556 runner seconds for first-time Windows cache saves. The Python producer still ended at second 961, independently over 900. Product PR 45407157664 took 905 seconds with Python last. The seeded follow-up main 45410634661 was still in the Python harness past second 900 after the other producers passed.",
+          "Main 45407009232 finished in 1192 seconds and used 556 runner seconds for first-time Windows cache saves. The Python producer still ended at second 961, independently over 900. Product PR 45407157664 took 905 seconds with Python last. Seeded main 45410634661 passed in 1011 seconds with Python last and both other producer caches already seeded. The two checks took 664.031 and 138.625 seconds. Full overlap at unchanged durations projects about 872 seconds, with only 28 seconds of margin before measurement.",
           "The existing bounded command-overlap runner may shorten the split Python producer when both commands are selected. A four-CPU Linux A/B used 115.329 seconds serial and 70.304 seconds overlapped with 670 Python and 12 browser results identical. The official Windows Python source executes 696 cases and has its own process ownership mechanism."
         ],
         "risks": [

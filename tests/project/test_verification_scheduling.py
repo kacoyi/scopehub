@@ -1,12 +1,14 @@
 """Keep full hosted verification overlap bounded to independent checks."""
 
-from contextlib import redirect_stdout
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack, redirect_stdout
 from io import StringIO
 import json
 import os
 from pathlib import Path
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -88,6 +90,88 @@ class VerificationSchedulingTests(unittest.TestCase):
                  'ui-build': {'status': 'failed', 'reason_code': 'cleanup_failed'}},
                 harness.run_overlapped(checks, {}, Path('unused'), system=harness.platform.system()),
             )
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Requires native Windows Job Objects.')
+    def test_windows_python_pair_interrupt_reaps_both_listener_trees(self):
+        import _thread
+        import _winapi
+
+        names = ('python-contracts-workers', 'market-recovery')
+        with tempfile.TemporaryDirectory() as directory, ExitStack() as handles:
+            root = Path(directory)
+            listener = root / 'listener.py'
+            listener.write_text(
+                'import json, os, socket, sys, time\n'
+                'from pathlib import Path\n'
+                'with socket.socket() as server:\n'
+                '    server.bind(("127.0.0.1", 0))\n'
+                '    server.listen()\n'
+                '    marker = Path(sys.argv[1])\n'
+                '    temporary = marker.with_suffix(".tmp")\n'
+                '    temporary.write_text(json.dumps([os.getppid(), os.getpid(), server.getsockname()[1]]))\n'
+                '    temporary.replace(marker)\n'
+                '    print("Owned listener ready", flush=True)\n'
+                '    time.sleep(60)\n', encoding='utf-8',
+            )
+            launcher = 'import subprocess, sys; subprocess.call([sys._base_executable, *sys.argv[1:]])'
+            checks = [{'id': name, 'command': ['{python}', '-c', launcher, str(listener), str(root / name)],
+                       'timeout_seconds': 30} for name in names]
+            done = Event()
+
+            def close_owned(handle):
+                try:
+                    if _winapi.WaitForSingleObject(handle, 0) == _winapi.WAIT_TIMEOUT:
+                        _winapi.TerminateProcess(handle, 1)
+                        self.assertEqual(_winapi.WAIT_OBJECT_0, _winapi.WaitForSingleObject(handle, 10_000))
+                finally:
+                    _winapi.CloseHandle(handle)
+
+            def interrupt_live_checks():
+                markers = [root / name for name in names]
+                deadline = time.monotonic() + 15
+                while not all(path.exists() for path in markers):
+                    self.assertLess(time.monotonic(), deadline, 'Both native listeners must start.')
+                    self.assertFalse(done.wait(.02), 'Both listeners must start before the runner returns.')
+                observations = []
+                for marker in markers:
+                    parent, child, port = json.loads(marker.read_text(encoding='utf-8'))
+                    self.assertNotEqual(parent, child)
+                    owned = []
+                    for pid in (parent, child):
+                        handle = _winapi.OpenProcess(_winapi.SYNCHRONIZE | 0x0001, False, pid)
+                        handles.callback(close_owned, handle)
+                        self.assertEqual(_winapi.WAIT_TIMEOUT, _winapi.WaitForSingleObject(handle, 0))
+                        owned.append(handle)
+                    with socket.create_connection(('127.0.0.1', port), timeout=1):
+                        pass
+                    observations.append((owned, port))
+                self.assertNotEqual(observations[0][1], observations[1][1])
+                # Exercise the runner's SIGINT handler without broadcasting to the CI console.
+                _thread.interrupt_main()
+                return observations
+
+            with (patch.object(harness, 'ROOT', root), redirect_stdout(StringIO()),
+                  ThreadPoolExecutor(max_workers=1) as observer):
+                interruption = observer.submit(interrupt_live_checks)
+                try:
+                    rows = harness.run_overlapped(checks, dict(os.environ), root / 'logs', system='Windows')
+                finally:
+                    done.set()
+                observations = interruption.result(timeout=17)
+
+            self.assertCountEqual(names, rows.keys())
+            for name, (owned, port) in zip(names, observations, strict=True):
+                row = rows[name]
+                self.assertEqual(('failed', 'interrupted'), (row['status'], row['reason_code']))
+                self.assertTrue(all(_winapi.WaitForSingleObject(handle, 0) == _winapi.WAIT_OBJECT_0
+                                    for handle in owned))
+                with socket.socket() as probe:
+                    probe.settimeout(1)
+                    self.assertNotEqual(0, probe.connect_ex(('127.0.0.1', port)))
+                log = root / row['log']
+                self.assertIn(b'Check stopped: interrupted.', log.read_bytes())
+                self.assertEqual(row['log_sha256'], harness.file_digest(log))
+            print('Windows Job Object interruption reaped both command parents and listener descendants.', flush=True)
 
     @unittest.skipUnless(sys.platform == 'linux', 'Linux checks use independent process sessions.')
     def test_interruption_and_termination_stop_both_sessions_and_restore_handlers(self):
@@ -318,6 +402,26 @@ class WindowsLaneTests(ProjectFixture):
             reports[lane] = report
             shutil.rmtree(self.reports)
         return reports
+
+    def test_full_windows_python_lane_overlaps_only_its_selected_pair(self):
+        pair = ['python-contracts-workers', 'market-recovery']
+        original_selection = harness.windows_lane_checks
+        for lane, omit_recovery, explicit_target, expected in (
+            ('python', False, '', [pair]), ('python', True, '', []),
+            ('python', False, 'explicit-output', []), ('core', False, '', []), ('browser', False, '', []),
+        ):
+            with (self.subTest(lane=lane, omit_recovery=omit_recovery, explicit_target=explicit_target),
+                  patch.dict(os.environ, {'CARGO_TARGET_DIR': explicit_target, 'CARGO_BUILD_TARGET_DIR': '',
+                                          'CARGO_BUILD_BUILD_DIR': ''}),
+                  patch.object(harness, 'windows_lane_checks', side_effect=lambda selected, owner:
+                               original_selection(selected, owner) - ({'market-recovery'} if omit_recovery else set())),
+                  patch.object(harness, 'run_overlapped', wraps=harness.run_overlapped) as overlap):
+                code, report = self.run_harness('--ci-windows-lane', lane)
+            shutil.rmtree(self.reports)
+            self.assertEqual(0, code)
+            self.assertEqual(expected, [[item['id'] for item in call.args[0]] for call in overlap.call_args_list])
+            catalog_ids = [row['id'] for row in harness.load_project(self.root)['catalog']['checks']]
+            self.assertEqual(catalog_ids, [row['id'] for row in report['checks']])
 
     def test_aggregate_keeps_actual_commands_catalog_order_and_evidence_bytes(self):
         lanes = self.produce()

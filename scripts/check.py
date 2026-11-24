@@ -349,7 +349,15 @@ def main():
                             'reason_code': 'unsupported_platform', 'reason': 'Requires native Windows x64.'})
         else:
             if overlap and check['id'] == 'python-contracts-workers':
-                window = build_window(catalog, selected, environment, index)
+                if args.ci_windows_lane == 'python':
+                    # Only the full Windows Python producer has isolated browser prerequisites.
+                    window = [check]
+                    window.extend(recovery for recovery in catalog[index + 1:]
+                                  if recovery['id'] == 'market-recovery' and recovery['id'] in selected
+                                  and recovery['status'] == 'implemented'
+                                  and (recovery['platforms'] == 'all' or windows_x64(environment)))
+                else:
+                    window = build_window(catalog, selected, environment, index)
                 if len(window) > 1:
                     concurrent_results = run_overlapped(window, env, run_dir, system=environment['system'])
             result = concurrent_results.pop(check['id'], None)
