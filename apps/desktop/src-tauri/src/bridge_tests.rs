@@ -2601,9 +2601,7 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
 struct AppLocalData(PathBuf);
 
 fn with_profile_preparation<T>(slot: &std::sync::Mutex<()>, prepare: impl FnOnce() -> T) -> T {
-    let _permit = slot
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _permit = crate::workspace::lock_test_profile_preparation(slot);
     prepare()
 }
 
@@ -2640,16 +2638,8 @@ impl AppLocalData {
     }
 
     fn prepare(path: &std::path::Path) {
-        let prepare = || scopehub_persistence::SqliteWorkspace::prepare_profile_root(path);
-        #[cfg(windows)]
-        let result = {
-            // Bound explicit fixture setup. Bridge calls still run outside this slot.
-            static SLOT: std::sync::Mutex<()> = std::sync::Mutex::new(());
-            with_profile_preparation(&SLOT, prepare)
-        };
-        #[cfg(not(windows))]
-        let result = prepare();
-        result.unwrap();
+        let _preparation = crate::workspace::lock_native_test_profile_preparation();
+        scopehub_persistence::SqliteWorkspace::prepare_profile_root(path).unwrap();
     }
 
     fn database(&self) -> PathBuf {
@@ -2718,6 +2708,54 @@ fn desktop_fixture_prepares_and_removes_its_profile_root() {
     drop(profile);
     assert!(!root.exists());
     assert!(!reservation.exists());
+}
+
+#[test]
+fn desktop_fixture_preparation_and_workspace_open_wait_for_the_same_slot() {
+    use crate::workspace::{
+        NATIVE_TEST_PROFILE_SLOT, PROFILE_PREPARATION_ATTEMPT, lock_test_profile_preparation,
+        open_bound_workspace_for_test,
+    };
+    use std::{sync::mpsc, thread};
+
+    let fixture = AppLocalData::new();
+    let native = AppLocalData::new();
+    #[cfg(windows)]
+    let fixture_path = fixture.path();
+    #[cfg(not(windows))]
+    let fixture_path = fixture.path().join("explicit");
+    let app_data = native.path();
+    let database = native.database();
+    thread::scope(|scope| {
+        let held = lock_test_profile_preparation(&NATIVE_TEST_PROFILE_SLOT);
+        let expected = std::ptr::from_ref(&NATIVE_TEST_PROFILE_SLOT).addr();
+        let (fixture_entered, fixture_attempt) = mpsc::channel();
+        let (native_entered, native_attempt) = mpsc::channel();
+        let fixture_worker = scope.spawn(|| {
+            PROFILE_PREPARATION_ATTEMPT.with(|attempt| attempt.replace(Some(fixture_entered)));
+            AppLocalData::prepare(&fixture_path);
+        });
+        let native_worker = scope.spawn(|| {
+            PROFILE_PREPARATION_ATTEMPT.with(|attempt| attempt.replace(Some(native_entered)));
+            open_bound_workspace_for_test(&app_data)
+        });
+        let fixture_slot = fixture_attempt.recv_timeout(Duration::from_secs(3));
+        let native_slot = native_attempt.recv_timeout(Duration::from_secs(3));
+        let storage_untouched = !fixture_path.exists() && !database.exists();
+        // Release before asserting so the scope can join both workers on failure.
+        drop(held);
+        assert_eq!(
+            fixture_slot,
+            Ok(expected),
+            "explicit fixture preparation slot"
+        );
+        assert_eq!(native_slot, Ok(expected), "real workspace open slot");
+        assert!(storage_untouched);
+        fixture_worker.join().unwrap();
+        native_worker.join().unwrap().unwrap();
+    });
+    assert!(fixture_path.is_dir());
+    assert!(database.is_file());
 }
 
 fn uuid(number: u64) -> String {
