@@ -17349,7 +17349,7 @@
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
       "evidence": [],
-      "next_action": "Verify the append, scoped edit, reorder and rejection regressions. Review matching native observations under coordinator ownership.",
+      "next_action": "Re-run the repaired native WebView2 observer and verify the named control actions and their accessible postconditions. The coordinator owns the hosted run and evidence archive.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17389,6 +17389,10 @@
           },
           {
             "failure": "Appending a duplicate or scoping an edit to a threshold, plotted field or condition field resets the accepted chart's timeframe or assigns a sibling's timeframe, changing the observed financial value and revision.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "The native probe assumes InvokePattern for every button and stops without reporting which control and capabilities it observed.",
             "checks": ["renderer-prototype-interaction"]
           }
         ],

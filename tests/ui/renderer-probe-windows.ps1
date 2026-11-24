@@ -44,26 +44,60 @@ function Wait-Name([string]$name) {
     Wait-ForProbe $name { Find-Control $name $null } | Out-Null
 }
 
+function Get-ObservedPatterns($control) {
+    try {
+        $names = @($control.GetSupportedPatterns() | ForEach-Object { $_.ProgrammaticName })
+        if ($names.Count) { return ($names -join ', ') }
+        return '<none>'
+    } catch {
+        return "unavailable ($($_.Exception.GetBaseException().Message))"
+    }
+}
+
+function Invoke-ControlAction([string]$name, $control, [switch]$disclosure) {
+    $action = if ($disclosure) { 'ExpandCollapsePattern or InvokePattern' } else { 'InvokePattern or TogglePattern' }
+    $pattern = $null
+    try {
+        if ($disclosure -and $control.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$pattern)) {
+            $action = 'ExpandCollapsePattern.Expand'
+            $pattern.Expand()
+        } elseif ($control.TryGetCurrentPattern([Windows.Automation.InvokePattern]::Pattern, [ref]$pattern)) {
+            $action = 'InvokePattern.Invoke'
+            $pattern.Invoke()
+        } elseif (!$disclosure -and $control.TryGetCurrentPattern([Windows.Automation.TogglePattern]::Pattern, [ref]$pattern)) {
+            $action = 'TogglePattern.Toggle'
+            $pattern.Toggle()
+        } else {
+            throw 'No applicable action pattern.'
+        }
+    } catch {
+        throw "UI Automation control '$name' failed $action. Observed patterns: [$(Get-ObservedPatterns $control)]. $($_.Exception.GetBaseException().Message)"
+    }
+    Write-Host "UI Automation control '$name' used $action."
+}
+
 function Invoke-Button([string]$name) {
-    $button = Wait-ForProbe $name { Find-Control $name ([Windows.Automation.ControlType]::Button) }
-    $button.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $button = Wait-ForProbe "enabled button '$name'" {
+        $control = Find-Control $name ([Windows.Automation.ControlType]::Button)
+        if ($control -and $control.Current.IsEnabled) { $control }
+    }
+    Invoke-ControlAction $name $button
 }
 
 function Draft-Pattern {
-    $editor = Wait-ForProbe 'composition editor' {
+    $editor = Wait-ForProbe "edit control 'Composition JSON'" {
         Find-Control 'Composition JSON' ([Windows.Automation.ControlType]::Edit)
     }
-    $editor.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern)
+    $pattern = $null
+    if (!$editor.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$pattern)) {
+        throw "UI Automation edit 'Composition JSON' does not expose ValuePattern. Observed patterns: [$(Get-ObservedPatterns $editor)]."
+    }
+    return $pattern
 }
 
 function Open-Disclosure([string]$name) {
     $disclosure = Wait-ForProbe $name { Find-Control $name $null }
-    $pattern = $null
-    if ($disclosure.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$pattern)) {
-        $pattern.Expand()
-    } else {
-        $disclosure.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
-    }
+    Invoke-ControlAction $name $disclosure -Disclosure
 }
 
 function Wait-Annotation($expected, [string]$otherValue) {
