@@ -19736,7 +19736,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reproduce the lost linked control at the ordinary offline entry, add bounded exact lookup, and request exact-commit independent review.",
+      "next_action": "Review the exact linked-history candidate, then retain a matching task verification receipt.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
