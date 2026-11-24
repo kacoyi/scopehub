@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-031",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -4749,7 +4749,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use the M2-014 and M2-029 native observations with workbench-qualification-v2 and the M1-031 Ubuntu host. Measure moving annotation alignment and distinct presented frames across 120 refresh opportunities during quote updates, including viewport edges and different display scales. Compare native fault isolation and recovery on both hosts before selecting a renderer.",
+      "next_action": "Use the M2-014 and M2-029 native observations, the M2-031 synthetic quote replay and workbench-qualification-v2 with the M1-031 Ubuntu host. Correlate the draw revisions with verified presentation across 120 refresh opportunities during quote updates, including viewport edges and different display scales. Compare native fault isolation and recovery on both hosts before selecting a renderer.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -18227,7 +18227,7 @@
       "id": "M2-031",
       "title": "Replay sequenced synthetic quotes on the qualification candlestick",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M2-029"],
       "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json"],
       "decision_refs": ["0004", "0007", "0027"],
@@ -18236,10 +18236,15 @@
         "The frozen rows and their attribution survive. Wrong-source and stale quotes leave the last admitted draw intact. The final quote ends the replay. Reset, timeframe change and reopening recover the applicable static view and use the existing accepted definition rules."
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
-      "evidence": [],
-      "next_action": "Exercise the ordinary editor, retain independent quote and canvas observations, and review the local candidate with Standard Astra before coordinator handoff.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-031-4544afbca9522cde.json",
+          "sha256": "a1bc11ac5685df2b126febeb339a6668e867292bc3d0f757fbf4e08d4c49e7fb"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The scoped Linux task check passed on 6f5231a9989b8d1cab95f7126c0d18e033ff3f0b, including all sixteen Chromium interactions. Standard Astra t9q accepted the correction after confirming the real held drag and stationary left-limit regressions. A separate native Ubuntu X11 observation during a 2999.955 ms drag sampled the frozen wick at x=461 before and x=459 after the first quote, with a 3 px maximum step between retained reads. Accepted replay observations kept the frozen 3.2% and drew 3.8%, no new bubble, and 4.5% on the appended candle. Fixed 60 Hz presentation and renderer selection remain under M2-003.",
       "plan": {
         "outcome": "An accepted candlestick can show one explicitly started, finite local replay without replacing the chart or its binding.",
         "change_types": ["ui"],
