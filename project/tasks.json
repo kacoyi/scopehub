@@ -18194,6 +18194,10 @@
           {
             "failure": "The integration gate prevents the first real main-push measurement after a verified repair, or a handoff bypasses a linked defect, stale regression evidence, protected jobs, or unresolved pull-request timing.",
             "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "A repair receipt substitutes for a real main-push observation after the follow-up owner is removed, or a later verified records-only closure is held to a new full PR timing requirement.",
+            "checks": ["python-contracts-workers"]
           }
         ],
         "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",

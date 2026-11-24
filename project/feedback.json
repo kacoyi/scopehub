@@ -4242,6 +4242,17 @@
       "deferral_reason": null
     },
     {
+      "id": "integration-main-push-budget-accepts-premature-closure",
+      "source": "Independent Astra review of b7b2622, retained at .reports/postmerge-budget-follow-up/astra-b7b2622.txt (SHA-256 7626ec51000d5c00274d69d2a432490ca22d603984093b0486598f294dfaec63).",
+      "observation": "With the measurement task still planned, a repair PR can remove its ownership from the named main-push finding and mark the finding addressed using the repair task's regression receipt. Project loading, history comparison and integration assessment then pass without querying timing. The regression receipt covers the repair and cannot establish a main-push result before the repair reaches main.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "windows-records-aggregate-accepts-selected-omission",
       "source": "Independent review of cfdcff2 using a real Windows report's commands and result fields.",
       "observation": "A records fixture with a passed summary and its selected dependency-review omitted as blocked/not_selected passed the lane validator. With a successful producer job, the protected aggregate could return zero for that report.",
