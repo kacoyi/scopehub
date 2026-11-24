@@ -20655,7 +20655,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Compare the Windows split critical paths of 45444242059, 45459661035 and 45475965426. Identify the exact included change that can shorten the measured bottleneck, then reuse a qualifying ordinary full warm PR.",
+      "next_action": "Compare the next ordinary full PR with the browser-gated four-producer run 45459661035 and the Python-gated three-producer run 45475965426. Verify its base and head include the relevant producer and profile changes, then attribute the elapsed difference using the protected aggregate and producer clocks. Preserve the independent main-push evidence and keep PR recovery pending until a qualifying post-correction run reaches 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
