@@ -3858,6 +3858,51 @@
       ]
     },
     {
+      "id": "workbench-qualification-denied-path-evidence",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1.",
+      "observation": "The v2 permission procedure replaces explicit v1 denial paths with a generic protected-resource observation. Direct application SQLite and saved-credential checks can be omitted while reporting the generic observation, and v1 requires independent evidence per denied path.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The generic v2 permission trial dropped the original list of individually observed denial paths.",
+        "correction": "The effective specification lists four denied paths and binds each to a synthetic control, an independent observation and zero unauthorized outcomes.",
+        "prevention": "The qualification test rejects an omitted path, missing independent observation and nonzero unauthorized mutations."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workbench-qualification-native-loss-parity",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1 and re-review at d4cea0de98d2322a238f4b49195dee84a0f2aed7.",
+      "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery. The re-review added ProcessFailed to the shared required observations at d4cea0d. All five specification tests still passed because the checks required minimum evidence without excluding WebView2-specific observations from the requirements effective for other runtimes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "A WebView2-specific signal was required of all Windows runtimes. The initial correction checked only minimum lists.",
+        "correction": "WebView2 candidates retain reuse and ProcessFailed evidence. A different native runtime proves its own identity and loss signal alongside the shared Rust, exit and recovery observations.",
+        "prevention": "The regression rejects WebView2-only requirements in either the common or alternative list and accepts an additional runtime-neutral observation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workbench-qualification-granted-cold-reopen",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1.",
+      "observation": "The cold-restore procedure checks the revoked case but gives the granted reopen no required positive data value, source locator or saved selection outcome. An empty restored canvas could satisfy the listed observations.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The granted cold-reopen procedure could restore an empty presentation while satisfying all listed outcomes.",
+        "correction": "The granted native trial now requires the event-0910 row, its 25 basis-point value and its saved selection. The revoked trial starts with the old cache and requires zero protected reads and frames.",
+        "prevention": "The qualification test resolves the source and rejects the wrong locator, missing positive value and nonzero revoked observations."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "prototype-candlestick-source-scope",
       "source": "Coordinator report from the staged Ubuntu Tauri/WebKitGTK M2-029 trial.",
       "observation": "The chart-only synthetic equity composition displayed the legacy futures source disclosure above its candlesticks. The host painted the expected annotations on the timeframe switch and restored the view after rejecting an unknown source.",

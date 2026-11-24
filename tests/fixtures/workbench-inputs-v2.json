@@ -1,0 +1,57 @@
+{
+  "id": "workbench-inputs-v2",
+  "mode": "synthetic",
+  "usage": "Admit these read-only local records with an explicit fixture grant for the renderer trial. Keep their source IDs, revisions, locators, units and nulls. The release journey also exercises the ordinary import, calculation and client entries.",
+  "event_desk": {
+    "timezone": "UTC",
+    "initial_as_of": "2024-01-04T09:12:00Z",
+    "events": {
+      "source_id": "sim-events", "source_revision": "events-1",
+      "rows": [
+        {"locator": "event-0910", "time": "2024-01-04T09:10:00Z", "headline": "Synthetic rate decision", "expected_change_bp": 0, "announced_change_bp": 25}
+      ]
+    },
+    "refresh": {
+      "source_id": "sim-events", "source_revision": "events-2", "append_to": "events-1",
+      "rows": [{"locator": "event-0920", "time": "2024-01-04T09:20:00Z", "headline": "Synthetic follow-up statement"}]
+    },
+    "impact": {
+      "source_id": "sim-impacts", "source_revision": "impact-1", "kind": "fixture interpretation",
+      "event_target": {"kind": "table_row", "source_id": "sim-events", "source_revision": "events-1", "locator": "event-0910"},
+      "rows": [
+        {"locator": "equity-0910", "event": "event-0910", "instrument": "SIM.EQUITY", "direction": "lower"},
+        {"locator": "future-0910", "event": "event-0910", "instrument": "SIM.FUTURE", "direction": "higher"}
+      ]
+    },
+    "quotes": {
+      "source_id": "sim-quotes", "source_revision": "quotes-1",
+      "times": ["2024-01-04T09:09:00Z", "2024-01-04T09:10:00Z", "2024-01-04T09:11:00Z"],
+      "series": [
+        {"instrument": "SIM.EQUITY", "unit": "USD/share", "prices": [100, 99, 98]},
+        {"instrument": "SIM.FUTURE", "unit": "index points", "prices": [200, 202, 203]},
+        {"instrument": "SIM.FX", "unit": "USD/EUR", "prices": [1.08, 1.081, 1.0805]}
+      ]
+    },
+    "note": {"source_id": "sim-notes", "source_revision": "notes-1", "locator": "note-0900", "text": "Watch the equity and future after the rate decision."}
+  },
+  "spread_research": {
+    "source_id": "sim-spread", "source_revision": "spread-1", "timezone": "UTC",
+    "inputs": [
+      {"instrument": "SIM.FUTURE.A", "source_revision": "leg-a-1", "unit": "index points", "close": [96, 98, 100, 100, 100, 110, 121]},
+      {"instrument": "SIM.FUTURE.B", "source_revision": "leg-b-1", "unit": "index points", "close": [96, null, 100, 100, 100, 100, 119]}
+    ],
+    "methods": "Admit a paired row only when both legs have a close at that session. Mark every output of an unpaired row null. Spread is A minus B. Z-score uses a full trailing three-session population window. Volatility uses the population standard deviation of A's last two simple returns. Forward return uses A's next listed close. Volatility and returns are fractions. A missing input, zero-variance Z-score or unavailable outcome has value null.",
+    "method_revision": "paired-study-1",
+    "columns": ["session_locator", "spread_points", "z_score", "volatility", "next_session_return"],
+    "rows": [
+      ["2024-01-05", 0, null, null, 0.020833333333],
+      ["2024-01-08", null, null, null, null],
+      ["2024-01-09", 0, null, 0.000212585034, 0],
+      ["2024-01-10", 0, null, 0.010204081633, 0],
+      ["2024-01-11", 0, null, 0, 0.1],
+      ["2024-01-12", 10, 1.4142135624, 0.05, 0.1],
+      ["2024-01-15", 2, -0.4629100499, 0, null]
+    ],
+    "as_of": "Each input and feature becomes available at its session close. The forward-return column becomes available at the next session close. Inspect the complete study after the January 15 close."
+  }
+}
