@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-017",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -4715,7 +4715,7 @@
       "id": "M2-003",
       "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M2-002",
         "M2-014",
@@ -4751,7 +4751,7 @@
         "chart-coordinate-prototype"
       ],
       "evidence": [],
-      "next_action": "Compare both renderer candidates on a shared author/revise/select/recover workload. Verify the scoped native evidence and record pending gates for the ef0a1e1 binding under ADR 0027. Preserve the previous checkpoints and keep the major owner feedback open through qualification.",
+      "next_action": "Compare the candidates under ADR 0027, including native verification of shared chart coordinates on a single combined candidate with accepted-series binding. Preserve previous checkpoints and keep the major owner feedback open through qualification.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -17338,7 +17338,7 @@
       "id": "M2-017",
       "title": "Project authored geometry and crosshair evidence on an actual chart",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-016"
       ],
@@ -17363,10 +17363,15 @@
         "market-workflow",
         "chart-coordinate-prototype"
       ],
-      "evidence": [],
-      "next_action": "Connect a bounded worker projection to price-pane invalidation and verify moving and clipped anchors against the live chart.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-017-4d2f26103d3e04ce.json",
+          "sha256": "0744fb01e3b288a2f02c4aba04317dce83b3f4b0dec267ef744e3426c5ee5bfb"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The official task check passed on 308cb3a. Actual chart candles and crosshair aligned after viewport changes in Chromium, invalid replacements preserved the accepted drawing, and leaving the bound source cleared it. Native comparative qualification remains in M2-003.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "An ordinary authored program uses the same frozen bar timestamps, viewport and crosshair as the existing synthetic price chart.",
