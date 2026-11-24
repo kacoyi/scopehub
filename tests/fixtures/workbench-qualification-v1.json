@@ -8,12 +8,12 @@
   },
   "cases": {
     "unconventional-indicator": {
-      "given": "An accepted five-minute equity series supplies volume anomaly strength and turnover. The same frozen input set also supplies accepted five-minute RSI, hourly fast and slow averages, and volatility. Each result carries its units, revision and source locator.",
+      "given": "The four five-minute equity bars open at 09:30, 09:35, 09:40 and 09:45 UTC on January 4, 2024. Accepted data supplies volume anomaly strength, turnover, five-minute RSI, hourly fast and slow averages, and volatility. The accepted 15-minute bar opening at 09:30 has strength 0.90 and turnover 0.047. Each result carries its units, revision and source locator.",
       "strength_by_bar": [0.15, 0.50, 0.95, null],
       "turnover_fraction_by_bar": [0.004, 0.011, 0.032, null],
       "act": "Bind strength to the glow around each candle body. Above a strength of 0.8, place a translucent gradient bubble showing turnover. Then build a chart-free view with a breathing three-state light and a one-line multi-timeframe summary in the upper right.",
       "observe": [
-        "Only the third bar has a bubble, showing 3.2%. After zoom, pan, resize and a timeframe switch followed by return, its horizontal anchor must remain within one logical pixel of the identified candle center. Use the accepted series for the displayed timeframe.",
+        "Only the 09:40 five-minute bar has a bubble, showing 3.2%. Switch to 15 minutes and inspect the 09:30 bar at 4.7%, then switch back. At each timeframe and after zoom, pan or resize, the horizontal anchor must lie within one logical pixel of the identified candle center.",
         "Rebind the very same strength result from glow to the light. With thresholds 0.4 and 0.8 the four states in order are green, amber, red and unknown. Both presentations inspect the identical result and bar locator. Style changes cause zero indicator computations.",
         "For the summary use RSI 78 (overheated at or above 70), hourly fast 104 versus slow 100 (bullish above slow), and volatility 0.012 (low below 0.02). All three statements must agree with the accepted inputs. An absent turnover denominator or indicator value displays as unknown."
       ]
@@ -81,7 +81,7 @@
     },
     "hot-edit-and-repair": {
       "max_save_to_interactive_frame_ms": 300,
-      "observe": "Record device, display, workload and number of repeated warm local edits before testing. Measure each save from the user's action through validation, compilation if used, and the first correct interactive frame. Retain every sample, maximum and p95. Any sample over the limit fails. Record cold startup and model generation or repair time separately.",
+      "observe": "Record device, display and workload. On each reference design, repeat the scoped hot edit 20 times from its accepted starting state. Measure each save from the user's action through validation, compilation if used, and the first correct interactive frame. Retain every sample, maximum and p95. Any sample over the limit fails. Record cold startup and model generation or repair time separately.",
       "repair": "An invalid draft returns a scoped, redacted diagnostic to the authoring AI on its authorized route. Observe a corrected draft and successful preview while the user can keep working in the accepted revision. Apply through the ordinary approval path. Record repair attempts and duration. An exhausted or unavailable repair leaves the accepted view usable."
     }
   },
