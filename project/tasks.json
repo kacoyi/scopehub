@@ -4748,7 +4748,12 @@
         "desktop-localization",
         "workbench-drawing-runtime"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-003-da6ed77002f60f54.json",
+          "sha256": "1127f32ee05be8b422eb3c76a1079b696809e78453a8f21cf1ed77ef13f779e2"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T034228.297184Z-b962abb3",
