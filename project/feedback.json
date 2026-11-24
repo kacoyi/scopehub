@@ -4175,7 +4175,7 @@
       "observation": "Three comparable warm full main pushes took 1720, 1940 and 1970 seconds on the Windows path against the 900-second objective. The current workflow uses the same Windows core, browser and Python split for pull requests and main pushes. A successful full post-merge main push with comparable coverage and recorded cache state is required before reporting a new main time.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
+      "task_ids": ["M0-087", "M0-091"],
       "regression_checks": ["python-contracts-workers"],
       "diagnostic_reports": [
         {
@@ -4223,6 +4223,17 @@
       "id": "verification-budget-comparable-handoff-window",
       "source": "Independent Astra reviews of 02a5176, 1e03799 and fc0fa8f retained in .reports/m0-087/astra-02a5176.txt, .reports/m0-087/astra-1e03799.txt and .reports/m0-087/astra-fc0fa8f.txt.",
       "observation": "Budget escalation combined overruns across different cache or coverage cohorts and could lose repeated warm overruns after unrelated cold runs. Two ordinary PRs observed in separate worktrees did not form one local review window. Reusing an existing corrective task hid the action to associate newly observed reports with its finding. Follow-up review found that complete pre-existing local observations and compatible partial local and shared observations were not consolidated into the shared window. The fc0fa8f review reproduced incompatible complete samples selecting the first arrival and losing the conflict at the next worktree handoff.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "integration-main-push-budget-handoff-cycle",
+      "source": "Inspection of the ordinary integration scope and feedback history gates at df99e89, with the open Windows main-push budget finding and the protected push workflow.",
+      "observation": "The integration scope rejects an open major finding linked to a changed delivery task. Keeping the repair task unfinished blocks integration, and transferring the main-push finding to a newly planned owner still blocks integration. A post-repair ordinary main push cannot occur until the reviewed repair enters main. A completed, evidenced repair needs a bounded handoff without resolving the original timing finding.",
       "severity": "major",
       "status": "open",
       "task_ids": ["M0-087"],
