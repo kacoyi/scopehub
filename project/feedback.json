@@ -5560,6 +5560,52 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-acl-ancestor-chain-reparses-component",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
+      "observation": "The native draft validated a drive, then reinterpreted the validated path components as new paths while assembling each ancestor. The source allows the resolved path to leave the checked ancestor chain. No unsafe hosted access was observed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-sid-length-queried-before-validation",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
+      "observation": "The native draft called GetLengthSid on an ACE SID before validating the SID and the full bounded representation. The query requires a valid SID. No malformed NTFS descriptor was observed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-managed-compaction-compatibility",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
+      "observation": "The managed ACL reader can compact ordinary equivalent explicit rules before the former inheritance predicate. The native draft applies that predicate to raw individual rules. Native compatibility for split same-user inheritance grants needs a differential check.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
