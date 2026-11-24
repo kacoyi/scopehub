@@ -1493,6 +1493,96 @@ class RecentTimingTests(unittest.TestCase):
         breach, = timing.budget_follow_up(view, [], {})['repeated_breaches']
         self.assertEqual(('warm', ['14', '15']), (breach['cache'], breach['recent_runs']))
 
+    def test_linked_timing_survives_recent_rotation_and_is_shared_with_fresh_worktrees(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        shared = timing.shared_timing_directory(root)
+        controls = [self.budget_run(day, '20:00', head=before, event='push') for day in (11, 12)]
+        success = self.budget_run(27, '14:40', head=after, event='push')
+        newer = [self.budget_run(day, '10:00', head=after, event='push', cache='cold')
+                 for day in range(13, 13 + timing.MAX_RECENT)]
+        for run, samples, clock in [*controls, *newer, success]:
+            self.write_archive(shared / f"ci-push-{run['id']}-1.json", samples, [clock])
+        finding = self.budget_finding('push', repair, *controls)
+        peer = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve() / 'fresh'
+        self.fixture_git(root, 'worktree', 'add', '--detach', str(peer), 'HEAD')
+        manual = peer / '.reports/timing'
+        old = manual / 'old-review.json'
+        self.write_archive(old, [sample for _, rows, _ in controls for sample in rows], [c for _, _, c in controls])
+        os.utime(old, (1, 1))
+        for index in range(4):
+            self.write_archive(manual / f'new-review-{index}.json', [], [])
+        with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request')):
+            absent = timing.offline_budget_status(peer, [finding], {})
+            self.assertEqual(2, len(absent['budget_recovery'][0]['recovery']['unavailable_reports']))
+            first = timing.index_retained_captures(root)
+            repeated = timing.index_retained_captures(root)
+            self.assertEqual([], first['input_issues'])
+            self.assertGreater(first['new_links'], 0)
+            self.assertEqual(0, repeated['new_links'])
+            recovered = timing.offline_budget_status(peer, [finding], {})['budget_recovery'][0]['recovery']
+            self.assertEqual('recovered', recovered['status'])
+            self.assertEqual('27', recovered['comparisons'][0]['recovered']['hosted_run_id'])
+            self.assertEqual([], recovered['unavailable_reports'])
+            self.assertEqual(timing.MAX_RECENT, len(timing.incremental_timing_paths((manual, shared))))
+
+            # A failure retained outside the recent clock window still governs an exact linked attempt.
+            failed = dict(controls[0][0], conclusion='failure')
+            authority = timing.authenticated_failure(failed, timing.actions_attempt_identity('fixture/scopehub', failed))
+            timing.retain_authenticated_failure(root, authority)
+            rejected = timing.offline_budget_status(peer, [finding], {})
+            self.assertEqual('pending', rejected['budget_recovery'][0]['recovery']['status'])
+            self.assertTrue(any(note.get('authenticated_conclusions') == ['failure'] for note in rejected['input_issues']))
+
+    def test_new_collects_index_exact_linked_captures_and_preserve_missing_and_conflicting_inputs(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        shared = timing.shared_timing_directory(root)
+        controls = [self.budget_run(day, '20:00', head=before, event='push') for day in (11, 12)]
+        finding = self.budget_finding('push', repair, *controls)
+        for run, samples, clock in controls:
+            with (patch.object(timing, 'download_timing', return_value=samples),
+                  patch.object(timing, 'inspect_jobs', return_value=clock)):
+                intake, _, _, issues = timing.collect_new_ci_timing(root, 'fixture/scopehub', run, [], [])
+            self.assertEqual(('captured', []), (intake, issues))
+        self.retain_newer_cold_attempts(root, 'push', after)
+        run, samples, clock = self.budget_run(29, '14:40', head=after, event='push')
+        self.write_archive(shared / 'ci-push-29-1.json', samples, [clock])
+        records = root / 'project'
+        records.mkdir()
+        (records / 'feedback.json').write_bytes(timing.json_bytes({'items': [finding]}))
+        (records / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+        with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request')):
+            ordinary = timing.ci_budget_status(root, 'fixture/scopehub', None)
+        self.assertEqual('recovered', ordinary['budget_recovery'][0]['recovery']['status'])
+        original_path = shared / 'ci-push-11-1.json'
+        original = original_path.read_bytes()
+        original_path.unlink()
+        missing = timing.offline_budget_status(root, [finding], {})
+        missing_key = {key: controls[0][1][-1][key] for key in ('run_id', 'source_commit')}
+        self.assertIn(missing_key, missing['budget_recovery'][0]['recovery']['unavailable_reports'])
+        self.assertTrue(any(note.get('file') == original_path.name for note in missing['input_issues']))
+        original_path.write_bytes(original)
+        _, duplicate, duplicate_clock = self.budget_run(10, '20:00', head=before, event='push')
+        duplicate[-1].update(missing_key)
+        another = shared / 'ci-push-10-1.json'
+        self.write_archive(another, duplicate, [duplicate_clock])
+        timing.index_capture(another, duplicate)
+        ambiguous = timing.offline_budget_status(root, [finding], {})['budget_recovery'][0]['recovery']
+        self.assertEqual('pending', ambiguous['status'])
+        self.assertEqual([missing_key], ambiguous['conflicting_reports'])
+        for absent in ('clock', 'capture'):
+            with self.subTest(absent=absent):
+                if absent == 'clock':
+                    self.write_archive(another, duplicate, [])
+                else:
+                    another.unlink()
+                views = [timing.offline_budget_status(root, [finding], {}),
+                         timing.ci_budget_status(root, 'fixture/scopehub', None)]
+                for view in views:
+                    recovery = view['budget_recovery'][0]['recovery']
+                    self.assertEqual('pending', recovery['status'])
+                    self.assertEqual([missing_key], recovery['conflicting_reports'])
+                    self.assertIn(missing_key, recovery['unavailable_reports'])
+
     def test_two_fresh_worktrees_share_timing_intake_and_reuse_live_assignment(self):
         self.enterContext(isolated_git_environment())
         with tempfile.TemporaryDirectory() as directory:

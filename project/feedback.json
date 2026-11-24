@@ -5165,6 +5165,61 @@
       "deferral_reason": null
     },
     {
+      "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
+      "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
+      "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-097"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T090140.387541Z-e76e7b16",
+          "source_commit": "c065d60ec30612787a6585290710c2aec52172e2",
+          "report_sha256": "9800b5e6f9d22654353ff27d750a6b6089e822bf5a203192add8dd2af5e6403b"
+        },
+        {
+          "run_id": "20261124T093734.046540Z-27df2492",
+          "source_commit": "a6d9460d6bc5fffa533117350ceec175d8f49fec",
+          "report_sha256": "eb41a70ccdd5cd1f45eb9624218d5c92fd77ef9b612a017fc7f923daaae58714"
+        },
+        {
+          "run_id": "20261124T100820.639261Z-a7e0e867",
+          "source_commit": "b3475fa7581a959c0d4c3a53f722d532683f333e",
+          "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
+        }
+      ],
+      "resolution": {
+        "cause": "Bounded recent capture and local review selection also governed explicitly linked historical timing identities.",
+        "correction": "Index original canonical compact captures by exact harness report and checkout identity in shared Git timing storage. Ordinary status and CI consult only requested linked entries beyond the unchanged recent windows. One standalone offline command indexes pre-existing captures.",
+        "prevention": "Exercise both window boundaries and shared lookup from an independent worktree, verify new ordinary intake indexes its captures and reread exact retained failure authority."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-hidden-by-missing-clock-or-capture",
+      "source": "Standard Astra read-only review of 77bf40bca029942544f5bfd77f1f7e0b4ee073b5, archives/observations/m0-097-linked-timing-review/astra-77bf40b.txt, SHA-256 d6ef15d14a000186a1ea9277f19638f7640754bc0fd07d2b67e86c8390e09690.",
+      "observation": "After the automatic and manual windows rotated, two indexed attempts declared the same linked original report identity. Ordinary status and regular CI reported the conflict with both clocks present, then incorrectly reported recovery when one indexed attempt lacked its clock or its original compact file.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-097"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Comparison treated only claimants with a currently eligible clock as conflicting.",
+        "correction": "Use the persistent indexed claimants for each requested original identity before checking clock eligibility. Keep that identity unavailable and conflicting when another indexed attempt loses its clock or its capture.",
+        "prevention": "Replay complete, missing-clock and missing-capture conflicts through ordinary offline status and regular CI alongside an independent qualifying recovery."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "windows-recovery-timing-provenance",
       "source": "Independent read-only Astra Standard review of 7abe0e0, retained at archives/observations/m0-094-astra-7abe0e0/review.txt (SHA-256 165a8d6fa3ae8120dc40b43d3dfc1d5ee68d7d868d6b6296c9c6ced492c5dcc7).",
       "observation": "The new timing reader admitted a four-producer run as warm without its producer cache map, serialized a conflicting cache observation as an invalid synthesized record that disappeared on reload, and accepted ambiguous raw jobs with the fourth producer and its aggregate marker absent as complete legacy timing. The retained workflow and protected aggregate passed the separate routing and failure review.",

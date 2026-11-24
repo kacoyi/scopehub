@@ -31,6 +31,7 @@ TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
 ATTEMPT_IDENTITY = ('repository', 'run_id', 'run_attempt', 'event', 'head_sha')
+CANONICAL_CAPTURE = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
 CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1(?:-failure-[0-9a-f]{64})?\.json\Z')
 INTAKE_ATTEMPTS = 2
 MISSING_COMPACT = 'Compact reports are absent for part of the required matrix.'
@@ -1026,10 +1027,16 @@ def linked_timing_window(history, reports, growth_baseline):
     return [], []
 
 
-def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents):
+def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents, indexed_conflicts):
     rows = [sample for sample in samples if has_hosted_inputs(sample) and matches_budget_scope(sample, scope)]
     required_reports = reports | growth_baseline
     linked = [row for row in rows if report_key(row) in required_reports]
+    attempts = defaultdict(set)
+    for row in linked:
+        attempts[report_key(row)].add(ci_key(row['ci']))
+    conflicts = required_reports & indexed_conflicts
+    conflicts.update(key for key, identities in attempts.items() if len(identities) > 1)
+    linked = [row for row in linked if report_key(row) not in conflicts]
     unavailable = sorted(required_reports - {report_key(row) for row in linked})
     # All linked observations in this scope bound the correction, even when they belong to another cohort.
     last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
@@ -1089,6 +1096,8 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
     action = f"Observe a comparable successful ordinary {scope['profile']} {scope['platform']} {event} within {HOSTED_BUDGET} seconds."
     if not commit_id(repair):
         action = 'Record the corrective commit. ' + action
+    elif conflicts:
+        action = 'Resolve conflicting hosted attempts for the linked timing identities. ' + action
     elif unavailable:
         action = 'Restore comparable retained timing for all linked observations. ' + action
     elif not comparisons:
@@ -1100,10 +1109,11 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
                   'runs that restore the earlier median within the sustained-growth tolerances.')
     return {'status': 'recovered' if recovered else 'pending', 'repair_commit': repair,
             'unavailable_reports': [{'run_id': run, 'source_commit': source} for run, source in unavailable],
+            'conflicting_reports': [{'run_id': run, 'source_commit': source} for run, source in sorted(conflicts)],
             'comparisons': comparisons, 'next_action': None if recovered else action}, cutoffs
 
 
-def budget_follow_up(view, feedback, tasks, *, root=ROOT):
+def budget_follow_up(view, feedback, tasks, *, root=ROOT, indexed_conflicts=frozenset()):
     @cache
     def ancestor(base, head):
         try:
@@ -1141,7 +1151,8 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT):
         if scope['event'] in NORMAL_EVENTS:
             growth_baseline = {report_key(row) for row in spec.get('growth_baseline', ())}
             recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports, growth_baseline,
-                                                        view.get('samples', ()), ancestor, checkout_parents)
+                                                        view.get('samples', ()), ancestor, checkout_parents,
+                                                        indexed_conflicts)
             for cohort, cutoff in cutoffs.items():
                 key = scope_key, cohort
                 recovered_cohorts[key] = max(recovered_cohorts.get(key, cutoff), cutoff)
@@ -1293,7 +1304,107 @@ def retained_failures_for_clocks(directories, hosted, already_read, issues):
             issues.append({'file': path.name, 'error': str(error)})
 
 
-def retained_budget_inputs(root):
+def linked_timing_keys(feedback):
+    keys = set()
+    for item in feedback:
+        scope = item.get('verification_budget', {})
+        if scope.get('event') in NORMAL_EVENTS:
+            keys.update(report_key(row) for row in item.get('diagnostic_reports', ()))
+            keys.update(report_key(row) for row in scope.get('growth_baseline', ()))
+    return keys
+
+
+def link_directory(directory, key):
+    return directory / 'linked-harness' / sha256(json_bytes(key)).hexdigest()
+
+
+def sample_belongs_to_capture(sample, path):
+    ci = sample['ci']
+    return (ci and sample_identity_complete(sample) and ci['checkout_sha'] == sample['source_commit']
+            and ci['run_attempt'] == '1' and path.name == f"ci-{ci['event']}-{ci['run_id']}-1.json")
+
+
+def index_capture(path, samples):
+    # The empty markers refer to original files beside this index. Existing capture bytes are kept in place.
+    count = 0
+    for key in {report_key(row) for row in samples if sample_belongs_to_capture(row, path)}:
+        directory = link_directory(path.parent, key)
+        if directory.resolve() != directory:
+            raise TimingError('Expected a plain directory for the linked timing index.')
+        directory.mkdir(parents=True, exist_ok=True)
+        try:
+            with (directory / path.name).open('xb'):
+                count += 1
+        except FileExistsError:
+            pass
+    return count
+
+
+def index_retained_captures(root):
+    directory = shared_timing_directory(root)
+    if directory is None:
+        raise TimingError('Expected a checkout with shared retained timing storage.')
+    captures = links = 0
+    issues = []
+    for path in sorted(directory.glob('ci-*.json')):
+        if not CANONICAL_CAPTURE.fullmatch(path.name):
+            continue
+        try:
+            if path.is_symlink():
+                raise TimingError('Expected a plain original compact timing capture.')
+            data = read_bounded_timing(path)
+            if data.get('kind') != ARCHIVE_KIND:
+                raise TimingError('Expected an original compact timing capture.')
+            samples, _ = archive_inputs(data, path.name, issues, collection_issues=False)
+            links += index_capture(path, samples)
+            captures += 1
+        except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'file': path.name, 'error': str(error)})
+    return {'indexed_captures': captures, 'new_links': links, 'input_issues': issues}
+
+
+def linked_capture_inputs(directories, keys, recent, issues):
+    captures = defaultdict(set)
+    claimants = defaultdict(set)
+    for directory in directories:
+        for key in keys:
+            links = link_directory(directory, key)
+            try:
+                if links.resolve() != links:
+                    raise TimingError('Expected a plain linked timing index directory.')
+                for marker in links.glob('ci-*.json'):
+                    if CANONICAL_CAPTURE.fullmatch(marker.name):
+                        captures[directory / marker.name].add(key)
+                        claimants[key].add(marker.name)
+            except (OSError, RuntimeError, TimingError) as error:
+                issues.append({'report': key, 'error': str(error)})
+    # A second indexed claimant is durable evidence of ambiguity even if its capture or clock is unavailable.
+    for (run, source), names in claimants.items():
+        if len(names) > 1:
+            issues.append({'run_id': run, 'source_commit': source, 'linked_timing_conflict': True,
+                           'capture_files': sorted(names), 'error': 'Multiple indexed captures claim the timing identity.'})
+    samples, hosted = [], []
+    for path in sorted(captures.keys() - set(recent)):
+        try:
+            if path.is_symlink():
+                raise TimingError('Expected a plain original compact timing capture.')
+            data = read_bounded_timing(path)
+            if data.get('kind') != ARCHIVE_KIND:
+                raise TimingError('Expected an original compact timing capture.')
+            rows, clocks = archive_inputs(data, path.name, issues, collection_issues=False)
+            matching = [row for row in rows if report_key(row) in captures[path] and sample_belongs_to_capture(row, path)]
+            missing = captures[path] - {report_key(row) for row in matching}
+            if missing:
+                issues.append({'file': path.name, 'reports': sorted(missing), 'error': 'Indexed timing identities are absent.'})
+            attempts = {ci_key(row['ci']) for row in matching}
+            samples.extend(matching)
+            hosted.extend(clock for clock in clocks if ci_key(clock) in attempts)
+        except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'file': path.name, 'reports': sorted(captures[path]), 'error': str(error)})
+    return samples, hosted
+
+
+def retained_budget_inputs(root, feedback=()):
     # Read a bounded window of shared automatic observations and checkout-local reviews.
     directory = root / '.reports/timing'
     archives, issues = [], []
@@ -1325,17 +1436,23 @@ def retained_budget_inputs(root):
                 samples.append(report_sample(data))
         except (OSError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'error': str(error)})
+    linked_samples, linked_hosted = linked_capture_inputs(directories, linked_timing_keys(feedback), recent, issues)
+    samples.extend(linked_samples)
+    hosted.extend(linked_hosted)
     hosted.extend(retained_failures_for_clocks(directories, hosted, recent, issues))
     return samples, hosted, issues
 
 
 def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
+    indexed_conflicts = {report_key(note) for note in issues if isinstance(note, dict)
+                         and note.get('linked_timing_conflict') is True
+                         and short_label(note.get('run_id')) and commit_id(note.get('source_commit'))}
     try:
         view = timing_view(samples, hosted=hosted, issues=issues)
-        follow_up = budget_follow_up(view, feedback, tasks, root=root)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root, indexed_conflicts=indexed_conflicts)
     except TIMING_INPUT_ERRORS as error:
         view = {'objective_reviews': [], 'reviews': []}
-        follow_up = budget_follow_up(view, feedback, tasks, root=root)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root, indexed_conflicts=indexed_conflicts)
         issues.append({'error': str(error)})
     return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
             'elapsed_observations': [
@@ -1353,7 +1470,7 @@ def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
 
 
 def offline_budget_status(root, feedback, tasks):
-    return budget_status(*retained_budget_inputs(root), feedback, tasks, root=root)
+    return budget_status(*retained_budget_inputs(root, feedback), feedback, tasks, root=root)
 
 
 def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
@@ -1451,7 +1568,12 @@ def collect_new_ci_timing(root, repository, run, samples, hosted):
     try:
         with exclusive_git_lock(path.with_suffix('.lock')):
             # Re-read after locking because another worktree may have captured this attempt.
-            return update_timing_capture(path, repository, observed, identity, samples, hosted)
+            result = update_timing_capture(path, repository, observed, identity, samples, hosted)
+            try:
+                index_capture(path, result[1])
+            except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+                result[3].append({'run_id': run_id, 'error': f'Could not index the retained capture: {error}'})
+            return result
     except BlockingIOError:
         return 'in_progress', [], [], []
 
@@ -1514,7 +1636,8 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
 
 
 def ci_budget_status(root, repository, run):
-    samples, hosted, issues = retained_budget_inputs(root)
+    feedback = read_json(root / 'project/feedback.json')['items']
+    samples, hosted, issues = retained_budget_inputs(root, feedback)
     intake = None
     if run:
         if failure := authenticated_failure(run, actions_attempt_identity(repository, run)):
@@ -1535,7 +1658,6 @@ def ci_budget_status(root, repository, run):
             intake = 'unavailable'
             issues.append({'run_id': str(run['id']), 'error': str(error)})
     tasks = {task['id']: task for task in read_json(root / 'project/tasks.json')['tasks']}
-    feedback = read_json(root / 'project/feedback.json')['items']
     return {**budget_status(samples, hosted, issues, feedback, tasks, root=root), 'intake': intake}
 
 
@@ -1697,7 +1819,17 @@ def main():
     parser.add_argument('--github-actions', action='store_true', help='Use the read-only job token for --recent in Actions')
     parser.add_argument('--summary', type=Path, help='Append a Markdown review to a job summary')
     parser.add_argument('--save', type=Path, help='Write a compact archive to a new file for offline review')
+    parser.add_argument('--index-retained', action='store_true', help='Index existing shared compact captures locally')
     args = parser.parse_args()
+    if args.index_retained:
+        if any((args.report, args.actions, args.run, args.attempt, args.recent, args.github_actions, args.summary, args.save)):
+            parser.error('--index-retained is a standalone offline operation')
+        try:
+            result = index_retained_captures(ROOT)
+        except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            parser.exit(1, f'Timing indexing failed: {error}\n')
+        print(json.dumps(result, indent=2))
+        raise SystemExit(bool(result['input_issues']))
     if args.attempt is not None and (args.attempt < 1 or len(args.run or []) != 1):
         parser.error('--attempt requires a positive attempt and exactly one --run')
     if any(run < 1 for run in args.run or []):
