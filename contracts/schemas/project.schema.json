@@ -1591,6 +1591,18 @@
           "minItems": 1,
           "uniqueItems": true
         },
+        "post_merge_main_push_budget": {
+          "type": "object",
+          "properties": {
+            "pull_request_feedback_id": {"type": "string", "minLength": 1},
+            "main_push_feedback_id": {"type": "string", "minLength": 1},
+            "repair_task_id": {"type": "string", "pattern": "^M[0-9]+-[0-9]{3}$"},
+            "follow_up_task_id": {"type": "string", "pattern": "^M[0-9]+-[0-9]{3}$"},
+            "next_action": {"type": "string", "minLength": 1}
+          },
+          "required": ["pull_request_feedback_id", "main_push_feedback_id", "repair_task_id", "follow_up_task_id", "next_action"],
+          "additionalProperties": false
+        },
         "failure_recovery": {
           "type": "array",
           "items": {
