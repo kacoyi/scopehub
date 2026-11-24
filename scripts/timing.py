@@ -3,6 +3,7 @@
 import argparse
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
+from functools import cache
 import json
 import os
 from pathlib import Path
@@ -13,11 +14,11 @@ from tempfile import TemporaryDirectory
 
 if __package__:
     from .doctor import tool_version
-    from .verification_scope import SCOPED_PROFILES, ScopeError, git
+    from .verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
     from .worktree import WorktreeError, exclusive_git_lock, git_path
 else:
     from doctor import tool_version
-    from verification_scope import SCOPED_PROFILES, ScopeError, git
+    from verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
     from worktree import WorktreeError, exclusive_git_lock, git_path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,8 +29,11 @@ ARCHIVE_KIND = 'scopehub-timing-archive-v1'
 TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
+ATTEMPT_IDENTITY = ('repository', 'run_id', 'run_attempt', 'event', 'head_sha')
 CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
 INTAKE_ATTEMPTS = 2
+MISSING_COMPACT = 'Compact reports are absent for part of the required matrix.'
+MISSING_CLOCK = 'Complete matching attempt job clocks are unavailable.'
 TIMING_INPUT_ERRORS = (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError)
 ATTEMPT_SECONDS = ('queue', 'setup', 'harness_step', 'tail', 'runner', 'total', 'browser_step')
 SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
@@ -445,6 +449,7 @@ def hosted_timing(run, jobs):
     result = {
         'repository': repository, 'run_id': run_id, 'run_attempt': attempt,
         'head_sha': run.get('head_sha'), 'event': run.get('event'),
+        'head_branch': short_label(run.get('head_branch')),
         'status': run.get('status'), 'conclusion': run.get('conclusion'), 'jobs': rows,
         'workflow': {
             'matrix_complete': complete,
@@ -460,7 +465,20 @@ def hosted_timing(run, jobs):
 
 
 def ci_key(ci):
-    return tuple(ci.get(key) for key in ('repository', 'run_id', 'run_attempt', 'event', 'head_sha'))
+    return tuple(ci.get(key) for key in ATTEMPT_IDENTITY)
+
+
+def actions_attempt_identity(repository, run):
+    return repository, str(run['id']), str(run['run_attempt']), run['event'], run['head_sha']
+
+
+def authenticated_failure(run, identity):
+    if run['status'] == 'completed' and run['conclusion'] not in {None, 'success'}:
+        # Workflow authority can establish failure without any matching job clock.
+        return {**dict(zip(ATTEMPT_IDENTITY, identity)), 'status': 'completed',
+                'conclusion': run['conclusion'], 'authenticated_failure': True,
+                'head_branch': short_label(run.get('head_branch')), 'jobs': [],
+                'workflow': {'matrix_complete': False, 'identity_complete': False}}
 
 
 def sample_core(sample):
@@ -504,8 +522,16 @@ def valid_sample(sample):
 def valid_clock(run):
     if not labels(run, ('repository', 'run_id', 'run_attempt', 'event', 'head_sha', 'conclusion')):
         return False
+    if run.get('head_branch') is not None and short_label(run['head_branch']) is None:
+        return False
     workflow, jobs = run['workflow'], run['jobs']
     siblings = run.get('sibling_jobs', [])
+    if 'authenticated_failure' in run and (
+            run['authenticated_failure'] is not True or run.get('status') != 'completed'
+            or run['conclusion'] in {None, 'success'} or jobs or siblings
+            or run['event'] not in NORMAL_EVENTS or run['run_attempt'] != '1'
+            or not positive_id(run['run_id']) or not commit_id(run['head_sha'])):
+        return False
     return (isinstance(workflow, dict) and type(workflow['matrix_complete']) is bool
             and (workflow.get('identity_complete') is None or type(workflow['identity_complete']) is bool)
             and (workflow.get('windows_split') is None or type(workflow['windows_split']) is bool)
@@ -532,44 +558,74 @@ def admitted_records(records, validate, label, issues):
     return valid
 
 
-def clock_complete(run):
+def clock_capture_complete(run):
     workflow = run['workflow']
     siblings = run.get('sibling_jobs', [])
     split = workflow.get('windows_split') or 'sibling_jobs' in run
     actual = [*run['jobs'], *siblings]
     ids = {job['job_id'] for job in actual if positive_id(job['job_id'])}
-    return (run['conclusion'] == 'success' and workflow['matrix_complete'] is True
+    return (run.get('status') == 'completed' and bool(run['conclusion']) and workflow['matrix_complete'] is True
             and workflow.get('identity_complete') is True and len(run['jobs']) == len(PLATFORMS)
             and {job['platform'] for job in run['jobs']} == set(PLATFORMS.values())
             and len(ids) == len(actual)
             and all(duration(workflow.get(key)) is not None for key in ('total_elapsed_seconds', 'runner_work_seconds'))
-            and all(job['status'] == 'completed' and job['conclusion'] == 'success' and not job['identity_issues']['missing']
+            and all(job['status'] == 'completed' and job['conclusion'] and not job['identity_issues']['missing']
                     and not job['identity_issues']['conflicts']
                     and job['seconds']['total'] is not None and job['seconds']['runner'] is not None for job in actual)
             and (not split or (
-                has_windows_producers(siblings) and all(job['seconds']['harness_step'] is not None for job in run['jobs'])
+                has_windows_producers(siblings) and all(job['conclusion'] != 'success'
+                                                       or job['seconds']['harness_step'] is not None for job in run['jobs'])
             )))
 
 
-def sample_eligible(sample):
-    return (sample['coverage_complete'] and sample.get('identity_complete') is True
+def clock_complete(run):
+    return (clock_capture_complete(run) and run['conclusion'] == 'success'
+            and all(job['conclusion'] == 'success' for job in [*run['jobs'], *run.get('sibling_jobs', [])]))
+
+
+def sample_identity_complete(sample):
+    return (sample.get('identity_complete') is True
             and short_label(sample['run_id']) is not None and timestamp(sample['recorded_at']) is not None)
 
 
+def sample_eligible(sample):
+    return sample['coverage_complete'] and sample_identity_complete(sample)
+
+
 def attempt_clocks(hosted, issues):
-    clocks, conflicting = {}, set()
+    failures = defaultdict(dict)
+    for run in hosted:
+        if run.get('authenticated_failure'):
+            failures[ci_key(run)][run['conclusion']] = run
+
+    clocks, conflicting, rejected = {}, set(), set()
     for run in hosted:
         key = ci_key(run)
-        if key in conflicting:
+        if key in conflicting or run.get('authenticated_failure'):
+            continue
+        if key in failures and set(failures[key]) != {run['conclusion']}:
+            if key not in rejected:
+                issues.append({'run_id': run['run_id'],
+                               'authenticated_conclusions': sorted(failures[key]),
+                               'error': 'Attempt clock conflicts with the authenticated workflow conclusion.'})
+                rejected.add(key)
             continue
         previous = clocks.get(key)
-        if previous is None or not clock_complete(previous):
+        if previous is None or not clock_capture_complete(previous):
             clocks[key] = run
-        elif clock_complete(run):
-            if clock_signature(previous) != clock_signature(run):
+        elif clock_capture_complete(run):
+            branches = {row.get('head_branch') for row in (previous, run)} - {None}
+            if clock_signature(previous) != clock_signature(run) or len(branches) > 1:
                 conflicting.add(key)
                 del clocks[key]
                 issues.append({'run_id': run['run_id'], 'error': 'Conflicting complete attempt clocks.'})
+            elif run.get('head_branch') and not previous.get('head_branch'):
+                clocks[key] = run
+    for key, outcomes in failures.items():
+        if len(outcomes) == 1:
+            clocks.setdefault(key, next(iter(outcomes.values())))
+        elif len(outcomes) > 1:
+            issues.append({'run_id': key[1], 'error': 'Conflicting authenticated workflow conclusions.'})
     return clocks
 
 
@@ -577,8 +633,9 @@ def clock_signature(run):
     jobs = sorted([*run['jobs'], *run.get('sibling_jobs', [])],
                   key=lambda job: tuple(job[key] or '' for key in ('job_id', 'platform', 'runner_label')))
     return (
+        run['conclusion'],
         *(duration(run['workflow'].get(key)) for key in ('total_elapsed_seconds', 'runner_work_seconds')),
-        tuple((job['job_id'], job['platform'], job['runner_label'],
+        tuple((job['job_id'], job['platform'], job['runner_label'], job['conclusion'],
                tuple(duration(job['seconds'].get(key)) for key in (*ATTEMPT_SECONDS, *SPLIT_SECONDS))) for job in jobs),
     )
 
@@ -638,7 +695,10 @@ def merge_samples(samples, hosted, issues):
         yield {**sample, 'seconds': seconds,
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
-               'hosted_identity_complete': clock_complete(run) if run else None,
+               'workflow_conclusion': run['conclusion'] if run else None,
+               'hosted_head_branch': run.get('head_branch') if run else None,
+               'hosted_identity_complete': clock_capture_complete(run) if run else None,
+               'hosted_success_complete': clock_complete(run) if run else None,
                'slowest_checks': slowest_checks(sample)}
 
 
@@ -651,14 +711,14 @@ def observation_id(row):
     return row['ci']['run_id'] if row['ci'] else row['run_id']
 
 
-def generated_contracts_proof(sample):
+def generated_contracts_proof(sample, *, eligible_only=True):
     ci = sample['ci']
     proof = sample.get('generated_contracts')
     if not isinstance(proof, dict):
         return None
     parents = proof.get('parents')
     tools = proof.get('tools')
-    if (sample['review_exclusion'] is not None or sample.get('working_tree_dirty') is not False
+    if ((eligible_only and sample['review_exclusion'] is not None) or sample.get('working_tree_dirty') is not False
             or not sample['arch'] or not sample.get('inputs_sha256')
             or proof.get('checkout') != ci['checkout_sha'] or not commit_id(proof.get('tree'))
             or not isinstance(parents, list) or len(parents) != 2 or not all(map(commit_id, parents))
@@ -800,7 +860,7 @@ def timing_view(samples, *, hosted=(), issues=None):
             reason = 'Harness report is missing, failed, or has incomplete coverage or identity.'
         elif ci and not sample['hosted_identity_complete']:
             reason = 'Exact Actions attempt and job identities are unavailable or conflicting.'
-        elif ci and (not sample['workflow_success'] or not job or job['conclusion'] != 'success'):
+        elif ci and (not sample['hosted_success_complete'] or not job or job['conclusion'] != 'success'):
             reason = 'A matching successful job and complete successful Actions workflow are required.'
         elif ci and (ci['event'] not in NORMAL_EVENTS or ci['run_attempt'] != '1'
                      or sample['profile'] not in AUTOMATIC_PROFILES):
@@ -851,14 +911,181 @@ def local_paths(root):
     })
 
 
-def budget_follow_up(view, feedback, tasks):
-    def report_key(report):
-        return report['run_id'], report['source_commit']
+def report_key(report):
+    return report['run_id'], report['source_commit']
 
-    tracked = {}
-    for item in feedback:
-        if not (scope := item.get('verification_budget')):
+
+def budget_cohort(row, coverage):
+    runner = row['job']['runner_label'] if 'job' in row else row['runner_label']
+    return runner, row['arch'], row['cache'], tuple(coverage)
+
+
+def has_hosted_inputs(sample):
+    ci = sample['ci']
+    digest = sample.get('inputs_sha256')
+    return (ci and ci['event'] in NORMAL_EVENTS and ci['run_attempt'] == '1'
+            and positive_id(ci['run_id']) and commit_id(ci['head_sha'])
+            and commit_id(ci['checkout_sha']) and ci['checkout_sha'] == sample['source_commit']
+            and sample.get('identity_complete') is True and timestamp(sample['recorded_at'])
+            and sample.get('working_tree_dirty') is False and sample['arch'] and sample['cache'] in CACHE_STATES
+            and isinstance(digest, str) and re.fullmatch(r'[0-9a-f]{64}', digest)
+            and sample['job'] and sample['job']['runner_label'] and sample['job']['status'] == 'completed'
+            and not sample['job']['identity_issues']['missing'])
+
+
+def repair_in_hosted_inputs(sample, repair, ancestor, checkout_parents):
+    ci = sample['ci']
+    head, checkout = ci['head_sha'], ci['checkout_sha']
+    proof = generated_contracts_proof(sample, eligible_only=False)
+    if ci['event'] == 'push':
+        if head != checkout or sample['hosted_head_branch'] not in {None, 'main'}:
+            return False
+        if not sample['hosted_head_branch'] and not proof:
+            return None
+        return ancestor(repair, checkout)
+
+    # Ordinary PR verification checks out the merge preview. The compact proof retains its actual parent order.
+    retained = tuple(proof['parents']) if proof else None
+    local = checkout_parents(checkout)
+    if local is not None and retained is not None and local != retained:
+        return False
+    parents = local if local is not None else retained
+    if parents is None:
+        return None
+    if len(parents) != 2 or parents[1] != head or head == checkout:
+        return False
+    included = [ancestor(repair, parent) for parent in parents]
+    return True if True in included else None if None in included else False
+
+
+def recovery_observation(sample):
+    return {**harness_identity(sample), 'hosted_head': sample['ci']['head_sha'],
+            'recorded_at': sample['recorded_at'],
+            'inputs_sha256': sample['inputs_sha256'], 'job_id': sample['job']['job_id'],
+            'conclusion': sample['workflow_conclusion'], 'elapsed_seconds': sample['seconds']['total']}
+
+
+def matches_budget_scope(sample, scope):
+    return all((sample['ci'] if key in ('repository', 'event') else sample)[key] == scope[key] for key in BUDGET_SCOPE)
+
+
+def linked_timing_window(history, reports):
+    # Use the same attributable window and precedence as the ordinary timing review.
+    for end in range(len(history), 1, -1):
+        window = history[max(0, end - 2 * WINDOW):end]
+        review = metric_review(window, 'total', HOSTED_BUDGET)
+        if review['recent_objective_breaches'] >= 2:
+            if all(report_key(row) in reports for row in review['breach_reports']):
+                return [row for row in history if report_key(row) in reports
+                        and row['seconds']['total'] > HOSTED_BUDGET], []
+        elif review['material_growth'] and all(report_key(row) in reports for row in review['recent_reports']):
+            return window[:WINDOW], window[WINDOW:]
+    return [], []
+
+
+def measure_budget_recovery(scope, repair, reports, samples, ancestor, checkout_parents):
+    rows = [sample for sample in samples if has_hosted_inputs(sample) and matches_budget_scope(sample, scope)]
+    linked = [row for row in rows if report_key(row) in reports]
+    unavailable = sorted(reports - {report_key(row) for row in linked})
+    # All linked observations in this scope bound the correction, even when they belong to another cohort.
+    last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
+    last_run = max((int(row['ci']['run_id']) for row in linked), default=0)
+    cohorts = defaultdict(list)
+    for row in rows:
+        if row['review_exclusion'] is None and row['seconds']['total'] is not None:
+            cohorts[budget_cohort(row, coverage_key(row))].append(row)
+
+    comparisons, cutoffs = [], {}
+    for cohort, history in cohorts.items():
+        baseline, degraded = linked_timing_window(history, reports)
+        if not baseline:
             continue
+        selected = tuple(key for key, *_ in cohort[3])
+        candidates, successful, recovered_window, history_missing = [], [], [], False
+        for row in rows if commit_id(repair) else ():
+            if (timestamp(row['recorded_at']) <= last_time or int(row['ci']['run_id']) <= last_run
+                    or budget_cohort(row, row['selected']) != (*cohort[:3], selected)):
+                continue
+            elapsed = row['seconds']['total']
+            failed = row['workflow_conclusion'] not in {None, 'success'}
+            if not failed and (row['review_exclusion'] is not None or elapsed is None or coverage_key(row) != cohort[3]):
+                continue
+            includes = repair_in_hosted_inputs(row, repair, ancestor, checkout_parents)
+            history_missing |= includes is None
+            if not includes:
+                continue
+            candidates.append(row)
+            if failed or unavailable or recovered_window:
+                continue
+            successful.append(row)
+            if not degraded and elapsed <= HOSTED_BUDGET:
+                recovered_window = [row]
+            elif degraded and len(successful) >= WINDOW:
+                recent = successful[-WINDOW:]
+                restored = metric_review([*baseline, *recent], 'total', HOSTED_BUDGET)
+                if not restored['material_growth'] and restored['recent_objective_breaches'] < 2:
+                    recovered_window = recent
+            if recovered_window:
+                cutoffs[cohort] = (int(row['ci']['run_id']), timestamp(row['recorded_at']))
+        baseline_median = median(row['seconds']['total'] for row in baseline)
+        latest = recovery_observation(candidates[-1]) if candidates else None
+        if latest and latest['conclusion'] == 'success':
+            latest['elapsed_change_seconds'] = round(latest['elapsed_seconds'] - baseline_median, 3)
+        comparisons.append({
+            'runner_label': cohort[0], 'arch': cohort[1], 'cache': cohort[2], 'coverage': cohort[3],
+            'controls': [recovery_observation(row) for row in baseline],
+            'degraded_window': [recovery_observation(row) for row in degraded],
+            'control_median_seconds': baseline_median, 'latest_attempt': latest,
+            'recovered': recovery_observation(recovered_window[-1]) if recovered_window else None,
+            'recovery_window': [recovery_observation(row) for row in recovered_window],
+            'history_missing': history_missing,
+        })
+    recovered = bool(comparisons) and len(comparisons) == len(cutoffs)
+    event = 'main push' if scope['event'] == 'push' else 'pull request'
+    action = f"Observe a comparable successful ordinary {scope['profile']} {scope['platform']} {event} within {HOSTED_BUDGET} seconds."
+    if not commit_id(repair):
+        action = 'Record the corrective commit. ' + action
+    elif unavailable:
+        action = 'Restore comparable retained timing for all linked observations. ' + action
+    elif not comparisons:
+        action = 'Restore the diagnosed timing controls or the original sustained-growth windows. ' + action
+    elif any(row['history_missing'] for row in comparisons):
+        action = 'Make the corrective and hosted input history available locally. ' + action
+    elif any(row['degraded_window'] and not row['recovered'] for row in comparisons):
+        action = (f"Observe {WINDOW} comparable successful ordinary {scope['profile']} {scope['platform']} {event} "
+                  'runs that restore the earlier median within the sustained-growth tolerances.')
+    return {'status': 'recovered' if recovered else 'pending', 'repair_commit': repair,
+            'unavailable_reports': [{'run_id': run, 'source_commit': source} for run, source in unavailable],
+            'comparisons': comparisons, 'next_action': None if recovered else action}, cutoffs
+
+
+def budget_follow_up(view, feedback, tasks, *, root=ROOT):
+    @cache
+    def ancestor(base, head):
+        try:
+            require_complete_history(root)
+            exact_commit(root, base)
+            exact_commit(root, head)
+            return base.encode('ascii') in git(root, 'merge-base', '--all', base, head).split()
+        except (OSError, ScopeError, subprocess.SubprocessError):
+            return None
+
+    @cache
+    def checkout_parents(checkout):
+        try:
+            require_complete_history(root)
+            exact_commit(root, checkout)
+            return tuple(git(root, 'show', '-s', '--format=%P', checkout, '--').decode('ascii').split())
+        except (OSError, ScopeError, subprocess.SubprocessError):
+            return None
+
+    tracked, recovered_cohorts = {}, {}
+    for item in feedback:
+        if not (spec := item.get('verification_budget')):
+            continue
+        scope = {key: spec[key] for key in BUDGET_SCOPE}
+        scope_key = tuple(scope.values())
+        reports = {report_key(report) for report in item.get('diagnostic_reports', ())}
         corrective = [tasks[key] for key in item['task_ids'] if key in tasks
                       and tasks[key]['status'] not in {'done', 'cancelled'}]
         owned = item['status'] == 'open' and any(
@@ -866,11 +1093,22 @@ def budget_follow_up(view, feedback, tasks):
             all(tasks[key]['status'] == 'done' for key in task.get('depends_on', ()))
             for task in corrective
         )
+        recovery = None
+        if scope['event'] in NORMAL_EVENTS:
+            recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports,
+                                                        view.get('samples', ()), ancestor, checkout_parents)
+            for cohort, cutoff in cutoffs.items():
+                key = scope_key, cohort
+                recovered_cohorts[key] = max(recovered_cohorts.get(key, cutoff), cutoff)
+        status = 'assigned' if owned else 'assignment_needed'
+        if recovery and recovery['status'] == 'recovered':
+            status = 'recovered'
+        elif item['status'] == 'addressed':
+            status = 'recovery_pending' if recovery else 'addressed'
         tracked[item['id']] = (
-            scope,
-            {report_key(report) for report in item.get('diagnostic_reports', ())},
-            {'feedback_id': item['id'], 'feedback_status': item['status'],
-             'status': 'addressed' if item['status'] == 'addressed' else 'assigned' if owned else 'assignment_needed',
+            scope, reports, owned,
+            {'feedback_id': item['id'], 'feedback_status': item['status'], 'status': status,
+             'recovery': recovery,
              'scope': scope,
              'corrective_tasks': [
                  {key: task.get(key) for key in ('id', 'status', 'next_action', 'blocker')} for task in corrective
@@ -879,14 +1117,18 @@ def budget_follow_up(view, feedback, tasks):
     def route(row, observed_reports):
         scope = {key: row[key] for key in BUDGET_SCOPE}
         reports = {report_key(report): report for report in observed_reports}
-        related = [(keys, entry) for candidate, keys, entry in tracked.values() if candidate == scope
-                   and (entry['feedback_status'] != 'addressed' or keys & reports.keys())]
+        related = [(keys, {**entry, 'status': 'assigned'} if owned else entry)
+                   for candidate, keys, owned, entry in tracked.values() if candidate == scope
+                   and (owned or entry['status'] == 'assignment_needed' or keys & reports.keys())]
         recorded = {key for keys, _ in related for key in keys}
         missing = [report for key, report in reports.items() if key not in recorded]
         links = [entry for _, entry in related]
         statuses = {entry['status'] for entry in links}
-        status = ('assigned' if 'assigned' in statuses else 'addressed'
-                  if not missing and statuses == {'addressed'} else 'assignment_needed')
+        status = 'assignment_needed'
+        if 'assigned' in statuses:
+            status = 'assigned'
+        elif not missing and statuses in ({'addressed'}, {'recovery_pending'}, {'recovered'}):
+            status, = statuses
         return {
             **{key: row[key] for key in ('repository', 'event', 'runner_label', 'profile', 'platform', 'arch',
                                         'metric', 'objective_seconds', 'recent_runs', 'recent_objective_breaches')},
@@ -898,10 +1140,22 @@ def budget_follow_up(view, feedback, tasks):
                             if status == 'assigned' and missing else None),
         }
 
-    comparable = [
-        {**group, **metric} for group in view['reviews'] for metric in group['metrics']
-        if metric['objective_seconds'] is not None
-    ]
+    comparable = []
+    for group in view['reviews']:
+        for metric in group['metrics']:
+            if metric['objective_seconds'] is None:
+                continue
+            scope = {key: group[key] for key in BUDGET_SCOPE}
+            cohort = budget_cohort(group, group['coverage'])
+            cutoff = recovered_cohorts.get((tuple(scope.values()), cohort))
+            if cutoff:
+                last_run, last_time = cutoff
+                after = [row for row in view['samples'] if row['review_exclusion'] is None and row['ci']
+                         and positive_id(row['ci']['run_id']) and int(row['ci']['run_id']) > last_run
+                         and timestamp(row['recorded_at']) > last_time
+                         and matches_budget_scope(row, scope) and budget_cohort(row, coverage_key(row)) == cohort]
+                metric = metric_review(after, metric['metric'], metric['objective_seconds'])
+            comparable.append({**group, **metric})
     breaches = [{**route(row, row['breach_reports']), 'cache': row['cache'], 'coverage': row['coverage']}
                 for row in comparable if row['recent_objective_breaches'] >= 2]
     growth = [
@@ -909,15 +1163,18 @@ def budget_follow_up(view, feedback, tasks):
          'growth_seconds': row['growth_seconds'], 'baseline_runs': row['baseline_runs']}
         for row in comparable if row['material_growth']
     ]
-    opened = [entry for _, _, entry in tracked.values() if entry['feedback_status'] != 'addressed']
+    opened = [entry for _, _, _, entry in tracked.values() if entry['feedback_status'] != 'addressed']
+    recovery = [entry for _, _, _, entry in tracked.values() if entry['recovery']]
     needs_task = any(row['status'] == 'assignment_needed' for row in [*breaches, *growth, *opened])
+    routing = ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
+               if needs_task else next((row['next_action'] for row in [*breaches, *growth] if row['next_action']), None))
+    pending = next((row['recovery']['next_action'] for row in recovery if row['recovery']['next_action']), None)
     return {
         'repeated_breaches': breaches,
         'sustained_growth': growth,
         'open_feedback': opened,
-        'next_action': ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
-                        if needs_task else next((row['next_action'] for row in [*breaches, *growth]
-                                                 if row['next_action']), None)),
+        'budget_recovery': recovery,
+        'next_action': ' '.join(action for action in (routing, pending) if action) or None,
     }
 
 
@@ -961,7 +1218,11 @@ def archive_inputs(data, label, issues, *, collection_issues=True):
         notes = admitted_records(data.get('input_issues', []),
                                  lambda note: labels(note, ('error',)) and isinstance(note['error'], str),
                                  f'collection issue in {label}', issues)
-        issues.extend({**note, 'file': label} for note in notes)
+        failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success' and clock_capture_complete(clock)
+                  and failed_capture_is_complete(clock, samples, hosted)}
+        issues.extend({**note, 'file': label} for note in notes
+                      if not (isinstance(note.get('run_id'), str) and note['run_id'] in failed
+                              and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}))
     return samples, hosted
 
 
@@ -999,13 +1260,13 @@ def retained_budget_inputs(root):
     return samples, hosted, issues
 
 
-def budget_status(samples, hosted, issues, feedback, tasks):
+def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
     try:
         view = timing_view(samples, hosted=hosted, issues=issues)
-        follow_up = budget_follow_up(view, feedback, tasks)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root)
     except TIMING_INPUT_ERRORS as error:
         view = {'objective_reviews': [], 'reviews': []}
-        follow_up = budget_follow_up(view, feedback, tasks)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root)
         issues.append({'error': str(error)})
     return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
             'elapsed_observations': [
@@ -1023,24 +1284,36 @@ def budget_status(samples, hosted, issues, feedback, tasks):
 
 
 def offline_budget_status(root, feedback, tasks):
-    return budget_status(*retained_budget_inputs(root), feedback, tasks)
+    return budget_status(*retained_budget_inputs(root), feedback, tasks, root=root)
 
 
-def capture_observations(identity, samples, hosted, issues):
+def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     groups = coalesce_samples([row for row in samples if ci_key(row['ci'] or {}) == identity], issues)
-    # Conflicting eligible witnesses satisfy retrieval for their platform but never enter a budget cohort.
-    present = {group[0]['platform'] for group in groups if sample_eligible(group[0])}
-    missing = set(PLATFORMS.values()) - present
     ambiguous = any(len(group) > 1 for group in groups)
     # Retain distinct observations for diagnostics and future attempts. Incompatible complete clocks
     # must remain visibly incompatible even if an exact retry agrees with one of them.
-    clocks = list({(clock_complete(clock), clock_signature(clock)): clock
+    clocks = list({(clock_capture_complete(clock), clock_signature(clock), clock.get('head_branch'),
+                    clock.get('authenticated_failure')): clock
                    for clock in hosted if ci_key(clock) == identity}.values())
     clock = attempt_clocks(clocks, issues).get(identity)
-    complete_clock = clock is not None and clock_complete(clock)
+    outcome = conclusion or (clock['conclusion'] if clock else None)
+    diagnostic = outcome not in {None, 'success'}
+    # Failed artifacts can carry complete diagnostic identity despite failed or skipped check outcomes.
+    qualify = sample_identity_complete if diagnostic else sample_eligible
+    present = {group[0]['platform'] for group in groups if qualify(group[0])}
+    missing = set(PLATFORMS.values()) - present
+    complete_clock = (clock is not None and clock['conclusion'] == outcome
+                      and (clock_capture_complete(clock) if diagnostic else clock_complete(clock)))
     if complete_clock:
-        clocks = [clock]
+        clocks = [clock, *(row for row in clocks if row.get('authenticated_failure'))]
     return [row for group in groups for row in group], clocks, missing, complete_clock, ambiguous
+
+
+def failed_capture_is_complete(clock, samples, hosted):
+    _, _, missing, complete, ambiguous = capture_observations(
+        ci_key(clock), samples, hosted, [], conclusion=clock['conclusion'],
+    )
+    return complete and not missing and not ambiguous
 
 
 def save_timing_capture(path, attempts, samples, clocks, issues):
@@ -1074,7 +1347,7 @@ def collect_new_ci_timing(root, repository, run, samples, hosted):
     if not positive_id(run_id) or event not in NORMAL_EVENTS or str(run['run_attempt']) != '1':
         raise TimingError('Expected a completed automatic first-attempt verification run')
     observed = {**run, 'repository': {'full_name': repository}}
-    identity = ci_key({**observed, 'repository': repository, 'run_id': run_id, 'run_attempt': '1'})
+    identity = actions_attempt_identity(repository, observed)
     local_directory = root / '.reports/timing'
     directory = shared_timing_directory(root) or local_directory
     if directory == local_directory and not directory.resolve().is_relative_to(root.resolve()):
@@ -1093,8 +1366,11 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     run_id = str(run['id'])
     retained_notes = []
     attempts, prior_samples, prior_clocks, prior_issues = read_timing_capture(path, retained_notes)
+    known_clocks = [*prior_clocks, *hosted]
+    if failure := authenticated_failure(run, identity):
+        known_clocks.append(failure)
     combined_samples, combined_clocks, missing, complete_clock, ambiguous = capture_observations(
-        identity, [*prior_samples, *samples], [*prior_clocks, *hosted], retained_notes,
+        identity, [*prior_samples, *samples], known_clocks, retained_notes, conclusion=run['conclusion'],
     )
     if not missing and complete_clock:
         persisted_issues = retained_notes if ambiguous else []
@@ -1121,7 +1397,10 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
             ]
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
-    if not complete_clock and (set(PLATFORMS.values()) - missing or new_samples):
+    if not complete_clock and (set(PLATFORMS.values()) - missing or new_samples
+                               or run['conclusion'] != 'success' and not any(
+                                   row['conclusion'] == run['conclusion'] and not row.get('authenticated_failure')
+                                   for row in combined_clocks)):
         try:
             row = inspect_jobs(run, repository)
             if valid_clock(row) and ci_key(row) == identity:
@@ -1129,12 +1408,12 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
     captured_samples, captured_clocks, missing_after, complete_clock, ambiguous = capture_observations(
-        identity, [*combined_samples, *new_samples], [*combined_clocks, *new_clocks], issues,
+        identity, [*combined_samples, *new_samples], [*combined_clocks, *new_clocks], issues, conclusion=run['conclusion'],
     )
     if missing_after:
-        issues.append({'run_id': run_id, 'error': 'Compact reports are absent for part of the required matrix.'})
+        issues.append({'run_id': run_id, 'error': MISSING_COMPACT})
     if not complete_clock:
-        issues.append({'run_id': run_id, 'error': 'Complete matching attempt job clocks are unavailable.'})
+        issues.append({'run_id': run_id, 'error': MISSING_CLOCK})
     save_timing_capture(path, attempts, captured_samples, captured_clocks, issues)
     status = 'partial' if missing_after or not complete_clock else 'ambiguous' if ambiguous else 'captured'
     return status, captured_samples, captured_clocks, [*retained_notes, *issues]
@@ -1144,6 +1423,8 @@ def ci_budget_status(root, repository, run):
     samples, hosted, issues = retained_budget_inputs(root)
     intake = None
     if run:
+        if failure := authenticated_failure(run, actions_attempt_identity(repository, run)):
+            hosted.append(failure)
         try:
             intake, new_samples, new_clocks, new_issues = collect_new_ci_timing(root, repository, run, samples, hosted)
             if intake in {'captured', 'retained', 'ambiguous'}:
@@ -1157,7 +1438,7 @@ def ci_budget_status(root, repository, run):
             issues.append({'run_id': str(run['id']), 'error': str(error)})
     tasks = {task['id']: task for task in read_json(root / 'project/tasks.json')['tasks']}
     feedback = read_json(root / 'project/feedback.json')['items']
-    return {**budget_status(samples, hosted, issues, feedback, tasks), 'intake': intake}
+    return {**budget_status(samples, hosted, issues, feedback, tasks, root=root), 'intake': intake}
 
 
 def download_timing(repository, run_id, attempt, *, platforms=None):
@@ -1282,6 +1563,9 @@ def review_summary(view):
             suffix = f' ({owners})' if owners else ''
             lines.append(f"- Budget follow-up for {row['event']} / {row['profile']} / {row['platform']} — "
                          f"{row['status'].replace('_', ' ')}{suffix}.")
+        for entry in follow_up['budget_recovery']:
+            if action := entry['recovery']['next_action']:
+                lines.append(f"- {entry['feedback_id']}: {action}")
     findings = [(row, metric) for row in view['reviews'] for metric in row['metrics']
                 if metric['material_growth'] and metric['metric'] != 'total']
     sparse = sum(metric['status'] == 'insufficient_samples' for row in view['reviews'] for metric in row['metrics']

@@ -19,7 +19,7 @@ export const sampleHistoryCall = (timeframe = '1m') => ({
   },
 });
 
-export function observeSampleRequests(page, { marketOnly = false } = {}) {
+export function observeSampleRequests(page, { marketOnly = false, poll = expect.poll } = {}) {
   const attempts = new Map();
   let order = 0;
   let navigationFailure;
@@ -48,10 +48,10 @@ export function observeSampleRequests(page, { marketOnly = false } = {}) {
       navigationFailure = failure;
     }
   };
-  const read = async (name, { allowFailure = false } = {}) => {
+  const read = async (name, { allowFailure = false, fixtureHoldMs = 0 } = {}) => {
     const label = `${name} POST ${operation}`;
     let terminal;
-    await expect.poll(async () => {
+    await poll(async () => {
       for (const attempt of attempts.values()) {
         if (attempt.call?.operation !== name || attempt.path !== operation || attempt.busy) continue;
         if (attempt.failure) {
@@ -73,7 +73,10 @@ export function observeSampleRequests(page, { marketOnly = false } = {}) {
         return true;
       }
       return false;
-    }, { ...replayStage, message: `Waiting for ${label} to settle during sample startup` }).toBe(true);
+    }, {
+      ...replayStage, timeout: replayStage.timeout + fixtureHoldMs,
+      message: `Waiting for ${label} to settle during sample startup`,
+    }).toBe(true);
     if (terminal.error && !allowFailure) throw new Error(terminal.error);
     return terminal.result;
   };

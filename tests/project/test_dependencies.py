@@ -140,7 +140,7 @@ class HostedCargoCacheTests(unittest.TestCase):
         cls.steps = workflow['jobs']['verify']['steps']
         cls.key = next(step for step in cls.steps if step.get('id') == 'cargo_keys')
 
-    def test_only_successful_full_cache_owners_can_save_builds(self):
+    def test_only_successful_full_runs_can_publish_the_shared_build_key(self):
         caches = {step['uses'].split('@')[0]: step for step in self.steps
                   if step.get('uses', '').startswith('actions/cache')}
         self.assertEqual({'actions/cache/restore', 'actions/cache/save'}, set(caches))

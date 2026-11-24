@@ -18115,7 +18115,7 @@
           "sha256": "d7f9e3ef0bcb21921b1afee29bd49306b18e48b522ab58c7ddc2dda7f779cedc"
         }
       ],
-      "next_action": "Measure the complete protected Windows run after rebalancing market recovery and correcting the two Ubuntu regressions. Compare the same checks, original names, cache state and total runner use. Verify the first full main push separately.",
+      "next_action": "Verify the measured full Windows PR result and the protected handoff to the first genuine main push. Resolve the independent review of the feedback identifier before publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18188,6 +18188,24 @@
             ]
           },
           {
+            "failure": "Handoff treats a verification-budget issue disposition as elapsed recovery without a comparable successful ordinary observation containing the corrective revision, or hides a later recurrence behind historical evidence.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing linked observations admit premature recovery, PR merge inputs misattribute the repair, or restored timing and diagnostics reuse an obsolete growth window, lose a live owner or retry a complete failed attempt.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stale clock overrides a known failed attempt on live or offline handoff, or an isolated slow run changes a linked median regression into a different recovery requirement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
             "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
             "checks": [
               "python-contracts-workers"
@@ -18234,6 +18252,24 @@
             "checks": [
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "The reopened history observer spends part of a physical retry's terminal budget on the intentional first-response hold, or accepts a missing terminal when given the fixture's hold allowance.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The integration gate prevents the first real main-push measurement after a verified repair, or a handoff bypasses a linked defect, stale regression evidence, protected jobs, or unresolved pull-request timing.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repair receipt substitutes for a real main-push observation after the follow-up owner is removed, or a later verified records-only closure is held to a new full PR timing requirement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",
@@ -18248,6 +18284,7 @@
             "scripts/timing.py",
             "tests/project/test_delivery.py",
             "project/delivery.json",
+            "scripts/integration.py",
             "tests/ubuntu-preview/workspace.config.mjs",
             "tests/ubuntu-preview/workspace.spec.mjs",
             ".github/workflows/verify.yml"
@@ -18755,6 +18792,50 @@
           ],
           "data_plan": "Use disposable synthetic profiles and retain the original archived report identity.",
           "cleanup": "Retain only the targeted fixture and regression evidence."
+        }
+      }
+    },
+    {
+      "id": "M0-091",
+      "title": "Measure the first ordinary Windows main push containing the verification repair",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": ["M0-087"],
+      "scope": ["scripts/timing.py", "project/feedback.json"],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "Retain the actual protected main-push report and comparable Windows elapsed observation for the merge containing the M0-087 repair. Use the existing timing proof to assess the objective. A missing, failed, incomparable, or over-budget result keeps the finding open and requires a concrete corrective action."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "After the repair merges, retain its ordinary full Windows main-push timing and evaluate it with pnpm project:timing. Keep the finding open if the observation is missing, failed, incomparable, or over budget, and record the next corrective action.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The coordinator records a comparable ordinary main-push observation for the integrated repair and retains the actual verdict.",
+        "change_types": ["tooling"],
+        "context": ["scripts/timing.py", "project/delivery.json", "project/feedback.json"],
+        "hypotheses": ["A full main push containing the repaired inputs can show whether the pull-request improvement carries over."],
+        "risks": [
+          {
+            "failure": "A PR run, wrong merge, failed workflow, incomparable control or over-budget clock is mistaken for main-push recovery.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Keep the original finding and observations open, and record the next corrective action if recovery is unproven.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/timing.py", "project/feedback.json"],
+          "rules": [{"path": "project/delivery.json", "pointer": "/source_control/post_merge_main_push_budget"}],
+          "non_goals": ["No simulated clocks, PR timing substitution, or repair changes before the main observation."],
+          "open_questions": ["Does the first comparable full Windows main push meet the existing objective?"]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": ["The independent PR and main-push observations and the original timing evidence."],
+          "change": ["Assign the protected main-push observation after the verified repair integrates."],
+          "data_plan": "Use the ordinary main-push report and existing timing artifacts with recorded revision, coverage and cache state.",
+          "cleanup": "Keep the main-push finding open until the authoritative timing result and required evidence support closure."
         }
       }
     }

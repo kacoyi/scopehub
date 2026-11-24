@@ -49,7 +49,8 @@ def classify_runs(runs, head, *, dirty=False, selected=False):
     latest = max(relevant, key=lambda run: (int(run['id']), int(run.get('run_attempt', 1))), default=None)
     if latest is None:
         return {'status': 'blocked', 'reason': 'No hosted verification exists for this commit.', 'run': None}
-    observed = {key: latest.get(key) for key in ['id', 'head_sha', 'status', 'conclusion', 'run_attempt', 'html_url', 'event', 'created_at']}
+    observed = {key: latest.get(key) for key in ['id', 'head_sha', 'head_branch', 'status', 'conclusion',
+                                               'run_attempt', 'html_url', 'event', 'created_at']}
     if dirty:
         return {'status': 'blocked', 'reason': 'The worktree has uncommitted changes; CI only covers the recorded commit.', 'run': observed}
     if latest['status'] != 'completed':
@@ -174,7 +175,8 @@ def status(root=ROOT, run_id=None):
             f'pnpm project:record <task-id> --report .reports/ci/{run}/windows/test-report.json --artifact-root .reports/ci/{run}/windows',
         ]
     observed = result['run']
-    timing_run = observed if (result['status'] == 'passed' and observed['event'] in {'pull_request', 'push'}
+    timing_run = observed if (run_id is None and result['status'] in {'passed', 'failed'}
+                              and observed['event'] in {'pull_request', 'push'}
                               and str(observed['run_attempt']) == '1') else None
     try:
         result['verification_budget'] = ci_budget_status(root, repository, timing_run)

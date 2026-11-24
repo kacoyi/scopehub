@@ -37,6 +37,7 @@ const snapshot = { type: 'snapshot' };
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
 const activeCacheSlots = new Set();
+const firstHistoryDisconnectHoldMs = 5_500;
 const service = `
   const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
@@ -87,7 +88,7 @@ const service = `
                 id: request.headers['${traceHeader}'], stage: 'held-disconnect', elapsed_ms: Math.round(performance.now() - start),
               }));
               response.destroy();
-            }, 5500);
+            }, ${firstHistoryDisconnectHoldMs});
             response.once('close', () => clearTimeout(timer));
             return response;
           }
@@ -2450,7 +2451,7 @@ function expectDisconnectedHistory(stages) {
 
 async function sampleStep(page, server, testInfo, label, trigger, {
   timeframe = '1m', catalog = true, error, retryable = false, historyCall = sampleHistoryCall(timeframe),
-  bars = futureHistory[timeframe],
+  bars = futureHistory[timeframe], fixtureHoldMs = 0,
 } = {}) {
   const observer = observeSampleRequests(page, { marketOnly: true });
   const selection = { id: future, timeframe };
@@ -2461,7 +2462,7 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
     await expect(control(page, timeframe)).toHaveAttribute('aria-pressed', 'true');
     if (catalog) await observer.read(sampleCatalogCall.operation);
-    await observer.read('market.readHistoryPage', { allowFailure: Boolean(error) });
+    await observer.read('market.readHistoryPage', { allowFailure: Boolean(error), fixtureHoldMs });
     terminal = await waitForSelectedHistoryTerminal(page, history.locator('canvas').first(), selection);
     expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
     await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
@@ -2523,6 +2524,60 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     }));
     await testInfo.attach(label, { contentType: 'application/json', body: JSON.stringify({ selection, terminal, attempts }) });
   }
+}
+
+for (const finishes of [true, false]) {
+  const outcome = finishes ? 'observes a late retry terminal' : 'rejects a missing retry terminal';
+  test(`reopened history observer ${outcome}`, async ({}, testInfo) => {
+    const page = new EventEmitter();
+    const request = {
+      method: () => 'POST', url: () => `http://127.0.0.1${operationPath}`, postDataJSON: () => sampleHistoryCall(),
+      failure: () => ({ errorText: 'net::ERR_EMPTY_RESPONSE' }), isNavigationRequest: () => false,
+    };
+    const response = { request: () => request, status: () => 200 };
+    const holdMs = 5_500;
+    const lateMs = holdMs + 15_000 - 1;
+    const clock = { probes_ms: [] };
+    const poll = (read, { timeout, message }) => ({
+      async toBe(expected) {
+        clock.deadline_ms = timeout;
+        for (const at of new Set([0, holdMs, 18_000, lateMs, timeout].filter(at => at <= timeout))) {
+          if (at === 0) page.emit('request', request);
+          // The physical retry is hidden from the browser's logical request observer.
+          if (at === lateMs) {
+            if (finishes) page.emit('requestfailed', request);
+            else page.emit('response', response);
+          }
+          clock.probes_ms.push(at);
+          if (await read() === expected) return;
+        }
+        throw new Error(message);
+      },
+    });
+    const observer = observeSampleRequests(page, { marketOnly: true, poll });
+    try {
+      const settled = observer.read('market.readHistoryPage', { allowFailure: true, fixtureHoldMs: holdMs });
+      if (finishes) {
+        await settled;
+        expect(observer.attempts.get(request).failure).toBe('net::ERR_EMPTY_RESPONSE');
+        expect(clock.probes_ms.at(-1)).toBe(lateMs);
+      } else {
+        await expect(settled).rejects.toThrow('to settle during sample startup');
+        expect(observer.attempts.get(request)).toMatchObject({ response });
+        expect(observer.attempts.get(request).finished).toBeUndefined();
+        expect(observer.attempts.get(request).failure).toBeUndefined();
+        expect(clock.probes_ms.at(-1)).toBe(23_500);
+      }
+      expect(observer.attempts.size).toBe(1);
+      expect(clock.deadline_ms).toBe(23_500);
+    } finally {
+      observer.stop();
+      await testInfo.attach('reopened-history-observer-clock', {
+        body: JSON.stringify({ ...clock, hold_ms: holdMs, retry_event_ms: lateMs, terminal_supplied: finishes }),
+        contentType: 'application/json',
+      });
+    }
+  });
 }
 
 test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
@@ -2768,7 +2823,10 @@ test('the reopened sample recovers its history without consuming the private und
         await leaveSample(page);
         await expect(undo).toBeEnabled();
         await inject('before-headers', undefined, async () => {
-          const failed = await step('reopen with lost history response', open, { error: disconnected, retryable: true });
+          // The deliberate hold precedes any physical retry and its own preview watchdog.
+          const failed = await step('reopen with lost history response', open, {
+            error: disconnected, retryable: true, fixtureHoldMs: firstHistoryDisconnectHoldMs,
+          });
           const stillLost = await step('retry while still disconnected', retry, { catalog: false, error: disconnected, retryable: true });
           for (const request of [failed, stillLost]) {
             const [attempt] = await readMarketAttemptStages(page, [request]);
