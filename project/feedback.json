@@ -5333,6 +5333,34 @@
         "prevention": "Retain the negative control that resubmits the exact original request and is rejected by the raw outbound assertion. Keep valid pre-admission refusals and the Windows regression from run 45459661035."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cropped-indicator-draft-delivery-reset",
+      "source": "Authenticated PR 84 run 45462762808 attempt 1, source 838315fd5e56291fbccb0d2ad8c2000a594d415a. Original index archives/observations/pr-84-45462762808/index.json SHA-256 e10bfee98cfd6ec517aeddb39e0061a5d0e5d27df2ad6cad414f43c37169b5e0. Windows workspace log SHA-256 4e52cf6bb1face532031faf6b32d3373f8d2a84a0dfda3d4180c7f06c8202aa3. Aggregate reports are archives/runs/windows-change-45462762808-1/test-report.json and archives/runs/20261124T184539.601790Z-f957f8f0/test-report.json.",
+      "observation": "The full window succeeded. On the second cropped click the browser recorded net::ERR_CONNECTION_RESET at 116 ms for indicator.createDraft d257b5d7-58c9-43a0-993b-29d265950cb7. The failure preceded any observed runPreview or status and lost was empty. The historical trace does not show whether the server received the command. Same-run Linux and the prior passing Windows run show createDraft receiving 429 BUSY while an old task.cancel finishes, then admitting the same request ID. The older M0-099 Windows failure still has no known underlying reply.",
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45462762808-1",
+          "source_commit": "838315fd5e56291fbccb0d2ad8c2000a594d415a",
+          "report_sha256": "e446f1a8bfb86ca7da5651c335720aa79bff86fa7bdb161bac1c3dd8862490bd"
+        },
+        {
+          "run_id": "20261124T184539.601790Z-f957f8f0",
+          "source_commit": "838315fd5e56291fbccb0d2ad8c2000a594d415a",
+          "report_sha256": "18057b010e2a42132ad0e55993552bfdb5d706bc8a7311309e0c257d05b8983b"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-101"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
