@@ -29,57 +29,82 @@ function Show-NativeState([string]$stage) {
     Write-Host "Owned workspace at ${stage}: $($visible -join ' | ')"
     Archive-Stage $stage
 }
+function Ancestor-Is($ancestor,$element) {
+    for ($i=0;$i -lt 40 -and $element -and $ancestor;$i++) {
+        if ([Windows.Automation.Automation]::Compare($ancestor,$element)) { return $true }
+        $element=[Windows.Automation.TreeWalker]::RawViewWalker.GetParent($element)
+    }
+    return $false
+}
 function Select-SeriesChoice([string]$label,[string]$wanted) {
-    $combo=Wait-ForProbe "$label in the native studio" { Named-Control $label $type::ComboBox }
-    $combo.SetFocus()
-    $selection=[Windows.Automation.SelectionPattern]::Pattern
-    $before=$null
-    if ($combo.TryGetCurrentPattern($selection,[ref]$before)) {
-        Write-Host "$label initial selection: $(@($before.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -join ', ')"
-    }
-    [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
-    $item=Wait-ForProbe "enabled exact $wanted option in $label" {
+    $next=if ($label -eq 'Accepted version') { 'Numeric series' } else { 'Accepted series source' }
+    $name=[Windows.Automation.PropertyCondition]::new($ui::NameProperty,$wanted)
+    $state=@{opened=-4000; acted=-4000; direct=0}
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    $null=Wait-ForProbe "native $label selection of $wanted to expose $next" {
+        if ($state.direct -and (Find-Control $next $null)) { return $true }
         $c=Named-Control $label $type::ComboBox
-        if (!$c) { return }
-        foreach ($i in $c.FindAll($scope,$any)) {
-            $name=[string]$i.Current.Name
-            if ($i.Current.IsEnabled -and ($name -eq $wanted -or ($wanted -eq 'accepted UUID' -and $name -match '^[a-f0-9-]{36}$'))) { return $i }
+        if (!$c) { return $false }
+        $item=$c.FindAll($scope,$name) | Where-Object { $_.Current.IsEnabled } | Select-Object -First 1
+        if (!$item) {
+            $item=$window.FindAll($scope,$name) | Where-Object {
+                $_.Current.IsEnabled -and $_.Current.ControlType -in @($type::ListItem,$type::MenuItem)
+            } | Select-Object -First 1
         }
-        # The expanded select popup can be a sibling of the combo in WebView2.
-        foreach ($i in $window.FindAll($scope,[Windows.Automation.PropertyCondition]::new($ui::ControlTypeProperty,$type::ListItem))) {
-            $name=[string]$i.Current.Name
-            if (!$i.Current.IsOffscreen -and $i.Current.IsEnabled -and ($name -eq $wanted -or ($wanted -eq 'accepted UUID' -and $name -match '^[a-f0-9-]{36}$'))) { return $i }
+        if (!$item) {
+            if ($timer.ElapsedMilliseconds-$state.opened -lt 2000) { return $false }
+            $state.opened=$timer.ElapsedMilliseconds
+            $c.SetFocus()
+            $focused=$ui::FocusedElement
+            if ((Ancestor-Is $c $focused) -or $c.Current.HasKeyboardFocus) {
+                [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
+            } else {
+                $rect=$c.Current.BoundingRectangle
+                $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
+                if (!$rect.IsEmpty -and (Ancestor-Is $c ($ui::FromPoint([Windows.Point]::new($x,$y))))) {
+                    [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
+                }
+            }
+            return $false
         }
-    }
-    $exact=if ($item) { [string]$item.Current.Name } else { $wanted }
-    Write-Host "$label requested $wanted; exposed option: $([string]$item.Current.Name)."
-    if ($exact -eq 'accepted UUID') {
-        [Windows.Forms.SendKeys]::SendWait('{HOME}{DOWN}{ENTER}')
-        Wait-Name 'Numeric series'
-        return
-    }
-    # Use the verified item's type-ahead name in the open native select.
-    $live=Named-Control $label $type::ComboBox
-    $focus=$ui::FocusedElement
-    if (!$live -or !$item.Current.IsEnabled -or !$focus -or
-        (!([Windows.Automation.Automation]::Compare($live,$focus)) -and ([string]$focus.Current.Name) -ne $exact -and
-         !$live.Current.HasKeyboardFocus)) { throw "Focus left $label before selecting $exact." }
-    [Windows.Forms.SendKeys]::SendWait($exact.Substring(0,[Math]::Min(8,$exact.Length))+'{ENTER}')
-    $null=Wait-ForProbe "$label shows $exact as the current selection" {
-        $c=Named-Control $label $type::ComboBox
-        if (!$c) { return }
-        $v=$null
-        if ($c.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern,[ref]$v) -and $v.Current.Value -eq $exact) { return $true }
-        $sel=$null
-        if ($c.TryGetCurrentPattern($selection,[ref]$sel)) {
-            if (@($sel.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -contains $exact) { return $true }
+        if ($timer.ElapsedMilliseconds-$state.acted -lt 1500) { return $false }
+        $state.acted=$timer.ElapsedMilliseconds
+        Write-Host "Owned $label item '$($item.Current.Name)' with type $($item.Current.ControlType.ProgrammaticName); current focus '$($ui::FocusedElement.Current.Name)'."
+        $pattern=$null
+        if (!$state.direct -and $item.TryGetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern,[ref]$pattern)) {
+            $pattern.Select()
+            $state.direct++
+            Write-Host "Addressed SelectionItem.Select on $wanted."
+            return $false
         }
-        if (([string]$c.Current.Name).Contains($exact)) { return $true }
-        # Subsequent native source disclosure independently checks the full selected identity.
-        if ($label -eq 'Accepted version' -and (Named-Control 'Numeric series' $type::ComboBox)) { return $true }
-        return $label -eq 'Numeric series' -and (Find-Control 'Accepted series source' $null)
+        $rect=$item.Current.BoundingRectangle
+        if (!$rect.IsEmpty -and !$item.Current.IsOffscreen) {
+            $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
+            $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
+            if ((Ancestor-Is $item $hit) -or (([string]$hit.Current.Name) -eq $wanted -and (Ancestor-Is $window $hit))) {
+                [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
+                $state.direct++
+                Write-Host "Clicked the exact named $wanted option."
+                return $false
+            }
+        }
+        $pattern=$null
+        if ($item.TryGetCurrentPattern($invoke,[ref]$pattern)) {
+            $pattern.Invoke()
+            $state.direct++
+            return $false
+        }
+        $focus=$ui::FocusedElement
+        $list=[Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($item)
+        $inList=$list -and $list.Current.ControlType -in @($type::List,$type::Menu,$type::ComboBox) -and
+            (Ancestor-Is $list $focus) -and (Ancestor-Is $window $list)
+        if ((Ancestor-Is $c $focus) -or (Ancestor-Is $item $focus) -or $inList -or $c.Current.HasKeyboardFocus) {
+            [Windows.Forms.SendKeys]::SendWait($wanted.Substring(0,[Math]::Min(8,$wanted.Length))+'{ENTER}')
+            $state.direct++
+        }
+        return $false
     }
-    Write-Host "$label advanced for $exact; full identity is checked in the studio source disclosure."
+    Write-Host "Native $label advanced to $next. The confirmed version and result hash are verified in the disclosure."
 }
 function Open-PreparedSource {
     $null=Wait-ForProbe 'completed first workspace source restoration' {
