@@ -17420,6 +17420,93 @@
           "cleanup": "Abort pending reads when their scope ends; keep the original freeze reproducible."
         }
       }
+    },
+    {
+      "id": "M2-022",
+      "title": "Keep the drawing studio open when the native file chooser is cancelled",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-020"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "Cancel an ordinary program file choice with the studio open. Preserve the accepted binding, source, selection, geometry and undo, then use the studio Escape command to close it."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "workbench-drawing-runtime"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-022-817a2a90e7e24e4b.json",
+          "sha256": "9b9283936f3f6a033b8e1de800d68672898cc08b487a5bbbcffa75267f1f93af"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Cancelling file selection returns to the same usable accepted view.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/drawing-workbench.tsx",
+          "tests/ui/accepted-drawing.spec.mjs"
+        ],
+        "hypotheses": [
+          "The enclosing dialog handles the bubbling file-input cancel as its own close request."
+        ],
+        "risks": [
+          {
+            "failure": "Closing the picker destroys the accepted session, or preventing that event disables Escape on the actual dialog.",
+            "checks": [
+              "workbench-drawing-runtime"
+            ]
+          }
+        ],
+        "rollback": "Revert the scoped dialog handler while retaining the original observer and test.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/drawing-workbench.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/editing"
+            }
+          ],
+          "non_goals": [
+            "Changes to authorization, revalidation, native picker policy or persistence."
+          ],
+          "open_questions": [
+            "Confirm the event target and distinguish native file cancellation from dialog dismissal."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The existing picker, normal file opening, backdrop and Escape behavior of the studio."
+          ],
+          "change": [
+            "Handle dismissal only when the dialog receives its own cancellation request."
+          ],
+          "data_plan": "No persistence or schema change.",
+          "cleanup": "Keep the regression in the existing drawing suite."
+        }
+      }
     }
   ]
 }

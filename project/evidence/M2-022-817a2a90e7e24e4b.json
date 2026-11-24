@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-022",
+  "task_definition_sha256": "0d6f4b59c4232d3256f2c112470866dda5645386d701d334b252e7a21a5575d5",
+  "run_id": "20261124T042016.373165Z-c20bce0c",
+  "recorded_at": "2026-11-24T04:21:51.537816+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "a681667296f4d7a3118b343e5084c184f6b1ab7f0e605aa0765e6b6aacd934c0",
+    "file_count": 606,
+    "git_head": "fd391449e5e02ef0f2c93de88108883299d6a50d",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "817a2a90e7e24e4bfa12dfd8584cb8fefeb654cf26b1c31e5079e87f042169da",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/workbench-code-runtime/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "373ef9d4f895f57e29d80cf97bab8c964d051ef6c67ec9d18d05ef478ca949fe"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fd25e719227e9b265f126085b4cbf4d8400d8581dc64de1a1f8c3dbbcc95b5d8"
+    },
+    {
+      "id": "workbench-drawing-runtime",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "drawing-workbench.spec.mjs",
+        "drawing-series.spec.mjs",
+        "accepted-drawing.spec.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9bfb793fe4512b5bede52514f8e5592475357d012a30094a8ef44a92fb8e6efe"
+    }
+  ],
+  "project_definition_sha256": "b022dddfe23e8d7bca697e2290c4accd3af96e7fe5a87a54665cf2c7570b3952",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1cd492f0773ab14420dd97f82bf2b699df15d68136bbb66b061c0a69eebf9b8f"
+  ]
+}

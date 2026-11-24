@@ -210,3 +210,38 @@ for (const outcome of ['recover', 'revoke', 'deny', 'switch', 'close', 'expire']
     } finally { await rm(root, { recursive: true, force: true }); }
   });
 }
+
+test('cancelling a program file choice preserves the selected observation and dialog Escape closes the studio', async ({ browser }) => {
+  const root = await mkdtemp(join(tmpdir(), 'scopehub-studio-file-cancel-'));
+  try {
+    const data = await prepareSeries(browser, root);
+    await withWorkspace(browser, data.profile, async page => {
+      await button(page, 'Open blank AI workbench').click();
+      await button(page, 'Drawing studio').click();
+      const studio = page.getByRole('dialog', { name: 'Drawing studio' });
+      const version = studio.getByRole('combobox', { name: 'Accepted version', exact: true });
+      await version.selectOption(data.version_id);
+      await studio.getByRole('combobox', { name: 'Numeric series', exact: true }).selectOption({ label: 'mean' });
+      await expect(studio.getByText('Accepted series source', { exact: true })).toBeVisible();
+      const picker = studio.getByLabel('Open local drawing program');
+      await picker.setInputFiles(file('dots'));
+      await button(studio, 'Accept view').click();
+      await button(studio, 'Inspect observation at 2026-02-04T00:00:00.000Z').click();
+      const selected = studio.getByLabel('Accepted observation', { exact: true });
+      await expect(selected).toHaveText('2026-02-04T00:00:00.000Z · 115 · Unknown');
+      const source = await studio.getByLabel('Program source').inputValue();
+      // Reproduce the bubbling event observed from the native WebKitGTK chooser.
+      await picker.dispatchEvent('cancel', { bubbles: true, cancelable: false });
+      await expect(studio).toBeVisible();
+      await expect(version).toHaveValue(data.version_id);
+      await expect(studio.getByText(data.result_hash, { exact: true })).toHaveCount(1);
+      await expect(selected).toHaveText('2026-02-04T00:00:00.000Z · 115 · Unknown');
+      await expect(studio.getByLabel('Program source')).toHaveValue(source);
+      await expect(studio.getByLabel('Program geometry').locator('circle')).toHaveCount(3);
+      await expect(button(studio, 'Undo accepted edit')).toBeEnabled();
+      await page.keyboard.press('Escape');
+      await expect(studio).toHaveCount(0);
+      await expect(button(page, 'Open blank AI workbench')).toBeVisible();
+    });
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
