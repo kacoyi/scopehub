@@ -80,5 +80,3 @@ export async function checkDesktopCatalogs() {
     assert.equal(folderPickerTitle, catalog.get('Choose local CSV folder'));
   }
 }
-
-if (import.meta.main) await checkDesktopCatalogs();

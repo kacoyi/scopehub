@@ -19651,7 +19651,7 @@
         ],
         "risks": [
           {
-            "failure": "An ordinary UI build can ship untranslated labels because it never runs the static catalog assertions.",
+            "failure": "An ordinary UI build can ship untranslated labels when its catalog check is omitted or silently skipped on a supported Node 24 version.",
             "checks": [
               "ui-build",
               "desktop-localization"

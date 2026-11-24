@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "typecheck": "tsc --noEmit",
-    "build": "node ../../../tests/localization/catalog-check.mjs && tsc --noEmit && vite build"
+    "build": "node ../../../tests/localization/check-catalogs.mjs && tsc --noEmit && vite build"
   },
   "dependencies": {
     "@tauri-apps/api": "2.12.3",

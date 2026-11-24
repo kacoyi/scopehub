@@ -5140,6 +5140,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "desktop-catalog-build-skips-early-node-24",
+      "source": "Independent Standard Astra review of c788269c3a46af9a9b55b7a86cdb52425e35741f. Original archives/observations/m0-096-catalog-build/astra-c788269-initial.txt SHA-256 1a9a0765758a5c868ace7c50bdd9f34b59537130863dbd0cc957a7dbe939586b. The Node.js 24.2.0 release notes document when import.meta.main became available.",
+      "observation": "The ordinary build launched a shared catalog module guarded by import.meta.main. That attribute is absent in Node 24.0 and 24.1, within the project-supported Node 24 range. The CLI could silently skip validation while the Playwright case still called the function.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-096"
+      ],
+      "regression_checks": [
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
