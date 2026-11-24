@@ -978,7 +978,8 @@
         "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
         "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate.",
         "Exercise the chart-free workbench with the released renderer on the exact candidate installer and bind the result to its hash.",
-        "Run workbench-qualification-v1 on that same installer. Retain the case, gate and blind-challenge verdicts and the matching authored-canvas performance observations."
+        "Run workbench-qualification-v2 on that same installer. Retain all eight case verdicts, the five gates, blind challenge and matching native, client and sustained-workload evidence.",
+        "For the packaged bidirectional-evidence case, exercise a permitted read, a denied mutation, a granted reverse selection, a stale request and revocation. Match the target and revision across the desktop and the two independently granted clients from M4-005. Keep this case blocked while external-client-observation-publication prevents retaining their separate observations."
       ],
       "checks": [
         "windows-installation",
@@ -4735,30 +4736,34 @@
       ],
       "acceptance": [
         "Use a chart-free composition of local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
-        "Keep privileged controls and the last accepted view in the host. Exercise a failed or stalled draft. For an executable candidate verify the effective native, file and network isolation on both platforms and record the limits. A container name or an iframe embedded in a privileged window is insufficient evidence.",
+        "Keep privileged controls and the last accepted view in the host. Exercise the workbench-qualification-v2 process, resource, bridge admission, native access and egress boundaries on both platforms. Require WebView2 process reuse and ProcessFailed observations for every WebView2 candidate. For a demonstrably different native runtime use its actual loss signal. Correlate the signal with Rust supervision, the three-second watchdog intervention, independent process exit and the first interactive frame of the automatically restored revision.",
+        "Use the local event and spread fixtures to exercise same-frame chart geometry and versioned visual projections. Deliver the automated workbench-runtime-smoke checks for changes to the declared SDK and shell surfaces.",
         "Record the source revision, native runtime versions, synthetic inputs, observations, decision and revisit conditions. Choose a viable option by evidence, or report the gap. Prototype approval grants no new product data access or code execution rights."
       ],
       "checks": [
         "architecture",
         "operations-workflow",
         "workbench-renderer-probe",
+        "workbench-runtime-smoke",
         "market-workflow",
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use the M2-014 interactive slice and its retained native observations. Exercise a binding to an accepted numeric series, measure comparable native interaction and redraw, review the staged Ubuntu host in M1-031 and compare the alternative wherever it could change the renderer choice.",
+      "next_action": "Use the M2-014 slice, the local workbench-qualification-v2 inputs and the staged Ubuntu host in M1-031. Compare accepted-series geometry, interaction, redraw and fault isolation on both native hosts before selecting a renderer.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
       "plan": {
         "outcome": "Open a blank chart-free prototype, compose a view of a frozen synthetic series, change its visual encoding and recover the accepted view after a rejected draft. Use matched native observations to decide the renderer.",
         "change_types": [
-          "ui"
+          "ui",
+          "workbench-runtime"
         ],
         "context": [
           "apps/desktop/ui/src/main.tsx",
           "apps/desktop/ui/src/workspace-layout.tsx",
           "crates/application/src/workspace/layout.rs",
+          "tests/fixtures/workbench-qualification-v2.json",
           "contracts/decisions/0027-v1-user-composed-workbench.json"
         ],
         "hypotheses": [
@@ -4781,7 +4786,8 @@
           {
             "failure": "Browser observations obscure a native runtime difference.",
             "checks": [
-              "workbench-renderer-probe"
+              "workbench-renderer-probe",
+              "workbench-runtime-smoke"
             ]
           }
         ],
@@ -15290,7 +15296,8 @@
         "Use a synthetic note about issuer A reviewed at 09:00 UTC. Of disclosures on that date for A at 08:55, B at 09:05 and A at 09:10 UTC, show only the 09:10 item. On refresh, include a new A item at 09:20. A scoped AI edit puts the newest match first; preview, apply, adjust manually, undo and reopen the saved view. Check the ordering, cutoff and evidence identities after each edit.",
         "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent.",
         "Create and structurally reshape the view using the normal workbench and embedded AI, then refine a single element directly. Use the same released application to express a second arrangement and a different binding without a dedicated product component. Bind the points of a frozen, accepted numeric series to a user-chosen visual property and inspect its exact value and evidence.",
-        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Complete M2-013 by exercising this journey in the native development application. M5-001 owns the subsequent packaged Windows acceptance."
+        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Complete M2-013 by exercising this journey in the native development application. M5-001 owns the subsequent packaged Windows acceptance.",
+        "Observe the shared selection round trip and paired cold reopens from workbench-qualification-v2 in the native workspace. Include a stale AI selection, the frozen value and its saved selection with the grant valid, and zero protected reads or protected data frames with the grant revoked and the old cache present."
       ],
       "checks": [
         "chart-free-workbench",
@@ -17328,6 +17335,163 @@
           "change": ["Add the owner-approved qualification to release planning."],
           "data_plan": "The specification uses synthetic data and opaque evidence identities.",
           "cleanup": "Archive the documentary task check and return focus to the planned renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M2-026",
+      "title": "Specify workbench fault isolation, shared evidence and cold recovery",
+      "milestone": "M2",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": ["M2-025"],
+      "scope": [
+        "contracts/workbench-v1.json", "tests/fixtures/workbench-qualification-v2.json",
+        "tests/fixtures/workbench-inputs-v2.json", "project/checks.json", "project/delivery.json", "project/tasks.json"
+      ],
+      "decision_refs": ["0004", "0008", "0027", "0028"],
+      "acceptance": [
+        "The current contract resolves eight qualification cases and five gates. It specifies process and egress isolation, synchronized geometry, calculation authority, actual style application, shared evidence with independent client grants and revoked-source recovery on cold restart.",
+        "Local synthetic event and paired-market inputs support a renderer trial. The catalog identifies an unimplemented SDK and shell smoke check, native trials and packaged qualification. Earlier qualification records remain reproducible."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {"path": "project/evidence/M2-026-42f5a725cf4cd620.json", "sha256": "1198b982ab92429de514f6dd41299a8a16aaf6f825d25f4f4e69692d8934d931"}
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task harness passed on 338599e. The effective contract resolved eight cases and five gates. A separate review recomputed the seven paired-market rows and validated all three selection targets against the protocol and source records. The runtime smoke, native and packaged qualifications remain planned.",
+      "plan": {
+        "outcome": "A reviewer can distinguish an isolated, truthful, state-preserving workbench from an apparently successful demo on the same inputs.",
+        "change_types": ["tooling"],
+        "context": ["contracts/workbench-v1.json", "contracts/ai-workflows-v1.json", "tests/fixtures/workbench-qualification-v1.json", "project/checks.json", "project/delivery.json"],
+        "hypotheses": ["Versioned inputs and normal-entry observations make all eight cases reproducible without selecting a renderer or purchasing a service."],
+        "risks": [
+          {"failure": "A browser smoke run is recorded as native isolation or packaged acceptance.", "checks": ["project-state", "python-contracts-workers"]},
+          {"failure": "A numeric display or a restored cache silently becomes a financial fact or a new grant.", "checks": ["project-state", "python-contracts-workers"]}
+        ],
+        "rollback": "Restore the preceding qualification pointer and catalog bindings from the reviewed commit.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["contracts/workbench-v1.json", "project/checks.json", "project/delivery.json"],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/selection_ownership"},
+            {"path": "project/checks.json", "pointer": "/desktop_performance"}
+          ],
+          "non_goals": ["Implementing the renderer, writing executable probes or changing the CI workflow."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["All prior qualification cases, existing grants, native platform requirements and the sustained workload."],
+          "change": ["Strengthen the qualification and declare the future smoke gate."],
+          "data_plan": "Commit synthetic inputs only. All evidence targets are scoped and versioned.",
+          "cleanup": "Archive the specification check and return focus to the planned renderer task."
+        }
+      }
+    },
+    {
+      "id": "M2-027",
+      "title": "Specify motion tolerances and host admission limits for the canvas",
+      "milestone": "M2",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": ["M2-026"],
+      "scope": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
+      "decision_refs": ["0027", "0028"],
+      "acceptance": [
+        "The motion trial has an absolute alignment oracle, a separate bounded frame-loss rule and examples on either side of each limit.",
+        "The native trial specifies per-canvas bridge admission, clipboard and device denial, production style and network restrictions, and observed WebView2 renderer failure and recovery."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {"path": "project/evidence/M2-027-202658fef445417d.json", "sha256": "c7fd824ce8de1150dd5e3e3dd0231895093f0fb2d66e51431cd263b0453c3deb"}
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task harness passed on ca15314. Each of the five motion examples matched its independent verdict. The effective qualification carries the bridge, device, production CSP and native failure procedures. Runtime observation remains planned.",
+      "plan": {
+        "outcome": "The declared motion, bridge, permission and native failure outcomes can each be falsified by a named observation.",
+        "change_types": ["tooling"],
+        "context": ["tests/fixtures/workbench-qualification-v2.json", "contracts/workbench-v1.json", "project/checks.json"],
+        "hypotheses": ["Presented viewport and overlay revisions can be checked independently of occasional missed display refreshes."],
+        "risks": [{"failure": "A stale frame or privileged side effect passes a superficially successful trial.", "checks": ["project-state", "python-contracts-workers"]}],
+        "rollback": "Revert this qualification amendment and its native task reference together.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
+          "rules": [{"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"}],
+          "non_goals": ["Runtime or CI implementation and executing fault trials."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["The eight cases, five gates, independent host recovery and the existing release workload."],
+          "change": ["Define motion tolerances, bridge and device limits, production style policy and the Windows process observation."],
+          "data_plan": "Use bounded synthetic observations and disposable test devices.",
+          "cleanup": "Archive the documentary evidence and return focus to the planned renderer task."
+        }
+      }
+    },
+    {
+      "id": "M2-028",
+      "title": "Correct workbench qualification evidence for access, native loss and cold restore",
+      "milestone": "M2",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": ["M2-027"],
+      "scope": [
+        "tests/fixtures/workbench-qualification-v2.json", "tests/project/test_workbench_qualification.py",
+        "project/tasks.json", "project/checks.json", "project/feedback.json"
+      ],
+      "decision_refs": ["0004", "0027", "0028"],
+      "acceptance": [
+        "The effective qualification preserves each v1 denied path, including direct access to the application SQLite database and saved credentials, with synthetic controls, per-path host and independent observations and zero unauthorized data or mutations.",
+        "A WebView2 candidate retains the process reuse and ProcessFailed evidence. A demonstrably different native candidate supplies its actual loss signal and equivalent Rust, independent process exit and restored first-frame evidence. The native and exact-package gates remain required.",
+        "The granted cold reopen reproduces a concrete frozen value and its saved selection with provenance. Its revoked counterpart proves zero protected reads and zero protected data frames. The existing project tests exercise source resolution and valid and rejected specification examples."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {"path": "project/evidence/M2-028-462b29a0b2053939.json", "sha256": "e5a0b247b403e2c1d19e63a75bfa0bb8f90eb13bcf0bd76c135de76a0ed9ec8f"}
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task checks passed on 045c76d. Independent review verified the four denied paths, candidate-specific native loss evidence and the paired granted and revoked cold-restore requirements. Runtime observations remain with M2-003, M2-013 and M5-001.",
+      "plan": {
+        "outcome": "Each of the three omissions found in PR 73 is independently detectable in the effective specification before any native or packaged trial is credited.",
+        "change_types": ["tooling"],
+        "context": [
+          "tests/fixtures/workbench-qualification-v1.json", "tests/fixtures/workbench-qualification-v2.json",
+          "tests/fixtures/workbench-inputs-v2.json", "contracts/decisions/0027-v1-user-composed-workbench.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The v1 denial controls and the frozen v2 event row can be reused by reference.",
+          "An engine-specific loss observation can prove the same recovery sequence without prescribing WebView2 to a different native candidate."
+        ],
+        "risks": [
+          {"failure": "Generic local-resource or network evidence masks a missing application database, saved credential or other v1 denied path.", "checks": ["python-contracts-workers"]},
+          {"failure": "A WebView2 case loses its reuse or ProcessFailed proof, or another runtime bypasses independent native loss and recovery evidence.", "checks": ["python-contracts-workers"]},
+          {"failure": "A restore that shows no authorized data or loses the saved selection appears to pass the paired cold-reopen case.", "checks": ["python-contracts-workers"]}
+        ],
+        "rollback": "Revert the specification and regression together if the selected representation fails to preserve the existing controls. Retain the review feedback and historical receipts.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "tests/fixtures/workbench-qualification-v2.json", "tests/project/test_workbench_qualification.py"],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/fault-and-permission-containment"},
+            {"path": "contracts/decisions/0027-v1-user-composed-workbench.json", "pointer": "/consequences"}
+          ],
+          "non_goals": ["Implementing product probes or runtime changes, taking on M0-086, recording acceptance receipts, posting or integrating PR 73."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["The existing gate set, native platform coverage, synthetic inputs, and accepted M2-026 and M2-027 records."],
+          "change": ["Make access denial, conditional native loss evidence and both cold-reopen outcomes explicit and testable in the live specification."],
+          "data_plan": "Use synthetic marker categories and the existing frozen input. No product profile changes or live credentials.",
+          "cleanup": "Hand the local correction and verification to the coordinator for the evidence and review lifecycle."
         }
       }
     },
