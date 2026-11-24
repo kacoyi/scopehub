@@ -1,0 +1,68 @@
+[
+  {
+    "instrument_id": "SIM.CN.FUTURE.001",
+    "dataset_id": "836cb0d6-61d3-5d80-8e4d-37da5b308cf1",
+    "dataset_revision": "scopehub-synthetic-v1:20241013:normal",
+    "snapshot_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1",
+    "timezone": "Asia/Shanghai",
+    "timeframe": "1m",
+    "as_of_ms": 1704330570000,
+    "currency": "CNY",
+    "quantity_unit": "contracts",
+    "bars": [
+      {
+        "time_ms": 1704200400000,
+        "trading_day": "2024-01-03",
+        "open": 3500.0,
+        "high": 3500.4,
+        "low": 3498.8,
+        "close": 3499.2,
+        "volume": 120.0,
+        "is_closed": true
+      },
+      {
+        "time_ms": 1704200460000,
+        "trading_day": "2024-01-03",
+        "open": 3499.2,
+        "high": 3500.4,
+        "low": 3498.6,
+        "close": 3499.8,
+        "volume": 80.0,
+        "is_closed": true
+      }
+    ]
+  },
+  {
+    "instrument_id": "SIM.CN.STOCK.001",
+    "dataset_id": "1e5b1966-9a8f-51d1-846a-2ca588be574d",
+    "dataset_revision": "scopehub-synthetic-v1:20241014:normal",
+    "snapshot_hash": "1cdd778056aa8e41580bb0c522d7eef112a9f02e2ebe6eac83bdda62c30e500e",
+    "timezone": "Asia/Shanghai",
+    "timeframe": "1m",
+    "as_of_ms": 1704344970000,
+    "currency": "CNY",
+    "quantity_unit": "shares",
+    "bars": [
+      {
+        "time_ms": 1704245400000,
+        "trading_day": "2024-01-03",
+        "open": 12.0,
+        "high": 12.03,
+        "low": 11.98,
+        "close": 12.0,
+        "volume": 20.0,
+        "is_closed": true
+      },
+      {
+        "time_ms": 1704245460000,
+        "trading_day": "2024-01-03",
+        "open": 12.0,
+        "high": 12.02,
+        "low": 11.94,
+        "close": 11.97,
+        "volume": 130.0,
+        "is_closed": true
+      }
+    ]
+  }
+]

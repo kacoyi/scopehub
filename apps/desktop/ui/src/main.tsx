@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { WorkbenchPrototype } from './workbench-prototype';
+import { WorkbenchAuthoring } from './workbench-authoring';
+import type { WorkbenchAuthoringTurn } from './workbench-composition';
 import { ChartWorkspace } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, localImportErrorMessage, previewLocalImport, renderLocalImportMessage, type LocalImportMessage } from './local-import-transport';
@@ -23,6 +25,8 @@ function initialSource(): boolean {
 function App() {
   useLocale();
   const [prototype, setPrototype] = useState(false);
+  const [authoring, setAuthoring] = useState(false);
+  const [authoringTurn, setAuthoringTurn] = useState<WorkbenchAuthoringTurn>();
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
   const [local, setLocal] = useState(false);
@@ -116,6 +120,14 @@ function App() {
 
   return <>
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
+    {authoring && <WorkbenchAuthoring close={() => {
+      setAuthoringTurn(undefined);
+      setAuthoring(false);
+    }} ask={turn => {
+      setModelSelection(undefined);
+      setAuthoringTurn(turn);
+      setModelChatView('question');
+    }} />}
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
       modelDialogOpen={Boolean(modelChatView)} openModelChat={selection => {
@@ -129,6 +141,7 @@ function App() {
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample} openPrototype={() => setPrototype(true)}
+      openAuthoring={() => setAuthoring(true)}
       chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });
@@ -160,6 +173,7 @@ function App() {
     </div>}
     <ModelChat key={modelWorkspaceId} workspaceId={modelWorkspaceId} theme={snapshot?.layouts?.active.definition.theme}
       view={modelChatView} show={setModelChatView} chartSelection={currentModelSelection}
+      authoring={authoringTurn}
       invalidChartSelectionRevision={!local && currentModelSelection === undefined ? modelSelection?.selectionRevision : undefined}
       discardChartSelection={() => setModelSelection(undefined)} />
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}

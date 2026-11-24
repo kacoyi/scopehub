@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-015",
   "tasks": [
     {
       "id": "M0-001",
@@ -4715,10 +4715,11 @@
       "id": "M2-003",
       "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
-      "status": "active",
+      "status": "planned",
       "depends_on": [
         "M2-002",
-        "M2-014"
+        "M2-014",
+        "M2-015"
       ],
       "scope": [
         "apps/desktop",
@@ -4732,7 +4733,7 @@
         "0027"
       ],
       "acceptance": [
-        "Use a chart-free composition of local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
+        "From blank, have the embedded AI author a chart-free composition from the user's intent and structurally revise its bindings, presentation and permitted interactions. Use local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
         "Keep privileged controls and the last accepted view in the host. Exercise a failed or stalled draft. For an executable candidate verify the effective native, file and network isolation on both platforms and record the limits. A container name or an iframe embedded in a privileged window is insufficient evidence.",
         "Record the source revision, native runtime versions, synthetic inputs, observations, decision and revisit conditions. Choose a viable option by evidence, or report the gap. Prototype approval grants no new product data access or code execution rights."
       ],
@@ -4741,15 +4742,16 @@
         "operations-workflow",
         "workbench-renderer-probe",
         "market-workflow",
-        "ui-build"
+        "ui-build",
+        "workbench-authored-composition"
       ],
       "evidence": [],
-      "next_action": "Exercise the owner feedback at the first editable surface. From blank, choose the information, binding and visual property through ordinary controls; repeat with a different question and arrangement without adding a widget or editing JSON. Show the result before deciding the renderer.",
+      "next_action": "Deliver the embedded AI authoring slice in M2-015. Use owner feedback and matched Ubuntu and Windows native observations to compare the renderer candidates under ADR 0027.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
       "plan": {
-        "outcome": "Open a blank chart-free prototype, compose a view of a frozen synthetic series, change its visual encoding and recover the accepted view after a rejected draft. Use matched native observations to decide the renderer.",
+        "outcome": "Use the ordinary embedded AI turn to author a chart-free view from intent, structurally revise it against its accepted definition, and compare native renderer candidates.",
         "change_types": [
           "ui"
         ],
@@ -4760,7 +4762,7 @@
           "contracts/decisions/0027-v1-user-composed-workbench.json"
         ],
         "hypotheses": [
-          "A bounded host-interpreted composition can express the first custom encoding without executable content or additional access."
+          "A connected text model can compose reusable declarative presentation primitives and scoped, host-owned interactions without executable content or additional access."
         ],
         "risks": [
           {
@@ -4783,9 +4785,10 @@
             ]
           },
           {
-            "failure": "Another scripted tour can pass while users can only configure two developer-selected views. Verify different authored bindings and arrangements, and retain the distinction between prototype and release evidence.",
+            "failure": "A scripted walkthrough or a manual field wizard passes without the embedded AI authoring an original composition and a structural revision from user intent.",
             "checks": [
-              "workbench-renderer-probe"
+              "workbench-renderer-probe",
+              "workbench-authored-composition"
             ]
           }
         ],
@@ -4798,7 +4801,9 @@
             "apps/desktop/ui/src/main.tsx",
             "apps/desktop/ui/src/workspace-layout.tsx",
             "crates/application/src/workspace/layout.rs",
-            "apps/desktop/ui/src/workbench-prototype.tsx"
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/src/model-chat-transport.ts"
           ],
           "rules": [
             {
@@ -15291,7 +15296,7 @@
         "0027"
       ],
       "acceptance": [
-        "Starting from a blank workbench, use the ordinary editing controls to place a selected local note beside matching disclosures. Choose its issuer and use the note's review time as a cutoff. A selection opens the attributed original within current rights. Save the composition without a chart.",
+        "Starting from a blank workbench, ask the embedded AI to author a view from the user’s intent that places a selected local note beside matching disclosures. Bind issuer and review-time cutoff. A selection opens the attributed original within current rights. Save the composition without a chart.",
         "Use a synthetic note about issuer A reviewed at 09:00 UTC. Of disclosures on that date for A at 08:55, B at 09:05 and A at 09:10 UTC, show only the 09:10 item. On refresh, include a new A item at 09:20. A scoped AI edit puts the newest match first; preview, apply, adjust manually, undo and reopen the saved view. Check the ordering, cutoff and evidence identities after each edit.",
         "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent.",
         "Create and structurally reshape the view using the normal workbench and embedded AI, then refine a single element directly. Use the same released application to express a second arrangement and a different binding without a dedicated product component. Bind the points of a frozen, accepted numeric series to a user-chosen visual property and inspect its exact value and evidence.",
@@ -15302,7 +15307,7 @@
         "workspace-layout"
       ],
       "evidence": [],
-      "next_action": "Use the renderer chosen in M2-003 to implement the release journey. Start with a frozen local fixture and support targeted and structural edits to the same composition.",
+      "next_action": "Use the renderer chosen in M2-003 and build on the ordinary embedded AI authoring turn verified in M2-015. Carry the user’s intent through original creation, structural revision and direct refinement of the same saved composition.",
       "blocker": null,
       "closure_reason": null
     },
@@ -17089,6 +17094,120 @@
           ],
           "data_plan": "Use a frozen synthetic series and transient draft and accepted values owned by the host. No profile migration.",
           "cleanup": "Remove or replace the experimental controls when the renderer selection is resolved and the product workbench takes over."
+        }
+      }
+    },
+    {
+      "id": "M2-015",
+      "title": "Author an original frozen-data workbench through the embedded AI",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-014"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0008",
+        "0027"
+      ],
+      "acceptance": [
+        "From blank, send an intent through the ordinary embedded AI turn. Preview two materially different model-authored trees with different frozen source bindings, presentation and scoped interactions. Send a follow-up that structurally revises an accepted tree. There is no phrase-to-template routing.",
+        "The host validates every output and resolves source identities and local evidence inspection. A rejected response preserves the last accepted tree. The chart and original walkthrough remain usable.",
+        "Retain synthetic model-turn integration evidence separately from genuine model and owner acceptance. Open a separate owner preview while leaving the existing walkthrough untouched."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "workbench-authored-composition"
+      ],
+      "evidence": [],
+      "next_action": "Exercise the ordinary model connection with a host-validated declarative composition and a synthetic provider that returns separate original trees and a revision.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "The embedded AI writes and restructures a view from user intent on the same model route, using composable layout, data and interaction primitives.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/workbench-prototype.tsx",
+          "contracts/decisions/0027-v1-user-composed-workbench.json",
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/src/model-chat-transport.ts",
+          "crates/application/src/workspace/text_connection.rs",
+          "contracts/workbench-v1.json"
+        ],
+        "hypotheses": [
+          "The ordinary text route can carry a compact typed composition and accepted context within its existing limits. A bounded renderer can evaluate it without acquiring privileges."
+        ],
+        "risks": [
+          {
+            "failure": "An intent is routed to a fixed template, a follow-up loses the accepted definition, or an unrelated model reply is applied to the canvas.",
+            "checks": [
+              "workbench-authored-composition"
+            ]
+          },
+          {
+            "failure": "Model output acquires source access, executes an operation, introduces active content, or displaces the last accepted view before validation and review.",
+            "checks": [
+              "workbench-authored-composition",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "The new entry regresses the chart or the original walkthrough.",
+            "checks": [
+              "workbench-authored-composition",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Remove the new entry and local editor together. The chart and old walkthrough need no data recovery.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "tests/ui/renderer-probe.config.mjs",
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/src/model-chat-transport.ts",
+            "crates/application/src/workspace/text_connection.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/extensibility"
+            }
+          ],
+          "non_goals": [
+            "Profile writes, new disclosure grants, executable code, a manual composition wizard, renderer selection and release acceptance."
+          ],
+          "open_questions": [
+            "Will a connected model author useful trees within the existing text budget on both native hosts?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Chart operations, legacy prototype and frozen evidence identity."
+          ],
+          "change": [
+            "Offer a blank synthetic workbench that the existing AI conversation can author and structurally revise."
+          ],
+          "data_plan": "The existing conversation route receives the intent, allowed synthetic source names and the accepted declarative tree. Frozen values and chart selection remain local. Apply only a validated candidate after human acceptance. No migration.",
+          "cleanup": "Retire the experimental entry when the selected renderer and product workbench take over."
         }
       }
     }

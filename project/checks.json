@@ -795,6 +795,22 @@
       "cadence": "task"
     },
     {
+      "id": "workbench-authored-composition",
+      "status": "implemented",
+      "purpose": "Exercise model-authored composition through the ordinary embedded AI with a synthetic provider. Verify distinct trees, accepted context, frozen bindings, host validation and recovery.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs"
+      ],
+      "timeout_seconds": 1800,
+      "cadence": "task"
+    },
+    {
       "id": "workbench-renderer-probe",
       "status": "planned",
       "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",
