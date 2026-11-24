@@ -168,7 +168,7 @@ jobs:
           key: ${{ steps.cargo_keys.outputs.primary }}
           restore-keys: ${{ steps.cargo_keys.outputs.fallback }}
       - name: Install and start the pinned chart-test browser
-        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
+        if: *cargo_required
         shell: bash
         run: |
           pnpm exec playwright install chromium

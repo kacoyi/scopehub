@@ -248,15 +248,18 @@ class HostedSchedulingTests(ProjectFixture):
 
 
 class WindowsLaneTests(ProjectFixture):
+    recovery_screenshot = 'market-recovery/browser/market-closed-bar-repair-fixture/verified-closed-bar-repair.png'
+
     def setUp(self):
         super().setUp()
         self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
-        for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe'):
+        for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe', 'market-recovery'):
             catalog['checks'].append(dict(catalog['checks'][0], id=name))
             catalog['required_change_checks'].append(name)
-        catalog['checks'][-1]['command'] = ['{python}', '-c', 'import os, sys; sys.exit(int(os.environ.get("SCOPEHUB_FIXTURE_EXIT", 0)))']
+        for check in catalog['checks'][-2:]:
+            check['command'] = ['{python}', '-c', 'import os, sys; sys.exit(int(os.environ.get("SCOPEHUB_FIXTURE_EXIT", 0)))']
         catalog['profiles']['records'] = ['environment', 'project-state', 'dependency-review']
         catalog_path.write_bytes(json_bytes(catalog))
 
@@ -293,11 +296,11 @@ class WindowsLaneTests(ProjectFixture):
             harness.main()
         return exit.exception.code, read_json(self.reports / 'test-report.json')
 
-    def produce(self, profile=None, *, browser_exit=0):
+    def produce(self, profile=None, *, browser_exit=0, recovery_exit=0):
         reports = {}
         for lane in ('core',) if profile else harness.WINDOWS_LANES:
             args = ('--profile', profile) if profile else ('--ci-windows-lane', lane)
-            expected_exit = browser_exit if lane == 'browser' else 0
+            expected_exit = {'browser': browser_exit, 'core': recovery_exit}.get(lane, 0)
             with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_EXIT': str(expected_exit)}):
                 code, report = self.run_harness(*args)
             self.assertEqual(int(bool(expected_exit)), code)
@@ -306,6 +309,11 @@ class WindowsLaneTests(ProjectFixture):
                 run = self.reports / 'runs' / report['run_id'] / 'workspace-timeframe'
                 run.mkdir()
                 (run / 'results.json').write_bytes(b'{"synthetic": true}\n')
+            if lane == 'core' and not profile:
+                screenshot = self.reports / 'runs' / report['run_id'] / self.recovery_screenshot
+                screenshot.parent.mkdir(parents=True)
+                screenshot.write_bytes(b'synthetic screenshot bytes\n')
+                (screenshot.parents[2] / 'results.json').write_bytes(b'{"synthetic": true}\n')
             self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ, lane=not profile))
             reports[lane] = report
             shutil.rmtree(self.reports)
@@ -315,6 +323,7 @@ class WindowsLaneTests(ProjectFixture):
         lanes = self.produce()
         self.assertEqual(['python-contracts-workers'], lanes['python']['selection']['checks'])
         self.assertEqual(['workspace-timeframe'], lanes['browser']['selection']['checks'])
+        self.assertIn('market-recovery', lanes['core']['selection']['checks'])
         with patch.object(harness, 'execute') as execute:
             code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         execute.assert_not_called()
@@ -334,6 +343,9 @@ class WindowsLaneTests(ProjectFixture):
                 self.assertEqual(row['log_sha256'], harness.file_digest(path))
         browser = final / 'runs' / report['run_id'] / 'workspace-timeframe/results.json'
         self.assertEqual(b'{"synthetic": true}\n', browser.read_bytes())
+        screenshot = final / 'runs' / report['run_id'] / self.recovery_screenshot
+        self.assertEqual(b'synthetic screenshot bytes\n', screenshot.read_bytes())
+        self.assertEqual(b'{"synthetic": true}\n', (screenshot.parents[2] / 'results.json').read_bytes())
 
     def test_scoped_aggregate_republishes_the_original_selection_and_report(self):
         self.produce('records')
@@ -481,3 +493,15 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual(7, browser['exit_code'])
         self.assertIn(browser, report['checks'])
         self.assertEqual(browser['log_sha256'], harness.file_digest(self.root / browser['log']))
+
+    def test_failed_recovery_in_core_keeps_its_evidence_and_blocks_integration(self):
+        lanes = self.produce(recovery_exit=7)
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(1, code)
+        self.assertEqual('failed', report['status'])
+        self.assertIn('market-recovery', report['integration_gates']['unverified'])
+        recovery = next(row for row in lanes['core']['checks'] if row['id'] == 'market-recovery')
+        self.assertEqual(7, recovery['exit_code'])
+        self.assertIn(recovery, report['checks'])
+        self.assertEqual(recovery['log_sha256'], harness.file_digest(self.root / recovery['log']))

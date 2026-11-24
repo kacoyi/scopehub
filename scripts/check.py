@@ -72,7 +72,8 @@ PRIVATE_CHECK_LOGS = set(SESSION_CHECKS) | set(FIELD_ACTIONS) | {'configured-ext
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
-WINDOWS_BROWSER_CHECKS = {'market-workflow', 'market-recovery', 'chart-history', 'ubuntu-preview',
+# The full core lane runs market-recovery after its build checks to balance hosted elapsed time.
+WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
                           'local-import-ui', 'market-live-stream', 'market-quality-states',
                           'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
                           'desktop-workspace-transport', 'desktop-localization'}

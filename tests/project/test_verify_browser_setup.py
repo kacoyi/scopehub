@@ -32,7 +32,8 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         cls.narrow = next(step for step in steps if step.get('name', '').endswith(' changes'))
 
     def test_browser_setup_is_required_without_a_successful_prerequisite_opt_out(self):
-        self.assertTrue(self.step['if'].startswith("steps.build_setup.outputs.skip != 'true'"))
+        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'",
+                         self.step['if'])
         self.assertIn("matrix.lane != 'python'", self.prerequisite['if'])
         self.assertNotIn('continue-on-error', self.step)
         self.assertEqual('bash', self.step['shell'])
