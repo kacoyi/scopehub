@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-013",
   "tasks": [
     {
       "id": "M0-001",
@@ -4715,7 +4715,7 @@
       "id": "M2-003",
       "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-002",
         "M2-014",
@@ -4752,6 +4752,10 @@
         {
           "path": "project/evidence/M2-003-da6ed77002f60f54.json",
           "sha256": "1127f32ee05be8b422eb3c76a1079b696809e78453a8f21cf1ed77ef13f779e2"
+        },
+        {
+          "path": "project/evidence/M2-003-cc8363a2abd58937.json",
+          "sha256": "55ea6753eb8d5abeb9c7596f2b1e2d2f621aa99d85d7ba843a7453efd746d5b3"
         }
       ],
       "diagnostic_reports": [
@@ -4816,7 +4820,7 @@
           "report_sha256": "7acdefa7da905ca3176b04040a1fa012b49c7af668c6f535d6991a0a6cbfdfea"
         }
       ],
-      "next_action": "Archive the engineering selection against the affected harness. The original frozen Windows binding cleared after registered revocation. Keep whole-workbench composition under M2-013 and release observations separately tracked.",
+      "next_action": null,
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",

@@ -3873,14 +3873,18 @@
       "source": "Hosted Windows run 45314545439, workbench-drawing-runtime.log. The separate native folder-chooser observation belongs to the independent verifier.",
       "observation": "Three Chromium accepted-series tests reached the private handoff wait before any drawing was admitted. The fixture reconstructed a native profile ID by hashing a Node realpath. The writer derives its ID from Rust canonicalization and attests the stored binding. The existing frozen-source reopen fixture reads that binding from the disposable profile.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-003"
       ],
       "regression_checks": [
         "workbench-drawing-runtime"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture derived a second profile identifier from a platform-specific path representation.",
+        "correction": "Open the published profile using its stored Rust binding and private handoff.",
+        "prevention": "Windows run 45331634154, workbench-drawing-runtime.log, records the period-2, period-5 and embedded revision Chromium cases passing on the repaired fixture. The separate native revocation observation uses the same frozen renderer."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
