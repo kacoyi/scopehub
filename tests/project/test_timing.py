@@ -175,6 +175,89 @@ class ReportTimingTests(unittest.TestCase):
 
 
 class HostedTimingTests(unittest.TestCase):
+    def split_windows_jobs(self, *, scoped=False):
+        full = 'Run uv run python scripts/check.py --require-windows'
+        core = hosted_job(32, 'windows', '00:20', '02:00' if scoped else '09:00',
+                          'Verify records changes' if scoped else 'Verify the Windows core lane',
+                          '01:10', '01:50' if scoped else '08:40')
+        browser = hosted_job(33, 'windows', '00:40', '00:54' if scoped else '12:00',
+                             'Select the Windows lane work' if scoped else 'Verify the Windows browser lane',
+                             '00:41' if scoped else '02:00', '00:48' if scoped else '11:25')
+        python = hosted_job(34, 'windows', '00:30', '00:58' if scoped else '08:00',
+                            'Select the Windows lane work' if scoped else 'Verify the Windows python lane',
+                            '00:35' if scoped else '01:00', '00:50' if scoped else '07:50')
+        aggregate = hosted_job(35, 'windows', '02:08' if scoped else '12:08', '02:45' if scoped else '12:45',
+                               'Verify records changes' if scoped else full,
+                               '02:25' if scoped else '12:27', '02:35' if scoped else '12:35')
+        for name, row in zip(('core', 'browser', 'python'), (core, browser, python), strict=True):
+            row['name'] = f'Windows change checks ({name})'
+        if not scoped:
+            browser['steps'].append(hosted_job(33, 'windows', '00:40', '12:00',
+                                               'Install and start the pinned chart-test browser',
+                                               '01:05', '01:35')['steps'][0])
+        aggregate['steps'].append({'name': 'Require successful Windows lane jobs', 'conclusion': 'skipped'})
+        linux = hosted_job(31, 'ubuntu', '00:10', '08:30', 'Run pnpm check', '00:50', '08:10')
+        return linux, core, browser, python, aggregate
+
+    def test_split_windows_distinguishes_actual_runner_work_from_the_protected_wall(self):
+        linux, core, browser, python, aggregate = self.split_windows_jobs()
+        setup = hosted_job(36, 'ubuntu', '00:05', '00:17', 'Select scope', '00:06', '00:16')
+        setup.update(name='Verification scope')
+        skipped = dict(setup, id=37, name='Unused job', conclusion='skipped')
+        result = timing.hosted_timing(hosted_run(), [linux, core, browser, python, aggregate, setup, skipped])
+        self.assertTrue(timing.clock_complete(result))
+        self.assertEqual(765, result['workflow']['total_elapsed_seconds'])
+        self.assertEqual(2199, result['workflow']['runner_work_seconds'])
+        windows, = (row for row in result['jobs'] if row['platform'] == 'Windows')
+        self.assertEqual({'queue': 8, 'initial_queue': 20, 'setup': 40, 'aggregate_setup': 19,
+                          'harness_step': 695, 'tail': 10, 'runner': 1687, 'total': 765, 'browser_step': 30},
+                         windows['seconds'])
+        self.assertCountEqual(['Windows change checks (core)', 'Windows change checks (browser)',
+                               'Windows change checks (python)', 'Verification scope'],
+                              [row['name'] for row in result['sibling_jobs']])
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+        for cache in ('warm', 'unknown'):
+            with self.subTest(cache=cache):
+                review, = timing.timing_view([timing.report_sample(report, cache=cache)], hosted=[result])['reviews']
+                self.assertEqual(cache, review['cache'])
+                self.assertEqual({'total': 765, 'queue': 8, 'aggregate_setup': 19, 'harness_step': 695},
+                                 {row['metric']: row['recent_median_seconds'] for row in review['metrics']
+                                  if row['metric'] in {'total', 'queue', 'aggregate_setup', 'harness_step'}})
+
+    def test_scoped_windows_counts_launched_setup_siblings_and_uses_only_the_core_harness(self):
+        run = dict(hosted_run(), event='push')
+        result = timing.hosted_timing(run, self.split_windows_jobs(scoped=True))
+        self.assertTrue(timing.clock_complete(result))
+        self.assertEqual(510, result['workflow']['total_elapsed_seconds'])
+        self.assertEqual(679, result['workflow']['runner_work_seconds'])
+        windows, = (row for row in result['jobs'] if row['platform'] == 'Windows')
+        self.assertEqual((8, 85, 179, 165, None),
+                         tuple(windows['seconds'][key] for key in ('queue', 'harness_step', 'runner', 'total', 'browser_step')))
+
+    def test_split_windows_leaves_missing_job_identity_and_clock_explicit(self):
+        linux, core, browser, python, aggregate = self.split_windows_jobs()
+        for jobs in ([linux, aggregate], [linux, core, browser, aggregate],
+                     [linux, core, dict(browser, run_attempt=2), python, aggregate]):
+            with self.subTest(job_count=len(jobs), jobs=[row['name'] for row in jobs]):
+                result = timing.hosted_timing(hosted_run(), jobs)
+                self.assertFalse(result['workflow']['identity_complete'])
+                self.assertIsNone(result['workflow']['total_elapsed_seconds'])
+                self.assertIsNone(result['workflow']['runner_work_seconds'])
+                self.assertFalse(timing.clock_complete(result))
+
+        result = timing.hosted_timing(hosted_run(), [linux, core, dict(browser, completed_at=None), python, aggregate])
+        windows, = (row for row in result['jobs'] if row['platform'] == 'Windows')
+        self.assertTrue(result['workflow']['identity_complete'])
+        self.assertEqual(765, result['workflow']['total_elapsed_seconds'])
+        self.assertIsNone(result['workflow']['runner_work_seconds'])
+        self.assertIsNone(windows['seconds']['queue'])
+        self.assertIsNone(windows['seconds']['harness_step'])
+        self.assertFalse(timing.clock_complete(result))
+
     def test_jobs_use_wall_boundaries_for_queue_setup_harness_tail_and_total(self):
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
         windows = hosted_job(32, 'windows', '00:20', '06:00',
