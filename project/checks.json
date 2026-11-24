@@ -387,7 +387,7 @@
     {
       "id": "local-import-ui",
       "status": "implemented",
-      "purpose": "Exercise ordinary chart Settings and My data sources in English and Chinese, picker cancellation, chart focus and viewport continuity, same-session CSV review, explicit mapping, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute. Native dialog behavior and durable import require separate evidence.",
+      "purpose": "Exercise ordinary chart Settings and My data sources in English and Chinese, picker cancellation, chart focus and viewport continuity, same-session CSV review, editable header drafts, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -402,7 +402,7 @@
     {
       "id": "local-import-publication",
       "status": "implemented",
-      "purpose": "Exercise the built UI through the profile-bound Rust desktop state, complete-file normalization, SQLite and the chart adapter. Verify a publication above the preview row limit, retry, held rows, and a changed single-file revision. After restart and source removal, inspect the exact raw fields of a quoted multiline record outside the preview, and verify profile scope, stale selections and display-right removal. The test supplies the selected directory through a synthetic picker.",
+      "purpose": "Exercise the built UI through the profile-bound Rust desktop state, complete-file normalization, SQLite and the chart adapter. From chart Settings select a synthetic folder, correct an ambiguous header draft, reopen the same review after cancelling another pick, and compare normalized rows and diagnostics with manual mapping. Verify a publication above the preview row limit, retry, held rows, and a changed single-file revision. After restart and source removal, inspect the exact raw fields of a quoted multiline record outside the preview, and verify profile scope, stale selections and display-right removal. The test substitutes the native picker.",
       "platforms": "all",
       "command": [
         "{python}",
