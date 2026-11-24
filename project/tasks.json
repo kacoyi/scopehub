@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-018",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17446,7 +17446,7 @@
       "id": "M2-018",
       "title": "Keep the verified chart overlay visible during crosshair motion",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-017"
       ],
@@ -17468,10 +17468,15 @@
         "market-workflow",
         "chart-coordinate-prototype"
       ],
-      "evidence": [],
-      "next_action": "Measure repeated real pointer motion on the frozen baseline before repairing the overlay result lifetime.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-018-ed19677bb60c5f5a.json",
+          "sha256": "9c673d3235feeb8f608316ee7af4da24b9422d2e25ea43a4acc13393a873a9c0"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The official M2-018 run passed at 452236f. Six alternating pointer moves produced no blank or mismatched geometry in 78 samples. The same neutral scene remained visible through a pending and a rejected selection, and the latest valid highlight recovered. The regression also covered invalid drafts, superseded workers, incompatible viewports and source invalidation.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "A qualified authored overlay remains visible while crosshair-dependent guest geometry is evaluated on the same viewport.",
