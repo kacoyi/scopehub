@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { WorkbenchPrototype } from './workbench-prototype';
+import { DrawingWorkbench } from './drawing-workbench';
 import { WorkbenchAuthoring } from './workbench-authoring';
 import type { WorkbenchAuthoringTurn } from './workbench-composition';
 import { ChartWorkspace } from './chart-workspace';
@@ -25,7 +26,8 @@ function initialSource(): boolean {
 function App() {
   useLocale();
   const [prototype, setPrototype] = useState(false);
-  const [authoring, setAuthoring] = useState(false);
+  const [authoring, setAuthoring] = useState<'tree' | 'drawing' | undefined>(() =>
+    new URLSearchParams(location.search).get('renderer') === 'drawing' ? 'drawing' : undefined);
   const [authoringTurn, setAuthoringTurn] = useState<WorkbenchAuthoringTurn>();
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
@@ -44,6 +46,10 @@ function App() {
   const supportsSourcePreference = source !== undefined;
   const sample = localWorkspace ? Boolean(snapshot && (source?.kind === 'sample' || source == null && legacySample)) : legacySample;
   const { restored, retry } = useRestoredWorkspaceSource(localWorkspace, revisionAccess);
+  const drawingSnapshot = restored?.status === 'ready' && !localWorkspace?.sourceRecovery && !localWorkspace?.error
+    && localWorkspace?.pending !== 'source' && revisionAccess.canDisplay(restored.revision_id) ? restored.chart?.history.snapshot : undefined;
+  const drawingScope = drawingSnapshot && JSON.stringify([drawingSnapshot.dataset_id, drawingSnapshot.dataset_revision,
+    snapshot?.workspace.id, snapshot?.selection_revision, snapshot?.workspace.revision]);
   const target = snapshot?.chart_evidence;
   const targetRevoked = Boolean(target && 'revision_id' in target && revisionAccess.revoked.has(target.revision_id));
   const displaySnapshot = useMemo(() => snapshot && targetRevoked
@@ -118,16 +124,23 @@ function App() {
     error: pickerError === undefined ? undefined : renderLocalImportMessage(pickerError),
   } : undefined;
 
+  function closeWorkbench() {
+    setAuthoringTurn(undefined);
+    setAuthoring(undefined);
+  }
+  function askWorkbench(turn: WorkbenchAuthoringTurn) {
+    setModelSelection(undefined);
+    setAuthoringTurn(turn);
+    setModelChatView('question');
+  }
+
   return <>
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
-    {authoring && <WorkbenchAuthoring close={() => {
-      setAuthoringTurn(undefined);
-      setAuthoring(false);
-    }} ask={turn => {
-      setModelSelection(undefined);
-      setAuthoringTurn(turn);
-      setModelChatView('question');
-    }} />}
+    {authoring === 'drawing' && <DrawingWorkbench key={drawingScope}
+      sourceUnavailable={source?.kind === 'frozen' && !drawingSnapshot && restored?.status !== 'loading'}
+      bindingSnapshot={drawingSnapshot} access={revisionAccess} workspace={localWorkspace} hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
+    {authoring === 'tree' && <WorkbenchAuthoring close={closeWorkbench} ask={askWorkbench}
+      openDrawing={() => { setAuthoringTurn(undefined); setAuthoring('drawing'); }} />}
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
       modelDialogOpen={Boolean(modelChatView)} openModelChat={selection => {
@@ -141,7 +154,7 @@ function App() {
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample} openPrototype={() => setPrototype(true)}
-      openAuthoring={() => setAuthoring(true)}
+      openAuthoring={() => setAuthoring('tree')}
       chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });

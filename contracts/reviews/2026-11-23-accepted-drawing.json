@@ -1,0 +1,45 @@
+{
+  "task": "M2-003",
+  "base": "38c15a901d71fcc65328e83b2c5634785412f57f",
+  "scope": "Opt-in local drawing studio. The workspace host binds one explicitly selected, currently authorized numeric output from a published revision. The existing accepted indicator ledger owns the artifact. No additional operation, runtime permission, database schema, provider or guest transport.",
+  "runtime_fingerprint": "git ls-tree -r HEAD -- apps/desktop/ui apps/desktop/src-tauri/tauri.conf.json apps/desktop/src-tauri/capabilities pnpm-lock.yaml | sha256sum",
+  "core_source": "crates/application/src/workspace/indicators/accepted.rs",
+  "entry": "Open the private workspace-access-1445.html launcher. Open blank AI workbench > Drawing studio > Accepted version > Numeric series > mean. Open a local drawing program and accept its preview. Inspect Accepted series source and Accepted observations. Open the second source against the same selection.",
+  "admission": "Choose a local synthetic CSV folder, preview, save its mapping and publish. In Open published CSV, open its revision, run the Volume rolling indicator, accept the preview and explicitly confirm. Choose Use as workspace source. The studio lists indicator_accepted_layers for the restored workspace source. It reads indicator_accepted_output only for the chosen available layer. The existing core verifies the accepted document, current rights and hashes. The host matches dataset and revision, layer and version, series ID and result hash.",
+  "projection": "The // series free header admits one host-bound projection. Only time_ms and the finite numeric or null value are copied per row. Shared xTime and yValue map this series; there is no synthetic OHLCV substitution. Source identity, output unit and original values remain separately inspectable in the host. Source volume units do not identify the output unit. The current IndicatorSeries has no output unit, so the host shows Unknown. The core can return an entirely null series. Empty geometry is a valid result here.",
+  "limits": "At most 256 time-ordered observations in one accepted series and 256 marks. An oversized series is refused in full. Programs use the existing 900-character, 2 MiB heap, 128 KiB stack, 120 ms evaluation and 3 s host termination bounds. Access refresh runs every two seconds and on focus, with a five-second read deadline. Scope changes discard the scene, selection, undo and worker state. A failed read drops visible results. The binding and guest data have no profile, browser-storage or file persistence; reopening requires a fresh choice and read. Previously frozen sample and core-preview entrypoints are separate. Roll back to the base without any migration.",
+  "programs": [
+    ["tests/fixtures/workbench/accepted-series-dots.js", "08b0a8671fc053205526d4603c729aded7c4cf4edae22408cd13fd8994b25047"],
+    ["tests/fixtures/workbench/accepted-series-strips.js", "55a98f253dd102d037bcb2c4ce37ad86f330d7ff00ff071b63320ac6f2019d52"]
+  ],
+  "live_synthetic_profile": {
+    "dataset_revision": "ebbc576c-c490-4eb6-932c-254115de7a33",
+    "layer_id": "4efd536f-13dd-4beb-a929-6a93860ac078",
+    "version_id": "32301eb6-2616-47f3-8054-050c267bc8c5",
+    "series_id": "mean",
+    "result_hash": "324ce506b57e5e36267dd473feec12a5545431ec284da9ddfd30a9ccbe8e0506",
+    "points": [[1770076800000,null],[1770163200000,115],[1770249600000,125],[1770336000000,135]],
+    "observed": "Coordinator exercised both exact local programs via the zh-CN private 1445 launcher in Chromium. Three rings; three strips and one missing-value mark; identical result hash. Fresh disposable profiles generate different UUIDs and result hashes."
+  },
+  "independent_core_oracle": {
+    "manifest": "archives/observations/m2-003-accepted-series-41a7842-32b5d453/manifest.json",
+    "sha256": "50ff94f7496b809751036c52986c68bc442721ba5284d11781cc65fe5822ec92",
+    "volume_observation_sha256": "c9a2331d710415d7cd67c2533ee11d3d7c011d16b7bef50201b2d38b3feda80c",
+    "source_commit": "41a7842a97d9420d5c13d3532c338c5d01abd638",
+    "version_id": "32b5d453-cd51-4944-a5ed-5f903a60f000",
+    "result_hash": "82b6239ad342395441fa91aaed56906cf4c7182135f9210a2a141f160f0655eb",
+    "scope": "Independent consumer exercised authorized synthetic CSV publication, explicit indicator confirmation, parsed JSON equality on writer restart and denial without output after revocation. Its HTML table and SVG establish an independent numeric oracle. In that specific observed volume mean, the formula preserves shares. An arbitrary series has no declared unit."
+  },
+  "environment": "Ubuntu Linux x86_64 kernel 7.0.0-43-generic, Node 24.22.3, pnpm 11.28.5, Chromium 159. Local Rust writer, portable import test bridge and pinned QuickJS worker. Desktop packaging and physical release sign-off remain open; earlier WebKitGTK and hosted v2 Windows measurements are indexed in 2026-11-23-drawing-interactions.json.",
+  "launch": [
+    "cargo build --locked --target-dir target -p scopehub-persistence -p scopehub-worker-host --bins --example history_bridge --jobs 2",
+    "cargo build --locked --target-dir target -p scopehub-desktop --example local_import_bridge --features scopehub-desktop/portable-test-bridge --jobs 2",
+    "pnpm exec node tests/ui/accepted-drawing-demo.mjs"
+  ],
+  "verify": [
+    "pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs accepted-drawing.spec.mjs drawing-series.spec.mjs drawing-workbench.spec.mjs",
+    "pnpm exec playwright test --config tests/localization/desktop.config.mjs catalogs.spec.mjs",
+    "pnpm build",
+    "pnpm check --task M2-003"
+  ]
+}

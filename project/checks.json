@@ -805,18 +805,19 @@
         "playwright",
         "test",
         "--config",
-        "tests/ui/workbench-authoring.config.mjs"
+        "tests/ui/workbench-authoring.config.mjs",
+        "workbench-authoring.spec.mjs"
       ],
       "timeout_seconds": 1800,
       "cadence": "task"
     },
     {
       "id": "workbench-renderer-probe",
-      "status": "planned",
-      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",
+      "status": "implemented",
+      "purpose": "Replay a shared author/revise/select/reject/restore workload on the host tree and isolated drawing API, then verify retained Ubuntu and Windows evidence for the same frozen native pennant program and current accepted-series browser observations. Report unresolved engineering selection gates separately.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 900,
+      "command": ["{python}", "scripts/renderer_probe.py"],
+      "timeout_seconds": 1800,
       "cadence": "task"
     },
     {
@@ -843,6 +844,25 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "workbench-drawing-runtime",
+      "status": "implemented",
+      "purpose": "Exercise an embedded synthetic model turn returning a drawing program, independent frozen geometry, bounded host selections and scalar changes, externally authored file edits, validated core readouts, a confirmed and revoked local numeric series in two guest presentations, isolated resource failures and host recovery. Browser qualification only.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "drawing-workbench.spec.mjs",
+        "drawing-series.spec.mjs",
+        "accepted-drawing.spec.mjs"
+      ],
+      "timeout_seconds": 1800,
+      "cadence": "task"
     }
   ],
   "milestones": [

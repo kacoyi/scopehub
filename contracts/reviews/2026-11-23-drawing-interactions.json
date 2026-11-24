@@ -1,0 +1,54 @@
+{
+  "task": "M2-003",
+  "scope": "Third synthetic candidate. Generic bounded scalar parameters, selectable source observations and one declarative-core-backed difference readout. External Codex authors the ordinary local source file. No external-client control plane or model configuration is needed.",
+  "parent": "41a7842a97d9420d5c13d3532c338c5d01abd638",
+  "original_runtime": "e4f6e06c0abe3d4baeb6ebae085a9ec3d69affbe",
+  "sizing_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
+  "fingerprint_command": "git ls-tree -r HEAD -- apps/desktop/ui apps/desktop/src-tauri/tauri.conf.json apps/desktop/src-tauri/capabilities pnpm-lock.yaml | sha256sum",
+  "source_snapshot_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1",
+  "programs": [
+    ["tests/fixtures/workbench/interactive-diamonds.js", "069da6bb0192300de5540063c61b1411a1ef1ab22dab8ec7151390520033d90e"],
+    ["tests/fixtures/workbench/interactive-diamonds-revised.js", "06ea6ee9cc87ab4f100c20fbb0adfad455bd646698889d09974cdf9ff1d1c642"]
+  ],
+  "abi": {
+    "scalar": "Up to three // scalar NAME MIN MAX STEP DEFAULT declarations. Finite bounded ranges with no more than 10000 steps. The host owns the controls and supplies params.NAME to the guest. An unchanged declaration carries its adjusted value across a local structural edit.",
+    "selection": "hit(index,x,y,r) declares one bounded circle per source row. The host handles pointer/keyboard selection. selected is a row index or -1. A selection is meaningful only within the same frozen source. Trusted readouts resolve row time, close, volume and original pin on the host.",
+    "calculation": "// difference FIELD NAME requests one typed field-minus-parameter readout for a selected observation. The trusted host submits only a bounded declarative indicator to the ordinary Rust registry for the active matching synthetic sample, polls its preview, checks source, parameters, engine, exact timestamps and code/result identities, and shows the current result. Raw core precision is inspectable. Static or disconnected hosts show unavailable. The guest cannot submit an operation or provide a calculated readout.",
+    "limits": "This binds an ephemeral local calculation. The registry denies persistent acceptance for this declarative synthetic sample. This candidate does not supply general accepted-indicator-series support. Workspace permissions, CSP, model access and native confirmations remain as in the frozen baseline.",
+    "cold_development_entry": "First use of worker-only packages made Vite re-optimize and reload the running editor. Explicitly include the two pinned interpreter dependencies in development optimization. A new authenticated browser entry then completed both local file handoffs without reloading."
+  },
+  "observations": {
+    "entry": "Chinese Chromium 159, 1280x800 on Ubuntu. Open the private 1444 workspace handoff, then Drawing studio in the blank AI workbench. The disposable profile uses the offline sample, with no model connected. Open the exact first file, accept, click a diamond, then adjust reference and open the revised file.",
+    "values": "At reference 3499.4 the earlier close 3499.2 reports -0.2 CNY, the later 3499.8 reports +0.4 CNY. At 3499.6 they report -0.4 and +0.2. The local structural revision retains the later selection and 3499.6, preserves the eleven existing edges, and adds four edges to the selected outline.",
+    "core_result_hashes": {"3499.4":"543ae5f3d4303dbadbe20df5f77d6085614561f35024ee2aba67135a3681d4ad","3499.6":"013192933d1d6e45dd35159ac397ebe9fdcdcd04bb46e9a5785cce99060d5f34"},
+    "failure_recovery": "Rapid right/left/right changes leave only the final observation selected. An intercepted failed status read removes the signed value. Retry goes through the real registry and reproduces the original result hash. An unconfigured workspace still exposes the source row but cannot return a calculated result. No model turn, acceptance operation, confirmation or application database change occurs in the file interaction test.",
+    "independent_case": "Both externally authored pennant files also run unmodified through the new renderer. The original source-only results and the 19-pixel defect remain separately recorded.",
+    "open_evidence": "Physical Windows, renderer selection, live external-client admission and actual accepted indicator binding are separate gates."
+  },
+  "independent_native_archive": {
+    "index": "archives/worktrees/cea053aa543ce887a4f26378d7a1290bf4903fe3/files/.reports/m2-003-independent/native-index.json",
+    "sha256": "5adc18113304c437e4788612b126acf0bc5dc6c74066983f11ee167601e13bf8",
+    "scope": "Three sealed Ubuntu native development observations. Both ordinary GTK file selections passed in the third case at 980 and 1280 pixels. XTest input through screenshot detection including capture and polling: host stroke median 44.35 ms (6 samples), program scalar median 127.59 ms (5 samples). Physical desktop sign-off, Windows and release remain separate."
+  },
+  "hosted_windows_v2": {
+    "runtime": "9f0bee3e5997319397feff70414f6b461244a324",
+    "indexed_at": "archives/worktrees/cea053aa543ce887a4f26378d7a1290bf4903fe3/files/.reports/m2-003-independent/hosted-index.json",
+    "index_sha256": "8191d589b3b159b49ca350b52dbf3c49d76bcf603c2fa62884956b9800eae926",
+    "diagnostic": "archives/runs/20261124T021858.871777Z-b5e01470/test-report.json",
+    "scope": "Hosted Windows NT 10.0.26100.0, WebView2 157.0.4341.46. Run 45311046657, x64 Tauri release executable built without bundling. Four retained screenshot digests matched; the revised and restored flag images were identical. Evidence covers v2. Windows v3 and accepted-series binding, physical devices and installer/release acceptance remain separate."
+  },
+  "launch_workspace": [
+    "cargo build --locked --target-dir target -p scopehub-persistence -p scopehub-worker-host --bins --example history_bridge --jobs 2",
+    "profile_parent=$(mktemp -d /tmp/scopehub-drawing-1444.XXXXXXXX)",
+    "target/debug/workspace_bridge --prepare-profile-root \"$profile_parent/profile\"",
+    "SCOPEHUB_WORKSPACE_PROFILE_ROOT=\"$profile_parent/profile\" SCOPEHUB_WORKSPACE_PROFILE_ID=synthetic-drawing-interactions SCOPEHUB_WORKSPACE_ID=main pnpm --filter @scopehub/ui exec vite --mode ubuntu-workspace --host 127.0.0.1 --port 1444 --strictPort"
+  ],
+  "first_open": "Open workspace-access-1444.html in the new private profile, open the offline sample to select its existing compute permission, then Open blank AI workbench > Drawing studio > Open local drawing program. The supplied live profile already has the matching offline sample selected.",
+  "verification": [
+    "pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs drawing-series.spec.mjs --repeat-each=2 --workers=1",
+    "pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs drawing-workbench.spec.mjs drawing-series.spec.mjs",
+    "pnpm check --task M2-003",
+    "pnpm build",
+    "xvfb-run -a /usr/bin/python3 tests/ui/drawing-webkit.py --width 1280"
+  ]
+}

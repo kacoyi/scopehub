@@ -82,5 +82,5 @@ export function authoringPrompt(accepted: Composition | undefined) {
 export type WorkbenchAuthoringTurn = {
   scope: symbol;
   prompt: string;
-  receive: (text: string) => boolean;
+  receive: (text: string) => boolean | 'evaluating';
 };

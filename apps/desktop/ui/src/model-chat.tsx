@@ -28,7 +28,7 @@ type CompletedTurn = {
   text: string;
   evidence: AiTextChartEvidence | undefined;
   chartRequested: boolean;
-  authored?: { scope: symbol; ready: boolean } | undefined;
+  authored?: { scope: symbol; ready: boolean | 'evaluating' } | undefined;
 };
 
 const unavailableModel = message('The model could not answer. Check the configured server and try again.');
@@ -608,13 +608,14 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
         <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? t('Offline mock enabled')
           : connection ? <>{t('{provider} connected', { provider: providerName(connection.route.kind) })} · <bdi>{connection.route.model}</bdi></>
             : t('No model connected')}</p>
-        {authoring && <p className="model-muted">{t('This turn sends your intent, synthetic source descriptions and the accepted view definition through the current model connection. Source rows stay on this device.')}</p>}
+        {authoring && <p className="model-muted">{t('This turn sends your intent, drawing or composition instructions and the accepted view definition through the current model connection. Source rows stay on this device.')}</p>}
         {needsAuthoringModel && <p role="status">{t('Connect a model in AI settings to author a view.')}</p>}
         <div ref={transcript} className="model-transcript" role="log" aria-label={t('Conversation')}>
           {turns.filter(turn => turn.authored?.scope === authoring?.scope).map(turn => <article key={turn.id} className="model-turn">
             {turn.question && <div className="model-question"><h3>{t('You')}</h3><p dir="auto">{turn.question}</p></div>}
             <div className="model-answer"><h3>{t('Model')} <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.authored
-              ? turn.authored.ready ? t('Draft ready. Close this conversation to inspect it in the workbench.')
+              ? turn.authored.ready === 'evaluating' ? t('Program received. Close this conversation to inspect the evaluation.')
+                : turn.authored.ready ? t('Draft ready. Close this conversation to inspect it in the workbench.')
                 : t('The workbench did not accept this draft.')
               : turn.text}</p></div>
             {turn.evidence ? <ChartEvidence evidence={turn.evidence} />

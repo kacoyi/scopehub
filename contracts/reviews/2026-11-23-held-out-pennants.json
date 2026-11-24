@@ -1,0 +1,15 @@
+{
+  "task": "M2-003", "result": "passed for the two requests on the scoped synthetic surface",
+  "sealed_brief_sha256": "78ffb675db0957dc010a222805966f31f1d670129582438a6c8d792ba62b530a",
+  "runtime": "9f0bee3e5997319397feff70414f6b461244a324",
+  "runtime_sha256": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
+  "source_snapshot_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1",
+  "external_author": "Codex, using the published API after the independent reviewer released the brief.",
+  "programs": [
+    ["tests/fixtures/workbench/volume-pennants.js","9ab5819a286aa3351882538fa89472bc0a42b3edd5b5b3c3395ce8e95437df3d"],
+    ["tests/fixtures/workbench/volume-pennants-revised.js","9bbcbcad6706847c319a4e082596b88b77b108521c3173626524e827dc1aeadc"]
+  ],
+  "observed": "The external source was loaded into the ordinary program editor. The original eight line segments anchored both left-facing flags to their own time and close. Expanding and refitting moved the poles with the reference, retained lengths of 24 and 16 drawing units, and kept the twelve-unit reach. The host stroke adjustment survived the revision. The one-line source edit added a single unfilled circle to the later tip, with every previous line coordinate unchanged.",
+  "verify": "pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs drawing-workbench.spec.mjs --grep 'external client authors pennants'",
+  "scope": "Manual or test-driven local source transfer and browser observation. Live Codex/Claude bridge admission and physical Windows qualification remain open."
+}

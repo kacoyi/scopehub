@@ -1986,6 +1986,14 @@ crates.io: zmij 1.0.23
 Declared license: MIT
 Upstream metadata: https://crates.io/crates/zmij/1.0.23
 
+npm: @jitl/quickjs-asmjs-mjs-release-sync 0.32.0
+Declared license: MIT
+Upstream metadata: https://registry.npmjs.org/%40jitl%2Fquickjs-asmjs-mjs-release-sync/0.32.0
+
+npm: @jitl/quickjs-ffi-types 0.32.0
+Declared license: MIT
+Upstream metadata: https://registry.npmjs.org/%40jitl%2Fquickjs-ffi-types/0.32.0
+
 npm: @oxc-project/types 0.153.0
 Declared license: MIT
 Upstream metadata: https://registry.npmjs.org/%40oxc-project%2Ftypes/0.153.0
@@ -2317,6 +2325,10 @@ Upstream metadata: https://registry.npmjs.org/playwright-core/1.65.1
 npm: postcss 8.5.29
 Declared license: MIT
 Upstream metadata: https://registry.npmjs.org/postcss/8.5.29
+
+npm: quickjs-emscripten-core 0.32.0
+Declared license: MIT
+Upstream metadata: https://registry.npmjs.org/quickjs-emscripten-core/0.32.0
 
 npm: react 19.3.0
 Declared license: MIT

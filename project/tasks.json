@@ -4743,10 +4743,13 @@
         "workbench-renderer-probe",
         "market-workflow",
         "ui-build",
-        "workbench-authored-composition"
+        "workbench-authored-composition",
+        "indicator-declarative-preview",
+        "desktop-localization",
+        "workbench-drawing-runtime"
       ],
       "evidence": [],
-      "next_action": "Exercise an owner-chosen question with a connected model, then gather matched Ubuntu and Windows native observations of same-series expressiveness, drawing services, scoped previews and readable editable definitions under ADR 0027 and the 2026-11-23 authoring direction.",
+      "next_action": "Compare both renderer candidates on a shared author/revise/select/recover workload. Verify the scoped native evidence and record pending gates for the ef0a1e1 binding under ADR 0027. Preserve the previous checkpoints and keep the major owner feedback open through qualification.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -4762,9 +4765,13 @@
           "contracts/decisions/0027-v1-user-composed-workbench.json"
         ],
         "hypotheses": [
-          "A connected text model can compose reusable declarative presentation primitives and scoped, host-owned interactions without executable content or additional access."
+          "A connected text model can compose reusable declarative presentation primitives and scoped, host-owned interactions without executable content or additional access.",
+          "A one-shot dedicated worker containing the upstream QuickJS JS-only interpreter can admit readable synthetic drawing programs and retain the native CSP. The host can reuse its time/value projection for the reference layer while accepting only bounded numeric geometry. A later experimental ABI can declare scalar controls and refer to source observations without admitting host calls. Keep each freeze and source handoff independently reproducible."
         ],
         "risks": [
+          {"failure": "Reconstructing a Rust-created profile ID from a Node path can prevent the private handoff on Windows. Reopen the published synthetic profile using its persisted binding and repeat all three accepted-series tests with the ordinary private handoff on Windows.", "checks": ["workbench-drawing-runtime"]},
+          {"failure": "A passing browser or older native drawing is misattributed to a different runtime. Bind native comparisons to the exact guest bytes, measured frame and runtime; exercise a rejected input and verify restoration.", "checks": ["workbench-renderer-probe"]},
+          {"failure": "A removed or superseded grant leaves geometry or values visible, a null is replaced by zero, or a source unit is attributed to an unrelated output.", "checks": ["workbench-drawing-runtime"]},
           {
             "failure": "A failed draft replaces the accepted view, or an edited encoding loses its input identity.",
             "checks": [
@@ -4790,9 +4797,16 @@
               "workbench-renderer-probe",
               "workbench-authored-composition"
             ]
+          },
+          {
+            "failure": "Shared icon CSS can collapse a correct logical viewport. Measure screen dimensions and mapped point separation in two window sizes and WebKitGTK. A guest exceeds CPU, heap, stack or output bounds, or a stale result replaces the accepted scene. Try a valid and rejected program, an unending loop, a forbidden capability and restore during evaluation.",
+            "checks": [
+              "workbench-drawing-runtime",
+              "workbench-authored-composition"
+            ]
           }
         ],
-        "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision.",
+        "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision. The code candidate is opt-in and transient. Remove its entry, worker, pinned interpreter and harness together.",
         "implementation": {
           "modules": [
             "ui"
@@ -4803,7 +4817,12 @@
             "crates/application/src/workspace/layout.rs",
             "apps/desktop/ui/src/workbench-prototype.tsx",
             "apps/desktop/ui/src/model-chat.tsx",
-            "apps/desktop/ui/src/model-chat-transport.ts"
+            "apps/desktop/ui/src/model-chat-transport.ts",
+            "apps/desktop/ui/src/drawing-program.ts",
+            "apps/desktop/ui/src/drawing.worker.ts",
+            "apps/desktop/ui/src/drawing-workbench.tsx",
+            "apps/desktop/ui/src/indicator-acceptance.tsx",
+            "crates/application/src/workspace/indicators/accepted.rs"
           ],
           "rules": [
             {
@@ -4812,7 +4831,7 @@
             }
           ],
           "non_goals": [
-            "Persisting a new workspace format, connecting a market source or executing user-supplied code in this prototype."
+            "Persistent formats, profile migrations, real provider data, product runtime permission changes, general host code execution or renderer selection from a single OS. Only isolated synthetic drawing programs qualify here."
           ],
           "open_questions": [
             "Can both native engines present and recover the same composition with acceptable interaction latency? Which observed limitation warrants prototyping the alternative? Can candidate drawing services stay reusable across arbitrary compositions and optional axes? Can users inspect, partially edit and replace the default without accessing private host implementation?"
@@ -4826,7 +4845,7 @@
           "change": [
             "Expose a separate transient synthetic renderer experiment through the desktop UI."
           ],
-          "data_plan": "Use a frozen synthetic series and transient draft and accepted values owned by the host. No profile migration.",
+          "data_plan": "Use a frozen synthetic series and transient draft and accepted values owned by the host. No profile migration. From 38c15a9, bind only a selected accepted numeric series in memory. Read the current grant through the existing trusted workspace transport. Discard projected values and drawings on scope changes. Qualify only with confirmed synthetic local CSV data.",
           "cleanup": "Remove or replace the experimental controls when the renderer selection is resolved and the product workbench takes over."
         }
       }
@@ -17221,6 +17240,95 @@
           ],
           "data_plan": "The existing conversation route receives the intent, allowed synthetic source names and the accepted declarative tree. Frozen values and chart selection remain local. Apply only a validated candidate after human acceptance. No migration.",
           "cleanup": "Retire the experimental entry when the selected renderer and product workbench take over."
+        }
+      }
+    },
+    {
+      "id": "M2-016",
+      "title": "Restore the drawn viewport dimensions of the frozen drawing candidate",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-015"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "Display the drawing at its declared aspect ratio in 1280 by 800 and 900 by 650 host windows. Verify physical separation of the held-out marks using the browser transform and observe the production bundle in WebKitGTK. Preserve the original compressed preview and source identity."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "workbench-drawing-runtime"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-016-87d534fc3f748e47.json",
+          "sha256": "19ca94eacc9bf77ea11d60cbc49bd5b89833becbceb89a067679f41a97f4761e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Render a legible independently authored drawing on both inspected viewport sizes.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/style.css",
+          "apps/desktop/ui/src/drawing-workbench.css",
+          "tests/ui/drawing-workbench.spec.mjs"
+        ],
+        "hypotheses": [
+          "The drawing inherits a fixed icon height even though its logical geometry is correct."
+        ],
+        "risks": [
+          {
+            "failure": "Logical coordinates pass despite a collapsed picture. Measure actual CSS pixels and transforms after resizing.",
+            "checks": [
+              "workbench-drawing-runtime"
+            ]
+          }
+        ],
+        "rollback": "Keep the original frozen runtime and its static port. Revert the scoped drawing style to reproduce the original defect.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/drawing-workbench.css",
+            "tests/ui/drawing-webkit.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Changing the drawing ABI or adding client controls."
+          ],
+          "open_questions": [
+            "Physical Windows remains part of the broader renderer selection."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Frozen code, data, coordinate mappings and model route."
+          ],
+          "change": [
+            "Override the icon height only inside the drawing surface."
+          ],
+          "data_plan": "No data or persistence changes.",
+          "cleanup": "Retain regression and the original candidate for independent comparison."
         }
       }
     }

@@ -44,6 +44,15 @@ test.describe('language preference and recovery', () => {
     await expect(control(reopened, '语言设置')).toBeVisible();
   });
 
+  test('localizes the drawing studio and preserves readable program source', async ({ page }) => {
+    await page.goto('/?renderer=drawing');
+    const studio = page.getByRole('dialog', { name: '绘图工作室' });
+    await studio.getByRole('button', { name: '试用示例程序' }).click();
+    await expect(studio.getByRole('img', { name: '价格叠加图' })).toBeVisible();
+    await expect(studio.getByRole('slider', { name: '线宽' })).toBeVisible();
+    await expect(studio.getByRole('textbox', { name: '程序源码' })).toHaveValue(/^\/\/ future overlay/);
+  });
+
   test('opens in the system language after a delayed application entry', async ({ page, baseURL }) => {
     await page.route('**/src/main.tsx', async route => {
       // Exceed the old 5 s control assertion within the existing 10 s startup budget.

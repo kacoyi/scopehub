@@ -3848,6 +3848,47 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "drawing-surface-icon-height",
+      "source": "Independent native Tauri/WebKitGTK and Chromium inspection at e4f6e06, reproduced on Chromium 159 at 1280x800. Original PNG SHA-256 2d7681b32ed9477d5a0dfa0bd2bd52ebbe6ae8aced2d51b2d494a5615b14d80d, retained under .reports/drawing-pixels/v1/accepted-1280.png.",
+      "observation": "The global icon rule fixes all SVG heights at 19 CSS pixels. The drawing surface overrides width only, producing an 861.109375 by 19 viewport and compressing the two close centers to 43.70 pixels apart horizontally and 4.86 vertically. Logical coordinate checks passed while the native picture was unreadable.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-016"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": {
+        "cause": "The global SVG icon height overrode the drawing's intrinsic aspect ratio.",
+        "correction": "Set the drawing surface height to auto with the declared logical aspect ratio.",
+        "prevention": "Measure actual screen geometry in two browser sizes, and check the same window sizes on WebKitGTK. Retain the original frozen preview and screenshot."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "accepted-series-windows-profile-handoff",
+      "source": "Hosted Windows run 45314545439, workbench-drawing-runtime.log. The separate native folder-chooser observation belongs to the independent verifier.",
+      "observation": "Three Chromium accepted-series tests reached the private handoff wait before any drawing was admitted. The fixture reconstructed a native profile ID by hashing a Node realpath. The writer derives its ID from Rust canonicalization and attests the stored binding. The existing frozen-source reopen fixture reads that binding from the disposable profile.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-003"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T024658.838768Z-76ce7b40",
+          "source_commit": "0f1a6263c9e04bad50558721659e69a75c3d029b",
+          "report_sha256": "7897be7ccfa223749c34a583e4ae6898eb85363e34fe4ab412cda0ed1f229e9f"
+        }
+      ]
     }
   ]
 }
