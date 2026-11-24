@@ -371,6 +371,13 @@ def split_windows_seconds(aggregate, producers, requested):
     seconds['browser_step'] = producers['browser'][0]['seconds']['browser_step']
 
 
+def has_windows_producers(siblings):
+    expected = WINDOWS_PRODUCERS.values()
+    named = [job for job in siblings if job.get('name') in expected]
+    return (sorted(job['name'] for job in named) == sorted(expected)
+            and all(job['platform'] == 'Windows' and job['runner_label'] == 'windows-latest' for job in named))
+
+
 def hosted_timing(run, jobs):
     """Derive clock intervals from an exact Actions attempt and its actual job topology."""
     if run.get('path', WORKFLOW) != WORKFLOW or run.get('name', 'Verify delivery') != 'Verify delivery':
@@ -392,7 +399,6 @@ def hosted_timing(run, jobs):
     )
     rows, siblings, producers = [], [], {}
     aggregate = None
-    producer_count = 0
     for job in jobs:
         name = job.get('name', '')
         protected = re.fullmatch(r'verify(?: task)? \((ubuntu-latest|windows-latest)\)', name)
@@ -412,7 +418,6 @@ def hosted_timing(run, jobs):
             row, clocks = observe_job(job, identity=identity, requested=requested, label='windows-latest',
                                       harness_steps=harness_steps)
             producers[lane] = row, clocks
-            producer_count += 1
         elif job.get('conclusion') == 'skipped':
             continue
         else:
@@ -429,7 +434,7 @@ def hosted_timing(run, jobs):
             if ids.count(row['job_id']) > 1:
                 row['identity_issues']['conflicts'].append('duplicate_job_id')
     bound_matrix = (len(rows) == len(PLATFORMS) and {row['platform'] for row in rows} == set(PLATFORMS.values())
-                    and (not split or producer_count == len(producers) == len(WINDOWS_PRODUCERS))
+                    and (not split or has_windows_producers(siblings))
                     and all(not row['identity_issues']['conflicts'] for row in actual))
     complete = (bound_matrix and run.get('status') == 'completed'
                 and all(row['status'] == 'completed' for row in actual))
@@ -503,6 +508,7 @@ def valid_clock(run):
     siblings = run.get('sibling_jobs', [])
     return (isinstance(workflow, dict) and type(workflow['matrix_complete']) is bool
             and (workflow.get('identity_complete') is None or type(workflow['identity_complete']) is bool)
+            and (workflow.get('windows_split') is None or type(workflow['windows_split']) is bool)
             and isinstance(jobs, list) and isinstance(siblings, list) and all(
                 labels(job, ('job_id', 'platform', 'runner_label', 'status', 'conclusion'))
                 and all(isinstance(job['identity_issues'][key], list) for key in ('missing', 'conflicts'))
@@ -528,7 +534,9 @@ def admitted_records(records, validate, label, issues):
 
 def clock_complete(run):
     workflow = run['workflow']
-    actual = [*run['jobs'], *run.get('sibling_jobs', [])]
+    siblings = run.get('sibling_jobs', [])
+    split = workflow.get('windows_split') or 'sibling_jobs' in run
+    actual = [*run['jobs'], *siblings]
     ids = {job['job_id'] for job in actual if positive_id(job['job_id'])}
     return (run['conclusion'] == 'success' and workflow['matrix_complete'] is True
             and workflow.get('identity_complete') is True and len(run['jobs']) == len(PLATFORMS)
@@ -538,12 +546,14 @@ def clock_complete(run):
             and all(job['status'] == 'completed' and job['conclusion'] == 'success' and not job['identity_issues']['missing']
                     and not job['identity_issues']['conflicts']
                     and job['seconds']['total'] is not None and job['seconds']['runner'] is not None for job in actual)
-            and (not workflow.get('windows_split')
-                 or all(job['seconds']['harness_step'] is not None for job in run['jobs'])))
+            and (not split or (
+                has_windows_producers(siblings) and all(job['seconds']['harness_step'] is not None for job in run['jobs'])
+            )))
 
 
-def sample_complete(sample):
-    return sample['coverage_complete'] and sample.get('identity_complete') is True
+def sample_eligible(sample):
+    return (sample['coverage_complete'] and sample.get('identity_complete') is True
+            and short_label(sample['run_id']) is not None and timestamp(sample['recorded_at']) is not None)
 
 
 def attempt_clocks(hosted, issues):
@@ -578,31 +588,46 @@ def coalesce_samples(samples, issues):
     for sample in samples:
         ci = sample['ci']
         key = (*ci_key(ci), sample['platform']) if ci else ('local', sample['run_id'], sample['platform'])
-        previous = observations.get(key)
-        if previous:
-            if sample_complete(sample) and not sample_complete(previous):
-                observations[key] = sample
-                continue
-            # Compact artifacts can add observations absent from older samples and full reports.
-            try:
-                previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
-                caches = {previous['cache'], sample['cache']} - {'unknown'}
-                if (sample_core(previous) != sample_core(sample) or len(caches) > 1
-                        or (previous_proof is not None and proof is not None and previous_proof != proof)):
-                    raise TimingError('Conflicting timing observations; using the first observation.')
-            except TIMING_INPUT_ERRORS as error:
-                issues.append({'run_id': sample['run_id'], 'error': str(error)})
+        group = observations.get(key)
+        if group is None:
+            observations[key] = [sample]
+            continue
+        if len(group) > 1:
+            continue
+        previous = group[0]
+        eligible, previous_eligible = sample_eligible(sample), sample_eligible(previous)
+        if not eligible or not previous_eligible:
+            if eligible:
+                group[0] = sample
+            continue
+        # Compact artifacts can add observations absent from older samples and full reports.
+        try:
+            previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
+            caches = {previous['cache'], sample['cache']} - {'unknown'}
+            if (sample_core(previous) != sample_core(sample) or len(caches) > 1
+                    or (previous_proof is not None and proof is not None and previous_proof != proof)):
+                group.append(sample)
+                issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
+                               'error': 'Conflicting complete timing samples for this run and platform.'})
                 continue
             sample = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
             if previous_proof is not None and proof is None:
                 sample['generated_contracts'] = previous_proof
-        observations[key] = sample
+        except TIMING_INPUT_ERRORS:
+            issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
+                           'error': 'Could not compare timing samples for this run and platform.'})
+            group.append(sample)
+            continue
+        group[0] = sample
     return list(observations.values())
 
 
 def merge_samples(samples, hosted, issues):
     clocks = attempt_clocks(hosted, issues)
-    for sample in coalesce_samples(samples, issues):
+    for group in coalesce_samples(samples, issues):
+        if len(group) > 1:
+            continue
+        sample = group[0]
         ci = sample['ci']
         run = clocks.get(ci_key(ci)) if ci else None
         jobs = [job for job in run['jobs'] if job['platform'] == sample['platform']] if run else []
@@ -771,7 +796,7 @@ def timing_view(samples, *, hosted=(), issues=None):
     objective_scopes = defaultdict(list)
     for sample in merged:
         ci, job = sample['ci'], sample['job']
-        if not sample['coverage_complete'] or not sample.get('identity_complete') or not sample['recorded_at'] or not sample['run_id']:
+        if not sample_eligible(sample):
             reason = 'Harness report is missing, failed, or has incomplete coverage or identity.'
         elif ci and not sample['hosted_identity_complete']:
             reason = 'Exact Actions attempt and job identities are unavailable or conflicting.'
@@ -1001,27 +1026,21 @@ def offline_budget_status(root, feedback, tasks):
     return budget_status(*retained_budget_inputs(root), feedback, tasks)
 
 
-def attempt_components(identity, samples, hosted):
-    platforms = {
-        row['platform'] for row in samples if ci_key(row.get('ci') or {}) == identity
-        and sample_complete(row)
-    }
-    clock = attempt_clocks([row for row in hosted if ci_key(row) == identity], []).get(identity)
-    if clock and not clock_complete(clock):
-        clock = None
-    return set(PLATFORMS.values()) - platforms, clock
-
-
 def capture_observations(identity, samples, hosted, issues):
-    samples = coalesce_samples([row for row in samples if ci_key(row['ci'] or {}) == identity], issues)
+    groups = coalesce_samples([row for row in samples if ci_key(row['ci'] or {}) == identity], issues)
+    # Conflicting eligible witnesses satisfy retrieval for their platform but never enter a budget cohort.
+    present = {group[0]['platform'] for group in groups if sample_eligible(group[0])}
+    missing = set(PLATFORMS.values()) - present
+    ambiguous = any(len(group) > 1 for group in groups)
     # Retain distinct observations for diagnostics and future attempts. Incompatible complete clocks
     # must remain visibly incompatible even if an exact retry agrees with one of them.
     clocks = list({(clock_complete(clock), clock_signature(clock)): clock
                    for clock in hosted if ci_key(clock) == identity}.values())
     clock = attempt_clocks(clocks, issues).get(identity)
-    if clock and clock_complete(clock):
+    complete_clock = clock is not None and clock_complete(clock)
+    if complete_clock:
         clocks = [clock]
-    return samples, clocks
+    return [row for group in groups for row in group], clocks, missing, complete_clock, ambiguous
 
 
 def save_timing_capture(path, attempts, samples, clocks, issues):
@@ -1042,12 +1061,12 @@ def read_timing_capture(path, issues):
         attempts = data.get('intake_attempts', 1)
         if type(attempts) is not int or not 0 <= attempts <= INTAKE_ATTEMPTS:
             raise TimingError('Invalid timing capture attempt count.')
-        return attempts, samples, clocks, bool(data.get('input_issues'))
+        return attempts, samples, clocks, data.get('input_issues', [])
     except FileNotFoundError:
-        return 0, [], [], False
+        return 0, [], [], []
     except (OSError, *TIMING_INPUT_ERRORS) as error:
         issues.append({'file': path.name, 'error': str(error)})
-        return 0, [], [], False
+        return 0, [], [], []
 
 
 def collect_new_ci_timing(root, repository, run, samples, hosted):
@@ -1074,13 +1093,14 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     run_id = str(run['id'])
     retained_notes = []
     attempts, prior_samples, prior_clocks, prior_issues = read_timing_capture(path, retained_notes)
-    combined_samples, combined_clocks = capture_observations(identity, [*prior_samples, *samples],
-                                                             [*prior_clocks, *hosted], retained_notes)
-    missing, clock = attempt_components(identity, combined_samples, combined_clocks)
-    if not missing and clock:
-        if prior_issues or (prior_samples, prior_clocks) != (combined_samples, combined_clocks):
-            save_timing_capture(path, attempts, combined_samples, combined_clocks, [])
-        return 'retained', combined_samples, combined_clocks, retained_notes
+    combined_samples, combined_clocks, missing, complete_clock, ambiguous = capture_observations(
+        identity, [*prior_samples, *samples], [*prior_clocks, *hosted], retained_notes,
+    )
+    if not missing and complete_clock:
+        persisted_issues = retained_notes if ambiguous else []
+        if (prior_samples, prior_clocks, prior_issues) != (combined_samples, combined_clocks, persisted_issues):
+            save_timing_capture(path, attempts, combined_samples, combined_clocks, persisted_issues)
+        return ('ambiguous' if ambiguous else 'retained'), combined_samples, combined_clocks, retained_notes
     if attempts >= INTAKE_ATTEMPTS:
         if (prior_samples, prior_clocks) != (combined_samples, combined_clocks):
             save_timing_capture(path, attempts, combined_samples, combined_clocks, retained_notes)
@@ -1101,25 +1121,23 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
             ]
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
-    if not clock and (set(PLATFORMS.values()) - missing or new_samples):
+    if not complete_clock and (set(PLATFORMS.values()) - missing or new_samples):
         try:
             row = inspect_jobs(run, repository)
             if valid_clock(row) and ci_key(row) == identity:
                 new_clocks.append(row)
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
-    captured_samples, captured_clocks = capture_observations(
+    captured_samples, captured_clocks, missing_after, complete_clock, ambiguous = capture_observations(
         identity, [*combined_samples, *new_samples], [*combined_clocks, *new_clocks], issues,
     )
-    missing_after, clock_after = attempt_components(identity, captured_samples, captured_clocks)
     if missing_after:
         issues.append({'run_id': run_id, 'error': 'Compact reports are absent for part of the required matrix.'})
-    if not clock_after:
+    if not complete_clock:
         issues.append({'run_id': run_id, 'error': 'Complete matching attempt job clocks are unavailable.'})
     save_timing_capture(path, attempts, captured_samples, captured_clocks, issues)
-    return ('partial' if missing_after or not clock_after else 'captured'), captured_samples, captured_clocks, [
-        *retained_notes, *issues,
-    ]
+    status = 'partial' if missing_after or not complete_clock else 'ambiguous' if ambiguous else 'captured'
+    return status, captured_samples, captured_clocks, [*retained_notes, *issues]
 
 
 def ci_budget_status(root, repository, run):
@@ -1128,7 +1146,7 @@ def ci_budget_status(root, repository, run):
     if run:
         try:
             intake, new_samples, new_clocks, new_issues = collect_new_ci_timing(root, repository, run, samples, hosted)
-            if intake in {'captured', 'retained'}:
+            if intake in {'captured', 'retained', 'ambiguous'}:
                 capture = f'ci-{run["event"]}-{run["id"]}-1.json'
                 issues = [issue for issue in issues if issue.get('file') != capture]
             samples.extend(new_samples)

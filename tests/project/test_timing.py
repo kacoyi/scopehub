@@ -258,6 +258,18 @@ class HostedTimingTests(unittest.TestCase):
         self.assertIsNone(windows['seconds']['harness_step'])
         self.assertFalse(timing.clock_complete(result))
 
+    def test_retained_split_clocks_require_each_named_producer_once(self):
+        for scoped in (False, True):
+            valid = timing.hosted_timing(hosted_run(), self.split_windows_jobs(scoped=scoped))
+            self.assertTrue(timing.clock_complete(valid))
+            core, browser, python = valid['sibling_jobs']
+            for case, siblings in (('missing', [core, browser]),
+                                   ('duplicate', [core, browser, python, dict(python, job_id='36')]),
+                                   ('renamed', [core, browser, dict(python, name='Other Windows job')])):
+                with self.subTest(scoped=scoped, case=case):
+                    retained = json.loads(timing.json_bytes({**valid, 'sibling_jobs': siblings}))
+                    self.assertFalse(timing.clock_complete(retained))
+
     def test_jobs_use_wall_boundaries_for_queue_setup_harness_tail_and_total(self):
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
         windows = hosted_job(32, 'windows', '00:20', '06:00',
@@ -905,6 +917,59 @@ class RecentTimingTests(unittest.TestCase):
                 self.assertEqual(expected_downloads, download.call_count)
                 if expected_downloads:
                     download.assert_called_once_with(repository, '14', '1', platforms={'Windows'})
+
+    def test_capture_retries_only_platform_without_harness_identity_or_valid_recorded_time(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        linux, windows = rows
+        for field, value in (('run_id', None), ('recorded_at', None), ('recorded_at', 'invalid timestamp'),
+                             ('recorded_at', '2026-11-14T00:01:00')):
+            with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                invalid = {**windows, field: value}
+                view = timing.timing_view([linux, invalid], hosted=[clock])
+                self.assertEqual(['Linux'], [row['platform'] for row in view['reviews']])
+                with (patch.object(timing, 'download_timing', return_value=[windows]) as download,
+                      patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                    status, captured, _, _ = timing.collect_new_ci_timing(
+                        root, 'fixture/scopehub', run, [linux, invalid], [clock],
+                    )
+                self.assertEqual('captured', status)
+                self.assertCountEqual([linux, windows], captured)
+                download.assert_called_once_with('fixture/scopehub', '14', '1', platforms={'Windows'})
+
+    def test_conflicting_complete_sample_remains_ambiguous_after_shared_handoff_in_both_orders(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        linux, warm = rows
+        cold = dict(warm, cache='cold')
+        _, control_rows, control_clock = self.budget_run(15, '17:00')
+        _, unrelated_rows, unrelated_clock = self.budget_run(16, '17:00')
+        for first, second in ((warm, cold), (cold, warm)):
+            with self.subTest(first=first['cache']), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                shared = base / 'common'
+                with (patch.object(timing, 'shared_timing_directory', return_value=shared),
+                      patch.object(timing, 'download_timing', side_effect=AssertionError('Unexpected artifact request')),
+                      patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                    self.assertEqual('retained', timing.collect_new_ci_timing(
+                        base / 'first', 'fixture/scopehub', run, [linux, first], [clock],
+                    )[0])
+                    status, _, _, _ = timing.collect_new_ci_timing(
+                        base / 'second', 'fixture/scopehub', run, [second], [],
+                    )
+                    self.assertEqual('ambiguous', status)
+                    samples, clocks, issues = timing.retained_budget_inputs(base / 'fresh')
+                    self.assertEqual('ambiguous', timing.collect_new_ci_timing(
+                        base / 'fresh', 'fixture/scopehub', run, samples, clocks,
+                    )[0])
+                self.assertCountEqual(['warm', 'cold'], [row['cache'] for row in samples if row['platform'] == 'Windows'])
+                self.assertTrue(any('Conflicting' in issue['error'] for issue in issues))
+                view = timing.budget_status([*samples, *control_rows, *unrelated_rows],
+                                            [*clocks, control_clock, unrelated_clock], issues, [], {})
+                breach, = view['repeated_breaches']
+                self.assertEqual(['15', '16'], breach['recent_runs'])
+                self.assertTrue(any('Conflicting' in issue['error'] for issue in view['input_issues']))
+                linux_review, = (row for row in view['elapsed_observations'] if row['platform'] == 'Linux')
+                self.assertEqual(3, linux_review['sample_count'])
 
     def test_recent_cold_successes_do_not_hide_warm_recurrence(self):
         observations = [self.budget_run(day, '17:00', cache='warm') for day in (14, 15)]
