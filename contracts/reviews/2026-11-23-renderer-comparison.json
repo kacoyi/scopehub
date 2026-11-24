@@ -149,6 +149,15 @@
           "log_sha256": "ca0a802c80bb73fcb5b601d9bed64c86347a49a20e61aebb43a9a459789ed75c",
           "check_outcome": "failed",
           "observation": "On the frozen ef0a1e1 UI, the corrected native driver found the WebView2 157 document in the application window (PID 5500, HWND 196988). After reopening the frozen chart the studio exposed the prepared version 9acd65a1-e678-45ac-b97d-c008cad4cd5e as a list item. The keyboard-focus check stopped the driver before it chose that item. The studio remained on the blank canvas. No selected output, revocation receipt or post-revocation clearance was observed."
+        },
+        "live_revocation_picker_recovery": {
+          "workflow_run": 45329982212,
+          "run_id": "20261124T050047.286635Z-5875b056",
+          "source_commit": "2434e1adcfd3243e459638852a3d9697aea0a4aa",
+          "report_sha256": "7acdefa7da905ca3176b04040a1fa012b49c7af668c6f535d6991a0a6cbfdfea",
+          "log_sha256": "e12afda3cc88e6f7fcf551f366fed8bad376a0227a0c3f207b1ac2742605d5f2",
+          "check_outcome": "failed",
+          "observation": "On the ef0a1e1 UI, the prepared WebView2 window restored the FIX daily chart with close 16 and volume 140. At binding-interrupted the studio showed Accepted series unavailable and a blank canvas. After the driver attempted Back to chart, the next captured accessibility tree still showed Drawing studio, now with its version combobox and a blank canvas. The driver timed out waiting for the chart. No exact version selection, accepted-output display or revocation occurred. The captures contain no workspace error code to identify the cause."
         }
       }
     }
