@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-032",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19712,7 +19712,7 @@
       "id": "M2-032",
       "title": "Restore the accepted prototype workbench on same-session reopen",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": [
         "M2-014",
@@ -19744,10 +19744,19 @@
         "market-workflow",
         "renderer-prototype-interaction"
       ],
-      "evidence": [],
-      "next_action": "Record the matching Linux Chromium and Windows WebView2 results from one M2-032 task workflow, and close with both receipts.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-032-8083c4172300898c.json",
+          "sha256": "b1729378f2ccf5606b9ed21704034db7e625d7c53140285e9fe0457e1f5fb948"
+        },
+        {
+          "path": "project/evidence/M2-032-33a13459c47a0bd3.json",
+          "sha256": "a48b6907fd56110c0a25340306815841db2b614c32963b0cba195a394bca26c4"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra approved 617348ea8be32e0b3d60205b67a7bc4211d7ff5a. Its five source and test files match the accepted integration source 94b6031f5df34876dae08071524962d6b8f5f079 byte for byte. The same task workflow 45473025581 passed on Linux Chromium and Windows WebView2. Ordinary close and reopen restored the accepted value table, threshold tiles, frozen source and selected 21:01 value 3499.8. Preview-only selection and the rejected draft left the accepted state intact, and a new Chromium window session opened blank. The accepted candle returned frozen and the old quote replay stayed stopped. The actual-base Chromium probe observed the first restored visible result with an enabled row at 15 ms in archives/observations/m2-032-actual-main-94b6031/actual-base-focused/results.json. WebView2 UI Automation recorded 127 ms to the accessible result including polling. The Linux WebKitGTK experiment recorded a restored buffer at 31.198 ms and another at 34.500 ms after draft rejection under nested Weston and Xvfb in archives/observations/m2-032-session-reopen-617348e/observations.json; it measures that virtual host.",
       "plan": {
         "outcome": "A user returns to the same accepted synthetic workbench and selected value after going back to the chart within one open desktop window.",
         "change_types": [
