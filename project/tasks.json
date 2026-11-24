@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-030",
   "tasks": [
     {
       "id": "M0-001",
@@ -17731,6 +17731,110 @@
           "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
           "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M2-030",
+      "title": "Show an editable chart-free state view of the same synthetic result",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-029"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0027"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "Through the ordinary workbench editor, display the frozen qualification equity result as a chart-free set of lights. At five minutes the original four strength values 0.15, 0.50, 0.95 and null appear as green, amber, red and unknown with the example thresholds 0.4 and 0.8. Each state also has a readable text label.",
+        "Edit an encoding rule in the draft and inspect the selected result by UTC bar, source and result revision. Reuse the frozen inputs already used by the candlesticks. A presentation change performs no additional financial computation or data access.",
+        "Preserve the selected timeframe and financial identity when changing the presentation of an accepted block. At fifteen minutes strength 0.90 belongs to the 09:30 UTC bar. Reject invalid edits and recover the accepted view. Keep existing authored candle definitions readable."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "renderer-prototype-interaction"
+      ],
+      "evidence": [],
+      "next_action": "Implement the chart-free encoding through the existing opt-in editor, then exercise it through the ordinary UI.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A researcher can read and inspect the same conditional result as lights on a chart-free canvas and change how the values are presented.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/workbench-prototype.tsx",
+          "apps/desktop/ui/src/workbench-candle-source.ts",
+          "apps/desktop/ui/src/workbench-candle-block.tsx",
+          "tests/fixtures/workbench-qualification-v1.json",
+          "contracts/workbench-v1.json"
+        ],
+        "hypotheses": [
+          "A small set of editable range and state mappings can express this view over the existing frozen source without a second indicator engine."
+        ],
+        "risks": [
+          {
+            "failure": "A missing value is classified as low, or a style edit changes the bar or timeframe.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "The chart-free view misstates the source, requests a new operation or breaks existing authored candle definitions.",
+            "checks": [
+              "architecture",
+              "renderer-prototype-interaction"
+            ]
+          }
+        ],
+        "rollback": "Remove the prototype presentation option and its editor affordance together while retaining support for previous candle definitions.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "apps/desktop/ui/src/workbench-candle-source.ts",
+            "tests/ui/renderer-probe.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/extensibility"
+            },
+            {
+              "path": "tests/fixtures/workbench-qualification-v1.json",
+              "pointer": "/cases/unconventional-indicator"
+            }
+          ],
+          "non_goals": [
+            "No provider integration, persistent format, user code execution, full indicator qualification or renderer selection."
+          ],
+          "open_questions": [
+            "How can the editor preserve the binding while allowing a user to change its visual mapping with ordinary controls and authored text?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing candlestick definitions, accepted view recovery and the synthetic source and result revisions."
+          ],
+          "change": [
+            "Add an editable chart-free encoding with textual state labels and result inspection."
+          ],
+          "data_plan": "Read the existing immutable synthetic observations. Keep presentation and selection in the window.",
+          "cleanup": "Evaluate this composition with its source binding at the parent renderer decision."
         }
       }
     }
