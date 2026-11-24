@@ -108,6 +108,36 @@ public static class DrawingWindowCapture {
         }
     }
 
+    public static string VisibilityContent(Bitmap image) {
+        // Resolve the surface origin from its first solid background row in a column clear of the mark.
+        Color background = Color.FromArgb(16, 20, 28);
+        double scale = image.Width / 640.0;
+        int y0 = 0;
+        while (y0 < image.Height && image.GetPixel(image.Width / 2, y0).ToArgb() != background.ToArgb()) y0++;
+        if (y0 > 2) throw new InvalidOperationException("Could not identify the authored drawing top edge.");
+        int height = (int)Math.Floor(image.Width * 240.0 / 640.0) - 2;
+        Rectangle area = new Rectangle(2, y0 + 1, image.Width - 4, height);
+        if (area.Bottom > image.Height) throw new InvalidOperationException("Incomplete authored drawing interior.");
+        int left = image.Width, top = image.Height, right = -1, bottom = -1;
+        using (var bytes = new System.IO.MemoryStream()) {
+            for (int y = area.Top; y < area.Bottom; y++) for (int x = area.Left; x < area.Right; x++) {
+                Color c = image.GetPixel(x,y);
+                bytes.WriteByte(c.R); bytes.WriteByte(c.G); bytes.WriteByte(c.B);
+                if (c.R == 96 && c.G == 212 && c.B == 191) {
+                    left = Math.Min(left,x); right = Math.Max(right,x);
+                    top = Math.Min(top,y); bottom = Math.Max(bottom,y);
+                }
+            }
+            if (Math.Abs(left - 46.5*scale) > 2 || Math.Abs(right - 169.5*scale) > 2 ||
+                Math.Abs(top-y0 - 62.5*scale) > 2 || Math.Abs(bottom-y0 - 83.5*scale) > 2)
+                throw new InvalidOperationException("Unexpected absolute rectangle bounds.");
+            bytes.Position = 0;
+            using (var hash = System.Security.Cryptography.SHA256.Create()) {
+                return BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-","");
+            }
+        }
+    }
+
     public static int[] InkExtent(Bitmap plot, double logicalY, Color ink, int tolerance) {
         double scale = plot.Width / 640.0;
         int y0 = Math.Max(0, (int)((logicalY - tolerance) * scale));

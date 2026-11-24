@@ -154,7 +154,8 @@ function Save-VisibilityPlot([string]$state) {
             [Math]::Abs(($m[1]-$m[0]+1)-123*$scale) -gt 4) { throw "Unexpected visible capability mark in $state." }
         $path=Join-Path $OutputDirectory "visibility-$state.png"
         $image.Save($path,[Drawing.Imaging.ImageFormat]::Png)
-        return (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+        $signature=[DrawingWindowCapture]::VisibilityContent($image)
+        return @{full=(Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash;content=$signature;size="$($image.Width)x$($image.Height)"}
     } finally { $image.Dispose() }
 }
 function Inspect-Visibility {
@@ -177,10 +178,10 @@ function Inspect-Visibility {
     Review-Step 'Restore accepted view'
     Wait-Name 'Accepted view'
     $restored=Save-VisibilityPlot 'restored'
-    if ($before -ne $failed -or $before -ne $restored) { throw 'Accepted capability mark pixels changed during timeout or recovery.' }
+    if ($before.full -ne $restored.full -or $before.content -ne $failed.content -or $before.content -ne $restored.content) { throw 'Accepted capability mark pixels changed during timeout or recovery.' }
     $editor=Named-Control 'Program source' $type::Edit
     if ($editor.GetCurrentPattern($value).Current.Value.Trim().Replace("`r`n","`n") -cne $source.Trim()) { throw 'Earlier accepted guest source was not restored.' }
-    Write-Output "Visibility: exact accepted, timed out and restored native plot $before; input to visible timeout message (UIA polling) $elapsed ms."
+    Write-Output "Visibility: exact accepted, timed out and restored native plot $($before.full); comparison interior $($before.content); bounds $($before.size), $($failed.size), $($restored.size); input to visible timeout message (UIA polling) $elapsed ms."
     Review-Step 'Back to chart'
 }
 function Measure-SampleControl([string]$label,[int]$index) {
@@ -245,7 +246,12 @@ try {
     Add-Type -Path (Join-Path $PSScriptRoot 'DrawingWindowCapture.cs') -ReferencedAssemblies System.Drawing
     $null=[DrawingWindowCapture]::SetProcessDPIAware()
     [DrawingWindowCapture]::Resize($app.MainWindowHandle,1120,760)
-    Inspect-Visibility
+    $visibilityFailure=$null
+    try { Inspect-Visibility } catch {
+        $visibilityFailure=$_
+        Write-Output "Visibility subcheck failed: $($_.Exception.Message)"
+        if (Named-Control 'Back to chart' $type::Button) { Review-Step 'Back to chart' }
+    }
     Enter-NativeFolder $fixture
     Select-NativeOption 'Record kind' 1
     Review-Step 'Inspect raw rows'
@@ -304,6 +310,7 @@ try {
     Write-Output 'The private source was removed through the native published-revision library.'
     Review-Step 'Close'
     Inspect-SampleControls
+    if ($visibilityFailure) { throw $visibilityFailure }
 } catch {
     # Emit only the named ScopeHub window's controls, without inspecting other windows.
     $controls=@($window.FindAll($scope,$any) | Where-Object { $_.Current.Name } |
