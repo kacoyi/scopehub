@@ -3889,6 +3889,21 @@
           "report_sha256": "7897be7ccfa223749c34a583e4ae6898eb85363e34fe4ab412cda0ed1f229e9f"
         }
       ]
+    },
+    {
+      "id": "accepted-series-focus-admission",
+      "source": "Controlled Chromium focus event on the real Rust writer using a disposable confirmed CSV profile; frozen runtime ef0a1e1.",
+      "observation": "The focus snapshot received HTTP 429 retryable BUSY. After releasing the held status reply the same frozen source remained available, and the same accepted output hash was readable. The studio still showed unavailable after the next poll. A second focus restored an empty version picker. Actual revocation in the same profile returned unavailable and PERMISSION_DENIED. The Windows observation in run 45320389416 has no recorded focus response.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-020"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { formatDateTime, formatNumber, t } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { sources, type WorkbenchAuthoringTurn } from './workbench-composition';
@@ -94,14 +94,15 @@ function Observation({ scene, workspace, series }: { series: BoundSeries | undef
 type StudioProps = { hasWorkspace: boolean; workspace: LocalWorkspace | undefined; ask: (turn: WorkbenchAuthoringTurn) => void; close: () => void };
 
 export function DrawingWorkbench(props: StudioProps & { bindingSnapshot: FrozenSnapshot | undefined; sourceUnavailable: boolean; access: PublishedRevisionAccess }) {
-  const { bound, picker } = useAcceptedDrawingSeries(props.bindingSnapshot, props.access.canDisplay);
+  const workspaceSnapshot = props.workspace?.pending === 'open' ? undefined : props.workspace?.snapshot;
+  const { bound, picker, checking } = useAcceptedDrawingSeries(props.bindingSnapshot, props.access.canDisplay, workspaceSnapshot);
   // Unmount all scene, undo, model-turn and worker state when a binding leaves scope.
   const key = JSON.stringify([bound?.revision, bound?.layer, bound?.version, bound?.id, bound?.resultHash]);
-  return <Studio key={key} {...props} series={bound} picker={props.sourceUnavailable ? <p role="status">{t('Accepted series unavailable.')}</p> : picker} />;
+  return <Studio key={key} {...props} series={bound} checking={checking} picker={props.sourceUnavailable ? <p role="status">{t('Accepted series unavailable.')}</p> : picker} />;
 }
 
-function Studio({ ask, close, hasWorkspace, workspace, series, picker }: StudioProps & {
-  series: BoundSeries | undefined; picker: ReactNode;
+function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking }: StudioProps & {
+  series: BoundSeries | undefined; picker: ReactNode; checking: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const scope = useRef(Symbol());
@@ -115,6 +116,16 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker }: StudioP
   const [status, setStatus] = useState<Status>('idle');
   const [weight, setWeight] = useState(3);
   const visible = draft ?? accepted;
+  const [file, setFile] = useState<File>();
+
+  useLayoutEffect(() => {
+    if (checking) {
+      ++epoch.current;
+      job.current?.abort();
+      pendingControls.current = undefined;
+      setStatus('idle');
+    }
+  }, [checking]);
 
   useEffect(() => {
     const host = dialog.current;
@@ -174,17 +185,27 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker }: StudioP
     preview(visible.program.code, visible.origin, visible.expanded, !draft, update(current));
   }
 
-  async function openFile(file: File) {
+  // The native file chooser can return focus before it delivers the selected file.
+  // Keep its input mounted, and evaluate only after this binding has been verified.
+  useEffect(() => {
+    if (!file || checking) return;
     const expected = ++epoch.current;
+    let active = true;
     job.current?.abort();
-    try {
-      if (file.size > programLimit * 4 + 32) throw new Error();
-      const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
-      if (epoch.current === expected && dialog.current?.open) preview(text, 'editor');
-    } catch {
-      if (epoch.current === expected) { setStatus('rejected'); setDraft(undefined); }
+    async function open(selected: File) {
+      try {
+        if (selected.size > programLimit * 4 + 32) throw new Error();
+        const code = new TextDecoder('utf-8', { fatal: true }).decode(await selected.arrayBuffer());
+        if (epoch.current === expected && dialog.current?.open) preview(code, 'editor');
+      } catch {
+        if (epoch.current === expected) { setStatus('rejected'); setDraft(undefined); }
+      } finally {
+        if (active) setFile(undefined);
+      }
     }
-  }
+    void open(file);
+    return () => { active = false; };
+  }, [file, checking]);
 
   function author() {
     const expected = ++epoch.current;
@@ -201,28 +222,30 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker }: StudioP
     </header>
     <div className="probe-body drawing-layout">
       <section className="probe-editor">
-        {picker}
-        <h2>{t('Drawing program')}</h2>
-        <button type="button" className="primary" disabled={!hasWorkspace} onClick={author}>
-          {accepted ? t('Ask AI to revise the view') : t('Ask AI to author a view')}</button>
-        {!hasWorkspace && <p className="probe-hint">{t('Open Drawing studio in a connected workspace to use the model chat.')}</p>}
-        <label>{t('Program source')}<textarea spellCheck={false} value={source} maxLength={programLimit}
-          onChange={event => edit(event.target.value)} /></label>
-        <div className="probe-actions"><button type="button" disabled={Boolean(series)} onClick={() => {
-          edit(drawingExample); preview(drawingExample, 'sample');
-        }}>{t('Try sample program')}</button>
-          <button type="button" disabled={!source || status === 'running'} onClick={() => {
-            ++epoch.current; preview(source, 'editor');
-          }}>{t('Preview draft')}</button></div>
+        {checking ? <p role="status">{t('Checking workspace source…')}</p> : <>
+          {picker}
+          <h2>{t('Drawing program')}</h2>
+          <button type="button" className="primary" disabled={!hasWorkspace} onClick={author}>
+            {accepted ? t('Ask AI to revise the view') : t('Ask AI to author a view')}</button>
+          {!hasWorkspace && <p className="probe-hint">{t('Open Drawing studio in a connected workspace to use the model chat.')}</p>}
+          <label>{t('Program source')}<textarea spellCheck={false} value={source} maxLength={programLimit}
+            onChange={event => edit(event.target.value)} /></label>
+          <div className="probe-actions"><button type="button" disabled={Boolean(series)} onClick={() => {
+            edit(drawingExample); preview(drawingExample, 'sample');
+          }}>{t('Try sample program')}</button>
+            <button type="button" disabled={!source || status === 'running'} onClick={() => {
+              ++epoch.current; preview(source, 'editor');
+            }}>{t('Preview draft')}</button></div>
+        </>}
         <label>{t('Open local drawing program')}<input type="file" accept=".js,.txt" onChange={event => {
           const file = event.currentTarget.files?.[0];
           event.currentTarget.value = '';
-          if (file) void openFile(file);
+          if (file) setFile(file);
         }} /></label>
         <details><summary>{t('Drawing API')}</summary><p>{t('Use time and price coordinates in overlay mode, or position shapes freely.')}</p>
           <pre dir="ltr">{'// stock|future free|overlay\n// series free: rows contain time_ms, value (number|null)\n640 × 240\nrows: time_ms, open, high, low, close, volume\nxTime(time_ms), yValue(price)\nline(x1,y1,x2,y2,ink)\ncircle(x,y,r,ink)\nrect(x,y,w,h,ink)\nink: 0–3\n// scalar name min max step default\nparams.name, selected, hit(index,x,y,r)\n// difference field name'}</pre></details>
       </section>
-      <section className="probe-canvas" aria-label={t('Workbench canvas')}>
+      {!checking && <section className="probe-canvas" aria-label={t('Workbench canvas')}>
         <div className="probe-canvas-heading"><h2>{series ? t('Accepted series preview') : t('Synthetic preview')}</h2>
           <span role="status">{status === 'running' ? t('Evaluating program…') : draft ? t('Draft preview')
             : accepted ? t('Accepted view') : t('Blank canvas')}</span></div>
@@ -259,7 +282,7 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker }: StudioP
             }}>{t('Undo accepted edit')}</button>}
           </div>
         </div>
-      </section>
+      </section>}
     </div>
   </dialog>;
 }

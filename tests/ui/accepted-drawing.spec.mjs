@@ -115,3 +115,98 @@ test('the ordinary model revision receives the complete series program and nulla
     }));
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+for (const outcome of ['recover', 'revoke', 'deny', 'switch', 'close', 'expire']) {
+  test('focus admission recheck: ' + outcome, async ({ browser }) => {
+    const root = await mkdtemp(join(tmpdir(), 'scopehub-focus-series-'));
+    try {
+      const data = await prepareSeries(browser, root);
+      await withWorkspace(browser, data.profile, async (page, dispatch, _credential, holdRevisionRead) => {
+        await button(page, 'Open blank AI workbench').click();
+        await button(page, 'Drawing studio').click();
+        const studio = page.getByRole('dialog', { name: 'Drawing studio' });
+        const version = studio.getByRole('combobox', { name: 'Accepted version', exact: true });
+        await version.selectOption(data.version_id);
+        await studio.getByRole('combobox', { name: 'Numeric series', exact: true }).selectOption({ label: 'mean' });
+        await expect(studio.getByText('Accepted series source', { exact: true })).toBeVisible();
+        await studio.getByLabel('Open local drawing program').setInputFiles(file('dots'));
+        await button(studio, 'Accept view').click();
+        const geometry = studio.getByLabel('Program geometry');
+        await expect(geometry.locator('circle')).toHaveCount(3);
+        const baseline = (await dispatch({ type: 'snapshot' })).result;
+        let requests = 0;
+        const outputRequested = Promise.withResolvers();
+        const releaseOutput = Promise.withResolvers();
+        let resume;
+        const resumeRead = new Promise(resolve => { resume = resolve; });
+        await page.route('**/__scopehub/workspace', async route => {
+          const type = route.request().postDataJSON()?.type;
+          if (outcome === 'recover' && type === 'indicator_accepted_output' && requests > 1) {
+            outputRequested.resolve();
+            await releaseOutput.promise;
+          }
+          if (type === 'snapshot' && ++requests > 1) {
+            if (outcome === 'deny') return route.fulfill({ status: 403, json: {
+              ok: false, error: { code: 'PERMISSION_DENIED', retryable: false },
+            } });
+            if (outcome === 'switch') await resumeRead;
+          }
+          return route.continue();
+        });
+        let release = await holdRevisionRead();
+        try {
+          const rejected = page.waitForResponse(r => r.status() === 429 && r.request().postDataJSON()?.type === 'snapshot');
+          await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+          expect((await (await rejected).json()).error).toEqual({ code: 'BUSY', retryable: true });
+          await expect(geometry).toHaveCount(0);
+          await expect(studio.locator('tbody')).toHaveCount(0);
+          await expect(studio.getByText(data.result_hash, { exact: true })).toHaveCount(0);
+          await expect(button(studio, 'Undo accepted edit')).toHaveCount(0);
+          if (outcome === 'close') await button(studio, 'Back to chart').click();
+          if (outcome === 'revoke') await revoke(root, data.revision);
+          if (outcome === 'expire' || outcome === 'deny') {
+            await expect(studio.getByText('Accepted series unavailable.', { exact: true })).toBeVisible({ timeout: 6500 });
+            expect(requests).toBeGreaterThan(1);
+            if (outcome === 'deny') expect(requests).toBe(2);
+          }
+          release();
+          release = undefined;
+          if (outcome === 'switch') {
+            await expect.poll(async () => (await dispatch({
+              type: 'workspace_source', request_id: crypto.randomUUID(),
+              expected_selection_revision: baseline.selection_revision, source: { kind: 'sample', instrument_id: null },
+            })).ok).toBe(true);
+          }
+          resume();
+          if (outcome === 'recover') {
+            await outputRequested.promise;
+            await expect(studio.getByText('Checking workspace source…')).toBeVisible();
+            await expect(geometry).toHaveCount(0);
+            releaseOutput.resolve();
+            await expect(geometry.locator('circle')).toHaveCount(3);
+            await expect(version).toHaveValue(data.version_id);
+            await expect(studio.getByText(data.result_hash, { exact: true })).toHaveCount(1);
+            await expect(button(studio, 'Undo accepted edit')).toBeEnabled();
+          } else if (outcome === 'close') {
+            await expect(studio).toHaveCount(0);
+            await button(page, 'Open blank AI workbench').click();
+            await button(page, 'Drawing studio').click();
+            await expect(version).toHaveValue('');
+            await expect(geometry).toHaveCount(0);
+          } else {
+            if (outcome === 'revoke') {
+              await expect(studio.getByText('Accepted series unavailable.', { exact: true })).toBeVisible();
+              const read = await dispatch({ type: 'indicator_accepted_output', request_id: crypto.randomUUID(), layer_id: data.layer_id });
+              expect(read.error?.code).toBe('PERMISSION_DENIED');
+              expect(read.result).toBeUndefined();
+            }
+            if (outcome === 'switch') await expect(studio.getByText('Synthetic preview', { exact: true })).toBeVisible();
+            await expect(version).toHaveCount(0);
+            await expect(geometry).toHaveCount(0);
+            await expect(studio.getByText(data.result_hash, { exact: true })).toHaveCount(0);
+          }
+        } finally { release?.(); resume(); releaseOutput.resolve(); }
+      }, [], true);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
+}

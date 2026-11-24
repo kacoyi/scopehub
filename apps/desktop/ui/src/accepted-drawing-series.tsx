@@ -3,12 +3,14 @@ import type { FrozenSnapshot, Point } from '../../../../contracts/generated/prot
 import { listAccepted, readAcceptedLayer, type Accepted, type Layer } from './accepted-layer-reader';
 import { t } from './i18n';
 import type { PublishedRevisionAccess } from './published-revision-access';
+import type { LocalWorkspace } from './use-local-workspace';
 
 export type BoundSeries = {
   datasetId: string; revision: string; layer: string; version: string; id: string; resultHash: string;
   sourceHash: string; inputHash: string; sourceVolumeUnit: string; points: Point[];
 };
-type Choices = { layers: Layer[]; ids?: string[]; hash?: string; bound?: BoundSeries };
+type WorkspaceSnapshot = LocalWorkspace['snapshot'];
+type Choices = { verifiedFor?: WorkspaceSnapshot; layers: Layer[]; ids?: string[]; hash?: string; bound?: BoundSeries };
 
 // This projection is the admission boundary for the guest's numeric input.
 function project(current: FrozenSnapshot, layer: Layer, doc: NonNullable<Accepted['document']>, id: string): BoundSeries {
@@ -30,7 +32,7 @@ function project(current: FrozenSnapshot, layer: Layer, doc: NonNullable<Accepte
     points: input.map(({ time_ms, value }) => ({ time_ms, value })) };
 }
 
-export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, canDisplay: PublishedRevisionAccess['canDisplay']) {
+export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, canDisplay: PublishedRevisionAccess['canDisplay'], workspaceSnapshot: WorkspaceSnapshot) {
   const revision = current?.dataset_id;
   const [selectedLayer, setLayer] = useState<Layer>();
   const version = selectedLayer?.version_id ?? '';
@@ -38,9 +40,7 @@ export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, ca
   const [options, setOptions] = useState<Choices>({ layers: [] });
   const [failure, setFailure] = useState<'unavailable' | 'size'>();
   useLayoutEffect(() => {
-    setOptions({ layers: [] });
-    setFailure(undefined);
-    if (!current || !revision || !canDisplay(revision)) return;
+    if (!current || !revision || !canDisplay(revision) || !workspaceSnapshot) return;
     const snapshot = current;
     const id = revision;
     const lifetime = new AbortController();
@@ -48,7 +48,7 @@ export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, ca
     async function refresh() {
       if (running || lifetime.signal.aborted) return;
       running = true;
-      const next: Choices = { layers: [] };
+      const next: Choices = { layers: [], verifiedFor: workspaceSnapshot };
       const signal = AbortSignal.any([lifetime.signal, AbortSignal.timeout(5000)]);
       try {
         const { layers } = await listAccepted(id, signal);
@@ -74,24 +74,30 @@ export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, ca
     }
     void refresh();
     const timer = window.setInterval(refresh, 2000);
-    window.addEventListener('focus', refresh);
-    return () => { lifetime.abort(); clearInterval(timer); window.removeEventListener('focus', refresh); };
-  }, [current, revision, canDisplay, selectedLayer, version, choice]);
+    return () => { lifetime.abort(); clearInterval(timer); };
+  }, [current, revision, canDisplay, selectedLayer, version, choice, workspaceSnapshot]);
 
   const picker = revision && <fieldset><legend>{t('Accepted indicator binding')}</legend>
     <label>{t('Accepted version')}<select value={version} onChange={event => {
+      setOptions({ layers: options.layers }); setFailure(undefined);
       setLayer(options.layers.find(layer => layer.version_id === event.target.value)); setChoice('');
     }}><option value="">{t('Choose an accepted version')}</option>
       {options.layers.map(l => <option key={l.layer_id} value={l.version_id} disabled={!l.available}>{l.version_id}</option>)}
     </select></label>
-    {options.ids && <label>{t('Numeric series')}<select value={choice} onChange={event => setChoice(event.target.value)}>
+    {options.ids && <label>{t('Numeric series')}<select value={choice} onChange={event => {
+      setOptions(({ bound: _bound, ...choices }) => choices); setFailure(undefined);
+      setChoice(event.target.value);
+    }}>
       <option value="">{t('Choose a series')}</option>
       {options.ids.map(id => <option key={id} value={JSON.stringify([id, options.hash])}>{id}</option>)}
     </select></label>}
     {failure && <p role="status">{failure === 'size' ? t('This preview supports up to 256 observations per series.')
       : t('Accepted series unavailable.')}</p>}
   </fieldset>;
-  return { bound: options.bound, picker };
+  // Keep an accepted scene in memory while its workspace and output are rechecked.
+  // A failed read drops the binding, which also disposes the scene and its undo.
+  const checking = Boolean(current && (!workspaceSnapshot || (options.bound && options.verifiedFor !== workspaceSnapshot)));
+  return { bound: options.bound, picker, checking };
 }
 
 export function SeriesIdentity({ data }: { data: BoundSeries }) {
