@@ -6,6 +6,7 @@ import { defaultChartAppearance } from './history';
 
 export type Candle = Readonly<{ timeMs: number; open: number; high: number; low: number; close: number }>;
 export type CandleAnnotation = Readonly<{ timeMs: number; text: string }>;
+type ReplayCandle = Readonly<{ sequence: number; candle: Candle }>;
 
 export function mountCandleAnnotations(element: HTMLElement) {
   const chart = createChart(element, {
@@ -14,7 +15,7 @@ export function mountCandleAnnotations(element: HTMLElement) {
     grid: { vertLines: { color: '#242b38' }, horzLines: { color: '#242b38' } },
     crosshair: { mode: CrosshairMode.Hidden },
     rightPriceScale: { scaleMargins: { top: 0.25, bottom: 0.12 } },
-    timeScale: { timeVisible: true, secondsVisible: false, minBarSpacing: 16 },
+    timeScale: { timeVisible: true, secondsVisible: false, minBarSpacing: 16, shiftVisibleRangeOnNewBar: false },
   });
   try {
     const { gain, loss } = defaultChartAppearance;
@@ -24,19 +25,43 @@ export function mountCandleAnnotations(element: HTMLElement) {
     });
     const timeScale = chart.timeScale();
     const timestamp = (timeMs: number) => (timeMs / 1000) as UTCTimestamp;
+    const datum = ({ timeMs, open, high, low, close }: Candle) => ({ time: timestamp(timeMs), open, high, low, close });
     let candles: readonly Candle[] | undefined;
+    let replay: ReplayCandle | undefined;
     let labels: { time: UTCTimestamp; high: number; text: string }[] = [];
+    let resultRevision = '';
+    let annotationRevision = 0;
+    let viewportRevision = 0;
+    let viewportKey = '';
+    let drawNumber = 0;
     let requestUpdate = () => {};
     const renderer: IPrimitivePaneRenderer = {
       draw(target) {
         target.useMediaCoordinateSpace(({ context, mediaSize }) => {
           // Read both axes during the SDK's pane draw, with the same series and viewport as the candles.
+          const drawn = [];
           for (const label of labels) {
             const x = timeScale.timeToCoordinate(label.time);
             const y = series.priceToCoordinate(label.high);
             if (x === null || y === null || x < 0 || x >= mediaSize.width || y < 0 || y >= mediaSize.height) continue;
-            drawBubble(context, mediaSize.width, mediaSize.height, x, y, label.text);
+            if (drawBubble(context, mediaSize.width, mediaSize.height, x, y, label.text)) {
+              drawn.push({ timeMs: label.time * 1000, x, y, text: label.text });
+            }
           }
+          const viewport = {
+            width: mediaSize.width, height: mediaSize.height,
+            logical: timeScale.getVisibleLogicalRange(), price: series.priceScale().getVisibleRange(),
+          };
+          const key = JSON.stringify(viewport);
+          if (key !== viewportKey) {
+            viewportKey = key;
+            viewportRevision++;
+          }
+          // This is a draw callback observation. The platform presents the canvas separately.
+          element.dataset.primitiveDraw = JSON.stringify({
+            drawNumber: ++drawNumber, atMs: performance.now(), quoteSequence: replay?.sequence ?? 0,
+            viewportRevision, annotationRevision, resultRevision, viewport, annotations: drawn,
+          });
         });
       },
     };
@@ -56,19 +81,26 @@ export function mountCandleAnnotations(element: HTMLElement) {
     }
 
     return {
-      display(nextCandles: readonly Candle[], annotations: readonly CandleAnnotation[]) {
+      display(nextCandles: readonly Candle[], annotations: readonly CandleAnnotation[], revision: string, quote?: ReplayCandle) {
+        const visibleCandles = quote ? [...nextCandles, quote.candle] : nextCandles;
         const byTime = new Map(annotations.map(({ timeMs, text }) => [timeMs, text]));
-        labels = nextCandles.flatMap(({ timeMs, high }) => {
+        labels = visibleCandles.flatMap(({ timeMs, high }) => {
           const text = byTime.get(timeMs);
           return text === undefined ? [] : [{ time: timestamp(timeMs), high, text }];
         });
+        resultRevision = revision;
+        annotationRevision++;
         if (candles !== nextCandles) {
           candles = nextCandles;
-          series.setData(candles.map(({ timeMs, open, high, low, close }) => ({
-            time: timestamp(timeMs), open, high, low, close,
-          })));
+          series.setData(candles.map(datum));
           timeScale.setVisibleLogicalRange({ from: -1, to: candles.length });
+        } else if (replay && !quote) {
+          const range = timeScale.getVisibleLogicalRange();
+          series.setData(candles.map(datum));
+          if (range) timeScale.setVisibleLogicalRange(range);
         }
+        if (quote && quote !== replay) series.update(datum(quote.candle));
+        replay = quote;
         requestUpdate();
       },
       setLocale(locale: string) {
@@ -83,6 +115,7 @@ export function mountCandleAnnotations(element: HTMLElement) {
       dispose() {
         series.detachPrimitive(primitive);
         chart.remove();
+        delete element.dataset.primitiveDraw;
       },
     };
   } catch (error) {
@@ -98,7 +131,7 @@ function drawBubble(context: CanvasRenderingContext2D, width: number, height: nu
   const left = Math.max(1, Math.min(x - bubbleWidth / 2, width - bubbleWidth - 1));
   const above = y >= bubbleHeight + 12;
   const top = above ? y - bubbleHeight - 8 : y + 8;
-  if (top + bubbleHeight >= height || bubbleWidth + 2 > width) return;
+  if (top + bubbleHeight >= height || bubbleWidth + 2 > width) return false;
 
   const center = left + bubbleWidth / 2;
   const edge = above ? top + bubbleHeight : top;
@@ -121,4 +154,5 @@ function drawBubble(context: CanvasRenderingContext2D, width: number, height: nu
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.fillText(text, center, top + bubbleHeight / 2);
+  return true;
 }
