@@ -18227,6 +18227,163 @@
           "cleanup": "Remove superseded work on the normal check path once the comparison is verified. Keep remaining bottlenecks visible under a named follow-up."
         }
       }
+    },
+    {
+      "id": "M4-015",
+      "title": "Reveal a cited model evidence row on its original chart",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": [
+        "M1-008",
+        "M4-011"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0019"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "On a returned, explicitly permitted selected-chart tool result, use an ordinary visible action to reveal the cited UTC bar and close on the original chart. Identify the exact source, instrument, timeframe and revision from information actually available.",
+        "Returning restores the answer and the prior chart context. Refuse a stale, revoked or mismatched source, timeframe or revision with an explicit state. Following evidence performs no new model turn, provider request, profile write or grant."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "model-connection-workflow",
+        "desktop-localization"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-015-a4c775e206591482.json",
+          "sha256": "72b4f9a599fdd8d97d66bca0bfe2b3e4f4d1d2b5b29a01fcec93a06b8f81f462"
+        },
+        {
+          "path": "project/evidence/M4-015-ab3c5abff32e88b7.json",
+          "sha256": "6cc2d46950e962800e58ebe73015be57ca7784ca23bccf303e102316e9be5de1"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The local Linux task checks passed on 15093fe. The synthetic model fixture exercised the original price canvas, exact UTC and close, keyboard return to the same answer and draft, viewport restoration, a subsequent question, and refusal after a stale selection, changed timeframe, or different source. A real second client cleared a still-displayed selection, and the workspace snapshot rejected the citation. Navigation used a local metadata read and preserved persisted rows and model traffic. Native Windows interaction and hosted verification remain unobserved for this change.",
+      "plan": {
+        "outcome": "A researcher can follow a close price cited in a conversation to its exact bar on the current authorized chart and return to the same answer.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/price-chart.tsx",
+          "tests/ui/ai-workflow.config.mjs"
+        ],
+        "hypotheses": [
+          "The completed turn and its submitted selection can identify the chart. The local workspace snapshot verifies current authority without rereading the cited bar or calling the model."
+        ],
+        "risks": [
+          {
+            "failure": "A matching timestamp highlights a bar on a different chart or after another client cleared the selection, or navigation changes the saved chart, transcript, or model traffic.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Revert this user-facing entry and its focused tests together, retaining the established underlying operation.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/price-chart.tsx",
+            "tests/ui/ai-workflow.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/shared_evidence/navigation"
+            }
+          ],
+          "non_goals": [
+            "Live external services, new credentials, model permission changes, investment advice and arbitrary document navigation are outside this slice."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The user's prior chart selection, context, model authorization, and completed answer."
+          ],
+          "change": [
+            "A researcher can follow a close price cited in a conversation to its exact bar on the current authorized chart and return to the same answer."
+          ],
+          "data_plan": "Compare the returned source reference, revision and interval with the selection submitted for that turn. Recheck the local workspace and selection revision, then match the displayed source, instrument, timeframe, frozen snapshot hash, and exact closed-bar timestamp and close. Keep the temporary marker and viewport restoration in memory.",
+          "cleanup": "Keep one path for the underlying action and remove any superseded local interaction while maintaining its callers."
+        }
+      }
+    },
+    {
+      "id": "M4-016",
+      "title": "Keep rejected chart evidence and the question composer consistent",
+      "milestone": "M4",
+      "status": "done",
+      "depends_on": ["M4-015"],
+      "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json"],
+      "decision_refs": ["0007", "0019"],
+      "delivery": "current-contract",
+      "acceptance": [
+        "A confirmed peer revocation observed during a chart jump invalidates the matching outdated composer binding before send, keeps the draft and completed answer, and preserves a newer valid binding.",
+        "A keyboard retry of a returned citation after revocation keeps the citation focused and preserves the transcript reading position. Deliberate follow-up retains normal composer focus and scrolling. Rejected navigation creates no model operation or provider request."
+      ],
+      "checks": ["architecture", "ui-build", "market-workflow", "model-connection-workflow"],
+      "evidence": [
+        {
+          "path": "project/evidence/M4-016-4a2e783a5d4c61b0.json",
+          "sha256": "68eb47bc1762f39b8b0120764505846169764395c2d0a1725d43518909cbf022"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Astra confirmed both corrections on d1d04a3. Both citation task suites passed on merge 325610b using Linux Chromium and the existing local synthetic model peer. The focused personal CSV test also opened Settings, previewed a corrected mapping through the portable Rust bridge, restored Settings focus, and resumed the same review. Its browser report is retained at .reports/m4-csv-integration-325610b/browser-results.json. No hosted or native Windows verification was performed by this local run.",
+      "plan": {
+        "outcome": "A rejected citation leaves the reader at that citation and prevents the composer from reusing a binding already shown to be stale.",
+        "change_types": ["ui"],
+        "context": ["apps/desktop/ui/src/main.tsx", "apps/desktop/ui/src/model-chat.tsx", "apps/desktop/ui/src/chart-workspace.tsx", "tests/ui/ai-workflow.spec.mjs"],
+        "hypotheses": [
+          "The workspace snapshot already read by a chart jump can identify an outdated composer binding without another read. The conversation can distinguish reading a citation from deliberate composing."
+        ],
+        "risks": [
+          {
+            "failure": "A confirmed obsolete selection still permits send, rejection of an old citation clears a current binding, or rejection overwrites the draft.",
+            "checks": ["model-connection-workflow"]
+          },
+          {
+            "failure": "Retrying a rejected citation sends focus or scroll to the composer or interferes with deliberate follow-up.",
+            "checks": ["model-connection-workflow"]
+          }
+        ],
+        "rollback": "Revert the composer binding and reading position correction with its regression changes while keeping the original chart navigation and receipt.",
+        "implementation": {
+          "modules": ["ui"],
+          "entrypoints": ["apps/desktop/ui/src/main.tsx", "apps/desktop/ui/src/model-chat.tsx", "tests/ui/ai-workflow.spec.mjs"],
+          "rules": [{"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/navigation"}],
+          "non_goals": ["New operations, additional model traffic during navigation, profile mutations and Settings navigation changes."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": ["The existing read-only chart jump, answer, draft and deliberate follow-up behavior."],
+          "change": ["Use confirmed selection authority in the composer and keep the transcript position on a rejected citation."],
+          "data_plan": "Keep observed selection authority and citation reading state in the current window. Reuse the existing workspace snapshot and keep all persisted data and historical receipts.",
+          "cleanup": "Keep one check for matching an observed selection and use the existing composer reselection path."
+        }
+      }
     }
   ]
 }
