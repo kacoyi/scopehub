@@ -40,25 +40,32 @@ function Wait-Text([string]$text) {
 }
 function Enter-NativeFolder([string]$folder) {
     Review-Step 'Choose local CSV folder'
-    $dlg = Wait-ForProbe 'native folder chooser for the test process' {
-        $windows = $ui::RootElement.FindAll([Windows.Automation.TreeScope]::Children,$any)
-        foreach ($candidate in $windows) {
-            if ($candidate.Current.ProcessId -eq $app.Id -and $candidate.Current.ClassName -eq '#32770') { return $candidate }
-        }
+    $dlg=Wait-ForProbe 'folder picker owned by the ScopeHub window' {
+        Find-Control 'Choose local CSV folder' $type::Window
     }
-    Write-Output "Folder picker: $($dlg.Current.Name), HWND=$($dlg.Current.NativeWindowHandle)"
-    $editCondition=[Windows.Automation.PropertyCondition]::new($ui::ControlTypeProperty,$type::Edit)
-    $edits=@($dlg.FindAll($scope,$editCondition))
-    $edit=$edits | Where-Object { $_.Current.Name -match '^(Folder|File name)' -or $_.Current.AutomationId -eq '1148' } | Select-Object -First 1
-    if (!$edit) { throw "Owned picker folder input unavailable. Fields: $(($edits | ForEach-Object { $_.Current.Name }) -join ', ')." }
-    $edit.GetCurrentPattern($value).SetValue($folder)
-    $default=[Windows.Automation.PropertyCondition]::new($ui::AutomationIdProperty,'1')
-    $submit=$dlg.FindFirst($scope,$default)
-    if (!$submit) { throw 'Owned folder picker has no confirmation button.' }
-    $submit.GetCurrentPattern($invoke).Invoke()
-    Start-Sleep -Milliseconds 600
-    if ($null -eq (Find-Control 'Inspect raw rows' $type::Button)) {
-        try { $submit.GetCurrentPattern($invoke).Invoke() } catch [Windows.Automation.ElementNotAvailableException] {}
+    $pickerHandle=[IntPtr]$dlg.Current.NativeWindowHandle
+    [DrawingWindowCapture]::VerifyPicker($app.MainWindowHandle,$pickerHandle,$app.Id)
+    Write-Output "Confirmed ScopeHub picker: HWND=$pickerHandle class=$($dlg.Current.ClassName) appPID=$($app.Id)"
+    # Prefer the common dialog's filename edit. The shell exposes some children as UIA Pane controls.
+    if ([DrawingWindowCapture]::SetPickerFolder($pickerHandle,$folder)) {
+        Write-Output 'Entered the synthetic folder through the owned dialog edit.'
+    } else {
+        [DrawingWindowCapture]::FocusPicker($pickerHandle)
+        [Windows.Forms.SendKeys]::SendWait('^l')
+        [Windows.Forms.Clipboard]::SetText($folder)
+        try { [Windows.Forms.SendKeys]::SendWait('^v{ENTER}') }
+        finally { [Windows.Forms.Clipboard]::Clear() }
+    }
+    $name=[Windows.Automation.PropertyCondition]::new($ui::NameProperty,'Select Folder')
+    $submit=Wait-ForProbe 'Select Folder in the owned shell picker' { $dlg.FindFirst($scope,$name) }
+    Start-Sleep -Milliseconds 300
+    $pattern=$null
+    if ($submit.TryGetCurrentPattern($invoke,[ref]$pattern)) { $pattern.Invoke() }
+    elseif (![DrawingWindowCapture]::PressPickerOk($pickerHandle)) {
+        [DrawingWindowCapture]::FocusPicker($pickerHandle)
+        $bounds=$submit.Current.BoundingRectangle
+        if ($bounds.IsEmpty) { throw 'Owned Select Folder control has no bounds.' }
+        [DrawingWindowCapture]::ClickPickerControl($pickerHandle, $bounds.Left+$bounds.Width/2, $bounds.Top+$bounds.Height/2)
     }
     Wait-Name 'Inspect raw rows'
 }
@@ -69,14 +76,19 @@ function Open-Disclosure([string]$label) {
     if ($control.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand)) { $expand.Expand() }
     else { $control.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ') }
 }
-function Save-SeriesPlot([string]$kind) {
+function Native-Plot {
     $svg=Wait-ForProbe 'Axis-free drawing' {
         foreach ($n in $window.FindAll($scope,$any)) {
-            if ($n.Current.Name -eq 'Axis-free drawing' -and $n.Current.BoundingRectangle.Width -gt 300) { return $n }
+            $bounds=$n.Current.BoundingRectangle
+            if ($n.Current.Name -eq 'Axis-free drawing' -and $bounds.Width -gt 300 -and
+                [Math]::Abs($bounds.Height - $bounds.Width * 240 / 640) -le 3) { return $n }
         }
     }
     $b=$svg.Current.BoundingRectangle
-    $plot=[DrawingWindowCapture]::Plot($app.MainWindowHandle,$b.Left,$b.Top,$b.Width,$b.Height)
+    return [DrawingWindowCapture]::Plot($app.MainWindowHandle,$b.Left,$b.Top,$b.Width,$b.Height)
+}
+function Save-SeriesPlot([string]$kind) {
+    $plot=Native-Plot
     try {
         $plot.Save((Join-Path $OutputDirectory "$kind.png"),[Drawing.Imaging.ImageFormat]::Png)
         $scale=$plot.Width / 640
@@ -103,6 +115,10 @@ function Save-SeriesPlot([string]$kind) {
                 throw "Wrong strip width at row $i."
             }
         }
+        if (!$rings) {
+            $missing=[DrawingWindowCapture]::InkExtent($plot,16,[Drawing.Color]::FromArgb(168,164,252),5)
+            if ($missing[2] -lt 5 -or [Math]::Abs(($missing[0]+$missing[1])/2-68*$scale) -gt 3) { throw 'Missing first observation dash.' }
+        }
         Write-Output (@{encoding=$kind; width=$plot.Width; height=$plot.Height; ink=$measurements} | ConvertTo-Json -Depth 4 -Compress)
     } finally { $plot.Dispose() }
 }
@@ -122,6 +138,89 @@ function Use-SeriesProgram([string]$kind) {
     $null=Wait-Text ("2026-02-${day}T00:00:00.000Z $([char]0xb7) $expected $([char]0xb7) Unknown")
     Save-SeriesPlot $kind
 }
+function Save-VisibilityPlot([string]$state) {
+    $image=Native-Plot
+    try {
+        $scale=$image.Width / 640
+        $m=[DrawingWindowCapture]::InkExtent($image,73,[Drawing.Color]::FromArgb(96,212,191),14)
+        if ([Math]::Abs(($m[0]+$m[1])/2 - 108*$scale) -gt 3 -or
+            [Math]::Abs(($m[1]-$m[0]+1)-123*$scale) -gt 4) { throw "Unexpected visible capability mark in $state." }
+        $path=Join-Path $OutputDirectory "visibility-$state.png"
+        $image.Save($path,[Drawing.Imaging.ImageFormat]::Png)
+        return (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+    } finally { $image.Dispose() }
+}
+function Inspect-Visibility {
+    Review-Step 'Open blank AI workbench'
+    Review-Step 'Drawing studio'
+    $file=Join-Path $PSScriptRoot '../fixtures/workbench/guest-public-surface.js'
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash -ne '4cc37306be26e5f30ec2bcfb7c3eb65b91f8735e4483d297c17c937f88311dc4') { throw 'Visibility fixture identity changed.' }
+    $source=[IO.File]::ReadAllText($file)
+    Fill-NativeEdit 'Program source' $source
+    Review-Step 'Preview draft'
+    Review-Step 'Accept view'
+    Wait-Name 'Accepted view'
+    $before=Save-VisibilityPlot 'accepted'
+    Fill-NativeEdit 'Program source' "// future free`nwhile (true) {}"
+    $timer=[Diagnostics.Stopwatch]::StartNew()
+    Review-Step 'Preview draft'
+    Wait-Name 'The drawing exceeded its time limit.'
+    $elapsed=$timer.ElapsedMilliseconds
+    $failed=Save-VisibilityPlot 'timeout'
+    Review-Step 'Restore accepted view'
+    Wait-Name 'Accepted view'
+    $restored=Save-VisibilityPlot 'restored'
+    if ($before -ne $failed -or $before -ne $restored) { throw 'Accepted capability mark pixels changed during timeout or recovery.' }
+    $editor=Named-Control 'Program source' $type::Edit
+    if ($editor.GetCurrentPattern($value).Current.Value.Trim().Replace("`r`n","`n") -cne $source.Trim()) { throw 'Earlier accepted guest source was not restored.' }
+    Write-Output "Visibility: exact accepted, timed out and restored native plot $before; input to visible timeout message (UIA polling) $elapsed ms."
+    Review-Step 'Back to chart'
+}
+function Measure-SampleControl([string]$label,[int]$index) {
+    $samples=@()
+    foreach ($direction in @(1,-1,1,-1)) {
+        $slider=Wait-ForProbe $label { Named-Control $label $type::Slider }
+        $slider.SetFocus()
+        $image=Native-Plot
+        try {
+            $metric=[DrawingWindowCapture]::InkExtent($image,146.67,[Drawing.Color]::FromArgb(96,212,191),20)
+            $baseline=if ($index -eq 2) { $metric[2] } else { $metric[1]-$metric[0] }
+            if ($metric[2] -lt 12) { throw 'No baseline rim in the native capture.' }
+        } finally { $image.Dispose() }
+        $timer=[Diagnostics.Stopwatch]::StartNew()
+        $key=if ($direction -gt 0) { '{RIGHT}' } else { '{LEFT}' }
+        [Windows.Forms.SendKeys]::SendWait($key)
+        do {
+            $image=Native-Plot
+            try { $m=[DrawingWindowCapture]::InkExtent($image,146.67,[Drawing.Color]::FromArgb(96,212,191),20) }
+            finally { $image.Dispose() }
+            $current=if ($index -eq 2) { $m[2] } else { $m[1]-$m[0] }
+            if (($current-$baseline)*$direction -ge 1 -and $m[2] -gt 12) { break }
+            if ($timer.ElapsedMilliseconds -gt 3500) { throw "No visible change from $label." }
+            Start-Sleep -Milliseconds 5
+        } while ($true)
+        $samples+=$timer.ElapsedMilliseconds
+    }
+    Write-Output (@{control=$label;samples_ms=$samples;method='SendKeys to first changed owned PrintWindow rim samples, including capture and UI Automation lookup'} | ConvertTo-Json -Compress)
+}
+function Inspect-SampleControls {
+    Review-Step 'Open blank AI workbench'
+    Review-Step 'Drawing studio'
+    $source=[IO.File]::ReadAllText((Join-Path $PSScriptRoot '../fixtures/workbench/adjustable-targets.js'))
+    Fill-NativeEdit 'Program source' $source
+    Review-Step 'Preview draft'
+    Review-Step 'Accept view'
+    Wait-Name 'Accepted view'
+    $target=Wait-ForProbe 'first frozen sample point' {
+        $window.FindAll($scope,$any) | Where-Object { $_.Current.Name.StartsWith('Inspect observation at ') } | Select-Object -First 1
+    }
+    $target.SetFocus()
+    [Windows.Forms.SendKeys]::SendWait('{ENTER}')
+    $null=Wait-Text '3,499.2 CNY'
+    Measure-SampleControl 'Stroke weight' 2
+    Measure-SampleControl 'rimSize' 1
+    Review-Step 'Back to chart'
+}
 $fixture=Join-Path $temp 'series-fixture'
 New-Item -ItemType Directory -Path $fixture | Out-Null
 $bytes=[Text.Encoding]::ASCII.GetBytes((@(
@@ -135,10 +234,16 @@ $file=Join-Path $fixture 'series.csv'
 [IO.File]::WriteAllBytes($file,$bytes)
 if ((Get-FileHash $file).Hash -ne 'c3661d5dfc5a6d97269a4e4de6550350bab5d79e6d3268500425c1b75f80aa00') { throw 'Synthetic volume CSV changed.' }
 try {
+    Add-Type -AssemblyName System.Drawing
+    Add-Type -Path (Join-Path $PSScriptRoot 'DrawingWindowCapture.cs') -ReferencedAssemblies System.Drawing
+    $null=[DrawingWindowCapture]::SetProcessDPIAware()
+    [DrawingWindowCapture]::Resize($app.MainWindowHandle,1120,760)
+    Inspect-Visibility
     Enter-NativeFolder $fixture
     Select-NativeOption 'Record kind' 1
     Review-Step 'Inspect raw rows'
     $null=Wait-Text 'Raw CSV rows'
+    $null=Wait-Text 'series.csv'
     $columns=[ordered]@{'Symbol column'=2; 'Timestamp column'=1; 'Trading day column'=1; 'Open column'=3
         'High column'=4; 'Low column'=5; 'Close column'=6; 'Volume column'=8
         'Instrument type'=1; 'Volume basis'=1; 'Timestamp convention'=1}
@@ -163,10 +268,6 @@ try {
     Review-Step 'Open published CSV'
     Review-Step 'Open series.csv'
     Review-Step 'Use as workspace source'
-    Add-Type -AssemblyName System.Drawing
-    Add-Type -Path (Join-Path $PSScriptRoot 'DrawingWindowCapture.cs') -ReferencedAssemblies System.Drawing
-    $null=[DrawingWindowCapture]::SetProcessDPIAware()
-    [DrawingWindowCapture]::Resize($app.MainWindowHandle,1120,760)
     Review-Step 'Open blank AI workbench'
     Review-Step 'Drawing studio'
     Select-NativeOption 'Accepted version' 1
@@ -179,7 +280,8 @@ try {
     $sourcePanel.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ')
     Use-SeriesProgram 'dots'
     Use-SeriesProgram 'strips'
-    Select-NativeOption 'Numeric series' 2
+    (Named-Control 'Numeric series' $type::ComboBox).SetFocus()
+    [Windows.Forms.SendKeys]::SendWait('{END}')
     Wait-Name 'Open a drawing program for the selected series.'
     if ((Find-Control 'Accepted observation' $null) -or (Find-Control 'Undo accepted edit' $null) -or
         (Find-Control 'Inspect observation at 2026-02-03T00:00:00.000Z' $null)) { throw 'Previous state survived the series change.' }
@@ -191,6 +293,8 @@ try {
     Review-Step 'Remove access'
     $null=Wait-Text 'Access removed for this published revision.'
     Write-Output 'The private source was removed through the native published-revision library.'
+    Review-Step 'Close'
+    Inspect-SampleControls
 } catch {
     # Emit only the named ScopeHub window's controls, without inspecting other windows.
     $controls=@($window.FindAll($scope,$any) | Where-Object { $_.Current.Name } |
