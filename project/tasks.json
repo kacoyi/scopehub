@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-102",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20335,7 +20335,7 @@
       "id": "M0-102",
       "title": "Recover Windows workspace browser profile preparation",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-089",
         "M0-101"
@@ -20368,7 +20368,16 @@
         "rust-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-102-f4f0af76b8fe9a20.json",
+          "sha256": "e2afbc6e39ad8d040b4ee9a66ef0058d04f40be8cddde7d533f1d448b56833ef"
+        },
+        {
+          "path": "project/evidence/M0-102-ffeca4014976d347.json",
+          "sha256": "b8b233cd2cfa9a6eda8169daf52a23817f8e9d48792119a6fc66c2fa0254ffa7"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45468479291-1",
@@ -20391,9 +20400,9 @@
           "report_sha256": "d3f533758abe4b8d7221870305611c49e267cc967115fa6f8131d35be4f6e697"
         }
       ],
-      "next_action": "Correct the outer directory creation at the supervised Windows browser fixture entry, compare the existing ancestor refusal with the native Rust fixture contract, and use the coordinator-owned native task to verify the same JavaScript path and ordinary writer against the retained failure.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Official task run 45484754044 passed all selected checks on Windows and Linux at 2b078aa5f5e0d31dabf36705ce0cce117b91508b, the same tree as independently approved 72e4136eb1f8e7f38de6ee40915fb6c29b47447a. The first Windows browser setup prepared 64 isolated roots in 735 ms. The dedicated one-slot native control opened its claimed profile through the normal writer and rejected the CPython 0700 Owner Rights and Everyone DeleteChild ancestors without leaving either refused pool. All four original cases passed on their first attempt on both platforms. Windows passed 59 cases with the existing POSIX-only skip. Linux passed 59 cases. The native Rust shared-ACL refusal preserved the database bytes, and the three supervisor regressions passed on both platforms. The failed earlier run and independent review originals are retained. The earlier Windows logs do not establish the internal cause of the PowerShell timeout or the exact ancestor and ACE in the later refusal.",
       "plan": {
         "outcome": "The native Windows browser suite performs one bounded, owner-only run setup before starting its workers, then exercises the ordinary writer with isolated profiles.",
         "change_types": [
