@@ -213,6 +213,7 @@ test('an outstanding native source invoke needs revision proof and a late reply 
       const useSource = control(dialog, 'Use as workspace source');
       const reload = control(dialog, 'Reload workspace state');
       const alert = dialog.getByRole('alert');
+      let scenarioFailed = false;
       try {
         await page.goto('/');
         await control(priceChart, 'Open published CSV').click();
@@ -294,17 +295,25 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         });
         expect(await snapshot('late-reply-delivered')).toMatchObject({ ok: true, result: { selection_revision: 2, source } });
         expect(network).toEqual([]);
+      } catch (error) {
+        scenarioFailed = true;
+        throw error;
       } finally {
-        await testInfo.attach('native-snapshot-admission', { body: JSON.stringify(snapshots), contentType: 'application/json' });
         deliverPublishedReply.resolve();
         allowWrite.resolve();
         allowReply.resolve();
-        await testInfo.attach('native-frozen-chart-admission', {
-          body: JSON.stringify(reads.map(({ payload, outcome }) => ({
-            revision: payload.revision_id === revision ? 'published' : 'missing', outcome,
-          }))),
-          contentType: 'application/json',
-        });
+        try {
+          await testInfo.attach('native-snapshot-admission', { body: JSON.stringify(snapshots), contentType: 'application/json' });
+          await testInfo.attach('native-frozen-chart-admission', {
+            body: JSON.stringify(reads.map(({ payload, outcome }) => ({
+              revision: payload.revision_id === revision ? 'published' : 'missing', outcome,
+            }))),
+            contentType: 'application/json',
+          });
+        } catch (error) {
+          if (!scenarioFailed) throw error;
+          console.warn('Unable to attach native source diagnostics after a test failure.', error);
+        }
       }
     }, { gateStatus: true });
   });

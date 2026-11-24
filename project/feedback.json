@@ -4371,6 +4371,17 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-source-proof-attachment-masks-assertion",
+      "source": "Independent Standard Astra review of d688cf0 retained in archives/observations/m0-090-native-snapshot/review/initial.txt (SHA-256 cfa203598bca649b271e53db862522265ffa21e8a9828797110f19e5a7a04c29).",
+      "observation": "The native source test attempts its first attachment before releasing three pending test barriers. With an injected scenario error followed by an attachment error, the fixture entered attachment with all barriers still pending and Playwright reported the attachment error as primary.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": ["M0-090"],
+      "regression_checks": ["desktop-workspace-transport"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

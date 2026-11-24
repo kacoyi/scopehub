@@ -18470,7 +18470,12 @@
         "python-contracts-workers",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-090-86fe126b0dd64b5b.json",
+          "sha256": "d4844584641eef4f982f78459441ff26c67eaa587fffdd522d1f59e3de26ba29"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T122836.056903Z-08468273",
@@ -18505,6 +18510,12 @@
           },
           {
             "failure": "The repair relaxes revision matching, retries a permanent failure, or discards the outstanding write and late-reply assertions.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A diagnostic attachment failure leaves test barriers pending or replaces the initial scenario failure.",
             "checks": [
               "desktop-workspace-transport"
             ]
