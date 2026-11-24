@@ -245,3 +245,76 @@ test('cancelling a program file choice preserves the selected observation and di
     });
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('named authored view survives writer restart and loses its data after revocation', async ({ browser }) => {
+  const root = await mkdtemp(join(tmpdir(), 'scopehub-saved-drawing-'));
+  const code = '// series free\n// scalar radius 2 12 1 6\nfor (const p of rows) {\n  if (p.value !== null) circle(xTime(p.time_ms), yValue(p.value), params.radius, 0);\n}';
+  const revised = code.replace('params.radius, 0', 'params.radius, 2');
+  async function studioFor(page, saved = false) {
+    if (saved) {
+      await button(page, 'Open saved view: Synthetic morning view').click();
+      return page.getByRole('dialog', { name: 'Drawing studio' });
+    }
+    await button(page, 'Open blank AI workbench').click();
+    await button(page, 'Drawing studio').click();
+    return page.getByRole('dialog', { name: 'Drawing studio' });
+  }
+  try {
+    const data = await prepareSeries(browser, root);
+    const name = 'Synthetic morning view';
+    await withWorkspace(browser, data.profile, async (page, dispatch) => {
+      const studio = await studioFor(page);
+      await studio.getByRole('combobox', { name: 'Accepted version', exact: true }).selectOption(data.version_id);
+      await studio.getByRole('combobox', { name: 'Numeric series', exact: true }).selectOption({ label: 'mean' });
+      await expect(studio.getByText('Accepted series source', { exact: true })).toBeVisible();
+      await studio.getByLabel('Program source').fill(code);
+      await button(studio, 'Preview draft').click();
+      await button(studio, 'Accept view').click();
+      await studio.getByRole('slider', { name: 'radius' }).press('ArrowRight');
+      await expect(studio.getByLabel('Program geometry').locator('circle').first()).toHaveAttribute('r', '7');
+      await studio.getByRole('slider', { name: 'Stroke weight' }).press('ArrowRight');
+      await studio.getByLabel('Layout name').fill(name);
+      await button(studio, 'Save accepted view').click();
+      await expect(studio.getByText('Saved in workspace layout')).toBeVisible();
+      const saved = (await dispatch({ type: 'snapshot' })).result.layouts.active;
+      expect(saved.name).toBe(name);
+      expect(saved.definition.authored_view).toEqual({
+        api: 'series-drawing-1', source: code, stroke: 4, scalars: [7], dataset_id: data.revision,
+        dataset_revision: expect.any(String), layer_id: data.layer_id, version_id: data.version_id,
+        series_id: 'mean', result_hash: data.result_hash,
+      });
+      await studio.getByLabel('Program source').fill('// series free\nthrow Error();');
+      await button(studio, 'Preview draft').click();
+      await expect(studio.getByRole('alert')).toBeVisible();
+      await expect(button(studio, 'Save accepted view')).toBeDisabled();
+      await button(studio, 'Back to chart').click();
+    });
+    await withWorkspace(browser, data.profile, async (page, dispatch) => {
+      const studio = await studioFor(page, true);
+      const geometry = studio.getByLabel('Program geometry');
+      await expect(geometry.locator('circle')).toHaveCount(3);
+      await expect(geometry).toHaveAttribute('stroke-width', '4');
+      await expect(geometry.locator('circle').first()).toHaveAttribute('r', '7');
+      await expect(studio.getByLabel('Program source')).toHaveValue(code);
+      await studio.getByLabel('Program source').fill(revised);
+      await button(studio, 'Preview draft').click();
+      await button(studio, 'Accept view').click();
+      await button(studio, 'Save accepted view').click();
+      await expect(studio.getByLabel('Program geometry').locator('circle').first()).toHaveAttribute('stroke', '#a8a4fc');
+      await expect(studio.getByLabel('Program source')).toHaveValue(revised);
+      await expect.poll(async () => (await dispatch({ type: 'snapshot' })).result?.layouts.active.definition.authored_view.source).toBe(revised);
+    });
+    await revoke(root, data.revision);
+    await withWorkspace(browser, data.profile, async page => {
+      const studio = await studioFor(page, true);
+      await expect(studio.getByLabel('Program source')).toHaveValue(revised);
+      await expect(studio.getByText('Saved source. Waiting for access to its accepted series.')).toBeVisible();
+      await expect(studio.getByLabel('Program geometry')).toHaveCount(0);
+      await expect(studio.getByText(data.result_hash)).toHaveCount(0);
+      await expect(studio.locator('tbody')).toHaveCount(0);
+      await studio.getByLabel('Program source').fill(revised + '\n// editable offline');
+      await button(studio, 'Preview draft').click();
+      await expect(studio.getByRole('alert')).toBeVisible();
+    });
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

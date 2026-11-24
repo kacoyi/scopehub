@@ -154,7 +154,7 @@ function App() {
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample} openPrototype={() => setPrototype(true)}
-      openAuthoring={() => setAuthoring('tree')}
+      openAuthoring={() => setAuthoring('tree')} openSavedView={() => setAuthoring('drawing')}
       chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });

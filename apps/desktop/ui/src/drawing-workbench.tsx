@@ -6,7 +6,7 @@ import { CalculatedReadout } from './drawing-readout';
 import type { LocalWorkspace } from './use-local-workspace';
 import drawingExample from './drawing-sample.js?raw';
 import { allowedValue, drawingPrompt, height, programLimit, readProgram, seriesBounds, viewBounds, viewport, width, type Drawing, type Mark, type ViewBounds, type Target, type Controls } from './drawing-program';
-import type { FrozenSnapshot } from '../../../../contracts/generated/protocol';
+import type { FrozenSnapshot, SavedSeriesDrawing11 } from '../../../../contracts/generated/protocol';
 import type { PublishedRevisionAccess } from './published-revision-access';
 import { SeriesIdentity, useAcceptedDrawingSeries, type BoundSeries } from './accepted-drawing-series';
 import { evaluateDrawing } from './drawing-evaluation';
@@ -95,32 +95,44 @@ type StudioProps = { hasWorkspace: boolean; workspace: LocalWorkspace | undefine
 
 export function DrawingWorkbench(props: StudioProps & { bindingSnapshot: FrozenSnapshot | undefined; sourceUnavailable: boolean; access: PublishedRevisionAccess }) {
   const workspaceSnapshot = props.workspace?.pending === 'open' ? undefined : props.workspace?.snapshot;
-  const { bound, picker, checking } = useAcceptedDrawingSeries(props.bindingSnapshot, props.access.canDisplay, workspaceSnapshot);
+  const saved = props.workspace?.snapshot?.layouts?.active.definition.authored_view;
+  const { bound, picker, checking } = useAcceptedDrawingSeries(props.bindingSnapshot, props.access.canDisplay, workspaceSnapshot, saved);
   // Unmount all scene, undo, model-turn and worker state when a binding leaves scope.
   const key = JSON.stringify([bound?.revision, bound?.layer, bound?.version, bound?.id, bound?.resultHash]);
-  return <Studio key={key} {...props} series={bound} checking={checking} picker={props.sourceUnavailable ? <p role="status">{t('Accepted series unavailable.')}</p> : picker} />;
+  const same = saved && bound && bound.datasetId === saved.dataset_id && bound.revision === saved.dataset_revision
+    && bound.layer === saved.layer_id && bound.version === saved.version_id && bound.resultHash === saved.result_hash
+    && bound.id === saved.series_id;
+  return <Studio saved={same || !bound ? saved : undefined} key={key} {...props} series={bound} checking={checking} picker={props.sourceUnavailable ? <p role="status">{t('Accepted series unavailable.')}</p> : picker} />;
 }
 
-function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking }: StudioProps & {
-  series: BoundSeries | undefined; picker: ReactNode; checking: boolean;
+function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking, saved }: StudioProps & {
+  series: BoundSeries | undefined; picker: ReactNode; checking: boolean; saved: SavedSeriesDrawing11 | undefined;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const scope = useRef(Symbol());
   const epoch = useRef(0);
   const pendingControls = useRef<{ code: string; controls: Controls } | undefined>(undefined);
   const job = useRef<AbortController | undefined>(undefined);
-  const [source, setSource] = useState('');
+  const [source, setSource] = useState(saved?.source ?? '');
   const [draft, setDraft] = useState<Scene>();
   const [accepted, setAccepted] = useState<Scene>();
   const [previous, setPrevious] = useState<Scene | null>();
   const [status, setStatus] = useState<Status>('idle');
-  const [weight, setWeight] = useState(3);
+  const [weight, setWeight] = useState(saved?.stroke ?? 3);
+  const [name, setName] = useState(workspace?.snapshot?.layouts?.active.name ?? '');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const restored = useRef(false);
   const visible = draft ?? accepted;
   const [file, setFile] = useState<File>();
+  const matchesSaved = saved && accepted?.program.code === saved.source && source === saved.source
+    && !draft && saved.stroke === weight && accepted.program.scalars.every((s, i) => accepted.controls.params[s.name] === saved.scalars[i]);
+
 
   useLayoutEffect(() => {
     if (checking) {
       ++epoch.current;
+      if (!accepted) restored.current = false;
       job.current?.abort();
       pendingControls.current = undefined;
       setStatus('idle');
@@ -177,6 +189,39 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
     return 'evaluating' as const;
   }
 
+  useEffect(() => {
+    if (!saved || !series || checking || restored.current) return;
+    restored.current = true;
+    const program = readProgram(saved.source);
+    if (saved.api !== 'series-drawing-1' || program?.source !== 'series' || saved.scalars.length !== program.scalars.length
+      || !program.scalars.every((scalar, i) => allowedValue(scalar, saved.scalars[i]!))) {
+      setStatus('rejected');
+      return;
+    }
+    const params = Object.fromEntries(program.scalars.map((s, i) => [s.name, saved.scalars[i]!]));
+    preview(saved.source, 'editor', false, true, { params, selected: -1 });
+  }, [saved, series, checking]);
+
+  async function saveView() {
+    const snapshot = workspace?.snapshot;
+    const layout = snapshot?.layouts?.active;
+    if (!workspace || !snapshot || !layout || !series || !accepted || saving) return;
+    setSaving(true);
+    setSaveError(false);
+    const view: SavedSeriesDrawing11 = {
+      api: 'series-drawing-1', source: accepted.program.code, stroke: weight,
+      scalars: accepted.program.scalars.map(scalar => accepted.controls.params[scalar.name]!),
+      dataset_id: series.datasetId, dataset_revision: series.revision,
+      layer_id: series.layer, version_id: series.version, result_hash: series.resultHash, series_id: series.id,
+    };
+    try {
+      const result = await workspace.previewLayout({ action: 'save', name: name.trim(),
+        definition: { ...layout.definition, authored_view: view } }, snapshot.workspace.revision);
+      if (dialog.current?.open) await workspace.applyLayout(result.command);
+    } catch { setSaveError(true); }
+    finally { setSaving(false); }
+  }
+
   function changeControls(update: (current: Controls) => Controls) {
     if (!visible) return;
     ++epoch.current;
@@ -228,13 +273,15 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
       <section className="probe-editor">
         {checking ? <p role="status">{t('Checking workspace source…')}</p> : <>
           {picker}
+          {saved && <p role="status">{!series ? t('Saved source. Waiting for access to its accepted series.')
+            : matchesSaved ? t('Saved in workspace layout') : t('Previously saved view remains available.')}</p>}
           <h2>{t('Drawing program')}</h2>
-          <button type="button" className="primary" disabled={!hasWorkspace} onClick={author}>
+          <button type="button" className="primary" disabled={!hasWorkspace || Boolean(saved && !series)} onClick={author}>
             {accepted ? t('Ask AI to revise the view') : t('Ask AI to author a view')}</button>
           {!hasWorkspace && <p className="probe-hint">{t('Open Drawing studio in a connected workspace to use the model chat.')}</p>}
           <label>{t('Program source')}<textarea spellCheck={false} value={source} maxLength={programLimit}
             onChange={event => edit(event.target.value)} /></label>
-          <div className="probe-actions"><button type="button" disabled={Boolean(series)} onClick={() => {
+          <div className="probe-actions"><button type="button" disabled={Boolean(series || saved)} onClick={() => {
             edit(drawingExample); preview(drawingExample, 'sample');
           }}>{t('Try sample program')}</button>
             <button type="button" disabled={!source || status === 'running'} onClick={() => {
@@ -250,7 +297,7 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
           <pre dir="ltr">{'// stock|future free|overlay\n// series free: rows contain time_ms, value (number|null)\n640 × 240\nrows: time_ms, open, high, low, close, volume\nxTime(time_ms), yValue(price)\nline(x1,y1,x2,y2,ink)\ncircle(x,y,r,ink)\nrect(x,y,w,h,ink)\nink: 0–3\n// scalar name min max step default\nparams.name, selected, hit(index,x,y,r)\n// difference field name'}</pre></details>
       </section>
       {!checking && <section className="probe-canvas" aria-label={t('Workbench canvas')}>
-        <div className="probe-canvas-heading"><h2>{series ? t('Accepted series preview') : t('Synthetic preview')}</h2>
+        <div className="probe-canvas-heading"><h2>{series || saved ? t('Accepted series preview') : t('Synthetic preview')}</h2>
           <span role="status">{status === 'running' ? t('Evaluating program…') : draft ? t('Draft preview')
             : accepted ? t('Accepted view') : t('Blank canvas')}</span></div>
         {status === 'timeout' && <p role="alert">{t('The drawing exceeded its time limit.')}</p>}
@@ -258,7 +305,7 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
         {series && <SeriesIdentity data={series} />}
         {visible ? <DrawingSurface series={series} scene={visible} weight={weight}
           select={index => changeControls(current => ({ ...current, selected: index }))} />
-          : <p className="probe-empty">{series ? t('Open a drawing program for the selected series.') : t('Ask AI to draw from frozen synthetic bars, or try the editable sample.')}</p>}
+          : <p className="probe-empty">{series ? t('Open a drawing program for the selected series.') : saved ? t('The saved program needs access to its series to draw.') : t('Ask AI to draw from frozen synthetic bars, or try the editable sample.')}</p>}
         {visible && status !== 'running' && <Observation series={series} scene={visible} workspace={workspace} />}
         <div className="drawing-controls">
           {visible?.program.scalars.map(scalar =>
@@ -271,6 +318,13 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
               <output>{formatNumber(visible.controls.params[scalar.name]!)}</output></label>)}
           <label>{t('Stroke weight')} <input type="range" min="1" max="10" value={weight}
             onChange={event => setWeight(Number(event.target.value))} /><output>{weight}</output></label>
+          {series && workspace?.snapshot?.layouts && <>
+            <label>{t('Layout name')}<input maxLength={48} value={name} onChange={e => setName(e.target.value)} /></label>
+            <button disabled={saving || !accepted || Boolean(draft) || status !== 'idle' || accepted.program.code !== source
+              || !name.trim() || (workspace.snapshot.layouts.saved.includes(name.trim()) && name.trim() !== workspace.snapshot.layouts.active.name)}
+              onClick={() => void saveView()}>{t('Save accepted view')}</button>
+            {saveError && <p role="alert">{t('The local layout could not be updated.')}</p>}
+          </>}
           <div className="probe-actions">
             {visible?.program.mode === 'overlay' && <button disabled={status === 'running' || source !== visible.program.code}
               onClick={() => { ++epoch.current; preview(visible.program.code, visible.origin, !visible.expanded, !draft); }}>
@@ -279,7 +333,7 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
               setPrevious(accepted ?? null); setAccepted(draft); edit(draft.program.code);
             }}>{t('Accept view')}</button>}
             {(draft || status !== 'idle' || source !== (accepted?.program.code ?? '')) &&
-              <button onClick={() => edit(accepted?.program.code ?? '')}>
+              <button onClick={() => edit(accepted?.program.code ?? saved?.source ?? '')}>
                 {accepted ? t('Restore accepted view') : t('Discard draft')}</button>}
             {previous !== undefined && <button onClick={() => {
               setAccepted(previous ?? undefined); setPrevious(undefined); edit(previous?.program.code ?? '');

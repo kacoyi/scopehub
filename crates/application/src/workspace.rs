@@ -442,12 +442,13 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
             state,
             chart_undo,
             chart_evidence,
-            layouts,
+            mut layouts,
             source,
         } = self.port.snapshot(
             undo,
             evidence::local_display(access) && access.operations.contains(&READ_CHART_PROJECTION),
         )?;
+        layout::project_layout(&mut layouts.active, access);
         self.note_restore.observe(state.revision);
         self.private_record_stage.observe(state.revision);
         Ok(WorkspaceSnapshot {

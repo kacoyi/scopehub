@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=2508b13a207b8a8b993fe9f1c8a7c8fc5e02707b39f8a732bdfacec59c923c2f. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -4959,6 +4959,8 @@ pub struct WorkspaceLayout11 {
     pub loss_color: String,
     pub link_selection: bool,
     pub pinned_instrument: Option<OpaqueId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authored_view: Option<SavedSeriesDrawing11>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5327,6 +5329,20 @@ pub struct AiTextConnectionCompleted11 {
 pub enum AiTextConnectionOutcome11 {
     AiTextConnectionCompleted11(Box<AiTextConnectionCompleted11>),
     ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SavedSeriesDrawing11 {
+    pub api: SavedSeriesDrawing11Api,
+    pub source: String,
+    pub stroke: u64,
+    pub scalars: Vec<f64>,
+    pub dataset_id: Uuid,
+    pub dataset_revision: OpaqueId,
+    pub layer_id: Uuid,
+    pub version_id: Uuid,
+    pub series_id: OpaqueId,
+    pub result_hash: Hash,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -11517,6 +11533,18 @@ impl AiTextConnectionCompleted11Operation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "ai.textConnection",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum SavedSeriesDrawing11Api {
+    #[serde(rename = "series-drawing-1")]
+    Value,
+}
+impl SavedSeriesDrawing11Api {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "series-drawing-1",
         }
     }
 }

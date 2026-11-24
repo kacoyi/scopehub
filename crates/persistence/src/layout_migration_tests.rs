@@ -345,29 +345,36 @@ fn populated_v9_indicator_migration_rolls_back_and_keeps_layout_rows() {
         .unwrap();
     drop(raw);
 
-    let v10 = profile.open().unwrap();
-    assert_eq!(integer_pragma(&v10.connection, "user_version"), 10);
-    assert_eq!(ledger(&v10.connection), (1..=10).collect::<Vec<_>>());
+    let upgraded = profile.open().unwrap();
     assert_eq!(
-        workspace_layout::read(&v10.connection, "workspace")
+        integer_pragma(&upgraded.connection, "user_version"),
+        SCHEMA_VERSION
+    );
+    assert_eq!(
+        ledger(&upgraded.connection),
+        (1..=SCHEMA_VERSION).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        workspace_layout::read(&upgraded.connection, "workspace")
             .unwrap()
             .active,
         layout
     );
     assert!(
-        workspace_layout::source_view(&v10.connection, "workspace")
+        workspace_layout::source_view(&upgraded.connection, "workspace")
             .unwrap()
             .unwrap()
             .preference
             == source.preference
     );
     assert!(
-        v10.read_local_dataset(&legacy.displayed.revision_id)
+        upgraded
+            .read_local_dataset(&legacy.displayed.revision_id)
             .unwrap()
             .is_some()
     );
     assert_eq!(
-        indicator_versions::active_count(&v10.connection, "workspace").unwrap(),
+        indicator_versions::active_count(&upgraded.connection, "workspace").unwrap(),
         0
     );
 }
@@ -428,4 +435,57 @@ fn chart_undo_keeps_its_target_in_history_without_layout_rows() {
             Ok(())
         })
         .unwrap();
+}
+
+#[test]
+fn v11_format_marker_is_atomic_and_closed_v10_backup_restores_the_named_chart_layout() {
+    let profile = Profile::new();
+    let mut store = profile.open().unwrap();
+    let chart = WorkspaceLayoutState::default().active.definition;
+    let original = serde_json::to_string(&chart).unwrap();
+    let tx = store.connection.transaction().unwrap();
+    tx.execute_batch("DELETE FROM schema_migrations WHERE version = 11; PRAGMA user_version=10")
+        .unwrap();
+    tx.execute(
+        "INSERT INTO workspace_layouts VALUES ('workspace', 'Legacy', ?1)",
+        [&original],
+    )
+    .unwrap();
+    tx.commit().unwrap();
+    drop(store);
+    let backup = fs::read(profile.db()).unwrap();
+    let old = profile.raw_connection();
+    old.execute_batch(
+        "CREATE TRIGGER interrupt_format_upgrade BEFORE INSERT ON schema_migrations
+        WHEN NEW.version=11 BEGIN SELECT raise(ABORT, 'synthetic interruption'); END;",
+    )
+    .unwrap();
+    drop(old);
+    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+    let recovered = profile.raw_connection();
+    assert_eq!(integer_pragma(&recovered, "user_version"), 10);
+    assert_eq!(ledger(&recovered), (1..=10).collect::<Vec<_>>());
+    assert_eq!(
+        workspace_layout::read(&recovered, "workspace")
+            .unwrap()
+            .saved["Legacy"],
+        chart
+    );
+    recovered
+        .execute_batch("DROP TRIGGER interrupt_format_upgrade")
+        .unwrap();
+    drop(recovered);
+    let restored = Profile::new();
+    drop(restored.raw_connection());
+    fs::write(restored.db(), backup).unwrap();
+    for source in [&profile, &restored] {
+        let current = source.open().unwrap();
+        assert_eq!(integer_pragma(&current.connection, "user_version"), 11);
+        assert_eq!(
+            workspace_layout::read(&current.connection, "workspace")
+                .unwrap()
+                .saved["Legacy"],
+            chart
+        );
+    }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-023",
   "tasks": [
     {
       "id": "M0-001",
@@ -17505,6 +17505,111 @@
           ],
           "data_plan": "No persistence or schema change.",
           "cleanup": "Keep the regression in the existing drawing suite."
+        }
+      }
+    },
+    {
+      "id": "M2-023",
+      "title": "Save and reopen an editable accepted-series drawing in its workspace",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-022"
+      ],
+      "scope": [
+        "contracts",
+        "crates/application",
+        "crates/persistence",
+        "apps/desktop/ui",
+        "tests"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "From the ordinary studio, accept a locally edited series program, save it into a named layout, restart the writer and reopen to revise the same definition. A rejected draft cannot replace the saved view. A revoked series leaves editable source with no observations or geometry. Legacy chart layouts open without a drawing."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "workspace-layout",
+        "operations-workflow",
+        "state-migrations",
+        "workbench-drawing-runtime"
+      ],
+      "evidence": [],
+      "next_action": "Verify restart, subsequent edit, private projection and revocation through the normal workspace.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "From the ordinary studio, accept a locally edited series program, save it into a named layout, restart the writer and reopen to revise the same definition. A rejected draft cannot replace the saved view. A revoked series leaves editable source with no observations or geometry. Legacy chart layouts open without a drawing.",
+        "change_types": [
+          "protocol",
+          "ui",
+          "persistence"
+        ],
+        "context": [
+          "crates/application/src/workspace/layout.rs",
+          "crates/persistence/src/workspace_layout.rs",
+          "apps/desktop/ui/src/drawing-workbench.tsx"
+        ],
+        "hypotheses": [
+          "The existing named-layout transaction can retain a bounded optional drawing definition with no new table or operation."
+        ],
+        "risks": [
+          {
+            "failure": "A stale or revoked grant, cached observation, or invalid draft displaces the saved definition.",
+            "checks": [
+              "workbench-drawing-runtime"
+            ]
+          },
+          {
+            "failure": "Existing layout readers receive a private program or a write loses previous state.",
+            "checks": [
+              "workspace-layout",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Use workspace layout undo or reset; retain historical named definitions and require a reader supporting the optional field before editing new definitions.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "application",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/drawing-workbench.tsx",
+            "crates/application/src/workspace/layout.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/editing"
+            }
+          ],
+          "non_goals": [
+            "General text layout and disclosure journey under M2-013, live provider qualification and physical release acceptance."
+          ],
+          "open_questions": [
+            "Exercise projection for local human and other layout callers."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Read chart-only v1 layouts and retain existing preview, apply, revision and undo semantics."
+          ],
+          "change": [
+            "Save the accepted source, drawing API version, scalar values, stroke weight and pinned core identities."
+          ],
+          "data_plan": "Workspace schema v11 transactionally marks the extended layout JSON format. Existing chart-only definitions need no rewrite. Older readers refuse this profile before editing. Keep the closed previous profile for rollback. Stored definitions contain no points, selections, marks or readouts.",
+          "cleanup": "Retain the original frozen prototypes. No duplicate writer or temporary storage."
         }
       }
     }

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=2508b13a207b8a8b993fe9f1c8a7c8fc5e02707b39f8a732bdfacec59c923c2f. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -3012,6 +3012,7 @@ export type WorkspaceLayout11 = {
   loss_color: string;
   link_selection: boolean;
   pinned_instrument: (OpaqueId | null);
+  authored_view?: SavedSeriesDrawing11;
 };
 export type NamedWorkspaceLayout11 = {
   name: (string | null);
@@ -3235,3 +3236,15 @@ export type AiTextConnectionCompleted11 = {
   result: AiTextConnectionOutput;
 };
 export type AiTextConnectionOutcome11 = AiTextConnectionCompleted11 | ScopedFailure11;
+export type SavedSeriesDrawing11 = {
+  api: "series-drawing-1";
+  source: string;
+  stroke: number;
+  scalars: Array<number>;
+  dataset_id: Uuid;
+  dataset_revision: OpaqueId;
+  layer_id: Uuid;
+  version_id: Uuid;
+  series_id: OpaqueId;
+  result_hash: Hash;
+};
