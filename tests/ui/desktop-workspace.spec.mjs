@@ -8,6 +8,10 @@ const operationId = 'ce7fd52d-7a62-441f-897f-098098e6fe82';
 const chart = { kind: 'chart', object_id: 'main-chart' };
 const undo = { operation_id: operationId, committed_workspace_revision: 1 };
 
+function revisionStatus(dispatch, revisionId) {
+  return dispatch({ type: 'frozen_chart_status', request_id: randomUUID(), revision_id: revisionId });
+}
+
 function workspace(timeframe, revision) {
   return {
     id: workspaceId, revision, timeframe, style: 'candlestick',
@@ -146,7 +150,7 @@ test('opted-in desktop uses a distinct bootstrap and commits and undoes through 
   expect(network).toEqual([]);
 });
 
-test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }) => {
+test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }, testInfo) => {
   test.setTimeout(180_000);
   await buildPreview();
   await withProfile(async profile => {
@@ -155,7 +159,10 @@ test('an outstanding native source invoke needs revision proof and a late reply 
       time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
       volume: 13, is_closed: true,
     });
-    await withWorkspace(browser, profile, async (_preview, dispatch) => {
+    await withWorkspace(browser, profile, async (_preview, dispatch, _credentials, holdRevisionRead) => {
+      const missingRevision = randomUUID();
+      const reads = [];
+      const deliverPublishedReply = Promise.withResolvers();
       const entered = Promise.withResolvers();
       const allowWrite = Promise.withResolvers();
       const committed = Promise.withResolvers();
@@ -174,6 +181,16 @@ test('an outstanding native source invoke needs revision proof and a late reply 
           await allowReply.promise;
           return reply;
         }
+        if (payload.type === 'frozen_chart') {
+          const read = { payload, reply: dispatch(payload) };
+          reads.push(read);
+          const reply = await read.reply;
+          read.outcome = reply.ok ? 'opened' : reply.error.code;
+          if (payload.revision_id === revision) {
+            await deliverPublishedReply.promise;
+          }
+          return reply;
+        }
         return dispatch(payload);
       });
       const network = observeWorkspaceNetwork(page, baseURL);
@@ -183,15 +200,40 @@ test('an outstanding native source invoke needs revision proof and a late reply 
       const snapshotReads = () => calls.filter(({ args }) => args.payload.type === 'snapshot').length;
       const priceChart = page.getByRole('region', { name: 'Price chart' });
       const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const revisionInput = dialog.getByLabel('Revision ID');
+      const openFrozen = control(dialog, 'Open frozen chart');
       const useSource = control(dialog, 'Use as workspace source');
       const reload = control(dialog, 'Reload workspace state');
       const alert = dialog.getByRole('alert');
       try {
         await page.goto('/');
         await control(priceChart, 'Open published CSV').click();
-        await dialog.getByLabel('Revision ID').fill(revision);
-        await control(dialog, 'Open frozen chart').click();
-        await expect(useSource).toBeEnabled();
+        await revisionInput.fill(missingRevision);
+        await openFrozen.click();
+        await expect(alert).toHaveText('This frozen chart is unavailable in the current profile.');
+        await expect(useSource).toHaveCount(0);
+        await expect(openFrozen).toBeEnabled();
+        expect(reads.map(read => read.outcome)).toEqual(['SNAPSHOT_UNAVAILABLE']);
+        expect(sourceWrites()).toHaveLength(0);
+        expect(await snapshot()).toMatchObject(original);
+
+        await revisionInput.fill(revision);
+        const held = await holdRevisionRead(() => revisionStatus(dispatch, revision));
+        try {
+          await openFrozen.click();
+          await expect.poll(() => reads[1]?.payload.revision_id).toBe(revision);
+          expect(await reads[1].reply).toEqual({ ok: false, error: { code: 'BUSY', retryable: true } });
+          await expect(useSource).toHaveCount(0);
+          expect(sourceWrites()).toHaveLength(0);
+          held.release();
+          expect(await held.reply).toEqual({ ok: true, result: { available: true } });
+        } finally {
+          held.release();
+          deliverPublishedReply.resolve();
+        }
+        await expect(useSource, 'The published chart opens after the held reader releases admission').toBeEnabled();
+        expect(reads.map(read => read.outcome)).toEqual(['SNAPSHOT_UNAVAILABLE', 'BUSY', 'opened']);
+        expect(reads[2].payload).toEqual(reads[1].payload);
         expect(await snapshot()).toMatchObject(original);
         await page.evaluate(() => {
           const ipc = window.__TAURI_INTERNALS__;
@@ -241,11 +283,35 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         expect(await snapshot()).toMatchObject({ ok: true, result: { selection_revision: 2, source } });
         expect(network).toEqual([]);
       } finally {
+        deliverPublishedReply.resolve();
         allowWrite.resolve();
         allowReply.resolve();
+        await testInfo.attach('native-frozen-chart-admission', {
+          body: JSON.stringify(reads.map(({ payload, outcome }) => ({
+            revision: payload.revision_id === revision ? 'published' : 'missing', outcome,
+          }))),
+          contentType: 'application/json',
+        });
       }
-    });
+    }, [], true);
   });
+});
+
+test('a revision gate preserves rejected and thrown errors before admission', async ({ browser }) => {
+  test.setTimeout(180_000);
+  await buildPreview();
+  await withProfile(profile => withWorkspace(browser, profile, async (_page, dispatch, _credentials, holdRevisionRead) => {
+    await test.step('propagates the original code promptly', async () => {
+      await expect(holdRevisionRead(() => revisionStatus(dispatch, 'invalid'))).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    }, { timeout: 3000 });
+    await test.step('propagates a thrown read error promptly', async () => {
+      const failure = new Error('Synthetic revision dispatch failure');
+      await expect(holdRevisionRead(() => { throw failure; })).rejects.toBe(failure);
+    }, { timeout: 3000 });
+    const held = await holdRevisionRead(() => revisionStatus(dispatch, randomUUID()));
+    held.release();
+    expect(await held.reply).toEqual({ ok: true, result: { available: false } });
+  }, [], true));
 });
 
 test('opted-in desktop keeps sample timeframe controls separate from durable IPC', async ({ page, baseURL }) => {

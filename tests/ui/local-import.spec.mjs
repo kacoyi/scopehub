@@ -1761,6 +1761,106 @@ for (const kind of ['single-file', 'folder']) {
   });
 }
 
+for (const entry of ['published CSV dialog', 'local import editor']) {
+  base(`cancels a retryable frozen chart read from the ${entry}`, async ({ page }) => {
+    const revisionId = randomUUID();
+    const releaseBusy = Promise.withResolvers();
+    const calls = [];
+    const reads = [];
+    const isDialog = entry === 'published CSV dialog';
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      if (command === 'choose_local_csv_folder') return { result: catalog };
+      if (command === 'cancel_local_import_preview') {
+        calls.push(command);
+        return { result: null };
+      }
+      expect(command).toBe('execute_operation');
+      const { operation, payload } = args;
+      calls.push(operation ?? payload.type);
+      if (payload.type === 'snapshot') {
+        return { result: { workspace: { id: 'main', revision: 0, timeframe: '1d' }, selection_revision: 0, undo: null, source: null } };
+      }
+      if (operation === 'market.listLocalImportRevisions') return { result: { revisions: [], next_after_revision_id: null } };
+      if (payload.type === 'frozen_chart_status') return { result: { available: true } };
+      if (payload.type === 'frozen_chart') {
+        reads.push(payload.revision_id);
+        if (reads.length > 1) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+        await releaseBusy.promise;
+        return { error: { code: 'BUSY', retryable: true } };
+      }
+      if (operation === 'market.previewLocalImport') return { result: importedFixture(args) };
+      if (operation === 'market.saveLocalImportMapping') {
+        return { result: { version: 1, record: { review_revision: 1, mapping: payload.mapping } } };
+      }
+      expect(operation).toBe('market.publishLocalImport');
+      return { result: { revision: { revision_id: revisionId, symbol: '000731', bar_count: 2,
+        relative_path: equity.path, source_sha256: sourceIdentity(equity).sha256 } } };
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+      window.frozenChartReplies = 0;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (args?.payload?.type === 'frozen_chart') window.frozenChartReplies++;
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    const published = page.getByRole('region', { name: 'Published local CSV' });
+    const panel = isDialog ? dialog : published;
+    const showDialog = control(page, 'Open published CSV').last();
+    try {
+      await page.goto('/');
+      if (isDialog) {
+        await showDialog.click();
+        await dialog.getByLabel('Revision ID').fill(revisionId);
+      } else {
+        await control(page, 'Choose local CSV folder').last().click();
+        await control(page, 'Inspect raw rows').click();
+        await expect(page.getByRole('table', { name: 'Raw CSV rows' })).toBeVisible();
+        await enterMapping(page, equity);
+        await control(page, 'Preview mapping').click();
+        await control(page, 'Save reviewed mapping').click();
+        await control(page, 'Publish complete file').click();
+        await expect(published).toContainText(revisionId);
+      }
+      const openFrozen = control(panel, 'Open frozen chart');
+      await expect(openFrozen).toBeEnabled();
+      const beforeRead = calls.length;
+      const now = new Date();
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(new Date(now.getTime() + 1000));
+      await openFrozen.click();
+      await expect.poll(() => reads).toEqual([revisionId]);
+      await (isDialog ? control(dialog, 'Close') : control(page, 'Cancel chart')).click({ timeout: 2500 });
+      if (isDialog) await expect(dialog).toBeHidden();
+      releaseBusy.resolve();
+      await expect.poll(() => page.evaluate(() => window.frozenChartReplies)).toBeGreaterThan(0);
+      await page.clock.runFor(150);
+      expect(reads).toEqual([revisionId]);
+      expect(calls.slice(beforeRead).filter(call => !['snapshot', 'frozen_chart', 'frozen_chart_status'].includes(call))).toEqual([]);
+      await expect(page.getByRole('region', { name: 'Frozen local CSV chart' })).toHaveCount(0);
+      if (isDialog) {
+        await showDialog.click();
+        await expect(dialog.getByLabel('Revision ID')).toHaveValue('');
+        await expect(control(dialog, 'Use as workspace source')).toHaveCount(0);
+      } else {
+        await expect(page.getByText('Chart opening cancelled.')).toBeVisible();
+        await expect(published).toContainText(revisionId);
+        await expect(control(published, 'Open frozen chart')).toBeEnabled();
+      }
+      await expect(page.getByRole('alert')).toHaveCount(0);
+    } finally {
+      releaseBusy.resolve();
+    }
+  });
+}
+
 base('publishes a reviewed folder once and reopens its frozen provenance without a folder grant', {
   tag: '@profile-folder-import',
 }, async ({ page }) => {

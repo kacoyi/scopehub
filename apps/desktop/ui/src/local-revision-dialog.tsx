@@ -172,7 +172,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   }
 
   async function open(id: string, fromLibrary = false) {
-    if (active.current) return;
+    const signal = lifetime.current?.signal;
+    if (active.current || !signal || signal.aborted) return;
+    const chartSignal = workspace && kind === 'csv' ? signal : undefined;
     setFrozen(undefined);
     await request(async () => {
       setOpening({ id, kind });
@@ -181,8 +183,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         if (!revisionAccess.canDisplay(id)) throw denied;
         const opened: OpenedRevision = kind === 'folder'
           ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID()) }
-          : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID())
+          : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID(), chartSignal)
             : await readLocalImportRevision({ version: 1, revision_id: id }, crypto.randomUUID()) };
+        if (chartSignal?.aborted) return;
         if (!revisionAccess.canDisplay(id)) throw denied;
         const { result } = opened;
         if (result.revision.revision_id !== id || result.bars.length !== result.revision.bar_count
@@ -191,6 +194,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         }
         setFrozen(opened);
       } catch (error) {
+        if (chartSignal?.aborted) return;
         if (displayAccessDenied(error)) {
           if (fromLibrary) libraryTitle.current?.focus();
           removeFromLibrary(id);
@@ -199,7 +203,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         }
         throw error;
       } finally {
-        setOpening(undefined);
+        if (!chartSignal?.aborted) setOpening(undefined);
       }
     }, 'Unable to open the frozen chart.');
   }

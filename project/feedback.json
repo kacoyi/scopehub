@@ -3901,6 +3901,70 @@
         "prevention": "The qualification test resolves the source and rejects the wrong locator, missing positive value and nonzero revoked observations."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-frozen-chart-open-lost-before-source-write",
+      "source": "Required Ubuntu transport check for PR 73, archives/runs/20261124T075459.275900Z-a4026d20/test-report.json, desktop-workspace-transport.log and the retained browser screenshot.",
+      "observation": "The first open of a seeded published CSV stayed in the dialog with 'Unable to open the frozen chart.' The source button never appeared at line 194, so the test did not reach its controlled source write, revision proof or late acknowledgement. The hosted artifacts do not contain the underlying read reply. Locally, holding a genuine Rust-backed status read made the foreground frozen chart invoke receive retryable BUSY and reproduced that exact alert before any write. A separate unknown revision returned SNAPSHOT_UNAVAILABLE and displayed the dedicated rejection.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-086"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T075459.275900Z-a4026d20",
+          "source_commit": "30f45c59851a1aa1a97f9582395cd71bacb4b5a3",
+          "report_sha256": "c31932503a04ce3bc8fb54502a614bf66125a47c35707467a4572bba30a06621"
+        }
+      ],
+      "resolution": {
+        "cause": "Foreground chart reads treated transient writer contention as terminal. Holding a real status read reproduced the hosted message. The hosted image and log do not identify the original response code.",
+        "correction": "Retry an explicitly retryable BUSY read within its original deadline using its original request ID. Keep unavailable revisions and uncertain writes on their existing paths.",
+        "prevention": "The transport regression separately opens a missing revision and a valid contended revision before exercising the delayed write, revision proof and late reply."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cancelled-frozen-chart-read-can-retry",
+      "source": "Independent review of df22f2a and inspection of the LocalRevisionDialog and LocalImportEditor foreground read entries.",
+      "observation": "Closing the published CSV dialog aborts its lifetime, but the authenticated frozen chart read did not receive the signal. The editor likewise omitted cancellation and excluded chart reads from the Cancel control. With that control exposed and the old request wiring, both views submitted a second read after close or cancel and delivery of a held retryable BUSY response.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-086"
+      ],
+      "regression_checks": [
+        "local-import-ui"
+      ],
+      "resolution": {
+        "cause": "The two foreground entries did not carry their cancellation signal through contention backoff.",
+        "correction": "Pass the dialog lifetime or editor read signal through the bounded read. Cancelling or closing prevents another read and ignores a late result.",
+        "prevention": "Both foreground regressions hold a retryable reply through cancellation and verify a single read, zero source writes and no stale chart."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-chart-regression-masks-gate-errors",
+      "source": "Independent review of df22f2a and inspection of the native transport fixture's response barrier.",
+      "observation": "The test waited on a resolver that a thrown dispatch could not settle. Its cleanup asserted the held reply, which could replace an earlier failure. A local malformed status request returned INVALID_ARGUMENT and the fixture surfaced a generic early completion error instead.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-086"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": {
+        "cause": "A thrown dispatch could leave the original waiter unresolved and a cleanup assertion could hide the first failure.",
+        "correction": "Observe the real bounded dispatch, retain early error codes and make release independent of any assertion about the result.",
+        "prevention": "The transport regression checks an INVALID_ARGUMENT reply and a thrown dispatch, then reopens and releases the gate to verify cleanup."
+      },
+      "deferral_reason": null
     }
   ]
 }
