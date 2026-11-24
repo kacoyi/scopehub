@@ -20761,6 +20761,20 @@
               "windows-native-build",
               "desktop-workspace-transport"
             ]
+          },
+          {
+            "failure": "Fresh libtest processes for interrupted writer or restore operations cannot reach the same ACL worker when opening an already-prepared workspace directly.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cold synchronous Job creation or child creation keeps the ordinary desk host beyond its admission deadline before the authority gate is available.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
           }
         ],
         "rollback": "Retain the exact historical source and failed artifacts. Revert the worker transport and policy replacement together if native policy equivalence, bounded cleanup or the normal build and installed entry fail to match.",

@@ -5528,6 +5528,38 @@
         "prevention": "Keep the controlled lost-result cleanup evidence in archives/observations/m0-102-native-correction/index.json and exercise the enclosing teardown in the ordinary Windows browser control."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-acl-restore-test-processes-need-explicit-worker",
+      "source": "Independent Astra Standard early source review of M0-105 at intake 8206dd8b450da3935965b86dab25ab8cf884140e. Retained at archives/observations/m0-105-native-workspace-acl/astra-early-design-8206dd8.txt.",
+      "observation": "The Windows libtest draft registered its ACL worker only in Profile::new. The original writer and decision-note restoration interruption fixtures start fresh libtest processes and call support::store directly, so their ordinary open would use the executable worker arguments with no libtest entry selected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-synchronous-launch-outside-admission-wait",
+      "source": "Independent Astra Standard early source review of M0-105 at intake 8206dd8b450da3935965b86dab25ab8cf884140e. Retained at archives/observations/m0-105-native-workspace-acl/astra-early-design-8206dd8.txt.",
+      "observation": "The native draft called Job::new and Command::spawn synchronously, and captured no entry-through-ready duration. The desktop has no Node startup fence. The caller therefore could not withdraw authorization and return by its existing admission deadline while cold launch remained in flight.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
