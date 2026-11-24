@@ -787,6 +787,7 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
         let losses = 0;
         let frames = [];
         let dropped = [];
+        let requests = [];
         let startedAt = performance.now();
         const previewRequest = request => {
           if (new URL(request.url()).pathname !== endpoint) return undefined;
@@ -795,6 +796,10 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
           return ['indicator.createDraft', 'indicator.runPreview', 'indicator_preview_status', 'task.cancel'].includes(operation)
             ? { operation, request_id: payload.request_id, task_id: payload.task_id } : undefined;
         };
+        page.on('request', request => {
+          const entry = previewRequest(request);
+          if (entry) requests.push(entry);
+        });
         page.on('response', async response => {
           const entry = previewRequest(response.request());
           if (!entry) return;
@@ -823,12 +828,13 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
           const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
           const result = (await response.json()).result;
           if (result?.status !== 'ready') return route.fulfill({ response });
-          dropped.push({ ...entry, http: response.status(), result });
+          dropped.push({ ...entry, http: response.status(), result, requestsAtLoss: requests.length });
           await route.abort('connectionreset');
         });
         for (const { count, cut } of [{ count: 3, cut: 0 }, { count: 1, cut: 1 }, { count: 1, cut: 2 }]) {
           frames = [];
           dropped = [];
+          requests = [];
           losses = cut;
           startedAt = performance.now();
           if (cut === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
@@ -837,6 +843,7 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
           const describe = visibleError => JSON.stringify({
             count, cut, alert: visibleError,
             frames: frames.map(({ ready, ...frame }) => frame),
+            ...(dropped.length && { afterLoss: requests.slice(dropped[0].requestsAtLoss) }),
             lost: dropped.map(({ result, ...frame }) => ({
               ...frame, status: result.status, result_hash: result.event.artifact.result_hash,
             })),
@@ -866,9 +873,12 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
                 request_id: entry.request_id, task_id: entry.task_id, delivery: 'net::ERR_CONNECTION_RESET',
               }));
             }
-            for (const operation of ['indicator.createDraft', 'indicator.runPreview']) {
-              expect(new Set(frames.filter(frame => frame.operation === operation).map(frame => frame.request_id)).size).toBe(1);
-            }
+            const afterLoss = requests.slice(dropped[0].requestsAtLoss);
+            expect(afterLoss.filter(({ operation }) =>
+              operation === 'indicator.createDraft' || operation === 'indicator.runPreview'),
+            'Actual requests after status delivery loss must not resubmit the preview').toEqual([]);
+            expect(afterLoss.filter(({ operation }) => operation === 'indicator_preview_status'))
+              .toMatchObject([{ operation: 'indicator_preview_status', task_id: dropped[0].task_id }]);
           }
           if (cut === 2) {
             await expect(run).toBeEnabled();

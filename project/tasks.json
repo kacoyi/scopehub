@@ -20132,7 +20132,7 @@
         ],
         "risks": [
           {
-            "failure": "A successful or terminal reply is attributed to the wrong run or an accepted result loses exact zero or warmup semantics.",
+            "failure": "A successful or terminal reply is attributed to the wrong run, an identical submission replay escapes detection, or an accepted result loses exact zero or warmup semantics.",
             "checks": [
               "workspace-timeframe",
               "rust-contracts-workers"

@@ -5298,6 +5298,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-replay-assertion-drops-identical-attempts",
+      "source": "Independent Standard Astra t9p review of 5adfa0004535040d654e03d1408fc623a3ad52f5. Original archives/observations/m0-099-cropped-indicator/astra-5adfa00-initial.txt SHA-256 ef8d5961990066d177f50312746aff480deb0b29c9cd79b8a382292b29d2d14b.",
+      "observation": "The no-replay assertion coalesced the observed submit requests by request ID. An exact resubmission after status delivery loss can return the same idempotent receipt, task ID and artifact and evade that assertion. Legitimate admission refusals can also reuse the original request ID before the loss.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-099"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
