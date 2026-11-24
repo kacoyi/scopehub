@@ -20,9 +20,9 @@ const mapping = {
 const digest = value => createHash('sha256').update(value).digest('hex');
 const button = (scope, name) => scope.getByRole('button', { name, exact: true });
 
-async function withImport(root, use) {
+async function withImport(appData, fixture, use) {
   const binary = join(process.cwd(), 'target/debug/examples', process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge');
-  const bridge = startLocalImportBridge(binary, join(root, 'app'), join(root, 'fixture'));
+  const bridge = startLocalImportBridge(binary, appData, fixture);
   const market = async (operation, payload) => {
     const reply = await bridge.request('execute_operation', {
       operation: 'market.' + operation, requestId: randomUUID(), payload,
@@ -33,21 +33,22 @@ async function withImport(root, use) {
   try { return await use(bridge, market); } finally { await bridge.close(); }
 }
 
-export const revoke = (root, revision_id) => withImport(root, (_bridge, market) =>
+export const revoke = (root, revision_id) => withImport(join(root, 'app'), join(root, 'fixture'), (_bridge, market) =>
   market('revokeLocalImportRevision', { version: 1, revision_id }));
 
-export async function prepareSeries(browser, root, period = 2) {
-  await mkdir(join(root, 'app'), { mode: 0o700 });
-  await mkdir(join(root, 'fixture'), { mode: 0o700 });
-  await writeFile(join(root, 'fixture/series.csv'), csv);
-  const revision = await withImport(root, async (bridge, market) => {
+export async function prepareSeries(browser, root, period = 2, { appData = join(root, 'app') } = {}) {
+  const fixture = join(root, 'fixture');
+  await mkdir(appData, { mode: 0o700 });
+  await mkdir(fixture, { mode: 0o700 });
+  await writeFile(join(fixture, 'series.csv'), csv);
+  const revision = await withImport(appData, fixture, async (bridge, market) => {
     const { result } = await bridge.request('choose_local_csv_folder', {});
     const input = { version: 1, folder_id: result.folder_id, file_id: result.files[0].file_id, expected_sha256: digest(csv) };
     await market('previewLocalImport', { ...input, row_limit: 10, mapping });
     const { record } = await market('saveLocalImportMapping', { ...input, row_limit: 10, mapping });
     return (await market('publishLocalImport', { ...input, review_revision: record.review_revision })).revision.revision_id;
   });
-  const profile = readPublishedWorkspaceProfile(join(root, 'app'));
+  const profile = readPublishedWorkspaceProfile(appData);
   let identity;
   await withWorkspace(browser, profile, async (page, dispatch) => {
     await button(page, 'Open published CSV').click();

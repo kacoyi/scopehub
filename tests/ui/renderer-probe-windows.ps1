@@ -1,4 +1,5 @@
 # Exercise the embedded WebView2 through its accessibility tree in an isolated synthetic profile.
+param([string]$AcceptedOutput,[switch]$PreparedSeries)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -10,6 +11,7 @@ if ((Test-Path -LiteralPath $temp) -or (Test-Path -LiteralPath $appData)) { thro
 $browserData = Join-Path $temp 'webview'
 $priorBrowserData = $env:WEBVIEW2_USER_DATA_FOLDER
 $priorBrowserArgs = $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+$priorWorkspace = $env:SCOPEHUB_DESKTOP_WORKSPACE_DEV
 $app = $null
 $window = $null
 
@@ -20,8 +22,11 @@ function Wait-ForProbe($description, [scriptblock]$observe) {
         try {
             $value = & $observe
             if ($value) { return $value }
-        } catch [System.Windows.Automation.ElementNotAvailableException] {
-            # WebView2 can replace accessibility nodes during a React render.
+        } catch {
+            $errorType=$_.Exception.GetBaseException()
+            # Re-resolve a WebView2 node invalidated between enumeration and activation.
+            if ($errorType -isnot [System.Windows.Automation.ElementNotAvailableException] -and
+                $errorType -isnot [System.InvalidOperationException]) { throw }
         }
         Start-Sleep -Milliseconds 100
     } while ($watch.Elapsed.TotalSeconds -lt 25)
@@ -67,13 +72,30 @@ try {
     $target = Join-Path ($metadata | ConvertFrom-Json).target_directory 'x86_64-pc-windows-msvc'
     Push-Location (Join-Path $root 'apps/desktop')
     try {
-        pnpm exec tauri build --no-bundle --target x86_64-pc-windows-msvc --config $config
+        $buildOptions = @('--no-bundle','--target','x86_64-pc-windows-msvc','--config',$config)
+        if ($AcceptedOutput) { $buildOptions += '--debug' }
+        pnpm exec tauri build @buildOptions
         if ($LASTEXITCODE) { throw 'Native WebView2 probe build failed.' }
     } finally { Pop-Location }
 
     $env:WEBVIEW2_USER_DATA_FOLDER = $browserData
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--lang=en-US'
-    $exe = Join-Path $target 'release/scopehub-desktop.exe'
+    $flavor = 'release'
+    if ($AcceptedOutput) {
+        $flavor = 'debug'
+        $env:SCOPEHUB_DESKTOP_WORKSPACE_DEV = '1'
+    }
+    $exe = Join-Path $target "$flavor/scopehub-desktop.exe"
+    $preparedIdentity=$null
+    if ($PreparedSeries) {
+        $row=& node (Join-Path $PSScriptRoot 'prepare-native-series-profile.mjs') $temp $appData
+        if ($LASTEXITCODE -or !$row) { throw 'Trusted core import and normal browser confirmation failed.' }
+        $preparedIdentity=$row | ConvertFrom-Json
+        if ($preparedIdentity.series_id -ne 'mean' -or $preparedIdentity.result_hash -notmatch '^[a-f0-9]{64}$') {
+            throw 'Native setup produced an incomplete accepted series identity.'
+        }
+        Write-Output "Trusted Rust import / Chromium confirmation: $row"
+    }
     $app = Start-Process -FilePath $exe -PassThru
     $window = Wait-ForProbe 'native main window' {
         $app.Refresh()
@@ -82,6 +104,14 @@ try {
         }
     }
     if ($window.Current.ProcessId -ne $app.Id) { throw 'Unexpected native window owner.' }
+    if ($PreparedSeries) {
+        $browser=Wait-ForProbe 'embedded native runtime child' {
+            Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" | Select-Object -First 1
+        }
+        Write-Output "Prepared-profile app HWND=$($app.MainWindowHandle) PID=$($app.Id) WebView2=$((Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion) binary=$((Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash)"
+        & (Join-Path $PSScriptRoot 'accepted-native-windows.ps1') -OutputDirectory $AcceptedOutput -Identity $preparedIdentity
+        return
+    }
     Invoke-Button 'Open workbench prototype'
     Wait-Name 'The canvas is empty. Add a block and preview your draft.'
     $sourceName = "Frozen synthetic closes $([char]0x00B7) SIM.CN.FUTURE.001"
@@ -129,6 +159,10 @@ try {
     $browser = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" |
         Select-Object -First 1
     if (!$browser.ExecutablePath) { throw 'Missing WebView2 child runtime identity.' }
+    if ($AcceptedOutput) {
+        Write-Output "Window PID=$($app.Id) HWND=$($app.MainWindowHandle) build=$flavor WebView2=$((Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion)"
+        & (Join-Path $PSScriptRoot 'accepted-native-windows.ps1') -OutputDirectory $AcceptedOutput
+    }
     $commit = git rev-parse HEAD
     if ($LASTEXITCODE) { throw 'Source commit lookup failed.' }
     @{
@@ -148,6 +182,7 @@ try {
         }
         $app.Dispose()
     }
+    $env:SCOPEHUB_DESKTOP_WORKSPACE_DEV = $priorWorkspace
     $env:WEBVIEW2_USER_DATA_FOLDER = $priorBrowserData
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = $priorBrowserArgs
     Pop-Location
