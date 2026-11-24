@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-087",
   "tasks": [
     {
       "id": "M0-001",
@@ -17618,6 +17618,112 @@
           ],
           "data_plan": "Use a disposable synthetic profile. No user data migration.",
           "cleanup": "Retain only the regression and the fix. Resume the renderer task after the repair."
+        }
+      }
+    },
+    {
+      "id": "M0-087",
+      "title": "Shorten Windows verification and act on repeated feedback-budget overruns",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-046",
+        "M0-047"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "project/checks.json",
+        "project/delivery.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "Reduce a demonstrated cost on the regular Windows verification path with the same required checks and honest failure, omission and timeout semantics. Compare the candidate with a retained, comparable control using the existing timing data and identify the effect on the actual critical path.",
+        "Retain named test coverage and independently verify representative accepted and rejected cases on the changed path. Existing task identity, historical logs, protected jobs and release gates keep their meaning.",
+        "Make the existing feedback-budget escalation actionable during a normal development handoff. Use a first usable interaction and a stable candidate to decide verification cadence. Reuse an actual applicable observation for unchanged inputs, and run a fresh check for a relevant behavioral change. Keep independent product work moving during hosted verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Investigate the Windows Python check and existing overlapped build window using the retained timings and normal test entry. Implement a bounded improvement and exercise the budget follow-through before comparing hosted timings.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An ordinary developer sees the product interaction during iteration and gets the same protected verification at lower cost. Repeated slow runs acquire an accountable corrective task.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/timing.py",
+          "tests/project/test_delivery.py",
+          "tests/project/test_worktree_retirement.py",
+          "project/delivery.json",
+          ".github/workflows/verify.yml"
+        ],
+        "hypotheses": [
+          "Recent Windows runs spent about 13.5 minutes in the Python check, dominated by temporary Git histories and repeated Git process launches. The existing Python/build overlap makes critical elapsed time more meaningful than summed check seconds.",
+          "The existing timing budget already states when to investigate. A development handoff can surface or route an overdue action without new remote polling in ordinary status."
+        ],
+        "risks": [
+          {
+            "failure": "An improvement hides a failing case, changes process cleanup, drops part of the suite or publishes evidence for another input.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repeated budget breach is documented but never assigned, or a policy check forces another full suite for record-only edits.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/timing.py",
+            "tests/project/test_delivery.py",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No paid runners, external transmission, platform removal, skipped real cases, weakened protection or release acceptance change."
+          ],
+          "open_questions": [
+            "Which focused optimization actually reduces the Windows critical path while preserving test isolation? How can existing timing observations trigger action without nested validation rounds?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Named test cases, actual failure signals, logs and the required protected platform coverage."
+          ],
+          "change": [
+            "Reduce repeated verification work and make the previously stated budget actionable during delivery."
+          ],
+          "data_plan": "Use synthetic fixtures and retained CI timings. Preserve prior reports and compare matching selection, runner and cache state.",
+          "cleanup": "Remove superseded work on the normal check path once the comparison is verified. Keep remaining bottlenecks visible under a named follow-up."
         }
       }
     }
