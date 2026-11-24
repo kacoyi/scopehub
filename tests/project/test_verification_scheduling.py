@@ -12,7 +12,7 @@ import socket
 import subprocess
 import sys
 import tempfile
-from threading import Event
+from threading import Condition, Event, get_ident
 import time
 import unittest
 from unittest.mock import patch
@@ -90,6 +90,103 @@ class VerificationSchedulingTests(unittest.TestCase):
                  'ui-build': {'status': 'failed', 'reason_code': 'cleanup_failed'}},
                 harness.run_overlapped(checks, {}, Path('unused'), system=harness.platform.system()),
             )
+
+    def test_interrupt_after_first_finisher_retains_both_rows_and_releases_listener(self):
+        for first in ('market-recovery', 'python-contracts-workers'):
+            with self.subTest(first=first):
+                self.assert_interrupt_after_first_finisher(first)
+
+    def assert_interrupt_after_first_finisher(self, first):
+        import _thread
+
+        names = ('python-contracts-workers', 'market-recovery')
+        interrupted = next(name for name in names if name != first)
+        main_thread = get_ident()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            gate = root / 'let-the-listener-finish'
+            script = root / 'paired-check.py'
+            script.write_text(
+                'import socket, sys, time\nfrom pathlib import Path\n'
+                'root, name, first = Path(sys.argv[1]), sys.argv[2], sys.argv[3]\n'
+                'with socket.socket() as listener:\n'
+                '    listener.bind(("127.0.0.1", 0))\n'
+                '    listener.listen()\n'
+                '    marker = root / name\n'
+                '    temporary = marker.with_suffix(".ready")\n'
+                '    temporary.write_text(str(listener.getsockname()[1]))\n'
+                '    temporary.replace(marker)\n'
+                '    print(name + " listener ready", flush=True)\n'
+                '    if name == first:\n'
+                '        while not all((root / peer).is_file() for peer in '
+                '("python-contracts-workers", "market-recovery")):\n'
+                '            time.sleep(.02)\n'
+                '        print(name + " completed normally", flush=True)\n'
+                '    else:\n'
+                '        while not (root / "let-the-listener-finish").exists():\n'
+                '            time.sleep(.02)\n', encoding='utf-8',
+            )
+            checks = [{'id': name, 'command': ['{python}', str(script), str(root), name, first],
+                       'timeout_seconds': 15} for name in names]
+            done = Event()
+
+            def completion_order_reached():
+                stack = []
+                frame = sys._current_frames()[main_thread]
+                while frame is not None:
+                    stack.append(frame)
+                    frame = frame.f_back
+                for frame in stack:
+                    if frame.f_code is harness.run_overlapped.__code__:
+                        if first == 'python-contracts-workers':
+                            future = frame.f_locals.get('python')
+                            return future is not None and future.done()
+                        result = frame.f_locals.get('results', {}).get('market-recovery', {})
+                        return result.get('status') == 'passed' and any(
+                            item.f_code is Condition.wait.__code__ for item in stack)
+                return False
+
+            def interrupt_after_first():
+                deadline = time.monotonic() + 6
+                try:
+                    while not completion_order_reached():
+                        self.assertLess(time.monotonic(), deadline, 'The expected first finisher was not observed.')
+                        self.assertFalse(done.wait(.01), 'The runner returned before the interrupt.')
+                    port = int((root / interrupted).read_text())
+                    with socket.create_connection(('127.0.0.1', port), timeout=1):
+                        pass
+                    _thread.interrupt_main()
+                    done.wait(2)
+                    return port
+                finally:
+                    gate.touch()
+
+            console = StringIO()
+            with (patch.object(harness, 'ROOT', root), redirect_stdout(console),
+                  ThreadPoolExecutor(max_workers=1) as observer):
+                interruption = observer.submit(interrupt_after_first)
+                try:
+                    rows = harness.run_overlapped(checks, dict(os.environ), root / 'logs',
+                                                  system=harness.platform.system())
+                except KeyboardInterrupt:
+                    self.fail('The interrupt discarded the completed and interrupted result rows.')
+                finally:
+                    done.set()
+                port = interruption.result(timeout=8)
+
+            self.assertCountEqual(names, rows.keys())
+            self.assertEqual(('passed', 0), (rows[first]['status'], rows[first]['exit_code']))
+            self.assertEqual(('failed', 'interrupted'), (rows[interrupted]['status'], rows[interrupted]['reason_code']))
+            with socket.socket() as listener_probe:
+                listener_probe.settimeout(1)
+                self.assertNotEqual(0, listener_probe.connect_ex(('127.0.0.1', port)))
+            transcript = [json.loads(line) for line in console.getvalue().splitlines()]
+            self.assertCountEqual(list(rows.values()), [row for row in transcript if 'log_sha256' in row])
+            for row in rows.values():
+                log = root / row['log']
+                self.assertEqual(row['log_sha256'], harness.file_digest(log))
+                marker = b'completed normally' if row['id'] == first else b'Check stopped: interrupted.'
+                self.assertIn(marker, log.read_bytes())
 
     @unittest.skipUnless(sys.platform == 'win32', 'Requires native Windows Job Objects.')
     def test_windows_python_pair_interrupt_reaps_both_listener_trees(self):

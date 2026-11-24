@@ -1,7 +1,7 @@
 """Local verification entry point; report actual results and unverified gates."""
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 import json
 import os
@@ -186,16 +186,23 @@ def run_overlapped(checks, env, run_dir, *, system):
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
             python = executor.submit(run, checks[0])
+
+            def wait_for_python():
+                # Service the main-thread signal handler even after the other check has returned.
+                while not python.done():
+                    wait((python,), timeout=.25)
+                return python.result()
+
             try:
                 for check in checks[1:]:
                     if cancelled():
                         break
                     results[check['id']] = run(check)
                 try:
-                    result = python.result()
+                    result = wait_for_python()
                 except KeyboardInterrupt:
                     cancel.set()
-                    result = python.result()
+                    result = wait_for_python()
                     if result.get('reason_code') not in STOP_REASONS:
                         raise
                 results[checks[0]['id']] = result
