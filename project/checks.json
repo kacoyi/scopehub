@@ -797,7 +797,7 @@
     {
       "id": "workbench-renderer-probe",
       "status": "planned",
-      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",
+      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Start with the numeric binding, scoped edit and recovery cases in workbench-qualification-v1. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900,
@@ -810,6 +810,15 @@
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900,
+      "cadence": "release"
+    },
+    {
+      "id": "workbench-qualification",
+      "status": "planned",
+      "purpose": "Verify tests/fixtures/workbench-qualification-v1.json against the exact Windows package. Require six case observations, five gate results and a challenge issued after package freeze. Use the matching authored-canvas runtime-stability evidence for the sustained workload.",
+      "platforms": "windows-x64",
+      "command": null,
+      "timeout_seconds": 1800,
       "cadence": "release"
     },
     {
@@ -899,15 +908,17 @@
         "runtime-stability",
         "credential-boundaries",
         "release-artifacts",
-        "dependency-review"
+        "dependency-review",
+        "workbench-qualification"
       ]
     }
   ],
   "acceptance": [
     {
-      "requirement": "From a blank workbench, the user and embedded AI compose an original chart-free view from authorized data and actions. Locally edit it, refresh its data, inspect evidence, undo and reopen it without a product rebuild. Recover the accepted view after a failed draft.",
+      "requirement": "From a blank workbench, the user and embedded AI compose an original chart-free view from authorized data and actions. Locally edit it, refresh its data, inspect evidence, undo and reopen it without a product rebuild. Recover the accepted view after a failed draft. Demonstrate the published cases and an unseen authoring request on a frozen release package.",
       "checks": [
-        "chart-free-workbench"
+        "chart-free-workbench",
+        "workbench-qualification"
       ],
       "id": "user-composed-workbench"
     },
