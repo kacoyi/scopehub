@@ -100,6 +100,7 @@
     "report_sha256": "e38383d87360463ac65b2b0ee723a7a753a22f9ee5a53dddc1dbbe0ff8de7471",
     "ubuntu": "Ubuntu 26.04.1, Tauri development host 6aee5586, WebKitGTK 2.52.6. A native GTK file selection loaded the frozen program on the synthetic one-minute futures chart. The two rings tracked candle pixels at 1380x920, 1040x805 and 1300x940. The crosshair and selected bar agreed on 13:00 UTC at 3499.2 CNY and 13:01 UTC at 3499.8 CNY. Moving to the price axis cleared the readout. Zoom clipped both rings and Fit restored them. Switching to 5m cleared the program binding.",
     "review": "Verified the 53 indexed originals, Git tree and guest bytes. In the centered 5 by 5 patches the earlier and later candle colors occupied 21 and 13 pixels, 17 and 17 pixels, and 21 and 17 pixels at the three sizes. These are observed native chart pixels on Xvfb.",
+    "hover_continuity": "The coordinator observed six alternating hovers on the two chart candles at this freeze. On each hover all accepted overlay marks disappeared for about 83 ms (five measured animation frames) before repainting. The final anchor and readout were correct. The native evidence above measures endpoints. Continuous crosshair redraw has an open regression owned by the chart-coordinate follow-up.",
     "windows_run": 45318214792
   }
 }
