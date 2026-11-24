@@ -5233,6 +5233,28 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-linked-timing-index-path-alias",
+      "source": "Ordinary PR #84 Actions run 45450283829, archives/runs/windows-change-45450283829-1/test-report.json. The Windows Python producer log has SHA-256 3face0bc62bd4e064fb63a4d54ef5118fc491e3c523c3a527200b80627b50cc7.",
+      "observation": "The Windows Python producer ran 706 tests. All four local/shared compact capture cases reported 'Expected a plain directory for the linked timing index' during ordinary intake: complete local, partial local, complementary archives, and retry partial shared. The same-source Linux check had no failures.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-098"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45450283829-1",
+          "source_commit": "c4e65847e8c66667da5bb3cc7696c06081f963cb",
+          "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

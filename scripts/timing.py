@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 from statistics import median
 import subprocess
 from tempfile import TemporaryDirectory
@@ -16,11 +17,11 @@ from tempfile import TemporaryDirectory
 if __package__:
     from .doctor import tool_version
     from .verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
-    from .worktree import WorktreeError, exclusive_git_lock, git_path
+    from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
     from doctor import tool_version
     from verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
-    from worktree import WorktreeError, exclusive_git_lock, git_path
+    from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -1318,6 +1319,17 @@ def link_directory(directory, key):
     return directory / 'linked-harness' / sha256(json_bytes(key)).hexdigest()
 
 
+def require_plain_index_directory(directory):
+    # A different canonical spelling can name the same plain directory on Windows.
+    # Inspect each existing component before accessing its children.
+    for part in reversed((directory, *directory.parents)):
+        if part == part.parent:
+            continue
+        info = entry_info(part)
+        if info is not None and (not stat.S_ISDIR(info.st_mode) or reparse_point(info)):
+            raise TimingError('Expected a plain directory for the linked timing index.')
+
+
 def sample_belongs_to_capture(sample, path):
     ci = sample['ci']
     return (ci and sample_identity_complete(sample) and ci['checkout_sha'] == sample['source_commit']
@@ -1329,8 +1341,7 @@ def index_capture(path, samples):
     count = 0
     for key in {report_key(row) for row in samples if sample_belongs_to_capture(row, path)}:
         directory = link_directory(path.parent, key)
-        if directory.resolve() != directory:
-            raise TimingError('Expected a plain directory for the linked timing index.')
+        require_plain_index_directory(directory)
         directory.mkdir(parents=True, exist_ok=True)
         try:
             with (directory / path.name).open('xb'):
@@ -1370,8 +1381,7 @@ def linked_capture_inputs(directories, keys, recent, issues):
         for key in keys:
             links = link_directory(directory, key)
             try:
-                if links.resolve() != links:
-                    raise TimingError('Expected a plain linked timing index directory.')
+                require_plain_index_directory(links)
                 for marker in links.glob('ci-*.json'):
                     if CANONICAL_CAPTURE.fullmatch(marker.name):
                         captures[directory / marker.name].add(key)

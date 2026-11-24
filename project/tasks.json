@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-094",
+  "focus_task_id": "M0-098",
   "tasks": [
     {
       "id": "M0-001",
@@ -19962,6 +19962,103 @@
           ],
           "data_plan": "Keep original run evidence and provenance. Add only backward-compatible timing metadata for the four-producer layout. If delivery proceeds, freeze the task and project definitions for the ordinary full pull request. Record the same successful Windows aggregate report for project-state, Python contracts, market recovery and native Windows build. Keep the original input and run identities when attaching the receipt.",
           "cleanup": "Retain the local candidate and independent review without scheduling a new protected acceptance round."
+        }
+      }
+    },
+    {
+      "id": "M0-098",
+      "title": "Recognize ordinary Windows paths in the linked timing index",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-097"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Regular CI intake can index all four local/shared capture combinations when the filesystem canonicalizes the spelling of an ordinary directory. Offline status can still look up linked controls.",
+        "Both the writer and offline reader reject actual filesystem redirection on linked index directory paths without following it. Preserve original timing captures, historical records, and CI verdicts."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Obtain independent review of the path correction, then record the project state and Python contracts and workers results from the next ordinary Windows aggregate for PR #84.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45450283829-1",
+          "source_commit": "c4e65847e8c66667da5bb3cc7696c06081f963cb",
+          "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
+        }
+      ],
+      "plan": {
+        "outcome": "A Windows maintainer can index and read original linked timing captures from plain directories regardless of their path spelling.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The current resolve-and-compare test conflates canonical spelling of an existing directory with filesystem redirection. The runner log identifies the guard and caller, but does not record the original temporary path spelling."
+        ],
+        "risks": [
+          {
+            "failure": "Ordinary timing intake reports link errors for a valid alternate directory spelling.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Accepting alternate spelling also lets linked index reads or writes traverse a symlink or Windows reparse point.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the path check if redirected paths leak into linked lookup. Retain the original compact captures and failed Windows diagnostic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No workflow, budget objective, history window, archive format, or hosted scheduling changes."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact capture identity, original compact files, historical task and finding records, and the existing redirect boundary."
+          ],
+          "change": [
+            "Decide whether linked timing index directories are plain from filesystem entries instead of their spelling."
+          ],
+          "data_plan": "Keep the existing linked index layout and original bytes. No migration is needed.",
+          "cleanup": "Retain the failed aggregate and producer provenance and reuse the next ordinary Windows PR for native confirmation."
         }
       }
     }

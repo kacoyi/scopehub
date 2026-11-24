@@ -1400,8 +1400,10 @@ class RecentTimingTests(unittest.TestCase):
             ('retry partial shared', [], [linux], 1),
         ):
             with self.subTest(case=kind), tempfile.TemporaryDirectory() as directory:
-                base = Path(directory)
-                root, shared = base / 'checkout', base / 'common'
+                base = Path(directory).resolve()
+                root = base / 'checkout'
+                # Use a real alternate spelling of the same plain directory on both hosts.
+                shared = root / '..' / 'common'
                 (root / 'project').mkdir(parents=True)
                 for name, content in (('tasks', {'tasks': []}), ('feedback', {'items': []})):
                     (root / 'project' / f'{name}.json').write_bytes(timing.json_bytes(content))
@@ -1428,6 +1430,39 @@ class RecentTimingTests(unittest.TestCase):
                 self.assertEqual(expected_downloads, download.call_count)
                 if expected_downloads:
                     download.assert_called_once_with(repository, '14', '1', platforms={'Windows'})
+
+    def test_linked_timing_index_rejects_redirected_directories(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        key = timing.report_key(rows[-1])
+        finding = self.budget_finding('pull_request', 'b' * 40, (run, rows, clock))
+        for redirect in ('index', 'identity'):
+            with self.subTest(redirect=redirect), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory).resolve()
+                root, shared, outside = (base / name for name in ('checkout', 'common', 'outside'))
+                outside.mkdir()
+                identity = timing.link_directory(shared, key)
+                link = identity.parent if redirect == 'index' else identity
+                link.parent.mkdir(parents=True)
+                if os.name == 'nt':
+                    from _winapi import CreateJunction
+                    CreateJunction(str(outside), str(link))
+                else:
+                    link.symlink_to(outside, target_is_directory=True)
+                records = root / 'project'
+                records.mkdir(parents=True)
+                (records / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+                (records / 'feedback.json').write_bytes(timing.json_bytes({'items': [finding]}))
+                self.write_archive(root / '.reports/timing/local.json', rows, [clock])
+                with (patch.object(timing, 'shared_timing_directory', return_value=shared),
+                      patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request'))):
+                    current = timing.ci_budget_status(root, 'fixture/scopehub', run)
+                    offline = timing.offline_budget_status(root, [finding], {})
+                self.assertEqual('retained', current['intake'])
+                self.assertTrue(any('Could not index the retained capture' in note['error']
+                                    for note in current['input_issues']))
+                self.assertTrue(any(note.get('report') == key and 'plain' in note['error']
+                                    for note in offline['input_issues']))
+                self.assertEqual([], list(outside.iterdir()))
 
     def test_capture_retries_only_platform_without_harness_identity_or_valid_recorded_time(self):
         run, rows, clock = self.budget_run(14, '17:00')
@@ -1519,7 +1554,9 @@ class RecentTimingTests(unittest.TestCase):
             self.assertEqual([], first['input_issues'])
             self.assertGreater(first['new_links'], 0)
             self.assertEqual(0, repeated['new_links'])
-            recovered = timing.offline_budget_status(peer, [finding], {})['budget_recovery'][0]['recovery']
+            alias = shared.parent / '..' / shared.parent.name / shared.name
+            with patch.object(timing, 'shared_timing_directory', return_value=alias):
+                recovered = timing.offline_budget_status(peer, [finding], {})['budget_recovery'][0]['recovery']
             self.assertEqual('recovered', recovered['status'])
             self.assertEqual('27', recovered['comparisons'][0]['recovered']['hosted_run_id'])
             self.assertEqual([], recovered['unavailable_reports'])
