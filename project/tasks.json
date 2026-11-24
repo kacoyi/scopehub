@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-027",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17394,7 +17394,7 @@
       "id": "M2-027",
       "title": "Specify motion tolerances and host admission limits for the canvas",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": ["M2-026"],
       "scope": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
@@ -17404,10 +17404,12 @@
         "The native trial specifies per-canvas bridge admission, clipboard and device denial, production style and network restrictions, and observed WebView2 renderer failure and recovery."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "Check boundary examples, qualification references and the M2-003 native observation instructions.",
+      "evidence": [
+        {"path": "project/evidence/M2-027-202658fef445417d.json", "sha256": "c7fd824ce8de1150dd5e3e3dd0231895093f0fb2d66e51431cd263b0453c3deb"}
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The task harness passed on ca15314. Each of the five motion examples matched its independent verdict. The effective qualification carries the bridge, device, production CSP and native failure procedures. Runtime observation remains planned.",
       "plan": {
         "outcome": "The declared motion, bridge, permission and native failure outcomes can each be falsified by a named observation.",
         "change_types": ["tooling"],
