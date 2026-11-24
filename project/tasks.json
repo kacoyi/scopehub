@@ -18102,7 +18102,7 @@
         "workspace-timeframe"
       ],
       "evidence": [],
-      "next_action": "Re-review the isolated workspace readiness corrections for responder identity, bounded output and the controlled hold deadline. Keep the original local stalls unattributed and measure the regular full Windows critical path against the warm controls.",
+      "next_action": "Re-review the isolated POSIX CLI stdout listener observer and the prior workspace readiness corrections. Keep the original local stalls unattributed and measure the regular full Windows critical path against the warm controls.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18193,6 +18193,10 @@
           },
           {
             "failure": "The workspace readiness gate accepts a previous listener's reply, reports a fixture capability fragment, or lets slow configuration consume the controlled hold's regression deadline.",
+            "checks": ["workspace-timeframe"]
+          },
+          {
+            "failure": "The POSIX CLI readiness observer accepts a notice from stderr or loses a valid split stdout notice when stderr arrives between chunks.",
             "checks": ["workspace-timeframe"]
           }
         ],

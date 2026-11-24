@@ -4305,6 +4305,17 @@
       "regression_checks": ["workspace-timeframe"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-cli-readiness-mixes-output-streams",
+      "source": "Independent Astra re-review of b372142, transcript .reports/workspace-service-readiness/astra-b372142.txt (SHA-256 969fa72837fde8c64aa3800d4e8b07ec76ea6fec1617ac22ddfc08c4b4b12b90).",
+      "observation": "The POSIX Vite CLI listener observer reads a combined stdout and stderr tail during stdout callbacks. A Local notice on stderr followed by unrelated stdout produces a false listening event. Stderr between two chunks of a valid stdout notice prevents that event. The real signal-path run passed and the original local stalls remain unattributed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
