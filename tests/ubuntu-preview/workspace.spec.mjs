@@ -5,7 +5,7 @@ import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/pr
 import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -19,7 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
-import { claimProfile } from './workspace_profile_pool.mjs';
+import { claimProfile, prepareProfilePool } from './workspace_profile_pool.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -3626,6 +3626,79 @@ async function makeProfile(id = 'synthetic-' + randomUUID()) {
     await close();
     throw error;
   }
+}
+
+if (process.platform === 'win32') {
+  test('the Windows workspace pool opens a claimed profile and refuses unsafe outer ACLs', async () => {
+    const pool = process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL;
+    expect(pool).toBeTruthy();
+    const parent = dirname(pool);
+    const profile = await makeProfile();
+    let ownerRights;
+    let replaceable;
+    let failed = false;
+    try {
+      expect(dirname(dirname(profile.root))).toBe(pool);
+      const database = join(profile.root, 'workspace.sqlite3');
+      await expect(stat(database)).rejects.toMatchObject({ code: 'ENOENT' });
+      const writer = exec(workspaceBridge, [profile.root, profile.id, workspaceId], { timeout: 12_000 });
+      writer.child.stdin.end();
+      const { stdout } = await writer;
+      expect(JSON.parse(stdout.trim())).toMatchObject({
+        ok: true, private_profile: true, result: { workspace: { id: workspaceId, revision: 0 } },
+      });
+      expect((await stat(database)).isFile()).toBe(true);
+
+      // Use the same temp parent as the normal setup. This is the special
+      // CPython Windows mode previously used for its synthetic outer directory.
+      const legacy = join(parent, 'scopehub-workspace-owner-rights-' + randomUUID());
+      const legacyControl = `
+from pathlib import Path
+import sys
+if sys.implementation.name == 'cpython' and sys.version_info >= (3, 12, 4):
+    Path(sys.argv[1]).mkdir(mode=0o700)
+    print('created')
+`;
+      const legacyResult = await exec(python, ['-B', '-c', legacyControl, legacy], {
+        timeout: 12_000, windowsHide: true,
+      });
+      if (legacyResult.stdout.trim() === 'created') ownerRights = legacy;
+
+      replaceable = await mkdtemp(join(parent, 'scopehub-workspace-replaceable-'));
+      const icacls = join(process.env.SystemRoot, 'System32', 'icacls.exe');
+      await exec(icacls, [replaceable, '/grant', '*S-1-1-0:(DC)'], { timeout: 12_000, windowsHide: true });
+
+      for (const ancestor of [ownerRights, replaceable].filter(Boolean)) {
+        const refused = join(ancestor, 'pool');
+        await expect(prepareProfilePool(python, workspaceBridge, refused)).rejects.toMatchObject({
+          code: 1, stderr: expect.stringContaining('(prepare, replaceable-ancestor)'),
+        });
+        await expect(stat(refused)).rejects.toMatchObject({ code: 'ENOENT' });
+      }
+    } catch (error) {
+      failed = true;
+      throw error;
+    } finally {
+      const removeControl = async path => {
+        try {
+          await stat(join(path, 'pool'));
+          throw new Error(`Retaining ACL control with an unconfirmed pool cleanup: ${path}`);
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error;
+        }
+        await rm(path, { recursive: true, force: true });
+      };
+      const removals = await Promise.allSettled([
+        profile.close(),
+        ...[ownerRights, replaceable].filter(Boolean).map(removeControl),
+      ]);
+      const cleanupFailure = removals.find(result => result.status === 'rejected');
+      if (cleanupFailure) {
+        if (!failed) throw cleanupFailure.reason;
+        console.error('Workspace outer ACL control cleanup failed.', cleanupFailure.reason);
+      }
+    }
+  });
 }
 
 async function assertPrivateHandoff(handoff) {

@@ -24,7 +24,13 @@ def prepare(command, pool: Path, timeout: float) -> int:
         return 124
     # The supervisor exclusively acquires this synthetic directory. An existing
     # path is an error, and is never taken over or removed.
-    pool.mkdir(mode=0o700)
+    if sys.platform == 'win32':
+        # Match the native fixture's inherited scratch ACL. CPython's 0700
+        # creates an Owner Rights ACE that storage refuses on an ancestor.
+        # Only the storage helper creates the protected profiles below it.
+        pool.mkdir()
+    else:
+        pool.mkdir(mode=0o700)
     log = pool / 'preparation.log'
     try:
         (pool / 'claims').mkdir()

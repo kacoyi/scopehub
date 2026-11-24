@@ -20495,7 +20495,7 @@
             "Increased deadlines, weaker ACLs, blanket serialization, retries that hide refusal, new profile or database formats, and alteration of accepted M0-036, M0-071, M0-089, M0-099 or M0-101 task definitions."
           ],
           "open_questions": [
-            "Confirm the known CPython 3.12.10 mode-dependent descriptor on a same-parent Windows control. Node and Rust have different TEMP/TMP preference, and the original output cannot identify the exact refused ancestor. No alternate root or relaxed ACE policy is authorized."
+            "The native browser case opens an ordinary claimed profile and runs two refused parents under the exact Node-selected temporary parent: CPython 3.12.10 mode 0700 and an explicit Everyone DeleteChild grant. The original output cannot identify the exact refused ancestor. Node and Rust have different TEMP/TMP preference, and this correction keeps the existing Node root and the complete ancestry policy."
           ]
         },
         "evolution": {
