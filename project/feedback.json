@@ -4352,10 +4352,10 @@
     },
     {
       "id": "native-source-proof-snapshot-refused",
-      "source": "Third PR 77 Linux pilot, archives/runs/20261124T122836.056903Z-08468273/test-report.json, transport log, screenshot and native-frozen-chart-admission attachment.",
+      "source": "Third PR 77 Linux pilot, archives/runs/20261124T122836.056903Z-08468273/test-report.json, transport log, screenshot and native-frozen-chart-admission attachment. The local failed report and raw trace are retained at archives/observations/m0-090-native-snapshot/local-red/results.json and archives/observations/m0-090-native-snapshot/local-red/native-snapshot-admission.json. Focused passing evidence and both reviews are indexed by archives/observations/m0-090-native-snapshot/SHA256SUMS (SHA-256 4cd1efab3320f4d5ddee6a0e9b4025babb366ec261c1255c4ada4a56cff55e93).",
       "observation": "The desktop transport test correctly displayed the unavailable revision and recorded one SNAPSHOT_UNAVAILABLE read with no source writes. The independent snapshot at line 218 returned ok:false before the published read gate or delayed native write. The hosted artifact omits the failed snapshot's code. In a local 22-run comparison, one run reproduced the same assertion and recorded two successful native snapshots, then the unused companion preview's startup snapshot, then the independent proof refused with BUSY. Passing runs also showed the inverse ordering, with the companion refused at HTTP 429 when the independent proof won admission.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-090"
       ],
@@ -4369,18 +4369,30 @@
           "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "In the local reproduction, the unused companion preview issued a startup snapshot after both native snapshots completed. Its admitted request contended with the independent proof on the shared writer lane. The hosted failure did not record the code or occupying request.",
+        "correction": "Use the authorized Rust-backed transport without mounting a second browser for native-only cases. Keep browser preview mounting available to browser workflows.",
+        "prevention": "The native regression verifies explicit chart rejection without a write, BUSY while a real Rust reply is held, the original selection after drain, and revision 2 after the delayed acknowledgement. Twenty repetitions of each focused case and nine browser source compatibility cases passed. The correction and cleanup passed independent review and matching task verification."
+      },
       "deferral_reason": null
     },
     {
       "id": "native-source-proof-attachment-masks-assertion",
-      "source": "Independent Standard Astra review of d688cf0 retained in archives/observations/m0-090-native-snapshot/review/initial.txt (SHA-256 cfa203598bca649b271e53db862522265ffa21e8a9828797110f19e5a7a04c29).",
+      "source": "Independent Standard Astra review of d688cf0 retained in archives/observations/m0-090-native-snapshot/review/initial.txt (SHA-256 cfa203598bca649b271e53db862522265ffa21e8a9828797110f19e5a7a04c29). Narrow rereview of 9732834 is retained at archives/observations/m0-090-native-snapshot/review/cleanup.txt (SHA-256 4a2c304878ba5ff74c940befb448c19eb48896faa76edb4bfc7875dc783f82bf).",
       "observation": "The native source test attempts its first attachment before releasing three pending test barriers. With an injected scenario error followed by an attachment error, the fixture entered attachment with all barriers still pending and Playwright reported the attachment error as primary.",
       "severity": "minor",
-      "status": "open",
-      "task_ids": ["M0-090"],
-      "regression_checks": ["desktop-workspace-transport"],
-      "resolution": null,
+      "status": "addressed",
+      "task_ids": [
+        "M0-090"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": {
+        "cause": "The first awaited attachment preceded all release calls, and a failure in finally could replace the scenario error.",
+        "correction": "Release the three barriers before attaching diagnostics. Preserve a prior scenario error and log a secondary attachment failure. Propagate a sole attachment failure.",
+        "prevention": "The controlled before, after and attachment-only reports under archives/observations/m0-090-native-snapshot/cleanup-probe verify barrier release and the original error. The corrected native transport suite and narrow independent rereview passed."
+      },
       "deferral_reason": null
     }
   ]

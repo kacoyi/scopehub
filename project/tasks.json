@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-090",
+  "focus_task_id": "M0-087",
   "tasks": [
     {
       "id": "M0-001",
@@ -18449,7 +18449,7 @@
       "id": "M0-090",
       "title": "Keep independent snapshot proof attributable in the native source regression",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-086"
       ],
@@ -18474,6 +18474,10 @@
         {
           "path": "project/evidence/M0-090-86fe126b0dd64b5b.json",
           "sha256": "d4844584641eef4f982f78459441ff26c67eaa587fffdd522d1f59e3de26ba29"
+        },
+        {
+          "path": "project/evidence/M0-090-6e1cc856166fae8c.json",
+          "sha256": "be06b0bcb42775b3e97a1fe148cf324b3e44182c52b20ef641aa6cc81eb8e72b"
         }
       ],
       "diagnostic_reports": [
@@ -18483,9 +18487,9 @@
           "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
         }
       ],
-      "next_action": "Verify the transport-only fixture and original browser fixture locally, then hand the exact candidate and retained comparison to the coordinator and independent reviewer.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The matching Linux task checks passed on 9732834. Independent review approved the snapshot fixture and diagnostic cleanup. The retained local comparison distinguishes a retryable BUSY under writer contention from an unavailable chart, proves the original selection after drain, and preserves revision 2 after a late acknowledgement. The hosted snapshot error code remains unknown.",
       "plan": {
         "outcome": "The fixture obtains truthful independent revision proof and keeps deliberate contention and late replies separately observable.",
         "change_types": [

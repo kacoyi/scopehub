@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-090",
+  "task_definition_sha256": "9c633be6ae4f70804ab962e090f79fbe8112ce7a27f6c85995b0e8b9b5c2af9e",
+  "run_id": "20261124T125228.415738Z-c1b104ce",
+  "recorded_at": "2026-11-24T12:54:24.362126+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "03199542e6a65d75dc69c044a3dda0c4eaa93b852d26317de652434875ff173e",
+    "file_count": 582,
+    "git_head": "97328343809dc6ffb66f08b7430f273ea4452de5",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "6e1cc856166fae8c99dba505164c2528630b5b7050de23e2972e8451810aba53",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/source-reply-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/source-reply-recovery/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "584469fb7a616ed8b678c72f3c6e47623cf8fcf8950110cf55d3809f219e104d"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/source-reply-recovery/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9eba2e648863a37c2e94cc0a743c90308de02a618834c1c0efa3057369652f91"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9b5d83c4e2211e8e46d0336e264f74abfe227ead25a825961f37fb26d01d21fa"
+    }
+  ],
+  "project_definition_sha256": "1d5e7a2bb58302b0847f054eff416ce64fcf211f4f9ff02887c333acfcb504b1",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "f13ad5b3f87a0a711889c16d3a165dda70103109b3f9fcde724130a73cbcaf5f"
+  ]
+}
