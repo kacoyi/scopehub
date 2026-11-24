@@ -375,7 +375,7 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
                 selectedBar={selection?.scope === scope ? selection.barOpenMs : undefined}
                 selectBar={barOpenMs => updateResult(block, { selection: { scope, barOpenMs } })} />;
             }
-            return <WorkbenchCandleBlock key={`result-${instance}`} block={block} timeframe={timeframe} controls={controls} />;
+            return <WorkbenchCandleBlock key={`result-${instance}`} block={block} timeframe={timeframe} controls={controls} accepted={!preview} />;
           })}</div>}
       </section>
     </div>

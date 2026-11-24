@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { setTimeout as delay } from 'node:timers/promises';
 import { expect, test } from '@playwright/test';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/workbench-qualification-v1.json', import.meta.url), 'utf8'));
@@ -224,6 +225,7 @@ async function paintedGeometry(chart) {
       const scaleY = height / bounds.height;
       const data = canvas.getContext('2d').getImageData(0, 0, width, height).data;
       const candleColumns = new Uint32Array(width);
+      const risingColumns = new Uint32Array(width);
       const candleTop = new Int32Array(width).fill(height);
       const bubbleColumns = new Uint32Array(width);
       const bubbleBottom = new Int32Array(width).fill(-1);
@@ -232,6 +234,7 @@ async function paintedGeometry(chart) {
           const r = data[i], g = data[i + 1], b = data[i + 2];
           if ((r === 67 && g === 212 && b === 172) || (r === 241 && g === 125 && b === 133)) {
             candleColumns[x]++;
+            if (r === 67) risingColumns[x]++;
             candleTop[x] = Math.min(candleTop[x], y);
           }
           if (r > 130 && g > 90 && b > r + 33 && b > g + 65) {
@@ -242,7 +245,8 @@ async function paintedGeometry(chart) {
       }
       const candles = groups(candleColumns, 8 * scaleY).map(({ start, end }) => {
         const x = (start + end) / 2;
-        return { x: (x + 0.5) / scaleX, wickTop: candleTop[Math.round(x)] / scaleY };
+        return { x: (x + 0.5) / scaleX, wickTop: candleTop[Math.round(x)] / scaleY,
+          direction: risingColumns[Math.round(x)] ? 'up' : 'down' };
       });
       if (!candles.length) continue;
       const bubbles = groups(bubbleColumns, 1).map(({ start, end }) => {
@@ -374,4 +378,194 @@ test('authored result annotations paint on their candles across viewport and tim
     body: JSON.stringify(observations, null, 2), contentType: 'application/json',
   });
   await testInfo.attach('annotated-chart', { body: await localized.screenshot(), contentType: 'image/png' });
+});
+
+test('a drag started before the first replay quote keeps its original candle anchor', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open workbench prototype' }).click();
+  await page.getByRole('button', { name: 'Add candlesticks' }).click();
+  await page.getByRole('button', { name: 'Preview draft' }).click();
+  await page.getByRole('button', { name: 'Accept view' }).click();
+  const chart = page.getByRole('img', { name: 'Candlestick chart with numeric annotations' });
+  const readDraw = () => chart.evaluate(node => JSON.parse(node.dataset.primitiveDraw ?? 'null'));
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0 });
+  const frozen = await readDraw();
+  const oldWick = async () => (await paintedGeometry(chart)).candles[2]?.x;
+  const frozenWick = await oldWick();
+  await page.getByRole('button', { name: 'Start synthetic quote replay' }).click();
+  const rect = await chart.boundingBox();
+  const x = rect.x + rect.width / 2;
+  const y = rect.y + 130;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  try {
+    for (let shift = 8; shift <= 48; shift += 8) {
+      await page.mouse.move(x + shift, y);
+      await delay(20);
+    }
+    await expect.poll(oldWick, { timeout: 300 }).toBeGreaterThan(frozenWick);
+    const held = await readDraw();
+    expect(held.quoteSequence).toBe(0);
+    expect((await paintedGeometry(chart)).candles).toHaveLength(4);
+    expect(held.viewport.logical).not.toEqual(frozen.viewport.logical);
+    const beforeAppend = await oldWick();
+    await expect.poll(readDraw).toMatchObject({ quoteSequence: 1 });
+    expect(await oldWick()).toBe(beforeAppend);
+    await page.mouse.move(x + 54, y);
+    await expect.poll(async () => Math.abs((await oldWick()) - (beforeAppend + 6))).toBeLessThanOrEqual(1);
+  } finally {
+    await page.mouse.up();
+  }
+
+  await page.getByRole('button', { name: 'Reset synthetic quote replay' }).click();
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0 });
+  await page.mouse.move(rect.x + 62, y);
+  await page.mouse.down();
+  await page.mouse.move(rect.x + rect.width - 92, y, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(async () => (await readDraw()).viewport.logical.from).toBeLessThan(-3.5);
+  const leftLimit = (await readDraw()).viewport.logical;
+  await page.getByRole('button', { name: 'Start synthetic quote replay' }).click();
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 1 });
+  expect((await readDraw()).viewport.logical).toEqual(leftLimit);
+});
+
+test('replays source-scoped quotes on the accepted candle pane while it is panned', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const open = page.getByRole('button', { name: 'Open workbench prototype' });
+  await open.click();
+  await page.getByRole('button', { name: 'Add candlesticks' }).click();
+  await page.getByRole('button', { name: 'Preview draft' }).click();
+  const block = page.getByRole('region', { name: 'Annotated candlesticks' });
+  const chart = block.getByRole('img', { name: 'Candlestick chart with numeric annotations' });
+  const start = block.getByRole('button', { name: 'Start synthetic quote replay' });
+  const reset = block.getByRole('button', { name: 'Reset synthetic quote replay' });
+  await expect(start).toHaveCount(0);
+  await page.getByRole('button', { name: 'Accept view' }).click();
+  await block.getByText('Synthetic result attribution').click();
+  const frozen = await expectAttribution(block, '5m');
+  await expect(frozen.getByRole('cell')).toHaveText(['0.95', '0.032', '3.2%']);
+  const acceptedText = await page.getByRole('textbox', { name: 'Composition JSON' }).inputValue();
+  const element = await chart.elementHandle();
+  const readDraw = () => chart.evaluate(node => JSON.parse(node.dataset.primitiveDraw ?? 'null'));
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0, resultRevision: 'qualification-equity-5m-results-v1' });
+  const initial = await readDraw();
+  await chart.evaluate(node => {
+    window.primitiveDraws = [];
+    new MutationObserver(() => {
+      if (node.dataset.primitiveDraw) window.primitiveDraws.push(JSON.parse(node.dataset.primitiveDraw));
+    }).observe(node, { attributes: true, attributeFilter: ['data-primitive-draw'] });
+  });
+
+  const newBarTime = Date.UTC(2024, 0, 4, 9, 50);
+  const row = block.getByRole('row', { name: '2024-01-04T09:50:00.000Z', exact: true });
+  const status = block.getByRole('status');
+  async function painted(direction, count) {
+    await expect.poll(async () => {
+      const { candles, bubbles } = await paintedGeometry(chart);
+      return [candles.length, candles.at(-1)?.direction, bubbles.length];
+    }).toEqual([5, direction, count]);
+  }
+  await start.click();
+  await expect(status).toHaveText('Synthetic replay quote 1 of 3');
+  await expect(row.getByRole('cell')).toHaveText(['0.84', '0.038', '3.8%']);
+  await expect.poll(readDraw).toMatchObject({
+    quoteSequence: 1, resultRevision: 'qualification-equity-5m-replay-results-1',
+    viewport: { logical: initial.viewport.logical },
+    annotations: [{ text: '3.2%' }, { timeMs: newBarTime, text: '3.8%' }],
+  });
+  const first = await readDraw();
+  await painted('up', 2);
+
+  await expect(status).toHaveText('Ignored stale replay quote');
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 1, annotationRevision: first.annotationRevision });
+  await expect(row.getByRole('cell')).toHaveText(['0.84', '0.038', '3.8%']);
+  await expect(status).toHaveText('Ignored replay quote from another source');
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 1, annotationRevision: first.annotationRevision });
+  await expect(row.getByRole('cell')).toHaveText(['0.84', '0.038', '3.8%']);
+
+  const bounds = await chart.boundingBox();
+  const x = bounds.x + bounds.width * 0.68;
+  const y = bounds.y + 140;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await Promise.all([
+    (async () => {
+      try {
+        for (let step = 1; step <= 12; step++) {
+          await page.mouse.move(x - step * 6, y);
+          await delay(75);
+        }
+      } finally {
+        await page.mouse.up();
+      }
+    })(),
+    (async () => {
+      await expect(status).toHaveText('Synthetic replay quote 2 of 3');
+      await expect(row.getByRole('cell')).toHaveText(['0.78', '0.04', '—']);
+      await expect.poll(readDraw).toMatchObject({
+        quoteSequence: 2, resultRevision: 'qualification-equity-5m-replay-results-2',
+        annotations: [{ text: '3.2%' }],
+      });
+      await painted('down', 1);
+    })(),
+  ]);
+
+  await expect(status).toHaveText('Synthetic quote replay complete');
+  await expect(row.getByRole('cell')).toHaveText(['0.93', '0.045', '4.5%']);
+  await expect(block.getByText('qualification-equity-5m-bars-v1', { exact: true })).toBeVisible();
+  await expect(block.getByText('qualification-equity-5m-replay-bars-3', { exact: true })).toBeVisible();
+  await expect(block.getByText('2024-01-04T09:55:00.000Z', { exact: true })).toBeVisible();
+  await expect(frozen.getByRole('cell')).toHaveText(['0.95', '0.032', '3.2%']);
+  await expect.poll(readDraw).toMatchObject({
+    quoteSequence: 3, resultRevision: 'qualification-equity-5m-replay-results-3',
+    annotations: [{ text: '3.2%' }, { timeMs: newBarTime, text: '4.5%' }],
+  });
+  await painted('up', 2);
+  const last = await readDraw();
+  expect(last.viewport.logical).not.toEqual(first.viewport.logical);
+  const draws = await page.evaluate(() => window.primitiveDraws);
+  expect([...new Set(draws.map(draw => draw.quoteSequence).filter(Boolean))]).toEqual([1, 2, 3]);
+  expect(new Set(draws.filter(draw => draw.quoteSequence === 2).map(draw => draw.viewport.logical.from)).size).toBeGreaterThan(1);
+  const leftEdges = draws.map(draw => draw.viewport.logical.from);
+  expect(leftEdges.every((edge, index) => index === 0 || edge >= leftEdges[index - 1])).toBe(true);
+  expect(draws.find(draw => draw.quoteSequence === 2).annotationRevision).toBeGreaterThan(first.annotationRevision);
+  expect(last.annotationRevision).toBeGreaterThan(draws.find(draw => draw.quoteSequence === 2).annotationRevision);
+  await testInfo.attach('quote-replay-primitive-draws', { body: JSON.stringify(draws, null, 2), contentType: 'application/json' });
+  await testInfo.attach('quote-replay-final', { body: await block.screenshot(), contentType: 'image/png' });
+  await delay(700);
+  await expect(status).toHaveText('Synthetic quote replay complete');
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 3, annotationRevision: last.annotationRevision });
+
+  const draft = page.getByRole('textbox', { name: 'Composition JSON' });
+  await draft.fill(acceptedText.replace('qualification-equity', 'ungranted-synthetic-source'));
+  await page.getByRole('button', { name: 'Preview draft' }).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(row.getByRole('cell')).toHaveText(['0.93', '0.045', '4.5%']);
+  await page.getByRole('button', { name: 'Restore accepted view' }).click();
+  await expect(draft).toHaveValue(acceptedText);
+
+  await reset.click();
+  await expect(row).toHaveCount(0);
+  await expect(start).toBeEnabled();
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0, resultRevision: 'qualification-equity-5m-results-v1',
+    viewport: { logical: last.viewport.logical } });
+  expect(await chart.evaluate((node, original) => node === original, element)).toBe(true);
+  await expect(page.getByRole('textbox', { name: 'Composition JSON' })).toHaveValue(acceptedText);
+  await start.click();
+  await expect(status).toHaveText('Synthetic replay quote 1 of 3');
+  await block.getByRole('button', { name: '15 min', exact: true }).click();
+  await expect(start).toHaveCount(0);
+  await expectTurnover(block, '15m');
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0 });
+  await block.getByRole('button', { name: '5 min', exact: true }).click();
+  await expect(start).toBeEnabled();
+  await delay(700);
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0, resultRevision: 'qualification-equity-5m-results-v1' });
+  await expect(row).toHaveCount(0);
+  await start.click();
+  await page.getByRole('button', { name: 'Back to chart' }).click();
+  await open.click();
+  await expect(chart).toHaveCount(0);
+  await expect(start).toHaveCount(0);
 });
