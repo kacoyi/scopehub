@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-099",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19812,7 +19812,7 @@
       "id": "M0-094",
       "title": "Prepare a separate Windows market recovery producer if main remains over budget",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-092"
       ],
@@ -19867,10 +19867,15 @@
           "report_sha256": "3bff5ad63588291ae1df134e47edc89998bb16c0cfff791df8c2db448e54fbf7"
         }
       ],
-      "evidence": [],
-      "next_action": "Keep the fallback ready on the current main baseline. Use the next ordinary full Windows main observation under M0-091 to confirm whether to proceed. If authorized, obtain native Windows task evidence from the same ordinary full pull request and use that report for the task receipt.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-094-347037deddcd9d33.json",
+          "sha256": "c6687c3518728754135a6b412d22e10dd36625ea4c3b6ad377fed743a4b02342"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Ordinary full pull request 84 run 45459661035 passed on the exact checked merge. The protected workflow took 910 seconds and used 3200 runner seconds. Its Windows aggregate retained all four producer outcomes, cache states and native Windows build and supplies the four task checks. The independent Standard review is retained at archives/observations/m0-094-m0-097-astra-216ad67/review.txt. The final pull request head still requires protection. The separate ordinary main budget observation remains with M0-091.",
       "plan": {
         "outcome": "Prepare a local fallback that moves browser and Cargo cache setup off the Windows Python contracts critical path.",
         "change_types": [
@@ -19969,7 +19974,7 @@
       "id": "M0-098",
       "title": "Recognize ordinary Windows paths in the linked timing index",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-097"
       ],
@@ -19991,10 +19996,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Obtain independent review of the path correction, then record the project state and Python contracts and workers results from the next ordinary Windows aggregate for PR #84.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-098-347037deddcd9d33.json",
+          "sha256": "7584112e01cb3fc4976f864f533080b9736aea76c0f417d56fea7d82708dc904"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Ordinary full pull request 84 run 45459661035 passed the Windows timing backfill method with its four cases and the new native junction rejection control. Both task checks are present in the successful Windows aggregate. The first failed attempt remains archived. The independent Standard review is retained at archives/observations/m0-098-linked-timing-windows-ef65312/astra-ef65312.txt.",
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45450283829-1",
@@ -20066,7 +20076,7 @@
       "id": "M0-099",
       "title": "Recover the cropped frozen-chart indicator preview path",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M3-001",
         "M0-093"
@@ -20097,7 +20107,12 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-099-347037deddcd9d33.json",
+          "sha256": "724dde353cb8e59e82427c1488a8e14a667c612f49483783a8b458db549932d6"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45453952239-1",
@@ -20110,9 +20125,9 @@
           "report_sha256": "2cdd528fe3eb0e92e618eda111fd2606e152a4ee3fb3e5514e46d36f7c5dd8cb"
         }
       ],
-      "next_action": "Trace the actual request and reply from the first run and its cropped successor, then reproduce the smallest confirmed failure before correction.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Ordinary full pull request 84 run 45459661035 passed both original frozen preview cases, their exact result assertions and all seven task checks. The controlled loss and forbidden identical replay were reproduced and reviewed separately at archives/observations/m0-099-cropped-indicator/index.json. The triggering exchange in the older hosted timeout remains unknown.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "The ordinary frozen CSV indicator shows the expected zero in the full and cropped windows. A terminal reply is correlated and surfaced promptly with the correct recovery semantics.",

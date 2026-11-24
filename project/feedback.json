@@ -5224,14 +5224,18 @@
       "source": "Independent read-only Astra Standard review of 7abe0e0, retained at archives/observations/m0-094-astra-7abe0e0/review.txt (SHA-256 165a8d6fa3ae8120dc40b43d3dfc1d5ee68d7d868d6b6296c9c6ced492c5dcc7).",
       "observation": "The new timing reader admitted a four-producer run as warm without its producer cache map, serialized a conflicting cache observation as an invalid synthesized record that disappeared on reload, and accepted ambiguous raw jobs with the fourth producer and its aggregate marker absent as complete legacy timing. The retained workflow and protected aggregate passed the separate routing and failure review.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-094"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The timing reader could accept a four-producer clock without producer cache evidence, replace a conflicting original during intake, or accept ambiguous job data as an older layout.",
+        "correction": "Bind the four-producer map and layout to the record. Retain conflicting originals, show missing cache provenance as unknown, and require positive evidence of the old layout.",
+        "prevention": "Replay both conflict arrival orders through archive reload and compare four-producer results with the original three-producer controls. Retain the successful Windows regression in run 45459661035."
+      },
       "deferral_reason": null
     },
     {
@@ -5239,7 +5243,7 @@
       "source": "Ordinary PR #84 Actions run 45450283829, archives/runs/windows-change-45450283829-1/test-report.json. The Windows Python producer log has SHA-256 3face0bc62bd4e064fb63a4d54ef5118fc491e3c523c3a527200b80627b50cc7.",
       "observation": "The Windows Python producer ran 706 tests. All four local/shared compact capture cases reported 'Expected a plain directory for the linked timing index' during ordinary intake: complete local, partial local, complementary archives, and retry partial shared. The same-source Linux check had no failures.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-098"
       ],
@@ -5253,7 +5257,11 @@
           "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Different resolved spellings of the same plain Windows directory could be treated as a redirect.",
+        "correction": "Inspect existing directory components for real redirects before using the linked index. Accept ordinary aliases and reject reparse points.",
+        "prevention": "Keep the four backfill cases on an alternate spelling and the Windows junction controls for both index and identity paths. Retain the successful Windows regression in run 45459661035."
+      },
       "deferral_reason": null
     },
     {
@@ -5273,14 +5281,18 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-099"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original Windows timeout showed the cropped terminal alert. The triggering exchange remains unknown because the reply and trace were unavailable. A separate controlled real exchange reproduced the alert after dropping one already-ready Rust response.",
+        "correction": "Read the admitted frozen preview task once more after a status delivery loss, without replaying its submission. Stop at a second loss and preserve cancellation and explicit retry.",
+        "prevention": "Verify both original frozen-chart cases on the ordinary route, including full and cropped zero, exact warmup, one-loss recovery, and bounded two-loss cancellation. Keep the original Windows diagnostic and the successful Windows checks in run 45459661035."
+      },
       "deferral_reason": null
     },
     {
@@ -5288,7 +5300,7 @@
       "source": "Deterministic real browser/Rust control on ef653120, archives/observations/m0-099-cropped-indicator/lost-red.log SHA-256 bc478ac3ac79787a8ffbfbfb7ee49458d973c57453a477d6d9cf1d0a9a24b440, and no-fault archives/observations/m0-099-cropped-indicator/normal.log SHA-256 b6a59a95400f0426079d3107b1d134f5672324d16bf7dcc614ce13a28736efb1.",
       "observation": "The normal frozen CSV preview produced zero in the full and cropped windows. The controlled cropped run obtained a real ready HTTP 200 body with zero in the Rust registry, then delivered a single Chromium connection reset instead of that response. The UI showed the same generic terminal error and cancelled the admitted task. The original Windows report lacks the transport reply and does not establish that a reset occurred there.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-099"
       ],
@@ -5296,7 +5308,11 @@
         "workspace-timeframe",
         "ui-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "In the controlled real browser and Rust fixture, losing one ready status response sent the admitted frozen indicator task down the terminal error and cancellation path.",
+        "correction": "Classify status delivery loss before an HTTP response and allow one read for the same admitted frozen preview task within its existing deadline. Keep the original terminal path after a second loss.",
+        "prevention": "Use exact Rust results and request identity to verify that one loss returns the identical ready artifact and two losses stop and cancel. Retain the controlled red and the Windows checks in run 45459661035."
+      },
       "deferral_reason": null
     },
     {
@@ -5304,14 +5320,18 @@
       "source": "Independent Standard Astra t9p review of 5adfa0004535040d654e03d1408fc623a3ad52f5. Original archives/observations/m0-099-cropped-indicator/astra-5adfa00-initial.txt SHA-256 ef8d5961990066d177f50312746aff480deb0b29c9cd79b8a382292b29d2d14b.",
       "observation": "The no-replay assertion coalesced the observed submit requests by request ID. An exact resubmission after status delivery loss can return the same idempotent receipt, task ID and artifact and evade that assertion. Legitimate admission refusals can also reuse the original request ID before the loss.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-099"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Coalescing observed requests by request ID hid an exact repeat of the already admitted preview submission.",
+        "correction": "Inspect every outbound request after the first delivery loss. Require exactly one status read on the existing task and zero additional draft or preview submissions.",
+        "prevention": "Retain the negative control that resubmits the exact original request and is rejected by the raw outbound assertion. Keep valid pre-admission refusals and the Windows regression from run 45459661035."
+      },
       "deferral_reason": null
     }
   ]
