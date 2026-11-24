@@ -12,7 +12,7 @@ type Source = keyof typeof sources;
 type DrawingResult = {
   viewport: PricePaneViewport;
   program: Drawing;
-  marks?: Mark[];
+  marks: Mark[] | undefined;
   rejectedAt?: PricePaneFrame;
 };
 export function chartDrawingSource(history: ChartHistory): Source | undefined {
