@@ -3306,23 +3306,21 @@
     },
     {
       "id": "windows-acl-prepare-fixture-and-mapping-timeouts",
-      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout.",
-      "occurrence": 2,
+      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout. Third occurrence: PR 84 run 45468479291, archives/observations/pr-84-45468479291/index.json (SHA-256 399e91e184e8742b868013470e7b32f53890b4bc651d4d14dec5752058392f65). Windows workspace-timeframe log SHA-256 ffe18daefd5643711fa8cc8c29da1765ca07845151d9e2cec85f157936895521.",
+      "occurrence": 3,
       "severity": "major",
-      "status": "addressed",
-      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot.",
+      "status": "open",
+      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot. Third occurrence: four originally independent workspace-timeframe fixtures (:144, :215, :556 and :652) stopped in workspace_bridge --prepare-profile-root with (prepare, powershell-timeout), before Vite or SQLite. The fourth failed with no other workspace case running. The browser launches separate bridge processes outside the prior Tauri test-only mutex. The same four Linux cases and the three Windows indicator delivery and recovery controls passed. The failed Windows process contains no measured internal stage beyond the PowerShell timeout.",
       "task_ids": [
         "M0-071",
-        "M0-089"
+        "M0-089",
+        "M0-102"
       ],
       "regression_checks": [
-        "rust-contracts-workers"
+        "rust-contracts-workers",
+        "workspace-timeframe"
       ],
-      "resolution": {
-        "cause": "The fixture preparation slot did not cover the real native workspace-open path. Application opens and explicit fixture preparations could overlap their PowerShell ACL helpers. The hosted recurrence did not record where latency accumulated inside PowerShell.",
-        "correction": "Make explicit fixtures and real workspace opens share one test-only admission slot before invoking the real native ACL preparation. Preserve the production policy, helper deadlines, refusal and cleanup.",
-        "prevention": "Exercise both actual paths against the same held mutex and reject a disconnected slot. Retain the first occurrence and its diagnostic, and compare the full original native desktop inventory including the four timed-out cases and the new shared-admission regression."
-      },
+      "resolution": null,
       "deferral_reason": null,
       "diagnostic_reports": [
         {
@@ -3334,6 +3332,16 @@
           "run_id": "windows-change-45387261521-1",
           "source_commit": "37ad45f476de9fd009379300beea264704317a7e",
           "report_sha256": "f898e43f0c624e65c57b9fff7f157fa532a7763a28dc948765fd04e8afd92855"
+        },
+        {
+          "run_id": "windows-change-45468479291-1",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "01316e545218cd9c7e6c63a1c2d33d6529bd253a0ca489ded44fc8d4cbb3c9a3"
+        },
+        {
+          "run_id": "20261124T191751.193512Z-520f9d9d",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "9f26f5107e91ef5f5420a0c7c1e5bfe2e41e6d11e0deeeb9089efa2f86a3e60e"
         }
       ]
     },

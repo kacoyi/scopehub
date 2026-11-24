@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-102",
   "tasks": [
     {
       "id": "M0-001",
@@ -20328,6 +20328,127 @@
           ],
           "data_plan": "Use only synthetic CSV evidence and isolated profiles; retain the actual request journal and response stages without authorization headers.",
           "cleanup": "Release all gates and stop test clients and the owned workspace with primary failures preserved."
+        }
+      }
+    },
+    {
+      "id": "M0-102",
+      "title": "Recover Windows workspace browser profile preparation",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-089",
+        "M0-101"
+      ],
+      "scope": [
+        "crates/persistence",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The normal workspace browser fixture prepares isolated Windows profiles through the trusted workspace storage entry and proceeds to the four original named behaviors. Establish whether the correction removes the repeat cold-start dependency at the first failing entry.",
+        "Prove a normal fresh owner-only profile and a definite unsafe refusal on the real Windows path. Keep the existing ACL policy, local-NTFS and path protections, bounded failure, error mapping and cleanup.",
+        "Retain both original platform reports and the actual stage. Compare the native result with the same-source Linux controls and preserve the existing indicator preview cases."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45468479291-1",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "01316e545218cd9c7e6c63a1c2d33d6529bd253a0ca489ded44fc8d4cbb3c9a3"
+        },
+        {
+          "run_id": "20261124T191751.193512Z-520f9d9d",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "9f26f5107e91ef5f5420a0c7c1e5bfe2e41e6d11e0deeeb9089efa2f86a3e60e"
+        }
+      ],
+      "next_action": "Compare the existing Windows ACL admission and actual browser fixture entry with local native primitives. Measure or bound startup cost and preserve policy and cleanup before the focused original-entry regression. Use the ordinary protected Windows checks for matching native evidence.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A fresh and isolated Windows workspace browser fixture reliably reaches the real workspace through bounded owner-only profile preparation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Four Windows bridge profile preparations failed at the ten-second PowerShell child deadline, before Vite, SQLite or any observed application operation. The same four cases passed on Linux. The raw failure does not isolate PowerShell startup, scheduling or ACL I/O.",
+          "The earlier Tauri process-local test admission slot does not govern the separately launched browser bridges. The fourth failure occurred without another running workspace case. Reducing independent cold helper startup is a more direct correction than serializing two browser slots."
+        ],
+        "risks": [
+          {
+            "failure": "Preparation admits a shared, redirected, nonlocal or incorrectly owned profile, changes existing ACLs or allows work to continue after a refusal.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A preparation timeout or refusal leaks a child or a synthetic profile, shares profiles, or is hidden by skipping existing assertions.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The correction merely delays the same timeout or transfers it to the next ordinary workspace entry.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep both official runs and any focused native diagnostics. Revert only the preparation correction if it cannot retain the original refusal and cleanup contract.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "crates/persistence/src/storage.rs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Increased deadlines, weaker ACLs, blanket serialization, retries that hide refusal, new profile or database formats, and alteration of accepted M0-036, M0-071, M0-089, M0-099 or M0-101 task definitions."
+          ],
+          "open_questions": [
+            "Which existing native owner-only and startup primitives can preserve the exact admission policy and observable limits at the bridge entry?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Trusted owner and ACL admission, refusal before access, actual profile isolation, database and sidecar policy, normal resource cleanup, browser assertions and limits."
+          ],
+          "change": [
+            "Remove the demonstrated repeat preparation bottleneck by reusing a cheaper trusted native or launch path after validating policy equivalence."
+          ],
+          "data_plan": "Use only isolated synthetic profiles and the retained original hosted artifacts. No user data format or migrations change.",
+          "cleanup": "Use the existing fixture cleanup and keep failure termination bounded. Remove diagnostic-only controls before delivery."
         }
       }
     }
