@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-086",
   "tasks": [
     {
       "id": "M0-001",
@@ -17328,6 +17328,105 @@
           "change": ["Add the owner-approved qualification to release planning."],
           "data_plan": "The specification uses synthetic data and opaque evidence identities.",
           "cleanup": "Archive the documentary task check and return focus to the planned renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M0-086",
+      "title": "Restore reliable frozen chart admission in the native transport regression",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-085"
+      ],
+      "scope": [
+        "tests/ui/desktop-workspace.spec.mjs",
+        "apps/desktop/ui",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Identify the first failing frozen chart read in the protected Ubuntu job and exercise the same admission boundary with synthetic data. A valid published revision opens and a rejected read remains explicit.",
+        "Keep revision proof, protected workspace state, the uncertain-write deadline and late-response assertions exercised through the normal native transport path. Retain the diagnostic and verify the corrective change."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T075459.275900Z-a4026d20",
+          "source_commit": "30f45c59851a1aa1a97f9582395cd71bacb4b5a3",
+          "report_sha256": "c31932503a04ce3bc8fb54502a614bf66125a47c35707467a4572bba30a06621"
+        }
+      ],
+      "next_action": "Verify the bounded foreground read repair with the native transport regression and hand the matching task report to the coordinator for evidence and closure.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "Opening the seeded published revision reaches the source action reliably, and the protected check still detects a stale reply.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/frozen-evidence.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "A held Rust revision status reply reproduced the hosted fallback through retryable BUSY on the first foreground frozen chart invoke. Apply the existing read-only admission retry at the shared frozen chart entry, then check the unchanged permanent rejection and delayed-write recovery."
+        ],
+        "risks": [
+          {
+            "failure": "The valid frozen chart fails before mutation or the change retries a rejected revision, changes source permissions or weakens revision proof.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the original Ubuntu diagnostic and revert the narrow correction if either admission or revision proof changes.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing the canvas renderer, source policy or protected workflow requirements."
+          ],
+          "open_questions": [
+            "The initiating reply in the original hosted run is unobserved. The retained artifacts contain the fallback and the failed assertion."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing authority, rejection and deadline assertions; earlier acceptance records."
+          ],
+          "change": [
+            "Retry explicit transient busy responses for foreground authenticated frozen chart reads within the existing read budget. Verify a real busy response and a permanent rejection before entering the delayed write."
+          ],
+          "data_plan": "Use a disposable synthetic profile. No user data migration.",
+          "cleanup": "Retain only the regression and the fix. Resume the renderer task after the repair."
         }
       }
     }

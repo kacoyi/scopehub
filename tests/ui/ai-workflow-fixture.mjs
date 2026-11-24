@@ -148,7 +148,7 @@ export async function withWorkspace(browser, profile, use, protectedValues = [],
         const response = await post(credentialEndpoint, frame, authorized);
         return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
       };
-      const holdRevisionRead = async () => {
+      const holdRevisionRead = async revisionId => {
         const waitFor = async message => {
           for await (const [value] of on(child, 'message', { signal: AbortSignal.timeout(8_000) })) {
             if (value === message) return;
@@ -157,8 +157,18 @@ export async function withWorkspace(browser, profile, use, protectedValues = [],
         const armed = waitFor('published-revision-gate-armed');
         const held = waitFor('published-revision-reply-held');
         child.send('arm-published-revision-gate');
-        await Promise.all([armed, held]);
-        return () => child.send('release-published-revision-gate');
+        const gateReady = Promise.all([armed, held]);
+        // Tests without a preview dialog can submit an explicit status read.
+        const reply = revisionId === undefined ? undefined : armed.then(() => dispatch({
+          type: 'frozen_chart_status', request_id: randomUUID(), revision_id: revisionId,
+        }));
+        await (reply ? Promise.race([gateReady, reply.then(() => {
+          throw new Error('The published revision status read completed before the gate held its reply.');
+        })]) : gateReady);
+        return () => {
+          child.send('release-published-revision-gate');
+          return reply;
+        };
       };
       await use(page, dispatch, dispatchCredential, gateStatus ? holdRevisionRead : undefined);
       assertNoBrowserSends();
