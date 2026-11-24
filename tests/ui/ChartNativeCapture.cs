@@ -182,11 +182,21 @@ public static class ChartNativeCapture {
         }
         return groups.ToArray();
     }
-    public static bool Candle(Bitmap chart, Rectangle ring, bool rising) {
-        Color expected=rising ? Color.FromArgb(67,212,172) : Color.FromArgb(241,125,133);
-        int cx=ring.Left+ring.Width/2, cy=ring.Top+ring.Height/2;
-        for (int y=cy-2;y<=cy+2;y++) for(int x=cx-2;x<=cx+2;x++)
-            if (chart.GetPixel(x,y).ToArgb()==expected.ToArgb()) return true;
-        return false;
+    public static int CloseRow(Bitmap chart, Rectangle ring, bool rising) {
+        // A rising candle closes at the top of its body. A falling one closes at the bottom.
+        // Ignore the wick and require three solid body pixels across the center columns.
+        Color expected = rising ? Color.FromArgb(67,212,172) : Color.FromArgb(241,125,133);
+        int center = ring.Left + ring.Width / 2;
+        int close = -1;
+        for (int y = 0; y < chart.Height; y++) {
+            int votes = 0;
+            for (int dx = -2; dx <= 2; dx++) {
+                if (dx != 0 && chart.GetPixel(center + dx, y).ToArgb() == expected.ToArgb()) votes++;
+            }
+            if (votes < 3) continue;
+            close = y;
+            if (rising) break;
+        }
+        return close;
     }
 }

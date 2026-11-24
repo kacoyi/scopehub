@@ -14,7 +14,7 @@ if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash -ne 'ac20d9a0cbd462
 function Find-ChartButton([string]$prefix) {
     $condition=[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,$kind::Button)
     foreach ($b in $window.FindAll($scope,$condition)) {
-        if ($b.Current.IsEnabled -and $b.Current.Name.StartsWith($prefix)) { return $b }
+        if ($b.Current.IsEnabled -and ([string]$b.Current.Name).StartsWith($prefix)) { return $b }
     }
 }
 function Invoke-ChartButton([string]$name) {
@@ -77,6 +77,7 @@ function Open-ChartFile {
     $null=Capture-Chart 'draft' 2
     Invoke-ChartButton 'Accept chart drawing'
     Wait-Name 'Remove chart drawing'
+    Write-Host 'The native chart now offers Remove chart drawing.'
 }
 function Capture-Chart([string]$label,[int]$expected) {
     $chart=Wait-ForProbe 'actual synthetic financial chart' {
@@ -113,8 +114,10 @@ function Capture-Chart([string]$label,[int]$expected) {
                             $aligned=$true
                             for ($i=0;$i -lt 2;$i++) {
                                 $colors=[ChartNativeCapture]::CenterColors($sample,$observed[$i])
-                                $atClose=[ChartNativeCapture]::Candle($sample,$observed[$i],$i -eq 1)
-                                Write-Host "$label $surface point $i exact candle at center=$atClose; 5x5 RGB=$($colors -join ',')"
+                                $closeY=[ChartNativeCapture]::CloseRow($sample,$observed[$i],$i -eq 1)
+                                $ringY=$observed[$i].Top + ($observed[$i].Height-1)/2
+                                $atClose=$closeY -ge 0 -and [Math]::Abs($closeY-$ringY) -le 2
+                                Write-Host "$label $surface point $i ring center row=$ringY candle body close row=$closeY aligned=$atClose; 5x5 RGB=$($colors -join ',')"
                                 $aligned=$aligned -and $atClose
                             }
                             if ($aligned) { $verified=$true }
@@ -141,16 +144,20 @@ function Hover-Bar($obs,[int]$index) {
     }
 }
 try {
-    [ChartNativeCapture]::Resize($handle,1120,760)
+    [ChartNativeCapture]::Resize($handle,1280,800)
+    Wait-Name 'Close panel'
+    Invoke-ChartButton 'Close panel'
+    $null=Wait-ForProbe 'closed Watchlist before chart qualification' { !(Find-Control 'Close panel' $kind::Button) }
     Open-ChartFile
     $wide=Capture-Chart 'aligned' 2
     try { Hover-Bar $wide 1 } catch { $issues.Add("Wide hover: $($_.Exception.Message)") }
     [ChartNativeCapture]::Hover($handle,[int]($wide.x+$wide.width-10),[int]($wide.y+28))
-    $null=Wait-ForProbe 'price scale clears crosshair timestamp' {
+    try { $null=Wait-ForProbe 'price scale clears crosshair timestamp' {
         $texts=@($window.FindAll($scope,$any) | ForEach-Object { $_.Current.Name })
         -not ($texts -join ' ').Contains('2024-01-02T13:01:00.000Z')
     }
-    [ChartNativeCapture]::Resize($handle,900,650)
+    } catch { $issues.Add("Price scale: $($_.Exception.Message)") }
+    [ChartNativeCapture]::Resize($handle,1100,740)
     Start-Sleep -Milliseconds 600
     $narrow=Capture-Chart 'resized' 2
     if ([Math]::Abs($wide.width-$narrow.width) -lt 80) { $issues.Add('Actual native plot width did not change.') }
@@ -158,7 +165,7 @@ try {
     [ChartNativeCapture]::Hover($handle,[int]($narrow.x+$narrow.width-12),[int]($narrow.y+28))
     Invoke-ChartButton 'Zoom in'
     Start-Sleep -Milliseconds 500
-    $null=Capture-Chart 'clipped' 0
+    try { $null=Capture-Chart 'clipped' 0 } catch { $issues.Add("Zoom clipping: $($_.Exception.Message)") }
     Invoke-ChartButton 'Fit chart'
     Start-Sleep -Milliseconds 500
     $fit=Capture-Chart 'refit' 2
