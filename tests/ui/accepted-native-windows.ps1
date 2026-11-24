@@ -121,14 +121,16 @@ function Try-Activate($control) {
     $x=[int]($bounds.X+$bounds.Width/2); $y=[int]($bounds.Y+$bounds.Height/2)
     $atPoint=[Windows.Automation.AutomationElement]::FromPoint([Windows.Point]::new($x,$y))
     if (!$atPoint -or ([string]$atPoint.Current.Name) -ne ([string]$control.Current.Name)) { return $false }
-    [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+    [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
     return $true
 }
 function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
     $resolve={ if ($Indicator) { Indicator-Control $label } else { Named-Control $label $type::Button } }
     $button=Wait-ForProbe "enabled $label" { $b=& $resolve; if ($b -and $b.Current.IsEnabled) { $b } }
+    $scroller=$null
+    if ($button.TryGetCurrentPattern([Windows.Automation.ScrollItemPattern]::Pattern,[ref]$scroller)) { $scroller.ScrollIntoView() }
     $button.SetFocus()
-    $null=Wait-ForProbe "pointer over the owned $label button" {
+    $null=Wait-ForProbe "visible or keyboard-focused owned $label button" {
         $b=& $resolve
         if (!$b -or !$b.Current.IsEnabled) { return $false }
         $r=$b.Current.BoundingRectangle
@@ -138,11 +140,17 @@ function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
         $walker=[Windows.Automation.TreeWalker]::ControlViewWalker
         for ($i=0; $i -lt 8 -and $hit; $i++) {
             if ([Windows.Automation.Automation]::Compare($b,$hit)) {
-                [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
                 Write-Host "Verified owned pointer activation of $label at ($x,$y)."
                 return $true
             }
             $hit=$walker.GetParent($hit)
+        }
+        $focused=$ui::FocusedElement
+        if ($focused -and [Windows.Automation.Automation]::Compare($focused,$b) -and $b.Current.HasKeyboardFocus) {
+            [Windows.Forms.SendKeys]::SendWait(' ')
+            Write-Host "Activated the verified focused $label button with Space."
+            return $true
         }
         return $false
     }
@@ -152,7 +160,7 @@ function Review-Step([string]$label) {
     $null=Wait-ForProbe $label { Try-Activate (Named-Control $label $type::Button) }
 }
 function Archive-Stage([string]$name) {
-    $image=[DrawingWindowCapture]::OwnedClient($app.MainWindowHandle)
+    $image=[DrawingWindowCapture]::OwnedClient($ownedHandle)
     try { $image.Save((Join-Path $OutputDirectory "$name.png"),[Drawing.Imaging.ImageFormat]::Png) }
     finally { $image.Dispose() }
 }
@@ -169,7 +177,7 @@ function Enter-NativeFolder([string]$folder) {
         Find-Control 'Choose local CSV folder' $type::Window
     }
     $pickerHandle=[IntPtr]$dlg.Current.NativeWindowHandle
-    [DrawingWindowCapture]::VerifyPicker($app.MainWindowHandle,$pickerHandle,$app.Id)
+    [DrawingWindowCapture]::VerifyPicker($ownedHandle,$pickerHandle,$app.Id)
     Write-Output "Confirmed ScopeHub picker: HWND=$pickerHandle class=$($dlg.Current.ClassName) appPID=$($app.Id)"
     # Prefer the common dialog's filename edit. The shell exposes some children as UIA Pane controls.
     if ([DrawingWindowCapture]::SetPickerFolder($pickerHandle,$folder)) {
@@ -215,7 +223,7 @@ function Run-IndicatorPreview {
         $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
         $target=$ui::FromPoint([Windows.Point]::new($x,$y))
         if (([string]$target.Current.Name) -ne 'Run preview') { return $false }
-        [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+        [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
         return $true
     }
     $transition=Wait-ForProbe 'indicator computation started or its result displayed' {
@@ -252,7 +260,7 @@ function Native-Plot {
         }
     }
     $b=$svg.Current.BoundingRectangle
-    return [DrawingWindowCapture]::Plot($app.MainWindowHandle,$b.Left,$b.Top,$b.Width,$b.Height)
+    return [DrawingWindowCapture]::Plot($ownedHandle,$b.Left,$b.Top,$b.Width,$b.Height)
 }
 function Save-SeriesPlot([string]$kind) {
     $plot=Native-Plot
@@ -413,12 +421,11 @@ try {
     Add-Type -AssemblyName System.Drawing
     Add-Type -Path (Join-Path $PSScriptRoot 'DrawingWindowCapture.cs') -ReferencedAssemblies System.Drawing
     $null=[DrawingWindowCapture]::SetProcessDPIAware()
-    [DrawingWindowCapture]::Resize($app.MainWindowHandle,1120,760)
+    [DrawingWindowCapture]::Resize($ownedHandle,1120,760)
     $visibilityFailure=$null
     if ($Identity) {
         $acceptedHash=$Identity.result_hash
         Write-Output "Started real native workspace on previously confirmed version $($Identity.version_id)."
-        Wait-Name 'Open blank AI workbench'
         Archive-Stage 'native-entry'
         Open-PreparedSource
     } else {
@@ -452,7 +459,7 @@ try {
             Select-SeriesChoice 'Timestamp convention' 'Bar start'
             Review-Step 'Preview mapping'
         }
-        foreach ($label in @('Save reviewed mapping','Publish complete file','Open frozen chart')) { Review-Step $label }
+        foreach ($label in @('Save reviewed mapping','Publish complete file','Open frozen chart')) { Click-WorkspaceControl $label }
         Archive-Stage 'published'
         Select-NativeOption 'Indicator input' 1
         $period=Wait-ForProbe 'Rolling period' {
