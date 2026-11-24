@@ -52,7 +52,9 @@ export type PricePaneFrame = {
 };
 
 export interface HistoryChartHandle {
-  observePricePane(times: readonly number[], update: (frame: PricePaneFrame | undefined) => void): () => void;
+  observePricePane(
+    times: readonly number[], update: (frame: PricePaneFrame | undefined) => void, invalidateGeometry: () => void,
+  ): () => void;
   dispose(): void;
   fit(): void;
   zoomIn(): void;
@@ -256,7 +258,7 @@ export function mountHistoryChart(
     });
     element.style.cursor = 'crosshair';
     return {
-      observePricePane(times, update) {
+      observePricePane(times, update, invalidateGeometry) {
         const pane = priceSeries.getPane();
         let pending: number | undefined;
         let previous: PricePaneFrame | undefined;
@@ -264,10 +266,10 @@ export function mountHistoryChart(
         const clear = () => {
           if (!previous) return;
           previous = undefined;
+          invalidateGeometry();
           update(undefined);
         };
-        const paint = () => {
-          pending = undefined;
+        const observe = () => {
           if (disposed) return;
           const { width, height } = chart.paneSize(pane.paneIndex());
           const price = bars[0]?.close;
@@ -289,19 +291,33 @@ export function mountHistoryChart(
           // Keep identity only across consecutive observations of the same mapping.
           const viewport = (signature === viewportSignature && previous?.viewport) || geometry;
           if (previous && viewport === previous.viewport && paneCrosshair === previous.crosshair) return;
+          if (previous && viewport !== previous.viewport) invalidateGeometry();
           viewportSignature = signature;
           previous = { viewport, crosshair: paneCrosshair };
           update(previous);
         };
-        const schedule = () => { pending ??= requestAnimationFrame(paint); };
-        const primitive: IPanePrimitive<Time> = { updateAllViews: schedule };
+        const cancelPending = () => {
+          if (pending !== undefined) cancelAnimationFrame(pending);
+          pending = undefined;
+        };
+        const schedule = () => {
+          pending ??= requestAnimationFrame(() => {
+            pending = undefined;
+            observe();
+          });
+        };
+        // At paint time the pane has applied its current dimensions and price scales.
+        // Hide stale DOM geometry before those new candle pixels become visible.
+        const renderer = { draw() { cancelPending(); observe(); } };
+        const views = [{ zOrder: () => 'top' as const, renderer: () => renderer }];
+        const primitive: IPanePrimitive<Time> = { paneViews: () => views };
         paneCrosshair = undefined;
         refreshPane = schedule;
         pane.attachPrimitive(primitive);
         schedule();
         return () => {
           if (refreshPane === schedule) refreshPane = undefined;
-          if (pending !== undefined) cancelAnimationFrame(pending);
+          cancelPending();
           if (!disposed) pane.detachPrimitive(primitive);
         };
       },

@@ -44,6 +44,7 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
   const [selection, setSelection] = useState<DrawingSelection>();
   const [invalidFile, setInvalidFile] = useState(false);
   const fileEpoch = useRef(0);
+  const overlayElement = useRef<SVGSVGElement>(null);
   const data = source && sources[source];
   const observing = Boolean(data && (accepted || candidate));
 
@@ -59,7 +60,11 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
 
   useLayoutEffect(() => {
     setFrame(undefined);
-    if (observing && data) return handle.current?.observePricePane(data.bars.map(bar => bar.time_ms), setFrame);
+    if (observing && data) {
+      return handle.current?.observePricePane(data.bars.map(bar => bar.time_ms), setFrame, () => {
+        if (overlayElement.current) overlayElement.current.style.visibility = 'hidden';
+      });
+    }
   }, [handle, history, data, observing]);
 
   const viewport = frame?.viewport;
@@ -117,29 +122,33 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
       event.currentTarget.value = '';
       if (file) void open(file);
     }} /></label>
-    {candidate && candidateBase?.marks && <button type="button" className="secondary-button" onClick={() => {
-      setAccepted(candidate);
-      restore();
-    }}>{t('Accept chart drawing')}</button>}
-    {(candidate || invalidFile) && <button type="button" className="secondary-button" onClick={restore}>
-      {accepted ? t('Restore accepted chart drawing') : t('Discard chart drawing draft')}</button>}
-    {accepted && <button type="button" className="secondary-button" onClick={() => {
-      restore();
-      setAccepted(undefined);
-      setBases([]);
-      setSelection(undefined);
-    }}>{t('Remove chart drawing')}</button>}
-    {crosshair && <output aria-label={t('Drawing crosshair observation')}>
-      <time dateTime={new Date(crosshair.time_ms).toISOString()}>{new Date(crosshair.time_ms).toISOString()}</time>
-      {' · '}{formatNumber(crosshair.close, { useGrouping: false, maximumSignificantDigits: 21 })} {data?.currency}
-      {currentSelection && !currentSelection.marks && <span role="alert" className="chart-drawing-selection-error">
-        {t('This chart drawing could not be displayed.')}
-      </span>}
-    </output>}
-    {(invalidFile || candidateBase && !candidateBase.marks || acceptedBase && !acceptedBase.marks) &&
-      <p role="alert">{t('This chart drawing could not be displayed.')}</p>}
+    <div className="chart-drawing-actions">
+      <button type="button" className="secondary-button" hidden={!candidateBase?.marks} onClick={() => {
+        if (!candidate || !candidateBase?.marks) return;
+        setAccepted(candidate);
+        restore();
+      }}>{t('Accept chart drawing')}</button>
+      <button type="button" className="secondary-button chart-drawing-recovery" hidden={!accepted || !(candidate || invalidFile)} onClick={restore}>
+        {t('Restore accepted chart drawing')}</button>
+      <button type="button" className="secondary-button chart-drawing-recovery" hidden={!!accepted || !(candidate || invalidFile)} onClick={restore}>
+        {t('Discard chart drawing draft')}</button>
+      <button type="button" className="secondary-button" hidden={!accepted} onClick={() => {
+        restore();
+        setAccepted(undefined);
+        setBases([]);
+        setSelection(undefined);
+      }}>{t('Remove chart drawing')}</button>
+    </div>
+    <div className="chart-drawing-status">
+      {crosshair && <output aria-label={t('Drawing crosshair observation')}>
+        <time dateTime={new Date(crosshair.time_ms).toISOString()}>{new Date(crosshair.time_ms).toISOString()}</time>
+        {' · '}{formatNumber(crosshair.close, { useGrouping: false, maximumSignificantDigits: 21 })} {data?.currency}
+      </output>}
+      {(invalidFile || candidateBase && !candidateBase.marks || acceptedBase && !acceptedBase.marks
+        || currentSelection && !currentSelection.marks) && <p role="alert">{t('This chart drawing could not be displayed.')}</p>}
+    </div>
   </div>;
-  const overlay = data && viewport && marks && <svg className="chart-drawing-overlay" style={{ width: viewport.width, height: viewport.height }}
+  const overlay = data && viewport && marks && <svg ref={overlayElement} className="chart-drawing-overlay" style={{ width: viewport.width, height: viewport.height }}
     aria-label={t('Projected chart drawing')} role="img">
     <DrawingMarks marks={marks} weight={2} />
   </svg>;

@@ -387,11 +387,12 @@ for (const scenario of layoutCases) {
     async function assertCloseEdges(label) {
       const positions = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
       const closes = await Promise.all([
-        candleCloseOffset(chart, positions[0], [247, 99, 114], false),
+        candleCloseOffset(chart, positions[0], [241, 125, 133], false),
         candleCloseOffset(chart, positions[1], [67, 212, 172], true),
       ]);
       observations.closes.push({ label, closes });
       await archive();
+      await chart.screenshot({ path: info.outputPath(label.replaceAll(' ', '-') + '.png') });
       for (const close of closes) {
         expect(close, label).not.toBeNull();
         expect(Math.abs(close.offset), label).toBeLessThanOrEqual(2);
