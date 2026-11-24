@@ -380,6 +380,56 @@ test('authored result annotations paint on their candles across viewport and tim
   await testInfo.attach('annotated-chart', { body: await localized.screenshot(), contentType: 'image/png' });
 });
 
+test('a drag started before the first replay quote keeps its original candle anchor', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open workbench prototype' }).click();
+  await page.getByRole('button', { name: 'Add candlesticks' }).click();
+  await page.getByRole('button', { name: 'Preview draft' }).click();
+  await page.getByRole('button', { name: 'Accept view' }).click();
+  const chart = page.getByRole('img', { name: 'Candlestick chart with numeric annotations' });
+  const readDraw = () => chart.evaluate(node => JSON.parse(node.dataset.primitiveDraw ?? 'null'));
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0 });
+  const frozen = await readDraw();
+  const oldWick = async () => (await paintedGeometry(chart)).candles[2]?.x;
+  const frozenWick = await oldWick();
+  await page.getByRole('button', { name: 'Start synthetic quote replay' }).click();
+  const rect = await chart.boundingBox();
+  const x = rect.x + rect.width / 2;
+  const y = rect.y + 130;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  try {
+    for (let shift = 8; shift <= 48; shift += 8) {
+      await page.mouse.move(x + shift, y);
+      await delay(20);
+    }
+    await expect.poll(oldWick, { timeout: 300 }).toBeGreaterThan(frozenWick);
+    const held = await readDraw();
+    expect(held.quoteSequence).toBe(0);
+    expect((await paintedGeometry(chart)).candles).toHaveLength(4);
+    expect(held.viewport.logical).not.toEqual(frozen.viewport.logical);
+    const beforeAppend = await oldWick();
+    await expect.poll(readDraw).toMatchObject({ quoteSequence: 1 });
+    expect(await oldWick()).toBe(beforeAppend);
+    await page.mouse.move(x + 54, y);
+    await expect.poll(async () => Math.abs((await oldWick()) - (beforeAppend + 6))).toBeLessThanOrEqual(1);
+  } finally {
+    await page.mouse.up();
+  }
+
+  await page.getByRole('button', { name: 'Reset synthetic quote replay' }).click();
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 0 });
+  await page.mouse.move(rect.x + 62, y);
+  await page.mouse.down();
+  await page.mouse.move(rect.x + rect.width - 92, y, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(async () => (await readDraw()).viewport.logical.from).toBeLessThan(-3.5);
+  const leftLimit = (await readDraw()).viewport.logical;
+  await page.getByRole('button', { name: 'Start synthetic quote replay' }).click();
+  await expect.poll(readDraw).toMatchObject({ quoteSequence: 1 });
+  expect((await readDraw()).viewport.logical).toEqual(leftLimit);
+});
+
 test('replays source-scoped quotes on the accepted candle pane while it is panned', async ({ page }, testInfo) => {
   await page.goto('/');
   const open = page.getByRole('button', { name: 'Open workbench prototype' });
@@ -475,7 +525,7 @@ test('replays source-scoped quotes on the accepted candle pane while it is panne
   const last = await readDraw();
   expect(last.viewport.logical).not.toEqual(first.viewport.logical);
   const draws = await page.evaluate(() => window.primitiveDraws);
-  expect([...new Set(draws.map(draw => draw.quoteSequence))]).toEqual([1, 2, 3]);
+  expect([...new Set(draws.map(draw => draw.quoteSequence).filter(Boolean))]).toEqual([1, 2, 3]);
   expect(new Set(draws.filter(draw => draw.quoteSequence === 2).map(draw => draw.viewport.logical.from)).size).toBeGreaterThan(1);
   const leftEdges = draws.map(draw => draw.viewport.logical.from);
   expect(leftEdges.every((edge, index) => index === 0 || edge >= leftEdges[index - 1])).toBe(true);

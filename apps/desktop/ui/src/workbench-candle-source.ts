@@ -71,7 +71,7 @@ const tape: readonly ReplayQuote[] = [
   secondQuote,
   finalQuote,
 ];
-export const candleReplay = { intervalMs: 650, steps: tape.length, finalSequence: finalQuote.sequence };
+export const candleReplay = { barOpenMs: replayOpen, intervalMs: 650, steps: tape.length, finalSequence: finalQuote.sequence };
 export type CandleReplayPosition = { step: number; quote?: ReplayQuote; rejected?: 'stale' | 'source' };
 
 export function advanceCandleReplay(position: CandleReplayPosition, source: CandleBlock['source']): CandleReplayPosition {

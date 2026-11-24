@@ -1,12 +1,13 @@
 import {
-  CandlestickSeries, ColorType, CrosshairMode, createChart,
-  type IPrimitivePaneRenderer, type IPrimitivePaneView, type ISeriesPrimitive, type UTCTimestamp,
+  CandlestickSeries, ColorType, CrosshairMode, LineSeries, createChart,
+  type IPrimitivePaneRenderer, type IPrimitivePaneView, type ISeriesApi, type ISeriesPrimitive, type UTCTimestamp,
 } from 'lightweight-charts';
 import { defaultChartAppearance } from './history';
 
 export type Candle = Readonly<{ timeMs: number; open: number; high: number; low: number; close: number }>;
 export type CandleAnnotation = Readonly<{ timeMs: number; text: string }>;
 type ReplayCandle = Readonly<{ sequence: number; candle: Candle }>;
+type ReplayDraw = Readonly<{ timeMs: number; quote: ReplayCandle | undefined }>;
 
 export function mountCandleAnnotations(element: HTMLElement) {
   const chart = createChart(element, {
@@ -28,7 +29,10 @@ export function mountCandleAnnotations(element: HTMLElement) {
     const datum = ({ timeMs, open, high, low, close }: Candle) => ({ time: timestamp(timeMs), open, high, low, close });
     let candles: readonly Candle[] | undefined;
     let replay: ReplayCandle | undefined;
+    let reservedTime: UTCTimestamp | undefined;
+    let reservation: ISeriesApi<'Line'> | undefined;
     let labels: { time: UTCTimestamp; high: number; text: string }[] = [];
+    let appliedAnnotations: readonly CandleAnnotation[] | undefined;
     let resultRevision = '';
     let annotationRevision = 0;
     let viewportRevision = 0;
@@ -81,24 +85,39 @@ export function mountCandleAnnotations(element: HTMLElement) {
     }
 
     return {
-      display(nextCandles: readonly Candle[], annotations: readonly CandleAnnotation[], revision: string, quote?: ReplayCandle) {
-        const visibleCandles = quote ? [...nextCandles, quote.candle] : nextCandles;
-        const byTime = new Map(annotations.map(({ timeMs, text }) => [timeMs, text]));
-        labels = visibleCandles.flatMap(({ timeMs, high }) => {
-          const text = byTime.get(timeMs);
-          return text === undefined ? [] : [{ time: timestamp(timeMs), high, text }];
-        });
-        resultRevision = revision;
-        annotationRevision++;
-        if (candles !== nextCandles) {
+      display(nextCandles: readonly Candle[], annotations: readonly CandleAnnotation[], revision: string, nextReplay?: ReplayDraw) {
+        const quote = nextReplay?.quote;
+        if (appliedAnnotations !== annotations || resultRevision !== revision) {
+          const byTime = new Map(annotations.map(({ timeMs, text }) => [timeMs, text]));
+          const visibleCandles = quote ? [...nextCandles, quote.candle] : nextCandles;
+          labels = visibleCandles.flatMap(({ timeMs, high }) => {
+            const text = byTime.get(timeMs);
+            return text === undefined ? [] : [{ time: timestamp(timeMs), high, text }];
+          });
+          appliedAnnotations = annotations;
+          resultRevision = revision;
+          annotationRevision++;
+        }
+        const changedHistory = candles !== nextCandles;
+        const nextSlot = nextReplay && timestamp(nextReplay.timeMs);
+        const changingSlot = reservedTime !== nextSlot;
+        const range = changingSlot && !changedHistory ? timeScale.getVisibleLogicalRange() : null;
+        if (changedHistory || (replay && !quote)) {
           candles = nextCandles;
           series.setData(candles.map(datum));
-          timeScale.setVisibleLogicalRange({ from: -1, to: candles.length });
-        } else if (replay && !quote) {
-          const range = timeScale.getVisibleLogicalRange();
-          series.setData(candles.map(datum));
-          if (range) timeScale.setVisibleLogicalRange(range);
         }
+        if (changingSlot) {
+          // The SDK stores an offset relative to the last time index at drag start.
+          // Reserve the only replay slot on Start, before a drag can span its first quote.
+          if (nextSlot === undefined) reservation?.setData([]);
+          else {
+            reservation ??= chart.addSeries(LineSeries, { visible: false, priceScaleId: '' });
+            reservation.setData([{ time: nextSlot, value: 0 }]);
+          }
+          reservedTime = nextSlot;
+        }
+        if (changedHistory) timeScale.setVisibleLogicalRange({ from: -1, to: nextCandles.length });
+        else if (range) timeScale.setVisibleLogicalRange(range);
         if (quote && quote !== replay) series.update(datum(quote.candle));
         replay = quote;
         requestUpdate();

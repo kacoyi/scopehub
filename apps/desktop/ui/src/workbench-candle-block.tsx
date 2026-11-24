@@ -22,6 +22,7 @@ export function WorkbenchCandleBlock({ block, timeframe, controls, accepted }: {
     ? JSON.stringify([block.source, binding.field, binding.when.field, binding.when.above]) : undefined;
   const [playback, setPlayback] = useState<CandleReplayPosition & { scope: string }>();
   const active = playback?.scope === scope ? playback : undefined;
+  const replayOpenMs = active ? candleReplay.barOpenMs : undefined;
   const quote = active?.quote;
   const ended = active?.step === candleReplay.steps;
   const replayRevision = `${block.source}-${timeframe}-replay`;
@@ -64,8 +65,9 @@ export function WorkbenchCandleBlock({ block, timeframe, controls, accepted }: {
     handle.current?.setLocale(locale);
   }, [locale]);
   useLayoutEffect(() => {
-    handle.current?.display(frame.observations, annotations, resultRevision, quote);
-  }, [frame, annotations, resultRevision, quote]);
+    handle.current?.display(frame.observations, annotations, resultRevision,
+      replayOpenMs === undefined ? undefined : { timeMs: replayOpenMs, quote });
+  }, [frame, annotations, resultRevision, replayOpenMs, quote]);
 
   return <section className="probe-block probe-candle-block" aria-label={t('Annotated candlesticks')}>
     <h3>{t('Annotated candlesticks')}</h3>

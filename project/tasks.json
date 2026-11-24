@@ -18262,6 +18262,10 @@
             "checks": ["renderer-prototype-interaction", "market-workflow"]
           },
           {
+            "failure": "The first append changes the chart time-scale base while a drag retains its original offset, causing one-bar jumps or clamping at the left limit.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
             "failure": "Draw metadata records desired React state or is promoted to a native presentation verdict.",
             "checks": ["renderer-prototype-interaction"]
           }
