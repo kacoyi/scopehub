@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-101",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20204,7 +20204,7 @@
       "id": "M0-101",
       "title": "Preserve indicator draft admission replies during cropped preview",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-099"
       ],
@@ -20231,7 +20231,12 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-101-1539772caeae4480.json",
+          "sha256": "8c31ae4dd167cf7acef87bba79b61fd5d577536561a7fa6592880da0d05035fb"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45462762808-1",
@@ -20244,9 +20249,9 @@
           "report_sha256": "18057b010e2a42132ad0e55993552bfdb5d706bc8a7311309e0c257d05b8983b"
         }
       ],
-      "next_action": "Prove the first endpoint boundary and the draft receipt identity before selecting a correction.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The independently approved source 183e404 passed all six required checks and the environment check in local Linux run 20261124T191213.131242Z-d78b1248. The real workspace transport now waits for bounded complete authorized intake before delivering a pre-admission BUSY. The writer stays available and an explicitly repeated identical draft retains its single authoritative receipt in the original writer. The full and cropped indicator result and the existing same-task status recovery passed. The original Windows reset is retained with unknown upstream disposition. The protected Windows confirmation will run on the same PR after this closure.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "The user can run the cropped preview across an overlapping cancellation and obtain the original reviewed zero sample. The local transport returns a usable bounded pre-admission refusal and any ambiguous draft delivery remains safe.",

@@ -5351,7 +5351,7 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-101"
       ],
@@ -5359,7 +5359,11 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original browser observed a connection reset at draft delivery. The collector did not establish whether the Windows writer received or committed it. Real same-source overlap controls returned pre-admission BUSY, and an owned transport probe exposed premature shutdown on that verified branch.",
+        "correction": "Deliver the already-decided BUSY after completing bounded intake of the authorized request body. Keep explicit pre-admission retries and the existing draft identity. Avoid automatic replay of an ambiguous mutation.",
+        "prevention": "Use a real held writer and split HTTP bodies, prove usable BUSY twice, and show another snapshot can proceed while the second refusal is still draining. Keep the full and cropped zero, warmup, M0-099 status recovery, terminal case and cancellation. Review and logs are indexed at archives/observations/m0-101-draft-delivery/index.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5367,14 +5371,18 @@
       "source": "Independent real Vite and Rust writer transport probe on f52ce52449124729601908b58c2e0477af26a6fe. Retained archives/observations/m0-101-draft-delivery/base.ndjson SHA-256 42d22406f4182e729ec91d3a65c6da6e6134890767742fe7596602edbf84342f and drain.ndjson SHA-256 0d43988961a79a7512a8bd79f33178c172f687c7d33eaec326b9fa75d5064e39.",
       "observation": "With an admitted cancellation waiting for its real writer reply, the HTTP pre-admission BUSY response finished before the competing authenticated POST was complete and destroyed its request socket. This occurred on a reused socket, a fresh socket, and a split body. The bounded drain control finished only with the request complete and socket alive, with no competing bytes sent to the writer. Linux clients decoded BUSY on both paths, so the controlled defect does not prove the recorded hosted Windows connection reset mechanism.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-101"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The authorized early BUSY path generated its response before consuming the body. The shared failure response closed the connection with an incomplete request and its request-destroy callback ran in the controlled baseline.",
+        "correction": "Stream-discard the already-refused authorized body under the existing byte and time bounds. Send structured BUSY only on complete intake and leave the writer lane available.",
+        "prevention": "Reproduce premature headers and socket destruction before correction. Verify after correction that both complete refusals return 429. Witness a real committed draft, discard the caller response, explicitly resend the exact command in the test and compare its receipt. Reject different content under the same key and preserve the original receipt. The real transport controls and t9p approval are retained at archives/observations/m0-101-draft-delivery/index.json."
+      },
       "deferral_reason": null
     }
   ]
