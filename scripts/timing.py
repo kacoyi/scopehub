@@ -25,6 +25,7 @@ SAMPLE_KIND = 'scopehub-verification-timing-v1'
 ARCHIVE_KIND = 'scopehub-timing-archive-v1'
 TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
+BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
@@ -476,8 +477,9 @@ def pr_main_comparisons(samples):
 
 
 def metric_review(rows, metric, objective, *, compare_growth=True):
-    values = [(row['seconds'][metric], observation_id(row)) for row in rows if row['seconds'][metric] is not None
+    measured = [row for row in rows if row['seconds'][metric] is not None
               and (metric != 'check_work' or row.get('check_work_complete'))]
+    values = [(row['seconds'][metric], observation_id(row)) for row in measured]
     recent = values[-WINDOW:]
     baseline = values[-2 * WINDOW:-WINDOW] if compare_growth else []
     current = median(value for value, _ in recent) if recent else None
@@ -499,16 +501,21 @@ def metric_review(rows, metric, objective, *, compare_growth=True):
         action = 'Retain representative observations for the next weekly review.'
     return {'metric': metric, 'status': status, 'objective_seconds': objective, 'sample_count': len(values),
             'recent_runs': [run for _, run in recent], 'baseline_runs': [run for _, run in baseline],
+            'recent_reports': [harness_identity(row) for row in measured[-WINDOW:]],
             'recent_median_seconds': current, 'baseline_median_seconds': prior, 'growth_seconds': growth,
             'recent_objective_breaches': breaches, 'material_growth': material, 'action': action,
             'missing_measurements': len(rows) - len(values)}
+
+
+def harness_identity(row):
+    return {'run_id': row['run_id'], 'source_commit': row['source_commit']}
 
 
 def objective_review(rows, metric, objective):
     result = metric_review(rows, metric, objective, compare_growth=False)
     measured = [row for row in rows if row['seconds'][metric] is not None]
     result['breach_reports'] = [
-        {'run_id': row['run_id'], 'source_commit': row['source_commit']}
+        harness_identity(row)
         for row in measured[-WINDOW:] if row['seconds'][metric] > objective
     ]
     changes = []
@@ -599,50 +606,65 @@ def local_paths(root):
     })
 
 
-def budget_follow_up(objectives, feedback, tasks):
+def budget_follow_up(view, feedback, tasks):
     def report_key(report):
         return report['run_id'], report['source_commit']
 
     tracked = {}
     for item in feedback:
-        if not item.get('verification_budget'):
+        if not (scope := item.get('verification_budget')):
             continue
         corrective = [tasks[key] for key in item['task_ids'] if key in tasks
                       and tasks[key]['status'] not in {'done', 'cancelled'}]
+        owned = item['status'] == 'open' and any(
+            task['status'] == 'active' or task['status'] == 'planned' and
+            all(tasks[key]['status'] == 'done' for key in task.get('depends_on', ()))
+            for task in corrective
+        )
         tracked[item['id']] = (
+            scope,
             {report_key(report) for report in item.get('diagnostic_reports', ())},
             {'feedback_id': item['id'], 'feedback_status': item['status'],
-             'status': ('addressed' if item['status'] == 'addressed'
-                        else 'assigned' if corrective else 'assignment_needed'),
+             'status': 'addressed' if item['status'] == 'addressed' else 'assigned' if owned else 'assignment_needed',
+             'scope': scope,
              'corrective_tasks': [
                  {key: task.get(key) for key in ('id', 'status', 'next_action', 'blocker')} for task in corrective
              ]},
         )
-    recorded = {key for keys, _ in tracked.values() for key in keys}
-    breaches = []
-    for row in objectives:
-        if row['recent_objective_breaches'] < 2:
-            continue
-        reports = {report_key(report) for report in row['breach_reports']}
-        links = [entry for keys, entry in tracked.values() if keys & reports]
+    def route(row, observed_reports):
+        scope = {key: row[key] for key in BUDGET_SCOPE}
+        reports = {report_key(report) for report in observed_reports}
+        related = [(keys, entry) for candidate, keys, entry in tracked.values() if candidate == scope
+                   and (entry['feedback_status'] != 'addressed' or keys & reports)]
+        recorded = {key for keys, _ in related for key in keys}
         missing = sorted(reports - recorded)
+        links = [entry for _, entry in related]
         statuses = {entry['status'] for entry in links}
-        status = ('assignment_needed' if missing or 'assignment_needed' in statuses
-                  else 'assigned' if 'assigned' in statuses else 'addressed')
-        breaches.append({
+        status = ('assigned' if 'assigned' in statuses else 'addressed'
+                  if not missing and statuses == {'addressed'} else 'assignment_needed')
+        return {
             **{key: row[key] for key in ('repository', 'event', 'runner_label', 'profile', 'platform', 'arch',
                                         'metric', 'objective_seconds', 'recent_runs', 'recent_objective_breaches')},
             'status': status,
             'feedback': links,
             'unrecorded_reports': [{'run_id': run_id, 'source_commit': commit} for run_id, commit in missing],
-        })
+        }
+
+    breaches = [route(row, row['breach_reports']) for row in view['objective_reviews']
+                if row['recent_objective_breaches'] >= 2]
+    growth = [
+        {**route({**group, **metric}, metric['recent_reports']), 'cache': group['cache'],
+         'growth_seconds': metric['growth_seconds'], 'baseline_runs': metric['baseline_runs']}
+        for group in view['reviews'] for metric in group['metrics']
+        if metric['objective_seconds'] is not None and metric['material_growth']
+    ]
+    opened = [entry for _, _, entry in tracked.values() if entry['feedback_status'] != 'addressed']
     return {
         'repeated_breaches': breaches,
-        'open_feedback': [entry for _, entry in tracked.values() if entry['feedback_status'] != 'addressed'],
+        'sustained_growth': growth,
+        'open_feedback': opened,
         'next_action': ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
-                        if any(row['status'] == 'assignment_needed' for row in breaches)
-                        or any(entry['status'] == 'assignment_needed' for _, entry in tracked.values())
-                        else None),
+                        if any(row['status'] == 'assignment_needed' for row in [*breaches, *growth, *opened]) else None),
     }
 
 
@@ -675,12 +697,14 @@ def offline_budget_status(root, feedback, tasks):
         except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
             issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
     try:
-        objectives = timing_view(samples, hosted=hosted)['objective_reviews']
+        view = timing_view(samples, hosted=hosted)
+        follow_up = budget_follow_up(view, feedback, tasks)
     except (AttributeError, KeyError, TypeError, ValueError) as error:
-        objectives = []
+        view = {'objective_reviews': [], 'reviews': []}
+        follow_up = budget_follow_up(view, feedback, tasks)
         issues.append({'error': str(error)})
-    return {**budget_follow_up(objectives, feedback, tasks),
-            'timing_available': bool(objectives), 'input_issues': issues,
+    return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
+            'input_issues': issues,
             'timing_command': 'pnpm project:timing'}
 
 
@@ -798,7 +822,7 @@ def review_summary(view):
                 delta = row['first_to_latest_elapsed_change_seconds']
             lines.append(f'  - Observed elapsed change across coverage: {delta:+.0f}s. Added and removed checks are in the archive.')
     if follow_up := view.get('budget_follow_up'):
-        for row in follow_up['repeated_breaches']:
+        for row in [*follow_up['repeated_breaches'], *follow_up['sustained_growth']]:
             owners = ', '.join(task['id'] for finding in row['feedback'] for task in finding['corrective_tasks'])
             suffix = f' ({owners})' if owners else ''
             lines.append(f"- Budget follow-up for {row['event']} / {row['profile']} / {row['platform']} — "
@@ -876,7 +900,7 @@ def main():
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
         view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
-                    budget_follow_up=budget_follow_up(view['objective_reviews'], feedback, tasks))
+                    budget_follow_up=budget_follow_up(view, feedback, tasks))
         if args.save:
             args.save.parent.mkdir(parents=True, exist_ok=True)
             with args.save.open('xb') as output:

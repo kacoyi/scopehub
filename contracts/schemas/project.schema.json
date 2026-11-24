@@ -1197,7 +1197,17 @@
                 "minLength": 1
               },
               "occurrence": {"type": "integer", "minimum": 1},
-              "verification_budget": {"const": true},
+              "verification_budget": {
+                "type": "object",
+                "properties": {
+                  "repository": {"type": ["string", "null"], "minLength": 1},
+                  "event": {"enum": ["local", "pull_request", "push"]},
+                  "profile": {"type": "string", "minLength": 1},
+                  "platform": {"type": "string", "minLength": 1}
+                },
+                "required": ["repository", "event", "profile", "platform"],
+                "additionalProperties": false
+              },
               "diagnostic_reports": {
                 "$ref": "#/$defs/DiagnosticReports"
               },

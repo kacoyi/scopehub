@@ -189,11 +189,17 @@ def changes(root, *revisions, worktree=False):
     return result
 
 
-def require_inspectable_index(root):
-    entries = nul_fields(git(root, 'ls-files', '-v', '-z'))
+def inspect_index(root, *, include_untracked):
+    options = ('--cached', '--others', '--exclude-standard') if include_untracked else ()
+    entries = nul_fields(git(root, 'ls-files', '-v', '-z', *options))
     # Unmerged, skip-worktree, and assume-unchanged entries prevent a complete preview.
-    if any(not entry.startswith(b'H ') for entry in entries):
-        raise ScopeError('The index contains conflicts or entries hidden from ordinary worktree checks.')
+    untracked = []
+    for entry in entries:
+        if include_untracked and entry.startswith(b'? '):
+            untracked.append(entry[2:])
+        elif not entry.startswith(b'H '):
+            raise ScopeError('The index contains conflicts or entries hidden from ordinary worktree checks.')
+    return untracked
 
 
 def working_file(root, path):
@@ -462,7 +468,7 @@ def preview(root, *, base_ref='origin/main', ci_env=None):
             base = ci_base(root, head, ci_env)
         require_ancestor(root, base, head)
         decision['base'] = base
-        require_inspectable_index(root)
+        untracked = inspect_index(root, include_untracked=ci_env is None)
         if ci_env is not None:
             if git(root, 'status', '--porcelain=v1', '-z', '--untracked-files=all', '--ignore-submodules=none'):
                 raise ScopeError('The CI checkout has local changes.')
@@ -474,7 +480,7 @@ def preview(root, *, base_ref='origin/main', ci_env=None):
             entries.extend(changes(root, worktree=True))
             entries.extend(
                 Change(path, b'A', b'000000', b'100644', b'', b'', worktree=True)
-                for path in nul_fields(git(root, 'ls-files', '--others', '--exclude-standard', '-z'))
+                for path in untracked
             )
         classify(root, decision, entries)
     except (ScopeError, OSError, KeyError, TypeError, ValueError, RecursionError, subprocess.SubprocessError) as error:

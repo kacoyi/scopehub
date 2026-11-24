@@ -3968,7 +3968,12 @@
     },
     {
       "id": "verification-overrun-without-timely-remediation",
-      "verification_budget": true,
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "pull_request",
+        "profile": "full",
+        "platform": "Windows"
+      },
       "source": "Owner feedback on 2026-11-24, two authenticated successful full Windows runs 45360774012 and 45366344153, and the coordinator observed waiting for hosted acceptance before dispatching independent implementation.",
       "observation": "Routine validation repeatedly exceeded the existing 15-minute feedback objective. The Windows Python test check alone consumed 822.6 and 812.2 seconds. From a shared base, repeated intermediate runs and serial waits consumed time while independent product work could proceed. The earlier timing work had not prevented these further oversized cycles.",
       "severity": "major",

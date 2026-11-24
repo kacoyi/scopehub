@@ -429,6 +429,15 @@ class VerificationScopeTest(unittest.TestCase):
         self.assertEqual(decision['profile'], 'full')
         self.assertIn('hidden', decision['reason'])
         self.git('update-index', '--no-assume-unchanged', '--', 'README.md')
+        self.git('update-index', '--skip-worktree', '--', 'README.md')
+        decision, _ = self.cli()
+        self.assertIn('hidden', decision['reason'])
+        self.git('update-index', '--no-skip-worktree', '--', 'README.md')
+        self.assert_local('records', 1)
+        self.git('update-index', '--add', '--cacheinfo', f'160000,{self.base},README.md')
+        decision, _ = self.cli()
+        self.assertEqual('full', decision['profile'])
+        self.git('reset', 'HEAD', '--', 'README.md')
         blob = self.git('rev-parse', 'HEAD:README.md').strip()
         self.git('update-index', '--index-info', input_data=b'0 ' + b'0' * 40 + b'\tREADME.md\n'
                  + b'100644 ' + blob + b' 1\tREADME.md\n'

@@ -17635,6 +17635,7 @@
         "tests/project",
         "contracts/schemas/project.schema.json",
         "project/checks.json",
+        "project/feedback.json",
         "project/delivery.json"
       ],
       "decision_refs": [
@@ -17652,7 +17653,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "The coordinator should compare a normal full Windows candidate against warm first-attempt controls 45360774012 and 45366344153. Retain the Python test list and durations, compare harness and job elapsed against the build overlap, and keep the finding open until the observed comparison supports closure or a bounded follow-up.",
+      "next_action": "The coordinator should compare a normal full Windows candidate against warm first-attempt controls 45360774012 and 45366344153 (1702 and 1736 seconds from run creation to job completion). Retain the Python test list and durations, compare harness and job elapsed against the build overlap, and keep the finding open until the observed comparison supports closure or a bounded follow-up.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17662,7 +17663,10 @@
         ],
         "context": [
           "scripts/check.py",
+          "scripts/ci.py",
+          "scripts/project.py",
           "scripts/timing.py",
+          "scripts/verification_scope.py",
           "scripts/worktree.py",
           "scripts/worktree_retirement.py",
           "tests/project/test_timing.py",
@@ -17697,6 +17701,8 @@
           ],
           "entrypoints": [
             "scripts/check.py",
+            "scripts/project.py",
+            "scripts/ci.py",
             "scripts/timing.py",
             "tests/project/test_delivery.py",
             "project/delivery.json"

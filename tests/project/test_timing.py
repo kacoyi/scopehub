@@ -406,7 +406,8 @@ class TimingRegressionTests(unittest.TestCase):
         return timing.timing_view([timing.report_sample(report) for report in reports])
 
     def test_repeated_growth_below_objective_triggers_corrective_action(self):
-        review, = self.fast_view(110, 115, 120, 175, 180, 185)['reviews']
+        view = self.fast_view(110, 115, 120, 175, 180, 185)
+        review, = view['reviews']
         metric, = review['metrics']
         self.assertEqual(('fast', 'Linux'), (review['profile'], review['platform']))
         self.assertEqual('harness', metric['metric'])
@@ -416,6 +417,12 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual(65, metric['growth_seconds'])
         self.assertTrue(metric['material_growth'])
         self.assertIn('corrective work', metric['action'])
+        follow_up = timing.budget_follow_up(view, [], {})
+        growth, = follow_up['sustained_growth']
+        self.assertEqual([], follow_up['repeated_breaches'])
+        self.assertEqual('assignment_needed', growth['status'])
+        self.assertEqual(65, growth['growth_seconds'])
+        self.assertIsNotNone(follow_up['next_action'])
 
     def test_cumulative_scope_growth_is_visible_below_the_fast_objective(self):
         additions = ('architecture', 'generated-contracts', 'python-types', 'rust-format', 'typescript-contracts')
@@ -474,6 +481,38 @@ class TimingRegressionTests(unittest.TestCase):
                 metric, = review['metrics']
                 self.assertEqual(status, metric['status'])
                 self.assertEqual(breaches, metric['recent_objective_breaches'])
+
+    def test_offline_status_routes_comparable_hosted_growth_below_budget(self):
+        samples, workflows = [], []
+        for day, finish in enumerate(('08:50', '09:00', '09:10', '11:00', '11:10', '11:20'), start=14):
+            run = hosted_run(run_id=day, day=day)
+            linux = hosted_job(day * 10, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50',
+                               run_id=day, day=day)
+            step = 'Run uv run python scripts/check.py --require-windows'
+            windows = hosted_job(day * 10 + 1, 'windows', '00:20', finish, step, '00:50', '08:30',
+                                 run_id=day, day=day)
+            workflows.append(timing.hosted_timing(run, [linux, windows]))
+            report = fast_report(day, 460)
+            report['selection']['profile'] = 'full'
+            report['environment']['system'] = 'Windows'
+            report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
+                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+            samples.append(timing.report_sample(report, cache='warm'))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / '.reports/timing/weekly.json'
+            archive.parent.mkdir(parents=True)
+            archive.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples,
+                                                  'hosted': workflows}))
+            with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
+                found = timing.offline_budget_status(root, [], {})
+
+        self.assertEqual([], found['repeated_breaches'])
+        growth, = found['sustained_growth']
+        self.assertEqual(('Windows', 'total', 900, 130), (growth['platform'], growth['metric'],
+                                                        growth['objective_seconds'], growth['growth_seconds']))
+        self.assertEqual('assignment_needed', growth['status'])
+        self.assertIsNotNone(found['next_action'])
 
     def test_scoped_jobs_keep_their_own_baselines_and_measure_the_executed_harness(self):
         samples, workflows = [], []
@@ -552,7 +591,8 @@ class TimingRegressionTests(unittest.TestCase):
         later_reports = [{'run_id': row['run_id'], 'source_commit': 'a' * 40} for row in samples[-2:]]
         corrective = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the repaired Windows stage.',
                       'blocker': None}
-        finding = {'id': 'windows-budget', 'verification_budget': True, 'status': 'open',
+        scope = {'repository': 'fixture/scopehub', 'event': 'push', 'profile': 'full', 'platform': 'Windows'}
+        finding = {'id': 'windows-budget', 'verification_budget': scope, 'status': 'open',
                    'task_ids': [corrective['id']], 'diagnostic_reports': later_reports}
         tasks = {corrective['id']: corrective}
         with tempfile.TemporaryDirectory() as directory:
@@ -563,6 +603,7 @@ class TimingRegressionTests(unittest.TestCase):
                                                   'hosted': workflows}))
             with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
                 assigned = timing.offline_budget_status(root, [finding], tasks)
+                uncovered = timing.offline_budget_status(root, [], tasks)
                 wrong_commit = dict(later_reports[1], source_commit='b' * 40)
                 finished = {corrective['id']: dict(corrective, status='done')}
                 unassigned = timing.offline_budget_status(root, [finding], finished)
@@ -571,16 +612,22 @@ class TimingRegressionTests(unittest.TestCase):
                     root, [dict(finding, status='addressed', diagnostic_reports=[later_reports[0], wrong_commit])],
                     finished,
                 )
+                existing_owner = timing.offline_budget_status(
+                    root, [dict(finding, diagnostic_reports=[later_reports[0], wrong_commit])], tasks,
+                )
                 archive.unlink()
                 durable = timing.offline_budget_status(root, [finding], tasks)
 
         breach, = assigned['repeated_breaches']
         self.assertEqual(('Windows', 'assigned'), (breach['platform'], breach['status']))
         self.assertEqual([corrective], breach['feedback'][0]['corrective_tasks'])
+        self.assertEqual('assignment_needed', uncovered['repeated_breaches'][0]['status'])
+        self.assertIsNotNone(uncovered['next_action'])
         self.assertEqual('assignment_needed', unassigned['repeated_breaches'][0]['status'])
         self.assertEqual('addressed', addressed['repeated_breaches'][0]['status'])
         self.assertEqual([later_reports[1]], new_breach['repeated_breaches'][0]['unrecorded_reports'])
         self.assertEqual('assignment_needed', new_breach['repeated_breaches'][0]['status'])
+        self.assertEqual('assigned', existing_owner['repeated_breaches'][0]['status'])
         self.assertFalse(durable['timing_available'])
         self.assertEqual(assigned['open_feedback'], durable['open_feedback'])
 

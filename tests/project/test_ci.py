@@ -107,6 +107,8 @@ class HostedStatusTests(unittest.TestCase):
         self.assertEqual(('failed', 11, 'b' * 40), (weekly['status'], weekly['run']['id'], weekly['run']['head_sha']))
         recovered, _ = self.inspect([push, failed, dict(queued, status='completed', conclusion='success')])
         self.assertFalse(recovered['weekly_regression']['requires_review'])
+        self.assertEqual('pnpm project:timing --recent 12 --save .reports/timing/intake-16.json',
+                         recovered['timing_intake_command'])
         missing, _ = self.inspect([push], unavailable='schedule')
         self.assertEqual('passed', missing['status'])
         self.assertEqual('unavailable', missing['weekly_regression']['status'])

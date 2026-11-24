@@ -238,13 +238,19 @@ def source_identity(root=ROOT):
             entries.append([relative, 'file', file_digest(path)])
     if not entries:
         raise ProjectError('No execution inputs found in the Git worktree')
-    head = subprocess.run(['git', 'rev-parse', '--verify', 'HEAD'], cwd=root, env=env, capture_output=True, text=True)
-    status = subprocess.run(['git', 'status', '--porcelain'], cwd=root, env=env, capture_output=True, check=True, text=True)
+    status = subprocess.run(['git', 'status', '--porcelain=v2', '--branch', '--no-ahead-behind', '-z'],
+                            cwd=root, env=env, capture_output=True, check=True)
+    records = status.stdout.split(b'\0')
+    prefix = b'# branch.oid '
+    if not records[0].startswith(prefix):
+        raise ProjectError('Git status did not report the checkout HEAD')
+    head = records[0][len(prefix):]
+    dirty = any(record and not record.startswith(b'# ') for record in records)
     return {
         'snapshot_kind': 'execution-inputs-v1',
         'sha256': digest(json.dumps(entries, separators=(',', ':')).encode('utf-8')),
-        'file_count': len(entries), 'git_head': head.stdout.strip() if head.returncode == 0 else None,
-        'working_tree_dirty': bool(status.stdout.strip()), 'exclusions': INPUT_EXCLUSIONS,
+        'file_count': len(entries), 'git_head': None if head == b'(initial)' else head.decode('ascii'),
+        'working_tree_dirty': dirty, 'exclusions': INPUT_EXCLUSIONS,
     }
 
 

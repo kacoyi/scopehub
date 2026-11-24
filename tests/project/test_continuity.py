@@ -238,6 +238,23 @@ class ContinuityTests(ProjectFixture):
         path.write_bytes(json_bytes(catalog))
         self.assertNotEqual(before, source_identity(self.root)['sha256'])
 
+    def test_source_identity_observes_unborn_detached_and_dirty_checkout(self):
+        unborn = source_identity(self.root)
+        self.assertIsNone(unborn['git_head'])
+        self.assertTrue(unborn['working_tree_dirty'])
+        subprocess.run(['git', 'add', '.'], cwd=self.root, capture_output=True, check=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                        'commit', '-qm', 'Preserve fixture'], cwd=self.root, capture_output=True, check=True)
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root).decode('ascii').strip()
+        subprocess.run(['git', 'switch', '-q', '--detach'], cwd=self.root, capture_output=True, check=True)
+        clean = source_identity(self.root)
+        self.assertEqual(head, clean['git_head'])
+        self.assertFalse(clean['working_tree_dirty'])
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        dirty = source_identity(self.root)
+        self.assertEqual(head, dirty['git_head'])
+        self.assertTrue(dirty['working_tree_dirty'])
+
     def test_acceptance_bindings_cannot_silently_drop_a_requirement(self):
         path = self.root / 'project/checks.json'
         catalog = read_json(path)

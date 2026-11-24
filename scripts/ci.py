@@ -171,6 +171,11 @@ def status(root=ROOT, run_id=None):
             f'gh run download {run} --repo {repository} --name verification-windows-latest --dir .reports/ci/{run}/windows',
             f'pnpm project:record <task-id> --report .reports/ci/{run}/windows/test-report.json --artifact-root .reports/ci/{run}/windows',
         ]
+        if (result['status'] == 'passed' and result['run']['event'] in {'pull_request', 'push'}
+                and str(result['run']['run_attempt']) == '1'):
+            archive = f'.reports/timing/intake-{run}.json'
+            if not (root / archive).is_file():
+                result['timing_intake_command'] = f'pnpm project:timing --recent 12 --save {archive}'
     return result
 
 
