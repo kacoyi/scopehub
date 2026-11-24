@@ -20507,7 +20507,7 @@
             "Increased deadlines, weaker ACLs, blanket serialization, retries that hide refusal, new profile or database formats, and alteration of accepted M0-036, M0-071, M0-089, M0-099 or M0-101 task definitions."
           ],
           "open_questions": [
-            "The native browser case opens an ordinary claimed profile and runs two refused parents under the exact Node-selected temporary parent: CPython 3.12.10 mode 0700 and an explicit Everyone DeleteChild grant. The original output cannot identify the exact refused ancestor. Node and Rust have different TEMP/TMP preference, and this correction keeps the existing Node root and the complete ancestry policy."
+            "The native browser case opens a claimed profile from an independent one-slot pool and runs two refused parents under the same exclusively owned control directory within the Node-selected temporary parent: CPython 3.12.10 mode 0700 and an explicit Everyone DeleteChild grant. The control owns cleanup before either child creates a directory and holds its contents when pool exit cannot be confirmed. The original output cannot identify the exact refused ancestor. Node and Rust have different TEMP/TMP preference, and this correction keeps the existing Node root and the complete ancestry policy."
           ]
         },
         "evolution": {
