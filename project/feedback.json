@@ -3921,14 +3921,18 @@
       "source": "Independent Windows native run 45321026838 on frozen UI 602260e and subsequent ordinary Chromium interaction by t96 at 1462 and 1464.",
       "observation": "With the watchlist open in a 1104 by 721 client, opening chart-price-anchors.js repeatedly toggled between only Discard with no rings (controls 46.30px, chart top 163.88px) and Accept with two rings (controls 100.59px, chart top 218.17px). Each trial sampled 109 animation callbacks without moving the pointer and saw 23 or 24 state changes. At 1280 by 800 the same English trial settled. In the Simplified Chinese UI the 1104px and 960px trials settled; 900px and 800px each changed state 17 times in 1.3 seconds. In Windows the original PrintWindow crop showed two centers about 38px and 35px below the corresponding red and green body close edges; subsequent captures contained candles without rings, and Accept did not stick. The source and timeframe remained the same.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-019"
       ],
       "regression_checks": [
         "chart-coordinate-prototype"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "At the affected widths the Accept control changed the wrapping and height of the drawing controls, changing the underlying price pane. The viewport invalidated the draft result and removed Accept, restoring the previous pane and restarting the loop. A chart repaint could briefly coexist with old projected marks.",
+        "correction": "Reserve stable action and readout space within the opt-in chart controls. Use the actual price-pane paint to hide stale DOM geometry before its newer candle pixels are presented, and only render again with verified matching coordinates.",
+        "prevention": "The regular file picker and explicit acceptance are tested with the watchlist open on English and Simplified Chinese narrow viewports. The regression samples draft readiness and compares both rings to real candle body edges at narrow and wide sizes. The archived Ubuntu native practice and separately attributed Windows original remain available for platform verification."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {

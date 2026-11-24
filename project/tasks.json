@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-019",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17545,7 +17545,7 @@
       "id": "M2-019",
       "title": "Keep chart drawing drafts stable across narrow-window layout changes",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-018"
       ],
@@ -17568,10 +17568,15 @@
         "market-workflow",
         "chart-coordinate-prototype"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the draft layout feedback loop with the watchlist open, then verify stable actions and current-frame close alignment.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-019-a30a947d617dc6e4.json",
+          "sha256": "df8032229a2afe733f1d13c479cb1485e1c9e6c183823d54f95f2ea3ff643db2"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The official task check passed on 5f9f32d. English and Simplified Chinese narrow charts kept the watchlist open and accepted both drafts with stable actions and correct candle-body close edges. The same UI passed a separate Ubuntu Tauri development observation with maximum 2px close-edge deviation. Corrected Windows native verification remains in the platform comparison.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "A narrow-window drawing draft stays visible and actionable on the actual chart while status and action availability change.",
