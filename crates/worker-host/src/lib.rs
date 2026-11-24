@@ -1,3 +1,6 @@
+mod local_api;
+pub use local_api::read_local_api_sample;
+
 use std::process::Stdio;
 use std::time::Duration;
 

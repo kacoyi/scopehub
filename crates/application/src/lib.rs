@@ -68,6 +68,8 @@ pub use workspace::{
     evidence_operation_name, is_sample_evidence_selection, is_sample_indicator_preview,
 };
 
+pub use workspace::{LOCAL_API_CONNECTION, LocalApiAdmission, LocalApiConnection, LocalApiTrial};
+
 use std::{
     collections::HashSet,
     future::Future,
@@ -204,6 +206,7 @@ impl Operation {
             || (matches!(
                 self.name.as_str(),
                 PREVIEW_LOCAL_IMPORT
+                    | LOCAL_API_CONNECTION
                     | LOAD_LOCAL_IMPORT_MAPPING
                     | SAVE_LOCAL_IMPORT_MAPPING
                     | PUBLISH_LOCAL_IMPORT

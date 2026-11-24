@@ -5028,6 +5028,143 @@
       "deferral_reason": null
     },
     {
+      "id": "local-api-trial-returns-superseded-connection",
+      "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
+      "observation": "The trial checks the saved ID before awaiting HTTP. A same-profile save through a second native instance can replace it, and the old trial is still delivered with the original ID and displayed as verified.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The Rust registry verified the saved connection only before the worker awaited the HTTP reply. The dialogue then accepted a result with the original request ID even after a peer had replaced the saved settings.",
+        "correction": "Recheck the saved connection ID, origin and rule version in the profile-bound registry before handing the sample to the UI. Reject a superseded trial with STALE_CONTEXT.",
+        "prevention": "Hold the real reply while a second native bridge replaces the connection in the same SQLite profile. Release the reply, require STALE_CONTEXT and no displayed sample, and verify the request count is unchanged while loading the newer settings. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-53612b9.txt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-trial-display-rounds-provider-value",
+      "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
+      "observation": "An accepted JSON number can be rounded when the native trial reply crosses into JavaScript. The review reproduced 9007199254740993 becoming 9007199254740992 in the current formatting path while the display labels the sample verified.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The trial returned an ordinary JSON number through the desktop boundary. JavaScript rounded the provider integer before rendering it as a verified value.",
+        "correction": "Require a JSON number at the provider boundary and carry its original number token as text in the validated desktop result.",
+        "prevention": "Verify exact rendering of 9007199254740993 and refusal of the same provider value in quotes. Exercise valid and rejected protocol vectors in Rust, JavaScript and Python. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-53612b9.txt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-status-busy-disables-form-until-reopen",
+      "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
+      "observation": "A transient initial BUSY leaves the saved connection undefined and all form controls disabled until the user leaves and reopens the settings page.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The failed initial status left the form disabled without an in-place reload action.",
+        "correction": "Offer a retry that reads only the saved connection status and clears the previous load error.",
+        "prevention": "Inject BUSY at the first status reply, retry inside the form, and require the current connection name without any additional provider GET. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-53612b9.txt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-private-protocol-corpus-missing-in-rust",
+      "source": "The unchanged M1-039 integration run archives/runs/20261124T161452.240722Z-4dcd401f/test-report.json and its bound rust-contracts-workers.log.",
+      "observation": "The first clean M1-039 task run failed private_workspace_vectors_use_local_projections_and_generated_types with market.localApiConnection input needs a valid private workspace vector. The other ten checks passed. The shared local API corpus was listed by the JS and Python suites but absent from the separate Rust list.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T161452.240722Z-4dcd401f",
+          "source_commit": "b5a0866acdd696fb03303ac91459f293d686365b",
+          "report_sha256": "473c4fb27e4c7db9105c0e5eb4af19bc87c4b3f07e7224ff5269bbd0221a732a"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "typescript-contracts",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The three language test runners separately listed the private workspace fixture files. The Rust runner omitted the new corpus and had no generated local API request or reply round trip.",
+        "correction": "Use a shared fixture index for Rust, JavaScript and Python and add the generated Rust request and reply projections to the existing round trips.",
+        "prevention": "Retain all private operation input and output coverage and validate every existing rejection and worker separation assertion. The same named Rust check reproduced the original error and passed after correction. All four fixture files are byte-identical across the change, with 73 named cases. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-c78a1c6.txt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "desktop-catalog-check-omits-ordinary-ui-build",
+      "source": "Authenticated PR 83 run 45438134397 attempt 1 at head 135c24e6a83b41be6e58619bf212bda91192bb50 and checkout f34ceb2c1ffa41ce72c9ccb6679bc41089334207. The original Linux desktop-localization log SHA-256 is db8e8a3d1a1a194c69b98c7a1df303ae419c865a7838c7abdc1e5ab60e8cd476 and the Windows browser log SHA-256 is bcf5fa9c79528a9a2511f4ebb3964a36e5be0d8a3e4a1b29005e7a64674f4751. The aggregate reports are at archives/runs/20261124T163312.142553Z-d12e96b3/test-report.json and archives/runs/windows-change-45438134397-1/test-report.json. The archive index at archives/observations/m0-096-protected-pr-45438134397/index.json has SHA-256 78ed3724a02b52c256f20c0f4ceabbaf2bf8ef59d3fce8142dba9b09db4f5527.",
+      "observation": "Both hosted platforms failed the registered language catalog case in desktop-localization with Translate application-owned JSX and accessible labels. The only reported entry was the new local-api-settings.tsx placeholder http://127.0.0.1:8080. The ordinary UI build succeeded because it did not execute the static source and catalog assertions. The existing invariant entries covered other exact protocol examples but did not include this one.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T163312.142553Z-d12e96b3",
+          "source_commit": "f34ceb2c1ffa41ce72c9ccb6679bc41089334207",
+          "report_sha256": "cab793628fe9db7b3cb2bdb68d1811515aa441b00e80148fc6474a70582d077e"
+        },
+        {
+          "run_id": "windows-change-45438134397-1",
+          "source_commit": "f34ceb2c1ffa41ce72c9ccb6679bc41089334207",
+          "report_sha256": "87a7c9ebd9b0e48f081891e2e8fb0a1ae297887192696c72267b92a418afba56"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-096"
+      ],
+      "regression_checks": [
+        "ui-build",
+        "desktop-localization",
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The exact new loopback placeholder was absent from the existing invariant examples. The static assertions were only invoked inside a separate Playwright localization check, allowing an ordinary UI build to succeed with the omission.",
+        "correction": "Use one Node catalog checker for the ordinary UI build and the existing named localization test. Accept the exact http://127.0.0.1:8080 example while preserving the UI text and every other assertion.",
+        "prevention": "The old ordinary build accepted the baseline, the wired build rejected the old baseline before bundling, and the corrected build preserved rejection of an adjacent URL and untranslated copy. The English and Simplified Chinese source journeys used the identical example and each completed a real synthetic local read. Focused proof is retained at archives/observations/m0-096-catalog-build/index.json. The independent Standard Astra review is retained at archives/observations/m0-096-catalog-build/astra-a4d1c3a.txt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "desktop-catalog-build-skips-early-node-24",
+      "source": "Independent Standard Astra review of c788269c3a46af9a9b55b7a86cdb52425e35741f. Original archives/observations/m0-096-catalog-build/astra-c788269-initial.txt SHA-256 1a9a0765758a5c868ace7c50bdd9f34b59537130863dbd0cc957a7dbe939586b. The Node.js 24.2.0 release notes document when import.meta.main became available.",
+      "observation": "The ordinary build launched a shared catalog module guarded by import.meta.main. That attribute is absent in Node 24.0 and 24.1, within the project-supported Node 24 range. The CLI could silently skip validation while the Playwright case still called the function.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-096"
+      ],
+      "regression_checks": [
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "The first build hook used import.meta.main, which was introduced in Node 24.2.0. The repository supports earlier Node 24 releases.",
+        "correction": "Invoke the shared catalog checker unconditionally from a separate, minimal CLI entry. Keep the Playwright callback calling the same checker.",
+        "prevention": "On a verified official Node 24.0.0 runtime, the original build accepted the control, the corrected build rejected both its unfamiliar URL and untranslated text before Vite, and the corrected build accepted the clean catalog. The project-pinned toolchain also passed. Retain the comparisons at archives/observations/m0-096-catalog-build/index.json and the explicit review approval at archives/observations/m0-096-catalog-build/astra-a4d1c3a.txt."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
       "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
       "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",

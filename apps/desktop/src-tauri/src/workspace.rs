@@ -10,16 +10,16 @@ use scopehub_application::{
     AI_TEXT_CONNECTION, Actor, ApprovedPython, DECISION_NOTE_OPERATIONS,
     DECISION_NOTE_PREVIEW_RESTORE, FolderManifestAnchor, FolderRefreshBase, FrozenLocalSourceRow,
     LIST_LOCAL_FOLDER_REVISIONS, LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING,
-    LOCAL_WORKSPACE_OPERATIONS, LocalDatasetPublication, MappingCommitGuard, OperationRegistry,
-    PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE,
-    PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
-    READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
-    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping,
-    SAVE_LOCAL_IMPORT_MAPPING, TextModelWork, WorkspaceAccess, WorkspaceBinding,
-    evidence_operation_name, failure, list_local_folder_revisions_input,
-    list_local_import_revisions_input, local_mapping_fingerprint, read_local_folder_revision_input,
-    read_local_import_revision_input, revoke_local_folder_revision_input,
-    revoke_local_import_revision_input,
+    LOCAL_API_CONNECTION, LOCAL_WORKSPACE_OPERATIONS, LocalApiAdmission, LocalDatasetPublication,
+    MappingCommitGuard, OperationRegistry, PREPARE_LOCAL_FOLDER_PUBLICATION,
+    PREVIEW_LOCAL_FOLDER_REFRESH, PRIVATE_RECORD_CHANGE, PUBLISH_LOCAL_FOLDER_REFRESH,
+    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
+    READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
+    REVOKE_LOCAL_IMPORT_REVISION, ReviewedImportMapping, SAVE_LOCAL_IMPORT_MAPPING, TextModelWork,
+    WorkspaceAccess, WorkspaceBinding, evidence_operation_name, failure,
+    list_local_folder_revisions_input, list_local_import_revisions_input,
+    local_mapping_fingerprint, read_local_folder_revision_input, read_local_import_revision_input,
+    revoke_local_folder_revision_input, revoke_local_import_revision_input,
 };
 use scopehub_domain::protocol::{
     CsvMappingV1, Error, ErrorCode, ReadLocalFolderSourceRowInput, ReadLocalImportSourceRowInput,
@@ -146,6 +146,36 @@ impl WorkspaceBridge {
         })
         .await
         .map_err(|_| failure(ErrorCode::INTERNALERROR))?
+    }
+
+    pub(super) async fn local_api_connection(
+        &self,
+        payload: Value,
+    ) -> Result<LocalApiAdmission, Error> {
+        if payload.to_string().len() >= MAX_REQUEST_BYTES {
+            return Err(failure(ErrorCode::RESOURCELIMIT));
+        }
+        Self::with_bound(self.admit()?, true, move |bound| {
+            let access = WorkspaceAccess {
+                operations: &[LOCAL_API_CONNECTION],
+                ..local_import_access(&bound.profile_id)
+            };
+            bound.registry.local_api_connection(&access, &payload)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
+    pub(super) async fn complete_local_api_trial(
+        &self,
+        trial: scopehub_application::LocalApiTrial,
+        sample: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.complete_local_api_trial(trial, sample)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
     }
 
     pub(super) async fn dispatch(

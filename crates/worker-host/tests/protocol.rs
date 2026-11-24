@@ -6,15 +6,16 @@ use scopehub_domain::{
         DecisionNotePreviewRestoreCommand11, DecisionNotePreviewRestoreReply11,
         DecisionNoteReadCommand11, DecisionNoteReadReply11, DecisionNoteRestoreBackupCommand11,
         DecisionNoteRestoreBackupReply11, DecisionNoteSaveCommand11, DecisionNoteSaveReply11,
-        Message, MutationIntent11, PrivateRecordChangeCommand11, PrivateRecordChangeReply11,
-        PrivateRecordExportCommand11, PrivateRecordExportReply11, PrivateRecordReadCommand11,
-        PrivateRecordReadReply11, Request, ToolCall,
+        LocalApiConnectionReply11, LocalApiConnectionRequest, Message, MutationIntent11,
+        PrivateRecordChangeCommand11, PrivateRecordChangeReply11, PrivateRecordExportCommand11,
+        PrivateRecordExportReply11, PrivateRecordReadCommand11, PrivateRecordReadReply11, Request,
+        ToolCall,
     },
     wire::normalize_integers,
 };
 use scopehub_worker_host::{SCHEMA, decode_line, max_message_bytes};
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fs, path::Path};
 
 // Explicit semantic oracles: new operations must extend these exhaustive matches.
 fn request_operation(value: &Request) -> &'static str {
@@ -282,14 +283,18 @@ fn shared_vectors_and_generated_types_agree() {
 fn private_workspace_vectors_use_local_projections_and_generated_types() {
     let manifest: Value =
         serde_json::from_str(include_str!("../../../contracts/contract.json")).unwrap();
-    let cases = [
-        include_str!("../../../tests/fixtures/decision-note-protocol-cases.json"),
-        include_str!("../../../tests/fixtures/private-record-protocol-cases.json"),
-        include_str!("../../../tests/fixtures/ai-text-connection-protocol-cases.json"),
-    ]
-    .into_iter()
-    .flat_map(|source| serde_json::from_str::<Vec<Value>>(source).unwrap())
-    .collect::<Vec<_>>();
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures");
+    let index = fs::read(fixtures.join("private-workspace-protocol-index.json")).unwrap();
+    let names: Vec<String> = serde_json::from_slice(&index).unwrap();
+    let cases: Vec<_> = names
+        .into_iter()
+        .flat_map(|name| {
+            let source = fs::read(fixtures.join(&name))
+                .unwrap_or_else(|error| panic!("Cannot read {name}: {error}"));
+            serde_json::from_slice::<Vec<Value>>(&source)
+                .unwrap_or_else(|error| panic!("Invalid vectors in {name}: {error}"))
+        })
+        .collect();
     let operations: Vec<_> = manifest["operations"]
         .as_array()
         .unwrap()
@@ -328,6 +333,12 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
         let decoded = match (operation, direction) {
             ("ai.textConnection", "input") => roundtrip::<AiTextConnectionCommand11>(message),
             ("ai.textConnection", "output") => roundtrip::<AiTextConnectionReply11>(message),
+            ("market.localApiConnection", "input") => {
+                roundtrip::<LocalApiConnectionRequest>(message)
+            }
+            ("market.localApiConnection", "output") => {
+                roundtrip::<LocalApiConnectionReply11>(message)
+            }
             ("decisionNote.save", "input") => roundtrip::<DecisionNoteSaveCommand11>(message),
             ("decisionNote.save", "output") => roundtrip::<DecisionNoteSaveReply11>(message),
             ("decisionNote.read", "input") => roundtrip::<DecisionNoteReadCommand11>(message),
