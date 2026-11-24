@@ -185,3 +185,64 @@ test('accepted geometry stays visible on every sampled frame of real crosshair m
   }, null, 2) + '\n');
   expect(observations.map(move => move.blankFrames)).toEqual([0, 0, 0, 0, 0, 0]);
 });
+
+test('superseded guest work cannot change the current selection or restore obsolete geometry', async ({ page }) => {
+  await page.addInitScript(() => {
+    const workers = new WeakMap();
+    const { postMessage, terminate } = Worker.prototype;
+    const gate = window.chartGuestGate = { selection: null, held: [] };
+    Worker.prototype.postMessage = function (request, ...args) {
+      if (request?.bounds?.times && (gate.selection === 'all' || gate.selection === request.controls.selected)) {
+        const record = { selected: request.controls.selected, terminated: false };
+        gate.held.push(record);
+        workers.set(this, record);
+        return;
+      }
+      return postMessage.call(this, request, ...args);
+    };
+    Worker.prototype.terminate = function () {
+      const record = workers.get(this);
+      if (record) record.terminated = true;
+      return terminate.call(this);
+    };
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+  const overlay = page.getByRole('img', { name: 'Projected chart drawing' });
+  const circles = overlay.locator('circle');
+  const readout = page.getByLabel('Drawing crosshair observation');
+  await page.getByLabel('Open chart drawing program').setInputFiles(program);
+  await page.getByRole('button', { name: 'Accept chart drawing', exact: true }).click();
+  const anchors = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+  const move = index => page.mouse.move(anchors[index].left + anchors[index].x, anchors[index].top + anchors[index].y);
+  const setGate = selection => page.evaluate(value => { window.chartGuestGate.selection = value; }, selection);
+  const held = () => page.evaluate(() => window.chartGuestGate.held);
+
+  await setGate(0);
+  await move(0);
+  await expect(readout).toContainText(first);
+  await expect.poll(held).toEqual([{ selected: 0, terminated: false }]);
+  await expect(circles).toHaveCount(2);
+
+  await move(1);
+  await expect.poll(held).toEqual([{ selected: 0, terminated: true }]);
+  await expect(readout).toContainText(second);
+  await expect(circles.first()).toHaveAttribute('r', '5');
+  await expect(circles.last()).toHaveAttribute('r', '8');
+
+  await setGate('all');
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect.poll(async () => (await held()).filter(request => !request.terminated)).toEqual([{ selected: -1, terminated: false }]);
+  await expect(overlay).toHaveCount(0);
+  await expect(readout).toHaveCount(0);
+
+  await page.getByRole('button', { name: '5m', exact: true }).click();
+  await expect.poll(async () => (await held()).every(request => request.terminated)).toBe(true);
+  await expect(overlay).toHaveCount(0);
+  await expect(readout).toHaveCount(0);
+
+  await setGate(null);
+  await page.getByRole('button', { name: '1m', exact: true }).click();
+  await expect(page.getByLabel('Open chart drawing program')).toBeVisible();
+  await expect(overlay).toHaveCount(0);
+});

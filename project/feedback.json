@@ -3903,7 +3903,14 @@
         "chart-coordinate-prototype"
       ],
       "resolution": null,
-      "deferral_reason": null
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T032251.155684Z-a5f4f16f",
+          "source_commit": "fc4dc7c00d65c613dd302a43a43488c04fda61c3",
+          "report_sha256": "eb59f51ad54978494e319e50dca97a3bc265d23bf4c12eea5be1a087b0a7fbea"
+        }
+      ]
     }
   ]
 }
