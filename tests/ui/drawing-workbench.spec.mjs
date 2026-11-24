@@ -1,4 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { mkdir, readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { buildPreview, persistedRows, withPeer, withProfile, withWorkspace } from './ai-workflow-fixture.mjs';
 
@@ -269,4 +273,19 @@ test('an external client authors pennants and changes only the later tip on the 
     await expect(circle).toHaveAttribute('cx', '466');
     verify(await marks(), [[202,131.333333,24],[478,100.666667,16]]);
   }));
+});
+
+
+test('the open Windows studio clears its selected output on live source revocation', async ({}, info) => {
+  test.skip(process.platform !== 'win32', 'Requires the Windows development workspace host.');
+  test.setTimeout(25 * 60_000);
+  const output = process.env.SCOPEHUB_RUN_DIR
+    ? resolve(process.env.SCOPEHUB_RUN_DIR, 'accepted-series-prepared')
+    : info.outputPath('accepted-series-prepared');
+  await mkdir(output, { recursive: true });
+  const script = fileURLToPath(new URL('./renderer-probe-windows.ps1', import.meta.url));
+  const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', script, '-AcceptedOutput', output, '-PreparedSeries'], { stdio: 'inherit', windowsHide: true });
+  const [code] = await once(child, 'exit');
+  expect(code, 'Same live HWND clears accepted marks, metadata, selected readout and undo after registered revocation').toBe(0);
 });
