@@ -4417,32 +4417,128 @@ test('private record review retires an approval after known peer deletion', asyn
   } finally { await profile.close(); }
 });
 
-test('private record review cancellation leaves the other window approval intact', async ({ browser }) => {
-  const profile = await makeProfile();
-  try {
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
-      await inFreshBrowser(browser, server, async pageA => {
-        const first = await openPrivateRecords(pageA);
-        await reviewMemory(first, 'Synthetic first review', 'Synthetic first body');
-        const review = first.getByRole('region', { name: 'Review private record change' });
-        await expect(review.getByRole('heading')).toBeVisible();
-        const includesTarget = await review.getByText('Synthetic first review', { exact: true }).isVisible();
-        await inFreshBrowser(browser, server, async pageB => {
-          const second = await openPrivateRecords(pageB);
-          await reviewMemory(second, 'Synthetic second review', 'Synthetic second body');
-          await second.getByRole('button', { name: 'Cancel review' }).click();
-          await expect(second.getByText('Action cancelled.')).toBeVisible();
-          await first.getByRole('button', { name: 'Save private record', exact: true }).click();
-          await expect(first.getByRole('heading', { name: 'Synthetic first review' })).toBeVisible();
-          expect(includesTarget).toBe(true);
-          await second.getByRole('button', { name: 'Discard draft' }).click();
-          await expect(second.getByRole('button', { name: /Synthetic first review/ })).toBeVisible();
-          await expect(second.getByRole('button', { name: /Synthetic second review/ })).toHaveCount(0);
+for (const fault of ['admission busy', 'lost acknowledgement']) {
+  const testName = 'private record review cancellation leaves the other window approval intact';
+  test(fault === 'admission busy' ? testName : testName + ' after a lost acknowledgement', async ({ browser }, testInfo) => {
+    const profile = await makeProfile();
+    const stages = [];
+    const decline = privateRequestMatches('privateRecord.change', args => args.action === 'resolve' && args.decision === 'decline');
+    const prepareSave = privateRequestMatches('privateRecord.change', args => args.action === 'save');
+    const firstTitle = 'Synthetic first review';
+    const secondTitle = 'Synthetic second review';
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        await inFreshBrowser(browser, server, async pageA => {
+          const first = await openPrivateRecords(pageA);
+          const firstReview = await privateReplyDuring(pageA, stages, 'first window prepares its save', prepareSave,
+            () => reviewMemory(first, firstTitle, 'Synthetic first body'));
+          expect(firstReview.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+          const review = first.getByRole('region', { name: 'Review private record change' });
+          await expect(review.getByText(firstTitle, { exact: true })).toBeVisible();
+
+          const releaseFirstReads = Promise.withResolvers();
+          const path = server.url + endpoint;
+          const holdFirstRead = async route => {
+            if (privateRequestMatches('privateRecord.read')(route.request().postDataJSON())) await releaseFirstReads.promise;
+            await route.continue();
+          };
+          await pageA.route(path, holdFirstRead);
+          try {
+            await inFreshBrowser(browser, server, async pageB => {
+              const second = await openPrivateRecords(pageB);
+              const secondReview = await privateReplyDuring(pageB, stages, 'second window prepares its save', prepareSave,
+                () => reviewMemory(second, secondTitle, 'Synthetic second body'));
+              expect(secondReview.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+              expect(secondReview.payload.scope.idempotency_key).not.toBe(firstReview.payload.scope.idempotency_key);
+              expect(secondReview.outcome.challenge_id).not.toBe(firstReview.outcome.challenge_id);
+              const resolutions = [];
+              pageB.on('request', request => {
+                if (new URL(request.url()).pathname !== endpoint) return;
+                const payload = request.postDataJSON();
+                if (payload?.intent?.operation === 'privateRecord.change' && payload.intent.arguments.action === 'resolve') {
+                  resolutions.push(payload);
+                }
+              });
+              const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+              const state = () => ({
+                revision: database.prepare('SELECT revision FROM workspaces').get().revision,
+                records: database.prepare('SELECT count(*) AS count FROM private_records').get().count,
+                receipts: database.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count,
+              });
+              try {
+                if (fault === 'admission busy') {
+                  const writer = await writerPid(server);
+                  await writerPid(server, 'suspend', writer);
+                  const reserved = post(server, snapshot);
+                  try {
+                    await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+                    const rejected = await privateReplyDuring(pageB, stages, 'second decline is rejected before admission', decline,
+                      () => clickPrivate(second, 'Cancel review'));
+                    expect(rejected.observed).toMatchObject({ http: 429, code: 'BUSY' });
+                  } finally {
+                    await writerPid(server, 'resume', writer);
+                    expect((await reserved).ok).toBe(true);
+                  }
+                } else {
+                  const dropped = await dropApprovalReply(pageB, server, 'privateRecord.change', decline);
+                  try {
+                    const failed = pageB.waitForEvent('requestfailed', request =>
+                      new URL(request.url()).pathname === endpoint && decline(request.postDataJSON()));
+                    await Promise.all([failed, clickPrivate(second, 'Cancel review')]);
+                    expect(dropped.outcome()).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+                    stages.push({ step: 'second decline reaches the core but the reply is lost', code: 'CANCELLED' });
+                  } finally { await dropped.restore(); }
+                }
+                await expect(second.getByRole('alert')).toBeVisible();
+                expect(resolutions).toHaveLength(1);
+                expect(resolutions[0].scope).toEqual(secondReview.payload.scope);
+                expect(resolutions[0].intent.arguments).toEqual({
+                  action: 'resolve', challenge_id: secondReview.outcome.challenge_id, decision: 'decline',
+                });
+                expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
+                await expect(second.getByText('Action cancelled.')).toHaveCount(0);
+                await expect(second.getByRole('button', { name: 'Save private record', exact: true })).toHaveCount(0);
+
+                const retried = await privateReplyDuring(pageB, stages, 'second window explicitly retries the same decline', decline,
+                  () => clickPrivate(second, 'Retry cancellation'));
+                expect(retried.payload.scope).toEqual(resolutions[0].scope);
+                expect(retried.payload.intent).toEqual(resolutions[0].intent);
+                expect(retried.payload.request_id).not.toBe(resolutions[0].request_id);
+                expect(resolutions).toHaveLength(2);
+                expect(retried.observed).toMatchObject({
+                  http: 200, state: 'failed', code: fault === 'admission busy' ? 'CANCELLED' : 'CONFIRMATION_REQUIRED',
+                });
+                await expect(second.getByText('Action cancelled.')).toBeVisible();
+                expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
+
+                releaseFirstReads.resolve();
+                const saved = await privateReplyDuring(pageA, stages, 'first window approves its original review', isPrivateApproval,
+                  () => clickPrivate(first, 'Save private record'));
+                expect(saved.payload.scope).toEqual(firstReview.payload.scope);
+                expect(saved.payload.intent.arguments.challenge_id).toBe(firstReview.outcome.challenge_id);
+                expect(saved.outcome).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 1 } });
+                expect(state()).toEqual({ revision: 1, records: 1, receipts: 1 });
+                await expect(first.getByRole('heading', { name: firstTitle })).toBeVisible();
+                await clickPrivate(second, 'Discard draft');
+                await expect(second.getByRole('button', { name: new RegExp(firstTitle) })).toBeVisible();
+                await expect(second.getByRole('button', { name: new RegExp(secondTitle) })).toHaveCount(0);
+                expect(resolutions).toHaveLength(2);
+              } finally { database.close(); }
+            });
+          } finally {
+            releaseFirstReads.resolve();
+            await pageA.unroute(path, holdFirstRead);
+          }
         });
       });
-    });
-  } finally { await profile.close(); }
-});
+    } finally {
+      await testInfo.attach('private-review-cancellation-stages', {
+        body: JSON.stringify(stages, null, 2), contentType: 'application/json',
+      });
+      await profile.close();
+    }
+  });
+}
 
 test('private record review counts current survivors absent from an empty backup', async ({ browser }) => {
   const profile = await makeProfile();
