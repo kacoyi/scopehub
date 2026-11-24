@@ -84,12 +84,24 @@
       "run_id": "20261124T031639.600588Z-ad54b852",
       "test_head": "875518367e627aecc8964f58b4ee416b1c576847",
       "report_sha256": "5d269c2405f3948ff57d9d16f42161ebff765e6b119e93a334eb8fee51501215",
-      "scope": "The ef0a1e1 UI on WebView2 157.0.4341.46 admitted the public-name guest and retained its accepted mark during timeout. Source restoration and return to chart succeeded. The accepted and restored captures matched at 743x280, and the aligned 743x278 interior matched the timeout capture. Input to visible timeout took 384 ms including UI Automation polling. The three Chromium workspace handoff cases passed. The native CSV workflow subsequently stopped at a null UI Automation name while inspecting raw rows, before publication, indicator confirmation, studio binding or revocation."
+      "scope": "The ef0a1e1 UI on WebView2 157.0.4341.46 admitted the public-name guest and retained its accepted mark during timeout. Source restoration and return to chart succeeded. The accepted and restored captures matched at 743x280, and the aligned 743x278 interior matched the timeout capture. Input to visible timeout took 384 ms including UI Automation polling. The three Chromium workspace handoff cases passed. The native CSV workflow subsequently stopped at a null UI Automation name while inspecting raw rows, before publication, indicator confirmation, studio binding or revocation.",
+      "full_wizard_retry": {
+        "workflow_run": 45319720229,
+        "test_head": "359b69d46d098187f5d2620ea9eeb3bcb7b5eb64",
+        "run_id": "20261124T033049.491752Z-116990e7",
+        "report_sha256": "ea0dc56aefc401730e921d9279b119f70244b144f81a5254baa6ec2a92eb06a2",
+        "observation": "The independent native window again demonstrated guest recovery. The wizard reached mapping, saving, publication, opening the frozen chart and invoking Run preview. The test timed out waiting for Accept preview. Native indicator confirmation, studio binding and revocation still require evidence."
+      },
+      "prepared_profile": {
+        "fixture_commit": "8feb85b3ed3ef42cd989753d6f0546c066512c96",
+        "command": "node tests/ui/prepare-native-series-profile.mjs <absolute-scratch-directory> <new-absolute-app-data-directory>",
+        "scope": "A separate test entry publishes the synthetic CSV with the existing Rust test bridge, explicitly confirms the indicator through the ordinary private workspace UI and selects the revision. It closes the writer and returns the revision, layer, version, series ID and result hash. Linux Chromium reopened the exact disposable path and verified the original four UTC rows. A native reader can now be exercised independently of automating the whole CSV wizard."
+      }
     }
   },
   "open": [
-    "The ef0a1e1 accepted-series lifecycle has native Ubuntu evidence. Public-name visibility and stalled-draft recovery were observed on both native engines. The Windows native accepted-series lifecycle remains open after the CSV test stopped before publication in run 45317944953.",
-    "The combined candidate has native Ubuntu chart endpoint evidence and an open hover continuity regression. Native Windows chart coverage remains open after run 45318214792. Hold the engineering disposition pending matched native evidence. Persisted workbench defaults, representative end-user feedback, physical release and live external-client qualification retain their own gates."
+    "The ef0a1e1 accepted-series lifecycle has native Ubuntu evidence. Public-name visibility and stalled-draft recovery were observed on both native engines. A Windows full-wizard run reached the published chart and timed out before indicator acceptance. Review the separate prepared-profile native read against its confirmed version and result hash.",
+    "The combined 602260e has native Ubuntu chart endpoint evidence and reproducible hover gaps. Native Windows alignment remains open after the draft candle-color assertion in run 45319501119. The separate 0ea5876 correction has matching stationary-hover observations in Chromium and Ubuntu Tauri. Hold the engineering disposition pending matched native evidence. Persisted workbench defaults, representative end-user feedback, physical release and live external-client qualification retain their own gates."
   ],
   "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
   "verification": [
@@ -112,7 +124,14 @@
     "windows_test_head": "507bc0c0a7363d39dfba327705db7a77ee0a568c",
     "windows_run_id": "20261124T031808.381854Z-26d46421",
     "windows_report_sha256": "b0c6e9887e331976ae101a66e29779e52016856ccf7116a27730a84b5f37b211",
-    "windows": "The debug executable launched with WebView2 157.0.4341.46. The native automation requested an unsupported InvokePattern before retaining any chart-alignment capture. Native Windows chart anchors, clipping and crosshair still await observation."
+    "windows": "The debug executable launched with WebView2 157.0.4341.46. The native automation requested an unsupported InvokePattern before retaining any chart-alignment capture. Native Windows chart anchors, clipping and crosshair still await observation.",
+    "windows_retry": {
+      "workflow_run": 45319501119,
+      "test_head": "289597bedfa89b33b8a696b538f2a93773dfd917",
+      "run_id": "20261124T032938.425462Z-b8f82341",
+      "report_sha256": "a6b7a11614261ffbb4d515e626d9ec4ed43582e4976d938e41230e6e9d8fb711",
+      "observation": "On WebView2 157 the owned file chooser opened and the draft capture found two ring candidates. The center candle-color assertion failed before the test saved that frame. The original report cannot distinguish a projection error from a pixel-classification error. Accepted native Windows alignment remains open."
+    }
   },
   "chart_hover_correction": {
     "task": "M2-018",
@@ -122,6 +141,16 @@
     "manifest_sha256": "7a06eee96dbadabb3424feae8a7f6aeb3334035584d6b50067fc96a931c7b9e8",
     "tested_source": "452236f1511fdef13c4bf0b4340613bc0f69eef9",
     "scope": "On the corrected stationary synthetic chart the coordinator observed six alternating pointer movements in zh-CN Chromium. Across 84 animation callbacks the base marks stayed visible and the old selection decoration never accompanied the new readout. The new decoration appeared after 100 to 115 ms. This samples browser state during callbacks. Native display timing remains unmeasured on this revision.",
-    "independent": "The retained workload includes delayed and rejected selection. A rapid A to B to A sequence held radii at 5 and 5 during B and ended at 8 and 5 on A. The archive records the earlier failing cases alongside the correction."
+    "independent": "The retained workload includes delayed and rejected selection. A rapid A to B to A sequence held radii at 5 and 5 during B and ended at 8 and 5 on A. The archive records the earlier failing cases alongside the correction.",
+    "ubuntu_native": {
+      "archive": "archives/observations/m2-018-native-hover-0ea5876/manifest.json",
+      "manifest_sha256": "63947ab0489411ae5df24434e982a1822998d81ddf7e813c65846f4af35152e1",
+      "host": "6aee5586e23392fa341d4779bbe92f9936441c97",
+      "candidate": "0ea5876bf2fe2afc065fa2b2c7b470e7cf232a28",
+      "binary_sha256": "62a8e0c150abd7c03ae59c9719d29e71d44fe7df84a8c01c593e05f9e9c9f82e",
+      "method": "Ubuntu 26.04.1 Tauri with WebKitGTK 2.52.6 on private Xvfb. The GTK chooser opened the frozen chart guest. At a stationary 1380x920 window, six alternating pointer movements switched between 13:00 UTC at 3499.2 CNY and 13:01 UTC at 3499.8 CNY. Two mark crops and the visible time/price were sampled from the same native image. The text templates were calibrated against AT-SPI and the selected candle. The archive retains every sampled crop.",
+      "corrected": "All 272 native samples showed both marks, and every selected emphasis matched the trusted readout in the same image. Sixty samples showed the neutral pair. First observed matching emphasis ranged from 112.075 to 138.011 ms after input, median 120.034 ms over six movements. The largest interval between consecutive samples was 12.1 ms.",
+      "baseline": "The same sampler on the archived 602260e executable saw both marks absent in 62 of 273 samples, with gaps on each of six movements. All sample classifications were recomputed from the retained pixels. Timing includes input dispatch, screenshot acquisition and polling. This is native window sampling on a virtual display."
+    }
   }
 }
