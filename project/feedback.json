@@ -4032,6 +4032,63 @@
         "prevention": "The hosted Windows run observed the 5 min and 15 min buttons using TogglePattern, verified the financial results and read back the exact recovered draft through UI Automation. The original failure and log remain in the diagnostic archive."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-presentation-append-steals-binding",
+      "source": "Independent Standard Astra review of 6e3760446fb5e137e5aa610880c9c8763069f92e. The three failing editor interactions are retained at archives/observations/m2-030-state-view-cc4a363/review-red/results.json (SHA-256 92c91a5982387c83f23491c7ee5caec9f93ddb4454c19bf3de89b968a75466ec).",
+      "observation": "After accepting a 15-minute candlestick, changing its presentation to lights and appending an identical candlestick before preview moved the 15-minute binding to the new block. The original block showed five-minute observations instead. The normal editor reproduction in .reports/m2-030-review-red/results.json found the original block's 15-minute control unpressed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-030"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "Definition matching gave a newly appended identical candle the edited block instance.",
+        "correction": "The ordinary editor keeps the explicit presentation edit with its existing block and initializes the added candle independently.",
+        "prevention": "A browser regression changes a fifteen-minute candle to lights, appends another candle before preview, then accepts and reorders the blocks. It inspects the original result and each timeframe."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-selection-crosses-result-identity",
+      "source": "Independent Standard Astra review of 6e3760446fb5e137e5aa610880c9c8763069f92e. The three failing editor interactions are retained at archives/observations/m2-030-state-view-cc4a363/review-red/results.json (SHA-256 92c91a5982387c83f23491c7ee5caec9f93ddb4454c19bf3de89b968a75466ec).",
+      "observation": "Selecting the 09:30 UTC five-minute strength result (0.15) and switching to fifteen minutes silently selected the 09:30 UTC fifteen-minute strength result (0.90) from a different revision. The normal editor reproduction in .reports/m2-030-review-red/results.json found the fifteen-minute bar already pressed before any new selection.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-030"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "A selected UTC open could identify a bar in more than one timeframe or result.",
+        "correction": "The selection binds to the source, field and result revision of the selected bar. Changing to a different result clears the inspector until the user selects a bar.",
+        "prevention": "The editor regression distinguishes 0.15 at five minutes from 0.90 at fifteen minutes at the same UTC open, inspects a newly selected result and exercises an accepted candle round trip."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-editor-formatting-rejects-valid-draft",
+      "source": "Independent Standard Astra review of 6e3760446fb5e137e5aa610880c9c8763069f92e. The three failing editor interactions are retained at archives/observations/m2-030-state-view-cc4a363/review-red/results.json (SHA-256 92c91a5982387c83f23491c7ee5caec9f93ddb4454c19bf3de89b968a75466ec).",
+      "observation": "With seven default state blocks and an eighth candlestick, switching the last block to lights reported the 4096-character limit. The editor's indented output was 4300 characters and the same definition in compact JSON was 2136 characters. The normal editor reproduction in .reports/m2-030-review-red/results.json observed the rejection alert after switching the eighth block.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M2-030"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "Indented JSON could exceed the editor limit when the equivalent compact definition still fit.",
+        "correction": "The presentation control uses compact authoring when formatting alone exceeds the limit and preserves the accepted text on a genuinely oversized edit.",
+        "prevention": "The browser regression switches the eighth block in a valid large composition and checks rejection and recovery of a genuinely oversized composition."
+      },
+      "deferral_reason": null
     }
   ]
 }
