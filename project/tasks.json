@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-097",
   "tasks": [
     {
       "id": "M0-001",
@@ -19443,6 +19443,101 @@
           ],
           "data_plan": "Use the existing synthetic series and retain original process, frame and visual observations without data or protocol migration.",
           "cleanup": "Keep the protected artifact index, both focused cases, delivery validation control and independent review with the repair."
+        }
+      }
+    },
+    {
+      "id": "M0-097",
+      "title": "Retain exact linked verification timing across bounded history",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project",
+        "project/feedback.json",
+        "project/delivery.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary offline project status and regular CI recover explicitly linked original timed controls from the shared retained authentic compact captures after both recent history windows rotate. A new worktree uses the same controls without copying or refreshing files.",
+        "A supported offline migration brings existing captures into exact-identity lookup. New captures establish their own lookup entries without full-history scanning during normal intake. The ordinary read windows keep their existing limits.",
+        "Missing or conflicting captures stay visible and never prove recovery. A retained authenticated failure still overrides a stale success for that exact attempt. Preserve original diagnostics, completed task evidence and historical finding dispositions."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the lost linked control at the ordinary offline entry, add bounded exact lookup, and request exact-commit independent review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A maintainer sees qualifying linked timing evidence after recent history rotates or a fresh worktree opens.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/ci.py",
+          "scripts/project.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A shared exact lookup pointing to the existing capture bytes can recover linked controls without widening the default observation windows."
+        ],
+        "risks": [
+          {
+            "failure": "A linked PR or push control disappears when the automatic or manual history window rolls over, or a new worktree cannot reach the retained observation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing or contradictory exact inputs look like recovery, a stale success overrides a known failed attempt, or indexing failures change the regular CI verdict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Remove exact lookup and the migration command while retaining the original compact captures, diagnostics, and existing bounded observation path.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/ci.py",
+            "scripts/project.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No change to timing objectives, ordinary capture limits, workflow protection, receipt eligibility or remote collection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep original captures, previous receipts and immutable accepted records."
+          ],
+          "change": [
+            "Read referenced timing identities through a shared lookup in addition to the existing bounded history."
+          ],
+          "data_plan": "Index original compact captures using their native source identity. Migrate existing data offline and leave original bytes in place.",
+          "cleanup": "Keep the shared lookup derived and rebuildable. Missing originals remain explicitly unavailable."
         }
       }
     }

@@ -5026,6 +5026,38 @@
         "prevention": "Retain the original worker-kill case, the adjacent real-frame control, and the same-chunk stock legend and canvas controls. The focused regressions and t9q Standard review are retained at archives/observations/m0-095-worker-recovery-b3e0aeb/index.json with SHA-256 59bdf34b4264b1b23154207d523e3776e2179d14fb5b14ba3c24d30ac278eb41. The original plan validation controls and t9x Standard review are retained at archives/observations/m0-095-delivery-mapping/index.json with SHA-256 8bb09a671063cf5853df38565402242c1c1d4f7fd147a70217df4ec00abd3471. The combined local task passed. Matching Windows and Linux results still require the updated protected PR. The subsequent ordinary main budget remains with M0-091."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
+      "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
+      "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-097"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T090140.387541Z-e76e7b16",
+          "source_commit": "c065d60ec30612787a6585290710c2aec52172e2",
+          "report_sha256": "9800b5e6f9d22654353ff27d750a6b6089e822bf5a203192add8dd2af5e6403b"
+        },
+        {
+          "run_id": "20261124T093734.046540Z-27df2492",
+          "source_commit": "a6d9460d6bc5fffa533117350ceec175d8f49fec",
+          "report_sha256": "eb41a70ccdd5cd1f45eb9624218d5c92fd77ef9b612a017fc7f923daaae58714"
+        },
+        {
+          "run_id": "20261124T100820.639261Z-a7e0e867",
+          "source_commit": "b3475fa7581a959c0d4c3a53f722d532683f333e",
+          "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
