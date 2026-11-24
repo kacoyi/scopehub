@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-015",
+  "task_definition_sha256": "53bcb9e1832f8602bf605108569b4354b7cb5688350729081a9bdc8167535256",
+  "run_id": "20261124T014146.170769Z-02dc35cf",
+  "recorded_at": "2026-11-24T01:42:19.625614+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "491ea6b36c125cad6806aaf5724546253f54f3928858b77b44e9a9af9ec42954",
+    "file_count": 576,
+    "git_head": "06206600a0aadeb39b9adf206cc564a5b4022e27",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "400159d942a48076fcf71b7cdd39635df23c531c069c24ecb9606c88a0b3fe30",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/authored-workbench/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/authored-workbench/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9db46f8dbb805127b14f9b03db5ea6a61a15ec55962a74d03792f17b37bd18ef"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "72ba8e01ba956dd9ff6aba84e1d337eb2b28a919a90c0702ad35d7b883215fed"
+    },
+    {
+      "id": "workbench-authored-composition",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "104531542f7bdbb6dcbd0c706c340861b78b49b74c4a4d29f6de4f0b307f6543"
+    }
+  ],
+  "project_definition_sha256": "10e37f04a8f5d02fdc17d3b4a45f20846af8df69e87948d1d86877036af33cba",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "63a1b170fc367ca817e2560a03f84a8b862afab7d016d0a6d8190786b26c9bcd"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-015",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -4715,7 +4715,7 @@
       "id": "M2-003",
       "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M2-002",
         "M2-014",
@@ -4746,7 +4746,7 @@
         "workbench-authored-composition"
       ],
       "evidence": [],
-      "next_action": "Deliver the embedded AI authoring slice in M2-015. Use owner feedback and matched Ubuntu and Windows native observations to compare the renderer candidates under ADR 0027.",
+      "next_action": "Exercise an owner-chosen question with a connected model, then gather matched Ubuntu and Windows native observations of same-series expressiveness, drawing services, scoped previews and readable editable definitions under ADR 0027 and the 2026-11-23 authoring direction.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -17102,7 +17102,7 @@
       "id": "M2-015",
       "title": "Author an original frozen-data workbench through the embedded AI",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-014"
       ],
@@ -17127,7 +17127,12 @@
         "market-workflow",
         "workbench-authored-composition"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-015-400159d942a48076.json",
+          "sha256": "b9bb050692892321a4a2ec24d8c6fd85f96898986eb0ba16f317d98df6dde40a"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T014005.104356Z-47493a6d",
@@ -17135,9 +17140,9 @@
           "report_sha256": "fa5cf051bc3333a6c0755914a7e48f4e9f2f83db10ff82da4ff9218bbb1311a9"
         }
       ],
-      "next_action": "Exercise the ordinary model connection with a host-validated declarative composition and a synthetic provider that returns separate original trees and a revision.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The Linux task harness passed at 0620660. The ordinary registry and model worker sent intent and accepted context to a test-owned synthetic endpoint. Chromium observed two independent compositions, the same frozen closes expressed as bars after a structural revision, local evidence, host rejection, restoration and a late reply prevented from altering a new blank view. The prior walkthrough checks passed and the separate 1436 browser preview opened with its own model-unconfigured profile alongside 1420. The initial recovery assertion expected an empty transcript to remain visible; its failed report is retained at .reports/runs/20261124T014005.104356Z-47493a6d/test-report.json. Genuine connected-model quality, owner acceptance and native renderer selection remain with M2-003.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "The embedded AI writes and restructures a view from user intent on the same model route, using composable layout, data and interaction primitives.",
