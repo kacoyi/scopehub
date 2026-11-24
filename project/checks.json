@@ -387,7 +387,7 @@
     {
       "id": "local-import-ui",
       "status": "implemented",
-      "purpose": "Exercise local CSV selection intent, cancellation, explicit mapping, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute. Native dialog behavior and durable import require separate evidence.",
+      "purpose": "Exercise local CSV selection intent, cancellation, header drafts, explicit mapping, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute. With the portable local-import bridge, compare real reader rows and diagnostics after correcting an ambiguous draft and entering the same mapping by hand. Native dialog behavior and durable import require separate evidence.",
       "platforms": "all",
       "command": [
         "pnpm",

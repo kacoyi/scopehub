@@ -221,6 +221,11 @@ test.describe('Simplified Chinese desktop source selection', () => {
     const file = page.getByRole('combobox', { name: 'CSV 文件', exact: true });
     await file.selectOption(equity.fileId);
     await expect(file.locator('option:checked')).toContainText(equity.path);
+    await select(page, '记录类型').selectOption('native_ohlcv');
+    await control(page, '查看原始行').click();
+    await control(page, '根据表头起草映射').click();
+    await expect(select(page, '交易日列')).toHaveValue('TradingDate');
+    await expect(page.getByRole('status').filter({ hasText: '请核对所选列名' })).toContainText('没有可识别的列名');
     await control(page, '语言设置').click();
     const settings = page.getByRole('dialog', { name: '语言设置' });
     await settings.getByRole('combobox').selectOption('en');
@@ -245,7 +250,7 @@ function select(page, name) {
   return page.getByRole('combobox', { name, exact: true });
 }
 
-async function enterMapping(page, file, close = file.columns.close) {
+async function enterSeriesDeclarations(page, file) {
   await select(page, 'Record kind').selectOption('native_ohlcv');
   await select(page, 'Instrument type').selectOption(file.settings.instrument_kind);
   for (const [key, name] of Object.entries(mappingFields)) {
@@ -253,8 +258,12 @@ async function enterMapping(page, file, close = file.columns.close) {
   }
   await select(page, 'Volume basis').selectOption('per_bar');
   await select(page, 'Timestamp convention').selectOption('bar_start');
+}
+
+async function enterMapping(page, file, close = file.columns.close) {
+  await enterSeriesDeclarations(page, file);
   for (const [key, name] of Object.entries(columnFields)) {
-    await select(page, name).selectOption(key === 'close' ? close : file.columns[key]);
+    await select(page, name).selectOption(key === 'close' ? close : file.columns[key] ?? { label: 'No volume column' });
   }
 }
 
@@ -308,7 +317,17 @@ test('mocked native transport preserves the current source on cancel and support
   await control(page, 'Inspect raw rows').click();
   await expect(page.getByText(sourceIdentity(future).sha256, { exact: true }).first()).toBeVisible();
   await expect(page.getByText('PrevSettlementPrice', { exact: true }).first()).toBeVisible();
-  await enterMapping(page, future, 'PrevSettlementPrice');
+  await select(page, 'Record kind').selectOption('native_ohlcv');
+  const callsBeforeDraft = mockNative.calls.length;
+  await control(page, 'Draft mapping from headers').click();
+  await expect(select(page, 'Close column')).toHaveValue('Close');
+  await expect(select(page, 'Timestamp column')).toHaveValue('');
+  await expect(page.getByRole('status').filter({ hasText: 'No recognized header' })).toContainText('Timestamp column');
+  expect(mockNative.calls).toHaveLength(callsBeforeDraft);
+  await enterSeriesDeclarations(page, future);
+  await select(page, 'Timestamp column').selectOption('Start');
+  await select(page, 'Volume column').selectOption('Contracts');
+  await select(page, 'Close column').selectOption('PrevSettlementPrice');
   await control(page, 'Preview mapping').click();
   await expect(page.getByText('Previous settlement price cannot be mapped to OHLC.', { exact: false }).first()).toBeVisible();
   await expect(chart.locator('canvas')).toHaveCount(0);
@@ -465,6 +484,181 @@ base('ordinary browser without native transport has no folder selection action',
   await expect(control(page, 'Choose local CSV folder')).toHaveCount(0);
   await expect(control(page, 'Open published CSV')).toHaveCount(0);
   await expect(page.locator('input[type=file]')).toHaveCount(0);
+});
+
+base('drafts real CSV headers and previews corrections through the same reader as manual mappings', {
+  tag: ['@profile-local-csv', '@csv-header-draft'],
+}, async ({ page, baseURL }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const unique = {
+    settings: future.settings,
+    columns: {
+      symbol: 'Ticker', timestamp: 'Bar-Start', trading_day: 'TradeDate', open: 'Open_Price',
+      high: '最高价', low: 'Low', close: 'Close', volume: 'Volume',
+    },
+  };
+  const ambiguous = {
+    settings: unique.settings,
+    columns: { ...unique.columns, symbol: 'Vendor Symbol', low: 'Vendor Floor', close: 'CLOSE PRICE', volume: null },
+  };
+  const extraHeaders = ['SettlementPrice', 'PrevSettlementPrice', 'OpenInterest', 'Venue', 'Quantity.Unit', 'Price-Adjustment', 'TimeZone'];
+  const records = [
+    ['CU2605', '2026-04-14 21:05', '2026-04-15', '100', '106', '96', '102', '31', '105', '99', '45', 'TEST-FU', 'contracts', 'raw', 'Asia/Shanghai'],
+    ['CU2605', '2026-04-14 21:10', '2026-04-15', '102', '108', '101', '105', '37', '107', '99', '46', 'TEST-FU', 'contracts', 'raw', 'UTC'],
+    ['CU2605', '2026-04-14 21:15', '2026-04-15', '105', '109', '104', '106', '', '108', '99', '47', 'TEST-FU', 'contracts', 'raw', 'Asia/Shanghai'],
+  ];
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-csv-header-draft-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'selected-csv');
+  const writeCsv = (name, header, rows) => writeFile(join(folder, name), [header, ...rows].map(row => row.join(',')).join('\n') + '\n');
+  let bridge;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const header = [...Object.values(unique.columns), ...extraHeaders];
+    await writeCsv('unique.csv', header, records);
+    await writeCsv('ambiguous.csv', [
+      ...header.map(column => column === 'Low' ? ambiguous.columns.low : column), ambiguous.columns.close, ambiguous.columns.symbol,
+    ], records.map((row, index) => [...row, String(103 + 2 * index), 'CU2605-alt']));
+    await writeCsv('invalid.csv', [...header, 'Close'], [[...records[0], '103']]);
+
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const calls = [];
+    const requests = [];
+    page.on('request', request => requests.push(request.url()));
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      const reply = await bridge.request(command, args);
+      calls.push({ command, args, reply });
+      return reply;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+
+    const file = select(page, 'CSV file');
+    const kind = select(page, 'Record kind');
+    const field = key => select(page, columnFields[key]);
+    const suggest = control(page, 'Draft mapping from headers');
+    const preview = control(page, 'Preview mapping');
+    const diagnostics = page.getByRole('region', { name: 'Diagnostics' });
+    const normalized = page.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr');
+    const suggestion = page.getByRole('status').filter({ hasText: 'Review the column selections' });
+    const previewCalls = () => calls.filter(call => call.args?.operation === 'market.previewLocalImport');
+    async function openCsv(name) {
+      await file.selectOption({ label: name });
+      await kind.selectOption('native_ohlcv');
+      await expect(suggest).toBeDisabled();
+      await expect(suggestion).toHaveCount(0);
+      await control(page, 'Inspect raw rows').click();
+      await expect(diagnostics).toBeVisible();
+    }
+    async function applyDraft() {
+      const count = calls.length;
+      const requestCount = requests.length;
+      await suggest.click();
+      await expect(suggestion).toBeVisible();
+      expect(calls).toHaveLength(count);
+      expect(requests).toHaveLength(requestCount);
+      await expect(control(page, 'Save reviewed mapping')).toHaveCount(0);
+      await expect(control(page, 'Publish complete file')).toHaveCount(0);
+    }
+    async function mappedPreview() {
+      const count = previewCalls().length;
+      await preview.click();
+      await expect.poll(() => previewCalls().length).toBe(count + 1);
+      await expect(preview).toBeEnabled();
+      const { args, reply } = previewCalls().at(-1);
+      const { mapping_revision, ...result } = reply.result.preview;
+      expect(mapping_revision).toBe(args.payload.mapping.revision);
+      expect(result.file_sha256).toBe(args.payload.expected_sha256);
+      return { mapping: args.payload.mapping, result };
+    }
+
+    await page.goto('/');
+    await control(page, 'Choose local CSV folder').last().click();
+    await openCsv('unique.csv');
+    await applyDraft();
+    for (const [key, column] of Object.entries(unique.columns)) await expect(field(key)).toHaveValue(column);
+    await expect(suggestion.getByRole('list')).toHaveCount(0);
+    const incomplete = await mappedPreview();
+    expect(incomplete.mapping).not.toHaveProperty('timezone');
+    expect(incomplete.mapping).not.toHaveProperty('venue');
+    expect(incomplete.mapping).not.toHaveProperty('quantity_unit');
+    expect(incomplete.mapping).not.toHaveProperty('price_adjustment');
+    expect(incomplete.mapping).not.toHaveProperty('volume_semantics');
+    expect(incomplete.mapping).not.toHaveProperty('timestamp_convention');
+    expect(incomplete.result.issues.map(issue => issue.code)).toEqual(expect.arrayContaining([
+      'declaration_required', 'volume_ambiguous', 'timestamp_convention', 'date_format',
+    ]));
+    await enterSeriesDeclarations(page, unique);
+    const selected = await mappedPreview();
+    expect(selected.result.rows.map(row => row.normalized?.volume)).toEqual([31, undefined, null]);
+    expect(selected.result.rows[1].issues.map(issue => issue.code)).toEqual(['timezone_mismatch']);
+    expect(selected.result.raw_only_columns).toEqual(expect.arrayContaining([
+      { column: 'SettlementPrice', reason: 'Preserved for review as settlement price.' },
+      { column: 'Quantity.Unit', reason: 'Preserved for review as declared quantity unit.' },
+    ]));
+    await expect(normalized).toHaveCount(2);
+    await expect(normalized.last()).toContainText('Unknown');
+    await select(page, 'Delimiter').selectOption(';');
+    await expect(suggest).toBeDisabled();
+    await expect(suggestion).toHaveCount(0);
+    await select(page, 'Delimiter').selectOption(',');
+
+    await openCsv('invalid.csv');
+    await expect(diagnostics).toContainText('Use nonempty, unique CSV column headers.');
+    await expect(suggest).toBeDisabled();
+
+    await openCsv('ambiguous.csv');
+    await enterSeriesDeclarations(page, ambiguous);
+    await field('symbol').selectOption(ambiguous.columns.symbol);
+    await field('volume').selectOption({ label: 'No volume column' });
+    await applyDraft();
+    await expect(field('symbol')).toHaveValue(ambiguous.columns.symbol);
+    await expect(field('volume')).toHaveValue('No volume column');
+    await expect(field('close')).toHaveValue('');
+    await expect(field('low')).toHaveValue('');
+    await expect(suggestion.getByRole('listitem')).toHaveText([
+      'Low column · No recognized header', 'Close column · Choose among “Close”, “CLOSE PRICE”',
+    ]);
+    const unresolved = await mappedPreview();
+    expect(unresolved.result.issues.map(issue => [issue.field, issue.code])).toEqual([
+      ['low', 'column_required'], ['close', 'column_required'],
+    ]);
+    await field('low').selectOption(ambiguous.columns.low);
+    await field('close').selectOption(ambiguous.columns.close);
+    await expect(suggestion.getByRole('list')).toHaveCount(0);
+    const corrected = await mappedPreview();
+    expect(corrected.mapping.columns).toEqual(ambiguous.columns);
+    expect(corrected.result.rows[0]).toMatchObject({ symbol: 'CU2605-alt', normalized: { close: 103, volume: null } });
+    expect(corrected.result.rows[1].issues.map(issue => issue.code)).toEqual(['timezone_mismatch']);
+    await expect(normalized).toHaveCount(2);
+    const correctedRows = await normalized.allTextContents();
+    const correctedDiagnostics = await diagnostics.textContent();
+
+    await file.selectOption({ label: 'unique.csv' });
+    await openCsv('ambiguous.csv');
+    await enterMapping(page, ambiguous);
+    const manual = await mappedPreview();
+    expect(manual.mapping.columns).toEqual(corrected.mapping.columns);
+    expect(manual.result).toEqual(corrected.result);
+    await expect(normalized).toHaveText(correctedRows);
+    await expect(diagnostics).toHaveText(correctedDiagnostics);
+    expect(calls.filter(call => call.command === 'choose_local_csv_folder')).toHaveLength(1);
+    expect(calls.filter(call => /saveLocalImportMapping|publishLocalImport/.test(call.args?.operation))).toEqual([]);
+    expect(requests.every(url => new URL(url).origin === baseURL)).toBe(true);
+  } finally {
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
 });
 
 
