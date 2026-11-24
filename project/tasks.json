@@ -18571,6 +18571,122 @@
           "cleanup": "Replace the page-wide label assertion and retain one ordinary-entry regression."
         }
       }
+    },
+    {
+      "id": "M0-090",
+      "title": "Keep independent snapshot proof attributable in the native source regression",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-086"
+      ],
+      "scope": [
+        "tests/ui/desktop-workspace.spec.mjs",
+        "tests/ui/ai-workflow-fixture.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce the failed snapshot after an explicitly rejected frozen revision. Distinguish writer admission from failed authorization, unavailable evidence and a changed selection.",
+        "Show the original selection through an authorized independent read. Exercise real contention and release, the delayed native write without revision proof, and an inert late acknowledgement without changing deadlines, accepted requests or retries."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-090-86fe126b0dd64b5b.json",
+          "sha256": "d4844584641eef4f982f78459441ff26c67eaa587fffdd522d1f59e3de26ba29"
+        },
+        {
+          "path": "project/evidence/M0-090-6e1cc856166fae8c.json",
+          "sha256": "be06b0bcb42775b3e97a1fe148cf324b3e44182c52b20ef641aa6cc81eb8e72b"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T122836.056903Z-08468273",
+          "source_commit": "b217c4090b61c50b3503a15e25fb6acd19449941",
+          "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The matching Linux task checks passed on 9732834. Independent review approved the snapshot fixture and diagnostic cleanup. The retained local comparison distinguishes a retryable BUSY under writer contention from an unavailable chart, proves the original selection after drain, and preserves revision 2 after a late acknowledgement. The hosted snapshot error code remains unknown.",
+      "plan": {
+        "outcome": "The fixture obtains truthful independent revision proof and keeps deliberate contention and late replies separately observable.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/desktop-workspace.spec.mjs",
+          "tests/ui/ai-workflow-fixture.mjs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "apps/desktop/ui/src/local-revision-dialog.tsx"
+        ],
+        "hypotheses": [
+          "The instrumented baseline shows both native snapshots completing before the unused companion preview starts its private snapshot and the direct proof receives BUSY. The native regression needs the authorized Rust service without this independent browser client.",
+          "The earlier chart-open defect differed at the first observed boundary. The hosted run proves the missing revision rejection and fails a later read-only assertion."
+        ],
+        "risks": [
+          {
+            "failure": "A failed or unauthorized snapshot is treated as revision proof, or accidental fixture contention is mistaken for the deliberate holder.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "The repair relaxes revision matching, retries a permanent failure, or discards the outstanding write and late-reply assertions.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A diagnostic attachment failure leaves test barriers pending or replaces the initial scenario failure.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted and controlled local failures. Revert only the fixture correction if it changes the independent proof or suppresses explicit BUSY.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ui/desktop-workspace.spec.mjs",
+            "tests/ui/ai-workflow-fixture.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing native or preview deadlines, expanding source authority, changing product retry policy, or taking on M0-087 or M0-089."
+          ],
+          "open_questions": [
+            "The local trace identifies the admitted contender. The exact contender and snapshot code were unobserved in the original hosted artifacts."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The real Rust registry, private profile and HTTP authority, explicit rejections, compare-and-swap revision checks and existing late-reply deadlines."
+          ],
+          "change": [
+            "Open the preview browser only for browser workflows. Record independent proof outcomes and verify a real held status read rejects a snapshot with BUSY until its reply drains."
+          ],
+          "data_plan": "Use disposable synthetic profiles and retain the original archived report identity.",
+          "cleanup": "Retain only the targeted fixture and regression evidence."
+        }
+      }
     }
   ]
 }

@@ -94,7 +94,7 @@ export function persistedRows(profile) {
   }
 }
 
-export async function withWorkspace(browser, profile, use, protectedValues = [], gateStatus = false) {
+export async function withWorkspaceTransport(profile, use, { protectedValues = [], gateStatus = false } = {}) {
   const child = spawnWorkspaceService(profile, { gateStatus });
   const closed = once(child, 'close');
   let output = '';
@@ -124,76 +124,84 @@ export async function withWorkspace(browser, profile, use, protectedValues = [],
       if (link && new URL(link[1]).origin === origin) capability = link[2];
       return capability !== undefined;
     }, { timeout: 12_000, message: 'The Rust-backed preview issues a private workspace handoff' }).toBe(true);
-    const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-    try {
-      await context.addInitScript(({ origin, capability }) => {
-        if (location.origin === origin && window === window.top) {
-          history.replaceState(history.state, '', '#workspace=' + capability);
+    const post = (path, frame, authorized = true, padding = 0) => fetch(origin + path, {
+      method: 'POST', signal: AbortSignal.timeout(8_000),
+      headers: {
+        Origin: origin, 'Content-Type': 'application/json',
+        ...(authorized ? { Authorization: 'Bearer ' + capability } : {}),
+      },
+      body: JSON.stringify(frame) + ' '.repeat(padding),
+    });
+    const dispatch = async (frame, padding = 0) => (await post(workspaceEndpoint, frame, true, padding)).json();
+    const dispatchCredential = async (frame, authorized) => {
+      const response = await post(credentialEndpoint, frame, authorized);
+      return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
+    };
+    const holdRevisionRead = async read => {
+      const listening = new AbortController();
+      const signal = AbortSignal.any([listening.signal, AbortSignal.timeout(8_000)]);
+      let released = false;
+      const release = () => {
+        if (released) return;
+        released = true;
+        if (child.connected) child.send('release-published-revision-gate', () => {});
+      };
+      const waitFor = async message => {
+        for await (const [value] of on(child, 'message', { signal })) {
+          if (value === message) return;
         }
-      }, { origin, capability });
-      const assertNoBrowserSends = await installBrowserNetworkGuard(context, origin);
-      const page = await context.newPage();
-      page.on('console', message => { keyLogged ||= protectedValues.some(value => message.text().includes(value)); });
-      await page.goto(origin);
-      const post = (path, frame, authorized = true, padding = 0) => fetch(origin + path, {
-        method: 'POST', signal: AbortSignal.timeout(8_000),
-        headers: {
-          Origin: origin, 'Content-Type': 'application/json',
-          ...(authorized ? { Authorization: 'Bearer ' + capability } : {}),
-        },
-        body: JSON.stringify(frame) + ' '.repeat(padding),
+      };
+      const armed = waitFor('published-revision-gate-armed');
+      const held = waitFor('published-revision-reply-held');
+      const sent = new Promise((resolve, reject) => {
+        child.send('arm-published-revision-gate', error => error ? reject(error) : resolve());
       });
-      const dispatch = async (frame, padding = 0) => (await post(workspaceEndpoint, frame, true, padding)).json();
-      const dispatchCredential = async (frame, authorized) => {
-        const response = await post(credentialEndpoint, frame, authorized);
-        return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
-      };
-      const holdRevisionRead = async read => {
-        const listening = new AbortController();
-        const signal = AbortSignal.any([listening.signal, AbortSignal.timeout(8_000)]);
-        let released = false;
-        const release = () => {
-          if (released) return;
-          released = true;
-          if (child.connected) child.send('release-published-revision-gate', () => {});
-        };
-        const waitFor = async message => {
-          for await (const [value] of on(child, 'message', { signal })) {
-            if (value === message) return;
+      const gateReady = Promise.all([sent, armed, held]);
+      // Tests without a preview dialog can submit an explicit status read.
+      const reply = read && armed.then(read);
+      try {
+        await (reply ? Promise.race([gateReady, reply.then(response => {
+          if (response?.ok === false && response.error) throw response.error;
+          throw new Error('The published revision status read completed before the gate held its reply.');
+        })]) : gateReady);
+        return { release, reply };
+      } catch (error) {
+        release();
+        throw error;
+      } finally {
+        listening.abort();
+      }
+    };
+    const withPreview = async (browser, usePage) => {
+      const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+      try {
+        await context.addInitScript(({ origin, capability }) => {
+          if (location.origin === origin && window === window.top) {
+            history.replaceState(history.state, '', '#workspace=' + capability);
           }
-        };
-        const armed = waitFor('published-revision-gate-armed');
-        const held = waitFor('published-revision-reply-held');
-        const sent = new Promise((resolve, reject) => {
-          child.send('arm-published-revision-gate', error => error ? reject(error) : resolve());
-        });
-        const gateReady = Promise.all([sent, armed, held]);
-        // Tests without a preview dialog can submit an explicit status read.
-        const reply = read && armed.then(read);
-        try {
-          await (reply ? Promise.race([gateReady, reply.then(response => {
-            if (response?.ok === false && response.error) throw response.error;
-            throw new Error('The published revision status read completed before the gate held its reply.');
-          })]) : gateReady);
-          return { release, reply };
-        } catch (error) {
-          release();
-          throw error;
-        } finally {
-          listening.abort();
-        }
-      };
-      await use(page, dispatch, dispatchCredential, gateStatus ? holdRevisionRead : undefined);
-      assertNoBrowserSends();
-      expect(output.includes(capability), 'The preview never logs the workspace capability').toBe(false);
-    } finally {
-      await context.close();
-    }
+        }, { origin, capability });
+        const assertNoBrowserSends = await installBrowserNetworkGuard(context, origin);
+        const page = await context.newPage();
+        page.on('console', message => { keyLogged ||= protectedValues.some(value => message.text().includes(value)); });
+        await page.goto(origin);
+        await usePage(page);
+        assertNoBrowserSends();
+      } finally {
+        await context.close();
+      }
+    };
+    await use({ dispatch, dispatchCredential, holdRevisionRead: gateStatus ? holdRevisionRead : undefined, withPreview });
+    expect(output.includes(capability), 'The preview never logs the workspace capability').toBe(false);
   } finally {
     const [code] = await closeWorkspaceService(child, closed);
     expect(code, 'The owned preview exits cleanly').toBe(0);
     expect(keyLogged, 'The preview and browser console never log a synthetic API key').toBe(false);
   }
+}
+
+export function withWorkspace(browser, profile, use, protectedValues = [], gateStatus = false) {
+  return withWorkspaceTransport(profile, ({ dispatch, dispatchCredential, holdRevisionRead, withPreview }) =>
+    withPreview(browser, page => use(page, dispatch, dispatchCredential, holdRevisionRead)), { protectedValues, gateStatus });
 }
 
 export async function withPeer(use) {
