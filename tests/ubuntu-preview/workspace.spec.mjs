@@ -7,6 +7,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -18,7 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
-import { observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
+import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
 const exec = promisify(execFile);
@@ -3075,6 +3076,28 @@ test('workspace readiness omits capability fragments at the drained output bound
   expect(JSON.stringify(failure.startup).includes(suffix)).toBe(false);
 });
 
+for (const [title, chunks, expected] of [
+  ['ignores a stderr notice followed by unrelated stdout', [
+    ['stderr', '  ➜  Local:   http://127.0.0.1:1455/\n'], ['stdout', 'Unrelated startup output\n'],
+  ], []],
+  ['accepts split stdout with an intervening stderr warning', [
+    ['stdout', '  ➜  \x1b[1mLocal\x1b[22m:   http://127.0.'],
+    ['stderr', 'Unrelated warning\n'], ['stdout', '0.1:1455/\n'],
+  ], ['listening']],
+]) {
+  test(`workspace CLI readiness ${title}`, () => {
+    const child = Object.assign(new EventEmitter(), { stdout: new PassThrough(), stderr: new PassThrough() });
+    const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port: 1455 });
+    const output = captureServiceOutput(child, startup.observeCliStdout);
+    for (const [stream, chunk] of chunks) child[stream].write(chunk);
+    child.stdout.end();
+    child.stderr.end();
+    const { phases, output: notices } = startup.failure({ reason: 'test-observation' }, {}, output.recent()).startup;
+    expect(phases.map(({ phase }) => phase)).toEqual(expected);
+    expect(notices).toBe('');
+  });
+}
+
 for (const occupied of [true, false]) {
   const cause = occupied ? 'a claimed port' : 'a live child held before listening';
   test(`workspace service readiness distinguishes ${cause}`, async ({}, testInfo) => {
@@ -3647,22 +3670,12 @@ async function inService(port, profile, mode, use, {
   const startedAt = performance.now();
   const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry, traceStartup: true });
   const startup = observeServiceStartup(child, { startedAt, mode, port });
+  const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined);
   let startupFailure;
   let disconnectedExit;
   let disconnectedWriter;
-  let output = '';
-  let handoffRejected = false;
   const historyStages = new Map();
   const historyBarriers = new EventEmitter();
-  for (const stream of [child.stdout, child.stderr]) {
-    stream.setEncoding('utf8');
-    stream.on('data', chunk => {
-      const recent = output + chunk;
-      handoffRejected ||= recent.includes('The private workspace handoff could not be issued.');
-      if (terminalSignal && stream === child.stdout) startup.observeCliOutput(recent);
-      output = recent.slice(-6000);
-    });
-  }
   if (historyTrace) {
     let pending = '';
     child.stdout.on('data', chunk => {
@@ -3686,7 +3699,7 @@ async function inService(port, profile, mode, use, {
   const server = {
     url, pid: child.pid,
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
-    handoffRejected: () => handoffRejected,
+    handoffRejected: output.handoffRejected,
     historyStages,
     flushHistoryTrace: async () => {
       const id = randomUUID();
@@ -3739,11 +3752,12 @@ async function inService(port, profile, mode, use, {
       const [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
         forcedKillRequested = startup.elapsed();
       });
-      if (server.capability) expect(!output.includes(server.capability)).toBe(true);
+      const recentOutput = output.recent();
+      if (server.capability) expect(!recentOutput.includes(server.capability)).toBe(true);
       if (startupFailure) {
         throw startup.failure(startupFailure, {
           cleanup_started_ms: cleanupStarted, forced_kill_requested_ms: forcedKillRequested,
-        }, output);
+        }, recentOutput);
       }
       expect(signal).not.toBe('SIGKILL');
     }

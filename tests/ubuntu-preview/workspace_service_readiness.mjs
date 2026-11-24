@@ -3,6 +3,23 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { stripVTControlCharacters } from 'node:util';
 
 export const startupMessage = 'workspace-service-startup';
+const handoffRejectionNotice = 'The private workspace handoff could not be issued.';
+const maxCliLineLength = 256;
+
+export function captureServiceOutput(child, observeCliStdout) {
+  let output = '';
+  let handoffRejected = false;
+  for (const stream of [child.stdout, child.stderr]) {
+    stream.setEncoding('utf8');
+    stream.on('data', chunk => {
+      const recent = output + chunk;
+      handoffRejected ||= recent.includes(handoffRejectionNotice);
+      if (stream === child.stdout) observeCliStdout?.(chunk);
+      output = recent.slice(-6000);
+    });
+  }
+  return { recent: () => output, handoffRejected: () => handoffRejected };
+}
 
 function probeStatus(url, signal) {
   return new Promise((resolve, reject) => {
@@ -19,15 +36,16 @@ export function observeServiceStartup(child, { startedAt, mode, port }) {
   const elapsed = (at = performance.now()) => Math.round(at - startedAt);
   const phases = [];
   const outcomes = {};
-  const cliListen = new RegExp(`\\bLocal:\\s+http://127\\.0\\.0\\.1:${port}/(?:\\s|$)`);
+  const cliListen = new RegExp(`^\\s*➜\\s+Local:\\s+http://127\\.0\\.0\\.1:${port}/\\s*$`);
   const outputNotices = [
     `Error: Port ${port} is already in use`,
-    'The private workspace handoff could not be issued.',
+    handoffRejectionNotice,
     'Fixture released its unbound listener during cleanup.',
   ];
   let lastProbe;
   let childError;
   let listening = false;
+  let cliLine = '';
   let heldAt;
   let exit;
   let close;
@@ -58,9 +76,23 @@ export function observeServiceStartup(child, { startedAt, mode, port }) {
   return {
     closed,
     elapsed,
-    observeCliOutput(output) {
+    observeCliStdout(chunk) {
       // Vite prints its local URL after listen() completes in the terminal-signal fixture.
-      if (!listening && cliListen.test(stripVTControlCharacters(output))) recordPhase('listening');
+      if (listening) return;
+      const lines = chunk.split('\n');
+      for (const [index, line] of lines.entries()) {
+        // Discard overlong lines through their newline so a suffix cannot look like a notice.
+        if (cliLine !== undefined) {
+          cliLine = cliLine.length + line.length <= maxCliLineLength ? cliLine + line : undefined;
+        }
+        if (index === lines.length - 1) return;
+        const ready = cliLine !== undefined && cliListen.test(stripVTControlCharacters(cliLine));
+        cliLine = '';
+        if (ready) {
+          recordPhase('listening');
+          return;
+        }
+      }
     },
     async wait(url, holdTimeoutMs) {
       const startupDeadline = performance.now() + 10_000;
