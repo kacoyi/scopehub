@@ -39,28 +39,7 @@ const service = `
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
-  let heldDisconnectTrace;
-  let delayedClose;
-  let replayAdmitted = false;
-  const log = console.info;
-  if (faultEnabled) console.info = (...args) => {
-    if (args[0] !== 'Preview history' || !heldDisconnectTrace) return log(...args);
-    const { id, stage } = JSON.parse(args[1]);
-    if (id !== heldDisconnectTrace) return log(...args);
-    // Reproduce the Windows interleaving using the actual socket close
-    // observation. The HTTP response and Chromium's retry are untouched.
-    if (stage === 'closed' && !replayAdmitted) {
-      if (delayedClose) throw new Error('A second history close preceded retry admission.');
-      delayedClose = args;
-      return;
-    }
-    log(...args);
-    if (stage === 'admitted') {
-      replayAdmitted = true;
-      if (delayedClose) log(...delayedClose);
-      delayedClose = undefined;
-    }
-  };
+  let heldFirstDisconnect = false;
   function cutHistory() {
     interrupted?.destroy();
     interrupted = undefined;
@@ -73,7 +52,7 @@ const service = `
   process.on('message', message => {
     if (message === 'close') requestClose();
     else if (message === 'cut-history') cutHistory();
-    else if (message?.type === 'history-barrier') log('Preview history barrier ' + message.id);
+    else if (message?.type === 'history-barrier') console.info('Preview history barrier ' + message.id);
   });
   const plugins = faultEnabled ? [{
     name: 'scopehub-test-history-response-interruption',
@@ -96,8 +75,8 @@ const service = `
             return response;
           }
           if (fault === 'before-headers' && response.statusCode === 200) {
-            if (heldDisconnectTrace) return response.destroy();
-            heldDisconnectTrace = request.headers['${traceHeader}'];
+            if (heldFirstDisconnect) return response.destroy();
+            heldFirstDisconnect = true;
             // Keep the real history response pending past the default UI assertion window.
             const start = performance.now();
             const timer = setTimeout(() => {
@@ -2425,11 +2404,34 @@ function historyWireAttempts(stages = []) {
   const attempts = new Map();
   for (const { attempt, ...event } of stages) {
     if (event.stage === 'held-disconnect' || event.stage === 'held-success') continue;
-    expect(attempt, 'Each HTTP history trace has an attempt ID').toBeDefined();
+    expect(attempt, 'Each HTTP history trace has an attempt ID').toEqual(expect.any(String));
     if (!attempts.has(attempt)) attempts.set(attempt, []);
     attempts.get(attempt).push(event);
   }
   return [...attempts.values()];
+}
+
+function historyAttemptsComplete(stages) {
+  const attempts = historyWireAttempts(stages);
+  let complete = attempts.length > 0;
+  for (const events of attempts) {
+    expect(events[0].stage, 'An HTTP history attempt starts with receipt').toBe('received');
+    const terminals = events.filter(event => event.stage === 'finished' || event.stage === 'closed');
+    expect(terminals.length, 'One terminal per HTTP history attempt').toBeLessThanOrEqual(1);
+    if (terminals.length === 0) complete = false;
+    else expect(events.at(-1), 'The terminal ends the HTTP history attempt').toBe(terminals[0]);
+  }
+  return complete;
+}
+
+function expectDisconnectedHistory(stages) {
+  const attempts = historyWireAttempts(stages);
+  expect(attempts.length).toBeGreaterThan(0);
+  for (const events of attempts) {
+    expect(events).toEqual([
+      { stage: 'received' }, { stage: 'admitted' }, { stage: 'closed', status: 200 },
+    ]);
+  }
 }
 
 async function sampleStep(page, server, testInfo, label, trigger, {
@@ -2453,15 +2455,14 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     else await expect(history).toHaveAttribute('data-bars', String(bars));
 
     const terminalRequest = [...observer.attempts.keys()].at(-1);
-    const trace = terminalRequest.headers()[traceHeader];
+    const allHistoryAttemptsComplete = () => [...observer.attempts.keys()]
+      .map(request => historyAttemptsComplete(server.historyStages.get(request.headers()[traceHeader])))
+      .every(Boolean);
     // The browser terminal can precede the arrival of already emitted stdout.
     // Drain those receipts, then wait for each observed response to terminate.
     await server.flushHistoryTrace();
-    await expect.poll(() => {
-      const attempts = historyWireAttempts(server.historyStages.get(trace));
-      return attempts.length > 0 && attempts.every(events =>
-        events[0].stage === 'received' && /^(finished|closed)$/.test(events.at(-1).stage));
-    }, { message: `Waiting for all HTTP history attempts to close or finish: ${label}` }).toBe(true);
+    await expect.poll(allHistoryAttemptsComplete,
+      { message: `Waiting for all HTTP history attempts to close or finish: ${label}` }).toBe(true);
 
     const expected = [...(catalog ? [sampleCatalogCall] : []), historyCall];
     let phase = 0;
@@ -2496,6 +2497,8 @@ async function sampleStep(page, server, testInfo, label, trigger, {
       }
     }
     expect(phase, label).toBe(expected.length);
+    await server.flushHistoryTrace();
+    expect(allHistoryAttemptsComplete()).toBe(true);
     return terminalRequest;
   } finally {
     observer.stop();
@@ -2670,6 +2673,31 @@ test('the offline sample keeps its own timeframe without replacing the private u
 
 test('the reopened sample recovers its history without consuming the private undo', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
+  await test.step('correlate history terminals across a controlled socket retry interleaving', () => {
+    const first = [
+      { attempt: 'first', stage: 'received' }, { attempt: 'first', stage: 'admitted' },
+      { stage: 'held-disconnect', elapsed_ms: 5507 }, { attempt: 'first', stage: 'closed', status: 200 },
+    ];
+    const second = [
+      { attempt: 'second', stage: 'received' }, { attempt: 'second', stage: 'admitted' },
+      { attempt: 'second', stage: 'closed', status: 200 },
+    ];
+    // PR 77's Windows trace admitted the second request before recording the first close.
+    const interleaved = [...first.slice(0, -1), ...second.slice(0, -1), first.at(-1), second.at(-1)];
+    for (const trace of [first, interleaved]) {
+      expect(historyAttemptsComplete(trace)).toBe(true);
+      expectDisconnectedHistory(trace);
+    }
+    expect(historyAttemptsComplete(first.slice(0, -1))).toBe(false);
+    expect(historyAttemptsComplete(interleaved.slice(0, -1))).toBe(false);
+    expect(() => historyAttemptsComplete([...interleaved, first.at(-1)])).toThrow('One terminal per HTTP history attempt');
+    for (const [status, prior] of [[200, { stage: 'admitted' }], [403, { stage: 'failed', code: 'PERMISSION_DENIED' }]]) {
+      const finished = { attempt: 'first', stage: 'finished', status };
+      const trace = [first[0], { attempt: 'first', ...prior }, finished];
+      expect(historyAttemptsComplete(trace)).toBe(true);
+      expect(() => historyAttemptsComplete([...trace, finished])).toThrow('One terminal per HTTP history attempt');
+    }
+  });
   const profile = await makeProfile();
   const port = await freePort();
   const disconnected = 'Disconnected from the local preview. Retry when the connection is restored.';
@@ -2738,22 +2766,8 @@ test('the reopened sample recovers its history without consuming the private und
             const stages = server.historyStages.get(attempt.trace);
             const holds = stages.filter(stage => stage.stage === 'held-disconnect');
             expect(holds).toHaveLength(request === failed ? 1 : 0);
-            const wire = historyWireAttempts(stages);
-            expect(wire.length).toBeGreaterThanOrEqual(1);
-            if (request === failed) {
-              expect(holds[0].elapsed_ms).toBeGreaterThan(5000);
-              const admissions = stages.map(({ stage }, index) => stage === 'admitted' ? index : -1)
-                .filter(index => index >= 0);
-              expect(admissions.length).toBeGreaterThanOrEqual(2);
-              expect(stages.findIndex(({ stage }) => stage === 'closed')).toBeGreaterThan(admissions[1]);
-            }
-            // Chromium can resend one fetch on a different socket. Each
-            // received HTTP attempt still needs its own admission and close.
-            for (const events of wire) {
-              expect(events).toEqual([
-                { stage: 'received' }, { stage: 'admitted' }, { stage: 'closed', status: 200 },
-              ]);
-            }
+            if (request === failed) expect(holds[0].elapsed_ms).toBeGreaterThan(5000);
+            expectDisconnectedHistory(stages);
           }
           expect(failed.headers()[traceHeader]).not.toBe(stillLost.headers()[traceHeader]);
           expect(await privateState(3, 'sample')).toEqual(before);

@@ -18186,6 +18186,10 @@
           {
             "failure": "A Chromium socket retry interleaves host history traces, causing the browser check to reject a valid transport failure or accept an incomplete attempt. The selected history and private undo must remain correct after recovery.",
             "checks": ["workspace-timeframe"]
+          },
+          {
+            "failure": "The browser check requires an optional Chromium replay, accepts duplicate successful or rejected response terminals, or attributes an unfinished history fetch or failed readiness gate to a product outcome without supporting evidence.",
+            "checks": ["workspace-timeframe"]
           }
         ],
         "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",
