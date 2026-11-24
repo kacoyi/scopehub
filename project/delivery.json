@@ -186,10 +186,11 @@
     {
       "id": "stream-slice",
       "triggers": [
-        "One bounded rendered market stream, including a late update and the final closed bar."
+        "One bounded rendered market stream, including a late update, the final closed bar, and visible interruption and recovery states during replay."
       ],
       "checks": [
         "market-live-stream",
+        "market-worker-interruption",
         "ui-build"
       ]
     },

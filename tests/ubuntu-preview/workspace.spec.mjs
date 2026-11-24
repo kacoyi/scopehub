@@ -838,6 +838,30 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
   const observation = {};
   let savedLayer;
   let savedOutput;
+  const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
+  const outputFrame = async (server, request, signal) => {
+    const response = await post(server, request, {}, signal);
+    return { request, http: response.status, body: await response.json() };
+  };
+  const readOutputAfterAdmission = async (server, request, { timeout = 10_000, observe = () => {} } = {}) => {
+    const signal = AbortSignal.timeout(timeout);
+    let frame;
+    await expect.poll(async () => {
+      frame = await outputFrame(server, request, signal);
+      await observe(frame);
+      // Only this read's explicit pre-admission refusal is safe to retry.
+      return frame.http === 429 && frame.body.ok === false
+        && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
+    }, { timeout, message: 'The accepted indicator output read obtains admission' }).toBe(false);
+    return frame;
+  };
+  const requireSavedOutput = frame => {
+    expect(frame).toMatchObject({ http: 200, body: { ok: true, result: {
+      layer_id: savedLayer.layer_id, version_id: savedLayer.version_id,
+      document: { artifact: expect.any(Object), snapshot: expect.any(Object) },
+    } } });
+    return frame.body.result;
+  };
   try {
     await seedFrozenEvidence(profile, id, a, a + day, bars);
     await seedFrozenEvidence(profile, other, a, a + day, revised);
@@ -971,8 +995,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await expect(preview.getByText(/Preview layers/)).toHaveCount(0);
         workspaceRevision = 1;
 
-        const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
-        savedOutput = await reply(server, outputRequest());
+        savedOutput = requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()));
         expect(savedOutput.document.artifact).toEqual(warmed.event.artifact);
         expect(savedOutput.document.snapshot).toEqual(warmed.event.snapshot);
         expect(savedOutput.document.resolved_parameters).toEqual({ period: 3 });
@@ -988,7 +1011,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const nextFailureId = nextFailure.outcome.result.task_id;
         await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
         expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
-        expect(await reply(server, outputRequest())).toEqual(savedOutput);
+        expect(requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
         await expect(plot).toBeVisible();
 
         const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
@@ -1030,11 +1053,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           const body = await response.json().catch(() => undefined);
           return body?.ok === true && matches(body.result, response.request());
         }, { timeout: 8_000 });
-        const readOutput = async () => {
-          const request = outputRequest();
-          const response = await post(server, request, {}, AbortSignal.timeout(3_000));
-          return { request, http: response.status, body: await response.json() };
-        };
+        const readOutput = () => outputFrame(server, outputRequest(), AbortSignal.timeout(3_000));
         const readSnapshot = async (tag, signal = AbortSignal.timeout(5_000)) => {
           const response = await post(server, snapshot, tag.headers, signal);
           return { http: response.status, body: await response.json() };
@@ -1254,15 +1273,23 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
               record('post-undo-admission-probe', { forwarded_reads: forwarded, http });
               return http;
             }, { timeout: 3_000, message: 'The workspace rejected the malformed probe after admission became idle' }).toBe(400);
-            const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async () => {
-              undoStages.busy_output = await readOutput();
-              expect(undoStages.busy_output).toMatchObject({ http: 429, body: busy });
+            let output;
+            const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async ({ tag }) => {
+              output = await readOutputAfterAdmission(server, outputRequest(), {
+                timeout: 3_000,
+                async observe(attempt) {
+                  if (undoStages.busy_output) return;
+                  undoStages.busy_output = attempt;
+                  expect(attempt).toMatchObject({ http: 429, body: busy });
+                  tag.release();
+                  await tag.wait('drained');
+                },
+              });
             });
             expect(restoredSnapshot).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 3 } } } });
-            const output = await readOutput();
             undoStages.recovered_output = output;
-            expect(output).toMatchObject({ http: 200, body: { ok: true } });
-            expect(output.body.result).toEqual(savedOutput);
+            expect(output.request).toEqual(undoStages.busy_output.request);
+            expect(requireSavedOutput(output)).toEqual(savedOutput);
             releaseUndoReads.resolve(true);
             expect(explicitMutations.map(request => request.intent.operation)).toEqual(['indicator.remove', 'workspace.undo']);
             const durable = durableLayerMutations();
@@ -1331,8 +1358,8 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await accepted.getByText('Accepted provenance and values').click();
         await expect(accepted.getByText('mean · 3')).toBeVisible();
         expect(reruns).toBe(0);
-        const restore = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id };
-        expect(await reply(server, restore)).toEqual(savedOutput);
+        const restore = outputRequest();
+        expect(requireSavedOutput(await readOutputAfterAdmission(server, restore))).toEqual(savedOutput);
         await dialog.getByRole('button', { name: 'Use as workspace source' }).click();
         const mainChart = page.getByRole('region', { name: 'Price chart' });
         await mainChart.getByText('Indicators', { exact: true }).click();
@@ -1347,8 +1374,9 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         } finally {
           database.close();
         }
-        const withheld = await (await post(server, restore)).json();
-        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        const denied = await readOutputAfterAdmission(server, restore);
+        expect(denied).toMatchObject({ http: 200, body: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } });
+        const withheld = denied.body;
         expect(withheld.result).toBeUndefined();
         expect(await reply(server, { type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id }))
           .toMatchObject({ layers: [{ ...savedLayer, available: false }] });
@@ -4417,32 +4445,143 @@ test('private record review retires an approval after known peer deletion', asyn
   } finally { await profile.close(); }
 });
 
-test('private record review cancellation leaves the other window approval intact', async ({ browser }) => {
-  const profile = await makeProfile();
-  try {
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
-      await inFreshBrowser(browser, server, async pageA => {
-        const first = await openPrivateRecords(pageA);
-        await reviewMemory(first, 'Synthetic first review', 'Synthetic first body');
-        const review = first.getByRole('region', { name: 'Review private record change' });
-        await expect(review.getByRole('heading')).toBeVisible();
-        const includesTarget = await review.getByText('Synthetic first review', { exact: true }).isVisible();
-        await inFreshBrowser(browser, server, async pageB => {
-          const second = await openPrivateRecords(pageB);
-          await reviewMemory(second, 'Synthetic second review', 'Synthetic second body');
-          await second.getByRole('button', { name: 'Cancel review' }).click();
-          await expect(second.getByText('Action cancelled.')).toBeVisible();
-          await first.getByRole('button', { name: 'Save private record', exact: true }).click();
-          await expect(first.getByRole('heading', { name: 'Synthetic first review' })).toBeVisible();
-          expect(includesTarget).toBe(true);
-          await second.getByRole('button', { name: 'Discard draft' }).click();
-          await expect(second.getByRole('button', { name: /Synthetic first review/ })).toBeVisible();
-          await expect(second.getByRole('button', { name: /Synthetic second review/ })).toHaveCount(0);
+for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
+  const testName = 'private record review cancellation leaves the other window approval intact';
+  test(fault === 'none' ? testName : testName + ' after ' + fault, async ({ browser }, testInfo) => {
+    const profile = await makeProfile();
+    const stages = [];
+    const decline = privateRequestMatches('privateRecord.change', args => args.action === 'resolve' && args.decision === 'decline');
+    const prepareSave = privateRequestMatches('privateRecord.change', args => args.action === 'save');
+    const firstTitle = 'Synthetic first review';
+    const secondTitle = 'Synthetic second review';
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        await inFreshBrowser(browser, server, async pageA => {
+          const first = await openPrivateRecords(pageA);
+          const firstReview = await privateReplyDuring(pageA, stages, 'first window prepares its save', prepareSave,
+            () => reviewMemory(first, firstTitle, 'Synthetic first body'));
+          expect(firstReview.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+          const review = first.getByRole('region', { name: 'Review private record change' });
+          await expect(review.getByText(firstTitle, { exact: true })).toBeVisible();
+
+          const releaseFirstReads = Promise.withResolvers();
+          const path = server.url + endpoint;
+          const holdFirstRead = async route => {
+            if (privateRequestMatches('privateRecord.read')(route.request().postDataJSON())) await releaseFirstReads.promise;
+            await route.continue();
+          };
+          if (fault !== 'none') await pageA.route(path, holdFirstRead);
+          try {
+            await inFreshBrowser(browser, server, async pageB => {
+              const second = await openPrivateRecords(pageB);
+              const secondReview = await privateReplyDuring(pageB, stages, 'second window prepares its save', prepareSave,
+                () => reviewMemory(second, secondTitle, 'Synthetic second body'));
+              expect(secondReview.observed).toMatchObject({ http: 200, state: 'confirmation_required' });
+              expect(secondReview.payload.scope.idempotency_key).not.toBe(firstReview.payload.scope.idempotency_key);
+              expect(secondReview.outcome.challenge_id).not.toBe(firstReview.outcome.challenge_id);
+              const resolutions = [];
+              pageB.on('request', request => {
+                if (new URL(request.url()).pathname !== endpoint) return;
+                const payload = request.postDataJSON();
+                if (payload?.intent?.operation === 'privateRecord.change' && payload.intent.arguments.action === 'resolve') {
+                  resolutions.push(payload);
+                }
+              });
+              const database = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+              const state = () => ({
+                revision: database.prepare('SELECT revision FROM workspaces').get().revision,
+                records: database.prepare('SELECT count(*) AS count FROM private_records').get().count,
+                receipts: database.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count,
+              });
+              try {
+                let recoverCancellation = fault !== 'none';
+                if (fault === 'admission busy') {
+                  const writer = await writerPid(server);
+                  await writerPid(server, 'suspend', writer);
+                  const reserved = post(server, snapshot);
+                  try {
+                    await expect.poll(() => postStatus(server, admissionProbe), { timeout: 3_000 }).toBe(429);
+                    const rejected = await privateReplyDuring(pageB, stages, 'second decline is rejected before admission', decline,
+                      () => clickPrivate(second, 'Cancel review'));
+                    expect(rejected.observed).toMatchObject({ http: 429, code: 'BUSY' });
+                  } finally {
+                    await writerPid(server, 'resume', writer);
+                    expect((await reserved).ok).toBe(true);
+                  }
+                } else if (fault === 'lost acknowledgement') {
+                  const dropped = await dropApprovalReply(pageB, server, 'privateRecord.change', decline);
+                  try {
+                    const failed = pageB.waitForEvent('requestfailed', request =>
+                      new URL(request.url()).pathname === endpoint && decline(request.postDataJSON()));
+                    await Promise.all([failed, clickPrivate(second, 'Cancel review')]);
+                    expect(dropped.outcome()).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+                    stages.push({ step: 'second decline reaches the core but the reply is lost', code: 'CANCELLED' });
+                  } finally { await dropped.restore(); }
+                } else {
+                  const initial = await privateReplyDuring(pageB, stages, 'second window submits its first decline', decline,
+                    () => clickPrivate(second, 'Cancel review'));
+                  recoverCancellation = initial.observed.code === 'BUSY';
+                  if (recoverCancellation && initial.observed.http === 429) {
+                    expect(initial.observed.state).toBeUndefined();
+                  } else {
+                    expect(initial.observed).toMatchObject({
+                      http: 200, state: 'failed', code: recoverCancellation ? 'BUSY' : 'CANCELLED',
+                    });
+                  }
+                }
+                expect(resolutions).toHaveLength(1);
+                expect(resolutions[0].scope).toEqual(secondReview.payload.scope);
+                expect(resolutions[0].intent.arguments).toEqual({
+                  action: 'resolve', challenge_id: secondReview.outcome.challenge_id, decision: 'decline',
+                });
+                expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
+                if (recoverCancellation) {
+                  await expect(second.getByRole('alert')).toBeVisible();
+                  await expect(second.getByText('Action cancelled.')).toHaveCount(0);
+                  await expect(second.getByRole('button', { name: 'Save private record', exact: true })).toHaveCount(0);
+
+                  const retried = await privateReplyDuring(pageB, stages, 'second window explicitly retries the same decline', decline,
+                    () => clickPrivate(second, 'Retry cancellation'));
+                  expect(retried.payload.scope).toEqual(resolutions[0].scope);
+                  expect(retried.payload.intent).toEqual(resolutions[0].intent);
+                  expect(retried.payload.request_id).not.toBe(resolutions[0].request_id);
+                  expect(resolutions).toHaveLength(2);
+                  expect(retried.observed).toMatchObject({
+                    http: 200, state: 'failed', code: fault === 'lost acknowledgement' ? 'CONFIRMATION_REQUIRED' : 'CANCELLED',
+                  });
+                }
+                await expect(second.getByText('Action cancelled.')).toBeVisible();
+                await expect(second.getByRole('button', { name: 'Retry cancellation' })).toHaveCount(0);
+                expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
+
+                releaseFirstReads.resolve();
+                const saved = await privateReplyDuring(pageA, stages, 'first window approves its original review', isPrivateApproval,
+                  () => clickPrivate(first, 'Save private record'));
+                expect(saved.payload.scope).toEqual(firstReview.payload.scope);
+                expect(saved.payload.intent.arguments.challenge_id).toBe(firstReview.outcome.challenge_id);
+                expect(saved.outcome).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 1 } });
+                expect(state()).toEqual({ revision: 1, records: 1, receipts: 1 });
+                await expect(first.getByRole('heading', { name: firstTitle })).toBeVisible();
+                await clickPrivate(second, 'Discard draft');
+                await expect(second.getByRole('button', { name: new RegExp(firstTitle) })).toBeVisible();
+                await expect(second.getByRole('button', { name: new RegExp(secondTitle) })).toHaveCount(0);
+                expect(resolutions).toHaveLength(recoverCancellation ? 2 : 1);
+              } finally { database.close(); }
+            });
+          } finally {
+            releaseFirstReads.resolve();
+            if (fault !== 'none') await pageA.unrouteAll({ behavior: 'wait' });
+          }
         });
       });
-    });
-  } finally { await profile.close(); }
-});
+    } finally {
+      await testInfo.attach('private-review-cancellation-stages', {
+        body: JSON.stringify(stages, null, 2), contentType: 'application/json',
+      });
+      await profile.close();
+    }
+  });
+}
 
 test('private record review counts current survivors absent from an empty backup', async ({ browser }) => {
   const profile = await makeProfile();

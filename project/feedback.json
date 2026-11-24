@@ -4948,6 +4948,84 @@
         "prevention": "Use matching real commands with default and inherited ignored SIGCHLD. Require both explicit failures to retain exit 7 and keep the separate success and cancellation observations. Retain t104 review and regression records."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-stock-five-minute-replay-skips-partial-observation",
+      "source": "Authenticated protected main workflow 45421408601 attempt 1 at 4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab. The retained index at archives/observations/m0-093-protected-main-45421408601/index.json binds the original Windows browser producer report with SHA-256 c8fce1acfcfb21fa7a19643a401709d07f65e9b801502701c3bfab879d1b094e. Original archives/observations/m0-093-protected-main-45421408601/windows-browser/runs/windows-change-45421408601-1/market-workflow.log SHA-256 4ed52f390ef490a2746161f11a9886f536da817f8cb0670878638a4ec526487c.",
+      "observation": "The Windows case searches and replays three simulated instruments in one chart session reached the 5-minute stock Close-price final legend. The captured observations omitted the partial bar with Close 12.17 and volume 520 before the closed bar with Close 12.16 and volume 530. The exact sequence comparison failed at market-workflow.spec.mjs:337.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-093"
+      ],
+      "regression_checks": [
+        "market-workflow"
+      ],
+      "resolution": {
+        "cause": "A controlled delivery of one batch of real worker frames reproduced the missing partial Close 12.17 and volume 520 in the legend and price line. The replay could advance across several display observations together. The original Windows artifact did not record frame delivery timing.",
+        "correction": "Publish each valid replay observation in order before advancing to its successor. The original three-instrument case and controlled canvas observations retain the partial and final bars. The out-of-order control rejects the invalid sequence.",
+        "prevention": "Retain the real worker delivery, canvas and instrument-switch cancellation checks with the t9q Standard review of 1f79639d. The source and verified original files are indexed at archives/observations/m0-093-replay-legend-recovery/index.json with SHA-256 e68c456d3495f41c85f30302c98287488a7b1d4a3140cd91774b378b7e75b946. The combined local task passed. The matching protected Windows result is pending."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-workspace-indicator-accepted-output-undefined",
+      "source": "Authenticated protected main workflow 45421408601 attempt 1 at 4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab. The retained index at archives/observations/m0-093-protected-main-45421408601/index.json binds the original Windows browser producer report with SHA-256 c8fce1acfcfb21fa7a19643a401709d07f65e9b801502701c3bfab879d1b094e. Original archives/observations/m0-093-protected-main-45421408601/windows-browser/runs/windows-change-45421408601-1/workspace-timeframe.log SHA-256 f6c35560ad9cd5fb877c5838b21fdd47618258c94e42f05430bac63ec5526c3f.",
+      "observation": "The Windows case indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation requested indicator_accepted_output for the saved layer. The accepted output was undefined when workspace.spec.mjs:976 read its document, so the artifact and snapshot assertions did not complete.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-093"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Holding the real Rust snapshot writer reproduced a retryable HTTP 429 BUSY on indicator_accepted_output. The fixture projected the error reply as an undefined result and failed at document access. The original Windows response code remains unknown.",
+        "correction": "Bound retries to the same read-only request and the exact retryable BUSY response. Require a successful response and verify the accepted artifact and snapshot identity while retaining revoke, replay, failure and cancellation coverage.",
+        "prevention": "Retain the controlled Rust writer reproduction, passing cases and t9p Standard review of 71adf75c at archives/observations/m0-093-indicator-output-recovery/index.json. The directory SHA256SUMS digest is 72ac9e88d08aa229204fdfe031cd7e9b80a4a92d100452588ced7c6fdd116901. The combined local task passed. The matching protected Windows result is pending."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-second-private-review-cancellation-not-visible",
+      "source": "Authenticated protected main workflow 45421408601 attempt 1 at 4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab. The retained index at archives/observations/m0-093-protected-main-45421408601/index.json binds the original Linux report with SHA-256 5be9075e9247b19039102cc8a2fdbba6d76d95107fa253185143a8bd92a11171. Original archives/observations/m0-093-protected-main-45421408601/linux/runs/20261124T150647.584014Z-6b350ddc/workspace-timeframe.log SHA-256 b390f573a7424c5bd03d40b66c678b5942df034d788f4b78062bccecf43e6211. Independent t103 coverage reviews and the two existing focused greens are bound by archives/observations/m0-093-private-coverage-review/index.json SHA-256 d0b66f8d44f912ebe8df77f0cc0566abc6771f26ef290958d499a0ebad71db51.",
+      "observation": "The Linux case private record review cancellation leaves the other window approval intact created two reviews and clicked Cancel review in the second window. Action cancelled. was not visible in that Private records dialog at workspace.spec.mjs:4434 within the existing deadline. The first-window save assertions had not yet run. Candidate 96b1315 first passed its focused run starting 2026-11-24T15:28:02.814Z. t103 then found that two fault-injection branches had replaced the original healthy two-window cancellation control. Candidate eea41e8 first passed the direct-cancellation assertions in its focused run starting 2026-11-24T15:32:47.284Z. A second t103 review found that this branch still installed holdFirstRead until the second window saw cancellation. It had therefore not exercised ordinary background read timing. Both observations and both green runs preceded the central registration at 2026-11-24T15:35:39+00:00. The first protected failure remains the original evidence.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-093"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The focused cases reproduced stale Save after a retryable BUSY decline and after losing the real CANCELLED response. Independent review also found that two early green candidates did not cover ordinary two-window timing because the healthy path was replaced or its first read remained held.",
+        "correction": "Keep Save unavailable after an uncertain cancellation and offer only an explicit retry of the original decline scope and challenge. Restore the named ordinary two-window case without read interception. Its first run received CANCELLED on the first decline, showed Action cancelled, and left one record and one receipt from the first window approval.",
+        "prevention": "Retain the ordinary case and both fault controls, including zero second-window writes and the independent first approval. The final t103 Standard review of b3b4cb50 passed the natural timing recheck. Originals and review are indexed at archives/observations/m0-093-private-review-natural-b3b4cb5/index.json with SHA-256 376690433cf9fa2e79f764880061dc761ef096b3dabc46963913c41e14aaa440. The combined local task passed. The matching protected Linux result is pending."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worker-interruption-skips-visible-reconnecting",
+      "source": "Authenticated full pull request 82 workflow 45429086512 attempt 1 at PR head c300005fd77778c851096ba04bebd72af84ad952 and checked-out merge 4c8fcf533b3a19f59c77b2feb585c419dde01c34. The retained original Windows browser producer and Linux reports and logs are indexed at archives/observations/m0-095-protected-pr-45429086512/index.json with SHA-256 99e62f041fe9556c30c83f8b17a3e37f0069ed718715ec47c231774f429b5532. Windows browser producer report SHA-256 9344d8f2e614f2a0212e8f55d7fdcc7b576d13bd53ff4e5e82fdd9fa9648f094 and check log SHA-256 9ecffa7b80a3d9b7e7b89bb3badab6c29c42d45efd8e2b2c91059d24ed84574e. Linux report SHA-256 203efaced85475e95b15a7cf7ee03da2ab62cd701d3673df44371ab020b1c00a and check log SHA-256 2b42f8fce8ba013014ee4494275f67ddcdc1f00304cb89057f1fd0384f86a2b2.",
+      "observation": "On both Windows and Ubuntu, the named case resumes one real chart stream after its confirmed worker exits failed at worker-interruption.spec.mjs:99. The captured UI went from Synthetic replay in progress to Market worker resumed, omitting Market worker reconnecting… with the confirmed Close 3501.2, volume 120 and Offline. The trace contained the frozen, confirmed and final closed bar values. The later raw frame assertions were not reached. The M0-093 local task had classified the change as stream-slice, but its delivery mapping did not select market-worker-interruption, so the exact regression first surfaced in the protected PR.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-095"
+      ],
+      "regression_checks": [
+        "project-state",
+        "market-workflow",
+        "market-worker-interruption"
+      ],
+      "resolution": {
+        "cause": "React could batch sequential reconnecting and resumed updates into one commit after the confirmed partial bar displayed. The focused red grouped the two original recovery lines from a real owned worker exit into one browser read. Both protocol frames were present and the reconnecting state was absent from the DOM and animation-frame observations. The previous stream-slice mapping also omitted the existing interruption check.",
+        "correction": "Commit each validated recovery state and allow it a visible browser frame before the next queued update. Reconnecting and resumed both display the same confirmed bar and Offline before the final close. Keep the stock partial bar display, stream ordering, frozen history, cancellation and recovery validation. Require the existing market-worker-interruption check in stream-slice delivery plans.",
+        "prevention": "Retain the original worker-kill case, the adjacent real-frame control, and the same-chunk stock legend and canvas controls. The focused regressions and t9q Standard review are retained at archives/observations/m0-095-worker-recovery-b3e0aeb/index.json with SHA-256 59bdf34b4264b1b23154207d523e3776e2179d14fb5b14ba3c24d30ac278eb41. The original plan validation controls and t9x Standard review are retained at archives/observations/m0-095-delivery-mapping/index.json with SHA-256 8bb09a671063cf5853df38565402242c1c1d4f7fd147a70217df4ec00abd3471. The combined local task passed. Matching Windows and Linux results still require the updated protected PR. The subsequent ordinary main budget remains with M0-091."
+      },
+      "deferral_reason": null
     }
   ]
 }

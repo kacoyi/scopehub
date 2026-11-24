@@ -19124,6 +19124,327 @@
           "cleanup": "Verify the child-owned listener and descendants have stopped after interruption on each applicable process ownership path."
         }
       }
+    },
+    {
+      "id": "M0-093",
+      "title": "Restore the market and workspace paths on the protected main check",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-092"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Recover the three observed failures from protected main attempt 45421408601 at 4de5df8. Preserve the actual named stock replay, indicator, private review, and neighboring cases with their existing commands, outcomes, deadlines and evidence.",
+        "Verify the exact reviewed combined revision through one local task run and one full protected recovery PR with both real platform results. Keep the original failing main evidence and verify the candidate independently of that baseline verdict.",
+        "Confirm that the intrabar stock observation survives replay, the accepted indicator output retains its real accepted artifact and snapshot, and cancelling a private review leaves the other window approval intact. Keep the subsequent ordinary main budget measurement with M0-091."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "market-fixtures",
+        "market-recovery",
+        "market-live-stream",
+        "workspace-timeframe",
+        "desktop-localization"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-093-5a601f1c40ea08d0.json",
+          "sha256": "ee982961c115a99dcff558e8fa1970ed1d79ed071a987c92eefe63b01733a377"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The exact reviewed combined revision 266b8434 passed all 11 required local checks and the environment check in run 20261124T153716.971958Z-51ba4f90. The market replay, indicator read, and private cancellation corrections each passed independent Standard review and their focused regressions. The original protected main failures are retained in archives/observations/m0-093-protected-main-45421408601/index.json. Local technical verification is complete. The matching protected recovery PR still needs passing Windows and Linux results, and the subsequent ordinary main run still needs verification. M0-091 retains the separate main budget measurement and its open governed finding.",
+      "plan": {
+        "outcome": "The next reviewed recovery candidate completes the same protected Windows and Linux product paths with the original three behavioral assertions intact.",
+        "change_types": [
+          "tooling",
+          "ui",
+          "market",
+          "stream-slice",
+          "permissions"
+        ],
+        "context": [
+          "tests/ubuntu-preview/market-workflow.spec.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/market-workflow.config.mjs",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "project/checks.json",
+          ".github/workflows/verify.yml",
+          "apps/desktop/ui/src/use-sample-replay.ts",
+          "apps/desktop/ui/src/private-records.tsx",
+          "apps/desktop/ui/src/i18n/locales/zh-Hans/research.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The final 5-minute stock close remained visible, so the skipped intermediate observation can be investigated independently of final chart state.",
+          "The accepted indicator output was undefined at the live read boundary. Distinguish a real failed or unavailable read from timing at the result handoff before selecting a correction.",
+          "The second private dialog did not show cancellation. Observe the actual cancellation terminal and independent first approval before changing any interaction or fixture.",
+          "The red run observations are retained in archives/observations/m0-093-protected-main-45421408601/index.json with SHA-256 015aa1734a51d3298f06b21691f21f77dc201b311f634f7cae4ade3ccb880885. The Windows browser producer is an original producer report with its own digest.",
+          "The private review focused red reproduced an actual client defect. On a retryable BUSY decline or lost CANCELLED response, the retained old review still offered Save. The accepted recovery must offer only an explicit retry of the original decline and preserve the other window approval.",
+          "The focused indicator reproduction obtained an actual HTTP 429 BUSY on the accepted read while the named Rust snapshot gate held the writer. The original Windows transcript did not retain the raw response, so its error code remains unknown.",
+          "The recovery changes the product replay presentation and private review confirmation UI, including Simplified Chinese recovery messages. The combined required task includes the delivery map for both surfaces along with architecture, localization and the type-checked UI build."
+        ],
+        "risks": [
+          {
+            "failure": "The stock replay drops or duplicates an intrabar observation, changes order, or accepts a final close as a substitute for the partial Close 12.17 and volume 520.",
+            "checks": [
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "The indicator accepted-output read loses the real accepted artifact or snapshot, disguises unavailability, or weakens failure and cancellation isolation.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The second private review cancellation is invisible or can consume the first window approval or mutate the reviewed data.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The recovery drops another named case, accepts the failed baseline as proof, or substitutes a producer report for the protected aggregate.",
+            "checks": [
+              "market-workflow",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The replay presentation repair changes the live update or market recovery behavior or the synthetic bar data.",
+            "checks": [
+              "market-live-stream",
+              "market-recovery",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "The original healthy two-window cancellation loses its natural read timing because the candidate injects a fault or holds the first window read in the ordinary control.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The private recovery UI reopens Save after an unconfirmed decline, changes authorization behavior or loses the localized retry message.",
+            "checks": [
+              "workspace-timeframe",
+              "operations-workflow",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A UI correction compiles only in the focused fixture or crosses the declared module boundaries.",
+            "checks": [
+              "ui-build",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Retain the original failed attempt and each focused reproduction. Revert only the independently identified correction if its paired regression or exact protected recovery fails, then retest the affected case on a reviewed candidate.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/market-workflow.spec.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/use-sample-replay.ts",
+            "apps/desktop/ui/src/private-records.tsx"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/change_types"
+            }
+          ],
+          "non_goals": [
+            "No scheduling or release changes, no rewritten historical task or governed main budget finding, and no additional full recovery run to isolate individual fixes."
+          ],
+          "open_questions": [
+            "Which part of each real command or observation boundary accounts for its observed failure?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Named cases, synthetic fixture and operation identity, genuine platform behavior, evidence, protected checkout provenance and verified user authorization."
+          ],
+          "change": [
+            "Repair only the measured replay, accepted indicator read, and independent private cancellation boundaries."
+          ],
+          "data_plan": "Use synthetic data and retain the exact original outputs and review inputs. Keep each corrective regression linked to its observed finding.",
+          "cleanup": "Keep the original failed source diagnostic and the three positive and negative regression outcomes alongside the final recovery evidence."
+        }
+      }
+    },
+    {
+      "id": "M0-095",
+      "title": "Preserve visible replay recovery after a real worker exit",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-093"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/use-sample-replay.ts",
+        "tests/ubuntu-preview/worker-interruption.spec.mjs",
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Keep the original named worker interruption case and its actual worker kill. Show reconnecting and then resumed with the unchanged confirmed bar and Offline connection before the final close. Keep frozen history, one logical subscription, exact recovery positions and raw frame order.",
+        "Keep the original stock replay case and show the partial Close 12.17 and volume 520 in the legend and draw Close 12.17 on the price canvas before the final close when real worker bytes arrive in one chunk. Preserve rejection of invalid order and cancellation on instrument change.",
+        "Include the existing worker interruption case in future active stream-slice plans. Ordinary project validation rejects an active plan missing that check and accepts the complete plan. Preserve completed plans and receipts.",
+        "Retain both protected failures, focused regression evidence and independent review. Verify the exact updated PR 82 with both protected platform results. The subsequent ordinary main timing remains with M0-091."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "market-fixtures",
+        "market-recovery",
+        "market-live-stream",
+        "market-worker-interruption"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-095-c546ee7ee6a80c0f.json",
+          "sha256": "21e9e97e1cc678e35795646323dd9f16d1664c78d335cb9e21e9b23fcea670f4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The reviewed combined revision 462d9550 passed all nine required local checks and the environment check in run 20261124T160740.172837Z-89646560. Both the original owned worker exit case and the real single-read recovery case passed. The stock replay controls passed and both independent Standard reviews approved. The original two-platform failure remains retained with its checked-out merge and producer identity. Local technical verification is complete. The updated protected PR 82 still needs matching Windows and Linux results, including native worker interruption. The subsequent ordinary protected main result and its Windows budget remain with M0-091 and the open governed finding.",
+      "plan": {
+        "outcome": "The same chart preserves intrabar price observations and displays real reconnecting and resumed states in order, and active replay change plans require the worker interruption check.",
+        "change_types": [
+          "tooling",
+          "ui",
+          "market",
+          "stream-slice"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-sample-replay.ts",
+          "apps/desktop/ui/src/market-replay.ts",
+          "tests/ubuntu-preview/worker-interruption.spec.mjs",
+          "tests/ubuntu-preview/worker-interruption.config.mjs",
+          "tests/ubuntu-preview/interrupt_owned_worker.py",
+          "tests/ubuntu-preview/market-workflow.spec.mjs",
+          "project/delivery.json",
+          "project/checks.json",
+          "scripts/project.py"
+        ],
+        "hypotheses": [
+          "Both original DOM traces contain frozen, confirmed and closed values, with a jump from replay in progress to resumed after the owned worker exit. The first failing assertion is the missing reconnecting state. Inspect delivery and display sequencing without assuming the later raw frame assertions ran.",
+          "The partial price display and the recovery projection traverse the same replay UI. Separately reproduce one-chunk stock delivery and a real worker exit so a fix for either observation cannot hide loss of the other.",
+          "M0-093 declared stream-slice, but that mapping required only market-live-stream and ui-build. The unchanged roughly four-second interruption case was not selected by the local task."
+        ],
+        "risks": [
+          {
+            "failure": "Adjacent recovery frames collapse into resumed or display the final bar before reconnecting and resumed are both visible with the same confirmed bar and Offline connection.",
+            "checks": [
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "The repair drops the stock partial legend or price-line observation in one chunk, accepts an invalid sequence, or updates an already replaced instrument.",
+            "checks": [
+              "market-workflow",
+              "market-live-stream"
+            ]
+          },
+          {
+            "failure": "The recovery misses its genuine owned worker exit, changes subscription or position validation, mutates frozen history, or weakens deadlines or failed recovery.",
+            "checks": [
+              "market-worker-interruption",
+              "market-recovery",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "A new or active stream-slice plan omits market-worker-interruption, or the repair makes accepted plans and receipts invalid.",
+            "checks": [
+              "project-state"
+            ]
+          },
+          {
+            "failure": "The UI works only in the fixture or crosses a declared module boundary.",
+            "checks": [
+              "ui-build",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the two original failed platform artifacts and both focused distinctions. If the candidate fails either, revert its replay implementation independently and repair the display boundary with the original checks intact.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-sample-replay.ts",
+            "tests/ubuntu-preview/worker-interruption.spec.mjs",
+            "tests/ubuntu-preview/market-workflow.spec.mjs",
+            "project/delivery.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/change_types"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No protocol, worker supervision, scheduler, CI scope or release changes. No edits to completed M0-093, its receipt, or the open M0-091 budget finding."
+          ],
+          "open_questions": [
+            "Which display commit boundary causes the observed missing state when recovery frames are adjacent?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Real worker exit and restart, frozen bars, existing state labels, sequence validation, cancellation, named assertions and deadlines."
+          ],
+          "change": [
+            "Make adjacent legitimate replay observations visibly ordered and require the existing interruption regression for active stream-slice changes."
+          ],
+          "data_plan": "Use the existing synthetic series and retain original process, frame and visual observations without data or protocol migration.",
+          "cleanup": "Keep the protected artifact index, both focused cases, delivery validation control and independent review with the repair."
+        }
+      }
     }
   ]
 }

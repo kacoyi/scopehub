@@ -40,30 +40,74 @@ test.beforeAll(async ({}, info) => {
 });
 test.afterAll(async () => { await server?.close(); });
 
-function observeRecovery() {
+function observeRecovery(groupRecovery) {
   const fetch = window.fetch;
   window.interruptionBodies = [];
   window.interruptionStates = [];
+  window.recoveryReads = [];
+  window.recoveryPaints = [];
+
+  function groupRecoveryRead(response) {
+    let partial = '';
+    let reconnecting = '';
+    const encoder = new TextEncoder();
+    const body = response.body.pipeThrough(new TextDecoderStream('utf-8', { fatal: true })).pipeThrough(new TransformStream({
+      transform(chunk, controller) {
+        const lines = (partial + chunk).split('\n');
+        partial = lines.pop();
+        for (const line of lines) {
+          if (JSON.parse(line).recovery?.status === 'reconnecting') {
+            reconnecting = line + '\n';
+            continue;
+          }
+          // The confirmed partial has already gone through the ordinary reader.
+          // Only the next read combines reconnecting with the following recovery frame.
+          const delivery = reconnecting + line + '\n';
+          if (reconnecting) window.recoveryReads.push(delivery);
+          reconnecting = '';
+          controller.enqueue(encoder.encode(delivery));
+        }
+      },
+      flush(controller) {
+        if (reconnecting || partial) controller.enqueue(encoder.encode(reconnecting + partial));
+      },
+    }));
+    return new Response(body, { status: response.status, headers: response.headers });
+  }
   window.fetch = async (...args) => {
     const response = await fetch(...args);
     if (new URL(response.url).pathname === '/__scopehub/market-stream' && response.status === 200) {
       window.interruptionBodies.push(response.clone().text());
+      if (groupRecovery) return groupRecoveryRead(response);
     }
     return response;
   };
   document.addEventListener('DOMContentLoaded', () => {
     let interrupted = false;
-    new MutationObserver(() => {
+    function readState() {
       const state = document.querySelector('.replay-status')?.textContent;
-      if (!state) return;
       const legend = document.querySelector('[aria-label="Selected bar"]')?.textContent;
       const term = [...document.querySelectorAll('dt')].find(node => node.textContent === 'Connection');
-      const connection = term?.nextElementSibling?.textContent;
-      const last = window.interruptionStates.at(-1);
-      if (last?.state !== state || last?.legend !== legend || last?.connection !== connection) {
-        window.interruptionStates.push({ state, legend, connection });
+      return { state, legend, connection: term?.nextElementSibling?.textContent };
+    }
+    function record(observations, observation) {
+      if (JSON.stringify(observation) !== JSON.stringify(observations.at(-1))) observations.push(observation);
+    }
+    if (groupRecovery) {
+      function sample() {
+        const observation = readState();
+        if (observation.state === 'Market worker reconnecting…' || observation.state === 'Market worker resumed') {
+          record(window.recoveryPaints, observation);
+        }
+        requestAnimationFrame(sample);
       }
-      if (!interrupted && /C 3501\.2Volume 120/.test(legend)) {
+      requestAnimationFrame(sample);
+    }
+    new MutationObserver(() => {
+      const observation = readState();
+      if (!observation.state) return;
+      record(window.interruptionStates, observation);
+      if (!interrupted && /C 3501\.2Volume 120/.test(observation.legend)) {
         interrupted = true;
         void window.interruptOwnedWorker();
       }
@@ -71,7 +115,7 @@ function observeRecovery() {
   });
 }
 
-test('resumes one real chart stream after its confirmed worker exits', async ({ page }) => {
+async function interruptRealWorker(page, testInfo, groupRecovery) {
   const driver = spawn(python, ['-I', join(root, 'tests/ubuntu-preview/interrupt_owned_worker.py'), String(process.pid)], {
     cwd: root, stdio: ['pipe', 'pipe', 'inherit'],
   });
@@ -81,7 +125,7 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
     const [ready] = await Promise.race([once(reader, 'line'), finished]);
     expect(ready).toBe('ready');
     await page.exposeFunction('interruptOwnedWorker', () => { driver.stdin.end('interrupt\n'); });
-    await page.addInitScript(observeRecovery);
+    await page.addInitScript(observeRecovery, groupRecovery);
     const attempts = [];
     page.on('request', request => {
       if (new URL(request.url()).pathname === '/__scopehub/market-stream') attempts.push(request.postDataJSON());
@@ -94,16 +138,18 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
     await waitForReplayRequest(page, () => control(page, 'Play sample updates').press('Enter'));
     await expect(page.locator('.replay-status')).toHaveText('Synthetic replay complete', replayStage);
     await expect(legend).toHaveText(barLegend(finalBar));
-    const states = await page.evaluate(() => window.interruptionStates);
-    for (const state of ['Market worker reconnecting…', 'Market worker resumed']) {
-      expect(states).toContainEqual({ state, legend: barLegend(confirmedBar), connection: 'Offline' });
-    }
-    const legends = states.map(observation => observation.legend);
-    expect(legends.filter((value, index) => value !== legends[index - 1])).toEqual([frozenBar, confirmedBar, finalBar].map(barLegend));
+    const observed = await page.evaluate(async () => ({
+      states: window.interruptionStates, bodies: await Promise.all(window.interruptionBodies),
+      recoveryReads: window.recoveryReads, recoveryPaints: window.recoveryPaints,
+    }));
+    await testInfo.attach('Real worker interruption stream and chart states', {
+      body: JSON.stringify({ ...observed, attempts }), contentType: 'application/json',
+    });
+    const { states, bodies } = observed;
     expect(attempts).toHaveLength(1);
-    const bodies = await page.evaluate(() => Promise.all(window.interruptionBodies));
     expect(bodies).toHaveLength(1);
-    const frames = bodies[0].trimEnd().split('\n').map(line => JSON.parse(line));
+    const lines = bodies[0].trimEnd().split('\n');
+    const frames = lines.map(line => JSON.parse(line));
     const after = attempts[0].payload.after;
     const confirmed = { ...after, sequence: 1 };
     expect(frames).toHaveLength(6);
@@ -119,6 +165,18 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
       });
       expect(event.payload.bar).toEqual(bar);
     }
+    const recovery = ['Market worker reconnecting…', 'Market worker resumed'].map(state => ({
+      state, legend: barLegend(confirmedBar), connection: 'Offline',
+    }));
+    const actual = states.filter(observation => recovery.some(expected => observation.state === expected.state)
+      && observation.legend === barLegend(confirmedBar));
+    expect(actual).toEqual(recovery);
+    if (groupRecovery) {
+      expect(observed.recoveryReads).toEqual([lines.slice(2, 4).join('\n') + '\n']);
+      expect(observed.recoveryPaints.filter(observation => observation.legend === barLegend(confirmedBar))).toEqual(recovery);
+    }
+    const legends = states.map(observation => observation.legend);
+    expect(legends.filter((value, index) => value !== legends[index - 1])).toEqual([frozenBar, confirmedBar, finalBar].map(barLegend));
     await openPanel(page, 'Data window');
     const row = page.getByRole('table', { name: 'Historical bars' }).locator('tbody tr').last();
     await expect(row.getByRole('cell')).toHaveText(['2024-01-04T01:09:00.000Z', '2024-01-04', '3501.6', '3502', '3500.8', '3500.8', '110', 'Partial']);
@@ -129,4 +187,12 @@ test('resumes one real chart stream after its confirmed worker exits', async ({ 
     const [exitCode] = await finished;
     expect(exitCode).toBe(0);
   }
+}
+
+test('resumes one real chart stream after its confirmed worker exits', async ({ page }, testInfo) => {
+  await interruptRealWorker(page, testInfo, false);
+});
+
+test('shows both real worker recovery states delivered in one browser read', async ({ page }, testInfo) => {
+  await interruptRealWorker(page, testInfo, true);
 });

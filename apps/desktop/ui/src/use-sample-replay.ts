@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { MarketStreamGap, MarketStreamGapEvent, MarketSubscriptionOutput } from '../../../../contracts/generated/protocol';
 import { message } from './i18n';
 import { describeMarketFailure, invalidMarketData, readStreamPosition, type Bar, type ChartHistory, type MarketFailure } from './market';
@@ -15,6 +16,33 @@ type ReplayStatus =
   | { state: 'starting' | 'playing' | 'complete' | 'gap' | ReplayRecoveryStatus }
   | { state: 'failed'; failure: MarketFailure };
 type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar; repairedBars?: readonly Bar[]; gap: ReplayGap | undefined };
+
+// Match the sample worker's interval even when transport delivers both bars together.
+const samplePartialDisplayMs = 600;
+
+function afterVisibleDisplay(signal: AbortSignal, holdMs: number): Promise<void> {
+  if (signal.aborted || document.visibilityState !== 'visible') return Promise.resolve();
+  return new Promise(resolve => {
+    let frame: number;
+    let timer: number | undefined;
+    function finish() {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      document.removeEventListener('visibilitychange', finish);
+      resolve();
+    }
+    signal.addEventListener('abort', finish, { once: true });
+    document.addEventListener('visibilitychange', finish, { once: true });
+    // The chart SDK draws at an animation frame after the layout effect updates its data.
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        if (holdMs > 0) timer = window.setTimeout(finish, holdMs);
+        else finish();
+      });
+    });
+  });
+}
 
 export function useSampleReplay(history: ChartHistory | undefined) {
   const [replay, setReplay] = useState<Replay>();
@@ -37,9 +65,19 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     let bar = initial;
     let hasUpdate = false;
     let gap: ReplayGap | undefined;
-    const update = (status: ReplayStatus, repairedBars?: readonly Bar[]) => {
-      if (!signal.aborted) setReplay({ history, ...status, gap,
+    let display = Promise.resolve();
+    const update = (status: ReplayStatus, repairedBars?: readonly Bar[], frame?: 'partial' | 'recovery') => {
+      const view: Replay = { history, ...status, gap,
         ...(repairedBars ? { repairedBars } : hasUpdate ? { bar } : {}),
+      };
+      // Keep transport validation independent of distinct chart and recovery displays.
+      display = display.then(() => {
+        if (signal.aborted) return;
+        if (frame) {
+          flushSync(() => setReplay(view));
+          return afterVisibleDisplay(signal, frame === 'partial' ? samplePartialDisplayMs : 0);
+        }
+        setReplay(view);
       });
     };
     update({ state: 'starting' });
@@ -89,7 +127,8 @@ export function useSampleReplay(history: ChartHistory | undefined) {
             throw invalidMarketData();
           }
           stream.recovery = status;
-          update({ state: status });
+          // A fast restart can deliver both transitions before the previous partial finishes displaying.
+          update({ state: status }, undefined, 'recovery');
           return;
         }
         const event = frame.event;
@@ -122,7 +161,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         observed = next.observed_at_ms;
         bar = next.bar;
         hasUpdate = true;
-        update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' });
+        update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' }, undefined, bar.is_closed ? undefined : 'partial');
       });
       if (stream.repair) {
         if (result?.status !== 'complete') throw invalidMarketData();
@@ -151,6 +190,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     } catch (error) {
       update({ state: 'failed', failure: describeMarketFailure(error) });
     } finally {
+      await display;
       if (active.current?.controller === controller) active.current = undefined;
     }
   }
