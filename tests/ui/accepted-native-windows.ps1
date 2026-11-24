@@ -29,52 +29,75 @@ function Show-NativeState([string]$stage) {
     Write-Host "Owned workspace at ${stage}: $($visible -join ' | ')"
     Archive-Stage $stage
 }
+function Contains-UIElement($ancestor,$node) {
+    $walker=[Windows.Automation.TreeWalker]::RawViewWalker
+    for ($i=0; $i -lt 40 -and $node -and $ancestor; $i++) {
+        if ($ui::Compare($ancestor,$node)) { return $true }
+        $node=$walker.GetParent($node)
+    }
+    return $false
+}
 function Select-SeriesChoice([string]$label,[string]$wanted) {
-    $combo=Wait-ForProbe "$label in the native studio" { Named-Control $label $type::ComboBox }
-    $combo.SetFocus()
-    $selection=[Windows.Automation.SelectionPattern]::Pattern
-    $before=$null
-    if ($combo.TryGetCurrentPattern($selection,[ref]$before)) {
-        Write-Host "$label initial selection: $(@($before.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -join ', ')"
-    }
-    [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
-    $item=& {
-        $c=Named-Control $label $type::ComboBox
-        if (!$c) { return }
-        foreach ($i in $c.FindAll($scope,$any)) {
-            $name=[string]$i.Current.Name
-            if ($i.Current.IsEnabled -and ($name -eq $wanted -or ($wanted -eq 'accepted UUID' -and $name -match '^[a-f0-9-]{36}$'))) { return $i }
+    $exactName=[Windows.Automation.PropertyCondition]::new($ui::NameProperty,$wanted)
+    $expandPattern=[Windows.Automation.ExpandCollapsePattern]::Pattern
+    $null=Wait-ForProbe "$label opened with exact selectable item $wanted in the studio" {
+        $studio=Find-Control 'Drawing studio' $null
+        $combo=Named-Control $label $type::ComboBox
+        if (!$combo -or !$studio) { return $false }
+        $item=$combo.FindAll($scope,$exactName) | Where-Object { $_.Current.IsEnabled -and !$_.Current.IsOffscreen } | Select-Object -First 1
+        if (!$item) {
+            $item=$window.FindAll($scope,$exactName) | Where-Object {
+                $_.Current.IsEnabled -and !$_.Current.IsOffscreen -and $_.Current.ControlType -in @($type::ListItem,$type::MenuItem)
+            } | Select-Object -First 1
         }
-        # The expanded select popup can be a sibling of the combo in WebView2.
-        foreach ($i in $window.FindAll($scope,[Windows.Automation.PropertyCondition]::new($ui::ControlTypeProperty,$type::ListItem))) {
-            $name=[string]$i.Current.Name
-            if (!$i.Current.IsOffscreen -and $i.Current.IsEnabled -and ($name -eq $wanted -or ($wanted -eq 'accepted UUID' -and $name -match '^[a-f0-9-]{36}$'))) { return $i }
+        if (!$item) {
+            $exp=$null
+            if ($combo.TryGetCurrentPattern($expandPattern,[ref]$exp)) {
+                if ($exp.Current.ExpandCollapseState -eq [Windows.Automation.ExpandCollapseState]::Collapsed) { $exp.Expand() }
+            } else {
+                $r=$combo.Current.BoundingRectangle
+                if (!$r.IsEmpty) {
+                    $x=[int]($r.X+$r.Width/2); $y=[int]($r.Y+$r.Height/2)
+                    $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
+                    if (Contains-UIElement $combo $hit) {
+                        [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                        Start-Sleep -Milliseconds 300
+                    }
+                }
+            }
+            return $false
         }
-    }
-    $exact=if ($item) { [string]$item.Current.Name } else { $wanted }
-    Write-Host "$label requested $wanted; exposed option: $([string]$item.Current.Name)."
-    if ($exact -eq 'accepted UUID') {
-        [Windows.Forms.SendKeys]::SendWait('{HOME}{DOWN}{ENTER}')
-        Wait-Name 'Numeric series'
-        return
-    }
-    # Use the verified item's type-ahead name in the open native select.
-    [Windows.Forms.SendKeys]::SendWait($exact.Substring(0,[Math]::Min(8,$exact.Length))+'{ENTER}')
-    $null=Wait-ForProbe "$label shows $exact as the current selection" {
-        $c=Named-Control $label $type::ComboBox
-        if (!$c) { return }
-        $v=$null
-        if ($c.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern,[ref]$v) -and $v.Current.Value -eq $exact) { return $true }
-        $sel=$null
-        if ($c.TryGetCurrentPattern($selection,[ref]$sel)) {
-            if (@($sel.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -contains $exact) { return $true }
+        $active=$ui::FocusedElement
+        $focusedOnChoice=(Contains-UIElement $combo $active) -or (Contains-UIElement $item $active)
+        if (!$focusedOnChoice) {
+            if (([string]$active.Current.Name) -eq $wanted -and (Contains-UIElement $window $active)) { $focusedOnChoice=$true }
         }
-        if (([string]$c.Current.Name).Contains($exact)) { return $true }
-        # Subsequent native source disclosure independently checks the full selected identity.
-        if ($label -eq 'Accepted version' -and (Named-Control 'Numeric series' $type::ComboBox)) { return $true }
-        return $label -eq 'Numeric series' -and (Find-Control 'Accepted series source' $null)
+        if (!$focusedOnChoice) {
+            $combo.SetFocus()
+            return $false
+        }
+        Write-Host "Verified selectable '$wanted' for '$label'; focus='$($active.Current.Name)', item type=$($item.Current.ControlType.ProgrammaticName)."
+        $rect=$item.Current.BoundingRectangle
+        if (!$rect.IsEmpty) {
+            $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
+            $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
+            if ((Contains-UIElement $item $hit) -or (([string]$hit.Current.Name) -eq $wanted -and (Contains-UIElement $window $hit))) {
+                [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                return $true
+            }
+        }
+        $select=$null
+        if ($item.TryGetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern,[ref]$select)) {
+            $select.Select()
+            $exp=$null
+            if ($combo.TryGetCurrentPattern($expandPattern,[ref]$exp) -and $exp.Current.ExpandCollapseState -eq [Windows.Automation.ExpandCollapseState]::Expanded) { $exp.Collapse() }
+            return $true
+        }
+        return $false
     }
-    Write-Host "$label advanced for $exact; full identity is checked in the studio source disclosure."
+    $next=if ($label -eq 'Accepted version') { 'Numeric series' } else { 'Accepted series source' }
+    Wait-Name $next
+    Write-Host "The native $label selection advanced to $next; the source disclosure is checked independently."
 }
 function Open-PreparedSource {
     $null=Wait-ForProbe 'completed first workspace source restoration' {
@@ -123,6 +146,29 @@ function Try-Activate($control) {
     if (!$atPoint -or ([string]$atPoint.Current.Name) -ne ([string]$control.Current.Name)) { return $false }
     [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
     return $true
+}
+function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
+    $resolve={ if ($Indicator) { Indicator-Control $label } else { Named-Control $label $type::Button } }
+    $button=Wait-ForProbe "enabled $label" { $b=& $resolve; if ($b -and $b.Current.IsEnabled) { $b } }
+    $button.SetFocus()
+    $null=Wait-ForProbe "pointer over the owned $label button" {
+        $b=& $resolve
+        if (!$b -or !$b.Current.IsEnabled) { return $false }
+        $r=$b.Current.BoundingRectangle
+        if ($r.IsEmpty -or $r.Width -lt 1 -or $r.Height -lt 1) { return $false }
+        $x=[int]($r.X+$r.Width/2); $y=[int]($r.Y+$r.Height/2)
+        $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
+        $walker=[Windows.Automation.TreeWalker]::ControlViewWalker
+        for ($i=0; $i -lt 8 -and $hit; $i++) {
+            if ($ui::Compare($b,$hit)) {
+                [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                Write-Host "Verified owned pointer activation of $label at ($x,$y)."
+                return $true
+            }
+            $hit=$walker.GetParent($hit)
+        }
+        return $false
+    }
 }
 function Review-Step([string]$label) {
     Write-Output "Native workspace control: $label"
@@ -459,7 +505,7 @@ try {
         $acceptedHash=Read-AcceptedHash
         Write-Output "Accepted two-period volume mean: Unknown, 115, 125, 135; result SHA256=$acceptedHash"
         Review-Step 'Open published CSV'
-        Review-Step 'Open series.csv'
+        Click-WorkspaceControl 'Open series.csv'
         Review-Step 'Use as workspace source'
     }
     try { Open-SeriesStudio } catch {
@@ -517,9 +563,11 @@ try {
     Review-Step 'Back to chart'
     Review-Step 'Data sources'
     Review-Step 'Open published CSV'
-    Review-Step 'Open series.csv'
-    Review-Step 'Remove frozen chart access'
-    Review-Step 'Remove access'
+    Click-WorkspaceControl 'Open series.csv'
+    Wait-Name 'Use as workspace source'
+    Archive-Stage 'before-revoke'
+    Click-WorkspaceControl 'Remove frozen chart access'
+    Click-WorkspaceControl 'Remove access'
     $null=Wait-Text 'Access removed for this published revision.'
     Archive-Stage 'revoked'
     if (!$observations.Count) { Write-Output "Windows renderer verified: result $acceptedHash; UTC missing point, both authored shapes, source switch and native revocation." }
