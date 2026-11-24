@@ -18083,6 +18083,7 @@
         "project/feedback.json",
         "project/delivery.json",
         "tests/ubuntu-preview",
+        "apps/desktop/ui/ubuntu-preview.mjs",
         ".github/workflows/verify.yml"
       ],
       "decision_refs": [
@@ -18125,6 +18126,7 @@
           ".github/workflows/verify.yml",
           "tests/ubuntu-preview/workspace.config.mjs",
           "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs",
           "scripts/integration.py"
         ],
         "hypotheses": [
@@ -18180,6 +18182,10 @@
           {
             "failure": "The Windows Python producer environment changes nested public artifact staging into lane staging and suppresses typed scope evidence.",
             "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "A Chromium socket retry interleaves host history traces, causing the browser check to reject a valid transport failure or accept an incomplete attempt. The selected history and private undo must remain correct after recovery.",
+            "checks": ["workspace-timeframe"]
           }
         ],
         "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",
@@ -18195,6 +18201,7 @@
             "tests/project/test_delivery.py",
             "project/delivery.json",
             "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
             ".github/workflows/verify.yml"
           ],
           "rules": [
@@ -18221,7 +18228,8 @@
             "Named test cases, actual failure signals, logs and the required protected platform coverage."
           ],
           "change": [
-            "Reduce repeated verification work and make the previously stated budget actionable during delivery."
+            "Reduce repeated verification work and make the previously stated budget actionable during delivery.",
+            "Correlate browser history diagnostics for each HTTP attempt, including overlapping trace delivery after a socket retry."
           ],
           "data_plan": "Use synthetic fixtures and retained CI timings. Preserve prior reports and compare matching selection, runner and cache state.",
           "cleanup": "Remove superseded work on the normal check path once the comparison is verified. Keep remaining bottlenecks visible under a named follow-up."

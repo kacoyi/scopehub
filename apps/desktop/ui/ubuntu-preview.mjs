@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -12,7 +13,8 @@ function traceHistory(request, response) {
   if (process.env.SCOPEHUB_TEST_PREVIEW !== '1' || typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
     return () => {};
   }
-  const trace = (stage, detail = {}) => console.info('Preview history', JSON.stringify({ id, stage, ...detail }));
+  const attempt = randomUUID();
+  const trace = (stage, detail = {}) => console.info('Preview history', JSON.stringify({ id, attempt, stage, ...detail }));
   trace('received');
   response.once('finish', () => trace('finished', { status: response.statusCode }));
   response.once('close', () => {
