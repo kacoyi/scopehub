@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-015",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17738,7 +17738,7 @@
       "id": "M4-015",
       "title": "Reveal a cited model evidence row on its original chart",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-008",
         "M4-011"
@@ -17764,10 +17764,15 @@
         "model-connection-workflow",
         "desktop-localization"
       ],
-      "evidence": [],
-      "next_action": "Run the task checks against the local candidate and retain the evidence for review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M4-015-a4c775e206591482.json",
+          "sha256": "72b4f9a599fdd8d97d66bca0bfe2b3e4f4d1d2b5b29a01fcec93a06b8f81f462"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The local Linux task checks passed on 15093fe. The synthetic model fixture exercised the original price canvas, exact UTC and close, keyboard return to the same answer and draft, viewport restoration, a subsequent question, and refusal after a stale selection, changed timeframe, or different source. A real second client cleared a still-displayed selection, and the workspace snapshot rejected the citation. Navigation used a local metadata read and preserved persisted rows and model traffic. Native Windows interaction and hosted verification remain unobserved for this change.",
       "plan": {
         "outcome": "A researcher can follow a close price cited in a conversation to its exact bar on the current authorized chart and return to the same answer.",
         "change_types": [
