@@ -5,7 +5,14 @@
   "fingerprint": "2b1dd83b49712b08a83e07493a226c2443749a516c8680094511059dc1ffac11",
   "pennant_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
   "pennant_fingerprint": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
-  "recommendation": "Provisional engineering preference for isolated QuickJS geometry in the existing Tauri host, with trusted host-owned controls, text and accessible data readouts. Keep the host-interpreted tree available for document-style views. Final renderer selection remains open.",
+  "recommendation": "The frozen JavaScript prototype demonstrates user-authored plots and selection. Prefer isolated QuickJS provisionally for drawing those views. The host owns authoritative readouts, source access, operation authorization and confirmations. Users must also be able to author ordinary text, arrange evidence, set conditions for what appears and define non-privileged interactions. The geometry API and its 900-character admission limit apply to this prototype. The JSON document renderer is one optional way to present authored content. V1 must allow new compositions beyond its current widget catalogue. Final renderer selection remains open.",
+  "remaining_chart_free_journey": {
+    "task": "M2-013",
+    "check": "chart-free-workbench",
+    "create": "In the native workbench, start blank and ask the embedded AI to place a selected local research note beside attributed disclosures. Author the text, arrangement and issuer/time condition. For issuer A reviewed at 09:00 UTC, show A at 09:10, exclude A at 08:55 and B at 09:05, and include A at 09:20 on refresh. Selecting a match opens the attributed original through the host under current rights.",
+    "edit_and_reopen": "Ask the embedded AI to put the newest match first. Preview and accept the edit, refine one element directly, undo, save and reopen. Verify ordering, cutoff and evidence identity. Exercise a second arrangement with a different binding using the same application. A rejected or stalled draft must leave the accepted view usable.",
+    "coverage": "Distinguish an authorized read with no matches from a disconnected source. Reopen after revocation and check current rights while retaining the user's composition. These steps are pending under the existing M2-013 journey."
+  },
   "shared_workload": {
     "scope": "Live UI of both candidates, ordinary embedded author and revise turns through a controlled local provider. Real authoring handoff by external Codex is separately evidenced by the three sealed cases.",
     "input": "Pinned two-minute synthetic futures observations, snapshot 3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1. Display volume lengths, select the later minute, revise the same lengths to close prices, reject an invalid presentation and restore the accepted result.",
