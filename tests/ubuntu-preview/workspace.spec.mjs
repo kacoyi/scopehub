@@ -4417,9 +4417,9 @@ test('private record review retires an approval after known peer deletion', asyn
   } finally { await profile.close(); }
 });
 
-for (const fault of ['admission busy', 'lost acknowledgement']) {
+for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
   const testName = 'private record review cancellation leaves the other window approval intact';
-  test(fault === 'admission busy' ? testName : testName + ' after a lost acknowledgement', async ({ browser }, testInfo) => {
+  test(fault === 'none' ? testName : testName + ' after ' + fault, async ({ browser }, testInfo) => {
     const profile = await makeProfile();
     const stages = [];
     const decline = privateRequestMatches('privateRecord.change', args => args.action === 'resolve' && args.decision === 'decline');
@@ -4479,7 +4479,7 @@ for (const fault of ['admission busy', 'lost acknowledgement']) {
                     await writerPid(server, 'resume', writer);
                     expect((await reserved).ok).toBe(true);
                   }
-                } else {
+                } else if (fault === 'lost acknowledgement') {
                   const dropped = await dropApprovalReply(pageB, server, 'privateRecord.change', decline);
                   try {
                     const failed = pageB.waitForEvent('requestfailed', request =>
@@ -4488,27 +4488,34 @@ for (const fault of ['admission busy', 'lost acknowledgement']) {
                     expect(dropped.outcome()).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
                     stages.push({ step: 'second decline reaches the core but the reply is lost', code: 'CANCELLED' });
                   } finally { await dropped.restore(); }
+                } else {
+                  const cancelled = await privateReplyDuring(pageB, stages, 'second decline is acknowledged on its first attempt', decline,
+                    () => clickPrivate(second, 'Cancel review'));
+                  expect(cancelled.observed).toMatchObject({ http: 200, state: 'failed', code: 'CANCELLED' });
                 }
-                await expect(second.getByRole('alert')).toBeVisible();
                 expect(resolutions).toHaveLength(1);
                 expect(resolutions[0].scope).toEqual(secondReview.payload.scope);
                 expect(resolutions[0].intent.arguments).toEqual({
                   action: 'resolve', challenge_id: secondReview.outcome.challenge_id, decision: 'decline',
                 });
                 expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
-                await expect(second.getByText('Action cancelled.')).toHaveCount(0);
-                await expect(second.getByRole('button', { name: 'Save private record', exact: true })).toHaveCount(0);
+                if (fault !== 'none') {
+                  await expect(second.getByRole('alert')).toBeVisible();
+                  await expect(second.getByText('Action cancelled.')).toHaveCount(0);
+                  await expect(second.getByRole('button', { name: 'Save private record', exact: true })).toHaveCount(0);
 
-                const retried = await privateReplyDuring(pageB, stages, 'second window explicitly retries the same decline', decline,
-                  () => clickPrivate(second, 'Retry cancellation'));
-                expect(retried.payload.scope).toEqual(resolutions[0].scope);
-                expect(retried.payload.intent).toEqual(resolutions[0].intent);
-                expect(retried.payload.request_id).not.toBe(resolutions[0].request_id);
-                expect(resolutions).toHaveLength(2);
-                expect(retried.observed).toMatchObject({
-                  http: 200, state: 'failed', code: fault === 'admission busy' ? 'CANCELLED' : 'CONFIRMATION_REQUIRED',
-                });
+                  const retried = await privateReplyDuring(pageB, stages, 'second window explicitly retries the same decline', decline,
+                    () => clickPrivate(second, 'Retry cancellation'));
+                  expect(retried.payload.scope).toEqual(resolutions[0].scope);
+                  expect(retried.payload.intent).toEqual(resolutions[0].intent);
+                  expect(retried.payload.request_id).not.toBe(resolutions[0].request_id);
+                  expect(resolutions).toHaveLength(2);
+                  expect(retried.observed).toMatchObject({
+                    http: 200, state: 'failed', code: fault === 'admission busy' ? 'CANCELLED' : 'CONFIRMATION_REQUIRED',
+                  });
+                }
                 await expect(second.getByText('Action cancelled.')).toBeVisible();
+                await expect(second.getByRole('button', { name: 'Retry cancellation' })).toHaveCount(0);
                 expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
 
                 releaseFirstReads.resolve();
@@ -4522,7 +4529,7 @@ for (const fault of ['admission busy', 'lost acknowledgement']) {
                 await clickPrivate(second, 'Discard draft');
                 await expect(second.getByRole('button', { name: new RegExp(firstTitle) })).toBeVisible();
                 await expect(second.getByRole('button', { name: new RegExp(secondTitle) })).toHaveCount(0);
-                expect(resolutions).toHaveLength(2);
+                expect(resolutions).toHaveLength(fault === 'none' ? 1 : 2);
               } finally { database.close(); }
             });
           } finally {
