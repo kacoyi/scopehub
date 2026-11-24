@@ -4253,6 +4253,17 @@
       "deferral_reason": null
     },
     {
+      "id": "integration-main-push-budget-allows-renaming-governed-finding",
+      "source": "Independent Astra review of 59f4c0d, retained at archives/observations/m0-087-integration-main-handoff/astra-59f4c0d.txt (SHA-256 82cce7e326a1f2b61fc880fbddf77cdf9ec38c4a80f0a873b9d62c2b89aaf083).",
+      "observation": "The candidate policy supplies the only lookup key for the main-push closure check. A candidate can misspell the key, remove the follow-up owner from the original finding and mark it addressed. The normal integration entry then reports technical readiness without a main-push observation, even when the protected base names the original finding.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "windows-records-aggregate-accepts-selected-omission",
       "source": "Independent review of cfdcff2 using a real Windows report's commands and result fields.",
       "observation": "A records fixture with a passed summary and its selected dependency-review omitted as blocked/not_selected passed the lane validator. With a successful producer job, the protected aggregate could return zero for that report.",

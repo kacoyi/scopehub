@@ -34,6 +34,15 @@ FULL_HARNESS_STEPS = {
     'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
+MAIN_PUSH_BUDGET_POLICY = 'post_merge_main_push_budget'
+# This exception belongs to one reviewed repair. The first policy PR cannot
+# use its own configuration to choose which existing observation to govern.
+MAIN_PUSH_BUDGET_BINDING = {
+    'pull_request_feedback_id': 'verification-overrun-without-timely-remediation',
+    'main_push_feedback_id': 'verification-main-push-feedback-budget-overrun',
+    'repair_task_id': 'M0-087',
+    'follow_up_task_id': 'M0-091',
+}
 
 
 def checked_pull_request(log):
@@ -244,8 +253,33 @@ def budget_regression_receipt(root, project, task, finding, repair, source):
     return None
 
 
-def main_push_budget_handoff(root, project, base, completed, items, *, source, policy, workflow, jobs):
-    rule = project['delivery']['source_control'].get('post_merge_main_push_budget')
+def main_push_budget_rule(root, project, base, completed, items, previous_feedback):
+    candidate = project['delivery']['source_control'].get(MAIN_PUSH_BUDGET_POLICY)
+    push_id = MAIN_PUSH_BUDGET_BINDING['main_push_feedback_id']
+    push, previous = items.get(push_id, {}), previous_feedback.get(push_id, {})
+    new_closure = push.get('status') == 'addressed' and previous.get('status') != 'addressed'
+    required = candidate is not None or MAIN_PUSH_BUDGET_BINDING['repair_task_id'] in completed or new_closure
+    try:
+        delivery = json.loads(git(root, 'show', f'{base}:project/delivery.json')) if base else {}
+    except ScopeError:
+        return None, 'The protected main-push budget policy could not be read.' if required else None
+    protected = delivery.get('source_control', {}).get(MAIN_PUSH_BUDGET_POLICY)
+    if protected is not None and candidate != protected:
+        return None, 'The PR changes or removes the protected main-push budget policy.'
+    if not required and protected is None:
+        return None, None
+    if candidate is None or any(candidate.get(key) != value for key, value in MAIN_PUSH_BUDGET_BINDING.items()):
+        return None, 'The main-push budget policy must name the governed M0-087 findings and M0-091.'
+    missing = [candidate[key] for key in ('pull_request_feedback_id', 'main_push_feedback_id')
+               if candidate[key] not in items]
+    missing.extend(candidate[key] for key in ('repair_task_id', 'follow_up_task_id')
+                   if candidate[key] not in project['tasks'])
+    if missing:
+        return None, f"The main-push budget policy references unavailable records: {', '.join(missing)}."
+    return candidate, None
+
+
+def main_push_budget_handoff(root, project, base, completed, items, rule, *, source, policy, workflow, jobs):
     if not rule or not source or not policy or not workflow or source['working_tree_dirty']:
         return None
     if policy['branch'] != 'main' or workflow['status'] != 'passed' or workflow.get('expected_profile') != 'full':
@@ -280,7 +314,7 @@ def main_push_budget_handoff(root, project, base, completed, items, *, source, p
         return None
     try:
         committed = json.loads(git(root, 'show', f'{head}:project/delivery.json'))
-        if committed['source_control'].get('post_merge_main_push_budget') != rule:
+        if committed['source_control'].get(MAIN_PUSH_BUDGET_POLICY) != rule:
             return None
         exact_commit(root, repair)
         require_ancestor(root, repair, head)
@@ -361,11 +395,14 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
     blockers.extend(f'Unfinished delivery task: {key}' for key in unfinished)
     affected = {task['id'] for task in changed}
     items = {item['id']: item for item in project['feedback']['items']}
-    handoff = main_push_budget_handoff(root, project, base, completed, items,
+    rule, policy_blocker = main_push_budget_rule(root, project, history.get('base_commit'), completed,
+                                                items, previous_feedback)
+    if policy_blocker:
+        blockers.append(policy_blocker)
+    handoff = main_push_budget_handoff(root, project, base, completed, items, rule,
                                       source=source, policy=policy, workflow=workflow, jobs=jobs)
-    rule = project['delivery']['source_control'].get('post_merge_main_push_budget', {})
     reviewed_budgets = ({rule['main_push_feedback_id'], rule['pull_request_feedback_id']}
-                        if rule.get('repair_task_id') in affected else set())
+                        if rule and rule['repair_task_id'] in affected else set())
     handed_off = handoff['feedback_id'] if handoff else None
     if rule:
         push_id = rule['main_push_feedback_id']
@@ -384,7 +421,7 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
                          or item['severity'] == 'major' and affected.intersection(item['task_ids'])))
     return {'completed_task_ids': completed, 'unfinished_task_ids': unfinished,
             'blockers': blockers, 'history': history,
-            **({'post_merge_main_push_budget': handoff} if handoff else {}),
+            **({MAIN_PUSH_BUDGET_POLICY: handoff} if handoff else {}),
             'claim_scope': 'Completed tasks and accepted history; review must still check the diff against the declared scope.'}
 
 
