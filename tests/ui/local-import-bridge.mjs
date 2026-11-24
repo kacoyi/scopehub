@@ -1,5 +1,19 @@
 import { spawn } from 'node:child_process';
+import { join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { DatabaseSync } from 'node:sqlite';
+
+export function readPublishedWorkspaceProfile(app) {
+  const directory = join(app, 'workspace-dev');
+  const db = new DatabaseSync(join(directory, 'workspace.sqlite3'), { readOnly: true });
+  try {
+    const binding = db.prepare('SELECT profile_id FROM profile_binding WHERE singleton = 1').get();
+    if (!binding?.profile_id) throw new Error('Published workspace has no profile binding.');
+    return { directory, id: binding.profile_id, workspaceId: 'main' };
+  } finally {
+    db.close();
+  }
+}
 
 export function startLocalImportBridge(binary, profile, folder) {
   const child = spawn(binary, [profile, folder], { stdio: ['pipe', 'pipe', 'pipe'] });
