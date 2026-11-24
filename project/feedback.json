@@ -5071,6 +5071,30 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "local-api-private-protocol-corpus-missing-in-rust",
+      "source": "The unchanged M1-039 integration run archives/runs/20261124T161452.240722Z-4dcd401f/test-report.json and its bound rust-contracts-workers.log.",
+      "observation": "The first clean M1-039 task run failed private_workspace_vectors_use_local_projections_and_generated_types with market.localApiConnection input needs a valid private workspace vector. The other ten checks passed. The shared local API corpus was listed by the JS and Python suites but absent from the separate Rust list.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T161452.240722Z-4dcd401f",
+          "source_commit": "b5a0866acdd696fb03303ac91459f293d686365b",
+          "report_sha256": "473c4fb27e4c7db9105c0e5eb4af19bc87c4b3f07e7224ff5269bbd0221a732a"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "typescript-contracts",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -19523,6 +19523,14 @@
               "local-api-connection",
               "state-migrations"
             ]
+          },
+          {
+            "failure": "The language runners drift to different private workspace vector corpora or skip a generated input or output round trip.",
+            "checks": [
+              "rust-contracts-workers",
+              "typescript-contracts",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep and back up profiles using the current storage format. Closed older readers refuse the new version. Revert behavior through a compatible corrective migration or restore a reviewed pre-upgrade backup.",
