@@ -89,6 +89,40 @@ function Enter-NativeFolder([string]$folder) {
     Wait-Name 'Inspect raw rows'
 }
 
+function Indicator-Control([string]$label) {
+    $region=Find-Control 'Indicator preview' $type::Group
+    if (!$region) { return $null }
+    $name=[Windows.Automation.PropertyCondition]::new($ui::NameProperty,$label)
+    $region.FindFirst($scope,$name)
+}
+function Run-IndicatorPreview {
+    $runButton=Wait-ForProbe 'enabled Run preview inside Indicator preview' {
+        $b=Indicator-Control 'Run preview'
+        if ($b -and $b.Current.IsEnabled) { return $b }
+    }
+    $runButton.SetFocus()
+    $null=Wait-ForProbe 'owned indicator control at its visible position' {
+        $b=Indicator-Control 'Run preview'
+        if (!$b -or !$b.Current.IsEnabled) { return $false }
+        $rect=$b.Current.BoundingRectangle
+        if ($rect.IsEmpty) { return $false }
+        $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
+        $target=$ui::FromPoint([Windows.Point]::new($x,$y))
+        if (([string]$target.Current.Name) -ne 'Run preview') { return $false }
+        [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+        return $true
+    }
+    $transition=Wait-ForProbe 'indicator computation started or its result displayed' {
+        foreach ($label in @('Cancel preview','Clear preview','Accept preview','Indicator preview values')) {
+            if (Indicator-Control $label) { return $label }
+        }
+    }
+    Write-Output "Indicator-specific transition after native click: $transition"
+    Archive-Stage 'indicator-start'
+    foreach ($label in @('Accept preview','Confirm indicator acceptance')) {
+        $null=Wait-ForProbe "$label within Indicator preview" { Try-Activate (Indicator-Control $label) }
+    }
+}
 function Open-Disclosure([string]$label) {
     $control=Wait-ForProbe $label { Find-Control $label $null }
     $expand=$null
@@ -309,7 +343,7 @@ try {
         }
         $period.SetFocus()
         [Windows.Forms.SendKeys]::SendWait('^a2{TAB}')
-        foreach ($label in @('Run preview','Accept preview','Confirm indicator acceptance')) { Review-Step $label }
+        Run-IndicatorPreview
         Open-Disclosure 'Accepted provenance and values'
         $null=Wait-Text 'Unknown, 115, 125, 135'
         Archive-Stage 'confirmed'
