@@ -3889,6 +3889,25 @@
           "report_sha256": "7897be7ccfa223749c34a583e4ae6898eb85363e34fe4ab412cda0ed1f229e9f"
         }
       ]
+    },
+    {
+      "id": "accepted-series-focus-admission",
+      "source": "Controlled Chromium focus event on the real Rust writer using a disposable confirmed CSV profile; frozen runtime ef0a1e1. Retained original archives/observations/m2-020-focus-admission-ef0a1e1/manifest.json, SHA-256 c93837ac4294d205f353fceb01e6e099fecac8d49429b614f0b6b64d929d80fb.",
+      "observation": "The focus snapshot received HTTP 429 retryable BUSY. After releasing the held status reply the same frozen source remained available, and the same accepted output hash was readable. The studio still showed unavailable after the next poll. A second focus restored an empty version picker. Actual revocation in the same profile returned unavailable and PERMISSION_DENIED. The Windows observation in run 45320389416 has no recorded focus response.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-020"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": {
+        "cause": "A single refused snapshot on focus set a terminal workspace error and unmounted the studio binding, even when the accepted result remained authorized.",
+        "correction": "Bound the snapshot admission wait to four seconds. Suspend the presentation until the current workspace and accepted output are both verified. Keep the selected version and accepted view for the matching scope; dispose of them on terminal workspace error, revocation or scope change.",
+        "prevention": "Six Chromium/Rust outcomes cover a genuine 429, delayed output, terminal refusal, actual revocation, switching, studio closure and budget exhaustion. The M2-020 receipt binds the local runtime. The earlier Windows prepared-profile diagnostic retains its independent scope."
+      },
+      "deferral_reason": null
     }
   ]
 }

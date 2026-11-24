@@ -31,7 +31,9 @@ type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
 type SnapshotRequest = { type: 'snapshot' };
-type AdmissionRead = SnapshotRequest | { type: 'frozen_chart'; request_id: string; revision_id: string };
+type AdmissionRead = SnapshotRequest | { type: 'frozen_chart'; request_id: string; revision_id: string }
+  | { type: 'indicator_accepted_layers'; request_id: string; revision_id: string }
+  | { type: 'indicator_accepted_output'; request_id: string; layer_id: string };
 type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
   | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
@@ -40,8 +42,6 @@ type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCo
   | SharedSelectionRequest11 | ReadProjectedChart11
   | IndicatorCreateDraftCommand11 | IndicatorRunPreviewCommand11 | TaskCancelRequest11
   | IndicatorAcceptVersionCommand11 | IndicatorRemoveCommand11 | TrustedConfirmationDecision11
-  | { type: 'indicator_accepted_layers'; request_id: string; revision_id: string }
-  | { type: 'indicator_accepted_output'; request_id: string; layer_id: string }
   | { type: 'indicator_preview_status'; request_id: string; task_id: string }
   | { type: 'frozen_chart_status'; request_id: string; revision_id: string };
 type UndoTarget = Pick<OperationReceipt11, 'operation_id' | 'committed_workspace_revision'>;
@@ -259,18 +259,16 @@ async function retryAdmission<T>(work: (onBusy: () => void) => Promise<T>, signa
   }
 }
 
-async function readSnapshotAfterWrite(signal: AbortSignal): Promise<Snapshot> {
+async function readAdmittedSnapshot(signal: AbortSignal): Promise<Snapshot> {
   return validateSnapshot(await readWorkspaceAfterAdmission<Snapshot>({ type: 'snapshot' }, signal));
 }
 
 export function readWorkspaceAfterAdmission<T>(body: AdmissionRead, signal: AbortSignal) {
-  return retryAdmission(onBusy => body.type === 'frozen_chart'
-    ? waitForWorkspaceReply<T>(body, signal, onBusy)
-    : exchange<T>(body, signal, onBusy), signal);
+  return retryAdmission(onBusy => waitForWorkspaceReply<T>(body, signal, onBusy), signal);
 }
 
 async function readCommittedSnapshot(receipt: CommittedRevision, signal: AbortSignal): Promise<Snapshot> {
-  const current = await readSnapshotAfterWrite(signal);
+  const current = await readAdmittedSnapshot(signal);
   if (current.workspace.id !== receipt.workspace_id || current.workspace.revision < receipt.committed_workspace_revision) {
     throw { code: 'OUTPUT_INVALID' };
   }
@@ -495,7 +493,7 @@ export function useLocalWorkspace() {
   const recoverSource = useCallback(() => runSource(readSource), [readSource, runSource]);
   const reload = useCallback(() => {
     if (sourceReadback.current) void recoverSource().catch(() => {});
-    else void run(readWorkspaceSnapshot, 'open');
+    else void run(signal => readAdmittedSnapshot(AbortSignal.any([signal, AbortSignal.timeout(admissionRetryBudgetMs)])), 'open');
   }, [recoverSource, run]);
   useEffect(() => {
     if (!enabled) return;

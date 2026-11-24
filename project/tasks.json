@@ -17331,6 +17331,95 @@
           "cleanup": "Retain regression and the original candidate for independent comparison."
         }
       }
+    },
+    {
+      "id": "M2-020",
+      "title": "Recover an authorized drawing binding after focus admission contention",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-015"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "On focus, withhold the drawing until a bounded workspace read and accepted-output check establish the same authorized selection. Recover the selected version and view from a retryable writer admission rejection. Denial, expiration, a changed source or a closed studio must fence the old result."
+      ],
+      "checks": [
+        "ui-build",
+        "workbench-drawing-runtime",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-020-075c49f6e8a29c9a.json",
+          "sha256": "c916d2a1fbefd3121ddd1f06597bd606d56a014a9185555bdae17f7a6d985f95"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A busy writer on focus cannot strand or expose the selected drawing.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/accepted-drawing-series.tsx",
+          "tests/ui/accepted-drawing.spec.mjs"
+        ],
+        "hypotheses": [
+          "The one-shot focus snapshot turns a retryable admission failure into a persistent source error."
+        ],
+        "risks": [
+          {
+            "failure": "A revoked, expired or superseded binding remains visible, or a late response restores a closed view.",
+            "checks": [
+              "workbench-drawing-runtime"
+            ]
+          }
+        ],
+        "rollback": "Return to the frozen renderer branch and keep the regression and diagnostic.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/drawing-workbench.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/content_rules"
+            }
+          ],
+          "non_goals": [
+            "Changing authority, persistent storage, the guest API or chart coordinates."
+          ],
+          "open_questions": [
+            "The Windows prepared-profile observation does not identify its cause."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Current core grants, host-owned data checks and source identity."
+          ],
+          "change": [
+            "Bound admission retries on focus and gate presentation until fresh authority is confirmed."
+          ],
+          "data_plan": "Session-only selection and scene. No profile data migration.",
+          "cleanup": "Abort pending reads when their scope ends; keep the original freeze reproducible."
+        }
+      }
     }
   ]
 }
