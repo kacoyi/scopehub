@@ -124,6 +124,29 @@ function Try-Activate($control) {
     [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
     return $true
 }
+function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
+    $resolve={ if ($Indicator) { Indicator-Control $label } else { Named-Control $label $type::Button } }
+    $button=Wait-ForProbe "enabled $label" { $b=& $resolve; if ($b -and $b.Current.IsEnabled) { $b } }
+    $button.SetFocus()
+    $null=Wait-ForProbe "pointer over the owned $label button" {
+        $b=& $resolve
+        if (!$b -or !$b.Current.IsEnabled) { return $false }
+        $r=$b.Current.BoundingRectangle
+        if ($r.IsEmpty -or $r.Width -lt 1 -or $r.Height -lt 1) { return $false }
+        $x=[int]($r.X+$r.Width/2); $y=[int]($r.Y+$r.Height/2)
+        $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
+        $walker=[Windows.Automation.TreeWalker]::ControlViewWalker
+        for ($i=0; $i -lt 8 -and $hit; $i++) {
+            if ($ui::Compare($b,$hit)) {
+                [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                Write-Host "Verified owned pointer activation of $label at ($x,$y)."
+                return $true
+            }
+            $hit=$walker.GetParent($hit)
+        }
+        return $false
+    }
+}
 function Review-Step([string]$label) {
     Write-Output "Native workspace control: $label"
     $null=Wait-ForProbe $label { Try-Activate (Named-Control $label $type::Button) }
@@ -203,7 +226,8 @@ function Run-IndicatorPreview {
     Write-Output "Indicator-specific transition after native click: $transition"
     Archive-Stage 'indicator-start'
     foreach ($label in @('Accept preview','Confirm indicator acceptance')) {
-        $null=Wait-ForProbe "$label within Indicator preview" { Try-Activate (Indicator-Control $label) }
+        Click-WorkspaceControl $label -Indicator
+        if ($label -eq 'Accept preview') { Wait-Name 'Confirm accepted indicator' }
     }
 }
 function Open-Disclosure([string]$label) {
@@ -445,7 +469,7 @@ try {
         $acceptedHash=Read-AcceptedHash
         Write-Output "Accepted two-period volume mean: Unknown, 115, 125, 135; result SHA256=$acceptedHash"
         Review-Step 'Open published CSV'
-        Review-Step 'Open series.csv'
+        Click-WorkspaceControl 'Open series.csv'
         Review-Step 'Use as workspace source'
     }
     try { Open-SeriesStudio } catch {
@@ -500,9 +524,11 @@ try {
     Review-Step 'Back to chart'
     Review-Step 'Data sources'
     Review-Step 'Open published CSV'
-    Review-Step 'Open series.csv'
-    Review-Step 'Remove frozen chart access'
-    Review-Step 'Remove access'
+    Click-WorkspaceControl 'Open series.csv'
+    Wait-Name 'Use as workspace source'
+    Archive-Stage 'before-revoke'
+    Click-WorkspaceControl 'Remove frozen chart access'
+    Click-WorkspaceControl 'Remove access'
     $null=Wait-Text 'Access removed for this published revision.'
     Archive-Stage 'revoked'
     if (!$observations.Count) { Write-Output "Windows renderer verified: result $acceptedHash; UTC missing point, both authored shapes, source switch and native revocation." }
