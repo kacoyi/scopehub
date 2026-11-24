@@ -141,6 +141,12 @@ class VerifyBrowserSetupTests(unittest.TestCase):
             self.assertIn("matrix.lane != 'python'", next(step for step in steps if step.get('run') == command)['if'])
         restore = next(step for step in steps if step.get('id') == 'cargo_cache')
         self.assertIn("matrix.lane != 'python'", restore['if'])
+        producer_stage = next(step for step in steps if step.get('id') == 'artifacts')
+        self.assertEqual("uv run --no-sync python scripts/ci_artifacts.py "
+                         "${{ steps.lane.outputs.split == 'true' && 'stage-windows-lane' || 'stage' }}",
+                         producer_stage['run'])
+        aggregate_stage = next(step for step in aggregate['steps'] if step.get('id') == 'artifacts')
+        self.assertEqual('uv run --no-sync python scripts/ci_artifacts.py stage', aggregate_stage['run'])
         downloads = [step for step in aggregate['steps'] if step.get('uses', '').startswith('actions/download-artifact@')]
         self.assertEqual(2, len(downloads))
         for step in downloads:

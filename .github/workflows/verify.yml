@@ -235,8 +235,6 @@ jobs:
           SCOPEHUB_SCOPE_PROFILE: ${{ steps.scope.outputs.profile }}
           SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
           SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          SCOPEHUB_WINDOWS_LANE: ${{ matrix.lane }}
-          SCOPEHUB_SCOPED_PROFILE: ${{ steps.build_setup.outputs.profile }}
           # A cache state describes the archive restored by this job.
           SCOPEHUB_TIMING_CACHE: >-
             ${{ steps.cargo_cache.outcome == 'skipped' && 'not_requested' ||
@@ -245,7 +243,7 @@ jobs:
                 steps.cargo_cache.outputs['cache-matched-key'] == steps.cargo_keys.outputs.legacy && 'warm' ||
                 steps.cargo_cache.outputs['cache-matched-key'] != '' && 'partial' ||
                 steps.cargo_cache.outputs['cache-primary-key'] != '' && 'not_restored' || 'unknown' }}
-        run: uv run --no-sync python scripts/ci_artifacts.py stage
+        run: uv run --no-sync python scripts/ci_artifacts.py ${{ steps.lane.outputs.split == 'true' && 'stage-windows-lane' || 'stage' }}
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

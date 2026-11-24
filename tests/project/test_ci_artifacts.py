@@ -126,7 +126,7 @@ class PublicationTests(ProjectFixture):
         self.assertFalse(stage_artifacts(self.root, self.destination, {}))
         self.assertFalse(self.destination.exists())
 
-    def stage_job(self, environment):
+    def stage_job(self, environment, *, action='stage'):
         runner = self.destination.parent
         summary = runner / 'step-summary.md'
         outputs = runner / 'outputs'
@@ -135,7 +135,7 @@ class PublicationTests(ProjectFixture):
             **environment, 'GITHUB_ACTIONS': 'true', 'RUNNER_TEMP': str(runner),
             'GITHUB_OUTPUT': str(outputs), 'GITHUB_STEP_SUMMARY': str(summary),
         }), patch.object(ci_artifacts, 'ROOT', self.root),
-              patch.object(sys, 'argv', ['ci_artifacts.py', 'stage']),
+              patch.object(sys, 'argv', ['ci_artifacts.py', action]),
               redirect_stdout(messages), redirect_stderr(messages)):
             ci_artifacts.main()
         staged = dict(line.split('=', 1) for line in outputs.read_text(encoding='utf-8').splitlines())
@@ -171,6 +171,7 @@ class PublicationTests(ProjectFixture):
         return {**self.env, 'SCOPEHUB_SCOPE_OUTCOME': 'success', 'SCOPEHUB_SCOPE_PROFILE': profile,
                 'SCOPEHUB_SCOPE_BASE': decision['base'], 'SCOPEHUB_SCOPE_DECISION': json.dumps(decision)}
 
+    @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
     def test_protected_staging_produces_comparable_pr_and_main_samples(self):
         command = ['{python}', 'scripts/generate_contracts.py', '--check']
         self.add_catalog_checks('generated-contracts', command=command)
@@ -211,6 +212,7 @@ class PublicationTests(ProjectFixture):
         self.assertEqual((comparison['status'], comparison['pr_seconds'], comparison['main_seconds'],
                           comparison['main_minus_pr_seconds']), ('comparable', 2, 3, 1))
 
+    @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
     def test_windows_bundle_contains_typed_scope_and_retains_the_original_failed_report(self):
         report = self.hosted_report(system='Windows', event='push')
         report['status'] = 'failed'
@@ -230,6 +232,28 @@ class PublicationTests(ProjectFixture):
         self.assertLess((staged / SCOPE_FILE).stat().st_size, 512)
         self.assertEqual(self.sentinel, source.read_bytes())
         self.assertNotIn(b'reviewed_changes', Path(outputs['timing_path']).read_bytes())
+
+    @patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE': 'python'})
+    def test_records_and_split_lane_use_explicit_staging_under_inherited_lane_environment(self):
+        self.add_catalog_checks('python-contracts-workers')
+        report = self.hosted_report(system='Windows')
+        report['selection'] = {'profile': 'records', 'task_id': None,
+                               'checks': [row['id'] for row in report['checks']]}
+        self.save_report(report)
+        outputs, _, _ = self.stage_job(self.scope_env(profile='records', reason='reviewed_changes'))
+        self.assert_core_artifacts_retained(outputs, report)
+        scope = read_json(Path(outputs['path']) / SCOPE_FILE)
+        self.assertEqual(('records', self.env['GITHUB_SHA']), (scope['profile'], scope['checkout']))
+
+        report['checks'] = []
+        self.add_result(report, 'python-contracts-workers', status='failed')
+        report['status'] = 'failed'
+        report['selection'] = {'profile': 'ci-windows-python', 'task_id': None, 'checks': ['python-contracts-workers']}
+        self.save_report(report)
+        outputs, _, _ = self.stage_job(self.scope_env(), action='stage-windows-lane')
+        self.assert_core_artifacts_retained(outputs, report)
+        self.assertFalse((Path(outputs['path']) / SCOPE_FILE).exists())
+        self.assertEqual('ci-windows-python', read_json(Path(outputs['timing_path']))['profile'])
 
     def test_full_scope_provenance_distinguishes_risk_unavailable_comparison_and_selector_failure(self):
         report = self.hosted_report()

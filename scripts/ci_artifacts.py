@@ -460,7 +460,7 @@ def stage_timing(destination, env, *, has_report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['prepare', 'stage'])
+    parser.add_argument('action', choices=['prepare', 'stage', 'stage-windows-lane'])
     args = parser.parse_args()
     if os.environ.get('GITHUB_ACTIONS') != 'true':
         parser.exit(1, 'CI artifact handling requires a hosted verification job.\n')
@@ -469,8 +469,7 @@ def main():
             prepare_reports(ROOT)
             return
         destination = Path(tempfile.mkdtemp(prefix='scopehub-ci-', dir=os.environ['RUNNER_TEMP'])) / 'verification'
-        lane = os.environ.get('SCOPEHUB_WINDOWS_LANE')
-        has_report = stage_artifacts(ROOT, destination, os.environ, lane=bool(lane and not os.environ.get('SCOPEHUB_SCOPED_PROFILE')))
+        has_report = stage_artifacts(ROOT, destination, os.environ, lane=args.action == 'stage-windows-lane')
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
             if has_report:
                 output.write(f'path={destination}\n')

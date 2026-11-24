@@ -4177,6 +4177,24 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-lane-suppresses-nested-scope-artifacts",
+      "source": "Authenticated PR 77 Windows Python producer on run 45384002726, retained at .reports/ci/45384002726/producer-python/test-report.json with its original check log.",
+      "observation": "The Python check failed after 528.907 seconds. Two of 665 cases errored when reading verification-scope.json from nested public staging. The enclosing producer exports SCOPEHUB_WINDOWS_LANE=python, which can select private lane staging inside those ordinary public staging calls and suppress the typed scope file.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45384002726-1",
+          "source_commit": "1923ee13ed4565e92616d2234074798ae90230dc",
+          "report_sha256": "46507deeca192a082fd266f01b53e108f980acf6798fe43be699513224e8b6c8"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
