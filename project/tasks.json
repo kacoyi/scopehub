@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-025",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17263,7 +17263,7 @@
       "id": "M2-025",
       "title": "Specify the frozen-package workbench qualification",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": ["M2-021"],
       "scope": [
@@ -17279,10 +17279,15 @@
         "The renderer prototype, the chart-free journey and the packaged qualification have named owners and distinct evidence. The release catalog exposes the new gate as planned."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "Review the qualification vectors and verify the release mapping with the existing project checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-025-5551b094bf471f4a.json",
+          "sha256": "baa954235570bbff7b02f660366e77150b0f60be52882657f0345aa101ebaad8"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The contract and catalog expose the six cases, five gates and frozen-package challenge. The task harness passed on bf95684. Independent recalculation confirmed the spread and scatter expectations, and the readiness view blocked a missing qualification. The new release check and the renderer decision remain planned.",
       "plan": {
         "outcome": "A reviewer can decide what to verify on a frozen build and see which product results are still outstanding.",
         "change_types": ["tooling"],
