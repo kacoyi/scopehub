@@ -215,7 +215,11 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking 
   }
 
   return <dialog className="probe" ref={dialog} aria-label={t('Drawing studio')}
-    onCancel={event => { event.preventDefault(); close(); }}>
+    onCancel={event => {
+      if (event.target !== event.currentTarget) return;
+      event.preventDefault();
+      close();
+    }}>
     <header className="probe-header">
       <button type="button" className="secondary-button" onClick={close}>{t('Back to chart')}</button>
       <h1>{t('Drawing studio')}</h1><LanguageSettings />

@@ -3908,6 +3908,21 @@
         "prevention": "Six Chromium/Rust outcomes cover a genuine 429, delayed output, terminal refusal, actual revocation, switching, studio closure and budget exhaustion. The M2-020 receipt binds the local runtime. The earlier Windows prepared-profile diagnostic retains its independent scope."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "drawing-file-picker-cancels-studio",
+      "source": "Independent Tauri/WebKitGTK observation on a221f6a, two new synthetic profiles, native-03 and native-04.",
+      "observation": "After confirming the series and selecting the 115 observation on the three-ring view, Escape in the GTK file chooser and clicking its Cancel button each returned to the main chart and destroyed the accepted studio session.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-022"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
