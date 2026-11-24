@@ -131,3 +131,57 @@ test('local author geometry uses the financial chart coordinates and crosshair',
       'valid draft restored and accepted', 'timeframe change removed the bound scene'] };
   await writeFile(info.outputPath('chart-coordinates.json'), JSON.stringify(observed, null, 2) + '\n');
 });
+
+test('accepted geometry stays visible on every sampled frame of real crosshair motion', async ({ page }, info) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+  const overlay = page.getByRole('img', { name: 'Projected chart drawing' });
+  const circles = overlay.locator('circle');
+  const readout = page.getByLabel('Drawing crosshair observation');
+  await page.getByLabel('Open chart drawing program').setInputFiles(program);
+  await page.getByRole('button', { name: 'Accept chart drawing', exact: true }).click();
+  await expect(circles).toHaveCount(2);
+  const anchors = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+  const observations = [];
+
+  for (const index of [0, 1, 0, 1, 0, 1]) {
+    await page.evaluate(() => {
+      const frames = [];
+      const start = performance.now();
+      let sampling;
+      function observe() {
+        const svg = document.querySelector('.chart-drawing-overlay');
+        const readout = document.querySelector('output[aria-label="Drawing crosshair observation"]');
+        frames.push({
+          elapsedMs: performance.now() - start,
+          radii: Array.from(svg?.querySelectorAll('circle') ?? [], circle => Number(circle.getAttribute('r'))),
+          time: readout?.querySelector('time')?.dateTime ?? null,
+        });
+        sampling = requestAnimationFrame(observe);
+      }
+      sampling = requestAnimationFrame(observe);
+      window.stopChartObservation = () => { cancelAnimationFrame(sampling); return frames; };
+    });
+    const target = anchors[index];
+    await page.mouse.move(target.left + target.x, target.top + target.y);
+    const time = index ? second : first;
+    await expect(readout).toContainText(time);
+    await expect(page.getByLabel('Selected bar')).toContainText(index ? 'C 3499.8' : 'C 3499.2');
+    await expect(circles.nth(index)).toHaveAttribute('r', '8');
+    await expect(circles.nth(1 - index)).toHaveAttribute('r', '5');
+    const frames = await page.evaluate(async () => {
+      await new Promise(requestAnimationFrame);
+      return window.stopChartObservation();
+    });
+    const blanks = frames.filter(frame => frame.radii.length === 0);
+    observations.push({
+      time, frames, blankFrames: blanks.length,
+      sampledBlankMs: blanks.length ? frames[frames.lastIndexOf(blanks.at(-1)) + 1].elapsedMs - blanks[0].elapsedMs : 0,
+    });
+  }
+  await writeFile(info.outputPath('crosshair-continuity.json'), JSON.stringify({
+    method: '1440x900 Chromium; six alternating real mouse moves, one DOM sample per rAF through settled highlight. Blank duration is the first empty sample to the first following visible sample.',
+    observations,
+  }, null, 2) + '\n');
+  expect(observations.map(move => move.blankFrames)).toEqual([0, 0, 0, 0, 0, 0]);
+});

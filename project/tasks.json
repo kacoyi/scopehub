@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-018",
   "tasks": [
     {
       "id": "M0-001",
@@ -17439,6 +17439,100 @@
           ],
           "data_plan": "Only the explicitly pinned synthetic bars and bounded numeric coordinates cross to the existing isolated worker. No profile writes.",
           "cleanup": "Retire the experimental entry after the selected renderer acquires its shared chart service."
+        }
+      }
+    },
+    {
+      "id": "M2-018",
+      "title": "Keep the verified chart overlay visible during crosshair motion",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-017"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "The accepted overlay remains visible on every sampled frame of repeated real pointer motion on one unchanged chart viewport. The trusted readout tracks the current candle and only the current guest highlight can become final.",
+        "Superseded evaluations and invalid drafts cannot replace the accepted base. Leaving the bound chart or changing its coordinate mapping cannot leave old geometry visible."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "chart-coordinate-prototype"
+      ],
+      "evidence": [],
+      "next_action": "Measure repeated real pointer motion on the frozen baseline before repairing the overlay result lifetime.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "A qualified authored overlay remains visible while crosshair-dependent guest geometry is evaluated on the same viewport.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/chart-drawing.tsx",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ubuntu-preview/chart-coordinate.spec.mjs"
+        ],
+        "hypotheses": [
+          "The renderer currently keys geometry to an observation that changes for either viewport or hover. Distinct viewport identity lets an already verified scene survive a selection-only change."
+        ],
+        "risks": [
+          {
+            "failure": "Repeated pointer moves blank accepted geometry or a canceled result takes precedence over the latest trusted crosshair selection.",
+            "checks": [
+              "chart-coordinate-prototype"
+            ]
+          },
+          {
+            "failure": "A previous projection or guest result leaks across a source, viewport or program change.",
+            "checks": [
+              "chart-coordinate-prototype",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the original frozen 1462 candidate independent and revert this isolated chart overlay change if continuity or invalidation regress.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/chart-drawing.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            }
+          ],
+          "non_goals": [
+            "General renderer selection, new authoring requests, chart presets, and permission changes."
+          ],
+          "open_questions": [
+            "How many animated frames are blank before and after the change, with the same accepted program and viewport?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Frozen chart source, program permissions, preview acceptance and explicit restoration."
+          ],
+          "change": [
+            "Keep verified same-viewport geometry across crosshair-only motion; discard results on scope changes."
+          ],
+          "data_plan": "The existing synthetic source uses an in-memory result only while the correct viewport and program remain bound.",
+          "cleanup": "Keep source and viewport invalidation explicit; record regression and evidence without modifying M2-017."
         }
       }
     }
