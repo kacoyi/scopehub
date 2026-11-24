@@ -17172,6 +17172,90 @@
           "cleanup": "Retain the original Windows failure and staged observation so #67 can resume on a verified base."
         }
       }
+    },
+    {
+      "id": "M2-021",
+      "title": "Clarify the workbench renderer expressiveness criterion",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-002"
+      ],
+      "scope": [
+        "contracts/workbench-v1.json"
+      ],
+      "decision_refs": [
+        "0027"
+      ],
+      "acceptance": [
+        "The customization contract distinguishes original author-defined presentation, layout and non-privileged interaction on a fixed host from catalogue assembly. It requires a scoped revision and points to M2-003 and the existing M2-013 reopen journey."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-021-4137cb26746ba269.json",
+          "sha256": "b805a398bd31bd0928a6e6fafe97e73ca803d983130da55854f32ea6b767bddd"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A reviewer can reject a catalogue-only candidate from the extensibility entry.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/workbench-v1.json",
+          "project/tasks.json",
+          "contracts/decisions/0027-v1-user-composed-workbench.json"
+        ],
+        "hypotheses": [
+          "One explicit criterion at the original entry resolves the gap; the existing journeys supply the examples."
+        ],
+        "risks": [
+          {
+            "failure": "The clarification prescribes a technology or changes existing acceptance and authority.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the contract wording independently of the renderer prototypes.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "contracts/workbench-v1.json"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/extensibility"
+            }
+          ],
+          "non_goals": [
+            "Runtime changes, new permissions and editing an accepted ADR."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": [
+            "Existing product journeys, security boundaries and decision history."
+          ],
+          "change": [
+            "Make expressiveness a testable criterion where the renderer candidates are defined."
+          ],
+          "data_plan": "No product data or storage changes.",
+          "cleanup": "Return focus to the existing renderer task after verification."
+        }
+      }
     }
   ]
 }
