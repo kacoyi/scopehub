@@ -17633,6 +17633,7 @@
       "scope": [
         "scripts",
         "tests/project",
+        "contracts/schemas/project.schema.json",
         "project/checks.json",
         "project/delivery.json"
       ],
@@ -17651,7 +17652,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Investigate the Windows Python check and existing overlapped build window using the retained timings and normal test entry. Implement a bounded improvement and exercise the budget follow-through before comparing hosted timings.",
+      "next_action": "The coordinator should compare a normal full Windows candidate against warm first-attempt controls 45360774012 and 45366344153. Retain the Python test list and durations, compare harness and job elapsed against the build overlap, and keep the finding open until the observed comparison supports closure or a bounded follow-up.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17662,6 +17663,9 @@
         "context": [
           "scripts/check.py",
           "scripts/timing.py",
+          "scripts/worktree.py",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_timing.py",
           "tests/project/test_delivery.py",
           "tests/project/test_worktree_retirement.py",
           "project/delivery.json",
@@ -17711,7 +17715,7 @@
             "No paid runners, external transmission, platform removal, skipped real cases, weakened protection or release acceptance change."
           ],
           "open_questions": [
-            "Which focused optimization actually reduces the Windows critical path while preserving test isolation? How can existing timing observations trigger action without nested validation rounds?"
+            "How much of the targeted Linux reduction in native Git process launches appears in the matching warm Windows Python check, harness elapsed and job elapsed?"
           ]
         },
         "evolution": {

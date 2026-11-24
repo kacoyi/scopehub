@@ -549,6 +549,41 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual([], change['outcome_changes'])
         self.assertEqual(180, change['elapsed_change_seconds'])
 
+        later_reports = [{'run_id': row['run_id'], 'source_commit': 'a' * 40} for row in samples[-2:]]
+        corrective = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the repaired Windows stage.',
+                      'blocker': None}
+        finding = {'id': 'windows-budget', 'verification_budget': True, 'status': 'open',
+                   'task_ids': [corrective['id']], 'diagnostic_reports': later_reports}
+        tasks = {corrective['id']: corrective}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / '.reports/timing/weekly.json'
+            archive.parent.mkdir(parents=True)
+            archive.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples,
+                                                  'hosted': workflows}))
+            with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
+                assigned = timing.offline_budget_status(root, [finding], tasks)
+                wrong_commit = dict(later_reports[1], source_commit='b' * 40)
+                finished = {corrective['id']: dict(corrective, status='done')}
+                unassigned = timing.offline_budget_status(root, [finding], finished)
+                addressed = timing.offline_budget_status(root, [dict(finding, status='addressed')], finished)
+                new_breach = timing.offline_budget_status(
+                    root, [dict(finding, status='addressed', diagnostic_reports=[later_reports[0], wrong_commit])],
+                    finished,
+                )
+                archive.unlink()
+                durable = timing.offline_budget_status(root, [finding], tasks)
+
+        breach, = assigned['repeated_breaches']
+        self.assertEqual(('Windows', 'assigned'), (breach['platform'], breach['status']))
+        self.assertEqual([corrective], breach['feedback'][0]['corrective_tasks'])
+        self.assertEqual('assignment_needed', unassigned['repeated_breaches'][0]['status'])
+        self.assertEqual('addressed', addressed['repeated_breaches'][0]['status'])
+        self.assertEqual([later_reports[1]], new_breach['repeated_breaches'][0]['unrecorded_reports'])
+        self.assertEqual('assignment_needed', new_breach['repeated_breaches'][0]['status'])
+        self.assertFalse(durable['timing_available'])
+        self.assertEqual(assigned['open_feedback'], durable['open_feedback'])
+
     def test_changed_coverage_failed_and_missing_samples_do_not_inflate_the_baseline(self):
         reports = [fast_report(day, 120) for day in (14, 15, 16)]
         changed = fast_report(17, 280)

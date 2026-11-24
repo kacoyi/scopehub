@@ -142,6 +142,22 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.git('add', 'staged.txt', cwd=self.candidate)
         self.assert_held(self.row(IDLE), 'dirty_checkout')
 
+    def test_hidden_index_entries_hold_an_otherwise_clean_checkout(self):
+        for flag, inverse in (('--assume-unchanged', '--no-assume-unchanged'),
+                              ('--skip-worktree', '--no-skip-worktree')):
+            with self.subTest(flag=flag):
+                self.git('update-index', flag, '--', 'fixture.txt', cwd=self.candidate)
+                self.assert_held(self.row(IDLE), 'index_visibility_restricted')
+                self.git('update-index', inverse, '--', 'fixture.txt', cwd=self.candidate)
+                self.assert_candidate(self.row(IDLE))
+
+    def test_gitlink_requires_independent_consumer_observation(self):
+        head = self.head(self.candidate)
+        self.git('update-index', '--add', '--cacheinfo', f'160000,{head},nested checkout', cwd=self.candidate)
+        self.assert_held(self.row(IDLE), 'path_consumer_observation_incomplete')
+        self.git('update-index', '--force-remove', '--', 'nested checkout', cwd=self.candidate)
+        self.assert_candidate(self.row(IDLE))
+
     def test_in_progress_merge_holds_a_checkout_with_clean_porcelain(self):
         branch = self.add_worktree('empty-change')
         self.git('commit', '--quiet', '--allow-empty', '-m', 'Empty merge input', cwd=branch)

@@ -1197,6 +1197,7 @@
                 "minLength": 1
               },
               "occurrence": {"type": "integer", "minimum": 1},
+              "verification_budget": {"const": true},
               "diagnostic_reports": {
                 "$ref": "#/$defs/DiagnosticReports"
               },
@@ -1280,6 +1281,7 @@
               "resolution",
               "deferral_reason"
             ],
+            "dependentRequired": {"verification_budget": ["diagnostic_reports"]},
             "additionalProperties": false
           },
           "minItems": 0

@@ -68,6 +68,16 @@ def git_path(cwd, option):
     return Path(os.fsdecode(output).removesuffix('\n')).resolve(strict=True)
 
 
+def checkout_paths(cwd):
+    options = ('--show-toplevel', '--git-dir', '--git-common-dir')
+    output = git(cwd, 'rev-parse', '--path-format=absolute', *options).stdout
+    paths = os.fsdecode(output).removesuffix('\n').split('\n')
+    if len(paths) != len(options):
+        # POSIX allows newlines in paths. A single result has an unambiguous boundary.
+        return tuple(git_path(cwd, option) for option in options)
+    return tuple(Path(path).resolve(strict=True) for path in paths)
+
+
 def registrations(cwd):
     records = os.fsdecode(git(cwd, 'worktree', 'list', '--porcelain', '-z').stdout)
     for record in records.split('\0\0'):
@@ -157,9 +167,8 @@ def verify_checkout(common, entry):
     marker = path / '.git'
     if entry.flags & {'bare', 'prunable'} or path.resolve() != path or not regular_file(marker):
         raise WorktreeError(f'Git worktree is unavailable at {entry.path}. Inspect git worktree list --porcelain.')
-    git_dir = git_path(path, '--git-dir')
-    if (git_path(path, '--show-toplevel') != path or git_path(path, '--git-common-dir') != common
-            or git_dir.parent != common / 'worktrees'):
+    top, git_dir, common_dir = checkout_paths(path)
+    if top != path or common_dir != common or git_dir.parent != common / 'worktrees':
         raise WorktreeError(f'Git worktree at {path} does not have a linked Git directory in {common}.')
     backlink = git_dir / 'gitdir'
     if not regular_file(backlink):
@@ -171,6 +180,7 @@ def verify_checkout(common, entry):
     branch = os.fsdecode(head.stdout).removesuffix('\n') if head.returncode == 0 else None
     if branch != entry.branch:
         raise WorktreeError(f'Git branch changed at {path}. Inspect git worktree list --porcelain and retry.')
+    return git_dir
 
 
 def open_windows_lock(path):

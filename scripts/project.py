@@ -615,8 +615,10 @@ def periodic_reviews(delivery, today=None):
 def workfront(root=ROOT, *, report_path=None, retained_detail=None):
     if __package__:
         from .development import evidence_view
+        from .timing import offline_budget_status
     else:
         from development import evidence_view
+        from timing import offline_budget_status
     project = load_project(root)
     source = source_identity(root)
     report_path = report_path or '.reports/test-report.json'
@@ -654,6 +656,7 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
         'decision_replacements': project['replacements'],
         'dependency_maintenance': maintenance_status(root),
         'periodic_reviews': periodic_reviews(project['delivery']),
+        'verification_budget': offline_budget_status(root, project['feedback']['items'], tasks),
         'verification': {'report_available': report_available, 'matches_current_execution_inputs': inputs_current,
                          'matches_current_task_definitions': tasks_current,
                          'matches_current_project_definitions': definitions_current, 'current': current,

@@ -507,6 +507,10 @@ def metric_review(rows, metric, objective, *, compare_growth=True):
 def objective_review(rows, metric, objective):
     result = metric_review(rows, metric, objective, compare_growth=False)
     measured = [row for row in rows if row['seconds'][metric] is not None]
+    result['breach_reports'] = [
+        {'run_id': row['run_id'], 'source_commit': row['source_commit']}
+        for row in measured[-WINDOW:] if row['seconds'][metric] > objective
+    ]
     changes = []
     for before, after in zip(measured, measured[1:]):
         old = {key: (status, reason) for key, status, reason in coverage_key(before)}
@@ -593,6 +597,91 @@ def local_paths(root):
         *root.glob('.reports/runs/*/test-report.json'), *root.glob('.reports/ci/*/*/test-report.json'),
         *root.glob('.reports/timing/*.json'), *(path for path in [root / '.reports/test-report.json'] if path.is_file()),
     })
+
+
+def budget_follow_up(objectives, feedback, tasks):
+    def report_key(report):
+        return report['run_id'], report['source_commit']
+
+    tracked = {}
+    for item in feedback:
+        if not item.get('verification_budget'):
+            continue
+        corrective = [tasks[key] for key in item['task_ids'] if key in tasks
+                      and tasks[key]['status'] not in {'done', 'cancelled'}]
+        tracked[item['id']] = (
+            {report_key(report) for report in item.get('diagnostic_reports', ())},
+            {'feedback_id': item['id'], 'feedback_status': item['status'],
+             'status': ('addressed' if item['status'] == 'addressed'
+                        else 'assigned' if corrective else 'assignment_needed'),
+             'corrective_tasks': [
+                 {key: task.get(key) for key in ('id', 'status', 'next_action', 'blocker')} for task in corrective
+             ]},
+        )
+    recorded = {key for keys, _ in tracked.values() for key in keys}
+    breaches = []
+    for row in objectives:
+        if row['recent_objective_breaches'] < 2:
+            continue
+        reports = {report_key(report) for report in row['breach_reports']}
+        links = [entry for keys, entry in tracked.values() if keys & reports]
+        missing = sorted(reports - recorded)
+        statuses = {entry['status'] for entry in links}
+        status = ('assignment_needed' if missing or 'assignment_needed' in statuses
+                  else 'assigned' if 'assigned' in statuses else 'addressed')
+        breaches.append({
+            **{key: row[key] for key in ('repository', 'event', 'runner_label', 'profile', 'platform', 'arch',
+                                        'metric', 'objective_seconds', 'recent_runs', 'recent_objective_breaches')},
+            'status': status,
+            'feedback': links,
+            'unrecorded_reports': [{'run_id': run_id, 'source_commit': commit} for run_id, commit in missing],
+        })
+    return {
+        'repeated_breaches': breaches,
+        'open_feedback': [entry for _, entry in tracked.values() if entry['feedback_status'] != 'addressed'],
+        'next_action': ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
+                        if any(row['status'] == 'assignment_needed' for row in breaches)
+                        or any(entry['status'] == 'assignment_needed' for _, entry in tracked.values())
+                        else None),
+    }
+
+
+def offline_budget_status(root, feedback, tasks):
+    # Keep ordinary status bounded to the latest saved reviews and local runs.
+    # Hosted samples need the matching Actions clocks already stored in a timing archive.
+    directory = root / '.reports/timing'
+    archives, issues = [], []
+    for path in directory.glob('*.json'):
+        try:
+            archives.append((path.stat().st_mtime_ns, path))
+        except OSError as error:
+            issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
+    archives = [path for _, path in sorted(archives)[-4:]]
+    local = sorted(root.glob('.reports/runs/*/test-report.json'), reverse=True)[:MAX_RECENT]
+    samples, hosted = [], []
+    for path in [*archives, *local]:
+        try:
+            with path.open('rb') as content:
+                limit = 2 * 1024 * 1024
+                raw = content.read(limit + 1)
+            if len(raw) > limit:
+                raise TimingError('Report exceeds the status size limit; inspect it with project:timing.')
+            data = json.loads(raw)
+            if data.get('kind') == ARCHIVE_KIND:
+                samples.extend(data['samples'])
+                hosted.extend(data['hosted'])
+            elif path in local and not data.get('ci') and (data.get('selection') or {}).get('profile') == 'fast':
+                samples.append(report_sample(data))
+        except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
+            issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
+    try:
+        objectives = timing_view(samples, hosted=hosted)['objective_reviews']
+    except (AttributeError, KeyError, TypeError, ValueError) as error:
+        objectives = []
+        issues.append({'error': str(error)})
+    return {**budget_follow_up(objectives, feedback, tasks),
+            'timing_available': bool(objectives), 'input_issues': issues,
+            'timing_command': 'pnpm project:timing'}
 
 
 def download_timing(repository, run_id, attempt):
@@ -708,6 +797,12 @@ def review_summary(view):
             if delta is None:
                 delta = row['first_to_latest_elapsed_change_seconds']
             lines.append(f'  - Observed elapsed change across coverage: {delta:+.0f}s. Added and removed checks are in the archive.')
+    if follow_up := view.get('budget_follow_up'):
+        for row in follow_up['repeated_breaches']:
+            owners = ', '.join(task['id'] for finding in row['feedback'] for task in finding['corrective_tasks'])
+            suffix = f' ({owners})' if owners else ''
+            lines.append(f"- Budget follow-up for {row['event']} / {row['profile']} / {row['platform']} — "
+                         f"{row['status'].replace('_', ' ')}{suffix}.")
     findings = [(row, metric) for row in view['reviews'] for metric in row['metrics']
                 if metric['material_growth'] and metric['metric'] != 'total']
     sparse = sum(metric['status'] == 'insufficient_samples' for row in view['reviews'] for metric in row['metrics']
@@ -778,7 +873,10 @@ def main():
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
         workflows = list({ci_key(run): run for run in workflows}.values())
         view = timing_view(samples, hosted=workflows)
-        view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent)
+        tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
+        feedback = read_json(ROOT / 'project/feedback.json')['items']
+        view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
+                    budget_follow_up=budget_follow_up(view['objective_reviews'], feedback, tasks))
         if args.save:
             args.save.parent.mkdir(parents=True, exist_ok=True)
             with args.save.open('xb') as output:
