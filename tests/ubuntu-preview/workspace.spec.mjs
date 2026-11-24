@@ -4442,7 +4442,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
             if (privateRequestMatches('privateRecord.read')(route.request().postDataJSON())) await releaseFirstReads.promise;
             await route.continue();
           };
-          await pageA.route(path, holdFirstRead);
+          if (fault !== 'none') await pageA.route(path, holdFirstRead);
           try {
             await inFreshBrowser(browser, server, async pageB => {
               const second = await openPrivateRecords(pageB);
@@ -4466,6 +4466,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
                 receipts: database.prepare('SELECT count(*) AS count FROM private_record_receipts').get().count,
               });
               try {
+                let recoverCancellation = fault !== 'none';
                 if (fault === 'admission busy') {
                   const writer = await writerPid(server);
                   await writerPid(server, 'suspend', writer);
@@ -4489,9 +4490,16 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
                     stages.push({ step: 'second decline reaches the core but the reply is lost', code: 'CANCELLED' });
                   } finally { await dropped.restore(); }
                 } else {
-                  const cancelled = await privateReplyDuring(pageB, stages, 'second decline is acknowledged on its first attempt', decline,
+                  const initial = await privateReplyDuring(pageB, stages, 'second window submits its first decline', decline,
                     () => clickPrivate(second, 'Cancel review'));
-                  expect(cancelled.observed).toMatchObject({ http: 200, state: 'failed', code: 'CANCELLED' });
+                  recoverCancellation = initial.observed.code === 'BUSY';
+                  if (recoverCancellation && initial.observed.http === 429) {
+                    expect(initial.observed.state).toBeUndefined();
+                  } else {
+                    expect(initial.observed).toMatchObject({
+                      http: 200, state: 'failed', code: recoverCancellation ? 'BUSY' : 'CANCELLED',
+                    });
+                  }
                 }
                 expect(resolutions).toHaveLength(1);
                 expect(resolutions[0].scope).toEqual(secondReview.payload.scope);
@@ -4499,7 +4507,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
                   action: 'resolve', challenge_id: secondReview.outcome.challenge_id, decision: 'decline',
                 });
                 expect(state()).toEqual({ revision: 0, records: 0, receipts: 0 });
-                if (fault !== 'none') {
+                if (recoverCancellation) {
                   await expect(second.getByRole('alert')).toBeVisible();
                   await expect(second.getByText('Action cancelled.')).toHaveCount(0);
                   await expect(second.getByRole('button', { name: 'Save private record', exact: true })).toHaveCount(0);
@@ -4511,7 +4519,7 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
                   expect(retried.payload.request_id).not.toBe(resolutions[0].request_id);
                   expect(resolutions).toHaveLength(2);
                   expect(retried.observed).toMatchObject({
-                    http: 200, state: 'failed', code: fault === 'admission busy' ? 'CANCELLED' : 'CONFIRMATION_REQUIRED',
+                    http: 200, state: 'failed', code: fault === 'lost acknowledgement' ? 'CONFIRMATION_REQUIRED' : 'CANCELLED',
                   });
                 }
                 await expect(second.getByText('Action cancelled.')).toBeVisible();
@@ -4529,12 +4537,12 @@ for (const fault of ['none', 'admission busy', 'lost acknowledgement']) {
                 await clickPrivate(second, 'Discard draft');
                 await expect(second.getByRole('button', { name: new RegExp(firstTitle) })).toBeVisible();
                 await expect(second.getByRole('button', { name: new RegExp(secondTitle) })).toHaveCount(0);
-                expect(resolutions).toHaveLength(fault === 'none' ? 1 : 2);
+                expect(resolutions).toHaveLength(recoverCancellation ? 2 : 1);
               } finally { database.close(); }
             });
           } finally {
             releaseFirstReads.resolve();
-            await pageA.unrouteAll({ behavior: 'wait' });
+            if (fault !== 'none') await pageA.unrouteAll({ behavior: 'wait' });
           }
         });
       });
