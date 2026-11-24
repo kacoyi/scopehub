@@ -9,8 +9,10 @@
     "build": "tsc --noEmit && vite build"
   },
   "dependencies": {
+    "@jitl/quickjs-asmjs-mjs-release-sync": "0.32.0",
     "@tauri-apps/api": "2.12.3",
     "lightweight-charts": "5.2.1",
+    "quickjs-emscripten-core": "0.32.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

@@ -1,0 +1,63 @@
+{
+  "task": "M2-003",
+  "scope": "Independently inspectable executable candidate. Selection, connected-model quality, accepted-indicator consumption, product-window parity and physical Windows acceptance remain open.",
+  "base": "eb21a9db4b609d6c45c8fd009417e20ca717f12e",
+  "freeze": {
+    "fingerprint_command": "git ls-tree -r HEAD -- apps/desktop/ui apps/desktop/src-tauri/tauri.conf.json apps/desktop/src-tauri/capabilities pnpm-lock.yaml | sha256sum",
+    "sha256": "5cac8115ca79ad8bc581c029ad961993866b6c008e06ef6b8214033b9994d8ae",
+    "method": "Replace HEAD with the announced commit. Hash the exact LF-terminated Git tree listing including path, blob identity and mode. The path set includes the full UI, frozen data, build inputs, desktop CSP and capability configuration.",
+    "program_source": "apps/desktop/ui/src/drawing-sample.js",
+    "program_sha256": "7bdc2938923396bc20f00f7066335dd667263ff276055d5366c66c2bbe45e239",
+    "authoring_api": "apps/desktop/ui/src/drawing-program.ts",
+    "model_reply_programs": "tests/ui/drawing-workbench.spec.mjs"
+  },
+  "data": {
+    "fixture": "apps/desktop/ui/src/workbench-frozen-sources.json",
+    "fixture_sha256": "ed0fa62d6c482943f798c7156f3bf804c356f0e6e4ad828e7b677964751e549c",
+    "contract": "One selected frozen revision per drawing, first two closed 1m bars. The ordinary model turn receives source descriptions and the previous accepted program. Raw rows stay local. The worker gets only six numeric fields per row and the current host projection bounds.",
+    "primary": {
+      "instrument_id": "SIM.CN.FUTURE.001",
+      "dataset_id": "836cb0d6-61d3-5d80-8e4d-37da5b308cf1",
+      "revision": "scopehub-synthetic-v1:20241013:normal",
+      "snapshot_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1",
+      "as_of_ms": 1704330570000,
+      "oracle": "tests/fixtures/indicators/confirmation-sample-history.json",
+      "meaning": "Pinned market bars also used as input to indicator confirmation tests. No accepted computed indicator version is attached."
+    },
+    "secondary": {
+      "instrument_id": "SIM.CN.STOCK.001",
+      "dataset_id": "1e5b1966-9a8f-51d1-846a-2ca588be574d",
+      "revision": "scopehub-synthetic-v1:20241014:normal",
+      "snapshot_hash": "1cdd778056aa8e41580bb0c522d7eef112a9f02e2ebe6eac83bdda62c30e500e"
+    },
+    "independent_market_oracle": "tests/fixtures/market/series.json"
+  },
+  "runtime": {
+    "choice": "QuickJS via quickjs-emscripten-core and the upstream JS-only asmjs release variant, both 0.32.0. A separate disposable worker owns the interpreter. This avoids enabling dynamic script or WebAssembly compilation in the WebView CSP.",
+    "upstream": "https://github.com/justjake/quickjs-emscripten",
+    "bounds": "900 UTF-16 code units per source with a 32-unit allowance for a fenced reply envelope. This leaves room for accepted source and user intent in the 2000-character chat request. The provider reply transport separately caps text at 64 KiB. Guest heap 2 MiB, guest stack 128 KiB, interrupt deadline 120 ms, outer worker wall deadline 3000 ms inclusive of startup. At most 256 validated marks with finite numeric coordinates of absolute value <=4096.",
+    "authority": "QuickJS global evaluation in the worker, numeric primitive and projection callbacks only, no module loader, pending-job execution or system interfaces. Guest arithmetic can influence geometry only. No calculation result, permission, confirmation or operation can be emitted. The trusted host checks shape and dimensions again before creating SVG elements.",
+    "surface": "A 640 x 240 logical viewport. The host fits or expands both domains and passes the current bounds into each guest run. The dashed frozen-close reference and guest primitives share that projection. Free drawings omit the axes. Stroke width is a local host setting. Only the two nonempty source fixtures are admitted.",
+    "recovery": "Explicit preview and acceptance, one-step undo, restore and cancellation on edit or close. Accepted geometry remains host-owned if a new VM fails or stalls. The in-memory session ends on close.",
+    "cost": "Three pinned MIT npm packages including FFI types. Local Vite 8.3.4 production build emits a 1017907-byte worker and a 1104470-byte secondary interpreter asset. Dead Node-specific module resolution produces a Vite browser-externalization notice. Asset bytes measure bundle footprint, not total memory. The VM memory cap excludes trusted interpreter overhead.",
+    "reversal": "Remove the opt-in studio, worker, candidate packages and candidate checks together. Existing tree authoring and the Rust operation registry remain available."
+  },
+  "observations": {
+    "browser": "Chromium 159.0.8154.6, Playwright 1.65.1, Ubuntu 26.04.1 LTS, Node 24.22.3, pnpm 11.28.5. Two scripted replies on a disposable local provider passed through the actual workspace registry and ordinary model chat. Tested source revision, time and price remapping, axis-free volume widths 120 and 80, direct stroke edit, malformed geometry, output and heap exhaustion, infinite loop, missing ambient APIs, accepted restoration and revision undo.",
+    "native_engine": "Ubuntu WebKitGTK 2.52.6, GTK 3.24.52, ephemeral GTK WebView on Xvfb 1280x800. Served the production assets with the checked-in native production CSP. No Tauri bridge was installed. One run measured 85 ms to first drawing, 25 ms to a host stroke edit during a looping draft, and 167 ms to timeout observation. Restore retained the reframed x=202 anchor. DOM observation times include automation polling and do not measure presented frames.",
+    "pending": "Held-out brief, genuine connected model, actual native privileged product host, live chart linkage, accepted indicator output and Windows remain separate qualifications."
+  },
+  "reproduce": {
+    "setup": ["uv sync --locked", "pnpm install --frozen-lockfile"],
+    "built_preview": ["pnpm build", "pnpm --filter @scopehub/ui exec vite preview --host 127.0.0.1 --port 1441 --strictPort"],
+    "preview_url": "http://127.0.0.1:1441/?renderer=drawing",
+    "model_workspace": [
+      "cargo build --locked --target-dir target -p scopehub-persistence -p scopehub-worker-host --bins --example history_bridge --jobs 2",
+      "profile_parent=$(mktemp -d /tmp/scopehub-drawing-1442.XXXXXXXX)",
+      "target/debug/workspace_bridge --prepare-profile-root \"$profile_parent/profile\"",
+      "SCOPEHUB_WORKSPACE_PROFILE_ROOT=\"$profile_parent/profile\" SCOPEHUB_WORKSPACE_PROFILE_ID=synthetic-drawing-preview SCOPEHUB_WORKSPACE_ID=main pnpm --filter @scopehub/ui exec vite --mode ubuntu-workspace --host 127.0.0.1 --port 1442 --strictPort"
+    ],
+    "product_entry": "Open the workspace-access-1442.html handoff in that private profile, then Open blank AI workbench > Drawing studio > Ask AI to author a view. Model turns use the existing text connection. The 1441 static build supports local program edits. The integration test provides its own synthetic loopback peer.",
+    "verify": ["pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs drawing-workbench.spec.mjs", "pnpm exec playwright test --config tests/localization/desktop.config.mjs", "pnpm build", "xvfb-run -a /usr/bin/python3 tests/ui/drawing-webkit.py", "pnpm project:dependencies", "pnpm check --task M2-003"]
+  }
+}

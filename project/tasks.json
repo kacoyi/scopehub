@@ -4743,10 +4743,12 @@
         "workbench-renderer-probe",
         "market-workflow",
         "ui-build",
-        "workbench-authored-composition"
+        "workbench-authored-composition",
+        "desktop-localization",
+        "workbench-drawing-runtime"
       ],
       "evidence": [],
-      "next_action": "Exercise an owner-chosen question with a connected model, then gather matched Ubuntu and Windows native observations of same-series expressiveness, drawing services, scoped previews and readable editable definitions under ADR 0027 and the 2026-11-23 authoring direction.",
+      "next_action": "Use the frozen synthetic drawing runtime for the independent held-out authoring brief. Keep the runtime/API fingerprint fixed and report the result against the original source pin. Compare both native engines and gather genuine model and owner observations before renderer selection.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -4762,7 +4764,8 @@
           "contracts/decisions/0027-v1-user-composed-workbench.json"
         ],
         "hypotheses": [
-          "A connected text model can compose reusable declarative presentation primitives and scoped, host-owned interactions without executable content or additional access."
+          "A connected text model can compose reusable declarative presentation primitives and scoped, host-owned interactions without executable content or additional access.",
+          "A one-shot dedicated worker containing the upstream QuickJS JS-only interpreter can admit readable synthetic drawing programs and retain the native CSP. The host can reuse its time/value projection for the reference layer while accepting only bounded numeric geometry."
         ],
         "risks": [
           {
@@ -4790,9 +4793,16 @@
               "workbench-renderer-probe",
               "workbench-authored-composition"
             ]
+          },
+          {
+            "failure": "A guest exceeds CPU, heap, stack or output bounds, or a stale result replaces the accepted scene. Try a valid and rejected program, an unending loop, a forbidden capability and restore during evaluation.",
+            "checks": [
+              "workbench-drawing-runtime",
+              "workbench-authored-composition"
+            ]
           }
         ],
-        "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision.",
+        "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision. The code candidate is opt-in and transient. Remove its entry, worker, pinned interpreter and harness together.",
         "implementation": {
           "modules": [
             "ui"
@@ -4803,7 +4813,10 @@
             "crates/application/src/workspace/layout.rs",
             "apps/desktop/ui/src/workbench-prototype.tsx",
             "apps/desktop/ui/src/model-chat.tsx",
-            "apps/desktop/ui/src/model-chat-transport.ts"
+            "apps/desktop/ui/src/model-chat-transport.ts",
+            "apps/desktop/ui/src/drawing-program.ts",
+            "apps/desktop/ui/src/drawing.worker.ts",
+            "apps/desktop/ui/src/drawing-workbench.tsx"
           ],
           "rules": [
             {
@@ -4812,7 +4825,7 @@
             }
           ],
           "non_goals": [
-            "Persisting a new workspace format, connecting a market source or executing user-supplied code in this prototype."
+            "Persistent formats, profile migrations, real provider data, product runtime permission changes, general host code execution or renderer selection from a single OS. Only isolated synthetic drawing programs qualify here."
           ],
           "open_questions": [
             "Can both native engines present and recover the same composition with acceptable interaction latency? Which observed limitation warrants prototyping the alternative? Can candidate drawing services stay reusable across arbitrary compositions and optional axes? Can users inspect, partially edit and replace the default without accessing private host implementation?"

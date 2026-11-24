@@ -1,0 +1,14 @@
+.drawing-layout { grid-template-columns: minmax(270px, 0.8fr) minmax(0, 2fr); }
+.drawing-layout h2 { margin-block: 0 10px; }
+.drawing-layout textarea { display: block; margin-top: 6px; }
+.drawing-layout pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
+.drawing-surface { margin: 12px 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); overflow: hidden; }
+.drawing-surface figcaption, .drawing-controls { display: flex; align-items: center; gap: 1em; flex-wrap: wrap; justify-content: space-between; padding: 12px; }
+.drawing-surface figcaption span { font-size: 12px; color: var(--muted); }
+.drawing-surface svg { display: block; width: 100%; background: #10141c; }
+.drawing-axis text { fill: #a9b6c8; font: 11px sans-serif; }
+.drawing-axis line { stroke: #394451; }
+.drawing-axis polyline { fill: none; stroke: #9fabb8; stroke-dasharray: 5 4; }
+.drawing-surface details { margin: 12px; }
+.drawing-controls label { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 700px) { .drawing-layout { grid-template-columns: 1fr; } }

@@ -85,7 +85,7 @@ function Evidence({ binding }: { binding: Binding }) {
   </section>;
 }
 
-export function WorkbenchAuthoring({ close, ask }: { close: () => void; ask: (turn: WorkbenchAuthoringTurn) => void }) {
+export function WorkbenchAuthoring({ close, ask, openDrawing }: { openDrawing: () => void; close: () => void; ask: (turn: WorkbenchAuthoringTurn) => void }) {
   const host = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const headingId = useId();
@@ -132,6 +132,7 @@ export function WorkbenchAuthoring({ close, ask }: { close: () => void; ask: (tu
     <header className="probe-header">
       <button type="button" className="secondary-button" onClick={close}>{t('Back to chart')}</button>
       <h1 id={headingId} ref={heading} tabIndex={-1}>{t('AI workbench')}</h1>
+      {!visible && <button type="button" className="secondary-button" onClick={openDrawing}>{t('Drawing studio')}</button>}
       <LanguageSettings />
     </header>
     <section className="probe-canvas authored-canvas" aria-label={t('Workbench canvas')}>

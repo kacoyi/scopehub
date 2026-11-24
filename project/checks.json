@@ -805,7 +805,8 @@
         "playwright",
         "test",
         "--config",
-        "tests/ui/workbench-authoring.config.mjs"
+        "tests/ui/workbench-authoring.config.mjs",
+        "workbench-authoring.spec.mjs"
       ],
       "timeout_seconds": 1800,
       "cadence": "task"
@@ -843,6 +844,23 @@
       ],
       "timeout_seconds": 900,
       "cadence": "change"
+    },
+    {
+      "id": "workbench-drawing-runtime",
+      "status": "implemented",
+      "purpose": "Exercise an embedded synthetic model turn returning a drawing program, independent frozen geometry, isolated resource failures and host recovery. Browser qualification only.",
+      "platforms": "all",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/workbench-authoring.config.mjs",
+        "drawing-workbench.spec.mjs"
+      ],
+      "timeout_seconds": 1800,
+      "cadence": "task"
     }
   ],
   "milestones": [
