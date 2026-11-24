@@ -977,7 +977,8 @@
         "Bind release artifacts to a committed source revision, lockfiles, build environment and actual acceptance evidence.",
         "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
         "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate.",
-        "Exercise the chart-free workbench with the released renderer on the exact candidate installer and bind the result to its hash."
+        "Exercise the chart-free workbench with the released renderer on the exact candidate installer and bind the result to its hash.",
+        "Run workbench-qualification-v1 on that same installer. Retain the case, gate and blind-challenge verdicts and the matching authored-canvas performance observations."
       ],
       "checks": [
         "windows-installation",
@@ -986,7 +987,8 @@
         "release-artifacts",
         "dependency-review",
         "state-migrations",
-        "chart-free-workbench"
+        "chart-free-workbench",
+        "workbench-qualification"
       ],
       "evidence": [],
       "next_action": "Implement packaging and execute clean-machine, stability and release acceptance checks. Measure installed bytes, Windows cold startup, process cleanup and protection events for the exact base artifact and any chosen optional Python distribution on a clean host.",
@@ -17254,6 +17256,78 @@
           ],
           "data_plan": "No product data or storage changes.",
           "cleanup": "Return focus to the existing renderer task after verification."
+        }
+      }
+    },
+    {
+      "id": "M2-025",
+      "title": "Specify the frozen-package workbench qualification",
+      "milestone": "M2",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": ["M2-021"],
+      "scope": [
+        "contracts/workbench-v1.json",
+        "tests/fixtures/workbench-qualification-v1.json",
+        "project/checks.json",
+        "project/delivery.json",
+        "project/tasks.json"
+      ],
+      "decision_refs": ["0004", "0027", "0028"],
+      "acceptance": [
+        "The workbench contract links one versioned specification containing six authoring cases, five pass gates, independently checkable synthetic expectations and a challenge disclosed after package freeze.",
+        "The renderer prototype, the chart-free journey and the packaged qualification have named owners and distinct evidence. The release catalog exposes the new gate as planned."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-025-5551b094bf471f4a.json",
+          "sha256": "baa954235570bbff7b02f660366e77150b0f60be52882657f0345aa101ebaad8"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The contract and catalog expose the six cases, five gates and frozen-package challenge. The task harness passed on bf95684. Independent recalculation confirmed the spread and scatter expectations, and the readiness view blocked a missing qualification. The new release check and the renderer decision remain planned.",
+      "plan": {
+        "outcome": "A reviewer can decide what to verify on a frozen build and see which product results are still outstanding.",
+        "change_types": ["tooling"],
+        "context": [
+          "contracts/workbench-v1.json",
+          "contracts/market-data-v1.json",
+          "tests/fixtures/financial-session-v2.json",
+          "project/checks.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A challenge chosen after the host is frozen distinguishes user-authored behavior from demonstrations prepared for the published cases."
+        ],
+        "risks": [
+          {
+            "failure": "A prototype receipt or a documentation check closes the new product gate.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "A duplicated performance or financial oracle drifts from its existing owner.",
+            "checks": ["project-state", "python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert the qualification specification and its catalog bindings together.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["contracts/workbench-v1.json", "project/checks.json", "project/delivery.json"],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "project/checks.json", "pointer": "/desktop_performance"}
+          ],
+          "non_goals": ["Product implementation, renderer selection, running the proposed trials or approving a release."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["The existing chart-free release journey, operation registry, permissions and accepted evidence."],
+          "change": ["Add the owner-approved qualification to release planning."],
+          "data_plan": "The specification uses synthetic data and opaque evidence identities.",
+          "cleanup": "Archive the documentary task check and return focus to the planned renderer decision."
         }
       }
     }

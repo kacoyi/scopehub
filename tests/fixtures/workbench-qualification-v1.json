@@ -1,0 +1,93 @@
+{
+  "id": "workbench-qualification-v1",
+  "purpose": "Qualify a user's ability to invent and revise a workbench within the available data, actions and permissions of one desktop build.",
+  "freeze": {
+    "before_authoring": "Identify the installer by SHA-256 and record the source revision, platform, renderer version, screen scale, input fixtures and grants. Freeze the kernel, shell, protocol, drawing primitives, component catalogue and packaged libraries. Use the ordinary workbench editor and embedded AI to create user-owned definitions.",
+    "blind_challenge": "After recording the package hash, an independent reviewer chooses an undisclosed combination of an available numeric binding, visual property and authorized selection action. Before authoring, retain the prompt and the expected values, target and visible change. The developer and authoring model receive no answer asset. Preserve the challenge and the edited definition with the run for replay.",
+    "decision": "Require all six cases, all five gates and the blind challenge on the identified candidate. A product edit, new packaged component, new privilege or rebuild to satisfy an authoring request fails that build. A changed build needs a fresh challenge. Missing observations, required inputs or permissions leave the affected verdict blocked."
+  },
+  "cases": {
+    "unconventional-indicator": {
+      "given": "The four five-minute equity bars open at 09:30, 09:35, 09:40 and 09:45 UTC on January 4, 2024. Accepted data supplies volume anomaly strength, turnover, five-minute RSI, hourly fast and slow averages, and volatility. The accepted 15-minute bar opening at 09:30 has strength 0.90 and turnover 0.047. Each result carries its units, revision and source locator.",
+      "strength_by_bar": [0.15, 0.50, 0.95, null],
+      "turnover_fraction_by_bar": [0.004, 0.011, 0.032, null],
+      "act": "Bind strength to the glow around each candle body. Above a strength of 0.8, place a translucent gradient bubble showing turnover. Then build a chart-free view with a breathing three-state light and a one-line multi-timeframe summary in the upper right.",
+      "observe": [
+        "Only the 09:40 five-minute bar has a bubble, showing 3.2%. Switch to 15 minutes and inspect the 09:30 bar at 4.7%, then switch back. At each timeframe and after zoom, pan or resize, the horizontal anchor must lie within one logical pixel of the identified candle center.",
+        "Rebind the very same strength result from glow to the light. With thresholds 0.4 and 0.8 the four states in order are green, amber, red and unknown. Both presentations inspect the identical result and bar locator. Style changes cause zero indicator computations.",
+        "For the summary use RSI 78 (overheated at or above 70), hourly fast 104 versus slow 100 (bullish above slow), and volatility 0.012 (low below 0.02). All three statements must agree with the accepted inputs. An absent turnover denominator or indicator value displays as unknown."
+      ]
+    },
+    "chart-free-event-desk": {
+      "given": "An authorized synthetic event feed, quote series for an equity, a future and an FX pair, and a private synthetic decision note. The event at 09:10 UTC links to the equity and future. The FX pair has quotes and no link to that event.",
+      "act": "Start blank. Compose a filtered event timeline on the left, an event-by-market impact matrix in the middle and the note on the right. Select the 09:10 event, hover an instrument, refresh, save and reopen. Repeat with a healthy empty feed, stale quotes, a disconnected feed and revoked access.",
+      "observe": [
+        "Exactly the equity and future highlight. Each impact can be traced to its evidence or labeled interpretation. The sparkline appears only while hovering the instrument and follows its own authorized quotes. A qualifying 09:20 event appears on refresh.",
+        "The reopened desk creates zero default charts and zero default chart subscriptions. The explicitly bound quotes still work. The shell exposes source, timestamp and freshness. An empty match, incomplete coverage and lost access are distinguishable. Revocation prevents further unauthorized reads."
+      ]
+    },
+    "reference-redesign": {
+      "given": "Use one watchlist, chart, accepted indicator and AI conversation. Pin two user-selected, shareable reference images by digest before authoring: a spacious card layout and a dense monospaced terminal. Record the authorized model route and actual image input.",
+      "act": "Ask the embedded AI to redesign the same live workspace from each reference. Keep each result editable. With the same window, scale and watchlist, switch the instrument, select an indicator point, continue the conversation and deliver a quote update in both designs.",
+      "observe": [
+        "Before authoring, record expected navigation placement, typography hierarchy, visible row counts, corner and shadow treatment, and one interaction transition for each image. Compare each measured property with its reference target at the recorded size. A palette-only change fails.",
+        "The chart, indicator and quote follow the chosen instrument and the evidence opens. Retain the edited definitions, comparative captures and interaction results. Reference interpretation requires observation on a route that can receive that image under the existing disclosure rules."
+      ]
+    },
+    "linked-spread-research": {
+      "given": "Import two local synthetic futures Parquet histories with the following daily closes. Each present row opens at its close, with high one unit above and low one unit below. The listed dates are the complete UTC trading calendar for this fixture. Omit the row for leg B on January 8. Use A minus B and a trailing three-session population Z-score. A missing leg or zero variance gives an unknown Z-score.",
+      "sessions": ["2024-01-05", "2024-01-08", "2024-01-09", "2024-01-10", "2024-01-11", "2024-01-12", "2024-01-15"],
+      "leg_a_close": [96, 98, 100, 100, 100, 110, 121],
+      "leg_b_close": [96, null, 100, 100, 100, 100, 119],
+      "act": "From authorized analysis results, draw a histogram and Gaussian density of the valid Z-scores on the left, overlaid instrument histories in the middle, and volatility against next-session return on the right. Select the January 12 scatter point. Use general drawing or visualization facilities available in the frozen build.",
+      "expected": {
+        "z_score_january_12": 1.4142135624,
+        "z_score_january_15": -0.4629100499,
+        "bin_counts_minus_two_to_zero_and_zero_to_two": [1, 1],
+        "bin_probabilities": [0.5, 0.5],
+        "gaussian_density_at_zero_bandwidth_one": 0.2525856696,
+        "volatility_january_12": 0.05,
+        "next_session_return_january_12": 0.10,
+        "selected_session": "2024-01-12",
+        "numeric_tolerance": 0.000001
+      },
+      "observe": "Use the population standard deviation of leg A's last two simple daily returns for volatility. The forward return is A's next trading close divided by its current close minus one. Keep this later outcome out of the features available on the selected day. Compare histogram probabilities, density and point with the independent expectations. The middle view locates and highlights the January 12 candle by instrument, session and revision. January 8 has no paired point and January 15 has no forward return."
+    },
+    "scoped-edit-continuity": {
+      "given": "Open a reference redesign on a five-minute futures chart with a frozen import, an ordered watchlist, two identified support lines, a selected interval, a decision note and a conversation about that interval. Capture their identities, values and revisions before editing.",
+      "act": "Move the timeframe controls to the chart's lower left, switch to red for rising and green for falling prices, and increase the font by one step. Apply with a quote arriving, undo, reapply, switch among the event desk and both reference designs, then save and reopen.",
+      "observe": "Check each requested change and compare all untargeted elements and bindings. Verify the same contract, timeframe, support-line anchors, snapshot, watchlist order, selected interval, note contents and discussion target across views. Undo restores the presentation and still shows the newly arrived quote. Reopen honors current access.",
+      "conversation_replay": "Separately use the one-minute synthetic-futures-correction-v2 fixture. After a presentation edit ask for the mean close over the previously corrected interval. Compare both value and cited snapshot against corrected. The initial interval or value fails even when the transcript still appears.",
+      "corrected": {"$source": {"path": "tests/fixtures/financial-session-v2.json", "pointer": "/corrected"}},
+      "initial": {"$source": {"path": "tests/fixtures/financial-session-v2.json", "pointer": "/initial"}}
+    },
+    "fault-and-permission-containment": {
+      "given": "Keep an accepted revision and a sequenced quote replay running. Use synthetic file, database, credential, position and strategy markers. A permitted control first proves the independent observations and controlled test receiver can see the intended synthetic event.",
+      "act": "Exercise a malformed draft before activation, a controlled renderer stall or resource exhaustion observable from the shell, and denied requests for local files, direct SQLite, saved credentials and outbound data to an unapproved destination. M2-003 observes the boundary on each identified native Ubuntu and Windows build. Repeat it on the exact packaged Windows candidate for release.",
+      "observe": [
+        "Malformed input leaves the accepted view available. From onset of a stall, the independent shell offers a responsive recovery control within the deadline below. One user action restores the last accepted revision. The shell and quote channel stay responsive, and ordered update positions and the final closed bar are accounted for.",
+        "For every denied path record the host decision and independent observations. Require zero protected bytes returned, zero unauthorized database changes and zero position, strategy or credential markers at the unapproved receiver. Recovery and sensitive confirmations remain under shell control."
+      ],
+      "max_stall_to_recovery_control_ms": 3000
+    }
+  },
+  "gates": {
+    "fixed-host": "Across cases one through five and the blind challenge, the Rust kernel, privileged frontend, protocol, primitives and package hashes match the frozen baseline. Only user-editable workbench artifacts may change to express a presentation. Record the authored diff and the operation receipts.",
+    "state-continuity": "Across the event desk and both reference designs, compare every state item listed in scoped-edit-continuity by identity and content before and after. Require zero lost, reset or silently rebound items. Check the same counts and contents after reopen, subject to current rights.",
+    "financial-truth": "Bind financial quantities and indicators to authorized read-only results. A user can inspect the exact point, units, computation version, source revision and as-of time independently in the trusted shell. Simulated data, gaps, stale data and disconnection remain identifiable through that shell. Compare the authored display with the independent oracle. A false quantity, fabricated quote or hidden quality state fails.",
+    "sustained-performance": {
+      "baseline": {"$source": {"path": "project/checks.json", "pointer": "/desktop_performance"}},
+      "observe": "Use that complete workload, presented-frame accounting and process-tree memory policy with an authored canvas on the same Windows release package. Retain the raw timings and separately measure selection to the first correctly highlighted frame during updates. Every scripted selection must reach its specified target. Reuse the matching runtime-stability observations for this workload."
+    },
+    "hot-edit-and-repair": {
+      "max_save_to_interactive_frame_ms": 300,
+      "observe": "Record device, display and workload. On each reference design, repeat the scoped hot edit 20 times from its accepted starting state. Measure each save from the user's action through validation, compilation if used, and the first correct interactive frame. Retain every sample, maximum and p95. Any sample over the limit fails. Record cold startup and model generation or repair time separately.",
+      "repair": "An invalid draft returns a scoped, redacted diagnostic to the authoring AI on its authorized route. Observe a corrected draft and successful preview while the user can keep working in the accepted revision. Apply through the ordinary approval path. Record repair attempts and duration. An exhausted or unavailable repair leaves the accepted view usable."
+    }
+  },
+  "evidence": {
+    "prototype": "M2-003 first exercises the same numeric binding, a local edit with state, and fault recovery on native Ubuntu and Windows. Compare candidate renderers under ADR 0027.",
+    "journey": "M2-013 retains its separate blank-to-reopen disclosure and note journey, including refresh and revocation.",
+    "release": "M5-001 binds each case, gate and blind prompt to the same Windows candidate SHA-256. Retain the authored revisions, fixture and source identities, before/after state comparisons, redacted host observations and measured timings. Label each outcome passed, failed or blocked and link its underlying evidence. A prototype or documentation receipt establishes only its own scope."
+  }
+}

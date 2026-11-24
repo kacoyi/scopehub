@@ -498,6 +498,20 @@
       "evidence_boundary": "Verify the interaction in the desktop application and on the exact packaged Windows candidate at release. A screenshot, a standalone renderer probe or a preset dashboard cannot establish this result."
     },
     {
+      "id": "qualify-a-user-authored-workbench",
+      "task_ids": ["M2-003", "M2-013", "M5-001"],
+      "user_goal": "Invent a visual presentation or interaction, revise it during research and continue using the same data and discussion.",
+      "given": "Use the cases and independent expectations in tests/fixtures/workbench-qualification-v1.json. Identify the fixed desktop package, synthetic data and existing grants before authoring.",
+      "when": "Use the ordinary workbench and embedded AI for the six cases and a reviewer-selected challenge disclosed after the package freeze.",
+      "then": [
+        "The same package expresses each requested view and interaction, preserves the research state and exposes the source of each financial value.",
+        "The shell recovers a failed or stalled edit within the stated limit and retains authority over protected data and actions. The authored view meets the performance and save-to-frame limits."
+      ],
+      "failure_cases": ["A dedicated product change is needed", "A reference, selection or grant is lost or silently replaced", "A gate fails or a required observation is missing"],
+      "checks": ["workbench-qualification"],
+      "evidence_boundary": "M2-003 evaluates the candidate on native systems. M2-013 verifies the chart-free journey. M5-001 owns the six cases, five gates and unseen challenge on one identified Windows release package."
+    },
+    {
       "id": "voice-evidence-discussion",
       "task_ids": [
         "M4-001",
@@ -730,7 +744,8 @@
       "configured-model-session",
       "configured-voice-session",
       "configured-external-ai-clients",
-      "chart-free-workbench"
+      "chart-free-workbench",
+      "workbench-qualification"
     ],
     "artifact_requirements": [
       "Committed source revision and execution-input digest",
