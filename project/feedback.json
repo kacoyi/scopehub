@@ -5361,6 +5361,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-busy-refusal-finishes-before-request-body-is-complete",
+      "source": "Independent real Vite and Rust writer transport probe on f52ce52449124729601908b58c2e0477af26a6fe. Retained archives/observations/m0-101-draft-delivery/base.ndjson SHA-256 42d22406f4182e729ec91d3a65c6da6e6134890767742fe7596602edbf84342f and drain.ndjson SHA-256 0d43988961a79a7512a8bd79f33178c172f687c7d33eaec326b9fa75d5064e39.",
+      "observation": "With an admitted cancellation waiting for its real writer reply, the HTTP pre-admission BUSY response finished before the competing authenticated POST was complete and destroyed its request socket. This occurred on a reused socket, a fresh socket, and a split body. The bounded drain control finished only with the request complete and socket alive, with no competing bytes sent to the writer. Linux clients decoded BUSY on both paths, so the controlled defect does not prove the recorded hosted Windows connection reset mechanism.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-101"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

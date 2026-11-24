@@ -2,7 +2,7 @@ import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter, once } from 'node:events';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -761,6 +761,94 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
       }, [endpoint, '/__scopehub/operation'], { traceSample: true });
     }, { historyTrace: true, historyFault: true });
     await testInfo.attach('sample-indicator-calendar', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    await profile.close();
+  }
+});
+
+test('workspace delivers pre-admission BUSY after a complete indicator draft request', async () => {
+  const profile = await makeProfile();
+  const draft = {
+    protocol_version: '1.1', type: 'request', task_id: null, message_id: randomUUID(),
+    request_id: randomUUID(), timestamp_ms: Date.now(),
+    scope: {
+      workspace_id: workspaceId, target: { kind: 'chart', object_id: 'main-chart' },
+      expected_workspace_revision: 0, expected_selection_revision: 0, idempotency_key: randomUUID(),
+    },
+    intent: { operation: 'indicator.createDraft', arguments: { language: 'declarative', source: {
+      parameters: [], outputs: [{ kind: 'line', id: 'close', pane: 'price',
+        style: { color: '#001122', width: 2 }, value: { op: 'field', field: 'close' } }],
+    } } },
+  };
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const holder = server.tagSnapshot();
+      const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+      void snapshotReply.catch(() => {});
+      try {
+        await holder.wait('written');
+        const draftBody = JSON.stringify(draft);
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+          const tag = server.tagSnapshot();
+          const request = httpRequest(server.url + endpoint, {
+            method: 'POST', agent: false, signal: AbortSignal.timeout(4_000),
+            headers: {
+              Origin: server.url, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(draftBody),
+              Authorization: 'Bearer ' + server.capability, ...tag.headers,
+            },
+          });
+          const response = once(request, 'response').then(async ([reply]) => {
+            const chunks = [];
+            for await (const chunk of reply) chunks.push(chunk);
+            return { http: reply.statusCode, body: JSON.parse(Buffer.concat(chunks)) };
+          });
+          void response.catch(() => {});
+          try {
+            request.write(draftBody[0]);
+            const handled = await tag.wait('handled');
+            console.info('Split workspace draft admission', JSON.stringify({ attempt, handled }));
+            expect(handled).toMatchObject({ complete: false, headers_sent: false, socket_destroyed: false });
+            if (attempt === 2) {
+              holder.release();
+              expect(await responseStatus(await snapshotReply)).toBe(200);
+              // An incomplete, already-refused upload must not hold a free writer.
+              expect(await postStatus(server, snapshot)).toBe(200);
+            }
+            request.end(draftBody.slice(1));
+            const refused = await response;
+            const finished = await tag.wait('finished');
+            console.info('Workspace draft admission refusal', JSON.stringify({ attempt, refused, finished }));
+            expect(refused).toEqual({ http: 429, body: busy });
+            expect(finished).toMatchObject({ complete: true, http: 429, socket_destroyed: false });
+          } finally {
+            request.destroy();
+            await Promise.allSettled([response]);
+          }
+        }
+      } finally {
+        holder.release();
+        await Promise.allSettled([snapshotReply]);
+      }
+      expect((await snapshotReply).status).toBe(200);
+      const committed = async body => (await (await post(server, body)).json()).result;
+      const delivery = await post(server, draft);
+      // Keep a witness of the real reply while discarding the caller's copy.
+      // Only this test explicitly sends the identical command again.
+      const [witness] = await Promise.all([delivery.clone().json(), delivery.body.cancel()]);
+      const first = witness.result;
+      expect(first).toMatchObject({ request_id: draft.request_id, outcome: { state: 'committed',
+        receipt: { committed_workspace_revision: 0, undoable: false } } });
+      const duplicate = await committed(draft);
+      expect(duplicate).toMatchObject({ request_id: draft.request_id, outcome: first.outcome });
+      const conflict = structuredClone(draft);
+      conflict.intent.arguments.source.outputs[0].style.color = '#334455';
+      expect(await committed(conflict)).toMatchObject({ request_id: draft.request_id,
+        outcome: { state: 'failed', error: { code: 'INVALID_ARGUMENT' } } });
+      expect((await committed(draft)).outcome).toEqual(first.outcome);
+      console.info('Workspace draft receipt identity', JSON.stringify({
+        request_id: draft.request_id, draft_id: first.outcome.result.draft_id, operation_id: first.outcome.receipt.operation_id,
+      }));
+    }, { snapshotGate: true });
   } finally {
     await profile.close();
   }
