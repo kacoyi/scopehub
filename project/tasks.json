@@ -17563,6 +17563,10 @@
         ],
         "risks": [
           {
+            "failure": "The blank entry silently inherits or overwrites a previously saved view. Open named and blank separately, save B, and switch back to A.",
+            "checks": ["workbench-drawing-runtime"]
+          },
+          {
             "failure": "A stale or revoked grant, cached observation, or invalid draft displaces the saved definition.",
             "checks": [
               "workbench-drawing-runtime"

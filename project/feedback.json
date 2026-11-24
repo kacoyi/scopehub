@@ -3927,6 +3927,21 @@
         "prevention": "The before/after WebKitGTK observer recorded native picker Escape, both trusted targets and the preserved accepted scene. Archive archives/observations/m2-022-file-cancel-fd39144/manifest.json SHA-256 910b0519c7b56461100b5cd5a9544310bb8e1d395672919e0c05bfa4e909f616. A Chromium/Rust regression protects the version, result hash, source, three circles, selected 115 readout, undo and actual dialog Escape."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "blank-drawing-inherits-active-named-view",
+      "source": "Coordinator review and independent zh-CN Chromium / Rust reproduction on dcdc658. Both named and blank entries opened the same three rings and name in a disposable confirmed volume-mean profile.",
+      "observation": "After saving view A, the blank workbench opened the same definition and name. Saving a new drawing there could silently replace A.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-023"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
