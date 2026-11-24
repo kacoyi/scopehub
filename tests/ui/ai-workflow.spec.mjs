@@ -837,7 +837,7 @@ test('selected chart conversation negotiates the bounded tool through the owned 
   }));
 });
 
-test('chart evidence navigation fails closed after another client clears the shared selection', async ({ browser }) => {
+test('chart evidence navigation preserves follow-ups and detects another client clearing the selection', async ({ browser }) => {
   await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
     peer.respond(chartReply);
     await openSampleChart(page);
@@ -847,6 +847,14 @@ test('chart evidence navigation fails closed after another client clears the sha
     await send(page);
     await expectChartAnswer(page, intervalA);
     const answer = chat(page).getByRole('article').filter({ hasText: closeAnswer(intervalA) });
+    await showCitedBar(answer).click();
+    await control(citedBar(page), 'Back to answer').click();
+    await expect(showCitedBar(answer)).toBeFocused();
+    const followUpAnswer = 'Synthetic answer after returning from the chart.';
+    peer.respond(body => body?.tools ? providerToolCall : assistant(followUpAnswer));
+    await send(page, followUp);
+    await expect(chat(page).getByText(followUpAnswer, { exact: true })).toBeVisible();
+    await expect(question(page)).toBeFocused();
 
     const cleared = await dispatch({
       type: 'request', protocol_version: '1.1', operation: 'workspace.selectEvidence',
@@ -861,7 +869,7 @@ test('chart evidence navigation fails closed after another client clears the sha
     await expect(answer.getByRole('alert')).toHaveText(unavailableCitedBar);
     await expect(answer.getByText(closeAnswer(intervalA), { exact: true })).toBeVisible();
     await expect(citedBar(page)).toBeHidden();
-    expect(peer.traffic).toHaveLength(2);
+    expect(peer.traffic).toHaveLength(4);
     expect(persistedRows(profile)).toEqual(afterClear);
   })));
 });

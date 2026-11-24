@@ -212,7 +212,7 @@ function App() {
     <ModelChat key={modelWorkspaceId} workspaceId={modelWorkspaceId} theme={snapshot?.layouts?.active.definition.theme}
       view={modelChatView} show={setModelChatView} chartSelection={currentModelSelection}
       evidenceFeedback={evidenceNavigation && 'returned' in evidenceNavigation ? evidenceNavigation : undefined}
-      checkingEvidence={checkingEvidence} revealChartBar={revealChartBar}
+      checkingEvidence={checkingEvidence} revealChartBar={revealChartBar} clearEvidenceFeedback={() => setEvidenceNavigation(undefined)}
       invalidChartSelectionRevision={!local && currentModelSelection === undefined ? modelSelection?.selectionRevision : undefined}
       discardChartSelection={() => setModelSelection(undefined)} />
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}

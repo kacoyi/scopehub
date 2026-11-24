@@ -127,7 +127,7 @@ function ChartEvidence({ evidence, selection, turnId, feedback, returnButton, wo
   </section>;
 }
 
-export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection, evidenceFeedback, checkingEvidence, revealChartBar }: {
+export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection, evidenceFeedback, checkingEvidence, revealChartBar, clearEvidenceFeedback }: {
   workspaceId: string | undefined;
   theme: 'light' | 'dark' | undefined;
   view: ModelChatView | undefined;
@@ -138,6 +138,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   evidenceFeedback: EvidenceFeedback | undefined;
   checkingEvidence: boolean;
   revealChartBar: (anchor: ModelChartAnchor) => void;
+  clearEvidenceFeedback: () => void;
 }) {
   useLocale();
   const heading = useId();
@@ -523,7 +524,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   function submit(event: FormEvent) {
     event.preventDefault();
     const submitted = question.trim();
-    if (!submitted || trackedTurn || working || mustReselect || connectionUnconfirmed) return;
+    if (!submitted || trackedTurn || working || checkingEvidence || mustReselect || connectionUnconfirmed) return;
+    clearEvidenceFeedback();
     if (!connection) {
       setError(undefined);
       setNotice(undefined);
@@ -634,7 +636,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           <label>{t('Question')}<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
             disabled={Boolean(trackedTurn) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
-            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || mustReselect || !question.trim()}>{connection ? t('Send') : t('Ask')}</button>
+            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || checkingEvidence || mustReselect || !question.trim()}>{connection ? t('Send') : t('Ask')}</button>
             {mustReselect && <button type="button" className="secondary-button" disabled={Boolean(trackedTurn) || working}
               onClick={startTextQuestion}>{t('Start a text-only question')}</button>}
             {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>{t('Check turn status')}</button>}
