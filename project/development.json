@@ -229,7 +229,8 @@
       ],
       "responsibility": "Hide chart SDK and canvas lifecycle behind chart operations.",
       "public_entries": [
-        "apps/desktop/ui/src/chart-adapter/history.ts"
+        "apps/desktop/ui/src/chart-adapter/history.ts",
+        "apps/desktop/ui/src/chart-adapter/candle-annotations.ts"
       ],
       "dependencies": [
         "domain"

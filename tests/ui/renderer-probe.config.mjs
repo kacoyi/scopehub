@@ -23,10 +23,10 @@ const output = process.env.SCOPEHUB_RUN_DIR
 export default defineConfig({
   testDir: '.', workers: 1,
   projects: [
-    { name: 'Chromium', testMatch: 'renderer-probe.spec.mjs' },
+    { name: 'Chromium', testMatch: ['renderer-probe.spec.mjs', 'renderer-series-frame.spec.mjs'] },
     ...(process.platform === 'win32' ? [{ name: 'Windows WebView2', testMatch: 'renderer-probe-windows.spec.mjs' }] : []),
   ],
-  metadata: { scope: 'Frozen synthetic renderer interaction in Chromium and the native WebView2 host on Windows.' },
+  metadata: { scope: 'Frozen synthetic renderer interaction, Chromium canvas geometry and native WebView2 accessibility observations.' },
   outputDir: resolve(output, 'browser'),
   reporter: [['list'], ['json', { outputFile: resolve(output, 'results.json') }]],
   use: { baseURL, viewport: { width: 1366, height: 900 }, screenshot: 'only-on-failure' },

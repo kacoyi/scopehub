@@ -29,6 +29,11 @@
 .probe-tile[data-above="true"] { background: #192f34; border-color: #70cabe; }
 .probe-tile[aria-pressed="true"] { outline: 2px solid var(--accent); }
 .probe-tile strong { font-size: 20px; }
+.probe-candle-chart { height: 280px; margin-top: 10px; }
+.probe-candle-block { min-width: 0; }
+.probe-candle-block .probe-actions { margin-top: 8px; }
+.probe-candle-block .probe-actions button[aria-pressed="true"] { border-color: var(--accent); }
+.probe-candle-attribution { overflow-x: auto; }
 @media (max-width: 700px) {
   .probe-body { grid-template-columns: 1fr; }
   .probe-editor { border-right: 0; border-bottom: 1px solid var(--line); }
