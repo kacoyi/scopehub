@@ -4748,7 +4748,7 @@
         "workbench-drawing-runtime"
       ],
       "evidence": [],
-      "next_action": "Use the frozen synthetic drawing runtime for the independent held-out authoring brief. Keep the runtime/API fingerprint fixed and report the result against the original source pin. Compare both native engines and gather genuine model and owner observations before renderer selection.",
+      "next_action": "Review the partial frozen-runtime result in contracts/reviews/2026-11-23-held-out-drawing-programs.json with the coordinator. A later candidate needs scoped parameter and point-selection/readout semantics, a new freeze and an independent brief. Assess the authorized local-client edit path separately. Gather matched native, genuine model and owner observations before renderer selection.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",

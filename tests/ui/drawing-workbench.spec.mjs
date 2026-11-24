@@ -15,6 +15,17 @@ for (const [i, b] of rows.entries()) {
   rect(10 + i * 180, 40, b.volume, 20 + i * 10, 2);
 }`;
 
+async function connectDrawing(page, peer, studio, chat, intent, request) {
+  await button(studio, 'Ask AI to author a view').click();
+  await intent.fill(request);
+  await button(chat, 'Ask').click();
+  const settings = page.getByRole('dialog', { name: 'AI settings' });
+  await settings.getByLabel('Server origin').fill(peer.origin);
+  await settings.getByLabel('Model', { exact: true }).fill('synthetic-drawing:fixture');
+  await button(settings, 'Review connection').click();
+  await button(settings, 'Connect and enable').click();
+}
+
 test.beforeAll(async ({}, info) => { info.setTimeout(900_000); await buildPreview(); });
 
 test('drawing inputs match independent frozen market and indicator-input records', async () => {
@@ -44,14 +55,7 @@ test('ordinary text turns supply drawing code, host projections and atomic recov
     const status = studio.getByRole('status').first();
 
     await expect(status).toHaveText('Blank canvas');
-    await button(studio, 'Ask AI to author a view').click();
-    await intent.fill('Place rings at the closes and draw the two high-low spans.');
-    await button(chat, 'Ask').click();
-    const settings = page.getByRole('dialog', { name: 'AI settings' });
-    await settings.getByLabel('Server origin').fill(peer.origin);
-    await settings.getByLabel('Model', { exact: true }).fill('synthetic-drawing:fixture');
-    await button(settings, 'Review connection').click();
-    await button(settings, 'Connect and enable').click();
+    await connectDrawing(page, peer, studio, chat, intent, 'Place rings at the closes and draw the two high-low spans.');
     async function reply(code, previous) {
       peer.respond({ text: code });
       await button(chat, 'Send').click();
@@ -103,7 +107,9 @@ test('ordinary text turns supply drawing code, host projections and atomic recov
     const rejected = 'The drawing failed validation or exceeded its limits.';
     await tryCode('circle(NaN, 0, 9, 0);', rejected);
     await tryCode('for(let i=0;i<257;i++) circle(1,1,1,0);', rejected);
-    await tryCode('const a=[]; for(let i=0;i<100000;i++) a.push({i, values:[i,i,i,i]}); circle(1,1,1,0);', rejected);
+    // Exceed the 2 MiB guest heap in one allocation. Incrementally building a
+    // large array can hit the independent CPU deadline first on a busy engine.
+    await tryCode('const s = "x".repeat(4194304); circle(1, 1, s.length / 4194304, 0);', rejected);
     await tryCode('while (true) {}', 'The drawing exceeded its time limit.');
 
     const globals = ['window','document','fetch','XMLHttpRequest','WebSocket','postMessage','importScripts','Worker',
@@ -118,5 +124,77 @@ test('ordinary text turns supply drawing code, host projections and atomic recov
     await expect(geometry.locator('circle')).toHaveCount(2);
     expect(peer.traffic).toHaveLength(2);
     expect(persistedRows(profile)).toEqual(before);
+  })));
+});
+
+test('replay the independently requested diamonds and a source-only selection edit on the frozen runtime', async ({ browser }) => {
+  const program = name => readFile(new URL('../fixtures/workbench/' + name + '.js', import.meta.url), 'utf8');
+  const original = await program('reference-diamonds');
+  const revised = await program('reference-diamonds-revised');
+  const request = 'Use the same two frozen synthetic futures closes. I want to see how far each minute is from a reference price, with time running left to right. Draw a thin horizontal reference at 3499.4, a stem from it to each close, and a hollow diamond at the close. I should see one hanging below and one rising above. Let me adjust the reference directly and select a diamond to read its minute, close and signed distance. Keep this chart-free view bound to those original observations.';
+  const followup = 'Change only the selected diamond: give it a second, larger outline. Keep the unselected diamond, stems, ordering, reference control, exact readout and existing source as they are.';
+  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async page => {
+    await button(page, 'Open blank AI workbench').click();
+    await button(page, 'Drawing studio').click();
+    const studio = page.getByRole('dialog', { name: 'Drawing studio' });
+    const chat = page.getByRole('dialog', { name: 'Author with AI' });
+    const intent = chat.getByLabel('What should the workbench show or do?');
+    const editor = studio.getByRole('textbox', { name: 'Program source' });
+    const geometry = studio.getByLabel('Program geometry');
+    const lines = () => geometry.locator('line').evaluateAll(nodes => nodes.map(line =>
+      ['x1', 'y1', 'x2', 'y2'].map(k => Number(line.getAttribute(k)))));
+    async function receive(code) {
+      peer.respond({ text: code });
+      await button(chat, 'Send').click();
+      await expect(intent).toHaveValue('');
+      await button(chat, 'Close').click();
+      await expect(button(studio, 'Accept view')).toBeVisible();
+      await expect(editor).toHaveValue(code.trim());
+    }
+
+    await connectDrawing(page, peer, studio, chat, intent, request);
+    await receive(original);
+    await expect(studio.getByRole('img', { name: 'Axis-free drawing' })).toBeVisible();
+    const first = await lines();
+    expect(first).toHaveLength(11);
+    const [reference, leftStem, rightStem] = [first[0], first[1], first[6]];
+    expect(reference[1]).toBeCloseTo(126.222222, 4);
+    expect(reference[1]).toBe(reference[3]);
+    expect(leftStem[0]).toBe(64);
+    expect(rightStem[0]).toBe(616);
+    expect(leftStem[1]).toBe(reference[1]);
+    expect(rightStem[1]).toBe(reference[1]);
+    expect(leftStem[3]).toBeCloseTo(146.666667, 4);
+    expect(rightStem[3]).toBeCloseTo(85.333333, 4);
+    for (const [start, stem] of [[2, leftStem], [7, rightStem]]) {
+      const [x, , , y] = stem;
+      expect(first.slice(start, start + 4)).toEqual([
+        [x, y - 8, x + 8, y], [x + 8, y, x, y + 8], [x, y + 8, x - 8, y], [x - 8, y, x, y - 8],
+      ]);
+    }
+    await button(studio, 'Accept view').click();
+
+    // The frozen ABI exposes source editing and host stroke weight. It offers
+    // no scalar parameter control, point selection event or text primitive.
+    await editor.fill(original.replace('3499.4', '3499.2'));
+    await button(studio, 'Preview draft').click();
+    await expect(geometry.locator('line')).toHaveCount(10);
+    expect((await lines())[0][1]).toBe(leftStem[3]);
+    await button(studio, 'Restore accepted view').click();
+    await button(studio, 'Ask AI to revise the view').click();
+    await intent.fill(followup);
+    await receive(revised);
+    expect(peer.traffic[1].body.messages.at(-1).content).toContain(original.trim());
+    expect(await lines()).toEqual(first);
+
+    await editor.fill(revised.replace('selectedIndex = -1', 'selectedIndex = 1'));
+    await button(studio, 'Preview draft').click();
+    await expect(geometry.locator('line')).toHaveCount(15);
+    const second = await lines();
+    expect(second.slice(0, 11)).toEqual(first);
+    expect(second[11]).toEqual([616, rightStem[3] - 13, 629, rightStem[3]]);
+    await studio.getByText('Frozen synthetic source', { exact: true }).click();
+    await expect(studio).toContainText('3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1');
+    expect(peer.traffic).toHaveLength(2);
   })));
 });

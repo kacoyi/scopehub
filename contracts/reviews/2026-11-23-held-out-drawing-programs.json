@@ -1,0 +1,29 @@
+{
+  "task": "M2-003",
+  "result": "partial",
+  "request_precommit_sha256": "c81f3bbb35d4bfaa328f2a134f32ee76cd4e9613ecbb8c06d6f171ad8a005483",
+  "runtime_commit": "e4f6e06c0abe3d4baeb6ebae085a9ec3d69affbe",
+  "runtime_fingerprint_sha256": "5cac8115ca79ad8bc581c029ad961993866b6c008e06ef6b8214033b9994d8ae",
+  "freeze_record": "contracts/reviews/2026-11-23-synthetic-drawing-runtime.json",
+  "author": "The implementing Codex client authored these standalone files after the independent reviewer reproduced the freeze and released the brief. The synthetic provider replays the exact file bytes through the ordinary product model route. This establishes client authoring and transport, not autonomous product model quality or local-client bridge admission.",
+  "programs": [
+    {"path": "tests/fixtures/workbench/reference-diamonds.js", "sha256": "54dd5e7dffaf86fbe645bb1afbeaef09446839680327d8e4fd751e39ab6aa824"},
+    {"path": "tests/fixtures/workbench/reference-diamonds-revised.js", "sha256": "c24c274386aba908368ffdc73c9e7e85313444b6897cfbffd600706631691a64"}
+  ],
+  "observed": [
+    "The original chart-free drawing has eleven line segments: one horizontal reference at 3499.4, two stems and four edges at each close. Host-projected centers are (64,146.6667) and (616,85.3333) around reference y=126.2222. The first close falls below and the second rises above it.",
+    "Editing reference to 3499.2 in Program source and previewing locally removes the zero-length first stem and moves the reference to its close. Restoring returns the accepted program, drawing and original frozen identity.",
+    "The second product-model request included the accepted program. The revised program defaults to no selection and produces the original eleven segments. Setting selectedIndex to 1 in source adds four edges to the second outline. All eleven existing segments, their order, and the original source hash stay identical."
+  ],
+  "unmet": [
+    "The frozen API has no parameter declaration for a named reference-price control. Source editing and explicit preview are available. Host stroke weight applies to the full scene.",
+    "Marks cannot bind a point-selection intent and the guest has no current selection or text/readout surface. No click-driven minute, close or signed distance was demonstrated. Manual index editing illustrates only the requested geometry change.",
+    "A validated distance calculation and its versioned readout have not been supplied. The renderer cannot publish computed evidence.",
+    "No new native runtime, broker, permission or host primitive was introduced for the held-out request. Any expanded API needs a separately identified freeze and fresh independent brief."
+  ],
+  "checks": {
+    "command": "pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs drawing-workbench.spec.mjs --repeat-each=2 --workers=1",
+    "result": "Six cases passed on Chromium, including two exact-file replays of the independent request and its revision.",
+    "test_fixture_correction": "An earlier heap regression accumulated objects until either the memory or CPU budget stopped it. Under load the CPU deadline fired first. A single 4 MiB string request now isolates the 2 MiB heap check while preserving the timeout regression and unchanged runtime."
+  }
+}
