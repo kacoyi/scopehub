@@ -20,7 +20,7 @@ type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar; repairedBars?: 
 // Match the sample worker's interval even when transport delivers both bars together.
 const samplePartialDisplayMs = 600;
 
-function afterPartialDisplay(signal: AbortSignal): Promise<void> {
+function afterVisibleDisplay(signal: AbortSignal, holdMs: number): Promise<void> {
   if (signal.aborted || document.visibilityState !== 'visible') return Promise.resolve();
   return new Promise(resolve => {
     let frame: number;
@@ -37,7 +37,8 @@ function afterPartialDisplay(signal: AbortSignal): Promise<void> {
     // The chart SDK draws at an animation frame after the layout effect updates its data.
     frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
-        timer = window.setTimeout(finish, samplePartialDisplayMs);
+        if (holdMs > 0) timer = window.setTimeout(finish, holdMs);
+        else finish();
       });
     });
   });
@@ -65,16 +66,16 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     let hasUpdate = false;
     let gap: ReplayGap | undefined;
     let display = Promise.resolve();
-    const update = (status: ReplayStatus, repairedBars?: readonly Bar[], presentPartial = false) => {
+    const update = (status: ReplayStatus, repairedBars?: readonly Bar[], frame?: 'partial' | 'recovery') => {
       const view: Replay = { history, ...status, gap,
         ...(repairedBars ? { repairedBars } : hasUpdate ? { bar } : {}),
       };
-      // Validate at the transport's pace and project each accepted partial before later states.
+      // Keep transport validation independent of distinct chart and recovery displays.
       display = display.then(() => {
         if (signal.aborted) return;
-        if (presentPartial) {
+        if (frame) {
           flushSync(() => setReplay(view));
-          return afterPartialDisplay(signal);
+          return afterVisibleDisplay(signal, frame === 'partial' ? samplePartialDisplayMs : 0);
         }
         setReplay(view);
       });
@@ -126,7 +127,8 @@ export function useSampleReplay(history: ChartHistory | undefined) {
             throw invalidMarketData();
           }
           stream.recovery = status;
-          update({ state: status });
+          // A fast restart can deliver both transitions before the previous partial finishes displaying.
+          update({ state: status }, undefined, 'recovery');
           return;
         }
         const event = frame.event;
@@ -159,7 +161,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         observed = next.observed_at_ms;
         bar = next.bar;
         hasUpdate = true;
-        update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' }, undefined, !bar.is_closed);
+        update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' }, undefined, bar.is_closed ? undefined : 'partial');
       });
       if (stream.repair) {
         if (result?.status !== 'complete') throw invalidMarketData();
