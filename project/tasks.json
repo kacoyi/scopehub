@@ -19320,7 +19320,7 @@
       ],
       "acceptance": [
         "Keep the original named worker interruption case and its actual worker kill. Show reconnecting and then resumed with the unchanged confirmed bar and Offline connection before the final close. Keep frozen history, one logical subscription, exact recovery positions and raw frame order.",
-        "Keep the original stock replay case and show the partial Close 12.17 and volume 520 on the legend and price canvas before the final close when real worker bytes arrive in one chunk. Preserve rejection of invalid order and cancellation on instrument change.",
+        "Keep the original stock replay case and show the partial Close 12.17 and volume 520 in the legend and draw Close 12.17 on the price canvas before the final close when real worker bytes arrive in one chunk. Preserve rejection of invalid order and cancellation on instrument change.",
         "Include the existing worker interruption case in future active stream-slice plans. Ordinary project validation rejects an active plan missing that check and accepts the complete plan. Preserve completed plans and receipts.",
         "Retain both protected failures, focused regression evidence and independent review. Verify the exact updated PR 82 with both protected platform results. The subsequent ordinary main timing remains with M0-091."
       ],
