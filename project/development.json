@@ -850,6 +850,10 @@
     ],
     "owner_decision_inputs": [
       {
+        "path": "contracts/reviews/2026-11-23-workbench-authoring-direction.json",
+        "pointer": "/owner_direction"
+      },
+      {
         "path": "contracts/reviews/2026-11-22-ubuntu-desktop.json",
         "pointer": "/owner_direction"
       },

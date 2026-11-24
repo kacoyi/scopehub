@@ -1,0 +1,18 @@
+.authored-canvas { max-width: 1200px; margin: 0 auto; }
+.authored-heading { flex-wrap: wrap; margin-bottom: 16px; }
+.authored-heading h2 { flex: 1; }
+.authored-presentation, .authored-evidence {
+  padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.authored-presentation p, .authored-presentation h3 { margin: 0; }
+.authored-row, .authored-stack, .authored-series { display: flex; gap: 12px; }
+.authored-row { align-items: flex-start; flex-wrap: wrap; }
+.authored-stack, .authored-series { flex-direction: column; align-items: flex-start; }
+.authored-series { border-inline-start: 1px solid var(--line); padding-inline-start: 12px; }
+.authored-mark { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; font-variant-numeric: tabular-nums; }
+.authored-mark meter { width: min(120px, 30vw); }
+.authored-evidence { margin-top: 12px; }
+.authored-evidence dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+.authored-evidence dd { margin: 0; }
+.authored-canvas [role="alert"] { color: #ffb0ac; }

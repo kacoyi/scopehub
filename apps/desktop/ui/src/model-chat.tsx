@@ -6,6 +6,7 @@ import {
   exchangeModel, isModelWorkspaceBusy, modelErrorCode, openAiCredential, openAiDestination,
   type ModelChartSelection, type ModelConnection, type ModelResult, type OpenAiCredential,
 } from './model-chat-transport';
+import type { WorkbenchAuthoringTurn } from './workbench-composition';
 import './model-chat.css';
 
 export type ModelChatView = 'question' | 'settings';
@@ -15,6 +16,7 @@ type PendingTurn = {
   connection: ModelConnection;
   question: string | undefined;
   selection: ModelChartSelection | undefined;
+  authoring?: WorkbenchAuthoringTurn | undefined;
 };
 type TrackedTurn = PendingTurn & {
   observation: 'polling' | 'checking-send' | 'checking-poll';
@@ -26,6 +28,7 @@ type CompletedTurn = {
   text: string;
   evidence: AiTextChartEvidence | undefined;
   chartRequested: boolean;
+  authored?: { scope: symbol; ready: boolean } | undefined;
 };
 
 const unavailableModel = message('The model could not answer. Check the configured server and try again.');
@@ -108,7 +111,7 @@ function ChartEvidence({ evidence }: { evidence: AiTextChartEvidence }) {
   </section>;
 }
 
-export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection }: {
+export function ModelChat({ workspaceId, theme, view, show, chartSelection, invalidChartSelectionRevision, discardChartSelection, authoring }: {
   workspaceId: string | undefined;
   theme: 'light' | 'dark' | undefined;
   view: ModelChatView | undefined;
@@ -116,6 +119,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   chartSelection: ModelChartSelection | undefined;
   invalidChartSelectionRevision: number | undefined;
   discardChartSelection: () => void;
+  authoring?: WorkbenchAuthoringTurn | undefined;
 }) {
   useLocale();
   const heading = useId();
@@ -147,14 +151,20 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   const cancellable = trackedTurn?.observation === 'checking-send' ? undefined : trackedTurn;
   const [staleSelectionRevision, setStaleSelectionRevision] = useState<number>();
   const visible = view !== undefined;
-  const chartScope = connection?.route.scope === 'conversation_text_and_sample_closes';
+  const chartScope = !authoring && connection?.route.scope === 'conversation_text_and_sample_closes';
   const selection = chartScope ? chartSelection : undefined;
   const usingOpenAi = provider === 'openai_responses';
   const model = usingOpenAi ? openAiModel : ollamaModel;
   const invalidSelectionRevision = chartScope ? invalidChartSelectionRevision : undefined;
   const staleChartDraft = staleSelectionRevision !== undefined
     && (selection === undefined || selection.selectionRevision === staleSelectionRevision);
-  const mustReselect = Boolean(connection) && (invalidSelectionRevision !== undefined || staleChartDraft);
+  const mustReselect = !authoring && Boolean(connection) && (invalidSelectionRevision !== undefined || staleChartDraft);
+  const needsAuthoringModel = Boolean(authoring && connection?.route.kind === 'offline_mock');
+  const questionLimit = 2000 - (authoring?.prompt.length ?? 0);
+
+  useEffect(() => {
+    setQuestion('');
+  }, [authoring?.scope]);
 
   useEffect(() => {
     if (invalidSelectionRevision !== undefined && question.trim()) setStaleSelectionRevision(invalidSelectionRevision);
@@ -210,7 +220,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     setConnectionUnconfirmed(false);
     if (active && status.turn_id && (!attempted || recovered) && status.turn_id !== lastTurn.current) {
       setTrackedTurn({ id: status.turn_id, connection: active, question: recovered ? attempted.question : undefined,
-        selection: recovered ? attempted.selection : undefined, observation: 'polling' });
+        selection: recovered ? attempted.selection : undefined, authoring: recovered ? attempted.authoring : undefined,
+        observation: 'polling' });
     } else {
       setTrackedTurn(undefined);
     }
@@ -291,7 +302,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     if (!workspaceId || !pending || working) return;
     const controller = new AbortController();
     pollController.current = controller;
-    const { id, connection: active, question: submitted, selection: selected } = pending;
+    const tracked = pending;
+    const { id, connection: active, question: submitted, selection: selected } = tracked;
     let superseded = false;
     let timer: number | undefined;
     let busyPolls = 0;
@@ -326,8 +338,10 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           return;
         }
         setError(undefined);
+        const authored = tracked.authoring && { scope: tracked.authoring.scope, ready: tracked.authoring.receive(turn.text) };
         setTurns(previous => [...previous, {
           id, question: submitted, model: turn.model, text: turn.text, evidence, chartRequested: Boolean(selected),
+          authored,
         }]);
         if (submitted !== undefined) {
           setQuestion('');
@@ -346,7 +360,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           timer = window.setTimeout(poll, pollIntervalMs);
           return;
         }
-        setTrackedTurn({ id, connection: active, question: submitted, selection: selected, observation: 'checking-poll' });
+        setTrackedTurn({ ...tracked, observation: 'checking-poll' });
         setError(unknownTurn);
       } finally {
         if (pollInFlight.current === drained) pollInFlight.current = undefined;
@@ -497,7 +511,8 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   function submit(event: FormEvent) {
     event.preventDefault();
     const submitted = question.trim();
-    if (!submitted || trackedTurn || working || mustReselect || connectionUnconfirmed) return;
+    if (!submitted || submitted.length > questionLimit || trackedTurn || working || mustReselect || connectionUnconfirmed
+      || needsAuthoringModel) return;
     if (!connection) {
       setError(undefined);
       setNotice(undefined);
@@ -506,10 +521,11 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     }
     const active = connection;
     void perform(async (id, signal) => {
-      const turn = { id: crypto.randomUUID(), connection: active, question: submitted, selection, observation: 'checking-send' } satisfies TrackedTurn;
+      const turn = { id: crypto.randomUUID(), connection: active, question: submitted, selection, authoring,
+        observation: 'checking-send' } satisfies TrackedTurn;
       try {
         await exchangeModel(id, {
-          action: 'send', connection_id: active.connection_id, question: submitted,
+          action: 'send', connection_id: active.connection_id, question: (authoring?.prompt ?? '') + submitted,
           ...(selection && { selection_revision: selection.selectionRevision }),
         }, signal, turn.id);
         setTrackedTurn({ ...turn, observation: 'polling' });
@@ -573,7 +589,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   return <dialog ref={dialog} className="symbol-dialog decision-dialog model-dialog" data-layout-theme={theme}
     aria-labelledby={heading} onCancel={event => { event.preventDefault(); if (!working) leaveSettings(undefined); }}>
     <div className="dialog-heading">
-      <h2 id={heading}>{view === 'question' ? t('Ask AI') : t('AI settings')}</h2>
+      <h2 id={heading}>{view === 'question' ? (authoring ? t('Author with AI') : t('Ask AI')) : t('AI settings')}</h2>
       <div className="model-actions">
         {view === 'question' && <button type="button" className="secondary-button" disabled={working}
           onClick={openSettings}>{t('AI settings')}</button>}
@@ -592,10 +608,15 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
         <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? t('Offline mock enabled')
           : connection ? <>{t('{provider} connected', { provider: providerName(connection.route.kind) })} · <bdi>{connection.route.model}</bdi></>
             : t('No model connected')}</p>
+        {authoring && <p className="model-muted">{t('This turn sends your intent, synthetic source descriptions and the accepted view definition through the current model connection. Source rows stay on this device.')}</p>}
+        {needsAuthoringModel && <p role="status">{t('Connect a model in AI settings to author a view.')}</p>}
         <div ref={transcript} className="model-transcript" role="log" aria-label={t('Conversation')}>
-          {turns.map(turn => <article key={turn.id} className="model-turn">
+          {turns.filter(turn => turn.authored?.scope === authoring?.scope).map(turn => <article key={turn.id} className="model-turn">
             {turn.question && <div className="model-question"><h3>{t('You')}</h3><p dir="auto">{turn.question}</p></div>}
-            <div className="model-answer"><h3>{t('Model')} <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.text}</p></div>
+            <div className="model-answer"><h3>{t('Model')} <bdi>{turn.model}</bdi></h3><p dir="auto">{turn.authored
+              ? turn.authored.ready ? t('Draft ready. Close this conversation to inspect it in the workbench.')
+                : t('The workbench did not accept this draft.')
+              : turn.text}</p></div>
             {turn.evidence ? <ChartEvidence evidence={turn.evidence} />
               : turn.chartRequested && <p className="model-muted">{t('No chart evidence used.')}</p>}
           </article>)}
@@ -604,10 +625,12 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
           {chartScope && !mustReselect && <p className="model-muted">
             {selection ? t('Selected chart · {interval}', { interval: intervalLabel(selection.range) }) : t('No chart selection for this turn.')}
           </p>}
-          <label>{t('Question')}<textarea ref={questionField} rows={3} maxLength={2000} required value={question}
+          <label>{authoring ? t('What should the workbench show or do?') : t('Question')}
+            <textarea ref={questionField} rows={3} maxLength={questionLimit} required value={question}
             disabled={Boolean(trackedTurn) || working} onChange={event => setQuestion(event.currentTarget.value)} /></label>
           <div className="model-actions">
-            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || mustReselect || !question.trim()}>{connection ? t('Send') : t('Ask')}</button>
+            <button type="submit" className="primary" disabled={Boolean(trackedTurn) || working || mustReselect
+              || needsAuthoringModel || !question.trim() || question.trim().length > questionLimit}>{connection ? t('Send') : t('Ask')}</button>
             {mustReselect && <button type="button" className="secondary-button" disabled={Boolean(trackedTurn) || working}
               onClick={startTextQuestion}>{t('Start a text-only question')}</button>}
             {unconfirmed && <button type="button" className="secondary-button" disabled={working} onClick={refresh}>{t('Check turn status')}</button>}
@@ -667,13 +690,13 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
                 || (usingOpenAi ? !credential?.configured : !origin.trim())}>{t('Review connection')}</button>
             </div>
           </form>
-          <section className="model-card" aria-label={t('Offline demonstration')}>
+          {!authoring && <section className="model-card" aria-label={t('Offline demonstration')}>
             <p className="model-muted">{t('Try canned replies on this device, without a model server or service charges.')}</p>
             <div className="model-actions">
               <button type="button" className="secondary-button" disabled={!workspaceId || working}
                 onClick={() => review({ kind: 'offline_mock' })}>{t('Use offline mock')}</button>
             </div>
-          </section>
+          </section>}
         </>}
         <div className="model-actions">
           <button type="button" className="secondary-button" disabled={working} onClick={() => leaveSettings('question')}>{t('Back to question')}</button>
