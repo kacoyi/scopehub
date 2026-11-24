@@ -10,7 +10,27 @@
     "unconventional-indicator": {
       "procedure": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/unconventional-indicator"}},
       "drawing": "For the chart candidate, bundle the chart SDK inside the isolated renderer. With Lightweight Charts, attach the drawing to its series primitive. Candles, glow and the bubble use the same time/price scales, viewport revision and draw cycle there. The trusted host streams sequenced read-only data and binding metadata. Pan, zoom, pixel projection and the drawing context stay local to that rendering surface. Return selection intents through the checked operation channel.",
-      "motion": "On a recorded 60 Hz display capture a two-second pan or zoom while quotes arrive. Exercise resize and different display scales. Compare the bubble to its candle within one logical pixel in every presented frame. Count the display refreshes during motion and retain per-frame times. A missed refresh or a stale overlay during the 60 Hz trial fails even if the final still is aligned."
+      "motion": {
+        "trial": "Drive continuous visible pan or zoom while quotes arrive. On a fixed 60 Hz display observe 120 consecutive refresh opportunities, about two seconds. Exercise resizing and different display scales in recorded trials. Retain presentation timestamps and the viewport and overlay revision for each actual frame.",
+        "alignment": {
+          "max_anchor_error_logical_px": 1,
+          "max_stale_overlay_frames": 0,
+          "measurement": "In every presented frame compare the horizontal bubble anchor with its identified candle center in logical pixels. The overlay must use that frame's viewport transform. A stale transform fails even when rounded positions happen to coincide."
+        },
+        "smoothness": {
+          "refresh_opportunities": 120,
+          "min_presented_motion_frames": 114,
+          "max_consecutive_missed_refreshes": 2,
+          "measurement": "Count distinct presented motion frames, at most one per display refresh. A repeated frame counts as a missed opportunity. Require at least 95 percent of opportunities and check the longest consecutive run of misses. Retain occasional compositor jitter in the sample. A single interval over 16.67 ms does not by itself fail the trial. If capture losses prevent identifying the displayed frames, retain the inconclusive trace and repeat with reliable instrumentation."
+        },
+        "boundary_examples": [
+          {"presented": 114, "longest_miss": 2, "max_error_px": 1, "stale_frames": 0, "verdict": "pass"},
+          {"presented": 113, "longest_miss": 2, "max_error_px": 1, "stale_frames": 0, "verdict": "fail"},
+          {"presented": 117, "longest_miss": 3, "max_error_px": 0, "stale_frames": 0, "verdict": "fail"},
+          {"presented": 120, "longest_miss": 0, "max_error_px": 0, "stale_frames": 1, "verdict": "fail"},
+          {"presented": 120, "longest_miss": 0, "max_error_px": 1.01, "stale_frames": 0, "verdict": "fail"}
+        ]
+      }
     },
     "chart-free-event-desk": {
       "procedure": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/chart-free-event-desk"}},
@@ -29,18 +49,24 @@
     "scoped-edit-continuity": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/scoped-edit-continuity"}},
     "fault-and-permission-containment": {
       "given": "Start the last accepted canvas and an ordered quote replay. Declare a bounded memory budget for the candidate before injecting a fault. Use synthetic file, SQLite, credential, position and strategy markers and a controlled receiver. A permitted positive control must reach that receiver and be visible to the independent network observer.",
-      "faults": ["malformed draft before activation", "render event loop stalls", "renderer exceeds its memory limit"],
+      "faults": ["malformed draft before activation", "render event loop stalls", "renderer exceeds its memory limit", "bridge message rate or queue capacity exceeded", "oversized or malformed bridge message"],
       "draft_rejection": "Reject the malformed draft before activation, retain the accepted interactive view, and route its diagnostic through the scoped repair procedure.",
       "isolation": "The canvas runs in an OS process independently terminable from the trusted shell UI, Rust supervisor and quote service. On native WebView2 and WebKitGTK identify the actual processes and their roles and exercise termination. The shell must still accept input during each fault. Measure peak resource use against the declared limit and contain exhaustion before it can terminate the host.",
+      "windows_process_failure": "Record whether the canvas and shell share a WebView2 user data folder or CoreWebView2Environment and identify their actual live renderers. Shared configuration can reuse a renderer across controls. Fail a candidate whose canvas termination can also terminate the privileged UI. Exercise a renderer exit and correlate the native ProcessFailed event, failure kind and affected control with the Rust supervisor's observation, old PID exit, fresh instance and first interactive accepted frame. Verify the shell continues painting and accepts input and that the quote service stays live.",
+      "bridge_admission": {
+        "limits": "Before the trial record host-enforced limits per canvas for encoded message bytes, accepted messages per interval, queued messages and queued bytes. Enforce the message bound before decoding or allocating the declared body. Bound admission work and keep the shell's input and recovery path independent of the canvas queue.",
+        "trial": "Use bounded synthetic inputs at the declared limits and one unit over each limit. Include a short over-budget burst, an oversized declared message and a malformed message. Observe admitted, rejected and coalesced counts, queue and memory high-water marks, the recovery control, and ordered quotes during the trial.",
+        "verdict": "An admissible operation is handled once. A rejected selection intent has an explicit bounded rejection or channel-close outcome, commits zero mutations and advances no selection revision. Only replaceable presentation updates may be dropped or coalesced. Queue bounds hold, the shell stays interactive, quote positions are accounted for, and an ordinary permitted intent succeeds after recovery."
+      },
       "watchdog": {
         "max_stall_to_host_intervention_ms": 3000,
         "procedure": "Use a host monotonic clock and a health response tied to the active renderer event loop. A separate timer that still runs while presentation is stalled cannot satisfy it. By the deadline from the observed stall, the trusted shell is interactive and Rust has initiated termination of the failed instance. On memory-limit breach, contain it immediately. Without user input, create a fresh renderer and restore the last accepted revision. Keep one-click rollback reachable in the shell.",
         "observe": "Retain stall or limit event, host intervention, old-process exit, replacement identity and first interactive frame of the restored revision. Measure recovery-to-frame separately. Verify that the failed draft never becomes accepted, the host and quote service survive, and the final closed bar and ordered feed positions are accounted for. Include a healthy idle canvas as a control."
       },
       "permissions": {
-        "policy": "The authored frame has no privileged Tauri bridge, including window.__TAURI_INTERNALS__, and has no ambient filesystem, database, credential or network authority. Apply a default-deny CSP (default-src 'none') with narrowly scoped packaged assets and necessary local style or blob resources. Enforce navigation, new-window and networking restrictions at the host or isolation boundary, including WebRTC.",
-        "observations": ["direct host command and protected local resource access", "fetch and XHR", "image resource loads", "CSS background images", "new-window and external navigation", "WebRTC connection establishment"],
-        "verdict": "For each route inspect the host decision and independent network observation on both native runtimes. Require zero unauthorized reads or writes, no external window or connection, and zero bytes sent by the canvas or on its behalf to unapproved destinations. The healthy control establishes observer coverage. Missing visibility blocks the verdict. Keep production credentials, private records and public endpoints outside the trial."
+        "policy": "The authored frame has no privileged Tauri bridge, including window.__TAURI_INTERNALS__, or ambient local or network authority. Apply default-src 'none'. The effective script policy forbids 'unsafe-eval'. Effective style rules admit only the required local sources or scoped generated styles. Effective font-src, connect-src and img-src exclude every external origin. Reject external stylesheet imports, fonts, images and connections during rendering, editing and restoration. Enforce navigation, new-window and WebRTC restrictions at the host or isolation boundary. Deny direct canvas clipboard and media-device access even after a gesture.",
+        "observations": ["direct host command and protected local resource access", "fetch and XHR", "image resource loads and CSS background images", "external CSS @import and @font-face loads", "new-window and external navigation", "WebRTC connection establishment", "clipboard read and write", "microphone and camera access"],
+        "verdict": "Inspect the effective production policy, the host decision and independent observations on both native runtimes. Require zero unauthorized reads or writes, no external window or connection, and zero canvas-attributable bytes sent to unapproved destinations. With a disposable clipboard and test media devices, require zero clipboard bytes returned or changed, zero device activations and zero OS permission prompts. The healthy control establishes observer coverage. Missing visibility blocks the verdict."
       }
     },
     "bidirectional-evidence": {
@@ -79,7 +105,7 @@
     "hot-edit-and-repair": {
       "timing_and_repair": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/gates/hot-edit-and-repair"}},
       "style_input": {"example_background": "#14171A", "font_px": 16, "tracking_em": -0.02, "expected_tracking_px": -0.32, "example_classes": ["bg-[#14171A]", "tracking-[-0.02em]"]},
-      "style_oracle": "Exercise a previously unshipped literal color and tracking value. If utility classes are offered, include their arbitrary-value syntax. At 16 px the example must render RGB(20,23,26) and -0.32 px tracking. Record computed styles and a working input target on the first correct frame. Measure every warm save including style discovery, generation and application. A missing style, late first styled frame or any sample over 300 ms fails.",
+      "style_oracle": "Exercise a previously unshipped literal color and tracking value. If utility classes are offered, include their arbitrary-value syntax. At 16 px the example must render RGB(20,23,26) and -0.32 px tracking. Record computed styles and a working input target on the first correct frame. Measure every warm save including style discovery, generation and application. Record the effective production CSP before editing, at that frame and on cold reopen. A weakened policy, external style or font request, missing style, late first styled frame or any sample over 300 ms fails.",
       "candidate": "Use locally bundled vendor dependencies. Compare bundled incremental style extraction, local runtime generation or direct authored CSS on the same inputs under the production policy. Reopening uses the accepted style artifact. No dependency download or vendor rebuild is required for a local edit."
     }
   },
@@ -88,7 +114,7 @@
       "check": "workbench-runtime-smoke",
       "trigger": "Require an automated run for changes to the canvas SDK, shell, renderer, data and intent bridge, style pipeline, process or permission configuration and bundled rendering dependencies once the check is delivered.",
       "workload": {"history_bars": 10000, "updates_per_second": 10, "seconds": 30, "expected_positions": 300},
-      "observe": "Automate the controlled faults and denial observations, the state comparison across view changes, short replay and actual styled save-to-input timing. Require all positions and the final state, zero changes to protected research state, zero unauthorized traffic and the specified recovery and hot-edit deadlines. Exclude only the requested presentation change and expected incoming market revisions from the state comparison.",
+      "observe": "Automate the controlled faults, bridge admission boundaries and permission observations. Check motion alignment and smoothness separately, compare state across views, run the short replay and time styled saves under the production CSP. Require all quote positions and the final state, zero changes to protected research state, zero unauthorized traffic and the specified recovery and hot-edit deadlines. Exclude only the requested presentation change and expected market revisions from the state comparison.",
       "platforms": "Headless automation covers portable presentation, routing and state logic. Exercise OS process containment, effective egress, recovery controls and presented frames in the actual Ubuntu and Windows hosts on affected changes. Preserve the runtime and surface with each result."
     },
     "native_and_release": "M2-003 compares native candidates and owns the smoke checks. M2-013 exercises authoring, evidence and cold restoration. M4-005 owns independent MCP client observations. M5-001 binds all eight cases, five gates, blind prompt and the full two-hour workload to the exact Windows candidate. Retain the package hash, grants, fixture revisions, timings, receipts and per-case verdicts. The short smoke workload supplies early feedback only.",

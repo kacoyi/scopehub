@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-027",
   "tasks": [
     {
       "id": "M0-001",
@@ -4736,7 +4736,7 @@
       ],
       "acceptance": [
         "Use a chart-free composition of local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
-        "Keep privileged controls and the last accepted view in the host. Exercise the workbench-qualification-v2 process, resource, native access and egress boundaries on both platforms. Record the three-second watchdog intervention, independent process exit and automatic restore.",
+        "Keep privileged controls and the last accepted view in the host. Exercise the workbench-qualification-v2 process, resource, bridge admission, native access and egress boundaries on both platforms. On Windows observe WebView2 process reuse and correlate ProcessFailed with the Rust supervisor and independent recovery. Record the three-second watchdog intervention, independent process exit and automatic restore.",
         "Use the local event and spread fixtures to exercise same-frame chart geometry and versioned visual projections. Deliver the automated workbench-runtime-smoke checks for changes to the declared SDK and shell surfaces.",
         "Record the source revision, native runtime versions, synthetic inputs, observations, decision and revisit conditions. Choose a viable option by evidence, or report the gap. Prototype approval grants no new product data access or code execution rights."
       ],
@@ -17387,6 +17387,47 @@
           "change": ["Strengthen the qualification and declare the future smoke gate."],
           "data_plan": "Commit synthetic inputs only. All evidence targets are scoped and versioned.",
           "cleanup": "Archive the specification check and return focus to the planned renderer task."
+        }
+      }
+    },
+    {
+      "id": "M2-027",
+      "title": "Specify motion tolerances and host admission limits for the canvas",
+      "milestone": "M2",
+      "status": "active",
+      "delivery": "current-contract",
+      "depends_on": ["M2-026"],
+      "scope": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
+      "decision_refs": ["0027", "0028"],
+      "acceptance": [
+        "The motion trial has an absolute alignment oracle, a separate bounded frame-loss rule and examples on either side of each limit.",
+        "The native trial specifies per-canvas bridge admission, clipboard and device denial, production style and network restrictions, and observed WebView2 renderer failure and recovery."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "Check boundary examples, qualification references and the M2-003 native observation instructions.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The declared motion, bridge, permission and native failure outcomes can each be falsified by a named observation.",
+        "change_types": ["tooling"],
+        "context": ["tests/fixtures/workbench-qualification-v2.json", "contracts/workbench-v1.json", "project/checks.json"],
+        "hypotheses": ["Presented viewport and overlay revisions can be checked independently of occasional missed display refreshes."],
+        "risks": [{"failure": "A stale frame or privileged side effect passes a superficially successful trial.", "checks": ["project-state", "python-contracts-workers"]}],
+        "rollback": "Revert this qualification amendment and its native task reference together.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["tests/fixtures/workbench-qualification-v2.json", "project/tasks.json"],
+          "rules": [{"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"}],
+          "non_goals": ["Runtime or CI implementation and executing fault trials."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["The eight cases, five gates, independent host recovery and the existing release workload."],
+          "change": ["Define motion tolerances, bridge and device limits, production style policy and the Windows process observation."],
+          "data_plan": "Use bounded synthetic observations and disposable test devices.",
+          "cleanup": "Archive the documentary evidence and return focus to the planned renderer task."
         }
       }
     }
