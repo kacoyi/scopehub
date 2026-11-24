@@ -4881,6 +4881,53 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-pair-interrupt-waits-for-unbounded-future",
+      "source": "Independent Standard Astra review of 582404ab1eb0e4e935d42a305cb16e7380da6b6b over M0-092 intake 1d4c587.",
+      "observation": "When market recovery finished first, the main thread blocked in the unbounded Python future wait. A pending interrupt was only serviced after the Python worker exited, and the resulting interruption lost both terminal rows. A completed recovery log and the still-running Python listener must be handled independently of their completion order.",
+      "severity": "critical",
+      "status": "open",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "posix-market-recovery-supervisor-dies-on-group-termination",
+      "source": "Independent Standard Astra t104 review of d96094ea1045a82d58fb2fe973914fb7c6cf2b2b. Original review archives/observations/m0-092-review/astra-d96094e-hold.txt, SHA-256 e4b997e9051a699cc36a9a222b631a926a6fae842472c8e446686368e68a5a9d.",
+      "observation": "The real process-group SIGTERM also terminated the Linux supervisor. The check returned cleanup_failed and an owned detached child remained alive after return. The direct-command termination control preserved -15.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "posix-market-recovery-ignored-sigchld-loses-command-failure",
+      "source": "Independent Standard Astra t104 review of d96094ea1045a82d58fb2fe973914fb7c6cf2b2b. Original review archives/observations/m0-092-review/astra-d96094e-hold.txt, SHA-256 e4b997e9051a699cc36a9a222b631a926a6fae842472c8e446686368e68a5a9d.",
+      "observation": "The same command exited explicitly with status 7 under both environments. A supervisor inheriting SIGCHLD ignored reported exit 0 instead of 7, and automatic reaping invalidated the held-child identity premise.",
+      "severity": "critical",
+      "status": "open",
+      "task_ids": [
+        "M0-092"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -19054,6 +19054,26 @@
             ]
           },
           {
+            "failure": "An interrupt arriving after the first successful check waits for the second check to finish and loses either terminal result or its log.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The contained command terminates its own group and takes the supervisor with it, leaving an owned detached child alive.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Inherited ignored SIGCHLD discards the actual command exit status or the identity of an owned child before cleanup.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
             "failure": "Initial cache creation or Linux timings are counted as steady Windows recovery.",
             "checks": [
               "python-contracts-workers"
