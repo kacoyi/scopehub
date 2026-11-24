@@ -87,6 +87,13 @@
       ]
     },
     {
+      "id": "workbench-runtime",
+      "triggers": [
+        "Canvas SDK, renderer, host shell, data and intent bridge, authoring style pipeline, isolation policy or bundled rendering dependencies"
+      ],
+      "checks": ["workbench-runtime-smoke"]
+    },
+    {
       "id": "ui",
       "triggers": [
         "Interactive chart behavior, visible states or accessibility"
@@ -499,17 +506,18 @@
     },
     {
       "id": "qualify-a-user-authored-workbench",
-      "task_ids": ["M2-003", "M2-013", "M5-001"],
+      "task_ids": ["M2-003", "M2-013", "M4-005", "M5-001"],
       "user_goal": "Invent a visual presentation or interaction, revise it during research and continue using the same data and discussion.",
-      "given": "Use the cases and independent expectations in tests/fixtures/workbench-qualification-v1.json. Identify the fixed desktop package, synthetic data and existing grants before authoring.",
-      "when": "Use the ordinary workbench and embedded AI for the six cases and a reviewer-selected challenge disclosed after the package freeze.",
+      "given": "Use tests/fixtures/workbench-qualification-v2.json and its local synthetic inputs. Identify the fixed desktop package, data revisions and existing grants before authoring.",
+      "when": "Use the ordinary workbench and embedded AI for all eight cases and a reviewer-selected challenge disclosed after the package freeze.",
       "then": [
         "The same package expresses each requested view and interaction, preserves the research state and exposes the source of each financial value.",
-        "The shell recovers a failed or stalled edit within the stated limit and retains authority over protected data and actions. The authored view meets the performance and save-to-frame limits."
+        "The host terminates an isolated stalled instance and restores the accepted revision. Visible graphics, financial values, styles and authorized actions meet their recorded expectations.",
+        "The desktop, embedded AI and separately granted client use the same revision-checked evidence target. Cold restart restores frozen bindings and honors current rights before displaying data."
       ],
       "failure_cases": ["A dedicated product change is needed", "A reference, selection or grant is lost or silently replaced", "A gate fails or a required observation is missing"],
-      "checks": ["workbench-qualification"],
-      "evidence_boundary": "M2-003 evaluates the candidate on native systems. M2-013 verifies the chart-free journey. M5-001 owns the six cases, five gates and unseen challenge on one identified Windows release package."
+      "checks": ["workbench-runtime-smoke", "configured-external-ai-clients", "workbench-qualification"],
+      "evidence_boundary": "M2-003 owns the short automated gate and native candidate trials. M2-013 verifies the chart-free journey. M4-005 qualifies actual external clients. M5-001 verifies the eight cases, five gates, full stability workload and unseen challenge on one identified Windows package."
     },
     {
       "id": "voice-evidence-discussion",
