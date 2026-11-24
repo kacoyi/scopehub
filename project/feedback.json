@@ -4232,6 +4232,24 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-history-socket-retry-interleaves-host-traces",
+      "source": "Authenticated PR 77 Windows browser producer on run 45387261521, retained through the canonical aggregate at archives/runs/windows-change-45387261521-1/test-report.json. The workspace-timeframe log (SHA-256 5968a19a764577fa36c336c9f6bea80f53830d9791a6679f5a82d2a5a2afc62d) and the reopened sample case attachments record the failed assertion and both browser fetch outcomes.",
+      "observation": "The browser reported a single rejected selected-history fetch without headers. The same trace recorded two server receipts and admissions followed by two close events with status 200, with the second receipt arriving before the first close. The test expected consecutive receipt, admission and close triples, so it rejected the trace even after both closes arrived. The explicit retry while disconnected reported its own distinct rejected fetch.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45387261521-1",
+          "source_commit": "37ad45f476de9fd009379300beea264704317a7e",
+          "report_sha256": "f898e43f0c624e65c57b9fff7f157fa532a7763a28dc948765fd04e8afd92855"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
