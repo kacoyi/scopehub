@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-036",
   "tasks": [
     {
       "id": "M0-001",
@@ -17731,6 +17731,98 @@
           "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
           "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M1-036",
+      "title": "Open and resume a personal CSV folder from My data sources",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M0-051",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0023"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "Offer Settings, Data sources and My data sources in the ordinary chart shell. From an unconfigured profile, the folder entry opens the existing user-initiated picker and approved CSV review flow without an account.",
+        "Cancelling or dismissing the settings or native picker preserves the chart, its selection and focus. Selecting a folder exposes the existing review and explicit publication controls. Reopening a still-granted folder reuses the current session's review without inventing a saved connection."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "local-import-ui"
+      ],
+      "evidence": [],
+      "next_action": "Connect the normal settings entry to the existing local CSV picker and demonstrate selection and cancellation before broader checks.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "From the ordinary chart settings a user reaches My data sources and can choose their own local CSV directory, review it through the existing import flow, then return to the original chart.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/workspace-panels.tsx",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "tests/ui/local-import.playwright.config.mjs"
+        ],
+        "hypotheses": [
+          "The chart can expose one settings entry and hand off to the existing local folder flow without a second picker or import implementation."
+        ],
+        "risks": [
+          {
+            "failure": "Opening settings or cancelling the picker changes the chart or silently creates a source grant or publication.",
+            "checks": [
+              "local-import-ui"
+            ]
+          }
+        ],
+        "rollback": "Revert this user-facing entry and its focused tests together, retaining the established underlying operation.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/workspace-panels.tsx",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "tests/ui/local-import.playwright.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/my_data_sources"
+            }
+          ],
+          "non_goals": [
+            "Persistent refresh rules, manual records and API connection forms remain in M1-030 and their existing delivery tasks."
+          ],
+          "open_questions": [
+            "Which existing chart controls can share the folder action and restore focus on cancellation?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The chart default, existing source actions, synthetic labels, session-limited grants and explicit publication."
+          ],
+          "change": [
+            "From the ordinary chart settings a user reaches My data sources and can choose their own local CSV directory, review it through the existing import flow, then return to the original chart."
+          ],
+          "data_plan": "Use explicit native grants and synthetic fixtures in checks. Opening settings writes no user data.",
+          "cleanup": "Keep one path for the underlying action and remove any superseded local interaction while maintaining its callers."
         }
       }
     }
