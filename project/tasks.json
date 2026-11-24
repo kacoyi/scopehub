@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-105",
   "tasks": [
     {
       "id": "M0-001",
@@ -20662,6 +20662,144 @@
           ],
           "data_plan": "Retain only the existing synthetic binding and accepted view state in one mounted App. Close discards preview and editor state. A fresh App starts blank.",
           "cleanup": "Keep the accepted state scoped to the prototype entry until the product workbench replaces it."
+        }
+      }
+    },
+    {
+      "id": "M0-105",
+      "title": "Remove the Windows storage admission dependency on PowerShell startup",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-102"
+      ],
+      "scope": [
+        "crates/persistence",
+        "crates/platform",
+        "apps/desktop/src-tauri",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "The ordinary authorized Windows writer preparation and open use one policy in a supervised worker that does not start a PowerShell interpreter. The unbundled and installed executable can use the same trusted worker after relocation.",
+        "The first browser fixture setup reaches its real claimed-profile writer and the original browser cases under the existing command bounds. Existing local NTFS, owner, protected creation, ACE, private file and sidecar refusal controls still exercise the same authoritative policy.",
+        "Retain the same-input hosted failure and green control. Record bounded worker launch and working milestones without private path or SID values. Preserve definite failure, child and directory cleanup, and no admission after timeout or caller loss."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture",
+        "operations-workflow",
+        "rust-format",
+        "rust-lints",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "windows-native-build"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45489014243-1",
+          "source_commit": "2d31fe9338a8c8ca5dc051412870fe4f8c459783",
+          "report_sha256": "66bc75a2551c438b4158b8e395695a3a30035e4aa1137eee8c64ac9ea96d8b46"
+        }
+      ],
+      "next_action": "Use the original timeout and matching green to locate the first missing phase. Select the smallest single-authority precompiled or native worker through the standard entry, comparing runtime, build and installation cost before validating the focused native controls.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A Windows user can prepare and open an owner-only workspace without relying on repeated interpreter startup and with the existing failure and cleanup contract.",
+        "change_types": [
+          "tooling",
+          "packaging"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/src-tauri/src/main.rs",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "scripts/prepare_workspace_profile_pool.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The ordinary browser producer timed out in the one PowerShell-backed global preparation after 10.290 seconds and ran zero cases. Same execution inputs and the same 64-profile entry passed in 735 ms in official task run 45484754044. No original artifact measures script entry or the ACL phases, so process startup, scheduling, and inner work cannot be distinguished retrospectively.",
+          "A shared precompiled worker or native policy may remove the interpreter dependency while preserving an OS process that can be terminated and waited. Compare cost and ability to run the normal desktop, development bridge and test entry without portable or packaging surprises."
+        ],
+        "risks": [
+          {
+            "failure": "The replacement relaxes a Windows ACL refusal, local volume or ancestor guard, or opens any SQLite sidecar before verifying a trusted profile.",
+            "checks": [
+              "rust-contracts-workers",
+              "operations-workflow",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A stalled worker or lost caller continues to create files after a failure report or leaves a descendant active while a fixture is removed.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The ordinary compiled desktop or installed Windows application cannot find the exact trusted worker, or test mode bypasses the real production policy.",
+            "checks": [
+              "architecture",
+              "rust-lints",
+              "rust-contracts-workers",
+              "windows-native-build",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the exact historical source and failed artifacts. Revert the worker transport and policy replacement together if native policy equivalence, bounded cleanup or the normal build and installed entry fail to match.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "platform",
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/storage.rs",
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "apps/desktop/src-tauri/src/main.rs",
+            "tests/ubuntu-preview/workspace.setup.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Blind retry, increased deadlines, profile format changes, ACL exceptions, native-only claims from a cross build, permanent parallel policies, or modifying the accepted M0-102 results."
+          ],
+          "open_questions": [
+            "Can a precompiled worker be exercised and relocated before protected deployment without introducing a new compiler or a fragile package dependency? Is a self-hosted native worker with explicit test registration a smaller lifetime cost?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "One effective Windows storage policy, trusted profile and file identities, cancellation, finite command bounds, protected creation, explicit refusal, root isolation and original history."
+          ],
+          "change": [
+            "Remove interpreter launch from the common real Windows preparation and open boundary once the replacement has validated matching application and test entries."
+          ],
+          "data_plan": "Use synthetic local profiles and existing Windows artifacts. No on-disk migration.",
+          "cleanup": "Retain the same timeout and process termination boundary. Confirm owned process exit before deleting disposable profiles, and preserve uncertain recovery state."
         }
       }
     }

@@ -3306,25 +3306,22 @@
     },
     {
       "id": "windows-acl-prepare-fixture-and-mapping-timeouts",
-      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout. Third occurrence: PR 84 run 45468479291, archives/observations/pr-84-45468479291/index.json (SHA-256 399e91e184e8742b868013470e7b32f53890b4bc651d4d14dec5752058392f65). Windows workspace-timeframe log SHA-256 ffe18daefd5643711fa8cc8c29da1765ca07845151d9e2cec85f157936895521.",
-      "occurrence": 3,
+      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout. Third occurrence: PR 84 run 45468479291, archives/observations/pr-84-45468479291/index.json (SHA-256 399e91e184e8742b868013470e7b32f53890b4bc651d4d14dec5752058392f65). Windows workspace-timeframe log SHA-256 ffe18daefd5643711fa8cc8c29da1765ca07845151d9e2cec85f157936895521. Fourth occurrence: PR 84 run 45489014243, archives/runs/windows-change-45489014243-1/test-report.json. Windows workspace-timeframe log SHA-256 3983a2e110c148f7de8f3123bf32a07742115f22b613300633cdf96b3cf9556d.",
+      "occurrence": 4,
       "severity": "major",
-      "status": "addressed",
-      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot. Third occurrence: four originally independent workspace-timeframe fixtures (:144, :215, :556 and :652) stopped in workspace_bridge --prepare-profile-root with (prepare, powershell-timeout), before Vite or SQLite. The fourth failed with no other workspace case running. The browser launches separate bridge processes outside the prior Tauri test-only mutex. The same four Linux cases and the three Windows indicator delivery and recovery controls passed. The failed Windows process contains no measured internal stage beyond the PowerShell timeout.",
+      "status": "open",
+      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot. Third occurrence: four originally independent workspace-timeframe fixtures (:144, :215, :556 and :652) stopped in workspace_bridge --prepare-profile-root with (prepare, powershell-timeout), before Vite or SQLite. The fourth failed with no other workspace case running. The browser launches separate bridge processes outside the prior Tauri test-only mutex. The same four Linux cases and the three Windows indicator delivery and recovery controls passed. The failed Windows process contains no measured internal stage beyond the PowerShell timeout. Fourth occurrence: the same reviewed native Windows inputs used one 64-profile setup before both workers. The ordinary PR producer returned prepare/powershell-timeout after 10.290 seconds and started zero browser cases. The same-input task had prepared 64 roots in 735 ms. The native Rust controls passed on a different Windows host. No original log reports first script execution or exact slow ACL work.",
       "task_ids": [
         "M0-071",
         "M0-089",
-        "M0-102"
+        "M0-102",
+        "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers",
         "workspace-timeframe"
       ],
-      "resolution": {
-        "cause": "The latest timed-out browser fixtures each started their own native ACL helper before reaching the workspace. Those processes were outside the earlier desktop fixture admission slot. One fixture timed out with no other workspace case running. The archived failure does not establish the delay inside PowerShell.",
-        "correction": "Prepare the finite Windows browser profile pool in one supervised setup before starting either worker. Claim each root once and keep the ordinary writer's root and sidecar checks.",
-        "prevention": "Keep the native private-profile and shared-ACL writer control and the original four browser cases in the ordinary task checks. Official task run 45484754044 covered those cases on the same reviewed source on Windows and Linux."
-      },
+      "resolution": null,
       "deferral_reason": null,
       "diagnostic_reports": [
         {
@@ -3346,6 +3343,11 @@
           "run_id": "20261124T191751.193512Z-520f9d9d",
           "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
           "report_sha256": "9f26f5107e91ef5f5420a0c7c1e5bfe2e41e6d11e0deeeb9089efa2f86a3e60e"
+        },
+        {
+          "run_id": "windows-change-45489014243-1",
+          "source_commit": "2d31fe9338a8c8ca5dc051412870fe4f8c459783",
+          "report_sha256": "66bc75a2551c438b4158b8e395695a3a30035e4aa1137eee8c64ac9ea96d8b46"
         }
       ]
     },
