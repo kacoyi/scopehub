@@ -22,6 +22,85 @@ function Select-NativeOption([string]$label, [int]$index) {
     [Windows.Forms.SendKeys]::SendWait('{HOME}')
     if ($index -gt 0) { [Windows.Forms.SendKeys]::SendWait("{DOWN $index}") }
 }
+function Show-NativeState([string]$stage) {
+    $visible=@($window.FindAll($scope,$any) | ForEach-Object {
+        if (!$_.Current.IsOffscreen -and $_.Current.Name) { [string]$_.Current.Name }
+    })
+    Write-Host "Owned workspace at ${stage}: $($visible -join ' | ')"
+    Archive-Stage $stage
+}
+function Select-SeriesChoice([string]$label,[string]$wanted) {
+    $combo=Wait-ForProbe "$label in the native studio" { Named-Control $label $type::ComboBox }
+    $combo.SetFocus()
+    $selection=[Windows.Automation.SelectionPattern]::Pattern
+    $before=$null
+    if ($combo.TryGetCurrentPattern($selection,[ref]$before)) {
+        Write-Host "$label initial selection: $(@($before.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -join ', ')"
+    }
+    [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
+    $item=& {
+        $c=Named-Control $label $type::ComboBox
+        if (!$c) { return }
+        foreach ($i in $c.FindAll($scope,$any)) {
+            $name=[string]$i.Current.Name
+            if ($i.Current.IsEnabled -and ($name -eq $wanted -or ($wanted -eq 'accepted UUID' -and $name -match '^[a-f0-9-]{36}$'))) { return $i }
+        }
+        # The expanded select popup can be a sibling of the combo in WebView2.
+        foreach ($i in $window.FindAll($scope,[Windows.Automation.PropertyCondition]::new($ui::ControlTypeProperty,$type::ListItem))) {
+            $name=[string]$i.Current.Name
+            if (!$i.Current.IsOffscreen -and $i.Current.IsEnabled -and ($name -eq $wanted -or ($wanted -eq 'accepted UUID' -and $name -match '^[a-f0-9-]{36}$'))) { return $i }
+        }
+    }
+    $exact=if ($item) { [string]$item.Current.Name } else { $wanted }
+    Write-Host "$label requested $wanted; exposed option: $([string]$item.Current.Name)."
+    if ($exact -eq 'accepted UUID') {
+        [Windows.Forms.SendKeys]::SendWait('{HOME}{DOWN}{ENTER}')
+        Wait-Name 'Numeric series'
+        return
+    }
+    # Use the verified item's type-ahead name in the open native select.
+    [Windows.Forms.SendKeys]::SendWait($exact.Substring(0,[Math]::Min(8,$exact.Length))+'{ENTER}')
+    $null=Wait-ForProbe "$label shows $exact as the current selection" {
+        $c=Named-Control $label $type::ComboBox
+        if (!$c) { return }
+        $v=$null
+        if ($c.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern,[ref]$v) -and $v.Current.Value -eq $exact) { return $true }
+        $sel=$null
+        if ($c.TryGetCurrentPattern($selection,[ref]$sel)) {
+            if (@($sel.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -contains $exact) { return $true }
+        }
+        if (([string]$c.Current.Name).Contains($exact)) { return $true }
+        # Subsequent native source disclosure independently checks the full selected identity.
+        if ($label -eq 'Accepted version' -and (Named-Control 'Numeric series' $type::ComboBox)) { return $true }
+        return $label -eq 'Numeric series' -and (Find-Control 'Accepted series source' $null)
+    }
+    Write-Host "$label advanced for $exact; full identity is checked in the studio source disclosure."
+}
+function Open-PreparedSource {
+    $null=Wait-ForProbe 'completed first workspace source restoration' {
+        (Find-Control 'Candlestick and volume chart for FIX' $type::Image) -or
+        (Find-Control 'Retry source' $type::Button) -or (Find-Control 'Reload workspace state' $type::Button) -or
+        (Find-Control 'Access to this published CSV was revoked.' $null)
+    }
+    Show-NativeState 'workspace-initial'
+    if (Named-Control 'Reload workspace state' $type::Button) { Review-Step 'Reload workspace state' }
+    if (!(Named-Control 'Open published CSV' $type::Button)) { Review-Step 'Data sources' }
+    Review-Step 'Open published CSV'
+    Fill-NativeEdit 'Revision ID' $Identity.revision
+    Review-Step 'Open frozen chart'
+    Wait-Name 'Use as workspace source'
+    Show-NativeState 'published-source'
+    Review-Step 'Use as workspace source'
+    Wait-Name 'Candlestick and volume chart for FIX'
+    Show-NativeState 'workspace-bound'
+}
+function Open-SeriesStudio {
+    Review-Step 'Open blank AI workbench'
+    Review-Step 'Drawing studio'
+    $wanted=if ($Identity) { $Identity.version_id } else { 'accepted UUID' }
+    Select-SeriesChoice 'Accepted version' $wanted
+    Select-SeriesChoice 'Numeric series' 'mean'
+}
 function Fill-NativeEdit([string]$label, [string]$text) {
     $edit = Wait-ForProbe $label { Named-Control $label $type::Edit }
     $edit.GetCurrentPattern($value).SetValue($text)
@@ -313,6 +392,7 @@ try {
         Write-Output "Started real native workspace on previously confirmed version $($Identity.version_id)."
         Wait-Name 'Open blank AI workbench'
         Archive-Stage 'native-entry'
+        Open-PreparedSource
     } else {
         try { Inspect-Visibility } catch {
             $visibilityFailure=$_
@@ -353,10 +433,20 @@ try {
         Review-Step 'Open series.csv'
         Review-Step 'Use as workspace source'
     }
-    Review-Step 'Open blank AI workbench'
-    Review-Step 'Drawing studio'
-    Select-NativeOption 'Accepted version' 1
-    Select-NativeOption 'Numeric series' 1
+    try { Open-SeriesStudio } catch {
+        $bindingError=$_.Exception.Message
+        Show-NativeState 'binding-interrupted'
+        if (!(Named-Control 'Back to chart' $type::Button)) { throw }
+        Review-Step 'Back to chart'
+        Show-NativeState 'workspace-after-binding'
+        if (Named-Control 'Reload workspace state' $type::Button) { Review-Step 'Reload workspace state' }
+        elseif (Named-Control 'Retry source' $type::Button) { Review-Step 'Retry source' }
+        if ($Identity) { Open-PreparedSource }
+        Wait-Name 'Candlestick and volume chart for FIX'
+        Show-NativeState 'workspace-reopened'
+        Write-Host "Retrying native selection after reopening the frozen chart: $bindingError"
+        Open-SeriesStudio
+    }
     $observations=@()
     try {
         Open-Disclosure 'Accepted series source'
