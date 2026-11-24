@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-019",
   "tasks": [
     {
       "id": "M0-001",
@@ -17538,6 +17538,109 @@
           ],
           "data_plan": "The existing synthetic source uses an in-memory result only while the correct viewport and program remain bound.",
           "cleanup": "Keep source and viewport invalidation explicit; record regression and evidence without modifying M2-017."
+        }
+      }
+    },
+    {
+      "id": "M2-019",
+      "title": "Keep chart drawing drafts stable across narrow-window layout changes",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-018"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "With the watchlist open at 1104 by 721, the ordinary file picker can preview and accept both an initial program and a valid replacement. The Accept control and admitted geometry remain continuously available after settling.",
+        "At narrow and wide sizes and after resizing back across the wrap threshold, both program anchors match the proper close edge of the actual candle bodies within two CSS pixels. A visible overlay never spans an obsolete price pane.",
+        "A rejected draft preserves the accepted drawing and restore action. The latest trusted crosshair readout and matching highlight remain correct after resizing."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "chart-coordinate-prototype"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the draft layout feedback loop with the watchlist open, then verify stable actions and current-frame close alignment.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "A narrow-window drawing draft stays visible and actionable on the actual chart while status and action availability change.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/chart-drawing.tsx",
+          "apps/desktop/ui/src/chart-drawing.css",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ubuntu-preview/chart-coordinate.spec.mjs"
+        ],
+        "hypotheses": [
+          "Admission changes the legend height at a narrow width. Canvas repaint and asynchronous projection invalidation expose the previous pane temporarily, then removing the Accept control restores the old height and restarts evaluation.",
+          "Keeping control slots stable and synchronizing visible geometry with chart paint can break the feedback without keeping obsolete coordinates."
+        ],
+        "risks": [
+          {
+            "failure": "A valid draft repeatedly loses its marks and Accept control when the side panel remains open.",
+            "checks": [
+              "chart-coordinate-prototype"
+            ]
+          },
+          {
+            "failure": "The visible overlay can use a prior price-pane geometry or land on a wick instead of the observed candle close edge.",
+            "checks": [
+              "chart-coordinate-prototype"
+            ]
+          },
+          {
+            "failure": "The fix can restore stale selections or change ordinary chart behavior, including rejected drafts and source invalidation.",
+            "checks": [
+              "chart-coordinate-prototype",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the #63 and #64 previews and source intact; revert the successor change if it cannot maintain the ordinary chart interaction.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/chart-drawing.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/ui/customization"
+            }
+          ],
+          "non_goals": [
+            "Changing access, replacing the chart renderer, changing native verification scope, or closing the watchlist to avoid the case."
+          ],
+          "open_questions": [
+            "Which control state drives the width-dependent oscillation, and do the corrected anchors match real close edges when the watchlist remains open?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Accepted/candidate lifetimes, neutral crosshair fallback, guest boundary and the existing chart default."
+          ],
+          "change": [
+            "Make opt-in control layout independent of draft readiness and retire a painted overlay when its viewport becomes incompatible."
+          ],
+          "data_plan": "No new data or persistence. Projection remains scoped to the currently authorized synthetic snapshot.",
+          "cleanup": "Retain raw failing images and before/after observations. Keep earlier M2-017 and M2-018 receipts immutable."
         }
       }
     }

@@ -301,3 +301,152 @@ test('a guest that rejects the current candle leaves the unselected drawing visi
   await expect(circles.first()).toHaveAttribute('r', '8');
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
+
+function drawingLayoutFrames(chart, frames) {
+  return chart.evaluate(async (plot, count) => {
+    const samples = [];
+    const layout = plot.closest('.history');
+    const controls = layout.querySelector('.chart-drawing-controls');
+    for (let index = 0; index < count; index++) {
+      await new Promise(requestAnimationFrame);
+      const svg = plot.querySelector('.chart-drawing-overlay');
+      const canvas = plot.querySelector('canvas');
+      const showing = svg && getComputedStyle(svg).visibility === 'visible';
+      samples.push({
+        top: plot.getBoundingClientRect().top,
+        controls: controls.getBoundingClientRect().height,
+        accept: Boolean([...controls.querySelectorAll('button')].find(button => !button.disabled && !button.hidden
+          && ['Accept chart drawing', '接受图表绘图'].includes(button.textContent))),
+        circles: showing ? svg.querySelectorAll('circle').length : 0,
+        overlay: showing ? [svg.clientWidth, svg.clientHeight] : null,
+        pane: [canvas.clientWidth, canvas.clientHeight],
+      });
+    }
+    return samples;
+  }, frames);
+}
+
+async function candleCloseOffset(chart, position, color, rising) {
+  return chart.locator('canvas').evaluateAll((canvases, expected) => {
+    const { position, color, rising } = expected;
+    for (const canvas of canvases) {
+      const rect = canvas.getBoundingClientRect();
+      if (Math.abs(rect.width - position.width) > 1 || Math.abs(rect.height - position.height) > 1) continue;
+      const ratioX = canvas.width / rect.width;
+      const ratioY = canvas.height / rect.height;
+      const radius = Math.max(2, Math.round(2 * ratioX));
+      const left = Math.round(position.x * ratioX) - radius;
+      const width = 2 * radius + 1;
+      if (left < 0 || left + width > canvas.width) continue;
+      const pixels = canvas.getContext('2d').getImageData(left, 0, width, canvas.height).data;
+      const bodyRows = [];
+      for (let y = 0; y < canvas.height; y++) {
+        // A body crosses both sides of the center. A matching wick is too thin.
+        if ([0, radius, width - 1].every(x => color.every((channel, i) =>
+          Math.abs(channel - pixels[(y * width + x) * 4 + i]) < 6))) bodyRows.push(y);
+      }
+      if (bodyRows.length) {
+        const edge = rising ? bodyRows[0] : bodyRows.at(-1) + 1;
+        return { anchorY: position.y, bodyCloseY: edge / ratioY, offset: position.y - edge / ratioY };
+      }
+    }
+    return null;
+  }, { position, color, rising });
+}
+
+const layoutCases = [
+  { language: 'English', width: 1104, panel: 'Watchlist', open: 'Open chart drawing program', accept: 'Accept chart drawing',
+    remove: 'Remove chart drawing', restore: 'Restore accepted chart drawing', output: 'Drawing crosshair observation',
+    chart: 'Candlestick and volume chart for SIM.CN.FUTURE.001', overlay: 'Projected chart drawing', error: 'This chart drawing could not be displayed.' },
+  { language: 'Simplified Chinese', width: 900, panel: '自选列表', open: '打开图表绘图程序', accept: '接受图表绘图',
+    remove: '移除图表绘图', restore: '恢复已接受的图表绘图', output: '绘图十字光标观测',
+    chart: 'SIM.CN.FUTURE.001 的 K 线和成交量图', overlay: '图表投影绘图', error: '无法显示此图表绘图。' },
+];
+
+for (const scenario of layoutCases) {
+  test(`chart drawing drafts stay actionable with the watchlist open in ${scenario.language}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: scenario.width, height: 721 });
+    const frozen = await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+    if (scenario.language === 'Simplified Chinese') {
+      await page.getByRole('button', { name: 'Language settings' }).click();
+      await page.getByLabel('Interface language').selectOption('zh-Hans');
+      await page.keyboard.press('Escape');
+    }
+    const panel = page.locator('.panel-watchlist');
+    await expect(panel).toContainText(scenario.panel);
+    const chart = page.getByRole('img', { name: scenario.chart, exact: true });
+    const circles = page.getByRole('img', { name: scenario.overlay }).locator('circle');
+    const picker = page.getByLabel(scenario.open);
+    const accept = page.getByRole('button', { name: scenario.accept, exact: true });
+    const remove = page.getByRole('button', { name: scenario.remove, exact: true });
+    const readout = page.getByLabel(scenario.output);
+    const original = await readFile(program, 'utf8');
+    const observations = { frozen, scenario: scenario.language, clientWidth: scenario.width, drafts: [], resizes: [], closes: [] };
+    const archive = () => writeFile(info.outputPath('chart-draft-layout.json'), JSON.stringify(observations, null, 2) + '\n');
+
+    async function assertCloseEdges(label) {
+      const positions = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+      const closes = await Promise.all([
+        candleCloseOffset(chart, positions[0], [247, 99, 114], false),
+        candleCloseOffset(chart, positions[1], [67, 212, 172], true),
+      ]);
+      observations.closes.push({ label, closes });
+      await archive();
+      for (const close of closes) {
+        expect(close, label).not.toBeNull();
+        expect(Math.abs(close.offset), label).toBeLessThanOrEqual(2);
+      }
+      return positions;
+    }
+    async function acceptDraft(label) {
+      await expect(accept).toBeVisible();
+      const samples = await drawingLayoutFrames(chart, 42);
+      observations.drafts.push({ label, samples });
+      await archive();
+      expect(samples.every(frame => frame.accept && frame.circles === 2), label).toBe(true);
+      expect(new Set(samples.map(frame => frame.top)).size, label).toBe(1);
+      await assertCloseEdges(label);
+      await accept.click();
+      await expect(remove).toBeVisible();
+    }
+
+    await picker.setInputFiles(program);
+    await acceptDraft('first narrow draft');
+    await picker.setInputFiles({ name: 'replacement.js', mimeType: 'text/javascript',
+      buffer: Buffer.from(original.replace('? 8 : 5', '? 10 : 7')) });
+    await acceptDraft('replacement narrow draft');
+    await expect(circles.first()).toHaveAttribute('r', '7');
+
+    const restore = page.getByRole('button', { name: scenario.restore, exact: true });
+    await picker.setInputFiles({ name: 'rejected.js', mimeType: 'text/javascript',
+      buffer: Buffer.from('// future overlay\nthrow new Error("rejected replacement");') });
+    await expect(page.getByRole('alert')).toContainText(scenario.error);
+    await expect(accept).toHaveCount(0);
+    await expect(circles.first()).toHaveAttribute('r', '7');
+    await restore.click();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+
+    for (const viewport of [{ width: 1280, height: 800 }, { width: scenario.width, height: 721 }]) {
+      const oldWidth = (await anchor(circles.first())).width;
+      const sampling = drawingLayoutFrames(chart, 30);
+      await page.setViewportSize(viewport);
+      const samples = await sampling;
+      observations.resizes.push({ viewport, samples });
+      await archive();
+      expect(samples.filter(frame => frame.overlay && frame.overlay.join(',') !== frame.pane.join(','))).toEqual([]);
+      await expect.poll(async () => Math.abs((await anchor(circles.first())).width - oldWidth)).toBeGreaterThan(70);
+      await expect(panel).toBeVisible();
+      const positions = await assertCloseEdges(`accepted at ${viewport.width}`);
+      for (const [index, stamp, value] of [[0, first, '3499.2'], [1, second, '3499.8']]) {
+        const point = positions[index];
+        await page.mouse.move(point.left + point.x, point.top + point.y);
+        await expect(readout).toContainText(stamp);
+        await expect(readout).toContainText(value);
+        await expect(circles.nth(index)).toHaveAttribute('r', '10');
+        await expect(circles.nth(1 - index)).toHaveAttribute('r', '7');
+      }
+      await page.mouse.move(positions[1].left + positions[1].width + 4, positions[1].top + 30);
+      await expect(readout).toHaveCount(0);
+    }
+  });
+}
