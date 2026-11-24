@@ -35,6 +35,14 @@ export function useResearchSource(workspace: string | undefined, noteId: string)
     if (record && action === 'original') args.record_id = record;
     if (action !== 'status') { reset(); setPending(true); }
     if (action === 'disconnect' || action === 'revoke') { current.current = undefined; setData(undefined); }
+    // Native IPC can finish after cancellation. Expire the displayed grant
+    // locally and allow a fresh status read before the old invocation settles.
+    const deadline = window.setTimeout(() => {
+      if (active.current !== controller) return;
+      controller.abort();
+      active.current = undefined; current.current = undefined;
+      setData(undefined); reset(); setFailed(true); setPending(false);
+    }, 3000);
     try {
       let result = await request(workspace, args, controller.signal);
       if (controller.signal.aborted) return;
@@ -59,6 +67,7 @@ export function useResearchSource(workspace: string | undefined, noteId: string)
       reset();
       setFailed(true);
     } finally {
+      window.clearTimeout(deadline);
       if (!controller.signal.aborted) { active.current = undefined; setPending(false); }
     }
   }, [workspace, noteId, reset]);

@@ -57,6 +57,7 @@ export function ResearchWorkbench({ workspace, reopen, close, ask }: {
   const [code, setCode] = useState(saved?.program ?? '');
   const [size, setSize] = useState(saved?.parameters.size ?? 16);
   const [noteId, setNoteId] = useState(saved?.note_id ?? 'note-a');
+  const savedName = useRef(reopen ? layout?.name : undefined);
   const [name, setName] = useState(reopen ? layout?.name ?? '' : '');
   const [region, setRegion] = useState('');
   const [invalid, setInvalid] = useState(Boolean(saved && !accepted));
@@ -66,6 +67,8 @@ export function ResearchWorkbench({ workspace, reopen, close, ask }: {
   const token = useRef(0);
   const scope = useRef(Symbol());
   const editRevision = useRef(workspace?.snapshot?.workspace.revision);
+  editRevision.current ??= workspace?.snapshot?.workspace.revision;
+  const nameTaken = workspace?.snapshot?.layouts?.saved.includes(name.trim()) && savedName.current !== name.trim();
   const data = source.data;
   const current = data?.access === 'connected' && data.note?.id === noteId ? data.note : undefined;
   const regions = accepted ? editRegions(accepted.tree) : [];
@@ -105,7 +108,7 @@ export function ResearchWorkbench({ workspace, reopen, close, ask }: {
     setRegion('');
   }
   async function save() {
-    if (!workspace || !accepted || !layout || editRevision.current === undefined || draft || !current) return;
+    if (nameTaken || !workspace || !accepted || !layout || editRevision.current === undefined || draft || !current) return;
     const view: SavedResearchView11 = { version: 1, program: json(accepted.tree), parameters: { size: accepted.size },
       note_id: noteId, source_id: 'scopehub.synthetic.research.v1' };
     const definition = { ...layout.definition, research_view: view };
@@ -116,6 +119,7 @@ export function ResearchWorkbench({ workspace, reopen, close, ask }: {
       if (!dialog.current?.open) return;
       await workspace.applyLayout(prepared.command);
       editRevision.current += 1;
+      savedName.current = name.trim();
       setSaveState('saved');
     } catch { setSaveState('failed'); }
   }
@@ -175,9 +179,10 @@ export function ResearchWorkbench({ workspace, reopen, close, ask }: {
             setAccepted(previous ?? undefined); restore(previous ?? undefined); setPrevious(undefined);
           }}>{t('Undo accepted edit')}</button>
         </div>
-        <label>{t('View name')}<input value={name} maxLength={64} onChange={e => { setName(e.currentTarget.value); setSaveState('idle'); }} /></label>
-        <button disabled={!current || !accepted || !!draft || code !== json(accepted.tree) || !name.trim() || saving}
+        <label>{t('View name')}<input value={name} maxLength={48} onChange={e => { setName(e.currentTarget.value); setSaveState('idle'); }} /></label>
+        <button disabled={!current || !accepted || !!draft || code !== json(accepted.tree) || !name.trim() || nameTaken || saving}
           onClick={() => void save()}>{t('Save accepted view')}</button>
+        {nameTaken && <p>{t('Choose a new layout name or open the saved view to edit it.')}</p>}
         {saveState === 'saved' && <p role="status">{t('Research view saved')}</p>}
         {saveState === 'failed' && <p role="alert">{t('The research view could not be saved. Reopen the current layout and retry.')}</p>}
       </section>
