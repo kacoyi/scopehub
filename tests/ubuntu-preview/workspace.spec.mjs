@@ -2,10 +2,12 @@ import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter, once } from 'node:events';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { createServer as createHttpServer } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -17,6 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
 const exec = promisify(execFile);
@@ -35,7 +38,7 @@ const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
 const activeCacheSlots = new Set();
 const service = `
-  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -104,13 +107,24 @@ const service = `
     : undefined;
   if (snapshotGate) plugins.push(snapshotGate.plugin);
   let server;
+  function reportStartup(phase, code) {
+    if (traceStartup && process.connected) process.send({ type: '${startupMessage}', phase, code }, () => {});
+  }
   async function start() {
     if (closing) return;
+    reportStartup('importing');
     const { createServer } = await import(entry);
     if (closing) return;
+    reportStartup('configuring');
     // These journeys restart the service explicitly. Leave file watching to interactive Vite.
     server = await createServer({ mode, plugins, cacheDir, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
-    if (!closing) await server.listen();
+    if (closing) return;
+    if (traceStartup) {
+      server.httpServer.once('listening', () => reportStartup('listening'));
+      server.httpServer.once('error', error => reportStartup('bind-error', error.code));
+    }
+    reportStartup('binding');
+    await server.listen();
   }
   try {
     await start();
@@ -3031,6 +3045,150 @@ test('losing parent IPC releases the listener and writer with a history response
   }
 });
 
+test('workspace readiness rejects the previous listener response and probes the replacement', async () => {
+  const child = Object.assign(new EventEmitter(), { pid: process.pid, exitCode: null, signalCode: null });
+  const oldProbe = Promise.withResolvers();
+  const previous = createHttpServer((_request, response) => oldProbe.resolve(response));
+  const replacementSockets = [];
+  const replacement = createHttpServer((request, response) => {
+    replacementSockets.push(request.socket.remotePort);
+    response.writeHead(200, { Connection: 'close' }).end('Current listener');
+  });
+  const port = await freePort();
+  let previousClosed;
+  try {
+    await once(previous.listen(port, '127.0.0.1'), 'listening');
+    const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port });
+    const readiness = startup.wait(`http://127.0.0.1:${port}`);
+    const oldResponse = await oldProbe.promise;
+    const previousSocket = oldResponse.socket.remotePort;
+    previousClosed = once(previous.close(), 'close');
+    await once(replacement.listen(port, '127.0.0.1'), 'listening');
+    child.emit('message', { type: startupMessage, phase: 'listening' });
+    oldResponse.writeHead(200, { Connection: 'keep-alive' }).end('Previous listener');
+
+    expect(await readiness).toBeUndefined();
+    expect(replacementSockets).toHaveLength(1);
+    expect(replacementSockets[0]).not.toBe(previousSocket);
+  } finally {
+    if (previous.listening) previousClosed = once(previous.close(), 'close');
+    previous.closeAllConnections();
+    await previousClosed;
+    if (replacement.listening) await once(replacement.close(), 'close');
+  }
+});
+
+test('workspace readiness omits capability fragments at the drained output boundary', () => {
+  const child = new EventEmitter();
+  const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port: 1455 });
+  const suffix = '4e2c5a7b8d0f19';
+  const chunks = ['#workspace=' + 'a'.repeat(50), suffix, 'x'.repeat(6000 - suffix.length)];
+  const tail = chunks.reduce((recent, chunk) => (recent + chunk).slice(-6000), '');
+  expect(tail.startsWith(suffix)).toBe(true);
+  const failure = startup.failure({ reason: 'readiness-timeout' }, {}, tail);
+  expect(failure.message.includes(suffix)).toBe(false);
+  expect(JSON.stringify(failure.startup).includes(suffix)).toBe(false);
+});
+
+for (const [title, chunks, expected] of [
+  ['ignores a stderr notice followed by unrelated stdout', [
+    ['stderr', '  ➜  Local:   http://127.0.0.1:1455/\n'], ['stdout', 'Unrelated startup output\n'],
+  ], []],
+  ['accepts split stdout with an intervening stderr warning', [
+    ['stdout', '  ➜  \x1b[1mLocal\x1b[22m:   http://127.0.'],
+    ['stderr', 'Unrelated warning\n'], ['stdout', '0.1:1455/\n'],
+  ], ['listening']],
+]) {
+  test(`workspace CLI readiness ${title}`, () => {
+    const child = Object.assign(new EventEmitter(), { stdout: new PassThrough(), stderr: new PassThrough() });
+    const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port: 1455 });
+    const output = captureServiceOutput(child, startup.observeCliStdout);
+    for (const [stream, chunk] of chunks) child[stream].write(chunk);
+    child.stdout.end();
+    child.stderr.end();
+    const { phases, output: notices } = startup.failure({ reason: 'test-observation' }, {}, output.recent()).startup;
+    expect(phases.map(({ phase }) => phase)).toEqual(expected);
+    expect(notices).toBe('');
+  });
+}
+
+for (const occupied of [true, false]) {
+  const cause = occupied ? 'a claimed port' : 'a live child held before listening';
+  test(`workspace service readiness distinguishes ${cause}`, async ({}, testInfo) => {
+    const profile = await makeProfile();
+    const port = await freePort();
+    // Keep the deliberately held fixture short and leave the ordinary deadline in place.
+    const holdTimeoutMs = occupied ? undefined : 500;
+    const blocker = occupied ? createHttpServer((_request, response) => {
+      response.writeHead(200, { Connection: 'close' }).end('Another loopback server');
+    }) : undefined;
+    const entry = occupied ? undefined : 'data:text/javascript,' + encodeURIComponent(`
+      import { createServer as configure } from ${JSON.stringify(vite)};
+      import { setTimeout as delay } from 'node:timers/promises';
+      export async function createServer(options) {
+        await delay(700);
+        const server = await configure(options);
+        server.listen = async () => {
+          await new Promise(resolve => {
+            process.on('message', message => { if (message === 'close') resolve(); });
+            process.once('disconnect', resolve);
+            process.send({ type: ${JSON.stringify(startupMessage)}, phase: 'held-before-listen' });
+          });
+          console.error('x'.repeat(6200));
+          console.error('Fixture released its unbound listener during cleanup.');
+          console.error('#workspace=' + 'a'.repeat(64));
+          return server;
+        };
+        return server;
+      }
+    `);
+    try {
+      if (blocker) await once(blocker.listen(port, '127.0.0.1'), 'listening');
+      const failure = await inService(port, profile, 'ubuntu-workspace', () => {
+        throw new Error('The test service must not report readiness');
+      }, { entry, holdTimeoutMs }).catch(error => error);
+      const startup = failure?.startup;
+      await testInfo.attach('workspace-service-startup', {
+        body: JSON.stringify(startup ?? { message: failure?.message }), contentType: 'application/json',
+      });
+      expect(startup).toMatchObject({
+        requested_port: port, pid: expect.any(Number),
+        reason: occupied ? 'child-exited' : 'readiness-timeout',
+        alive_at_failure: !occupied,
+        close: { code: occupied ? 1 : 0, signal: null, elapsed_ms: expect.any(Number) },
+        forced_kill_requested_ms: null,
+      });
+      expect(startup.phases.map(({ phase }) => phase)).not.toContain('listening');
+      expect(startup.cleanup_started_ms).toBeGreaterThanOrEqual(startup.failure_ms);
+      expect(startup.close.elapsed_ms).toBeGreaterThanOrEqual(startup.exit.elapsed_ms);
+      if (occupied) {
+        expect(startup.exit.elapsed_ms).toBeLessThanOrEqual(startup.failure_ms);
+        expect(startup.phases).toContainEqual(expect.objectContaining({ phase: 'bind-error', code: 'EADDRINUSE' }));
+        expect(startup.output).toContain(`Port ${port} is already in use`);
+      } else {
+        const hold = startup.phases.find(({ phase }) => phase === 'held-before-listen');
+        expect(hold).toBeDefined();
+        expect(hold.elapsed_ms).toBeGreaterThan(holdTimeoutMs);
+        expect(startup.failure_ms - hold.elapsed_ms).toBeGreaterThanOrEqual(holdTimeoutMs);
+        expect(startup.exit.elapsed_ms).toBeGreaterThanOrEqual(startup.cleanup_started_ms);
+        expect(startup.phases).toContainEqual(expect.objectContaining({ phase: 'binding' }));
+        expect(startup.probe.outcomes.ECONNREFUSED).toBeGreaterThan(0);
+        expect(startup.output).toContain('Fixture released its unbound listener during cleanup.');
+        expect(startup.output.includes('#workspace=')).toBe(false);
+        expect(failure.message).not.toContain('a'.repeat(64));
+        expect(startup.output.length).toBeLessThanOrEqual(6000);
+      }
+      expect(alive(startup.pid)).toBe(false);
+      await expect(stat(join(profile.root, 'workspace.sqlite3'))).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(stat(join(profile.root, `workspace-access-${port}.html`))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      if (blocker?.listening) await once(blocker.close(), 'close');
+      await profile.close();
+    }
+    expect(await portAvailable(port)).toBe(true);
+  });
+}
+
 for (const phase of ['before configuration', 'during configuration', 'after duplicate close messages']) {
   test(`losing parent IPC ${phase} exits without starting the workspace writer`, async () => {
     const profile = await makeProfile();
@@ -3482,7 +3640,7 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite }) {
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite, traceStartup }) {
   // Vite publishes its dependency cache by renaming directories. Reuse warm
   // caches across launches, but give every live server its own write path.
   let slot = 0;
@@ -3490,7 +3648,8 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
   const cacheDir = join(process.env.SCOPEHUB_WORKSPACE_TEST_RUN, process.env.TEST_WORKER_INDEX, mode, String(slot));
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir, historyFault ? '1' : '', ...(snapshotGate ? [workspaceBridge] : [])];
+    : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir,
+      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : ''];
   const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
@@ -3509,30 +3668,28 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
   return child;
 }
 
-async function reapService(child, done) {
-  const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
+async function reapService(child, done, onForcedKill) {
+  const grace = setTimeout(() => {
+    onForcedKill?.();
+    child.kill('SIGKILL');
+  }, 7_000);
   try { return await done; }
   finally { clearTimeout(grace); }
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false } = {}) {
+async function inService(port, profile, mode, use, {
+  expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false, entry, holdTimeoutMs,
+} = {}) {
   const url = 'http://127.0.0.1:' + port;
-  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate });
-  const closed = once(child, 'close');
+  const startedAt = performance.now();
+  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry, traceStartup: true });
+  const startup = observeServiceStartup(child, { startedAt, mode, port });
+  const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined);
+  let startupFailure;
   let disconnectedExit;
   let disconnectedWriter;
-  let output = '';
-  let handoffRejected = false;
   const historyStages = new Map();
   const historyBarriers = new EventEmitter();
-  for (const stream of [child.stdout, child.stderr]) {
-    stream.setEncoding('utf8');
-    stream.on('data', chunk => {
-      const recent = output + chunk;
-      handoffRejected ||= recent.includes('The private workspace handoff could not be issued.');
-      output = recent.slice(-6000);
-    });
-  }
   if (historyTrace) {
     let pending = '';
     child.stdout.on('data', chunk => {
@@ -3556,7 +3713,7 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
   const server = {
     url, pid: child.pid,
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
-    handoffRejected: () => handoffRejected,
+    handoffRejected: output.handoffRejected,
     historyStages,
     flushHistoryTrace: async () => {
       const id = randomUUID();
@@ -3577,20 +3734,8 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     },
   };
   try {
-    const deadline = Date.now() + 10_000;
-    for (;;) {
-      if (child.exitCode !== null || child.signalCode !== null || Date.now() > deadline) {
-        throw new Error(`Vite failed to start in ${mode}: ${output}`);
-      }
-      const response = await fetch(url, { signal: AbortSignal.timeout(500) }).catch(() => null);
-      if (response?.ok) {
-        await response.body.cancel();
-        break;
-      }
-      await response?.body?.cancel();
-      await delay(30);
-    }
-    if (mode === 'ubuntu-workspace' && expectHandoff) {
+    startupFailure = await startup.wait(url, holdTimeoutMs);
+    if (!startupFailure && mode === 'ubuntu-workspace' && expectHandoff) {
       await expect.poll(async () => {
         const content = await readFile(server.handoff, 'utf8').catch(error => {
           if (error.code === 'ENOENT') return '';
@@ -3603,8 +3748,9 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
         return true;
       }, { message: 'The launcher issued a private access document', timeout: 12_000 }).toBe(true);
     }
-    await use(server);
+    if (!startupFailure) await use(server);
   } finally {
+    const cleanupStarted = startup.elapsed();
     try {
       if (terminalSignal) child.kill(terminalSignal);
       else if (child.connected) child.send('close', () => {});
@@ -3616,9 +3762,18 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
         }
       }
     } finally {
-      const [, signal] = await reapService(child, disconnectedExit ?? closed);
+      let forcedKillRequested = null;
+      const [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
+        forcedKillRequested = startup.elapsed();
+      });
+      const recentOutput = output.recent();
+      if (server.capability) expect(!recentOutput.includes(server.capability)).toBe(true);
+      if (startupFailure) {
+        throw startup.failure(startupFailure, {
+          cleanup_started_ms: cleanupStarted, forced_kill_requested_ms: forcedKillRequested,
+        }, recentOutput);
+      }
       expect(signal).not.toBe('SIGKILL');
-      if (server.capability) expect(!output.includes(server.capability)).toBe(true);
     }
   }
 }

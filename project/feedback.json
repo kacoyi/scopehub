@@ -4375,6 +4375,50 @@
         "prevention": "The ordinary-entry regression verifies independently specified equity and futures values, both cancellation paths, the resumed review and rejected settlement mapping. Two red traces and screenshots, two passing focused repetitions and the matching task report are retained by digest. Astra Standard independently reviewed the red and green observations and approved f230621."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-readiness-accepts-previous-listener",
+      "source": "Independent Astra review of d28f749, observation m0-087-workspace-readiness-d28f749, transcript SHA-256 3a8c4938345409ca0dd3aa9883fda79498009e4ae77cab3bbeba3176e86ac427.",
+      "observation": "A successful HTTP response from a previous listener was accepted when the request started before the new child signaled listening and completed after that signal. The original local readiness stall supplies no observation of this sequence.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-readiness-output-retains-capability-suffix",
+      "source": "Independent Astra review of d28f749, observation m0-087-workspace-readiness-d28f749, transcript SHA-256 3a8c4938345409ca0dd3aa9883fda79498009e4ae77cab3bbeba3176e86ac427.",
+      "observation": "Truncating the child output before redaction left 14 characters of a synthetic fixture capability in the serialized startup error. The original local readiness stall retained an empty child log.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-readiness-hold-budget-starts-before-hold",
+      "source": "Independent Astra review of d28f749, observation m0-087-workspace-readiness-d28f749, transcript SHA-256 3a8c4938345409ca0dd3aa9883fda79498009e4ae77cab3bbeba3176e86ac427.",
+      "observation": "The intentionally held fixture spends its two-second failure budget on Vite import and configuration before the controlled hold exists. A slow but valid configuration can fail the test before it observes the binding phase. This timing finding applies to the regression fixture introduced after the original local stalls.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-cli-readiness-mixes-output-streams",
+      "source": "Independent Astra re-review of b372142, transcript .reports/workspace-service-readiness/astra-b372142.txt (SHA-256 969fa72837fde8c64aa3800d4e8b07ec76ea6fec1617ac22ddfc08c4b4b12b90).",
+      "observation": "The POSIX Vite CLI listener observer reads a combined stdout and stderr tail during stdout callbacks. A Local notice on stderr followed by unrelated stdout produces a false listening event. Stderr between two chunks of a valid stdout notice prevents that event. The real signal-path run passed and the original local stalls remain unattributed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -18107,7 +18107,7 @@
           "sha256": "53a3d02fcbadf0d88eca4f25d48970d305a75a1e8d403fac3ac25b317b3c2665"
         }
       ],
-      "next_action": "Compare a successful full Windows pull request candidate with the warm pull request controls while preserving named outcomes and exact provenance. After integration, measure the same split on a successful comparable full main push before reporting a new main time.",
+      "next_action": "Measure the complete protected Windows run after rebalancing market recovery and correcting the two Ubuntu regressions. Compare the same checks, original names, cache state and total runner use. Verify the first full main push separately.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18204,6 +18204,18 @@
           },
           {
             "failure": "The browser check requires an optional Chromium replay, accepts duplicate successful or rejected response terminals, or attributes an unfinished history fetch or failed readiness gate to a product outcome without supporting evidence.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The workspace readiness gate accepts a previous listener's reply, reports a fixture capability fragment, or lets slow configuration consume the controlled hold's regression deadline.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The POSIX CLI readiness observer accepts a notice from stderr or loses a valid split stdout notice when stderr arrives between chunks.",
             "checks": [
               "workspace-timeframe"
             ]
