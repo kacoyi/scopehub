@@ -5114,7 +5114,7 @@
     },
     {
       "id": "desktop-catalog-check-omits-ordinary-ui-build",
-      "source": "Authenticated PR 83 run 45438134397 attempt 1 at head 135c24e6a83b41be6e58619bf212bda91192bb50 and checkout f34ceb2c1ffa41ce72c9ccb6679bc41089334207. The original Linux desktop-localization log SHA-256 is db8e8a3d1a1a194c69b98c7a1df303ae419c865a7838c7abdc1e5ab60e8cd476 and the Windows browser log SHA-256 is bcf5fa9c79528a9a2511f4ebb3964a36e5be0d8a3e4a1b29005e7a64674f4751.",
+      "source": "Authenticated PR 83 run 45438134397 attempt 1 at head 135c24e6a83b41be6e58619bf212bda91192bb50 and checkout f34ceb2c1ffa41ce72c9ccb6679bc41089334207. The original Linux desktop-localization log SHA-256 is db8e8a3d1a1a194c69b98c7a1df303ae419c865a7838c7abdc1e5ab60e8cd476 and the Windows browser log SHA-256 is bcf5fa9c79528a9a2511f4ebb3964a36e5be0d8a3e4a1b29005e7a64674f4751. The aggregate reports are at archives/runs/20261124T163312.142553Z-d12e96b3/test-report.json and archives/runs/windows-change-45438134397-1/test-report.json. The archive index at archives/observations/m0-096-protected-pr-45438134397/index.json has SHA-256 78ed3724a02b52c256f20c0f4ceabbaf2bf8ef59d3fce8142dba9b09db4f5527.",
       "observation": "Both hosted platforms failed the registered language catalog case in desktop-localization with Translate application-owned JSX and accessible labels. The only reported entry was the new local-api-settings.tsx placeholder http://127.0.0.1:8080. The ordinary UI build succeeded because it did not execute the static source and catalog assertions. The existing invariant entries covered other exact protocol examples but did not include this one.",
       "diagnostic_reports": [
         {

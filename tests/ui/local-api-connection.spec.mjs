@@ -81,6 +81,7 @@ test('a named local API survives reopen and reads only on explicit trial @profil
     await page.goto('/');
     await openApi();
     await expect(panel.getByText('No local API connection saved.')).toBeVisible();
+    await expect(panel.getByLabel('Local API origin')).toHaveAttribute('placeholder', 'http://127.0.0.1:8080');
     await panel.getByLabel('Connection name').fill('My synthetic market API');
     await panel.getByLabel('Local API origin').fill('https://example.invalid:4555');
     await control(panel, 'Save connection').click();
@@ -171,6 +172,30 @@ test('a named local API survives reopen and reads only on explicit trial @profil
     await control(panel, 'Retry loading connection').click({ timeout: 2000 });
     await expect(panel.getByLabel('Connection name')).toHaveValue('Replacement API');
     expect(traffic).toHaveLength(7);
+
+    await control(panel, 'Close').click();
+    await control(page, 'Language settings').click();
+    await page.getByRole('combobox', { name: 'Interface language' }).selectOption('zh-Hans');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hans');
+    const chinese = page.getByRole('dialog', { name: '设置', exact: true });
+    await control(page, '设置').click();
+    await control(chinese, '数据源').click();
+    await control(chinese, '我的数据源').click();
+    await control(chinese, '本地 API 连接').click();
+    await expect(chinese.getByLabel('连接名称')).toHaveValue('Replacement API');
+    const chineseOrigin = chinese.getByLabel('本地 API 源地址');
+    await expect(chineseOrigin).toHaveValue(origin);
+    await chineseOrigin.clear();
+    await expect(chinese.getByPlaceholder('http://127.0.0.1:8080', { exact: true })).toBeVisible();
+    await expect(control(chinese, '试读')).toBeDisabled();
+    await chineseOrigin.fill(origin);
+    expect(traffic).toHaveLength(7);
+    mode = 'valid';
+    await control(chinese, '试读').click();
+    await expect(chinese.getByRole('region', { name: '已验证样本' })).toContainText('FUT-TEST · 47.25 USD');
+    expect(traffic).toHaveLength(8);
+    expect(traffic.at(-1)).toEqual(['GET', '/market-sample', undefined, undefined]);
     expect(unexpected).toEqual([]);
   } finally {
     peer.closeAllConnections();
