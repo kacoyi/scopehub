@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout" | "ai.textConnection";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.localApiConnection" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout" | "ai.textConnection";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -2251,6 +2251,79 @@ export type SaveLocalImportMappingOutput = {
   version: number;
   record: SavedLocalImportMapping;
 };
+export type SavedLocalApiConnection = {
+  id: Uuid;
+  name: string;
+  origin: string;
+  rule_version: number;
+};
+export type LocalApiSample = {
+  instrument: string;
+  observed_at_ms: number;
+  value: string;
+  unit: string;
+};
+export type LocalApiConnectionStatusInput = {
+  action: "status";
+};
+export type LocalApiConnectionSaveInput = {
+  action: "save";
+  expected_id: (Uuid | null);
+  name: string;
+  origin: string;
+};
+export type LocalApiConnectionTrialInput = {
+  action: "trial";
+  id: Uuid;
+};
+export type LocalApiConnectionInput = LocalApiConnectionStatusInput | LocalApiConnectionSaveInput | LocalApiConnectionTrialInput;
+export type LocalApiConnectionStatusOutput = {
+  action: "status";
+  connection: (SavedLocalApiConnection | null);
+};
+export type LocalApiConnectionSaveOutput = {
+  action: "save";
+  connection: SavedLocalApiConnection;
+};
+export type LocalApiConnectionTrialOutput = {
+  action: "trial";
+  connection: SavedLocalApiConnection;
+  sample: LocalApiSample;
+};
+export type LocalApiConnectionOutput = LocalApiConnectionStatusOutput | LocalApiConnectionSaveOutput | LocalApiConnectionTrialOutput;
+export type LocalApiConnectionRequest = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: Uuid;
+  task_id: (Uuid | null);
+  operation: "market.localApiConnection";
+  payload: LocalApiConnectionInput;
+};
+export type LocalApiConnectionResponse = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.localApiConnection";
+  ok: true;
+  result: LocalApiConnectionOutput;
+  error: null;
+};
+export type LocalApiConnectionError = {
+  protocol_version: "1.1";
+  message_id: Uuid;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: Uuid;
+  operation: "market.localApiConnection";
+  ok: false;
+  result: LocalApiConnectionOutput;
+  error: MarketPageFault;
+};
+export type LocalApiConnectionReply11 = LocalApiConnectionResponse | LocalApiConnectionError;
 export type LoadLocalImportMappingInput = {
   version: number;
   folder_id: Uuid;

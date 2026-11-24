@@ -239,11 +239,12 @@ fn populated_v8_layout_migration_rolls_back_and_restores_all_previous_state() {
             LAYOUT_TABLES
                 .into_iter()
                 .chain(INDICATOR_TABLES)
+                .chain(["local_api_connection"])
                 .map(String::from),
         );
         expected_tables.sort();
         assert_eq!(tables(&v9.connection), expected_tables);
-        for table in LAYOUT_TABLES {
+        for table in LAYOUT_TABLES.into_iter().chain(["local_api_connection"]) {
             let rows: i64 = v9
                 .connection
                 .query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
@@ -341,33 +342,60 @@ fn populated_v9_indicator_migration_rolls_back_and_keeps_layout_rows() {
         source.preference
             == WorkspaceSourcePreference::Frozen(legacy.displayed.revision_id.clone())
     );
-    raw.execute_batch("DROP TRIGGER fail_indicator_migration")
+    raw.execute_batch(
+        "DROP TRIGGER fail_indicator_migration;
+         CREATE TRIGGER fail_local_api_migration
+         BEFORE INSERT ON schema_migrations WHEN NEW.version = 11
+         BEGIN SELECT raise(ABORT, 'synthetic local API ledger failure'); END;",
+    )
+    .unwrap();
+    drop(raw);
+
+    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+    let raw = profile.raw_connection();
+    assert_eq!(integer_pragma(&raw, "user_version"), 9);
+    assert_eq!(ledger(&raw), (1..=9).collect::<Vec<_>>());
+    assert_eq!(tables(&raw), old_tables);
+    raw.execute_batch("DROP TRIGGER fail_local_api_migration")
         .unwrap();
     drop(raw);
 
-    let v10 = profile.open().unwrap();
-    assert_eq!(integer_pragma(&v10.connection, "user_version"), 10);
-    assert_eq!(ledger(&v10.connection), (1..=10).collect::<Vec<_>>());
+    let current = profile.open().unwrap();
     assert_eq!(
-        workspace_layout::read(&v10.connection, "workspace")
+        integer_pragma(&current.connection, "user_version"),
+        SCHEMA_VERSION
+    );
+    assert_eq!(
+        ledger(&current.connection),
+        (1..=SCHEMA_VERSION).collect::<Vec<_>>()
+    );
+    assert!(
+        current
+            .inspect(|tx| tx.local_api_connection())
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        workspace_layout::read(&current.connection, "workspace")
             .unwrap()
             .active,
         layout
     );
     assert!(
-        workspace_layout::source_view(&v10.connection, "workspace")
+        workspace_layout::source_view(&current.connection, "workspace")
             .unwrap()
             .unwrap()
             .preference
             == source.preference
     );
     assert!(
-        v10.read_local_dataset(&legacy.displayed.revision_id)
+        current
+            .read_local_dataset(&legacy.displayed.revision_id)
             .unwrap()
             .is_some()
     );
     assert_eq!(
-        indicator_versions::active_count(&v10.connection, "workspace").unwrap(),
+        indicator_versions::active_count(&current.connection, "workspace").unwrap(),
         0
     );
 }

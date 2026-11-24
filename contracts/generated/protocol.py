@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -10,7 +10,7 @@ Metadata = dict[str, JsonValue]
 WorkerRole = Literal['market', 'ai', 'indicator']
 ProtocolVersion = Literal['1.0']
 ErrorCode = Literal['INVALID_ARGUMENT', 'UNSUPPORTED_CAPABILITY', 'PERMISSION_DENIED', 'CONFIRMATION_REQUIRED', 'CANCELLED', 'TIMEOUT', 'WORKER_EXITED', 'PROTOCOL_MISMATCH', 'DATA_UNAVAILABLE', 'STALE_CONTEXT', 'RESOURCE_LIMIT', 'OUTPUT_INVALID', 'PROVIDER_NOT_CONFIGURED', 'INTERNAL_ERROR', 'BUSY', 'SNAPSHOT_UNAVAILABLE']
-OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout', 'ai.textConnection']
+OperationName = Literal['instrument.search', 'market.getBars', 'workspace.openInstrument', 'chart.setTimeframe', 'chart.setStyle', 'chart.addAnnotation', 'chart.removeLayer', 'indicator.createDraft', 'indicator.runPreview', 'indicator.acceptVersion', 'indicator.remove', 'workspace.undo', 'task.cancel', 'workspace.getContext', 'market.readHistoryPage', 'market.subscribe', 'market.previewLocalImport', 'market.saveLocalImportMapping', 'market.localApiConnection', 'market.loadLocalImportMapping', 'market.listLocalImportRevisions', 'market.readLocalImportRevision', 'market.readLocalImportSourceRow', 'market.previewLocalFolderRefresh', 'market.prepareLocalFolderPublication', 'market.publishLocalFolderRefresh', 'market.listLocalFolderRevisions', 'market.readLocalFolderRevision', 'market.readLocalFolderSourceRow', 'market.revokeLocalFolderRevision', 'market.revokeLocalImportRevision', 'market.publishLocalImport', 'workspace.readChartProjection', 'workspace.selectEvidence', 'decisionNote.save', 'decisionNote.read', 'decisionNote.appendOutcome', 'decisionNote.delete', 'decisionNote.exportBackup', 'decisionNote.previewRestore', 'decisionNote.restoreBackup', 'privateRecord.read', 'privateRecord.change', 'privateRecord.exportBackup', 'workspace.previewLayout', 'workspace.applyLayout', 'ai.textConnection']
 ChartStyle = Literal['candlestick', 'line']
 TaskStatus = Literal['queued', 'running', 'awaiting_confirmation', 'completed', 'failed', 'cancelled']
 Tradability = Literal['non_tradable', 'unknown']
@@ -1958,6 +1958,68 @@ class SaveLocalImportMappingInput(TypedDict):
 class SaveLocalImportMappingOutput(TypedDict):
     version: int
     record: SavedLocalImportMapping
+class SavedLocalApiConnection(TypedDict):
+    id: Uuid
+    name: str
+    origin: str
+    rule_version: int
+class LocalApiSample(TypedDict):
+    instrument: str
+    observed_at_ms: int
+    value: str
+    unit: str
+class LocalApiConnectionStatusInput(TypedDict):
+    action: Literal['status']
+class LocalApiConnectionSaveInput(TypedDict):
+    action: Literal['save']
+    expected_id: Uuid | None
+    name: str
+    origin: str
+class LocalApiConnectionTrialInput(TypedDict):
+    action: Literal['trial']
+    id: Uuid
+LocalApiConnectionInput = LocalApiConnectionStatusInput | LocalApiConnectionSaveInput | LocalApiConnectionTrialInput
+class LocalApiConnectionStatusOutput(TypedDict):
+    action: Literal['status']
+    connection: SavedLocalApiConnection | None
+class LocalApiConnectionSaveOutput(TypedDict):
+    action: Literal['save']
+    connection: SavedLocalApiConnection
+class LocalApiConnectionTrialOutput(TypedDict):
+    action: Literal['trial']
+    connection: SavedLocalApiConnection
+    sample: LocalApiSample
+LocalApiConnectionOutput = LocalApiConnectionStatusOutput | LocalApiConnectionSaveOutput | LocalApiConnectionTrialOutput
+class LocalApiConnectionRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.localApiConnection']
+    payload: LocalApiConnectionInput
+class LocalApiConnectionResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.localApiConnection']
+    ok: Literal[True]
+    result: LocalApiConnectionOutput
+    error: None
+class LocalApiConnectionError(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.localApiConnection']
+    ok: Literal[False]
+    result: LocalApiConnectionOutput
+    error: MarketPageFault
+LocalApiConnectionReply11 = LocalApiConnectionResponse | LocalApiConnectionError
 class LoadLocalImportMappingInput(TypedDict):
     version: int
     folder_id: Uuid
