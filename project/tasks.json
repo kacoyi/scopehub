@@ -978,7 +978,8 @@
         "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
         "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate.",
         "Exercise the chart-free workbench with the released renderer on the exact candidate installer and bind the result to its hash.",
-        "Run workbench-qualification-v2 on that same installer. Retain all eight case verdicts, the five gates, blind challenge and matching native, client and sustained-workload evidence."
+        "Run workbench-qualification-v2 on that same installer. Retain all eight case verdicts, the five gates, blind challenge and matching native, client and sustained-workload evidence.",
+        "For the packaged bidirectional-evidence case, exercise a permitted read, a denied mutation, a granted reverse selection, a stale request and revocation. Match the target and revision across the desktop and the two independently granted clients from M4-005. Keep this case blocked while external-client-observation-publication prevents retaining their separate observations."
       ],
       "checks": [
         "windows-installation",
@@ -3587,8 +3588,7 @@
       "acceptance": [
         "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
         "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access.",
-        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification.",
-        "Exercise the bidirectional-evidence case on an authored view. Record target and selection revision for a permitted read, a denied mutation, a granted reverse selection, a stale request and revocation."
+        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
       ],
       "checks": [
         "configured-external-ai-clients",
