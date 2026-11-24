@@ -140,6 +140,15 @@
           "log_sha256": "00bfe0b397f427a050076761a24daf0878f190c00d9ffda6da46335b30a215d3",
           "check_outcome": "failed",
           "observation": "The dedicated live revocation run prepared the confirmed synthetic profile. The captured 1120 by 760 RGB client image was entirely black and the driver never found the WebView document. It did not reach a bound scene or issue revocation."
+        },
+        "live_revocation_window_retry": {
+          "workflow_run": 45328389514,
+          "run_id": "20261124T044711.021763Z-9e001f7d",
+          "source_commit": "1236b76245b4ff80d1973e45be8150b1ecbf46ee",
+          "report_sha256": "857b766778c4491849df886263855f117de55b9b5140e0da926bb14b28c5b3ce",
+          "log_sha256": "ca0a802c80bb73fcb5b601d9bed64c86347a49a20e61aebb43a9a459789ed75c",
+          "check_outcome": "failed",
+          "observation": "On the frozen ef0a1e1 UI, the corrected native driver found the WebView2 157 document in the application window (PID 5500, HWND 196988). After reopening the frozen chart the studio exposed the prepared version 9acd65a1-e678-45ac-b97d-c008cad4cd5e as a list item. The keyboard-focus check stopped the driver before it chose that item. The studio remained on the blank canvas. No selected output, revocation receipt or post-revocation clearance was observed."
         }
       }
     }
