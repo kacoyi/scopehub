@@ -316,6 +316,18 @@
       "synthetic_version": "22130180-3492-4f87-90bd-456443448510",
       "result_hash": "cf7e03f1e813963d014fc2a065a43f92b7c377a04d34dad04ee80a360170f7bf",
       "observation": "A disposable localhost profile was published through Rust and explicitly confirmed in the ordinary Chromium UI. A second zh-CN browser opened the private launcher, selected the exact version and observed the UTC rows Feb 3 to 6: unavailable, 115, 125, 135. Three circles and three strips plus a missing mark use the same result."
+    },
+    "windows_selection": {
+      "workflow_run": 45331715811,
+      "run_id": "20261124T051559.955751Z-aea352b4",
+      "source_commit": "5709472d144b6ccea41aa530f1c24872bdfeeec6",
+      "report_sha256": "426cbba7513cbb95a454d858c1fbcd03f097755514a21b894940d45e64481301",
+      "observed": "WebView2 157 restored FIX and the version picker. In both captures it still displayed Choose an accepted version. No series, 115 readout, revocation or unavailable status was observed. This run did not establish the cause."
     }
+  },
+  "independent_native_archive": {
+    "path": "archives/observations/m2-003-independent-native-5709472/manifest.json",
+    "sha256": "afcacf9a5f7e8b0325e5a8d782078586fc5e61dbb5ecf8f121a9bda81f74ccb6",
+    "scope": "Index of 23 hosted workflows, native development observations and frozen-runtime receipts. Both platforms are attributed to their source and runtime fingerprint."
   }
 }
