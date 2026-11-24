@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-026",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17342,7 +17342,7 @@
       "id": "M2-026",
       "title": "Specify workbench fault isolation, shared evidence and cold recovery",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": ["M2-025"],
       "scope": [
@@ -17355,10 +17355,12 @@
         "Local synthetic event and paired-market inputs support a renderer trial. The catalog identifies an unimplemented SDK and shell smoke check, native trials and packaged qualification. Earlier qualification records remain reproducible."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "Check the resolved specification, input locators, calculation expectations and planned gate ownership.",
+      "evidence": [
+        {"path": "project/evidence/M2-026-42f5a725cf4cd620.json", "sha256": "1198b982ab92429de514f6dd41299a8a16aaf6f825d25f4f4e69692d8934d931"}
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The task harness passed on 338599e. The effective contract resolved eight cases and five gates. A separate review recomputed the seven paired-market rows and validated all three selection targets against the protocol and source records. The runtime smoke, native and packaged qualifications remain planned.",
       "plan": {
         "outcome": "A reviewer can distinguish an isolated, truthful, state-preserving workbench from an apparently successful demo on the same inputs.",
         "change_types": ["tooling"],
