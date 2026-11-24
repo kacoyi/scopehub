@@ -5,7 +5,7 @@
   "fingerprint": "2b1dd83b49712b08a83e07493a226c2443749a516c8680094511059dc1ffac11",
   "pennant_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
   "pennant_fingerprint": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
-  "recommendation": "The frozen JavaScript prototype demonstrates user-authored plots and selection. Prefer isolated QuickJS provisionally for drawing those views. The host owns authoritative readouts, source access, operation authorization and confirmations. Users must also be able to author ordinary text, arrange evidence, set conditions for what appears and define non-privileged interactions. The geometry API and its 900-character admission limit apply to this prototype. The JSON document renderer is one optional way to present authored content. V1 must allow new compositions beyond its current widget catalogue. Final renderer selection remains open.",
+  "recommendation": "Select editable author definitions with replaceable presentation as the workbench architecture. The fixed-host trials produced new geometry, mappings, local controls and scoped edits from independently authored source. Catalogue assembly alone fails the contract. Use the isolated QuickJS guest as the engineering baseline for authored plotting. Native Windows accepted-output binding and trusted crosshair input still have the implementation-specific limits below. An authorable host-interpreted grammar remains eligible for other presentation needs if it passes the same expressiveness criterion.",
   "remaining_chart_free_journey": {
     "task": "M2-013",
     "check": "chart-free-workbench",
@@ -95,15 +95,31 @@
       "prepared_profile": {
         "fixture_commit": "8feb85b3ed3ef42cd989753d6f0546c066512c96",
         "command": "node tests/ui/prepare-native-series-profile.mjs <absolute-scratch-directory> <new-absolute-app-data-directory>",
-        "scope": "A separate test entry publishes the synthetic CSV with the existing Rust test bridge, explicitly confirms the indicator through the ordinary private workspace UI and selects the revision. It closes the writer and returns the revision, layer, version, series ID and result hash. Linux Chromium reopened the exact disposable path and verified the original four UTC rows. A native reader can now be exercised independently of automating the whole CSV wizard."
+        "scope": "A separate test entry publishes the synthetic CSV with the existing Rust test bridge, explicitly confirms the indicator through the ordinary private workspace UI and selects the revision. It closes the writer and returns the revision, layer, version, series ID and result hash. Linux Chromium reopened the exact disposable path and verified the original four UTC rows. A native reader can now be exercised independently of automating the whole CSV wizard.",
+        "first_native_read": {
+          "workflow_run": 45320389416,
+          "run_id": "20261124T033632.391519Z-e9d59d2e",
+          "source_commit": "5246c2177d5d4cbe1a86e7b29ee14337cd137f84",
+          "report_sha256": "c33e19862d37bd85573767190dfa3b24ae97cc48378ee4abb0e2070e9e70ef70",
+          "log_sha256": "b188e96f2955fa8b6bdc63fe720e624b3823c4c08895b6431aa787d8af089f7d",
+          "observation": "A confirmed disposable profile reached the native studio. The driver selected a version by ordinal; it did not record the resulting UUID. Numeric series never appeared; the final window showed Accepted series unavailable without a version picker. The read response and reason for source unavailability were not observed."
+        },
+        "restored_chart": {
+          "workflow_run": 45322330414,
+          "run_id": "20261124T035400.234638Z-00733fa9",
+          "source_commit": "7da2d51c8385285a2dafc679304858c40c0d9441",
+          "report_sha256": "48394840b86ab3ef716cd125869f1d129b08e404c5994d5471a6257da5f7b6bf",
+          "log_sha256": "b79810093d302ed87bda1b39aff703c4b0e47c5b46be9ade03680c711e40d3a3",
+          "observation": "Normal startup restored FIX 1d with 2026-02-06 close 16 and volume 140 on WebView2 157.0.4341.46. A redundant reopen attempted SetValue on a disabled Revision ID before the studio was reached. The confirmed version was 74d50c75-6af7-4821-bc0e-fb76cb9fb8e3; no native series binding was observed in this run."
+        }
       }
     }
   },
   "open": [
-    "The ef0a1e1 accepted-series lifecycle has native Ubuntu evidence. Public-name visibility and stalled-draft recovery were observed on both native engines. A Windows full-wizard run reached the published chart and timed out before indicator acceptance. Review the separate prepared-profile native read against its confirmed version and result hash.",
-    "The combined 602260e has native Ubuntu chart endpoint evidence and reproducible hover gaps. Native Windows alignment remains open after the draft candle-color assertion in run 45319501119. The separate 0ea5876 correction has matching stationary-hover observations in Chromium and Ubuntu Tauri. Hold the engineering disposition pending matched native evidence. Persisted workbench defaults, representative end-user feedback, physical release and live external-client qualification retain their own gates."
+    "Verify native Windows selection of the exact accepted version, original nullable output, both presentations and clearance on real revocation. Compare the already frozen readers through the prepared native entry. A restored raw chart alone establishes only the source identity.",
+    "Retain the difference between Windows chart pixels and trusted hover. Ubuntu has both. Original and corrected hover continuity and narrow-window measurements belong to their respective revisions. M2-013 owns saved user-defined text, conditions, interactions and reopen. The major composition feedback stays open."
   ],
-  "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
+  "revisit": "Revisit the QuickJS plotting baseline if a normal native binding cannot deliver the exact selected version and clear it on actual revocation, or if trusted pointer and viewport coordinates cannot remain aligned after the host adapter is corrected. A demonstrated renderer-specific isolation or recovery failure would also change the choice. Source wizard automation, persistence of the whole workbench, paired external clients, and installer qualification have their own checks.",
   "verification": [
     "pnpm exec playwright test --config tests/ui/renderer-comparison.config.mjs",
     "uv run python scripts/renderer_probe.py --retained-only --archive-root /mnt/storage_2/scopehub-dev/archives",
@@ -131,6 +147,22 @@
       "run_id": "20261124T032938.425462Z-b8f82341",
       "report_sha256": "a6b7a11614261ffbb4d515e626d9ec4ed43582e4976d938e41230e6e9d8fb711",
       "observation": "On WebView2 157 the owned file chooser opened and the draft capture found two ring candidates. The center candle-color assertion failed before the test saved that frame. The original report cannot distinguish a projection error from a pixel-classification error. Accepted native Windows alignment remains open."
+    },
+    "windows_narrow_draft": {
+      "workflow_run": 45321026838,
+      "run_id": "20261124T034228.297184Z-b962abb3",
+      "source_commit": "84c03a78cec72de714c058ec34239c1b712d6f2b",
+      "report_sha256": "1a06de225113f86462f1bc6bca611b017aa0a700fdb3b9b9c996bb3f023a0e89",
+      "log_sha256": "bd5526b4bb80411a92a39b2da76bf336a831ca50ab3ede5339c75f721b44e472",
+      "observation": "With both panels open, two draft centres in the same PrintWindow crop were 38 and 35 pixels below the respective candle body close. The following client and screen captures showed candles without rings. Acceptance was unconfirmed. M2-019 owns the narrow-window defect."
+    },
+    "windows_accepted": {
+      "workflow_run": 45322526317,
+      "run_id": "20261124T035626.391743Z-7395ed59",
+      "source_commit": "f4fce4703f33a52233ba3348dcd1b5c52d2b3021",
+      "report_sha256": "b3473a70e73eb789cba7d316fe5ca41f6f3aaacd6d3c228bf725917cb1ddafd8",
+      "log_sha256": "a6f48e4dcde505831ab31fcbf1afcab1833e110e4fb5574e429d183c65d11fd7",
+      "observation": "After closing the side panels in the same frozen 602260e application, the native file and Accept controls worked. The wide accepted centres were at rows 360 and 327.5 against body closes 361 and 328. The resized centres and closes both measured 320 and 291. Zoom clipped both rings, Fit restored them and 5m removed the binding. These are owned-window PrintWindow pixels. The chart extended beyond the runner screen. All three trusted time-and-close hover assertions timed out; continuous hover and precise Windows pointer mapping remain unverified."
     }
   },
   "chart_hover_correction": {
@@ -152,5 +184,19 @@
       "corrected": "All 272 native samples showed both marks, and every selected emphasis matched the trusted readout in the same image. Sixty samples showed the neutral pair. First observed matching emphasis ranged from 112.075 to 138.011 ms after input, median 120.034 ms over six movements. The largest interval between consecutive samples was 12.1 ms.",
       "baseline": "The same sampler on the archived 602260e executable saw both marks absent in 62 of 273 samples, with gaps on each of six movements. All sample classifications were recomputed from the retained pixels. Timing includes input dispatch, screenshot acquisition and polling. This is native window sampling on a virtual display."
     }
+  },
+  "ownership": {
+    "data_and_operations": "The Rust registry owns formulas, versioned numeric results, source grants, operation authorization and confirmation. The host binds a selected revision, version, series and result hash under current rights. Finite-or-null observations and exact readouts retain their original UTC keys, with an unknown output unit when the artifact supplies none.",
+    "coordinates": "The host projects time and value into the current viewport and supplies trusted crosshair and selection identity. The guest can combine projected anchors with freely positioned geometry in chart-linked or axis-free views.",
+    "presentation": "The editable definition owns arrangement, visual mapping and non-privileged interaction. Its rendering backend can be replaced without changing the identity or authority of a data source. Native drawing and selection were observed. Ordinary authored text, evidence arrangement, conditions and local interaction in a reopened user-defined workbench remain part of M2-013. The 900-character bound and geometry-only API describe the prototype."
+  },
+  "focus_recheck": {
+    "task": "M2-020",
+    "product_commit": "a221f6a56054690cc79cdda908dd072e6259165c",
+    "fingerprint": "5e7123269354a78cc29ea98e2564fb8d1040e96513a20122092a1de42cea00a7",
+    "receipt": "project/evidence/M2-020-075c49f6e8a29c9a.json at d3c166f980188da1e33a0dec3c3f3734e39f718f",
+    "baseline_manifest": "archives/observations/m2-020-focus-admission-ef0a1e1/manifest.json",
+    "sha256": "c93837ac4294d205f353fceb01e6e099fecac8d49429b614f0b6b64d929d80fb",
+    "scope": "A genuine 429 on Chromium focus stranded the frozen picker despite an authorized read of the same hash. The corrective runtime passed six Chromium/Rust cases including delayed accepted output, explicit denial, expiry, source switch, studio closure and real revocation. This controlled causal comparison is independent of the earlier Windows observation."
   }
 }

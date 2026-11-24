@@ -4749,7 +4749,29 @@
         "workbench-drawing-runtime"
       ],
       "evidence": [],
-      "next_action": "Review matched native evidence under ADR 0027 for the demonstrated user-authored plotting and selection. Keep the major owner feedback open. Carry ordinary text, evidence arrangement, conditional display and non-privileged interactions into the existing M2-013 native note/disclosure journey. Exercise creation from blank, scoped revision, direct editing and reopen under current rights. The host retains exact readouts and confirmations.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T034228.297184Z-b962abb3",
+          "source_commit": "84c03a78cec72de714c058ec34239c1b712d6f2b",
+          "report_sha256": "1a06de225113f86462f1bc6bca611b017aa0a700fdb3b9b9c996bb3f023a0e89"
+        },
+        {
+          "run_id": "20261124T035626.391743Z-7395ed59",
+          "source_commit": "f4fce4703f33a52233ba3348dcd1b5c52d2b3021",
+          "report_sha256": "b3473a70e73eb789cba7d316fe5ca41f6f3aaacd6d3c228bf725917cb1ddafd8"
+        },
+        {
+          "run_id": "20261124T033632.391519Z-e9d59d2e",
+          "source_commit": "5246c2177d5d4cbe1a86e7b29ee14337cd137f84",
+          "report_sha256": "c33e19862d37bd85573767190dfa3b24ae97cc48378ee4abb0e2070e9e70ef70"
+        },
+        {
+          "run_id": "20261124T035400.234638Z-00733fa9",
+          "source_commit": "7da2d51c8385285a2dafc679304858c40c0d9441",
+          "report_sha256": "48394840b86ab3ef716cd125869f1d129b08e404c5994d5471a6257da5f7b6bf"
+        }
+      ],
+      "next_action": "Use editable author definitions with host-owned access, operations and coordinates. The isolated guest is the plotting baseline. Review matched Windows accepted-output binding and clearance, and trusted pointer alignment on the chart, before finalizing the native implementation. Carry whole-workbench text, conditions, scoped edits and reopen into M2-013. Keep the major product feedback open.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
