@@ -1,4 +1,4 @@
-// Capture only the synthetic app's client area. Never fall back to copying the desktop.
+// Capture the synthetic client. A separate on-screen measurement requires an unobscured owned chart.
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -118,6 +118,50 @@ public static class ChartNativeCapture {
         }
     }
 
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr target, out Rect bounds);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr target);
+    [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr target);
+    [DllImport("user32.dll")] private static extern int GetSystemMetrics(int metric);
+    private static Rectangle ClientArea(IntPtr app) {
+        Rect client; Point origin=new Point();
+        if (!GetClientRect(app,out client) || !ClientToScreen(app,ref origin))
+            throw new InvalidOperationException("No native client bounds.");
+        return new Rectangle(origin.X,origin.Y,client.Right,client.Bottom);
+    }
+    public static Bitmap ClientBitmap(IntPtr app) {
+        Rectangle c=ClientArea(app);
+        return Plot(app,c.X,c.Y,c.Width,c.Height);
+    }
+    private static void VerifyVisible(IntPtr app, Rectangle chart) {
+        if (GetForegroundWindow()!=app || !ClientArea(app).Contains(chart))
+            throw new InvalidOperationException("Chart is not in the owned foreground window.");
+        Rectangle display=new Rectangle(GetSystemMetrics(76),GetSystemMetrics(77),GetSystemMetrics(78),GetSystemMetrics(79));
+        if (!display.Contains(chart)) throw new InvalidOperationException("Chart extends beyond the runner screen.");
+        for (IntPtr other=GetWindow(app,3);other!=IntPtr.Zero;other=GetWindow(other,3)) {
+            Rect bounds;
+            if (IsWindowVisible(other) && !IsIconic(other) && GetWindowRect(other,out bounds) &&
+                chart.IntersectsWith(Rectangle.FromLTRB(bounds.Left,bounds.Top,bounds.Right,bounds.Bottom)))
+                throw new InvalidOperationException("An overlapping window prevents an owned screen crop.");
+        }
+    }
+    public static Bitmap ForegroundChart(IntPtr app,double left,double top,double width,double height) {
+        SetForegroundWindow(app);
+        Rectangle chart=Rectangle.FromLTRB((int)Math.Floor(left),(int)Math.Floor(top),(int)Math.Ceiling(left+width),(int)Math.Ceiling(top+height));
+        VerifyVisible(app,chart);
+        var copy=new Bitmap(chart.Width,chart.Height);
+        try {
+            using (Graphics g=Graphics.FromImage(copy)) g.CopyFromScreen(chart.Location,Point.Empty,chart.Size);
+            VerifyVisible(app,chart);
+            return copy;
+        } catch { copy.Dispose(); throw; }
+    }
+    public static string[] CenterColors(Bitmap image,Rectangle ring) {
+        var colors=new System.Collections.Generic.List<string>();
+        int cx=ring.Left+ring.Width/2,cy=ring.Top+ring.Height/2;
+        for(int y=cy-2;y<=cy+2;y++) for(int x=cx-2;x<=cx+2;x++)
+            colors.Add((image.GetPixel(x,y).ToArgb() & 0xffffff).ToString("X6"));
+        return colors.ToArray();
+    }
     public static Rectangle[] Rings(Bitmap chart) {
         // The two guest rings are purple. Work with exact core pixels and keep distinct x columns together.
         var groups = new System.Collections.Generic.List<Rectangle>();

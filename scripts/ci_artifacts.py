@@ -300,7 +300,9 @@ def stage_artifacts(root, destination, env):
             for path in browser_artifacts(reports, directory, check):
                 copy_file(path, destination / path.relative_to(reports))
     if 'chart-coordinate-prototype' in executed:
-        for name in ('draft.png', 'aligned.png', 'resized.png', 'clipped.png', 'refit.png', 'switched.png', 'transition.png'):
+        chart_frames = ('draft', 'aligned', 'resized', 'clipped', 'refit', 'switched')
+        chart_images = [frame + suffix + '.png' for frame in chart_frames for suffix in ('', '-client', '-screen')]
+        for name in (*chart_images, 'transition.png'):
             relative = f'{run}/native-chart/{name}'
             image = optional_path(reports, relative)
             if image is not None:
