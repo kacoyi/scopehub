@@ -797,7 +797,7 @@
     {
       "id": "workbench-renderer-probe",
       "status": "planned",
-      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the local inputs in workbench-qualification-v2. Measure same-frame chart geometry, independently terminable rendering and host-supervised recovery. Record visual and interaction fidelity, latency, effective authority, migration cost and the renderer choice.",
+      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the local inputs in workbench-qualification-v2. Measure same-frame chart geometry, per-path access denial, independently terminable rendering and host-supervised recovery with the required runtime-specific failure evidence. Record visual and interaction fidelity, latency, effective authority, migration cost and the renderer choice.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900,
@@ -815,7 +815,7 @@
     {
       "id": "workbench-qualification",
       "status": "planned",
-      "purpose": "Verify tests/fixtures/workbench-qualification-v2.json against the exact Windows package. Require all eight cases, five gates and a post-freeze challenge, including shared selection and cold recovery after revocation. Reuse matching native client and sustained-workload evidence.",
+      "purpose": "Verify tests/fixtures/workbench-qualification-v2.json against the exact Windows package. Require all eight cases, five gates and a post-freeze challenge, including per-path denial, runtime-specific native loss, shared selection and paired granted and revoked cold reopens. Reuse matching native client and sustained-workload evidence.",
       "platforms": "windows-x64",
       "command": null,
       "timeout_seconds": 1800,

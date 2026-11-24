@@ -48,11 +48,31 @@
     },
     "scoped-edit-continuity": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/scoped-edit-continuity"}},
     "fault-and-permission-containment": {
-      "given": "Start the last accepted canvas and an ordered quote replay. Declare a bounded memory budget for the candidate before injecting a fault. Use synthetic file, SQLite, credential, position and strategy markers and a controlled receiver. A permitted positive control must reach that receiver and be visible to the independent network observer.",
+      "given": "Start the last accepted canvas and an ordered quote replay. Declare a bounded memory budget for the candidate before injecting a fault. Run the denied data paths with their synthetic controls.",
       "faults": ["malformed draft before activation", "render event loop stalls", "renderer exceeds its memory limit", "bridge message rate or queue capacity exceeded", "oversized or malformed bridge message"],
       "draft_rejection": "Reject the malformed draft before activation, retain the accepted interactive view, and route its diagnostic through the scoped repair procedure.",
-      "isolation": "The canvas runs in an OS process independently terminable from the trusted shell UI, Rust supervisor and quote service. On native WebView2 and WebKitGTK identify the actual processes and their roles and exercise termination. The shell must still accept input during each fault. Measure peak resource use against the declared limit and contain exhaustion before it can terminate the host.",
-      "windows_process_failure": "Record whether the canvas and shell share a WebView2 user data folder or CoreWebView2Environment and identify their actual live renderers. Shared configuration can reuse a renderer across controls. Fail a candidate whose canvas termination can also terminate the privileged UI. Exercise a renderer exit and correlate the native ProcessFailed event, failure kind and affected control with the Rust supervisor's observation, old PID exit, fresh instance and first interactive accepted frame. Verify the shell continues painting and accepts input and that the quote service stays live.",
+      "isolation": "The canvas runs in an OS process independently terminable from the trusted shell UI, Rust supervisor and quote service. Identify the actual processes and their roles and exercise termination on native Ubuntu and Windows. The shell must still accept input during each fault. Measure peak resource use against the declared limit and contain exhaustion before it can terminate the host.",
+      "native_process_failure": {
+        "trial": "Identify the actual runtime, version, canvas and shell process roles and PIDs in the native build under test. Exercise renderer loss and correlate its runtime-specific failure report with every common observation on a shared timeline. Fail a candidate whose canvas termination can also terminate the privileged UI. A missing runtime identity or missing required observation leaves the candidate blocked.",
+        "required_observations": [
+          "rust_supervisor_loss", "independent_old_pid_exit", "fresh_renderer_identity",
+          "first_interactive_frame_of_accepted_revision", "shell_paint_and_input", "live_quote_service"
+        ],
+        "webview2": {
+          "applies_when": "canvas_uses_webview2",
+          "required_observations": [
+            "user_data_folder_sharing", "core_webview2_environment_sharing", "actual_live_renderer_reuse",
+            "ProcessFailed", "failure_kind", "affected_control"
+          ],
+          "trial": "Record whether the canvas and shell share a WebView2 user data folder or CoreWebView2Environment. Identify their actual live renderers because shared configuration can reuse a renderer across controls. Correlate ProcessFailed, its failure kind and affected control with the common observations."
+        },
+        "other_native_runtime": {
+          "applies_when": "canvas_demonstrably_uses_a_different_native_runtime",
+          "authority": {"$source": {"path": "contracts/decisions/0027-v1-user-composed-workbench.json", "pointer": "/decision"}},
+          "required_observations": ["different_runtime_identity", "native_renderer_loss_signal", "affected_canvas_instance"],
+          "trial": "Use this path only when the tested canvas is demonstrably based on a different native runtime. Record its actual native renderer-loss signal for the affected instance and correlate it with all common observations. Apply the same isolation, watchdog deadline and recovery verdict."
+        }
+      },
       "bridge_admission": {
         "limits": "Before the trial record host-enforced limits per canvas for encoded message bytes, accepted messages per interval, queued messages and queued bytes. Enforce the message bound before decoding or allocating the declared body. Bound admission work and keep the shell's input and recovery path independent of the canvas queue.",
         "trial": "Use bounded synthetic inputs at the declared limits and one unit over each limit. Include a short over-budget burst, an oversized declared message and a malformed message. Observe admitted, rejected and coalesced counts, queue and memory high-water marks, the recovery control, and ordered quotes during the trial.",
@@ -66,7 +86,22 @@
       "permissions": {
         "policy": "The authored frame has no privileged Tauri bridge, including window.__TAURI_INTERNALS__, or ambient local or network authority. Apply default-src 'none'. The effective script policy forbids 'unsafe-eval'. Effective style rules admit only the required local sources or scoped generated styles. Effective font-src, connect-src and img-src exclude every external origin. Reject external stylesheet imports, fonts, images and connections during rendering, editing and restoration. Enforce navigation, new-window and WebRTC restrictions at the host or isolation boundary. Deny direct canvas clipboard and media-device access even after a gesture.",
         "observations": ["direct host command and protected local resource access", "fetch and XHR", "image resource loads and CSS background images", "external CSS @import and @font-face loads", "new-window and external navigation", "WebRTC connection establishment", "clipboard read and write", "microphone and camera access"],
-        "verdict": "Inspect the effective production policy, the host decision and independent observations on both native runtimes. Require zero unauthorized reads or writes, no external window or connection, and zero canvas-attributable bytes sent to unapproved destinations. With a disposable clipboard and test media devices, require zero clipboard bytes returned or changed, zero device activations and zero OS permission prompts. The healthy control establishes observer coverage. Missing visibility blocks the verdict."
+        "verdict": "Inspect the effective production policy, the host decision and independent observations on both native platforms. Require zero unauthorized reads or writes, no external window or connection, and zero canvas-attributable bytes sent to unapproved destinations. With a disposable clipboard and test media devices, require zero clipboard bytes returned or changed, zero device activations and zero OS permission prompts. The healthy control establishes observer coverage. Missing visibility blocks the verdict.",
+        "denied_data_paths": {
+          "paths": ["local-files", "direct-application-sqlite", "saved-credentials", "outbound-to-unapproved-destination"],
+          "synthetic_control": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/fault-and-permission-containment/given"}},
+          "baseline_verdict": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/fault-and-permission-containment/observe/1"}},
+          "trial": "Exercise each path separately in a disposable profile with synthetic markers. Distinguish the application SQLite database from ordinary local files, and saved credentials from database credential references. First demonstrate independent observer coverage with the permitted synthetic control, including delivery to the controlled receiver. For each denied path retain the host decision, independent host-side evidence of the attempted access and outcome, and the zero counts. Compare protected state before and after and check for markers at the controlled unapproved destination. Missing path or observer coverage blocks qualification.",
+          "per_path": {
+            "required_observations": ["host_decision", "independent_host_observation"],
+            "limits": {
+              "protected_reads": 0,
+              "protected_bytes_returned": 0,
+              "unauthorized_mutations": 0,
+              "protected_markers_at_unapproved_receiver": 0
+            }
+          }
+        }
       }
     },
     "bidirectional-evidence": {
@@ -90,7 +125,24 @@
         {"input": "source grant revoked", "expect": "Revoked with the original binding identity and no display of protected values."}
       ],
       "act": "Run the states independently and with a combined stale, gapped and disconnected stream. Inspect prominent trusted-shell status while the canvas is open. Fully stop the application and renderer, then launch a fresh process twice: once with the grant valid and once after revocation with the old cache present.",
-      "observe": "Keep Simulated visible for accessible sample data. Shell status tracks each dimension even when the authored view ignores it. On both cold launches restore the accepted definition, local packaged assets and frozen references with zero model calls, dependency downloads or vendor recompiles. Check grants before the first data frame. A revoked binding causes zero protected reads and zero frames containing cached values. Keep the user's layout and note under their own rights and retain the original source identity."
+      "observe": "Keep Simulated visible for accessible sample data. Shell status tracks each dimension even when the authored view ignores it. On both cold launches restore the accepted definition, local packaged assets and frozen references with zero model calls, dependency downloads or vendor recompiles. Check grants before the first data frame. Keep the user's layout and note under their own rights and retain the original source identity.",
+      "cold_reopen": {
+        "source": {"$source": {"path": "tests/fixtures/workbench-inputs-v2.json", "pointer": "/event_desk/events"}},
+        "saved_selection": {"$source": {"path": "tests/fixtures/workbench-inputs-v2.json", "pointer": "/event_desk/impact/event_target"}},
+        "granted": {
+          "field": "announced_change_bp",
+          "expected_value": 25,
+          "unit": "basis points",
+          "required_observations": ["first_restored_data_frame", "value_with_source_revision_and_locator", "restored_saved_selection"],
+          "trial": "Before shutdown select the frozen event row and record the saved target and selection revision. With the grant valid, record the first restored data frame, its value and source ID, revision and row locator. Verify the same saved target and selection revision through the trusted workspace context and verify the restored view highlights that row."
+        },
+        "revoked": {
+          "protected_reads": 0,
+          "protected_data_frames": 0,
+          "required_observations": ["trusted_revoked_status", "original_binding_identity", "protected_reads_and_frames_from_startup"],
+          "trial": "Reopen the same saved composition with its old cache present and the grant revoked. Record the trusted revoked status and the original binding identity, including the locator. Observe protected reads and presented frames from startup. No cached protected value may appear, including in the first frame."
+        }
+      }
     }
   },
   "gates": {

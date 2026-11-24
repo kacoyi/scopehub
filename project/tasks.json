@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-028",
   "tasks": [
     {
       "id": "M0-001",
@@ -4736,7 +4736,7 @@
       ],
       "acceptance": [
         "Use a chart-free composition of local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
-        "Keep privileged controls and the last accepted view in the host. Exercise the workbench-qualification-v2 process, resource, bridge admission, native access and egress boundaries on both platforms. On Windows observe WebView2 process reuse and correlate ProcessFailed with the Rust supervisor and independent recovery. Record the three-second watchdog intervention, independent process exit and automatic restore.",
+        "Keep privileged controls and the last accepted view in the host. Exercise the workbench-qualification-v2 process, resource, bridge admission, native access and egress boundaries on both platforms. Require WebView2 process reuse and ProcessFailed observations for every WebView2 candidate. For a demonstrably different native runtime use its actual loss signal. Correlate the signal with Rust supervision, the three-second watchdog intervention, independent process exit and the first interactive frame of the automatically restored revision.",
         "Use the local event and spread fixtures to exercise same-frame chart geometry and versioned visual projections. Deliver the automated workbench-runtime-smoke checks for changes to the declared SDK and shell surfaces.",
         "Record the source revision, native runtime versions, synthetic inputs, observations, decision and revisit conditions. Choose a viable option by evidence, or report the gap. Prototype approval grants no new product data access or code execution rights."
       ],
@@ -15297,7 +15297,7 @@
         "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent.",
         "Create and structurally reshape the view using the normal workbench and embedded AI, then refine a single element directly. Use the same released application to express a second arrangement and a different binding without a dedicated product component. Bind the points of a frozen, accepted numeric series to a user-chosen visual property and inspect its exact value and evidence.",
         "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Complete M2-013 by exercising this journey in the native development application. M5-001 owns the subsequent packaged Windows acceptance.",
-        "Observe the shared selection round trip and cold restore cases in the native workspace. Include a stale AI selection and a revoked, cached source before the first data frame."
+        "Observe the shared selection round trip and paired cold reopens from workbench-qualification-v2 in the native workspace. Include a stale AI selection, the frozen value and its saved selection with the grant valid, and zero protected reads or protected data frames with the grant revoked and the old cache present."
       ],
       "checks": [
         "chart-free-workbench",
@@ -17430,6 +17430,66 @@
           "change": ["Define motion tolerances, bridge and device limits, production style policy and the Windows process observation."],
           "data_plan": "Use bounded synthetic observations and disposable test devices.",
           "cleanup": "Archive the documentary evidence and return focus to the planned renderer task."
+        }
+      }
+    },
+    {
+      "id": "M2-028",
+      "title": "Correct workbench qualification evidence for access, native loss and cold restore",
+      "milestone": "M2",
+      "status": "active",
+      "delivery": "current-contract",
+      "depends_on": ["M2-027"],
+      "scope": [
+        "tests/fixtures/workbench-qualification-v2.json", "tests/project/test_workbench_qualification.py",
+        "project/tasks.json", "project/checks.json", "project/feedback.json"
+      ],
+      "decision_refs": ["0004", "0027", "0028"],
+      "acceptance": [
+        "The effective qualification preserves each v1 denied path, including direct access to the application SQLite database and saved credentials, with synthetic controls, per-path host and independent observations and zero unauthorized data or mutations.",
+        "A WebView2 candidate retains the process reuse and ProcessFailed evidence. A demonstrably different native candidate supplies its actual loss signal and equivalent Rust, independent process exit and restored first-frame evidence. The native and exact-package gates remain required.",
+        "The granted cold reopen reproduces a concrete frozen value and its saved selection with provenance. Its revoked counterpart proves zero protected reads and zero protected data frames. The existing project tests exercise source resolution and valid and rejected specification examples."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "The PR 73 coordinator reviews the committed correction and matching M2-028 task report, then archives the specification evidence before closing the task.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Each of the three omissions found in PR 73 is independently detectable in the effective specification before any native or packaged trial is credited.",
+        "change_types": ["tooling"],
+        "context": [
+          "tests/fixtures/workbench-qualification-v1.json", "tests/fixtures/workbench-qualification-v2.json",
+          "tests/fixtures/workbench-inputs-v2.json", "contracts/decisions/0027-v1-user-composed-workbench.json",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "The v1 denial controls and the frozen v2 event row can be reused by reference.",
+          "An engine-specific loss observation can prove the same recovery sequence without prescribing WebView2 to a different native candidate."
+        ],
+        "risks": [
+          {"failure": "Generic local-resource or network evidence masks a missing application database, saved credential or other v1 denied path.", "checks": ["python-contracts-workers"]},
+          {"failure": "A WebView2 case loses its reuse or ProcessFailed proof, or another runtime bypasses independent native loss and recovery evidence.", "checks": ["python-contracts-workers"]},
+          {"failure": "A restore that shows no authorized data or loses the saved selection appears to pass the paired cold-reopen case.", "checks": ["python-contracts-workers"]}
+        ],
+        "rollback": "Revert the specification and regression together if the selected representation fails to preserve the existing controls. Retain the review feedback and historical receipts.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["engineering-contract-v1.json", "tests/fixtures/workbench-qualification-v2.json", "tests/project/test_workbench_qualification.py"],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/fault-and-permission-containment"},
+            {"path": "contracts/decisions/0027-v1-user-composed-workbench.json", "pointer": "/consequences"}
+          ],
+          "non_goals": ["Implementing product probes or runtime changes, taking on M0-086, recording acceptance receipts, posting or integrating PR 73."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["The existing gate set, native platform coverage, synthetic inputs, and accepted M2-026 and M2-027 records."],
+          "change": ["Make access denial, conditional native loss evidence and both cold-reopen outcomes explicit and testable in the live specification."],
+          "data_plan": "Use synthetic marker categories and the existing frozen input. No product profile changes or live credentials.",
+          "cleanup": "Hand the local correction and verification to the coordinator for the evidence and review lifecycle."
         }
       }
     }

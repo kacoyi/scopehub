@@ -3856,6 +3856,39 @@
           "report_sha256": "a94d4f351b45a6d4daa71fe0b5db5dfad9d255dcab6d8f38688d5f3487bd14cd"
         }
       ]
+    },
+    {
+      "id": "workbench-qualification-denied-path-evidence",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1.",
+      "observation": "The v2 permission procedure replaces explicit v1 denial paths with a generic protected-resource observation. Direct application SQLite and saved-credential checks can be omitted while reporting the generic observation, and v1 requires independent evidence per denied path.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workbench-qualification-native-loss-parity",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1.",
+      "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workbench-qualification-granted-cold-reopen",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1.",
+      "observation": "The cold-restore procedure checks the revoked case but gives the granted reopen no required positive data value, source locator or saved selection outcome. An empty restored canvas could satisfy the listed observations.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
