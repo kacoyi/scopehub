@@ -20,7 +20,10 @@ const speakerLabels = { user: message('You'), assistant: message('Assistant') };
 type Draft = { id: string; revision: number | null; content: PrivateRecordContent };
 type ReviewTarget = { title: string; kind: PrivateRecordKind; proposedTitle?: string | undefined };
 type PreparedReview = RecordApproval & { target: ReviewTarget | undefined };
-type PendingResolution = RecordResolution & { action: RecordApproval['action'] };
+type PendingResolution = RecordResolution & {
+  action: RecordApproval['action'];
+  decision: 'approve' | 'decline';
+};
 
 function emptyContent(kind: PrivateRecordKind, title = ''): PrivateRecordContent {
   if (kind === 'conversation') {
@@ -143,6 +146,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     && prepared.scope.expected_workspace_revision !== view.workspace_revision;
   const visibleReview = expiredReview ? undefined : prepared;
   const visibleError = error ?? readError;
+  const recoveringDecline = recovery?.decision === 'decline';
 
   const rememberRecovery = useCallback((resolution: PendingResolution | undefined) => {
     pendingResolution.current = resolution;
@@ -158,7 +162,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     // A verified missing detail can be the effect of our submitted deletion.
     // Keep only the original resolve inputs in that case.
     const pending = pendingResolution.current;
-    if (pending?.action !== 'delete' || !missingRecord || pending.recordId !== missingRecord) {
+    if (pending?.decision !== 'approve' || pending.action !== 'delete' || !missingRecord || pending.recordId !== missingRecord) {
       rememberRecovery(undefined);
     }
     setRecoveredOperationId(undefined);
@@ -251,7 +255,9 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
     };
   }, [load, run, workspace.pending]);
 
-  useEffect(() => { if (visibleReview && !busy) cancelReview.current?.focus(); }, [visibleReview, busy]);
+  useEffect(() => {
+    if ((visibleReview || recoveringDecline) && !busy) cancelReview.current?.focus();
+  }, [visibleReview, recoveringDecline, busy]);
 
   useEffect(() => {
     if (!expiredReview) return;
@@ -310,7 +316,7 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
   }
 
   function finish(decision: 'approve' | 'decline', close = false) {
-    const retry = decision === 'approve' ? recovery : undefined;
+    const retry = recovery?.decision === decision ? recovery : undefined;
     const approval = retry ?? prepared;
     if (!approval) return;
     const { action, scope, challenge, recordId: targetId } = approval;
@@ -338,9 +344,9 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
           setPrepared(undefined);
           rememberRecovery(undefined);
           await load(selection.current, signal);
-        } else if (decision === 'approve') {
+        } else {
           setPrepared(undefined);
-          rememberRecovery({ action, scope, challenge, recordId: targetId });
+          rememberRecovery({ action, scope, challenge, recordId: targetId, decision });
         }
         throw fault;
       }
@@ -384,10 +390,13 @@ export function PrivateRecords({ workspace, onClose }: { workspace: LocalWorkspa
       {notice && <p role="status">{t(notice)}</p>}
       {recoveredOperationId && <p>{t('Deletion receipt')} <code>{recoveredOperationId}</code></p>}
       {recovery ? <section className="note-approval" aria-label={t('Recover private record result')}>
-        <h3>{recovery.action === 'delete' ? t('Recover deletion result') : t('Recover private record result')}</h3>
-        <p>{t('Retry confirmation to recover the result of the submitted change.')}</p>
+        <h3>{recoveringDecline ? t('Cancel review')
+          : recovery.action === 'delete' ? t('Recover deletion result') : t('Recover private record result')}</h3>
+        <p>{recoveringDecline ? t('The workspace could not confirm cancellation.')
+          : t('Retry confirmation to recover the result of the submitted change.')}</p>
         <div className="private-record-actions">
-          <button type="button" className="primary" disabled={busy} onClick={() => finish('approve')}>{t('Retry confirmation')}</button>
+          <button type="button" ref={recoveringDecline ? cancelReview : undefined} className="primary" disabled={busy}
+            onClick={() => finish(recovery.decision)}>{recoveringDecline ? t('Retry cancellation') : t('Retry confirmation')}</button>
         </div>
       </section> : visibleReview ? <section className="note-approval" aria-label={t('Review private record change')}>
         <h3>{visibleReview.action === 'delete' ? t('Delete this private record?')
