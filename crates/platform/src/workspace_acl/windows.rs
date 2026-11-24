@@ -24,8 +24,8 @@ use windows_sys::Win32::{
         },
         CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, GetAce, GetAclInformation,
         GetTokenInformation, INHERIT_ONLY_ACE, INHERITED_ACE, IsValidAcl, IsValidSid,
-        OBJECT_INHERIT_ACE, OWNER_SECURITY_INFORMATION, PSID, SECURITY_ATTRIBUTES,
-        SECURITY_MAX_SID_SIZE, TOKEN_QUERY, TOKEN_USER, TokenUser,
+        NO_PROPAGATE_INHERIT_ACE, OBJECT_INHERIT_ACE, OWNER_SECURITY_INFORMATION, PSID,
+        SECURITY_ATTRIBUTES, SECURITY_MAX_SID_SIZE, TOKEN_QUERY, TOKEN_USER, TokenUser,
     },
     Storage::FileSystem::{
         CreateDirectoryW, DELETE, FILE_ALL_ACCESS, FILE_ATTRIBUTE_DIRECTORY,
@@ -257,19 +257,15 @@ fn trusted_ancestor(sid: &str, user: &str) -> bool {
 #[derive(Default)]
 struct UserInheritance {
     single_full: bool,
-    explicit_count: usize,
-    explicit: [(u32, u32); 2],
+    explicit: Vec<(u32, u32)>,
 }
 
 impl UserInheritance {
     fn record(&mut self, flags: u32, mask: u32) {
         self.single_full |= mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS
             && flags & CHILD_INHERITANCE == CHILD_INHERITANCE;
-        if flags & INHERITED_ACE == 0 && mask != 0 {
-            if let Some(slot) = self.explicit.get_mut(self.explicit_count) {
-                *slot = (flags, mask);
-            }
-            self.explicit_count += 1;
+        if !self.single_full && flags & INHERITED_ACE == 0 && mask != 0 {
+            self.explicit.push((flags, mask));
         }
     }
 
@@ -277,15 +273,56 @@ impl UserInheritance {
         if self.single_full {
             return true;
         }
-        // System.IO sorts canonical explicit allows by SID and compacts adjacent
-        // equal-flag rules. Two explicit rules for this SID become one adjacent pair.
-        let [(left_flags, left_mask), (right_flags, right_mask)] = self.explicit;
+        // System.IO groups canonical explicit allows by SID before compacting
+        // adjacent rules. Their internal order is not guaranteed. Require any
+        // possible first pair to reproduce an old full-control inherited grant.
         canonical
-            && self.explicit_count == 2
-            && left_flags == right_flags
-            && left_flags & CHILD_INHERITANCE == CHILD_INHERITANCE
-            && (left_mask | right_mask) & FILE_ALL_ACCESS == FILE_ALL_ACCESS
+            && self.explicit.len() >= 2
+            && self.explicit.iter().enumerate().all(|(index, &left)| {
+                self.explicit[index + 1..]
+                    .iter()
+                    .all(|&right| compacted_pair_inherits_full(left, right))
+            })
     }
+}
+
+fn compacted_pair_inherits_full(
+    (left_flags, left_mask): (u32, u32),
+    (right_flags, right_mask): (u32, u32),
+) -> bool {
+    if left_flags == right_flags {
+        return left_flags & CHILD_INHERITANCE == CHILD_INHERITANCE
+            && (left_mask | right_mask) & FILE_ALL_ACCESS == FILE_ALL_ACCESS;
+    }
+    if left_mask != right_mask || left_mask & FILE_ALL_ACCESS != FILE_ALL_ACCESS {
+        return false;
+    }
+    // Equal masks can share one ACE only when a single Windows scope can
+    // represent the union exactly. A single no-propagate flag applies to both
+    // the child-object and child-container permissions.
+    let Some((left_children, left_descendants)) = inheritance_scope(left_flags) else {
+        return false;
+    };
+    let Some((right_children, right_descendants)) = inheritance_scope(right_flags) else {
+        return false;
+    };
+    let children = left_children | right_children;
+    let descendants = left_descendants | right_descendants;
+    children == CHILD_INHERITANCE && (descendants == 0 || descendants == children)
+}
+
+fn inheritance_scope(flags: u32) -> Option<(u32, u32)> {
+    let children = flags & CHILD_INHERITANCE;
+    let other = INHERIT_ONLY_ACE | NO_PROPAGATE_INHERIT_ACE;
+    if flags & !(CHILD_INHERITANCE | other) != 0 || (children == 0 && flags & other != 0) {
+        return None;
+    }
+    let descendants = if flags & NO_PROPAGATE_INHERIT_ACE == 0 {
+        children
+    } else {
+        0
+    };
+    Some((children, descendants))
 }
 
 fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
@@ -416,7 +453,9 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         }
         if sid == user && mask != 0 {
             user_applies |= applies_here;
-            inheritance.record(flags, mask);
+            if kind == Entry::Profile {
+                inheritance.record(flags, mask);
+            }
         }
     }
     if kind != Entry::Ancestor

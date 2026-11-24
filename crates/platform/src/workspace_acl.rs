@@ -471,6 +471,8 @@ mod tests {
 
     #[test]
     fn timed_out_worker_has_exited_before_control_returns() {
+        use std::os::windows::io::AsHandle;
+
         let fixture = env::temp_dir().join(format!("scopehub-acl-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir(&fixture).unwrap();
         struct Cleanup(Option<PathBuf>);
@@ -492,11 +494,26 @@ mod tests {
                 "--quiet",
             ])
             .env(PROBE, &marker);
-        let error = supervise("prepare", command, Duration::from_secs(2)).unwrap_err();
+        let (observe, worker_handle) = mpsc::sync_channel(1);
+        let error = supervise_with_launcher(
+            "prepare",
+            command,
+            Duration::from_secs(2),
+            move |action, command, started, deadline| {
+                let pending = launch(action, command, started, deadline)?;
+                let worker = pending.child.as_handle().try_clone_to_owned()?;
+                observe.send(worker).expect("retain exact worker handle");
+                Ok(pending)
+            },
+        )
+        .unwrap_err();
+        let worker = worker_handle.try_recv().expect("observe launched worker");
+        let exited = wait_for_exit(&worker, 0);
         let detail = error.to_string();
-        if detail.contains("exit unconfirmed") {
+        if !exited || detail.contains("exit unconfirmed") {
             cleanup.0 = None;
         }
+        assert!(exited, "worker was still running when control returned");
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
         assert_eq!(detail, "worker-timeout");
         assert_eq!(std::fs::read(&marker).unwrap(), b"granted");

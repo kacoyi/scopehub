@@ -61,7 +61,7 @@ impl Drop for Scratch {
     }
 }
 
-fn assert_two_raw_aces(path: &Path) {
+fn assert_raw_ace_count(path: &Path, count: u16) {
     let file = open_entry(path, Entry::Profile).unwrap().unwrap();
     let mut dacl = null_mut();
     let mut descriptor = Allocation(null_mut());
@@ -83,34 +83,63 @@ fn assert_two_raw_aces(path: &Path) {
     );
     assert!(!dacl.is_null());
     // SAFETY: the raw ACL header belongs to the live Windows descriptor.
-    assert_eq!(unsafe { (*dacl).AceCount }, 2);
+    assert_eq!(unsafe { (*dacl).AceCount }, count);
 }
 
 #[test]
-fn native_profile_inheritance_matches_managed_same_scope_split() {
+fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
     use windows_sys::Win32::Storage::FileSystem::FILE_GENERIC_READ;
 
     use_test_host("workspace_acl::windows::tests::policy_worker");
     let parent = env::temp_dir().join(format!("scopehub-acl-split-{}", uuid::Uuid::new_v4()));
     check(&parent, true, 0).unwrap();
     let scratch = Scratch(parent);
-    let scopes = [
-        (scratch.0.join("same-scope"), "OICI", true),
-        (scratch.0.join("different-scope"), "OI", false),
-    ];
     let user = current_user().unwrap();
     let read = FILE_GENERIC_READ;
     let remaining = FILE_ALL_ACCESS & !read;
-    for (path, flags, _) in &scopes {
-        let descriptor = security_descriptor(&format!(
-            "O:{user}D:P(A;OICI;0x{read:x};;;{user})(A;{flags};0x{remaining:x};;;{user})"
-        ))
-        .unwrap();
-        create_directory(path, &descriptor).unwrap();
-        assert_two_raw_aces(path);
+    let controls = [
+        (
+            "same-scope",
+            vec![("OICI", read), ("OICI", remaining)],
+            true,
+        ),
+        (
+            "three-same-scope",
+            [1, 2, 4]
+                .map(|omitted| ("OICI", FILE_ALL_ACCESS & !omitted))
+                .to_vec(),
+            true,
+        ),
+        (
+            "object-and-container",
+            vec![("OI", FILE_ALL_ACCESS), ("CI", FILE_ALL_ACCESS)],
+            true,
+        ),
+        (
+            "different-scopes",
+            vec![("OICI", read), ("OI", remaining)],
+            false,
+        ),
+        (
+            "different-depths",
+            vec![("OINP", FILE_ALL_ACCESS), ("CI", FILE_ALL_ACCESS)],
+            false,
+        ),
+    ];
+    let mut roots = Vec::new();
+    for (name, rules, admitted) in controls {
+        let path = scratch.0.join(name);
+        let mut sddl = format!("O:{user}D:P");
+        use std::fmt::Write;
+        for (flags, mask) in &rules {
+            write!(sddl, "(A;{flags};0x{mask:x};;;{user})").unwrap();
+        }
+        create_directory(&path, &security_descriptor(&sddl).unwrap()).unwrap();
+        assert_raw_ace_count(&path, u16::try_from(rules.len()).unwrap());
+        roots.push((path, admitted));
     }
 
-    for (path, _, admitted) in &scopes {
+    for (path, admitted) in &roots {
         let native = check(path, false, 0);
         if *admitted {
             native.unwrap();
@@ -120,15 +149,15 @@ fn native_profile_inheritance_matches_managed_same_scope_split() {
     }
 
     eprintln!(
-        "Native profile admission accepted same-scope rules and refused different-scope rules."
+        "Native profile admission accepted the three equivalent controls and refused the two incompatible controls."
     );
 
     // The retired check used DirectorySecurity's managed descriptor export.
     // Observe that exact predicate once on both raw on-disk controls.
     let powershell = PathBuf::from(env::var_os("SystemRoot").unwrap())
         .join("System32/WindowsPowerShell/v1.0/powershell.exe");
-    let mut child = Command::new(powershell)
-        .args([
+    let mut comparison = Command::new(powershell);
+    comparison.args([
             "-NoLogo",
             "-NoProfile",
             "-NonInteractive",
@@ -137,7 +166,8 @@ fn native_profile_inheritance_matches_managed_same_scope_split() {
             $ErrorActionPreference = 'Stop'
             $user = [Security.Principal.WindowsIdentity]::GetCurrent().User
             $full = [int][Security.AccessControl.FileSystemRights]::FullControl
-            foreach ($path in @($env:SCOPEHUB_ACL_SAME, $env:SCOPEHUB_ACL_DIFFERENT)) {
+            for ($index = 0; $index -lt [int]$env:SCOPEHUB_ACL_CASES; $index++) {
+                $path = [Environment]::GetEnvironmentVariable('SCOPEHUB_ACL_CASE_' + $index)
                 $acl = [IO.Directory]::GetAccessControl($path)
                 $raw = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
                 $applies = $false
@@ -156,8 +186,11 @@ fn native_profile_inheritance_matches_managed_same_scope_split() {
             }
             ",
         ])
-        .env("SCOPEHUB_ACL_SAME", &scopes[0].0)
-        .env("SCOPEHUB_ACL_DIFFERENT", &scopes[1].0)
+        .env("SCOPEHUB_ACL_CASES", roots.len().to_string());
+    for (index, (path, _)) in roots.iter().enumerate() {
+        comparison.env(format!("SCOPEHUB_ACL_CASE_{index}"), path);
+    }
+    let mut child = comparison
         .creation_flags(0x0800_0000)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -180,6 +213,10 @@ fn native_profile_inheritance_matches_managed_same_scope_split() {
         String::from_utf8_lossy(&managed.stderr)
     );
     let observations = String::from_utf8_lossy(&managed.stdout);
-    assert_eq!(observations.lines().collect::<Vec<_>>(), ["True", "False"]);
+    let expected: Vec<_> = roots
+        .iter()
+        .map(|(_, admitted)| if *admitted { "True" } else { "False" })
+        .collect();
+    assert_eq!(observations.lines().collect::<Vec<_>>(), expected);
     eprintln!("The legacy managed descriptor gave the same profile decisions.");
 }
