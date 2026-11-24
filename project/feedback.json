@@ -5594,8 +5594,23 @@
     },
     {
       "id": "native-acl-managed-compaction-compatibility",
-      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
-      "observation": "The managed ACL reader can compact ordinary equivalent explicit rules before the former inheritance predicate. The native draft applies that predicate to raw individual rules. Native compatibility for split same-user inheritance grants needs a differential check.",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6). Exact-candidate Astra Standard and specialist follow-ups at 4411815c5f24f927b8f8a44dda96fbc7bf474c4e: archives/observations/m0-105-native-workspace-acl/astra-4411815.txt (SHA-256 ffb83e69eb9d48bfd3f64428f3d265eb23e1e10e7717661a065bfeb02da5579a) and archives/observations/m0-105-native-workspace-acl/specialist-4411815.txt (SHA-256 c7a10797559b88274e50bc48017c513dd032d820af07879f716c669060d163b5).",
+      "observation": "The managed ACL reader can compact ordinary equivalent explicit rules before the former inheritance predicate. The native draft applies that predicate to raw individual rules. Native compatibility for split same-user inheritance grants needs a differential check. The two-ACE limit rejects a canonical same-user group where any two of three equal-scope grants supply full control. The equal-flags requirement also rejects same-user full control split into separately representable child object and child container scopes. These are source-review findings and require the normal Windows comparison.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-timeout-test-does-not-confirm-exit-at-return",
+      "source": "Independent Astra Standard exact review of 4411815c5f24f927b8f8a44dda96fbc7bf474c4e. Original at archives/observations/m0-105-native-workspace-acl/astra-4411815.txt (SHA-256 ffb83e69eb9d48bfd3f64428f3d265eb23e1e10e7717661a065bfeb02da5579a).",
+      "observation": "The post-grant timeout test immediately checked for no late marker after releasing its worker. That observation can occur before a still-running worker polls again. Preserve the actual worker handle and require it to be signaled when the supervisor returns.",
       "severity": "major",
       "status": "open",
       "task_ids": [
