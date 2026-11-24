@@ -3836,14 +3836,18 @@
       "source": "Required Windows run 45324432453 on #67, and two independent controlled subprocess reproductions using the unmodified worker and the 18 existing inputs.",
       "observation": "The Windows ownership test failed with 19 frames after hello for 18 requests. The retained Windows runner log does not record the extra frame body. A controlled ordinary subprocess run at the unchanged base received 18 responses plus one market.bar_update at sequence 1 between the final accepted subscription and its matching CANCELLED response. A separate controlled run after the first accepted subscription reproduced the same count assertion. The replay and its test were byte-identical to main in #67.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-085"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The focused ownership test counted every decoded frame after hello as a response. The real worker can emit a valid replay observation concurrently while an accepted subscription remains active.",
+        "correction": "Submit the original requests through a controlled stdin sequence and observe a real event before matching terminal cancellation. Assert the unchanged 18 responses and verify each asynchronous frame against the active subscription and frozen sequence.",
+        "prevention": "Exercise the correct event, mutated tag and epoch, and a misplaced post-cancellation event. Keep the transport open through the next publication interval and retain the original Windows diagnostic and raw subprocess sequence."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
