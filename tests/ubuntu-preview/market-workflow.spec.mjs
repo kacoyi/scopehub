@@ -41,6 +41,13 @@ const legendFields = bar => [
   `Trading day ${bar.trading_day}`, bar.is_closed ? 'Closed bar' : 'Partial bar',
 ];
 
+function fixtureBars({ start, ohl: [open, high, low], observations }) {
+  return observations.map(([close, volume], index) => ({
+    time_ms: Date.parse(start), trading_day: tradingDay, open, high, low, close, volume,
+    is_closed: index === observations.length - 1,
+  }));
+}
+
 async function selectSymbol(page, id) {
   await control(page, 'Search symbols').click();
   const dialog = searchDialog(page);
@@ -70,14 +77,21 @@ async function observeBarLegend(legend) {
   });
 }
 
-function observePriceCanvas() {
+function observePriceCanvas(captureFrames = false) {
   const marks = new WeakMap();
   const paths = new WeakMap();
   const prototype = CanvasRenderingContext2D.prototype;
   const { fillRect, beginPath, lineTo, stroke } = prototype;
   let watchedCanvas;
   let paints;
+  let frames;
   let queued = false;
+
+  function capture(canvas) {
+    if (!captureFrames) return;
+    const legend = document.querySelector('[aria-label="Selected bar"]');
+    frames.push({ legend: Array.from(legend.children, child => child.textContent), png: canvas.toDataURL() });
+  }
 
   function record(canvas) {
     if (canvas !== watchedCanvas || queued) return;
@@ -86,7 +100,10 @@ function observePriceCanvas() {
     queueMicrotask(() => {
       queued = false;
       const tail = marks.get(canvas).slice(-3);
-      if (JSON.stringify(tail) !== JSON.stringify(paints.at(-1))) paints.push(tail);
+      if (JSON.stringify(tail) !== JSON.stringify(paints.at(-1))) {
+        paints.push(tail);
+        capture(canvas);
+      }
     });
   }
 
@@ -125,8 +142,11 @@ function observePriceCanvas() {
   window.followMarketPrice = canvas => {
     watchedCanvas = canvas;
     paints = [marks.get(canvas)?.slice(-3) ?? []];
+    frames = [];
+    capture(canvas);
   };
   window.readMarketPricePaints = () => paints;
+  window.readMarketPriceFrames = () => frames;
 }
 
 async function expectPricePaints(page, selection, bars) {
@@ -136,30 +156,34 @@ async function expectPricePaints(page, selection, bars) {
   const paints = await page.evaluate(() => window.readMarketPricePaints());
   expect(paints).toHaveLength(bars.length);
 
-  const line = selection.style === 'Close-price line';
-  const [referenceA, referenceB] = selection.referencePrices;
-  const tolerance = line ? 1 : 3;
   for (const [index, bar] of bars.entries()) {
     const paint = paints[index];
-    expect(paint).toHaveLength(Math.min(selection.count, 3));
     expect(paint.map(mark => mark.x)).toEqual(paints[0].map(mark => mark.x));
-    const previous = paint.at(-2);
-    const a = line ? paint[0].closeY : paint[0].openY;
-    const b = previous.closeY;
-    const pixelsPerPrice = (a - b) / (referenceA - referenceB);
-    expect(pixelsPerPrice).toBeLessThan(0);
-    const priceY = price => b + (price - referenceB) * pixelsPerPrice;
+    const { priceY, tolerance } = expectPricePaint(selection, paint, bar);
     if (index > 0) {
       const changeInPixels = Math.abs(priceY(bar.close) - priceY(bars[index - 1].close));
       expect(changeInPixels, 'successive closes are distinguishable at this scale').toBeGreaterThan(2 * tolerance);
     }
-    const last = paint.at(-1);
-    expect(paint[0].x).toBeLessThan(last.x);
-    expect(Math.abs(last.closeY - priceY(bar.close)), `painted close ${bar.close}`).toBeLessThanOrEqual(tolerance);
-    if (!line) {
-      expect(Math.abs(last.openY - priceY(bar.open)), `painted open ${bar.open}`).toBeLessThanOrEqual(tolerance);
-    }
   }
+}
+
+function expectPricePaint(selection, paint, bar) {
+  const line = selection.style === 'Close-price line';
+  const [referenceA, referenceB] = selection.referencePrices;
+  const tolerance = line ? 1 : 3;
+  expect(paint).toHaveLength(Math.min(selection.count, 3));
+  const a = line ? paint[0].closeY : paint[0].openY;
+  const b = paint.at(-2).closeY;
+  const pixelsPerPrice = (a - b) / (referenceA - referenceB);
+  expect(pixelsPerPrice).toBeLessThan(0);
+  const priceY = price => b + (price - referenceB) * pixelsPerPrice;
+  const last = paint.at(-1);
+  expect(paint[0].x).toBeLessThan(last.x);
+  expect(Math.abs(last.closeY - priceY(bar.close)), `painted close ${bar.close}`).toBeLessThanOrEqual(tolerance);
+  if (!line) {
+    expect(Math.abs(last.openY - priceY(bar.open)), `painted open ${bar.open}`).toBeLessThanOrEqual(tolerance);
+  }
+  return { priceY, tolerance };
 }
 
 function observeMarketStreams(path) {
@@ -303,7 +327,7 @@ test('searches and replays three simulated instruments in one chart session', as
   let verifiedSubscriptions = 0;
   let historyStart = 0;
   for (const selection of selections) {
-    const { id, timeframe, style, count, unit, start, ohl: [open, high, low], observations } = selection;
+    const { id, timeframe, style, count, unit, start, ohl: [open, high, low] } = selection;
     await test.step(`${id} ${timeframe} ${style}`, async () => {
       await selectSymbol(page, id);
       await control(page, timeframe).click();
@@ -319,10 +343,7 @@ test('searches and replays three simulated instruments in one chart session', as
       await expectSelectedHistory(page, canvas, calls, historyStart, selection, testInfo);
       await expect.poll(() => painted(page, style === 'Candles' ? 'candlestick' : 'line')).toBeGreaterThan(20);
 
-      const bars = observations.map(([close, volume], index) => ({
-        time_ms: Date.parse(start), trading_day: tradingDay, open, high, low, close, volume,
-        is_closed: index === observations.length - 1,
-      }));
+      const bars = fixtureBars(selection);
       const [original, , final] = bars;
       const legend = barLegend(page);
       await expect(legend).toBeVisible();
@@ -358,3 +379,106 @@ test('searches and replays three simulated instruments in one chart session', as
   expect(external, 'external HTTP and WebSocket traffic').toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('synthetic-market-workflow.png'), animations: 'disabled' });
 });
+
+function deliverReplayTogether({ path, rejected }) {
+  const fetch = window.fetch;
+  window.fetch = async (...args) => {
+    const response = await fetch(...args);
+    if (!response.ok || new URL(response.url).pathname !== path) return response;
+    // Preserve the real worker bytes. Model two accepted updates arriving in one browser read.
+    const original = new Uint8Array(await response.arrayBuffer());
+    const text = new TextDecoder().decode(original);
+    let delivered = original;
+    if (rejected) {
+      const lines = text.trimEnd().split('\n');
+      const update = JSON.parse(lines[1]);
+      update.event.sequence++;
+      lines[1] = JSON.stringify(update);
+      delivered = new TextEncoder().encode(lines.join('\n') + '\n');
+    }
+    window.readControlledReplay = () => ({ original: text, delivered: new TextDecoder().decode(delivered) });
+    return new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(delivered);
+        controller.close();
+      },
+    }), { status: response.status, headers: response.headers });
+  };
+}
+
+for (const rejected of [false, true]) {
+  test(`stock 5m Close-price line ${rejected ? 'rejects an out-of-order partial' : 'renders the partial before the close'} from one stream chunk`,
+    async ({ page }, testInfo) => {
+      const selection = selections[1];
+      const bars = fixtureBars(selection);
+      await page.addInitScript(observePriceCanvas, true);
+      await page.addInitScript(deliverReplayTogether, { path: streamPath, rejected });
+      await page.goto('/');
+      await openDefaultSample(page);
+      await selectSymbol(page, selection.id);
+      await control(page, selection.timeframe).click();
+      await control(page, selection.style).click();
+      await page.mouse.move(1, 1);
+
+      const legend = barLegend(page);
+      const canvas = page.getByRole('img', { name: `Close-price line and volume chart for ${selection.id}`, exact: true })
+        .locator('canvas').first();
+      await expect(legend.locator('span')).toHaveText(legendFields(bars[0]));
+      await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
+      await canvas.evaluate(node => window.followMarketPrice(node));
+      await observeBarLegend(legend);
+      await waitForReplayRequest(page, () => control(page, 'Play sample updates').press('Enter'));
+      const terminal = rejected ? 'Replay failed. The data response failed validation.' : 'Synthetic replay complete';
+      await expect(page.getByText(terminal, { exact: true })).toBeVisible(replayStage);
+      await expect(legend.locator('span')).toHaveText(legendFields(rejected ? bars[0] : bars.at(-1)));
+
+      // The final legend commit schedules the SDK draw. Retain the completed paint before checking the sequence.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const observed = await page.evaluate(() => ({
+        delivery: window.readControlledReplay(),
+        legend: window.readMarketBarObservations(),
+        paints: window.readMarketPricePaints(),
+        frames: window.readMarketPriceFrames(),
+      }));
+      const frames = observed.frames.map(({ legend }) => legend);
+      for (const { legend, png } of observed.frames) {
+        await testInfo.attach(`Stock 5m ${legend[3]} ${legend[4]} ${legend.at(-1)} canvas`, {
+          body: Buffer.from(png.split(',')[1], 'base64'), contentType: 'image/png',
+        });
+      }
+      await testInfo.attach('Stock 5m replay delivery and visible observations', {
+        body: JSON.stringify({ ...observed, frames, terminal }), contentType: 'application/json',
+      });
+
+      const readLines = text => text.trimEnd().split('\n').map(line => JSON.parse(line));
+      const original = readLines(observed.delivery.original);
+      expect(original).toHaveLength(4);
+      const after = original[0].subscription.from_position;
+      expect(after.sequence).toBe(0);
+      expect(original[0].subscription.status).toBe('accepted');
+      for (const [index, bar] of bars.slice(1).entries()) {
+        expect(original[index + 1]).toMatchObject({ event: {
+          event: 'market.bar_update', sequence: index + 1, stream_id: after.stream_id, epoch: after.epoch,
+          payload: { series: { instrument_id: selection.id, timeframe: selection.timeframe }, bar },
+        } });
+      }
+      expect(original.at(-1)).toEqual({ ok: true, result: { status: 'complete' } });
+      if (rejected) {
+        original[1].event.sequence++;
+        expect(readLines(observed.delivery.delivered)).toEqual(original);
+      } else {
+        expect(observed.delivery.delivered).toBe(observed.delivery.original);
+      }
+      const expected = rejected ? [bars[0]] : bars;
+      expect(observed.legend, 'visible Selected bar transitions').toEqual(expected.map(legendFields));
+      expect(observed.paints).toHaveLength(frames.length);
+      let index = 0;
+      for (const [frameIndex, fields] of frames.entries()) {
+        // A status message can resize the chart and repaint the same price.
+        if (frameIndex && fields.join('\n') !== frames[frameIndex - 1].join('\n')) index++;
+        expect(fields, 'legend at each price canvas draw').toEqual(legendFields(expected[index]));
+        expectPricePaint(selection, observed.paints[frameIndex], expected[index]);
+      }
+      expect(index + 1, 'distinct bar states with matching price canvas geometry').toBe(expected.length);
+    });
+}
