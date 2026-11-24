@@ -4034,8 +4034,87 @@
       "deferral_reason": null
     },
     {
+      "id": "prototype-state-presentation-append-steals-binding",
+      "source": "Independent Standard Astra review of 6e3760446fb5e137e5aa610880c9c8763069f92e. The three failing editor interactions are retained at archives/observations/m2-030-state-view-cc4a363/review-red/results.json (SHA-256 92c91a5982387c83f23491c7ee5caec9f93ddb4454c19bf3de89b968a75466ec).",
+      "observation": "After accepting a 15-minute candlestick, changing its presentation to lights and appending an identical candlestick before preview moved the 15-minute binding to the new block. The original block showed five-minute observations instead. The normal editor reproduction in .reports/m2-030-review-red/results.json found the original block's 15-minute control unpressed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-030"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "Definition matching gave a newly appended identical candle the edited block instance.",
+        "correction": "The ordinary editor keeps the explicit presentation edit with its existing block and initializes the added candle independently.",
+        "prevention": "A browser regression changes a fifteen-minute candle to lights, appends another candle before preview, then accepts and reorders the blocks. It inspects the original result and each timeframe."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-selection-crosses-result-identity",
+      "source": "Independent Standard Astra review of 6e3760446fb5e137e5aa610880c9c8763069f92e. The three failing editor interactions are retained at archives/observations/m2-030-state-view-cc4a363/review-red/results.json (SHA-256 92c91a5982387c83f23491c7ee5caec9f93ddb4454c19bf3de89b968a75466ec).",
+      "observation": "Selecting the 09:30 UTC five-minute strength result (0.15) and switching to fifteen minutes silently selected the 09:30 UTC fifteen-minute strength result (0.90) from a different revision. The normal editor reproduction in .reports/m2-030-review-red/results.json found the fifteen-minute bar already pressed before any new selection.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-030"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "A selected UTC open could identify a bar in more than one timeframe or result.",
+        "correction": "The selection binds to the source, field and result revision of the selected bar. Changing to a different result clears the inspector until the user selects a bar.",
+        "prevention": "The editor regression distinguishes 0.15 at five minutes from 0.90 at fifteen minutes at the same UTC open, inspects a newly selected result and exercises an accepted candle round trip."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-editor-formatting-rejects-valid-draft",
+      "source": "Independent Standard Astra review of 6e3760446fb5e137e5aa610880c9c8763069f92e. The three failing editor interactions are retained at archives/observations/m2-030-state-view-cc4a363/review-red/results.json (SHA-256 92c91a5982387c83f23491c7ee5caec9f93ddb4454c19bf3de89b968a75466ec).",
+      "observation": "With seven default state blocks and an eighth candlestick, switching the last block to lights reported the 4096-character limit. The editor's indented output was 4300 characters and the same definition in compact JSON was 2136 characters. The normal editor reproduction in .reports/m2-030-review-red/results.json observed the rejection alert after switching the eighth block.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M2-030"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "Indented JSON could exceed the editor limit when the equivalent compact definition still fit.",
+        "correction": "The presentation control uses compact authoring when formatting alone exceeds the limit and preserves the accepted text on a genuinely oversized edit.",
+        "prevention": "The browser regression switches the eighth block in a valid large composition and checks rejection and recovery of a genuinely oversized composition."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "csv-header-draft-overlength-ambiguity",
+      "source": "Independent Astra review of d32e221 retained in archives/observations/m1-037-118c6ef/m1-036-037-astra-d32e221.txt (SHA-256 c369fc32277c638c01c2a0e420ef2ba052a411d071fa26f0880f1b5bc56213d4). The original failing run is retained at archives/runs/20261124T111043.682851Z-363ffbde/test-report.json.",
+      "observation": "The CSV reader preserves distinct raw headers Close and Close followed by 1020 spaces, with respective values 101 and 202. Both match the draft's close alias after trimming. The editor discards the overlength name before counting candidates and silently binds Close, selecting 101 without an ambiguity warning.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M1-037"],
+      "regression_checks": ["local-import-publication"],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111043.682851Z-363ffbde",
+          "source_commit": "d32e221e3eeb69b3ac437136b7d54efb5e9310cb",
+          "report_sha256": "ad31c0f84945e305c9a0e48a41db87d9d58fb3c10fbdc08719c2ab9bd7a1b41f"
+        }
+      ],
+      "resolution": {
+        "cause": "The editor discarded an overlength header before counting all observed aliases for a price field.",
+        "correction": "Count every observed matching header and apply the binding length limit only after establishing a unique candidate. A person can explicitly bind a valid header when the draft is ambiguous.",
+        "prevention": "The Rust-backed editor regression retains the two distinct close prices, checks the unresolved draft and the manually selected close of 101, and separately checks the single unbindable header."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "rejected-chart-evidence-leaves-stale-composer-binding",
-      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f, retained at .reports/m4-015-astra-15093fe.txt. Local browser reproduction retained at .reports/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
+      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f and focused confirmation on d1d04a3, retained under archives/observations/m4-016-d1d04a3/. Local browser reproduction at archives/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
       "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",
       "severity": "major",
       "status": "open",
@@ -4051,7 +4130,7 @@
     },
     {
       "id": "rejected-chart-evidence-retry-loses-reading-position",
-      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f, retained at .reports/m4-015-astra-15093fe.txt. Local browser reproduction retained at .reports/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
+      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f and focused confirmation on d1d04a3, retained under archives/observations/m4-016-d1d04a3/. Local browser reproduction at archives/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
       "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The browser reproduction lost focus and moved the transcript scroll offset from 20 to 689 pixels after only a local snapshot read.",
       "severity": "major",
       "status": "open",
