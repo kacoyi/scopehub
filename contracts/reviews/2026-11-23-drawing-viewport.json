@@ -1,0 +1,25 @@
+{
+  "task": "M2-016",
+  "original_runtime": "e4f6e06c0abe3d4baeb6ebae085a9ec3d69affbe",
+  "original_case": "2f87d94f0b557bcadf88567faf4100456154ec06",
+  "scope": "Sizing-only candidate. The original held-out interaction and readout gaps remain open. No change to the authoring or operation API.",
+  "original_browser": {"viewport": [1280,800], "surface_css_px": [861.109375,19], "diamond_center_delta_px": [43.70,4.86], "screenshot_sha256": "2d7681b32ed9477d5a0dfa0bd2bd52ebbe6ae8aced2d51b2d494a5615b14d80d"},
+  "cause": "The global svg icon style set both dimensions to 19px. The surface overrode width only. The default preserveAspectRatio shrank all marks into a strip at the center.",
+  "corrected_browser": [
+    {"viewport": [1280,800], "surface_css_px": [861.109375,322.90625], "diamond_center_delta_px": [742.68,82.52]},
+    {"viewport": [900,650], "surface_css_px": [592,222], "diamond_center_delta_px": [510.60,56.73]}
+  ],
+  "corrected_webkitgtk": [
+    {"version": "2.52.6", "window": [1280,800], "surface_css_px": [861.109375,322.90625], "projected_time_separation_px": 742.68},
+    {"version": "2.52.6", "window": [900,650], "surface_css_px": [592,222], "projected_time_separation_px": 510.60}
+  ],
+  "verification": [
+    "pnpm check --task M2-016",
+    "pnpm build",
+    "xvfb-run -a /usr/bin/python3 tests/ui/drawing-webkit.py --width 1280",
+    "xvfb-run -a /usr/bin/python3 tests/ui/drawing-webkit.py --width 900"
+  ],
+  "preview": "http://127.0.0.1:1443/?renderer=drawing",
+  "launch": "pnpm --filter @scopehub/ui exec vite preview --host 127.0.0.1 --port 1443 --strictPort",
+  "local_client_handoff": "Codex authored the standalone source. The reviewer can paste it at the regular UI entry; tests replay it with a synthetic provider. Live external-client operation admission and paired client qualification remain separate M4-004/M4-005 work."
+}

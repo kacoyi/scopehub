@@ -5,7 +5,7 @@
 .drawing-surface { margin: 12px 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); overflow: hidden; }
 .drawing-surface figcaption, .drawing-controls { display: flex; align-items: center; gap: 1em; flex-wrap: wrap; justify-content: space-between; padding: 12px; }
 .drawing-surface figcaption span { font-size: 12px; color: var(--muted); }
-.drawing-surface svg { display: block; width: 100%; background: #10141c; }
+.drawing-surface svg { display: block; width: 100%; height: auto; aspect-ratio: 640 / 240; background: #10141c; }
 .drawing-axis text { fill: #a9b6c8; font: 11px sans-serif; }
 .drawing-axis line { stroke: #394451; }
 .drawing-axis polyline { fill: none; stroke: #9fabb8; stroke-dasharray: 5 4; }

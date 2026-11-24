@@ -4795,7 +4795,7 @@
             ]
           },
           {
-            "failure": "A guest exceeds CPU, heap, stack or output bounds, or a stale result replaces the accepted scene. Try a valid and rejected program, an unending loop, a forbidden capability and restore during evaluation.",
+            "failure": "Shared icon CSS can collapse a correct logical viewport. Measure screen dimensions and mapped point separation in two window sizes and WebKitGTK. A guest exceeds CPU, heap, stack or output bounds, or a stale result replaces the accepted scene. Try a valid and rejected program, an unending loop, a forbidden capability and restore during evaluation.",
             "checks": [
               "workbench-drawing-runtime",
               "workbench-authored-composition"
@@ -17234,6 +17234,95 @@
           ],
           "data_plan": "The existing conversation route receives the intent, allowed synthetic source names and the accepted declarative tree. Frozen values and chart selection remain local. Apply only a validated candidate after human acceptance. No migration.",
           "cleanup": "Retire the experimental entry when the selected renderer and product workbench take over."
+        }
+      }
+    },
+    {
+      "id": "M2-016",
+      "title": "Restore the drawn viewport dimensions of the frozen drawing candidate",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-015"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "Display the drawing at its declared aspect ratio in 1280 by 800 and 900 by 650 host windows. Verify physical separation of the held-out marks using the browser transform and observe the production bundle in WebKitGTK. Preserve the original compressed preview and source identity."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "workbench-drawing-runtime"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-016-87d534fc3f748e47.json",
+          "sha256": "19ca94eacc9bf77ea11d60cbc49bd5b89833becbceb89a067679f41a97f4761e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Render a legible independently authored drawing on both inspected viewport sizes.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/style.css",
+          "apps/desktop/ui/src/drawing-workbench.css",
+          "tests/ui/drawing-workbench.spec.mjs"
+        ],
+        "hypotheses": [
+          "The drawing inherits a fixed icon height even though its logical geometry is correct."
+        ],
+        "risks": [
+          {
+            "failure": "Logical coordinates pass despite a collapsed picture. Measure actual CSS pixels and transforms after resizing.",
+            "checks": [
+              "workbench-drawing-runtime"
+            ]
+          }
+        ],
+        "rollback": "Keep the original frozen runtime and its static port. Revert the scoped drawing style to reproduce the original defect.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/drawing-workbench.css",
+            "tests/ui/drawing-webkit.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Changing the drawing ABI or adding client controls."
+          ],
+          "open_questions": [
+            "Physical Windows remains part of the broader renderer selection."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Frozen code, data, coordinate mappings and model route."
+          ],
+          "change": [
+            "Override the icon height only inside the drawing surface."
+          ],
+          "data_plan": "No data or persistence changes.",
+          "cleanup": "Retain regression and the original candidate for independent comparison."
         }
       }
     }

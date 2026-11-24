@@ -3848,6 +3848,25 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "drawing-surface-icon-height",
+      "source": "Independent native Tauri/WebKitGTK and Chromium inspection at e4f6e06, reproduced on Chromium 159 at 1280x800. Original PNG SHA-256 2d7681b32ed9477d5a0dfa0bd2bd52ebbe6ae8aced2d51b2d494a5615b14d80d, retained under .reports/drawing-pixels/v1/accepted-1280.png.",
+      "observation": "The global icon rule fixes all SVG heights at 19 CSS pixels. The drawing surface overrides width only, producing an 861.109375 by 19 viewport and compressing the two close centers to 43.70 pixels apart horizontally and 4.86 vertically. Logical coordinate checks passed while the native picture was unreadable.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-016"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": {
+        "cause": "The global SVG icon height overrode the drawing's intrinsic aspect ratio.",
+        "correction": "Set the drawing surface height to auto with the declared logical aspect ratio.",
+        "prevention": "Measure actual screen geometry in two browser sizes, and check the same window sizes on WebKitGTK. Retain the original frozen preview and screenshot."
+      },
+      "deferral_reason": null
     }
   ]
 }

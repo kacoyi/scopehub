@@ -157,6 +157,26 @@ test('replay the independently requested diamonds and a source-only selection ed
     await expect(studio.getByRole('img', { name: 'Axis-free drawing' })).toBeVisible();
     const first = await lines();
     expect(first).toHaveLength(11);
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 900, height: 650 }]) {
+      await page.setViewportSize(viewport);
+      const pixels = await geometry.evaluate(g => {
+        const bounds = g.ownerSVGElement.getBoundingClientRect();
+        const matrix = g.getScreenCTM();
+        const centers = [1, 6].map(index => {
+          const line = g.children[index];
+          return new DOMPoint(line.x2.baseVal.value, line.y2.baseVal.value).matrixTransform(matrix);
+        });
+        return { width: bounds.width, height: bounds.height,
+          dx: centers[1].x - centers[0].x, dy: centers[0].y - centers[1].y };
+      });
+      expect(pixels.height).toBeGreaterThan(150);
+      expect(pixels.width / pixels.height).toBeCloseTo(640 / 240, 2);
+      expect(pixels.dx).toBeGreaterThan(pixels.width * 0.85);
+      expect(pixels.dy).toBeGreaterThan(pixels.height * 0.25);
+      await test.info().attach('drawing-' + viewport.width + '.json', {
+        body: JSON.stringify({ viewport, pixels }), contentType: 'application/json',
+      });
+    }
     const [reference, leftStem, rightStem] = [first[0], first[1], first[6]];
     expect(reference[1]).toBeCloseTo(126.222222, 4);
     expect(reference[1]).toBe(reference[3]);

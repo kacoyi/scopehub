@@ -1,4 +1,5 @@
 """Exercise the production drawing bundle in an ephemeral Ubuntu WebKitGTK view."""
+import argparse
 import json
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -42,6 +43,11 @@ sample.click();
 const circle = await wait(() => document.querySelector('figure circle'));
 if (circle.getAttribute('cx') !== '64') throw Error('Unexpected initial projection');
 const firstRenderMs = performance.now() - start;
+const svg = circle.ownerSVGElement;
+const {width,height} = svg.getBoundingClientRect();
+const actualSeparation = (616 - 64) * svg.getScreenCTM().a;
+if (height < 150 || Math.abs(width / height - 640 / 240) > 0.01 || actualSeparation < width * 0.85)
+  throw Error('Collapsed drawing: ' + JSON.stringify({width,height,actualSeparation}));
 button('Accept view').click();
 await wait(() => document.querySelector('[role=status]')?.textContent === 'Accepted view');
 button('Expand viewport').click();
@@ -70,12 +76,16 @@ await wait(() => document.querySelector('dialog[open] [role=alert]')?.textConten
 const stopMs = performance.now() - stallStart;
 button('Restore accepted view').click();
 await wait(() => editor.value.startsWith('// future overlay') && !document.querySelector('[role=alert]'));
-return JSON.stringify({firstRenderMs,hostEditMs,stopMs,restoredX:document.querySelector('figure circle').getAttribute('cx')});
+return JSON.stringify({width,height,actualSeparation,firstRenderMs,hostEditMs,stopMs,restoredX:document.querySelector('figure circle').getAttribute('cx')});
 """
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--width', type=int, choices=(900, 1280), default=1280)
+    options = parser.parse_args()
     outcome = {}
+
     def finish(view, result):
         try:
             outcome.update(json.loads(view.call_async_javascript_function_finish(result).to_string()))
@@ -93,7 +103,7 @@ def main():
         context.set_preferred_languages(['en-US'])
         view = WebKit2.WebView.new_with_context(context)
         window = Gtk.Window()
-        window.set_default_size(1280, 800)
+        window.set_default_size(options.width, 800 if options.width == 1280 else 650)
         window.add(view)
         window.show_all()
         view.connect('load-changed', loaded)
