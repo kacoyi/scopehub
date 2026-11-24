@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-087",
+  "focus_task_id": "M1-038",
   "tasks": [
     {
       "id": "M0-001",
@@ -18442,6 +18442,51 @@
           "change": ["Use the same test-only preparation slot for explicit fixtures and native application startup in the desktop unit-test process."],
           "data_plan": "Use disposable per-test profile directories and compare the retained failure with local regression logs and later native evidence.",
           "cleanup": "Replace the separate fixture-only slot when the shared test slot reaches both paths."
+        }
+      }
+    },
+    {
+      "id": "M1-038",
+      "title": "Verify the visible CSV review after folder selection from the chart",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": ["M1-036", "M1-037"],
+      "scope": ["tests/ui/local-import.spec.mjs", "project/feedback.json"],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "Reproduce the hosted visibility failure from the ordinary Data sources panel and distinguish the visible CSV review from the retained chart panel.",
+        "Verify the presented equity and futures values, the rejected settlement mapping, and cancellation before and after folder selection using the existing synthetic transport fixture. Preserve the existing folder grant, review, publication and chart behavior."
+      ],
+      "checks": ["project-state", "python-contracts-workers", "local-import-ui"],
+      "evidence": [],
+      "next_action": "Independently review the focused locator correction, the retained red reproduction and the matching task checks before acceptance.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The existing picker-to-review browser check verifies the active CSV editor even while the suspended chart retains a duplicate source label.",
+        "change_types": ["tooling"],
+        "context": ["tests/ui/local-import.spec.mjs", "apps/desktop/ui/src/main.tsx", "apps/desktop/ui/src/workspace-panels.tsx"],
+        "hypotheses": ["A page-wide text locator reaches the hidden chart heading before the visible import surface. The visible review, selected file and preview can distinguish this from a failed product transition."],
+        "risks": [
+          {
+            "failure": "The check rejects a visible review because the suspended chart has a duplicate label, or passes when the wrong source or its values are visible after a pick, cancellation or rejected mapping.",
+            "checks": ["local-import-ui"]
+          }
+        ],
+        "rollback": "Revert the targeted test changes if they lose source or value verification. Retain the original diagnostic.",
+        "implementation": {
+          "modules": ["ui"],
+          "entrypoints": ["tests/ui/local-import.spec.mjs", "tests/ui/local-import.playwright.config.mjs"],
+          "rules": [{"path": "project/delivery.json", "pointer": "/scaffold_maintenance"}],
+          "non_goals": ["Production navigation, source access or publication changes and other pilot failures."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": ["The native picker intent, retained chart context, CSV access and the existing preview and publication rules."],
+          "change": ["Verify the active editor by its visible region and independently check the data it presents."],
+          "data_plan": "Use the existing synthetic folder catalog and fixture rows. Record the hosted diagnostic and local browser evidence.",
+          "cleanup": "Replace the page-wide label assertion and retain one ordinary-entry regression."
         }
       }
     }

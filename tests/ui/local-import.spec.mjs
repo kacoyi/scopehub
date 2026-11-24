@@ -397,9 +397,21 @@ async function enterMapping(page, file, close = file.columns.close) {
 }
 
 test('mocked native transport preserves the current source on cancel and supports reviewed equity and futures charts', async ({ page, mockNative }, testInfo) => {
-  const choose = () => control(page, 'Choose local CSV folder').last().click();
   const chooserCalls = () => mockNative.calls.filter(call => call.command === 'choose_local_csv_folder');
-  const chart = page.getByRole('region', { name: 'Local CSV chart preview' });
+  const previews = () => mockNative.calls.filter(call => call.args?.operation === 'market.previewLocalImport');
+  const sources = page.getByRole('complementary', { name: 'Data sources', exact: true });
+  const chooseFromSources = control(sources, 'Choose local CSV folder');
+  const review = page.getByRole('region', { name: 'Local CSV import', exact: true });
+  const chooseFromReview = control(review, 'Choose local CSV folder');
+  const chart = review.getByRole('region', { name: 'Local CSV chart preview' });
+  const fileSelector = select(review, 'CSV file');
+  const selectedFile = fileSelector.locator('option:checked');
+  const rawRows = review.getByRole('table', { name: 'Raw CSV rows' }).locator('tbody tr');
+  const normalizedRows = review.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr');
+  const equityValues = [
+    '2', '000731', '2026-04-14T01:30:00.000Z', '2026-04-14', '36', '39', '34', '38', '120',
+    '3', '000731', '2026-04-15T01:30:00.000Z', '2026-04-15', '38', '41', '37', '40', 'Unknown',
+  ];
 
   await page.goto('/');
   await expect(control(page, 'Choose local CSV folder').first()).toBeVisible();
@@ -409,70 +421,81 @@ test('mocked native transport preserves the current source on cancel and support
   await control(page, 'Open offline sample').click();
   await expect(page.getByText('Simulated', { exact: true }).first()).toBeVisible();
   await openPanel(page, 'Data sources');
+  await expect(sources.getByRole('heading', { name: 'Local CSV', exact: true })).toBeVisible();
   mockNative.choices.push(null);
-  await choose();
+  await chooseFromSources.click();
   await expect.poll(() => chooserCalls().length).toBe(1);
+  await expect(chooseFromSources).toBeEnabled();
+  await expect(review).toBeHidden();
   await expect(page.getByText('Simulated', { exact: true }).first()).toBeVisible();
 
   mockNative.choices.push(catalog);
-  await choose();
-  await expect(page.getByText('Local CSV', { exact: true }).first()).toBeVisible();
+  await chooseFromSources.click();
+  await expect(review).toBeVisible();
+  await expect(review.getByText(catalog.display_name, { exact: false })).toBeVisible();
+  await expect(sources).toBeHidden();
   await expect(page.getByText('Simulated', { exact: true })).toBeHidden();
-  const fileSelector = select(page, 'CSV file');
-  const rawRows = page.getByRole('table', { name: 'Raw CSV rows' }).locator('tbody tr');
-  const normalizedRows = page.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr');
   await fileSelector.selectOption(equity.fileId);
-  await control(page, 'Inspect raw rows').click();
-  await expect(page.getByRole('heading', { name: 'Raw CSV rows' })).toBeVisible();
-  await expect(page.getByText('000731', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(sourceIdentity(equity).sha256, { exact: true }).first()).toBeVisible();
+  await expect(selectedFile).toHaveText(equity.path);
+  await control(review, 'Inspect raw rows').click();
+  await expect(review.getByRole('heading', { name: 'Raw CSV rows' })).toBeVisible();
+  await expect(rawRows.first().getByText('000731', { exact: true })).toBeVisible();
+  await expect(review.getByText(sourceIdentity(equity).sha256, { exact: true })).toBeVisible();
   await expect(chart.locator('canvas')).toHaveCount(0);
-  await enterMapping(page, equity);
-  await control(page, 'Preview mapping').click();
+  await enterMapping(review, equity);
+  await control(review, 'Preview mapping').click();
   await expect(normalizedRows).toHaveCount(2);
-  await expect(normalizedRows.last()).toContainText('Unknown');
-  await expect(chart.getByRole('img', { name: /Candlestick and volume chart for 000731/ })).toBeVisible();
-  await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
+  await expect(normalizedRows.getByRole('cell')).toHaveText(equityValues);
+  const equityChart = chart.getByRole('img', { name: /Candlestick and volume chart for 000731/ });
+  await expect(equityChart).toBeVisible();
+  await expect.poll(() => painted(chart, 'candlestick')).toBeGreaterThan(20);
 
+  const equityPreviewCount = previews().length;
   mockNative.choices.push(null);
-  await choose();
+  await chooseFromReview.click();
   await expect.poll(() => chooserCalls().length).toBe(3);
+  await expect(chooseFromReview).toBeEnabled();
   await expect(fileSelector).toHaveValue(equity.fileId);
-  await expect(select(page, 'Close column')).toHaveValue('Native close');
-  await expect(page.getByText(sourceIdentity(equity).sha256, { exact: true }).first()).toBeVisible();
-  await expect(chart.getByRole('img', { name: /Candlestick and volume chart for 000731/ })).toBeVisible();
+  await expect(select(review, 'Close column')).toHaveValue('Native close');
+  await expect(review.getByText(sourceIdentity(equity).sha256, { exact: true })).toBeVisible();
+  await expect(normalizedRows.getByRole('cell')).toHaveText(equityValues);
+  await expect(equityChart).toBeVisible();
+  expect(previews()).toHaveLength(equityPreviewCount);
 
   await fileSelector.selectOption(future.fileId);
-  await control(page, 'Inspect raw rows').click();
-  await expect(page.getByText(sourceIdentity(future).sha256, { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('PrevSettlementPrice', { exact: true }).first()).toBeVisible();
-  await select(page, 'Record kind').selectOption('native_ohlcv');
+  await expect(selectedFile).toHaveText(future.path);
+  await control(review, 'Inspect raw rows').click();
+  await expect(review.getByText(sourceIdentity(future).sha256, { exact: true })).toBeVisible();
+  await expect(review.getByText('PrevSettlementPrice', { exact: true }).first()).toBeVisible();
+  await select(review, 'Record kind').selectOption('native_ohlcv');
   const callsBeforeDraft = mockNative.calls.length;
-  await control(page, 'Draft mapping from headers').click();
-  await expect(select(page, 'Close column')).toHaveValue('Close');
-  await expect(select(page, 'Timestamp column')).toHaveValue('');
-  await expect(page.getByRole('status').filter({ hasText: 'No recognized header' })).toContainText('Timestamp column');
+  await control(review, 'Draft mapping from headers').click();
+  await expect(select(review, 'Close column')).toHaveValue('Close');
+  await expect(select(review, 'Timestamp column')).toHaveValue('');
+  await expect(review.getByRole('status').filter({ hasText: 'No recognized header' })).toContainText('Timestamp column');
   expect(mockNative.calls).toHaveLength(callsBeforeDraft);
-  await enterSeriesDeclarations(page, future);
-  await select(page, 'Timestamp column').selectOption('Start');
-  await select(page, 'Volume column').selectOption('Contracts');
-  await select(page, 'Close column').selectOption('PrevSettlementPrice');
-  await control(page, 'Preview mapping').click();
-  await expect(page.getByText('Previous settlement price cannot be mapped to OHLC.', { exact: false }).first()).toBeVisible();
+  await enterSeriesDeclarations(review, future);
+  await select(review, 'Timestamp column').selectOption('Start');
+  await select(review, 'Volume column').selectOption('Contracts');
+  await select(review, 'Close column').selectOption('PrevSettlementPrice');
+  await control(review, 'Preview mapping').click();
+  await expect(review.getByText('Previous settlement price cannot be mapped to OHLC.', { exact: false }).first()).toBeVisible();
+  await expect(normalizedRows).toHaveCount(0);
   await expect(chart.locator('canvas')).toHaveCount(0);
-  await select(page, 'Close column').selectOption('Close');
-  await control(page, 'Preview mapping').click();
-  await expect(page.getByText('The source marks this bar incomplete.', { exact: false }).first()).toBeVisible();
+  await select(review, 'Close column').selectOption('Close');
+  await control(review, 'Preview mapping').click();
+  await expect(review.getByText('The source marks this bar incomplete.', { exact: false }).first()).toBeVisible();
   await expect(rawRows).toHaveCount(3);
   await expect(rawRows.last()).toContainText('false');
   await expect(normalizedRows).toHaveCount(2);
-  await expect(normalizedRows.first().getByRole('cell')).toHaveText([
+  await expect(normalizedRows.getByRole('cell')).toHaveText([
     '2', 'CU2605', '2026-04-14T13:05:00.000Z', '2026-04-15', '100', '106', '96', '102', '31',
+    '3', 'CU2605', '2026-04-14T13:10:00.000Z', '2026-04-15', '102', '108', '101', '105', '37',
   ]);
   const futuresChart = chart.getByRole('img', { name: /Candlestick and volume chart for CU2605/ });
   await expect(futuresChart).toBeVisible();
-  await expect.poll(() => painted(page, 'candlestick')).toBeGreaterThan(20);
-  const previewCalls = mockNative.calls.filter(call => call.args?.operation === 'market.previewLocalImport');
+  await expect.poll(() => painted(chart, 'candlestick')).toBeGreaterThan(20);
+  const previewCalls = previews();
   expect(previewCalls.some(call => call.args.payload.mapping.columns?.close === 'PrevSettlementPrice')).toBe(true);
   expect(previewCalls.at(-1).args.payload.mapping.columns.close).toBe('Close');
   expect(new Set(previewCalls.map(call => call.args.requestId)).size).toBe(previewCalls.length);
@@ -480,9 +503,12 @@ test('mocked native transport preserves the current source on cancel and support
   await control(page, 'Open offline sample').click();
   await expect(page.getByText('Simulated', { exact: true }).first()).toBeVisible();
   await openPanel(page, 'Data sources');
-  await control(page, 'Back to local CSV preview').click();
+  await control(sources, 'Back to local CSV preview').click();
   await expect(fileSelector).toHaveValue(future.fileId);
   await expect(futuresChart).toBeVisible();
+  expect(chooserCalls()).toHaveLength(3);
+  expect(previews()).toHaveLength(previewCalls.length);
+  expect(mockNative.calls.filter(call => /saveLocalImportMapping|publishLocalImport/.test(call.args?.operation))).toEqual([]);
 });
 
 test('substitute native transport saves the reviewed preview and distinguishes header and body failures', async ({ page, mockNative }) => {

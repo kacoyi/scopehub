@@ -4349,6 +4349,24 @@
       "regression_checks": ["workspace-timeframe"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "local-csv-source-test-selects-hidden-heading",
+      "source": "PR #77 Linux pilot run 45393623602. The original report and local-import-ui log resolve under archives/runs/20261124T122836.056903Z-08468273/.",
+      "observation": "After a successful synthetic folder picker reply from the ordinary Data sources panel, the source workflow timed out at tests/ui/local-import.spec.mjs:419. The first page-wide exact Local CSV match resolved to a hidden h3 on 14 polls. The chart keeps its panel mounted while CSV review is active, and the import header uses the same text. The retrieved and archived artifacts contain the verification log but lack the local-import screenshot and trace listed in it. Two local repetitions on df99e89 first verified the visible import region and the retained hidden heading, then failed at the original locator. The failure screenshot shows equities/daily.csv in the visible editor. The browser report, screenshots and traces remain under .reports/m1-038-red/ (browser-results.json SHA-256 20e5b3ad323f0041973de5460fcf91ac90836027410eb72e7fa07e6c807cd536).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M1-038"],
+      "regression_checks": ["local-import-ui"],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T122836.056903Z-08468273",
+          "source_commit": "b217c4090b61c50b3503a15e25fb6acd19449941",
+          "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
