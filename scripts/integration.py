@@ -11,19 +11,19 @@ import tempfile
 if __package__:
     from . import timing
     from .ci import WORKFLOW, classify_runs, command, github_identity
-    from .project import (ProjectError, feedback_fingerprint, load_project, project_definition_hash, read_json,
-                          review_history, source_identity, task_definition_hash)
+    from .project import (ProjectError, compare_history, feedback_fingerprint, load_project, project_definition_hash,
+                          read_json, source_identity, task_definition_hash, windows_x64)
     from .protection import violations
     from .verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
-                                     exact_commit, git, require_ancestor)
+                                     exact_commit, git, require_ancestor, require_complete_history)
 else:
     import timing
     from ci import WORKFLOW, classify_runs, command, github_identity
-    from project import (ProjectError, feedback_fingerprint, load_project, project_definition_hash, read_json,
-                         review_history, source_identity, task_definition_hash)
+    from project import (ProjectError, compare_history, feedback_fingerprint, load_project, project_definition_hash,
+                         read_json, source_identity, task_definition_hash, windows_x64)
     from protection import violations
     from verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
-                                    exact_commit, git, require_ancestor)
+                                    exact_commit, git, require_ancestor, require_complete_history)
 
 ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
@@ -178,6 +178,16 @@ def required_job_succeeded(jobs, name, head):
         matches[0].get('conclusion') == 'success' and matches[0].get('head_sha') == head)
 
 
+def observed_budget_recovery(root, project, *findings):
+    observed = timing.offline_budget_status(root, findings, project['tasks'])
+    return {row['feedback_id']: row['recovery'] for row in observed.get('budget_recovery', [])}
+
+
+def successful_budget_observation(sample):
+    elapsed = sample.get('elapsed_seconds')
+    return sample.get('conclusion') == 'success' and type(elapsed) in (int, float) and 0 <= elapsed <= timing.HOSTED_BUDGET
+
+
 def budget_observations_support_handoff(root, project, pr, push, repair, source, workflow):
     run, checkout = workflow['run'], workflow['checkout']
     windows = next((job for job in workflow['required_checkouts'] if job['name'] == 'verify (windows-latest)'), None)
@@ -185,41 +195,43 @@ def budget_observations_support_handoff(root, project, pr, push, repair, source,
         return False
     # Timing owns recovery, comparability and clock validation. Here the latest
     # qualified observation must also belong to the PR attempt being integrated.
-    observed = timing.offline_budget_status(root, [pr, push], project['tasks'])
-    recovery = {row['feedback_id']: row['recovery'] for row in observed.get('budget_recovery', [])}
+    recovery = observed_budget_recovery(root, project, pr, push)
     pr_recovery, push_recovery = (recovery.get(finding['id']) or {} for finding in (pr, push))
     if (pr_recovery.get('status') != 'recovered' or push_recovery.get('status') != 'pending'
             or pr_recovery.get('repair_commit') != repair or push_recovery.get('repair_commit') != repair):
         return False
     push_comparisons = push_recovery['comparisons']
-    if not push_comparisons or any(comparison['latest_attempt'] or comparison['history_missing']
-                                  for comparison in push_comparisons):
+    if (not push_comparisons or push_recovery.get('unavailable_reports')
+            or any(comparison['latest_attempt'] or comparison['history_missing'] for comparison in push_comparisons)):
         return False
     for comparison in pr_recovery['comparisons']:
         latest = comparison['latest_attempt'] or {}
-        elapsed = latest.get('elapsed_seconds')
-        if (str(latest.get('hosted_run_id')) == str(run['id']) and latest.get('hosted_head') == checkout['head']
+        if (successful_budget_observation(latest) and str(latest.get('hosted_run_id')) == str(run['id'])
+                and latest.get('hosted_head') == checkout['head']
                 and latest.get('source_commit') == checkout['commit']
                 and latest.get('inputs_sha256') == source['sha256']
-                and str(latest.get('job_id')) == str(windows['job_id']) and latest.get('conclusion') == 'success'
-                and type(elapsed) in (int, float) and 0 <= elapsed <= timing.HOSTED_BUDGET):
+                and str(latest.get('job_id')) == str(windows['job_id'])):
             return True
     return False
 
 
-def budget_regression_receipt(root, project, task, finding, repair, source):
+def budget_regression_receipts(root, task, finding):
     observation = feedback_fingerprint(finding)
     required = set(finding['regression_checks'])
     definition = task_definition_hash(task)
-    project_definition = project_definition_hash(project)
     for ref in task['evidence']:
         receipt = read_json(root / ref['path'])
-        if (receipt['task_definition_sha256'] != definition or receipt['project_definition_sha256'] != project_definition
-                or observation not in receipt.get('observed_feedback', [])
-                or not required.issubset(check['id'] for check in receipt['checks'])):
-            continue
+        if (receipt['task_definition_sha256'] == definition and observation in receipt.get('observed_feedback', [])
+                and required.issubset(check['id'] for check in receipt['checks'])
+                and not receipt['source']['working_tree_dirty']):
+            yield ref['path'], receipt
+
+
+def budget_regression_receipt(root, project, task, finding, repair, source):
+    project_definition = project_definition_hash(project)
+    for path, receipt in budget_regression_receipts(root, task, finding):
         observed = receipt['source']
-        if observed['working_tree_dirty'] or observed['sha256'] != source['sha256']:
+        if receipt['project_definition_sha256'] != project_definition or observed['sha256'] != source['sha256']:
             continue
         revision = (receipt.get('ci') or {}).get('head_sha', observed['git_head'])
         try:
@@ -228,7 +240,7 @@ def budget_regression_receipt(root, project, task, finding, repair, source):
             require_ancestor(root, revision, source['git_head'])
         except ScopeError:
             continue
-        return ref['path']
+        return path
     return None
 
 
@@ -285,9 +297,58 @@ def main_push_budget_handoff(root, project, base, completed, items, *, source, p
             'follow_up_task_id': follow_up, 'next_action': task['next_action']}
 
 
+def main_push_budget_closure(root, project, base, rule, push, previous, policy):
+    budget = push.get('verification_budget', {})
+    repair = budget.get('repair_commit')
+    if (not policy or policy['branch'] != 'main' or not repair
+            or budget != {'event': 'push', 'platform': 'Windows', 'profile': 'full',
+                          'repository': policy['repository'], 'repair_commit': repair}):
+        return False
+    owners = {rule['repair_task_id'], rule['follow_up_task_id']}
+    follow_up = project['tasks'].get(rule['follow_up_task_id'], {})
+    if (not previous or previous['status'] != 'open' or previous.get('verification_budget') != budget
+            or set(previous['task_ids']) != owners or set(push['task_ids']) != owners
+            or feedback_fingerprint(previous) != feedback_fingerprint(push)
+            or follow_up.get('status') != 'done' or follow_up.get('depends_on') != [rule['repair_task_id']]):
+        return False
+    try:
+        require_complete_history(root)
+        exact_commit(root, repair)
+        require_ancestor(root, repair, base)
+    except ScopeError:
+        return False
+
+    recovery = observed_budget_recovery(root, project, push).get(push['id']) or {}
+    if recovery.get('status') != 'recovered' or recovery.get('repair_commit') != repair:
+        return False
+    latest = [comparison['latest_attempt'] or {} for comparison in recovery['comparisons']]
+    if not latest:
+        return False
+    for sample in latest:
+        revision = sample.get('source_commit')
+        if not successful_budget_observation(sample) or sample.get('hosted_head') != revision:
+            return False
+        try:
+            exact_commit(root, revision)
+            require_ancestor(root, repair, revision)
+            require_ancestor(root, revision, base)
+        except ScopeError:
+            return False
+    for _, receipt in budget_regression_receipts(root, follow_up, push):
+        ci, source = receipt.get('ci', {}), receipt['source']
+        if (ci.get('event') != 'push' or ci['repository'] != budget['repository'] or ci['run_attempt'] != '1'
+                or not windows_x64(receipt['environment']) or ci['head_sha'] != ci['checkout_sha']
+                or ci['head_sha'] != source['git_head']):
+            continue
+        if any(ci['checkout_sha'] == sample['source_commit'] and ci['run_id'] == str(sample['hosted_run_id'])
+               and source['sha256'] == sample['inputs_sha256'] for sample in latest):
+            return True
+    return False
+
+
 def delivery_scope(root, project, base, *, source=None, policy=None, workflow=None, jobs=()):
     """Use actual base history and validated receipts, not a supplied task list."""
-    history = review_history(root, base)
+    history, previous_feedback = compare_history(root, base)
     previous_file = subprocess.run(['git', 'show', f'{base}:project/tasks.json'], cwd=root, env=checkout_git_environment(),
                                    capture_output=True, check=False)
     previous = {task['id']: task for task in json.loads(previous_file.stdout)['tasks']} if previous_file.returncode == 0 else {}
@@ -306,6 +367,16 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
     reviewed_budgets = ({rule['main_push_feedback_id'], rule['pull_request_feedback_id']}
                         if rule.get('repair_task_id') in affected else set())
     handed_off = handoff['feedback_id'] if handoff else None
+    if rule:
+        push_id = rule['main_push_feedback_id']
+        push, previous = items.get(push_id), previous_feedback.get(push_id)
+        if push and push['status'] == 'addressed':
+            recorded = (previous and previous['status'] == 'addressed'
+                        and previous.get('verification_budget') == push.get('verification_budget')
+                        and set(previous['task_ids']) == set(push['task_ids'])
+                        and feedback_fingerprint(previous) == feedback_fingerprint(push))
+            if not recorded and not main_push_budget_closure(root, project, base, rule, push, previous, policy):
+                blockers.append(f'Main-push timing closure lacks a verified main-push observation: {push_id}')
     blockers.extend(f"Unresolved {item['severity']} feedback: {item['id']}"
                     for item in items.values() if item['status'] != 'addressed'
                     and item['id'] != handed_off

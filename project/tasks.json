@@ -18107,7 +18107,7 @@
           "sha256": "53a3d02fcbadf0d88eca4f25d48970d305a75a1e8d403fac3ac25b317b3c2665"
         }
       ],
-      "next_action": "Verify the repaired PR against the full Windows timing objective. Resolve the remaining review findings and measure the first genuine main push under the post-merge assignment.",
+      "next_action": "Verify the measured full Windows PR result and the protected handoff to the first genuine main push. Resolve the independent review of the feedback identifier before publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18193,7 +18193,9 @@
           },
           {
             "failure": "A stale clock overrides a known failed attempt on live or offline handoff, or an isolated slow run changes a linked median regression into a different recovery requirement.",
-            "checks": ["python-contracts-workers"]
+            "checks": [
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
@@ -18251,6 +18253,12 @@
           },
           {
             "failure": "The integration gate prevents the first real main-push measurement after a verified repair, or a handoff bypasses a linked defect, stale regression evidence, protected jobs, or unresolved pull-request timing.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repair receipt substitutes for a real main-push observation after the follow-up owner is removed, or a later verified records-only closure is held to a new full PR timing requirement.",
             "checks": [
               "python-contracts-workers"
             ]

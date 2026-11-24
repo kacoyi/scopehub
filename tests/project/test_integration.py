@@ -255,6 +255,7 @@ class IntegrationHistoryTests(ProjectFixture):
         ledger = self.ledger()
         handoff = task_by_id(ledger, 'M0-002')
         handoff.update(depends_on=['M0-001'] if follow_up_ready else ['M0-001', 'M0-004'], next_action=rule['next_action'],
+                       checks=['project-state', 'rust-lints'],
                        plan=deepcopy(task_by_id(ledger, 'M0-001')['plan']))
         self.save_ledger(ledger)
         repair = self.commit()
@@ -283,7 +284,8 @@ class IntegrationHistoryTests(ProjectFixture):
 
     def inspect_budget_handoff(self, base, repair, *, elapsed=899, timing_run='100', timing_status='recovered',
                                omit_windows=False, fail_windows=False, conclusion='success', attempt=1,
-                               push_controls=True, push_attempt=None, timing_inputs=None):
+                               push_controls=True, push_attempt=None, timing_inputs=None, push_status='pending',
+                               records=False, expect_no_timing=False):
         args = observations()
         source = source_identity(self.root)
         head = source['git_head']
@@ -292,6 +294,9 @@ class IntegrationHistoryTests(ProjectFixture):
         run = {'id': 100, 'run_attempt': attempt, 'status': 'completed', 'conclusion': 'success', 'head_sha': head,
                'head_branch': 'task', 'event': 'pull_request', 'path': integration.WORKFLOW}
         jobs = [dict(job, id=index, head_sha=head) for index, job in enumerate(args['jobs'], 1000)]
+        if records:
+            for job in jobs:
+                job['steps'] = [CHECKOUT_STEP, step('Verify records changes')]
         if omit_windows:
             jobs.pop()
         elif fail_windows:
@@ -305,7 +310,7 @@ class IntegrationHistoryTests(ProjectFixture):
                                  'comparisons': [{'latest_attempt': latest, 'recovered': {'hosted_run_id': '99'}}]}}
         main_recovery = {
             'feedback_id': 'push-budget', 'scope': dict(scope, event='push'),
-            'recovery': {'status': 'pending', 'repair_commit': repair,
+            'recovery': {'status': push_status, 'repair_commit': repair,
                          'comparisons': [{'latest_attempt': push_attempt, 'history_missing': False}] if push_controls else []},
         }
         original = integration.command
@@ -327,7 +332,9 @@ class IntegrationHistoryTests(ProjectFixture):
         with (patch.object(integration, 'github_identity', return_value='fixture/project'),
               patch.object(integration, 'command', side_effect=command),
               patch.object(integration, 'job_checkout', return_value=(1, tested['sha'])),
-              patch.object(timing, 'offline_budget_status', return_value={'budget_recovery': [recovery, main_recovery]})):
+              patch.object(timing, 'offline_budget_status',
+                           return_value={'budget_recovery': [recovery, main_recovery]},
+                           side_effect=AssertionError('Unrelated scope queried timing') if expect_no_timing else None)):
             return integration.inspect(self.root, 1)
 
     def test_verified_repair_can_handoff_only_the_open_main_push_measurement(self):
@@ -366,6 +373,103 @@ class IntegrationHistoryTests(ProjectFixture):
         base, repair = self.budget_handoff_fixture(bind_push_feedback=False)
         result = self.inspect_budget_handoff(base, repair)
         self.assertIn('Unresolved major feedback: push-budget', result['blockers'])
+
+    def test_repair_pr_cannot_close_the_main_timing_finding_with_the_repair_receipt(self):
+        base, repair = self.budget_handoff_fixture()
+        path = self.root / 'project/feedback.json'
+        feedback = read_json(path)
+        feedback['items'][1].update(
+            task_ids=['M0-001'], status='addressed',
+            resolution=dict(cause='Fixture.', correction='Fixture.', prevention='Fixture.'),
+        )
+        path.write_bytes(json_bytes(feedback))
+        self.commit()
+        result = self.inspect_budget_handoff(base, repair)
+        self.assertEqual('passed', result['delivery_scope']['history']['status'])
+        self.assertFalse(result['technical_ready'], result)
+        self.assertIn('Main-push timing closure lacks a verified main-push observation: push-budget', result['blockers'])
+
+    def measured_main_push_fixture(self, *, evidence_event='push'):
+        base, repair = self.budget_handoff_fixture()
+        main = self.merge_observation(base, source_identity(self.root)['git_head'])['sha']
+        self.git('checkout', '--quiet', '--detach', main)
+        self.git('remote', 'add', 'origin', 'https://github.com/fixture/project.git')
+        feedback_path = self.root / 'project/feedback.json'
+        feedback = read_json(feedback_path)
+        push = feedback['items'][1]
+        report = read_json(self.report('M0-002', system='Windows'))
+        report['ci'] = {
+            'provider': 'github-actions', 'repository': 'fixture/project', 'run_id': '101', 'run_attempt': '1',
+            'event': evidence_event, 'head_sha': main, 'checkout_sha': main,
+            'run_url': 'https://github.com/fixture/project/actions/runs/101',
+        }
+        report['observed_feedback'] = [feedback_fingerprint(push)]
+        artifact = self.root / '.reports/ci/101/windows'
+        for check in report['checks']:
+            log = artifact / check['log'].removeprefix('.reports/')
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_bytes((self.root / check['log']).read_bytes())
+        report_path = artifact / 'test-report.json'
+        report_path.write_bytes(json_bytes(report))
+        receipt = archive_evidence(self.root, 'M0-002', report_path, artifact)
+
+        ledger = self.ledger()
+        ledger['focus_task_id'] = 'M0-004'
+        task_by_id(ledger, 'M0-002').update(status='done', evidence=[receipt], next_action=None)
+        self.save_ledger(ledger)
+        push.update(status='addressed', resolution=dict(cause='Fixture.', correction='Fixture.', prevention='Fixture.'))
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.commit()
+        witness = {'hosted_run_id': '101', 'hosted_head': main, 'source_commit': main, 'elapsed_seconds': 899,
+                   'conclusion': 'success', 'inputs_sha256': report['source']['sha256']}
+        return main, repair, witness
+
+    def test_verified_main_timing_can_close_in_a_records_only_pull_request(self):
+        base, repair, witness = self.measured_main_push_fixture()
+        result = self.inspect_budget_handoff(base, repair, push_status='recovered', push_attempt=witness,
+                                             timing_status='pending', records=True)
+        self.assertTrue(result['technical_ready'], result['blockers'])
+        self.assertEqual('records', result['workflow']['expected_profile'])
+        self.assertEqual(['M0-002'], result['delivery_scope']['completed_task_ids'])
+        self.assertNotIn('post_merge_main_push_budget', result['delivery_scope'])
+
+    def test_main_timing_closure_requires_a_current_success_on_protected_history(self):
+        base, repair, witness = self.measured_main_push_fixture()
+        future = source_identity(self.root)['git_head']
+        for status, sample in (
+            ('pending', None), ('pending', witness),
+            ('recovered', dict(witness, conclusion='failure')),
+            ('recovered', dict(witness, elapsed_seconds=901)),
+            ('recovered', dict(witness, hosted_head=future, source_commit=future)),
+            ('recovered', dict(witness, hosted_run_id='102')),
+            ('recovered', dict(witness, inputs_sha256='2' * 64)),
+        ):
+            with self.subTest(status=status, sample=sample):
+                result = self.inspect_budget_handoff(base, repair, push_status=status, push_attempt=sample, records=True)
+                self.assertFalse(result['technical_ready'])
+                self.assertIn('Main-push timing closure lacks a verified main-push observation: push-budget',
+                              result['blockers'])
+
+    def test_main_timing_closure_cannot_use_a_pull_request_receipt(self):
+        base, repair, witness = self.measured_main_push_fixture(evidence_event='pull_request')
+        result = self.inspect_budget_handoff(base, repair, push_status='recovered', push_attempt=witness, records=True)
+        self.assertFalse(result['technical_ready'])
+
+    def test_unrelated_product_change_does_not_recheck_existing_budget_closure(self):
+        _, repair, _ = self.measured_main_push_fixture()
+        base = source_identity(self.root)['git_head']
+        (self.root / 'implementation.py').write_text('value = 3\n', encoding='utf-8')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-004')['plan'] = deepcopy(task_by_id(ledger, 'M0-001')['plan'])
+        self.save_ledger(ledger)
+        self.commit()
+        receipt = archive_evidence(self.root, 'M0-004', self.report('M0-004'))
+        ledger['focus_task_id'] = 'M0-003'
+        task_by_id(ledger, 'M0-004').update(status='done', evidence=[receipt], next_action=None)
+        self.save_ledger(ledger)
+        self.commit()
+        result = self.inspect_budget_handoff(base, repair, expect_no_timing=True)
+        self.assertTrue(result['technical_ready'], result['blockers'])
 
     def test_budget_handoff_cannot_assign_a_follow_up_waiting_on_other_work(self):
         base, repair = self.budget_handoff_fixture(follow_up_ready=False)
