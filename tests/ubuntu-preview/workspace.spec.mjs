@@ -784,14 +784,107 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
         await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
         const panel = dialog.getByRole('region', { name: 'Indicator preview' });
         await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
-        for (const count of [3, 1]) {
-          if (count === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
-          const [reply] = await Promise.all([
-            page.waitForResponse(async r => r.url().endsWith(endpoint)
-              && r.request().postDataJSON()?.type === 'indicator_preview_status' && (await r.json()).result?.status === 'ready'),
-            panel.getByRole('button', { name: 'Run preview' }).click(),
-          ]);
-          const ready = (await reply.json()).result;
+        let losses = 0;
+        let frames = [];
+        let dropped = [];
+        let startedAt = performance.now();
+        const previewRequest = request => {
+          if (new URL(request.url()).pathname !== endpoint) return undefined;
+          const payload = request.postDataJSON();
+          const operation = payload?.intent?.operation ?? payload?.operation ?? payload?.type;
+          return ['indicator.createDraft', 'indicator.runPreview', 'indicator_preview_status', 'task.cancel'].includes(operation)
+            ? { operation, request_id: payload.request_id, task_id: payload.task_id } : undefined;
+        };
+        page.on('response', async response => {
+          const entry = previewRequest(response.request());
+          if (!entry) return;
+          const frame = { ...entry, at_ms: Math.round(performance.now() - startedAt), http: response.status() };
+          frames.push(frame);
+          try {
+            const reply = await response.json();
+            const result = reply.result;
+            frame.ok = reply.ok;
+            frame.outcome = result?.outcome?.state ?? result?.status;
+            frame.terminal = result?.event?.outcome?.status ?? result?.outcome?.status;
+            frame.code = reply.error?.code ?? result?.outcome?.error?.code ?? result?.event?.outcome?.error?.code;
+            frame.reply_task_id = result?.task_id ?? result?.outcome?.result?.task_id;
+            if (result?.status === 'ready') frame.ready = result;
+          } catch (error) {
+            frame.response_error = error.name;
+          }
+        });
+        page.on('requestfailed', request => {
+          const entry = previewRequest(request);
+          if (entry) frames.push({ ...entry, at_ms: Math.round(performance.now() - startedAt), delivery: request.failure()?.errorText });
+        });
+        await page.route(server.url + endpoint, async route => {
+          const entry = previewRequest(route.request());
+          if (dropped.length >= losses || entry?.operation !== 'indicator_preview_status') return route.continue();
+          const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
+          const result = (await response.json()).result;
+          if (result?.status !== 'ready') return route.fulfill({ response });
+          dropped.push({ ...entry, http: response.status(), result });
+          await route.abort('connectionreset');
+        });
+        for (const { count, cut } of [{ count: 3, cut: 0 }, { count: 1, cut: 1 }, { count: 1, cut: 2 }]) {
+          frames = [];
+          dropped = [];
+          losses = cut;
+          startedAt = performance.now();
+          if (cut === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
+          const failure = panel.getByRole('alert').or(panel.getByText('Indicator preview cancelled.', { exact: true }));
+          const run = panel.getByRole('button', { name: 'Run preview' });
+          const describe = visibleError => JSON.stringify({
+            count, cut, alert: visibleError,
+            frames: frames.map(({ ready, ...frame }) => frame),
+            lost: dropped.map(({ result, ...frame }) => ({
+              ...frame, status: result.status, result_hash: result.event.artifact.result_hash,
+            })),
+          });
+          try {
+            await run.click();
+            await expect(panel.getByText(/Preview layers/).or(failure)).toBeVisible({ timeout: 30_000 });
+          } catch (error) {
+            console.info('Frozen indicator preview observation', describe(null));
+            throw error;
+          }
+          const visibleError = await failure.isVisible() ? await failure.innerText() : null;
+          const observation = describe(visibleError);
+          console.info('Frozen indicator preview observation', observation);
+          expect(visibleError, observation).toBe(cut === 2 ? 'The indicator preview could not be completed.' : null);
+
+          const admitted = () => frames.find(frame => frame.operation === 'indicator.runPreview' && frame.outcome === 'committed');
+          const current = () => {
+            return frames.find(frame => frame.ready && frame.task_id === admitted()?.reply_task_id)?.ready;
+          };
+          if (cut) {
+            await expect.poll(() => admitted()?.reply_task_id).toBe(dropped[0]?.task_id);
+            expect(dropped).toHaveLength(cut);
+            for (const entry of dropped) {
+              expect(entry).toMatchObject({ http: 200, task_id: admitted()?.reply_task_id });
+              expect(frames).toContainEqual(expect.objectContaining({
+                request_id: entry.request_id, task_id: entry.task_id, delivery: 'net::ERR_CONNECTION_RESET',
+              }));
+            }
+            for (const operation of ['indicator.createDraft', 'indicator.runPreview']) {
+              expect(new Set(frames.filter(frame => frame.operation === operation).map(frame => frame.request_id)).size).toBe(1);
+            }
+          }
+          if (cut === 2) {
+            await expect(run).toBeEnabled();
+            expect(current()).toBeUndefined();
+            await expect.poll(() => frames.some(frame => frame.operation === 'task.cancel'
+              && frame.task_id === dropped[0].task_id && frame.http === 200)).toBe(true);
+            expect(frames.filter(frame => frame.operation === 'indicator_preview_status'
+              && frame.task_id === dropped[0].task_id && frame.code !== 'BUSY' && frame.outcome !== 'running')).toHaveLength(2);
+            continue;
+          }
+          await expect.poll(current, { message: 'Observe the ready status for the admitted preview task' }).toBeDefined();
+          const ready = current();
+          if (cut) {
+            expect(ready).toEqual(dropped[0].result);
+            expect(frames.some(frame => frame.operation === 'task.cancel' && frame.task_id === ready.task_id)).toBe(false);
+          }
           const values = ready.event.artifact.result.series[1].points;
           expect(values).toHaveLength(count);
           expect(values.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
