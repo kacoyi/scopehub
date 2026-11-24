@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
-import { WorkbenchPrototype } from './workbench-prototype';
+import { createBlankWorkbench, WorkbenchPrototype } from './workbench-prototype';
 import { ChartWorkspace, type RevealModelChartBar } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, localImportErrorMessage, previewLocalImport, renderLocalImportMessage, type LocalImportMessage } from './local-import-transport';
@@ -26,6 +26,7 @@ type EvidenceNavigation = { anchor: ModelChartAnchor; restore: () => void }
 function App() {
   useLocale();
   const [prototype, setPrototype] = useState(false);
+  const [acceptedPrototype, setAcceptedPrototype] = useState(createBlankWorkbench);
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
   const [local, setLocal] = useState(false);
@@ -183,7 +184,8 @@ function App() {
   } : undefined;
 
   return <>
-    {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
+    {prototype && <WorkbenchPrototype accepted={acceptedPrototype} setAccepted={setAcceptedPrototype}
+      close={() => setPrototype(false)} />}
     <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} active={!local}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
       revealModelChartBar={revealModelChartBar} modelAnchor={modelAnchor} returnToAnswer={returnToAnswer}

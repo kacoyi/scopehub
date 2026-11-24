@@ -5163,6 +5163,21 @@
         "prevention": "On a verified official Node 24.0.0 runtime, the original build accepted the control, the corrected build rejected both its unfamiliar URL and untranslated text before Vite, and the corrected build accepted the clean catalog. The project-pinned toolchain also passed. Retain the comparisons at archives/observations/m0-096-catalog-build/index.json and the explicit review approval at archives/observations/m0-096-catalog-build/astra-a4d1c3a.txt."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-prototype-reopen-loses-accepted-workbench",
+      "source": "M2-003 Linux native observation archives/observations/m2-003-view-recovery-427540b/observations.json, SHA-256 ce735b5609fca10680d75a22543ab68004872d707b6a980c57acb570dd2f2cb0. Product source 427540bb8b6ea77bcb7887dd83421c0a18307a61. Accepted and reopened Tauri app buffer commits 529 and 613.",
+      "observation": "The accepted value table and threshold tiles both selected 21:01 at 3499.8 in the frozen source. Back to chart closed the prototype dialog. Manual reopen in the same native window showed empty blocks and no selected row. Restore accepted view left the canvas empty. A newly created table responded to selection. The ordinary close path unmounts the only owner of the accepted definition and selection. The independent Astra review at d5e3aad identified two existing tests that still expected a blank editor on ordinary reopen. Preserve the covered candle replay stop and first-open blank behaviors while updating the reopen outcomes.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-032"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

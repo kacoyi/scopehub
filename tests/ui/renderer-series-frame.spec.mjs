@@ -564,8 +564,19 @@ test('replays source-scoped quotes on the accepted candle pane while it is panne
   await expect.poll(readDraw).toMatchObject({ quoteSequence: 0, resultRevision: 'qualification-equity-5m-results-v1' });
   await expect(row).toHaveCount(0);
   await start.click();
+  await expect(status).toHaveText('Synthetic replay quote 1 of 3');
   await page.getByRole('button', { name: 'Back to chart' }).click();
   await open.click();
-  await expect(chart).toHaveCount(0);
-  await expect(start).toHaveCount(0);
+  await expect(draft).toHaveValue(acceptedText);
+  await expect(chart).toBeVisible();
+  await expect(start).toBeEnabled();
+  await expectTurnover(block, '5m');
+  await delay(700);
+  await expect(reset).toHaveCount(0);
+  await expect(status).toHaveCount(0);
+  await expect(row).toHaveCount(0);
+  await expect.poll(readDraw).toMatchObject({
+    quoteSequence: 0, resultRevision: 'qualification-equity-5m-results-v1',
+    annotations: [{ text: '3.2%' }],
+  });
 });
