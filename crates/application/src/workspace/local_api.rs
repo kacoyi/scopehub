@@ -35,10 +35,6 @@ impl LocalApiTrial {
     pub fn destination(&self) -> String {
         format!("{}/market-sample", self.0.origin)
     }
-
-    pub fn complete(self, sample: Value) -> Result<Value, Error> {
-        output(json!({"action": "trial", "connection": self.0.view(), "sample": sample}))
-    }
 }
 
 fn output(value: Value) -> Result<Value, Error> {
@@ -61,6 +57,24 @@ fn valid_origin(origin: &str) -> bool {
 }
 
 impl<S: WorkspaceStore> OperationRegistry<S> {
+    pub fn complete_local_api_trial(
+        &self,
+        trial: LocalApiTrial,
+        sample: Value,
+    ) -> Result<Value, Error> {
+        self.port.inspect(|tx| {
+            let reviewed = trial.0;
+            if !tx.local_api_connection()?.is_some_and(|current| {
+                current.id == reviewed.id
+                    && current.origin == reviewed.origin
+                    && current.rule_version == reviewed.rule_version
+            }) {
+                return Err(failure(ErrorCode::STALECONTEXT));
+            }
+            output(json!({"action": "trial", "connection": reviewed.view(), "sample": sample}))
+        })
+    }
+
     pub fn local_api_connection(
         &mut self,
         access: &WorkspaceAccess<'_>,

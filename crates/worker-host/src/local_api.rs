@@ -4,9 +4,20 @@ use std::{sync::Arc, time::Duration};
 
 use scopehub_application::{LocalApiTrial, failure};
 use scopehub_domain::protocol::{Error, ErrorCode};
-use serde_json::Value;
+use serde::Deserialize;
+use serde_json::{Value, json, value::RawValue};
 
 const MAX_SAMPLE_BYTES: usize = 16 * 1024;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SampleReply<'a> {
+    instrument: String,
+    observed_at_ms: Value,
+    #[serde(borrow)]
+    value: &'a RawValue,
+    unit: String,
+}
 
 pub async fn read_local_api_sample(trial: &LocalApiTrial) -> Result<Value, Error> {
     let tls = rustls::ClientConfig::builder_with_provider(Arc::new(
@@ -63,7 +74,18 @@ pub async fn read_local_api_sample(trial: &LocalApiTrial) -> Result<Value, Error
         }
         bytes.extend_from_slice(&chunk);
     }
-    serde_json::from_slice(&bytes).map_err(|_| failure(ErrorCode::OUTPUTINVALID))
+    let reply: SampleReply<'_> =
+        serde_json::from_slice(&bytes).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+    let value = reply.value.get();
+    if !matches!(value.as_bytes().first(), Some(b'-' | b'0'..=b'9')) {
+        return Err(failure(ErrorCode::OUTPUTINVALID));
+    }
+    Ok(json!({
+        "instrument": reply.instrument,
+        "observed_at_ms": reply.observed_at_ms,
+        "value": value,
+        "unit": reply.unit,
+    }))
 }
 
 fn read_error(error: reqwest::Error) -> Error {

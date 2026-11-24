@@ -429,7 +429,7 @@
           "output": "LocalApiConnectionReply11"
         }
       },
-      "schema_requirement": "Local human only. Require a reviewed versioned loopback GET rule, a current connection ID, no credentials, and a bounded typed result."
+      "schema_requirement": "Local human only. Require a reviewed versioned loopback GET rule, a current connection ID at admission and result delivery, no credentials, and a bounded typed result. Preserve the provider's JSON number token as text in the trial result."
     },
     {
       "name": "market.loadLocalImportMapping",

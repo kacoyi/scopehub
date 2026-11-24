@@ -261,6 +261,7 @@
   "Save connection": "保存连接",
   "Test read": "试读",
   "Working with the local connection…": "正在处理本地连接…",
+  "Retry loading connection": "重新加载连接",
   "No local API connection saved.": "尚未保存本地 API 连接。",
   "Saved connection.": "连接已保存。",
   "The saved local API connection could not be loaded.": "无法加载已保存的本地 API 连接。",

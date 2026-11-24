@@ -81,5 +81,67 @@
         "origin": "http://127.0.0.1:8080"
       }
     }
+  },
+  {
+    "name": "preserve a provider number across the desktop boundary",
+    "operation": "market.localApiConnection",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "response",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "operation": "market.localApiConnection",
+      "ok": true,
+      "result": {
+        "action": "trial",
+        "connection": {
+          "id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+          "name": "Local sample",
+          "origin": "http://127.0.0.1:8080",
+          "rule_version": 1
+        },
+        "sample": {
+          "instrument": "FUT-TEST",
+          "observed_at_ms": 1770076800000,
+          "value": "9007199254740993",
+          "unit": "USD"
+        }
+      },
+      "error": null
+    }
+  },
+  {
+    "name": "reject malformed provider number text",
+    "operation": "market.localApiConnection",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "response",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "operation": "market.localApiConnection",
+      "ok": true,
+      "result": {
+        "action": "trial",
+        "connection": {
+          "id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+          "name": "Local sample",
+          "origin": "http://127.0.0.1:8080",
+          "rule_version": 1
+        },
+        "sample": {
+          "instrument": "FUT-TEST",
+          "observed_at_ms": 1770076800000,
+          "value": "47.25 USD",
+          "unit": "USD"
+        }
+      },
+      "error": null
+    }
   }
 ]

@@ -157,7 +157,7 @@ impl State {
                         .try_lock()
                         .map_err(|_| failure(ErrorCode::BUSY))?;
                     let sample = scopehub_worker_host::read_local_api_sample(&trial).await?;
-                    trial.complete(sample)
+                    self.workspace.complete_local_api_trial(trial, sample).await
                 }
             },
             Some(AI_TEXT_CONNECTION) => {

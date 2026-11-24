@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=46dca670dfefd56dac6025f9cfc0bcd89ddefd21c2d225a790baf9c15e979c24. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -1966,7 +1966,7 @@ class SavedLocalApiConnection(TypedDict):
 class LocalApiSample(TypedDict):
     instrument: str
     observed_at_ms: int
-    value: float
+    value: str
     unit: str
 class LocalApiConnectionStatusInput(TypedDict):
     action: Literal['status']

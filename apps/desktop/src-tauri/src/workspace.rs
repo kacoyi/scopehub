@@ -166,6 +166,18 @@ impl WorkspaceBridge {
         .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
     }
 
+    pub(super) async fn complete_local_api_trial(
+        &self,
+        trial: scopehub_application::LocalApiTrial,
+        sample: Value,
+    ) -> Result<Value, Error> {
+        Self::with_bound(self.admit()?, false, move |bound| {
+            bound.registry.complete_local_api_trial(trial, sample)
+        })
+        .await?
+        .ok_or_else(|| failure(ErrorCode::INTERNALERROR))
+    }
+
     pub(super) async fn dispatch(
         &self,
         operation: Option<&str>,

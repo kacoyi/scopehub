@@ -19191,13 +19191,13 @@
         ],
         "risks": [
           {
-            "failure": "Opening or saving makes a request, a redirect reaches another endpoint, or stale or non-local settings can contact a different recipient.",
+            "failure": "Opening or saving makes a request, a redirect reaches another endpoint, stale settings can contact a different recipient, or a superseded trial can display an old sample.",
             "checks": [
               "local-api-connection"
             ]
           },
           {
-            "failure": "Saving creates a credential or CSV directory grant, or a profile loses its previous data on upgrade.",
+            "failure": "Saving creates a credential or CSV directory grant, a profile loses data on upgrade, a sample is rounded in transit, or transient status contention leaves the form unusable.",
             "checks": [
               "local-api-connection",
               "state-migrations"

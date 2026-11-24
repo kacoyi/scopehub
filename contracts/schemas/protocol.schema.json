@@ -9640,7 +9640,10 @@
           "maximum": 8640000000000000
         },
         "value": {
-          "type": "number"
+          "type": "string",
+          "description": "The original JSON number token returned by the loopback endpoint, preserved as text across the desktop boundary.",
+          "maxLength": 16384,
+          "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
         },
         "unit": {
           "type": "string",

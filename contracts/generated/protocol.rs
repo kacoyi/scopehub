@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=46dca670dfefd56dac6025f9cfc0bcd89ddefd21c2d225a790baf9c15e979c24. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -3796,7 +3796,7 @@ pub struct SavedLocalApiConnection {
 pub struct LocalApiSample {
     pub instrument: String,
     pub observed_at_ms: u64,
-    pub value: f64,
+    pub value: String,
     pub unit: String,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

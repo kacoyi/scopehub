@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=46dca670dfefd56dac6025f9cfc0bcd89ddefd21c2d225a790baf9c15e979c24. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -2260,7 +2260,7 @@ export type SavedLocalApiConnection = {
 export type LocalApiSample = {
   instrument: string;
   observed_at_ms: number;
-  value: number;
+  value: string;
   unit: string;
 };
 export type LocalApiConnectionStatusInput = {

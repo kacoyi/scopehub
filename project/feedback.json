@@ -4948,6 +4948,51 @@
         "prevention": "Use matching real commands with default and inherited ignored SIGCHLD. Require both explicit failures to retain exit 7 and keep the separate success and cancellation observations. Retain t104 review and regression records."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "local-api-trial-returns-superseded-connection",
+      "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
+      "observation": "The trial checks the saved ID before awaiting HTTP. A same-profile save through a second native instance can replace it, and the old trial is still delivered with the original ID and displayed as verified.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-trial-display-rounds-provider-value",
+      "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
+      "observation": "An accepted JSON number can be rounded when the native trial reply crosses into JavaScript. The review reproduced 9007199254740993 becoming 9007199254740992 in the current formatting path while the display labels the sample verified.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-status-busy-disables-form-until-reopen",
+      "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
+      "observation": "A transient initial BUSY leaves the saved connection undefined and all form controls disabled until the user leaves and reopens the settings page.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M1-039"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

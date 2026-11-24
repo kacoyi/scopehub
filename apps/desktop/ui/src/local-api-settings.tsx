@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type {
   LocalApiConnectionInput, LocalApiConnectionOutput, LocalApiSample, SavedLocalApiConnection,
 } from '../../../../contracts/generated/protocol';
-import { formatNumber, t } from './i18n';
+import { t } from './i18n';
 
 const operation = 'market.localApiConnection';
 
@@ -23,6 +23,7 @@ export function LocalApiSettings() {
   const [name, setName] = useState('');
   const [origin, setOrigin] = useState('');
   const [busy, setBusy] = useState(true);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [failure, setFailure] = useState<string>();
   const [saved, setSaved] = useState(false);
   const [sample, setSample] = useState<LocalApiSample>();
@@ -47,7 +48,7 @@ export function LocalApiSettings() {
       if (!signal.aborted) setBusy(false);
     });
     return () => controller.abort();
-  }, []);
+  }, [loadAttempt]);
 
   async function submit(request: Exclude<LocalApiConnectionInput, { action: 'status' }>) {
     const signal = lifetime.current?.signal;
@@ -116,9 +117,13 @@ export function LocalApiSettings() {
     {connection === null && !busy && <p role="status">{t('No local API connection saved.')}</p>}
     {saved && <p role="status">{t('Saved connection.')}</p>}
     {failure && <p role="alert">{t(failure)}</p>}
-    {sample && <section className="local-import-card" aria-labelledby={heading}>
+    {failure && connection === undefined && !busy && <button type="button" className="secondary-button"
+      onClick={() => { setBusy(true); setFailure(undefined); setLoadAttempt(attempt => attempt + 1); }}>
+      {t('Retry loading connection')}
+    </button>}
+    {sample && <section className="local-import-card local-api-sample" aria-labelledby={heading}>
       <h4 id={heading}>{t('Verified sample')}</h4>
-      <p>{sample.instrument} · {formatNumber(sample.value, { maximumSignificantDigits: 17 })} {sample.unit}</p>
+      <p>{sample.instrument} · {sample.value} {sample.unit}</p>
       <time dateTime={new Date(sample.observed_at_ms).toISOString()}>{new Date(sample.observed_at_ms).toISOString()}</time>
     </section>}
   </>;
