@@ -1,0 +1,18 @@
+.chart:has(.chart-drawing-overlay) { position: relative; }
+.chart .chart-drawing-overlay {
+  position: absolute;
+  inset: 0 auto auto 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+.chart-drawing-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 5px;
+}
+.chart-drawing-controls label { display: flex; align-items: center; gap: 8px; }
+.chart-drawing-controls input { max-width: 15rem; }
+.chart-drawing-controls output { font-variant-numeric: tabular-nums; }

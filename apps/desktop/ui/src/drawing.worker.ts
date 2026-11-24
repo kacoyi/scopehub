@@ -2,11 +2,21 @@ import variant from '@jitl/quickjs-asmjs-mjs-release-sync';
 import { newQuickJSWASMModuleFromVariant } from 'quickjs-emscripten-core';
 import { markLimit, readProgram, validMark, validTarget, viewport, type ViewBounds, type Mark, type Target, type Controls } from './drawing-program';
 
+import type { PricePaneProjection } from './chart-adapter/history';
+
 export type RenderRequest = {
   code: string;
   rows: { time_ms: number; value: number | null }[] | { time_ms: number; open: number; high: number; low: number; close: number; volume: number }[];
-  bounds: ViewBounds; controls: Controls;
+  bounds: ViewBounds | PricePaneProjection; controls: Controls;
 };
+
+function chartProjection(projection: PricePaneProjection) {
+  const times = new Map(projection.times);
+  return {
+    xTime: (time: number) => times.get(time),
+    yValue: (value: number) => projection.y + (value - projection.price) * projection.yPerPrice,
+  };
+}
 
 async function evaluate({ code, rows, bounds, controls }: RenderRequest) {
   const module = await newQuickJSWASMModuleFromVariant(variant);
@@ -21,7 +31,7 @@ async function evaluate({ code, rows, bounds, controls }: RenderRequest) {
       let invalid = false;
       const deadline = performance.now() + 120;
       runtime.setInterruptHandler(() => invalid || performance.now() >= deadline);
-      const scale = viewport(bounds);
+      const scale = 'times' in bounds ? chartProjection(bounds) : viewport(bounds);
       for (const name of ['line', 'circle', 'rect', 'hit', 'xTime', 'yValue'] as const) {
         const fn = vm.newFunction(name, (...args) => {
           if (invalid || args.length > 5 || !args.every(arg => vm.typeof(arg) === 'number')) {
@@ -30,7 +40,10 @@ async function evaluate({ code, rows, bounds, controls }: RenderRequest) {
           }
           const values = args.map(arg => vm.getNumber(arg));
           if (name === 'xTime' || name === 'yValue') {
-            if (values.length === 1 && Number.isFinite(values[0])) return vm.newNumber(scale[name](values[0]!));
+            if (values.length === 1 && Number.isFinite(values[0])) {
+              const coordinate = scale[name](values[0]!);
+              if (coordinate !== undefined && Number.isFinite(coordinate)) return vm.newNumber(coordinate);
+            }
           } else if (name === 'hit') {
             if (validTarget(values, rows.length) && !targets.some(t => t[0] === values[0])) {
               targets.push(values);

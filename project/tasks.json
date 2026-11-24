@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-017",
   "tasks": [
     {
       "id": "M0-001",
@@ -4715,11 +4715,12 @@
       "id": "M2-003",
       "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
-      "status": "active",
+      "status": "planned",
       "depends_on": [
         "M2-002",
         "M2-014",
-        "M2-015"
+        "M2-015",
+        "M2-017"
       ],
       "scope": [
         "apps/desktop",
@@ -4746,7 +4747,8 @@
         "workbench-authored-composition",
         "indicator-declarative-preview",
         "desktop-localization",
-        "workbench-drawing-runtime"
+        "workbench-drawing-runtime",
+        "chart-coordinate-prototype"
       ],
       "evidence": [],
       "next_action": "Compare both renderer candidates on a shared author/revise/select/recover workload. Verify the scoped native evidence and record pending gates for the ef0a1e1 binding under ADR 0027. Preserve the previous checkpoints and keep the major owner feedback open through qualification.",
@@ -4769,6 +4771,7 @@
           "A one-shot dedicated worker containing the upstream QuickJS JS-only interpreter can admit readable synthetic drawing programs and retain the native CSP. The host can reuse its time/value projection for the reference layer while accepting only bounded numeric geometry. A later experimental ABI can declare scalar controls and refer to source observations without admitting host calls. Keep each freeze and source handoff independently reproducible."
         ],
         "risks": [
+          {"failure": "A standalone projection is mistaken for shared chart coordinates or leaves a stale crosshair observation at the pane edge.", "checks": ["chart-coordinate-prototype"]},
           {"failure": "A passing browser or older native drawing is misattributed to a different runtime. Bind native comparisons to the exact guest bytes, measured frame and runtime; exercise a rejected input and verify restoration.", "checks": ["workbench-renderer-probe"]},
           {"failure": "A removed or superseded grant leaves geometry or values visible, a null is replaced by zero, or a source unit is attributed to an unrelated output.", "checks": ["workbench-drawing-runtime"]},
           {
@@ -17328,6 +17331,108 @@
           ],
           "data_plan": "No data or persistence changes.",
           "cleanup": "Retain regression and the original candidate for independent comparison."
+        }
+      }
+    },
+    {
+      "id": "M2-017",
+      "title": "Project authored geometry and crosshair evidence on an actual chart",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-016"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview",
+        "tests/fixtures/workbench",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0027"
+      ],
+      "acceptance": [
+        "In the existing opted-in synthetic chart, open a local authored program. Its geometry uses the existing price pane time and value maps and follows the same bar after an actual chart viewport change.",
+        "Moving the actual chart crosshair projects its bounded bar timestamp into the authored overlay and trusted readout. Leaving or clipping its point clears the selection. The ordinary chart keeps its gestures and data.",
+        "Keep the author program, an independent browser check and measured observations. Native comparative admission and renderer choice remain with M2-003."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "chart-coordinate-prototype"
+      ],
+      "evidence": [],
+      "next_action": "Connect a bounded worker projection to price-pane invalidation and verify moving and clipped anchors against the live chart.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "An ordinary authored program uses the same frozen bar timestamps, viewport and crosshair as the existing synthetic price chart.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/price-chart.tsx",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "apps/desktop/ui/src/chart-adapter/indicator-regions.ts",
+          "apps/desktop/ui/src/drawing.worker.ts",
+          "contracts/decisions/0027-v1-user-composed-workbench.json"
+        ],
+        "hypotheses": [
+          "Price-pane invalidation can project a bounded numeric frame through the existing worker without making the chart or workspace transport available to author code."
+        ],
+        "risks": [
+          {
+            "failure": "A stale worker frame or no-longer-visible crosshair survives a viewport change.",
+            "checks": [
+              "chart-coordinate-prototype"
+            ]
+          },
+          {
+            "failure": "Opting into an overlay changes ordinary chart data, gestures or authority.",
+            "checks": [
+              "chart-coordinate-prototype",
+              "market-workflow",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Remove the opt-in file entry, projection observer and its worker frame. There are no persistent changes.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/price-chart.tsx",
+            "apps/desktop/ui/src/chart-adapter/history.ts",
+            "apps/desktop/ui/src/drawing-evaluation.ts",
+            "apps/desktop/ui/src/drawing.worker.ts"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/extensibility"
+            }
+          ],
+          "non_goals": [
+            "Saved layouts, general scale modes, real-source grants, model calls and new drawing shapes."
+          ],
+          "open_questions": [
+            "Does the same bounded frame follow the real pane and clear its crosshair at the edge?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Chart appearance, default entries, viewport gestures and worker limits."
+          ],
+          "change": [
+            "Use actual pane coordinates and crosshair observations for an opted-in program."
+          ],
+          "data_plan": "Only the explicitly pinned synthetic bars and bounded numeric coordinates cross to the existing isolated worker. No profile writes.",
+          "cleanup": "Retire the experimental entry after the selected renderer acquires its shared chart service."
         }
       }
     }

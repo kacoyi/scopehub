@@ -3,6 +3,7 @@ import {
   defaultChartAppearance, mountHistoryChart, type ChartAppearance, type ChartCursorMode,
   type ChartStyle, type HistoryChartData, type HistoryChartHandle, type HistoryChartLocalization, type IndicatorChartLayer,
 } from './chart-adapter/history';
+import { useChartDrawing } from './chart-drawing';
 import { formatNumber, getLocale, t, useLocale } from './i18n';
 import type { Bar, Instrument } from './market';
 
@@ -16,6 +17,7 @@ type Props = {
   indicatorPreview?: IndicatorChartLayer | undefined;
   acceptedIndicators?: readonly IndicatorChartLayer[] | undefined;
   appearance?: ChartAppearance;
+  chartDrawing?: 'future' | 'stock' | undefined;
   selectedBarTime?: number | undefined;
   activateBar?: ((bar: Bar) => void) | undefined;
 };
@@ -26,7 +28,7 @@ function chartLocalization(locale: string): HistoryChartLocalization {
 
 const barNumberOptions: Intl.NumberFormatOptions = { useGrouping: false, maximumSignificantDigits: 21 };
 
-export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, appearance = defaultChartAppearance, selectedBarTime, activateBar, indicatorPreview, acceptedIndicators }: Props) {
+export function PriceChart({ instrument, history, style, cursor, handle, replayBar, repairedBars, appearance = defaultChartAppearance, selectedBarTime, activateBar, indicatorPreview, acceptedIndicators, chartDrawing }: Props) {
   const locale = useLocale();
   const container = useRef<HTMLDivElement>(null);
   const firstStyle = useRef(style);
@@ -74,6 +76,7 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
       setIndicatorFailed(false);
     } catch { setIndicatorFailed(true); }
   }, [indicatorPreview, acceptedIndicators, history, handle]);
+  const drawing = useChartDrawing(handle, history, chartDrawing);
   return <div className="history" data-instrument={history.dataset.instrument_id} data-timeframe={history.dataset.timeframe} data-bars={bars.length}>
     <div className="chart-legend">
       <div className="legend-title"><span className={'asset-mark ' + instrument.asset_class} aria-hidden="true">
@@ -91,11 +94,12 @@ export function PriceChart({ instrument, history, style, cursor, handle, replayB
         <span className="legend-day">{t('Trading day')} <b>{selected.trading_day}</b></span>
         <span className={selected.is_closed ? 'bar-phase' : 'bar-phase partial'}>{selected.is_closed ? t('Closed bar') : t('Partial bar')}</span>
       </div>}
+      {drawing.controls}
     </div>
     {indicatorFailed && <p className="chart-notice" role="alert">{t('The indicator layer could not be displayed.')}</p>}
     {failed && <p className="chart-notice" role="alert">{t('The chart could not be displayed. Review the bars in the data table.')}</p>}
     <div className="chart" ref={container} role="img" aria-label={style === 'line'
       ? t('Close-price line and volume chart for {instrument}', { instrument: ticker })
-      : t('Candlestick and volume chart for {instrument}', { instrument: ticker })} />
+      : t('Candlestick and volume chart for {instrument}', { instrument: ticker })}>{drawing.overlay}</div>
   </div>;
 }

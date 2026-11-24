@@ -1,11 +1,12 @@
 import { markLimit, validMark, validTarget, type Target, type Controls, type Mark, type Drawing, type ViewBounds } from './drawing-program';
+import type { PricePaneProjection } from './chart-adapter/history';
 import type { Point } from '../../../../contracts/generated/protocol';
 import { sources } from './workbench-composition';
 import type { RenderRequest } from './drawing.worker';
 
 type Result = { status: 'ready'; marks: Mark[]; targets: Target[] } | { status: 'rejected' | 'timeout' | 'cancelled' };
 
-export function evaluateDrawing(program: Drawing, bounds: ViewBounds, controls: Controls, signal: AbortSignal, points?: Point[]): Promise<Result> {
+export function evaluateDrawing(program: Drawing, bounds: ViewBounds | PricePaneProjection, controls: Controls, signal: AbortSignal, points?: Point[]): Promise<Result> {
   return new Promise(resolve => {
     if (signal.aborted) return resolve({ status: 'cancelled' });
     const rows = program.source === 'series' ? points : sources[program.source].bars.map(({ time_ms, open, high, low, close, volume }) =>
