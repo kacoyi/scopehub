@@ -244,6 +244,25 @@ try {
     Wait-ForProbe 'accepted threshold-only author definition' {
         (Draft-Pattern).Current.Value -ceq $thresholdDraft
     } | Out-Null
+
+    $stateDraft = $thresholdDraft | ConvertFrom-Json
+    $stateDraft.blocks[0] | Add-Member -NotePropertyName 'presentation' -NotePropertyValue @{
+        kind = 'state-lights'
+        ranges = @(@{ below = 0.4; tone = 'green' }, @{ below = 0.8; tone = 'amber' })
+        otherwise = @{ tone = 'red' }
+    }
+    (Draft-Pattern).SetValue(($stateDraft | ConvertTo-Json -Depth 8 -Compress))
+    Invoke-Button 'Preview draft'
+    Wait-Name 'State lights'
+    Wait-ForProbe 'chart removed by state presentation' {
+        -not (Find-Control 'Candlestick chart with numeric annotations' $null)
+    } | Out-Null
+    Invoke-Button '09:30 UTC Red'
+    Wait-Name 'Selected result'
+    Wait-Name $fifteen.bar_utc
+    Wait-Name $fifteen.result_revision
+    Wait-Name '0.9'
+
     Invoke-Button 'Back to chart'
     Wait-Name 'Open workbench prototype'
     Wait-ForProbe 'closed annotation editor' { -not (Find-Control 'Composition JSON' $null) } | Out-Null
@@ -267,6 +286,7 @@ try {
         annotation_rejected_draft_restored = $true
         annotation_restored_after_empty_preview = $fifteen
         annotation_accepted_threshold_edit = @{ above = 0.85; result = $fifteen }
+        state_light_selection = @{ timeframe = '15m'; bar_utc = $fifteen.bar_utc; result_revision = $fifteen.result_revision; value = 0.9 }
     } | ConvertTo-Json -Depth 4 -Compress | Write-Output
 } finally {
     if ($null -ne $app) {
