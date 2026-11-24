@@ -5255,6 +5255,33 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cropped-frozen-indicator-preview-terminal-error",
+      "source": "Authenticated PR 84 run 45453952239 attempt 1 at head ef653120ec9c74c7ed1b691426ee1e0429c48266 and checkout 4d18bb8c74344a852c4ec68f39748d1bb87ba1ab. Windows browser report SHA-256 efc30db15549978aaa4e3fed6cb1e4f3a26226ba2cbbb0775a9b685fbb758865, workspace log SHA-256 18e17dc0bb460de37eca3713d3ea78ea6d5e0ccbf4295634ca267174b37ddbfb, Playwright results SHA-256 ca2980ef7c291f9182237975b91df5ebbec32dd1598877c7026a0af05fb47444, and original screenshot SHA-256 552c7608f4ecd3724899c9889d73d87c357e36ea791d9777999d45656454b2f1.",
+      "observation": "The Windows frozen CSV workspace case at line 769 timed out after 60074 ms. The screenshot shows the second, cropped February 5 range with rolling period two and the generic terminal indicator alert. The test waits only for a ready status and did not report the failed exchange. The other 56 cases passed and one was skipped. Linux passed the same named case in 1.710 seconds. The original evidence has no response code, trace, or error-context body.",
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45453952239-1",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "359bb4ca0543d85f02e75e17486f39f3c2b7b11ddfb24e9f62f387c8ab74262f"
+        },
+        {
+          "run_id": "20261124T175733.115972Z-00d136ed",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "2cdd528fe3eb0e92e618eda111fd2606e152a4ee3fb3e5514e46d36f7c5dd8cb"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-099"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

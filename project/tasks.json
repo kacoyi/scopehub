@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-098",
+  "focus_task_id": "M0-099",
   "tasks": [
     {
       "id": "M0-001",
@@ -20059,6 +20059,129 @@
           ],
           "data_plan": "Keep the existing linked index layout and original bytes. No migration is needed.",
           "cleanup": "Retain the failed aggregate and producer provenance and reuse the next ordinary Windows PR for native confirmation."
+        }
+      }
+    },
+    {
+      "id": "M0-099",
+      "title": "Recover the cropped frozen-chart indicator preview path",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M3-001",
+        "M0-093"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "apps/desktop/src-tauri",
+        "crates/application",
+        "crates/persistence",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Observe the full and cropped rolling two-bucket preview through the ordinary frozen CSV chart. Preserve the exact dataset, warmup, zero volatility and rendered row assertions.",
+        "Distinguish admitted, retryable, terminal and stale responses by the initiating request and task, and preserve cancellation and explicit retry semantics.",
+        "Retain the protected Windows failure, source and cropped-state screenshot. Verify the confirmed cause with a bounded control without extending the existing preview or test deadlines."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45453952239-1",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "359bb4ca0543d85f02e75e17486f39f3c2b7b11ddfb24e9f62f387c8ab74262f"
+        },
+        {
+          "run_id": "20261124T175733.115972Z-00d136ed",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "2cdd528fe3eb0e92e618eda111fd2606e152a4ee3fb3e5514e46d36f7c5dd8cb"
+        }
+      ],
+      "next_action": "Trace the actual request and reply from the first run and its cropped successor, then reproduce the smallest confirmed failure before correction.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "The ordinary frozen CSV indicator shows the expected zero in the full and cropped windows. A terminal reply is correlated and surfaced promptly with the correct recovery semantics.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "crates/application/src/workspace/indicators.rs",
+          "PR 84 workflow 45453952239"
+        ],
+        "hypotheses": [
+          "The screenshot establishes that the cropped attempt reached the user-facing terminal error, but does not identify whether draft creation, admission, status, or client validation caused it.",
+          "A request-correlated observation of the real frozen fixture can distinguish the failure from a ready-only waiter masking it."
+        ],
+        "risks": [
+          {
+            "failure": "A successful or terminal reply is attributed to the wrong run or an accepted result loses exact zero or warmup semantics.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Changing deadlines or accepting a broader error could mask the cropped failure or alter unrelated authorization, stale work or desktop transport behavior.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Retain the original red, undo any correction shown to alter a different path, and keep the named full and cropped assertions visible while correcting the confirmed entry.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop",
+            "application"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "crates/application/src/workspace/indicators.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Longer deadlines, relaxing zero or artifact assertions, wider indicator permissions, or changes to accepted historical task records."
+          ],
+          "open_questions": [
+            "Identify the first failed reply or client validation in a controlled reproduction."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact frozen revision, range, warmup, cancellation, authorization, and full and cropped zero assertions."
+          ],
+          "change": [
+            "Add a bounded correlated observation and correct only the earliest confirmed failure path."
+          ],
+          "data_plan": "Retain original report, screenshot and diagnostic log. Use only isolated synthetic frozen data in deterministic controls.",
+          "cleanup": "Release any held replies and preserve the primary error before stopping the fixture."
         }
       }
     }
