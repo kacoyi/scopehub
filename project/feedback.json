@@ -2,6 +2,21 @@
   "schema_version": "1.0",
   "items": [
     {
+      "id": "qualification-replay-first-quote-pan-jump",
+      "source": "Standard Astra t9q review of 58eada75f58ff0ec77cf85253e4746488992231f with the pinned Lightweight Charts SDK.",
+      "observation": "While holding a drag from before the first quote, the historical 09:40 wick stayed at x=519.5 on append, then jumped to x=378.5 on the next +6 px move instead of x=525.5. The SDK keeps a scroll-start offset based on the old time-scale base index. At the left limit the reviewer also observed an immediate one-bar shift on the first append. The original task check started holding the drag after the append.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M2-031"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": {
+        "cause": "The SDK updates its base index when the first replay bar appears, while an active scroll retains its captured offset relative to the old base. The first append may also clamp the previously valid left limit before compensating for the new base.",
+        "correction": "On explicit Start, reserve the single replay time with an invisible axis-only series and reapply the existing logical range. The first admitted quote fills that slot without advancing the base index. Reset clears the slot and restores the frozen series.",
+        "prevention": "The ordinary Chromium entry first reproduced the 147 px jump, then verified a held drag across append and an additional 6 px move, along with a stationary left limit. Independent native X11 crops and Standard Astra narrow review cross-checked the corrected commit."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "private-record-deletion-receipt-lost-on-refresh",
       "source": "Independent t47 review of the 4498ebc private-record repair and subsequent two-window observation at 3bad802.",
       "observation": "A committed deletion with a lost approval reply lost its receipt recovery control when a later detail read returned DATA_UNAVAILABLE. A pre-commit BUSY followed by a peer rename retained the stale target title while offering Retry. The 4498ebc Chromium baseline reproduced all three cases with actual SQLite responses. The repaired journey recovered the same deletion receipt following a dropped reply and a blocked post-commit checkpoint, kept exactly one tombstone and completed cleanup. A pre-commit BUSY followed by a peer rename kept the old content hidden and rejected the original resolution as stale. The prior six Chromium private-record journeys also passed. Evidence is retained under .reports/private-record-v8/delete-reply-green.",

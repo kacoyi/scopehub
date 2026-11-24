@@ -1,11 +1,13 @@
 import {
-  CandlestickSeries, ColorType, CrosshairMode, createChart,
-  type IPrimitivePaneRenderer, type IPrimitivePaneView, type ISeriesPrimitive, type UTCTimestamp,
+  CandlestickSeries, ColorType, CrosshairMode, LineSeries, createChart,
+  type IPrimitivePaneRenderer, type IPrimitivePaneView, type ISeriesApi, type ISeriesPrimitive, type UTCTimestamp,
 } from 'lightweight-charts';
 import { defaultChartAppearance } from './history';
 
 export type Candle = Readonly<{ timeMs: number; open: number; high: number; low: number; close: number }>;
 export type CandleAnnotation = Readonly<{ timeMs: number; text: string }>;
+type ReplayCandle = Readonly<{ sequence: number; candle: Candle }>;
+type ReplayDraw = Readonly<{ timeMs: number; quote: ReplayCandle | undefined }>;
 
 export function mountCandleAnnotations(element: HTMLElement) {
   const chart = createChart(element, {
@@ -14,7 +16,7 @@ export function mountCandleAnnotations(element: HTMLElement) {
     grid: { vertLines: { color: '#242b38' }, horzLines: { color: '#242b38' } },
     crosshair: { mode: CrosshairMode.Hidden },
     rightPriceScale: { scaleMargins: { top: 0.25, bottom: 0.12 } },
-    timeScale: { timeVisible: true, secondsVisible: false, minBarSpacing: 16 },
+    timeScale: { timeVisible: true, secondsVisible: false, minBarSpacing: 16, shiftVisibleRangeOnNewBar: false },
   });
   try {
     const { gain, loss } = defaultChartAppearance;
@@ -24,19 +26,46 @@ export function mountCandleAnnotations(element: HTMLElement) {
     });
     const timeScale = chart.timeScale();
     const timestamp = (timeMs: number) => (timeMs / 1000) as UTCTimestamp;
+    const datum = ({ timeMs, open, high, low, close }: Candle) => ({ time: timestamp(timeMs), open, high, low, close });
     let candles: readonly Candle[] | undefined;
+    let replay: ReplayCandle | undefined;
+    let reservedTime: UTCTimestamp | undefined;
+    let reservation: ISeriesApi<'Line'> | undefined;
     let labels: { time: UTCTimestamp; high: number; text: string }[] = [];
+    let appliedAnnotations: readonly CandleAnnotation[] | undefined;
+    let resultRevision = '';
+    let annotationRevision = 0;
+    let viewportRevision = 0;
+    let viewportKey = '';
+    let drawNumber = 0;
     let requestUpdate = () => {};
     const renderer: IPrimitivePaneRenderer = {
       draw(target) {
         target.useMediaCoordinateSpace(({ context, mediaSize }) => {
           // Read both axes during the SDK's pane draw, with the same series and viewport as the candles.
+          const drawn = [];
           for (const label of labels) {
             const x = timeScale.timeToCoordinate(label.time);
             const y = series.priceToCoordinate(label.high);
             if (x === null || y === null || x < 0 || x >= mediaSize.width || y < 0 || y >= mediaSize.height) continue;
-            drawBubble(context, mediaSize.width, mediaSize.height, x, y, label.text);
+            if (drawBubble(context, mediaSize.width, mediaSize.height, x, y, label.text)) {
+              drawn.push({ timeMs: label.time * 1000, x, y, text: label.text });
+            }
           }
+          const viewport = {
+            width: mediaSize.width, height: mediaSize.height,
+            logical: timeScale.getVisibleLogicalRange(), price: series.priceScale().getVisibleRange(),
+          };
+          const key = JSON.stringify(viewport);
+          if (key !== viewportKey) {
+            viewportKey = key;
+            viewportRevision++;
+          }
+          // This is a draw callback observation. The platform presents the canvas separately.
+          element.dataset.primitiveDraw = JSON.stringify({
+            drawNumber: ++drawNumber, atMs: performance.now(), quoteSequence: replay?.sequence ?? 0,
+            viewportRevision, annotationRevision, resultRevision, viewport, annotations: drawn,
+          });
         });
       },
     };
@@ -56,19 +85,41 @@ export function mountCandleAnnotations(element: HTMLElement) {
     }
 
     return {
-      display(nextCandles: readonly Candle[], annotations: readonly CandleAnnotation[]) {
-        const byTime = new Map(annotations.map(({ timeMs, text }) => [timeMs, text]));
-        labels = nextCandles.flatMap(({ timeMs, high }) => {
-          const text = byTime.get(timeMs);
-          return text === undefined ? [] : [{ time: timestamp(timeMs), high, text }];
-        });
-        if (candles !== nextCandles) {
-          candles = nextCandles;
-          series.setData(candles.map(({ timeMs, open, high, low, close }) => ({
-            time: timestamp(timeMs), open, high, low, close,
-          })));
-          timeScale.setVisibleLogicalRange({ from: -1, to: candles.length });
+      display(nextCandles: readonly Candle[], annotations: readonly CandleAnnotation[], revision: string, nextReplay?: ReplayDraw) {
+        const quote = nextReplay?.quote;
+        if (appliedAnnotations !== annotations || resultRevision !== revision) {
+          const byTime = new Map(annotations.map(({ timeMs, text }) => [timeMs, text]));
+          const visibleCandles = quote ? [...nextCandles, quote.candle] : nextCandles;
+          labels = visibleCandles.flatMap(({ timeMs, high }) => {
+            const text = byTime.get(timeMs);
+            return text === undefined ? [] : [{ time: timestamp(timeMs), high, text }];
+          });
+          appliedAnnotations = annotations;
+          resultRevision = revision;
+          annotationRevision++;
         }
+        const changedHistory = candles !== nextCandles;
+        const nextSlot = nextReplay && timestamp(nextReplay.timeMs);
+        const changingSlot = reservedTime !== nextSlot;
+        const range = changingSlot && !changedHistory ? timeScale.getVisibleLogicalRange() : null;
+        if (changedHistory || (replay && !quote)) {
+          candles = nextCandles;
+          series.setData(candles.map(datum));
+        }
+        if (changingSlot) {
+          // The SDK stores an offset relative to the last time index at drag start.
+          // Reserve the only replay slot on Start, before a drag can span its first quote.
+          if (nextSlot === undefined) reservation?.setData([]);
+          else {
+            reservation ??= chart.addSeries(LineSeries, { visible: false, priceScaleId: '' });
+            reservation.setData([{ time: nextSlot, value: 0 }]);
+          }
+          reservedTime = nextSlot;
+        }
+        if (changedHistory) timeScale.setVisibleLogicalRange({ from: -1, to: nextCandles.length });
+        else if (range) timeScale.setVisibleLogicalRange(range);
+        if (quote && quote !== replay) series.update(datum(quote.candle));
+        replay = quote;
         requestUpdate();
       },
       setLocale(locale: string) {
@@ -83,6 +134,7 @@ export function mountCandleAnnotations(element: HTMLElement) {
       dispose() {
         series.detachPrimitive(primitive);
         chart.remove();
+        delete element.dataset.primitiveDraw;
       },
     };
   } catch (error) {
@@ -98,7 +150,7 @@ function drawBubble(context: CanvasRenderingContext2D, width: number, height: nu
   const left = Math.max(1, Math.min(x - bubbleWidth / 2, width - bubbleWidth - 1));
   const above = y >= bubbleHeight + 12;
   const top = above ? y - bubbleHeight - 8 : y + 8;
-  if (top + bubbleHeight >= height || bubbleWidth + 2 > width) return;
+  if (top + bubbleHeight >= height || bubbleWidth + 2 > width) return false;
 
   const center = left + bubbleWidth / 2;
   const edge = above ? top + bubbleHeight : top;
@@ -121,4 +173,5 @@ function drawBubble(context: CanvasRenderingContext2D, width: number, height: nu
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.fillText(text, center, top + bubbleHeight / 2);
+  return true;
 }

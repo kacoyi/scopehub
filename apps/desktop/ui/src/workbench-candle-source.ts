@@ -46,6 +46,43 @@ export type AnnotationBinding = {
 
 export type CandleBlock = { kind: 'candlestick'; source: typeof candleSource.id; annotation: AnnotationBinding };
 
+type ReplayQuote = Readonly<{
+  source: string; sequence: number; asOfMs: number; candle: Observation;
+}>;
+const replayOpen = start + 20 * 60_000;
+const firstQuote: ReplayQuote = {
+  source: candleSource.id, sequence: 1, asOfMs: replayOpen + 60_000,
+  candle: { timeMs: replayOpen, open: 108, high: 111, low: 107, close: 110, strength: 0.84, turnover: 0.038 },
+};
+const secondQuote: ReplayQuote = {
+  source: candleSource.id, sequence: 2, asOfMs: replayOpen + 180_000,
+  candle: { timeMs: replayOpen, open: 108, high: 112, low: 105, close: 106, strength: 0.78, turnover: 0.040 },
+};
+const finalQuote: ReplayQuote = {
+  source: candleSource.id, sequence: 3, asOfMs: replayOpen + 5 * 60_000,
+  candle: { timeMs: replayOpen, open: 108, high: 115, low: 105, close: 114, strength: 0.93, turnover: 0.045 },
+};
+
+const tape: readonly ReplayQuote[] = [
+  firstQuote,
+  // A previously seen sequence and an unrelated source would both visibly corrupt the chart if admitted.
+  { ...firstQuote, candle: { ...firstQuote.candle, close: 109, turnover: 0.099 } },
+  { ...secondQuote, source: 'ungranted-synthetic-source', candle: { ...secondQuote.candle, turnover: 0.088 } },
+  secondQuote,
+  finalQuote,
+];
+export const candleReplay = { barOpenMs: replayOpen, intervalMs: 650, steps: tape.length, finalSequence: finalQuote.sequence };
+export type CandleReplayPosition = { step: number; quote?: ReplayQuote; rejected?: 'stale' | 'source' };
+
+export function advanceCandleReplay(position: CandleReplayPosition, source: CandleBlock['source']): CandleReplayPosition {
+  const incoming = tape[position.step];
+  if (!incoming) return position;
+  const step = position.step + 1;
+  if (incoming.source !== source) return { ...position, step, rejected: 'source' };
+  if (incoming.sequence !== (position.quote?.sequence ?? 0) + 1) return { ...position, step, rejected: 'stale' };
+  return { step, quote: incoming };
+}
+
 export function isNumericField(value: unknown): value is NumericField {
   return typeof value === 'string' && Object.hasOwn(candleSource.fields, value);
 }

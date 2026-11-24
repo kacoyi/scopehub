@@ -4749,7 +4749,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use the M2-014 and M2-029 native observations with workbench-qualification-v2 and the M1-031 Ubuntu host. Measure moving annotation alignment and distinct presented frames across 120 refresh opportunities during quote updates, including viewport edges and different display scales. Compare native fault isolation and recovery on both hosts before selecting a renderer.",
+      "next_action": "Use the M2-014 and M2-029 native observations, the M2-031 synthetic quote replay and workbench-qualification-v2 with the M1-031 Ubuntu host. Correlate the draw revisions with verified presentation across 120 refresh opportunities during quote updates, including viewport edges and different display scales. Compare native fault isolation and recovery on both hosts before selecting a renderer.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -18852,6 +18852,84 @@
           "change": ["Assign the protected main-push observation after the verified repair integrates."],
           "data_plan": "Use the ordinary main-push report and existing timing artifacts with recorded revision, coverage and cache state.",
           "cleanup": "Keep the main-push finding open until the authoritative timing result and required evidence support closure."
+        }
+      }
+    },
+    {
+      "id": "M2-031",
+      "title": "Replay sequenced synthetic quotes on the qualification candlestick",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": ["M2-029"],
+      "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json"],
+      "decision_refs": ["0004", "0007", "0027"],
+      "acceptance": [
+        "Start a finite replay explicitly on the accepted five-minute synthetic qualification candlestick. Pan the same chart as quotes append and update one synthetic candle, and inspect quote sequence, viewport and annotation revisions at the primitive draw.",
+        "The frozen rows and their attribution survive. Wrong-source and stale quotes leave the last admitted draw intact. The final quote ends the replay. Reset, timeframe change and reopening recover the applicable static view and use the existing accepted definition rules."
+      ],
+      "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-031-4544afbca9522cde.json",
+          "sha256": "a1bc11ac5685df2b126febeb339a6668e867292bc3d0f757fbf4e08d4c49e7fb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The scoped Linux task check passed on 6f5231a9989b8d1cab95f7126c0d18e033ff3f0b, including all sixteen Chromium interactions. Standard Astra t9q accepted the correction after confirming the real held drag and stationary left-limit regressions. A separate native Ubuntu X11 observation during a 2999.955 ms drag sampled the frozen wick at x=461 before and x=459 after the first quote, with a 3 px maximum step between retained reads. Accepted replay observations kept the frozen 3.2% and drew 3.8%, no new bubble, and 4.5% on the appended candle. Fixed 60 Hz presentation and renderer selection remain under M2-003.",
+      "plan": {
+        "outcome": "An accepted candlestick can show one explicitly started, finite local replay without replacing the chart or its binding.",
+        "change_types": ["ui"],
+        "context": [
+          "apps/desktop/ui/src/workbench-candle-block.tsx",
+          "apps/desktop/ui/src/chart-adapter/candle-annotations.ts",
+          "tests/fixtures/workbench-qualification-v2.json",
+          "archives/observations/m2-003-motion-95f1774/observations.json (SHA-256 1ef3910f47b817bcf542954a77b2f579d3c39c86a62da5a5c29fafe528da0841)"
+        ],
+        "hypotheses": [
+          "The archived native pan rendered the frozen series, but could not overlap quote arrival. Appending and updating a single synthetic bar through the SDK can add that workload while retaining the same chart and viewport."
+        ],
+        "risks": [
+          {
+            "failure": "A replay starts implicitly or outlives its accepted five-minute candlestick, or accepts a stale or wrong-source quote.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "A replay update rewrites history, shifts the viewport, or pairs the new candle with a stale annotation revision.",
+            "checks": ["renderer-prototype-interaction", "market-workflow"]
+          },
+          {
+            "failure": "The first append changes the chart time-scale base while a drag retains its original offset, causing one-bar jumps or clamping at the left limit.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "Draw metadata records desired React state or is promoted to a native presentation verdict.",
+            "checks": ["renderer-prototype-interaction"]
+          }
+        ],
+        "rollback": "Revert the replay controls, finite fixture and adapter append path. Retain the M2-029 frozen binding and M2-003 native observation.",
+        "implementation": {
+          "modules": ["ui", "chart-adapter"],
+          "entrypoints": [
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "apps/desktop/ui/src/workbench-candle-block.tsx",
+            "apps/desktop/ui/src/chart-adapter/candle-annotations.ts",
+            "tests/ui/renderer-series-frame.spec.mjs"
+          ],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/attribution"},
+            {"path": "tests/fixtures/workbench-qualification-v2.json", "pointer": "/cases/unconventional-indicator/motion"}
+          ],
+          "non_goals": ["New sources, grants, services, renderer, storage or released financial data.", "Fixed 60 Hz presentation qualification and renderer selection remain in M2-003."],
+          "open_questions": ["Can the same candlestick and its result remain independently observable while the visible range changes and the finite tape advances?"]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": ["Frozen history and result provenance, the accepted and draft definition flow, and the existing chart workspace."],
+          "change": ["Give the accepted synthetic five-minute block a local start and reset control, one bounded quote tape, and per-draw revision observations."],
+          "data_plan": "Keep the replay cursor and one appended bar in memory under the current block. Keep fixture replay revisions separate from the frozen revisions. No profile changes.",
+          "cleanup": "Use the bounded fixture as input for the later native presentation observer without expanding this prototype into a general transport."
         }
       }
     }
