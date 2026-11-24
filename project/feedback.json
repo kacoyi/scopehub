@@ -3294,7 +3294,7 @@
       "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout.",
       "occurrence": 2,
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot.",
       "task_ids": [
         "M0-071",
@@ -3303,7 +3303,11 @@
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture preparation slot did not cover the real native workspace-open path. Application opens and explicit fixture preparations could overlap their PowerShell ACL helpers. The hosted recurrence did not record where latency accumulated inside PowerShell.",
+        "correction": "Make explicit fixtures and real workspace opens share one test-only admission slot before invoking the real native ACL preparation. Preserve the production policy, helper deadlines, refusal and cleanup.",
+        "prevention": "Exercise both actual paths against the same held mutex and reject a disconnected slot. Retain the first occurrence and its diagnostic, and compare the full original native desktop inventory including the four timed-out cases and the new shared-admission regression."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
