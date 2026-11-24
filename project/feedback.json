@@ -4362,6 +4362,40 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "verification-budget-recovery-order-and-provenance",
+      "source": "Independent Standard Astra review of 74e3ec3724fb528195aba44bfb301eb053f40fbe in the verification-cost checkout, .reports/m0-087/astra-74e3ec3.pending.txt lines 3–15, SHA-256 2ce1e3de9f98c08de421f3e510ac333112b39486f60100b1ff459eb5b78b1c5a.",
+      "observation": "Ordinary handoff accepted run 16 as recovery after the retained timing for linked overrun 18 disappeared. It accepted a single-parent descendant as a PR preview and rejected a genuine two-parent preview containing the repair through its first parent. It could not measure recovery from a within-budget median increase. After a measured recovery it dropped the still-active owner for two new overruns and mixed old runs into a false new sustained-growth window.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-failed-workflow-telemetry-retries-complete-inputs",
+      "source": "Independent Astra review of actual ordinary PR 45393623602. The original compact samples and Actions jobs are retained in .reports/timing/m0-087-actual-45393623602.json in the verification-cost checkout, SHA-256 593318f3ee6eedffc331ebd2ac3b2be57c46778714170d9c6b6ff7453936bd59.",
+      "observation": "The Ubuntu harness failed and the Windows verification path completed in 933 seconds. The overall Actions workflow failed. The exact attempt contains both compact samples and a completed bound matrix clock. Handoff reported missing artifacts and incomplete clocks and attempted to retrieve the available data again.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T122836.056903Z-08468273",
+          "source_commit": "b217c4090b61c50b3503a15e25fb6acd19449941",
+          "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
+        },
+        {
+          "run_id": "windows-change-45393623602-1",
+          "source_commit": "b217c4090b61c50b3503a15e25fb6acd19449941",
+          "report_sha256": "cbef829fd21725a7b0c9ef6e314b7c2d3352b2a884916c75d98ba530efa59570"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
