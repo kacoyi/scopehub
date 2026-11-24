@@ -36,38 +36,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            uv_sha256: a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5
-          - os: windows-latest
-            uv_sha256: edd61f7f5728a56cc62455386661860bdfc7bab65872f39b0c25bdcc1d8e1beb
+        os: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'push') && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest"]') }}
+        lane: ['']
     runs-on: ${{ matrix.os }}
     # Leave ordinary Windows jobs time for cache cleanup after checks and upload.
     # Each check retains its own deadline.
     timeout-minutes: ${{ inputs.profile == 'release' && 180 || matrix.os == 'windows-latest' && 60 || 30 }}
-    env:
+    env: &verify_env
       SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
-    steps:
+    steps: &verify_steps
       - name: Reject a task ID with the release profile
         if: inputs.task_id && inputs.profile == 'release'
         shell: bash
         run: |
           echo 'task_id cannot be combined with the release profile.' >&2
           exit 1
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - &verify_checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - &verify_uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version-file: pyproject.toml
-          checksum: ${{ matrix.uv_sha256 }}
+          checksum: ${{ runner.os == 'Windows' && 'edd61f7f5728a56cc62455386661860bdfc7bab65872f39b0c25bdcc1d8e1beb' || 'a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5' }}
           python-version: '3.12'
           enable-cache: true
           prune-cache: true
@@ -75,20 +68,46 @@ jobs:
           cache-dependency-glob: |
             uv.lock
             pyproject.toml
-      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-        with:
-          toolchain: '1.99.0'
-          components: rustfmt, clippy
-      - run: uv sync --locked
-      - run: pnpm install --frozen-lockfile
-      - name: Select the hosted verification profile
+      - &verify_scope
+        name: Select the hosted verification profile
         id: scope
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        # Missing scope or a failed selection leaves the complete change suite enabled.
+        # This selector uses the standard library and runs before dependency installation.
         continue-on-error: true
-        run: uv run --no-sync python scripts/verification_scope.py --ci
+        run: uv run --no-project python scripts/verification_scope.py --ci
+      - name: Select the Windows lane work
+        id: lane
+        if: matrix.lane != ''
+        env:
+          SCOPEHUB_WINDOWS_LANE: ${{ matrix.lane }}
+          SCOPEHUB_SCOPE: ${{ steps.scope.outcome == 'success' && steps.scope.outputs.decision != '' && steps.scope.outputs.profile || 'full' }}
+        shell: bash
+        run: |
+          if [ "$SCOPEHUB_WINDOWS_LANE" != core ] && [ "$SCOPEHUB_SCOPE" != full ]; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          elif [ "$SCOPEHUB_SCOPE" = full ]; then
+            echo 'split=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        if: steps.lane.outputs.skip != 'true'
+        with:
+          toolchain: '1.99.0'
+          components: ${{ matrix.lane == 'python' && 'rustfmt' || 'rustfmt, clippy' }}
+      - run: uv sync --locked
+        if: steps.lane.outputs.skip != 'true'
+      - run: pnpm install --frozen-lockfile
+        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
       - name: Check browser and build-output prerequisites
         id: build_setup
+        if: steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
         env:
           SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
           SCOPEHUB_SCOPE: ${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}
@@ -116,20 +135,40 @@ jobs:
               [ "$required" = 'false' ]; then
             printf 'skip=true\n' >> "$GITHUB_OUTPUT"
           fi
+      - name: Select the Cargo cache key
+        id: cargo_keys
+        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
+        env:
+          SCOPEHUB_WINDOWS_LANE: ${{ steps.lane.outputs.split == 'true' && matrix.lane || '' }}
+          TOOLCHAIN_HASH: ${{ hashFiles('rust-toolchain.toml') }}
+          LOCK_HASH: ${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        shell: bash
+        run: |
+          prefix="$RUNNER_OS-$RUNNER_ARCH-cargo-"
+          legacy="$prefix$TOOLCHAIN_HASH-"
+          primary="$prefix${SCOPEHUB_WINDOWS_LANE:+$SCOPEHUB_WINDOWS_LANE-}$TOOLCHAIN_HASH-"
+          printf 'primary=%s\nlegacy=%s\n' "$primary$LOCK_HASH" "$legacy$LOCK_HASH" >> "$GITHUB_OUTPUT"
+          {
+            echo 'fallback<<CACHE_KEYS'
+            if [ "$primary" != "$legacy" ]; then
+              printf '%s\n%s\n' "$legacy$LOCK_HASH" "$primary"
+            fi
+            printf '%s\n' "$legacy"
+            echo 'CACHE_KEYS'
+          } >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cargo_cache
-        if: steps.build_setup.outputs.skip != 'true'
+        if: *cargo_required
         with:
           path: |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml') }}-
+          key: ${{ steps.cargo_keys.outputs.primary }}
+          restore-keys: ${{ steps.cargo_keys.outputs.fallback }}
       - name: Install and start the pinned chart-test browser
-        if: steps.build_setup.outputs.skip != 'true'
+        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -141,6 +180,7 @@ jobs:
             probe_chromium
           fi
       - name: Preserve accepted history
+        if: matrix.lane == '' || matrix.lane == 'core'
         env:
           GIT_NO_REPLACE_OBJECTS: '1'
           SCOPEHUB_REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -148,8 +188,10 @@ jobs:
         run: uv run python scripts/project.py history --fetch-missing-checkpoint
       - name: Initialize CI verification reports
         id: reports
+        if: steps.lane.outputs.skip != 'true'
         run: uv run --no-sync python scripts/ci_artifacts.py prepare
       - name: Fetch the reviewed public publisher advisory
+        if: matrix.lane == '' || matrix.lane == 'core'
         # The dependency check fails on missing evidence. Keep other check reports available.
         continue-on-error: true
         timeout-minutes: 1
@@ -168,15 +210,21 @@ jobs:
         shell: bash
         run: uv run python scripts/check.py --task="$SCOPEHUB_TASK_ID"
       - name: Verify ${{ steps.build_setup.outputs.profile }} changes
-        if: steps.build_setup.outputs.profile != '' && !inputs.task_id
+        if: steps.build_setup.outputs.profile != '' && !inputs.task_id && steps.lane.outputs.skip != 'true'
         env:
           SCOPEHUB_SCOPE: ${{ steps.build_setup.outputs.profile }}
         shell: bash
         run: uv run python scripts/check.py --profile "$SCOPEHUB_SCOPE"
       - if: runner.os != 'Windows' && !inputs.task_id && steps.build_setup.outputs.profile == ''
         run: pnpm check
-      - if: runner.os == 'Windows' && inputs.profile != 'release' && !inputs.task_id && steps.build_setup.outputs.profile == ''
+      - if: runner.os == 'Windows' && matrix.lane == '' && inputs.profile != 'release' && !inputs.task_id && steps.build_setup.outputs.profile == ''
         run: uv run python scripts/check.py --require-windows
+      - name: Verify the Windows ${{ matrix.lane }} lane
+        if: steps.lane.outputs.split == 'true'
+        env:
+          SCOPEHUB_WINDOWS_LANE: ${{ matrix.lane }}
+        shell: bash
+        run: uv run --no-sync python scripts/check.py --ci-windows-lane "$SCOPEHUB_WINDOWS_LANE"
       - if: runner.os == 'Windows' && inputs.profile == 'release' && !inputs.task_id
         run: uv run python scripts/check.py --profile release --require-windows
       - name: Stage current verification evidence
@@ -187,23 +235,26 @@ jobs:
           SCOPEHUB_SCOPE_PROFILE: ${{ steps.scope.outputs.profile }}
           SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
           SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SCOPEHUB_WINDOWS_LANE: ${{ matrix.lane }}
+          SCOPEHUB_SCOPED_PROFILE: ${{ steps.build_setup.outputs.profile }}
           # A cache state describes the archive restored by this job.
           SCOPEHUB_TIMING_CACHE: >-
             ${{ steps.cargo_cache.outcome == 'skipped' && 'not_requested' ||
                 steps.cargo_cache.outcome != 'success' && 'unknown' ||
                 steps.cargo_cache.outputs['cache-hit'] == 'true' && 'warm' ||
+                steps.cargo_cache.outputs['cache-matched-key'] == steps.cargo_keys.outputs.legacy && 'warm' ||
                 steps.cargo_cache.outputs['cache-matched-key'] != '' && 'partial' ||
                 steps.cargo_cache.outputs['cache-primary-key'] != '' && 'not_restored' || 'unknown' }}
         run: uv run --no-sync python scripts/ci_artifacts.py stage
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: verification-${{ matrix.os }}
+          name: ${{ matrix.lane && format('verification-windows-{0}-{1}', github.run_attempt, matrix.lane) || format('verification-{0}', matrix.os) }}
           path: ${{ steps.artifacts.outputs.path }}
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
-      - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.timing_path != ''
+      - if: always() && matrix.lane == '' && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.timing_path != ''
         continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -212,8 +263,9 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
-      - name: Save the complete Cargo cache
-        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+      - name: Save the Cargo cache for this selection
+        # A split lane may seed only its own key on main, never the complete key.
+        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true')) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -222,3 +274,107 @@ jobs:
             ~/.cargo/git/db
             target
           key: ${{ steps.cargo_cache.outputs['cache-primary-key'] }}
+
+  windows_core:
+    name: Windows change checks (${{ matrix.lane }})
+    if: &windows_change github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        lane: [core]
+        os: &windows_runner [windows-latest]
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env: *verify_env
+    steps: *verify_steps
+
+  windows_browser:
+    name: Windows change checks (${{ matrix.lane }})
+    if: *windows_change
+    strategy:
+      matrix:
+        lane: [browser]
+        os: *windows_runner
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env: *verify_env
+    steps: *verify_steps
+
+  windows_python:
+    name: Windows change checks (${{ matrix.lane }})
+    if: *windows_change
+    strategy:
+      matrix:
+        lane: [python]
+        os: *windows_runner
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env: *verify_env
+    steps: *verify_steps
+
+  windows_change:
+    # Keep the protected context unique even when this job is skipped on non-PR runs.
+    name: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 'verify (windows-latest)' || 'Windows change verification (not requested)' }}
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    needs: [windows_core, windows_browser, windows_python]
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      SCOPEHUB_WINDOWS_LANE_RESULT: ${{ needs.windows_core.result == 'success' && needs.windows_browser.result == 'success' && needs.windows_python.result == 'success' && 'success' || 'failure' }}
+    steps:
+      - *verify_checkout
+      - *verify_uv
+      - *verify_scope
+      - run: uv sync --locked
+      - name: Initialize CI verification reports
+        id: reports
+        run: uv run --no-sync python scripts/ci_artifacts.py prepare
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.scope.outcome != 'success' || steps.scope.outputs.decision == '' || steps.scope.outputs.profile == 'full'
+        with:
+          pattern: verification-windows-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/scopehub-windows-lanes
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.scope.outcome == 'success' && steps.scope.outputs.decision != '' && steps.scope.outputs.profile != 'full'
+        with:
+          name: verification-windows-${{ github.run_attempt }}-core
+          path: ${{ runner.temp }}/scopehub-windows-lanes/verification-windows-${{ github.run_attempt }}-core
+      - name: Run uv run python scripts/check.py --require-windows
+        id: full
+        if: steps.scope.outcome != 'success' || steps.scope.outputs.decision == '' || steps.scope.outputs.profile == 'full'
+        run: uv run --no-sync python scripts/check.py --require-windows --ci-windows-aggregate "$env:RUNNER_TEMP/scopehub-windows-lanes"
+      - name: Verify ${{ steps.scope.outputs.profile }} changes
+        id: scoped
+        if: steps.scope.outcome == 'success' && steps.scope.outputs.decision != '' && steps.scope.outputs.profile != 'full'
+        env:
+          SCOPEHUB_SCOPE: ${{ steps.scope.outputs.profile }}
+        run: uv run --no-sync python scripts/check.py --profile "$env:SCOPEHUB_SCOPE" --ci-windows-aggregate "$env:RUNNER_TEMP/scopehub-windows-lanes"
+      - name: Stage current verification evidence
+        id: artifacts
+        if: always() && steps.reports.outcome == 'success'
+        env:
+          SCOPEHUB_SCOPE_OUTCOME: ${{ steps.scope.outcome }}
+          SCOPEHUB_SCOPE_PROFILE: ${{ steps.scope.outputs.profile }}
+          SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
+          SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SCOPEHUB_TIMING_CACHE: ${{ steps.full.outputs.cache || steps.scoped.outputs.cache }}
+        run: uv run --no-sync python scripts/ci_artifacts.py stage
+      - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-windows-latest
+          path: ${{ steps.artifacts.outputs.path }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.timing_path != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-timing-windows-latest
+          path: ${{ steps.artifacts.outputs.timing_path }}
+          if-no-files-found: error
+          retention-days: 30
+      - name: Require successful Windows lane jobs
+        if: ${{ !cancelled() && env.SCOPEHUB_WINDOWS_LANE_RESULT != 'success' }}
+        run: exit 1

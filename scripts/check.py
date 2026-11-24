@@ -72,6 +72,11 @@ PRIVATE_CHECK_LOGS = set(SESSION_CHECKS) | set(FIELD_ACTIONS) | {'configured-ext
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
+WINDOWS_BROWSER_CHECKS = {'market-workflow', 'market-recovery', 'chart-history', 'ubuntu-preview',
+                          'local-import-ui', 'market-live-stream', 'market-quality-states',
+                          'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
+                          'desktop-workspace-transport', 'desktop-localization'}
+WINDOWS_LANES = ('core', 'browser', 'python')
 CHECK_OUTPUT_LOCK = Lock()
 
 
@@ -120,6 +125,19 @@ def check_command(check):
 def check_timeout(check, system):
     default = check['timeout_seconds']
     return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
+
+
+def windows_lane_checks(selected, lane):
+    python = {'python-contracts-workers'}
+    if lane == 'python':
+        return selected & python
+    if lane == 'browser':
+        return selected & WINDOWS_BROWSER_CHECKS
+    return selected - python - WINDOWS_BROWSER_CHECKS
+
+
+def windows_lanes_run_id(ci):
+    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
 
 
 def build_window(catalog, selected, environment, index):
@@ -246,6 +264,8 @@ def main():
     selection.add_argument('--task')
     parser.add_argument('--fail-fast', action='store_true')
     parser.add_argument('--ci-build-setup-required', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--ci-windows-lane', choices=WINDOWS_LANES, help=argparse.SUPPRESS)
+    parser.add_argument('--ci-windows-aggregate', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.ci_build_setup_required:
         try:
@@ -260,11 +280,22 @@ def main():
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
     ci = ci_provenance(source, os.environ, ROOT)
+    split = bool(args.ci_windows_lane or args.ci_windows_aggregate)
+    if split and (not ci or ci['event'] not in {'pull_request', 'push'} or platform.system() != 'Windows'
+                  or args.task or args.fail_fast):
+        parser.error('Windows lanes require hosted Windows change verification')
+    if args.ci_windows_lane and (args.profile or args.ci_windows_aggregate or args.require_windows):
+        parser.error('A Windows lane uses its fixed selection')
+    if args.ci_windows_aggregate and not (args.require_windows or args.profile):
+        parser.error('The Windows aggregate requires a full native or scoped selection')
+    if args.ci_windows_lane:
+        selected = windows_lane_checks(selected, args.ci_windows_lane)
     maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
+    if split and not args.profile:
+        run_id = windows_lanes_run_id(ci)
     run_dir = REPORTS / 'runs' / run_id
-    run_dir.mkdir(parents=True)
     env = checkout_git_environment()
     if not (env.get('CI') or env.get('GITHUB_ACTIONS')):
         env.setdefault('CARGO_INCREMENTAL', '0')
@@ -273,11 +304,6 @@ def main():
     env['SCOPEHUB_PYTHON'] = sys.executable
     env['PYTHONUNBUFFERED'] = '1'
     env.pop('SCOPEHUB_REUSE_OPERATIONS_BUILD', None)
-    environment = {
-        'system': platform.system(), 'release': platform.release(), 'machine': platform.machine(),
-        'python': platform.python_version(), 'python_executable': sys.executable,
-        'tools': {name: tool_version(name) for name in ['node', 'pnpm', 'rustc', 'cargo', 'uv']},
-    }
     results = []
     candidate_artifacts = None
     stopped = False
@@ -286,6 +312,27 @@ def main():
     overlap = (hosted_full and
                not any(env.get(key) for key in ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')))
     concurrent_results = {}
+    if args.ci_windows_aggregate:
+        if __package__:
+            from .ci_artifacts import collect_windows_lanes
+        else:
+            from ci_artifacts import collect_windows_lanes
+        imported, elapsed = collect_windows_lanes(ROOT, args.ci_windows_aggregate, project, source, ci,
+                                                    selected, os.environ, profile=args.profile)
+        if args.profile:
+            # A scoped PR runs the same harness on the core runner and publishes its original report.
+            raise SystemExit(0 if imported['status'] == 'passed' else 1)
+        environment = imported['environment']
+        results = imported['checks']
+        started = time.monotonic() - elapsed
+        catalog = []
+    else:
+        run_dir.mkdir(parents=True)
+        environment = {
+            'system': platform.system(), 'release': platform.release(), 'machine': platform.machine(),
+            'python': platform.python_version(), 'python_executable': sys.executable,
+            'tools': {name: tool_version(name) for name in ['node', 'pnpm', 'rustc', 'cargo', 'uv']},
+        }
     for index, check in enumerate(catalog):
         command = check_command(check)
         if check['id'] not in concurrent_results and (check['id'] not in selected or stopped):
@@ -345,7 +392,8 @@ def main():
                                                not any(r['id'] == 'windows-native-build' and r['status'] == 'passed' for r in results))
     if native_blocked:
         passed = False
-    integration_requested = args.require_windows or (not args.task and args.profile in {None, 'release'})
+    integration_requested = not args.ci_windows_lane and (
+        args.require_windows or (not args.task and args.profile in {None, 'release'}))
     required = project['catalog']['required_change_checks']
     observations = {result['id']: result for result in results}
     unverified = [key for key in required if observations.get(key, {}).get('status') != 'passed'
@@ -355,7 +403,9 @@ def main():
     integration_blocked = integration_requested and bool(applicable_missing)
     if integration_blocked:
         passed = False
-    failed = any(result['status'] == 'failed' for result in implemented) or not source_unchanged or not project_unchanged
+    lane_failure = bool(args.ci_windows_aggregate and os.environ.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success')
+    failed = (any(result['status'] == 'failed' for result in implemented) or lane_failure
+              or not source_unchanged or not project_unchanged)
     milestones, acceptance = product_progress(project, results)
     report = {
         'report_version': '2.0', 'run_id': run_id, 'generated_at': datetime.now(timezone.utc).isoformat(),
@@ -367,7 +417,8 @@ def main():
         'native_requirement': {'requested': args.require_windows, 'satisfied': not native_blocked},
         'integration_gates': {'requested': integration_requested, 'required': required, 'unverified': unverified,
                               'status': ('blocked' if unverified else 'passed') if integration_requested else 'not_requested'},
-        'selection': {'profile': args.profile or ('task' if args.task else 'full'), 'task_id': args.task,
+        'selection': {'profile': (f'ci-windows-{args.ci_windows_lane}' if args.ci_windows_lane
+                                  else args.profile or ('task' if args.task else 'full')), 'task_id': args.task,
                       'checks': sorted(selected)},
         'task_definitions': {task['id']: task_definition_hash(task) for task in project['tasks'].values()},
         'status_scope': 'Selected implemented checks; omitted and planned checks never establish acceptance.',
@@ -384,6 +435,10 @@ def main():
             'A dirty-worktree digest identifies tested inputs but does not independently preserve their source bytes.',
         ],
     }
+    if args.ci_windows_aggregate:
+        report['limitations'].append('Elapsed time covers the interval from the first lane harness start to aggregation.')
+    if lane_failure:
+        report['limitations'].append('At least one Windows lane job did not succeed.')
     findings = sorted(
         feedback_fingerprint(item) for item in project['feedback']['items']
         if item['status'] != 'addressed' and item['severity'] != 'minor'
