@@ -4715,7 +4715,7 @@
       "id": "M2-003",
       "title": "Select a V1 workbench renderer using a native prototype",
       "milestone": "M2",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M2-002",
         "M2-014"
@@ -4744,7 +4744,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use the M2-014 interactive slice and its retained native observations. Exercise a binding to an accepted numeric series, measure comparable native interaction and redraw, review the staged Ubuntu host in M1-031 and compare the alternative wherever it could change the renderer choice.",
+      "next_action": "Exercise the owner feedback at the first editable surface. From blank, choose the information, binding and visual property through ordinary controls; repeat with a different question and arrangement without adding a widget or editing JSON. Show the result before deciding the renderer.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -4781,6 +4781,12 @@
             "checks": [
               "workbench-renderer-probe"
             ]
+          },
+          {
+            "failure": "Another scripted tour can pass while users can only configure two developer-selected views. Verify different authored bindings and arrangements, and retain the distinction between prototype and release evidence.",
+            "checks": [
+              "workbench-renderer-probe"
+            ]
           }
         ],
         "rollback": "Remove the prototype entry and its renderer together. Retain failed native observations and the previous renderer decision.",
@@ -4791,7 +4797,8 @@
           "entrypoints": [
             "apps/desktop/ui/src/main.tsx",
             "apps/desktop/ui/src/workspace-layout.tsx",
-            "crates/application/src/workspace/layout.rs"
+            "crates/application/src/workspace/layout.rs",
+            "apps/desktop/ui/src/workbench-prototype.tsx"
           ],
           "rules": [
             {

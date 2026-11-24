@@ -3830,6 +3830,22 @@
         "prevention": "The unchanged three-instrument replay assertions passed at the same narrow diagnostic viewport and in both hosted task jobs at be199eb. They still require the original, intermediate and terminal paints with their independent price and position checks."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "workbench-owner-authored-view",
+      "source": "Owner hands-on feedback after following the M2-014 prototype walkthrough on 2026-11-23.",
+      "observation": "The owner could follow the demonstrated steps but could not decide what information to see. The reviewed prototype fixes the synthetic closes and admits only threshold tiles and a value table. Its successful walkthrough demonstrates editing and recovery; it does not establish independent composition.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-003",
+        "M2-013"
+      ],
+      "regression_checks": [
+        "workbench-renderer-probe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
