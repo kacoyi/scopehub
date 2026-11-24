@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-026",
   "tasks": [
     {
       "id": "M0-001",
@@ -978,7 +978,7 @@
         "Validate user-data backup/restore and upgrade migration before distributing an upgrade that changes persisted data; define recovery when downgrade is unsupported.",
         "Bind the same release installer and independent clean-install and upgrade observations for representative Windows 10 and Windows 11 client builds. Retain the raw startup, presented-frame and process-tree samples and the performance verdict for this candidate.",
         "Exercise the chart-free workbench with the released renderer on the exact candidate installer and bind the result to its hash.",
-        "Run workbench-qualification-v1 on that same installer. Retain the case, gate and blind-challenge verdicts and the matching authored-canvas performance observations."
+        "Run workbench-qualification-v2 on that same installer. Retain all eight case verdicts, the five gates, blind challenge and matching native, client and sustained-workload evidence."
       ],
       "checks": [
         "windows-installation",
@@ -3587,7 +3587,8 @@
       "acceptance": [
         "From Codex CLI and one compatible desktop AI application, independently connect to an explicitly selected running workspace with synthetic data. Read the current chart and compare its source, timeframe and selection to the desktop.",
         "In each client, first attempt a mutation under read-only access. After the user grants write access, add an attributed annotation, inspect it in the same chart and undo it. Record client, version, host, workspace revision and redacted results. Use the client's own model access.",
-        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification."
+        "For each observed client verify that only its user’s approved workspace data cross the bridge. Test the named client independently of any embedded model grant. Use synthetic records for retained verification.",
+        "Exercise the bidirectional-evidence case on an authored view. Record target and selection revision for a permitted read, a denied mutation, a granted reverse selection, a stale request and revocation."
       ],
       "checks": [
         "configured-external-ai-clients",
@@ -4735,30 +4736,34 @@
       ],
       "acceptance": [
         "Use a chart-free composition of local synthetic evidence and a visual encoding of an accepted numeric series. Build the uncertain interactions in a candidate renderer on Ubuntu and Windows. Compare a host-interpreted composition with an isolated code renderer on expressiveness, cross-engine layout, input and redraw latency, packaging and the cost of moving a saved workbench. Prototype the alternative where it could change the choice.",
-        "Keep privileged controls and the last accepted view in the host. Exercise a failed or stalled draft. For an executable candidate verify the effective native, file and network isolation on both platforms and record the limits. A container name or an iframe embedded in a privileged window is insufficient evidence.",
+        "Keep privileged controls and the last accepted view in the host. Exercise the workbench-qualification-v2 process, resource, native access and egress boundaries on both platforms. Record the three-second watchdog intervention, independent process exit and automatic restore.",
+        "Use the local event and spread fixtures to exercise same-frame chart geometry and versioned visual projections. Deliver the automated workbench-runtime-smoke checks for changes to the declared SDK and shell surfaces.",
         "Record the source revision, native runtime versions, synthetic inputs, observations, decision and revisit conditions. Choose a viable option by evidence, or report the gap. Prototype approval grants no new product data access or code execution rights."
       ],
       "checks": [
         "architecture",
         "operations-workflow",
         "workbench-renderer-probe",
+        "workbench-runtime-smoke",
         "market-workflow",
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use the M2-014 interactive slice and its retained native observations. Exercise a binding to an accepted numeric series, measure comparable native interaction and redraw, review the staged Ubuntu host in M1-031 and compare the alternative wherever it could change the renderer choice.",
+      "next_action": "Use the M2-014 slice, the local workbench-qualification-v2 inputs and the staged Ubuntu host in M1-031. Compare accepted-series geometry, interaction, redraw and fault isolation on both native hosts before selecting a renderer.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
       "plan": {
         "outcome": "Open a blank chart-free prototype, compose a view of a frozen synthetic series, change its visual encoding and recover the accepted view after a rejected draft. Use matched native observations to decide the renderer.",
         "change_types": [
-          "ui"
+          "ui",
+          "workbench-runtime"
         ],
         "context": [
           "apps/desktop/ui/src/main.tsx",
           "apps/desktop/ui/src/workspace-layout.tsx",
           "crates/application/src/workspace/layout.rs",
+          "tests/fixtures/workbench-qualification-v2.json",
           "contracts/decisions/0027-v1-user-composed-workbench.json"
         ],
         "hypotheses": [
@@ -4781,7 +4786,8 @@
           {
             "failure": "Browser observations obscure a native runtime difference.",
             "checks": [
-              "workbench-renderer-probe"
+              "workbench-renderer-probe",
+              "workbench-runtime-smoke"
             ]
           }
         ],
@@ -15290,7 +15296,8 @@
         "Use a synthetic note about issuer A reviewed at 09:00 UTC. Of disclosures on that date for A at 08:55, B at 09:05 and A at 09:10 UTC, show only the 09:10 item. On refresh, include a new A item at 09:20. A scoped AI edit puts the newest match first; preview, apply, adjust manually, undo and reopen the saved view. Check the ordering, cutoff and evidence identities after each edit.",
         "A successful read with no matches can leave the chosen area empty. Disconnect the source, then revoke access and reopen. Distinguish unavailable coverage from no matches, honor current display rights and keep the user's composition and source records independent.",
         "Create and structurally reshape the view using the normal workbench and embedded AI, then refine a single element directly. Use the same released application to express a second arrangement and a different binding without a dedicated product component. Bind the points of a frozen, accepted numeric series to a user-chosen visual property and inspect its exact value and evidence.",
-        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Complete M2-013 by exercising this journey in the native development application. M5-001 owns the subsequent packaged Windows acceptance."
+        "Recover the last accepted composition after an invalid draft or interrupted apply. Reopen an existing single-chart layout as well as the new chart-free layout. Complete M2-013 by exercising this journey in the native development application. M5-001 owns the subsequent packaged Windows acceptance.",
+        "Observe the shared selection round trip and cold restore cases in the native workspace. Include a stale AI selection and a revoked, cached source before the first data frame."
       ],
       "checks": [
         "chart-free-workbench",
@@ -17328,6 +17335,56 @@
           "change": ["Add the owner-approved qualification to release planning."],
           "data_plan": "The specification uses synthetic data and opaque evidence identities.",
           "cleanup": "Archive the documentary task check and return focus to the planned renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M2-026",
+      "title": "Specify workbench fault isolation, shared evidence and cold recovery",
+      "milestone": "M2",
+      "status": "active",
+      "delivery": "current-contract",
+      "depends_on": ["M2-025"],
+      "scope": [
+        "contracts/workbench-v1.json", "tests/fixtures/workbench-qualification-v2.json",
+        "tests/fixtures/workbench-inputs-v2.json", "project/checks.json", "project/delivery.json", "project/tasks.json"
+      ],
+      "decision_refs": ["0004", "0008", "0027", "0028"],
+      "acceptance": [
+        "The current contract resolves eight qualification cases and five gates. It specifies process and egress isolation, synchronized geometry, calculation authority, actual style application, shared evidence with independent client grants and revoked-source recovery on cold restart.",
+        "Local synthetic event and paired-market inputs support a renderer trial. The catalog identifies an unimplemented SDK and shell smoke check, native trials and packaged qualification. Earlier qualification records remain reproducible."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "Check the resolved specification, input locators, calculation expectations and planned gate ownership.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A reviewer can distinguish an isolated, truthful, state-preserving workbench from an apparently successful demo on the same inputs.",
+        "change_types": ["tooling"],
+        "context": ["contracts/workbench-v1.json", "contracts/ai-workflows-v1.json", "tests/fixtures/workbench-qualification-v1.json", "project/checks.json", "project/delivery.json"],
+        "hypotheses": ["Versioned inputs and normal-entry observations make all eight cases reproducible without selecting a renderer or purchasing a service."],
+        "risks": [
+          {"failure": "A browser smoke run is recorded as native isolation or packaged acceptance.", "checks": ["project-state", "python-contracts-workers"]},
+          {"failure": "A numeric display or a restored cache silently becomes a financial fact or a new grant.", "checks": ["project-state", "python-contracts-workers"]}
+        ],
+        "rollback": "Restore the preceding qualification pointer and catalog bindings from the reviewed commit.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["contracts/workbench-v1.json", "project/checks.json", "project/delivery.json"],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/selection_ownership"},
+            {"path": "project/checks.json", "pointer": "/desktop_performance"}
+          ],
+          "non_goals": ["Implementing the renderer, writing executable probes or changing the CI workflow."],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "requirements-change",
+          "preserve": ["All prior qualification cases, existing grants, native platform requirements and the sustained workload."],
+          "change": ["Strengthen the qualification and declare the future smoke gate."],
+          "data_plan": "Commit synthetic inputs only. All evidence targets are scoped and versioned.",
+          "cleanup": "Archive the specification check and return focus to the planned renderer task."
         }
       }
     }

@@ -1,0 +1,97 @@
+{
+  "id": "workbench-qualification-v2",
+  "purpose": "Qualify a user-authored workbench on a frozen desktop build using eight cases, five gates and a challenge disclosed after package freeze.",
+  "freeze": {
+    "before_authoring": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/freeze/before_authoring"}},
+    "blind_challenge": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/freeze/blind_challenge"}},
+    "decision": "Require each case, each gate and the blind challenge on the same Windows candidate. A product edit, rebuild, extra grant or new packaged dependency to express a requested presentation fails that build. Retain per-case evidence. An unavailable input, client, platform or observation leaves its requirement blocked. A changed build receives a new challenge."
+  },
+  "cases": {
+    "unconventional-indicator": {
+      "procedure": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/unconventional-indicator"}},
+      "drawing": "For the chart candidate, bundle the chart SDK inside the isolated renderer. With Lightweight Charts, attach the drawing to its series primitive. Candles, glow and the bubble use the same time/price scales, viewport revision and draw cycle there. The trusted host streams sequenced read-only data and binding metadata. Pan, zoom, pixel projection and the drawing context stay local to that rendering surface. Return selection intents through the checked operation channel.",
+      "motion": "On a recorded 60 Hz display capture a two-second pan or zoom while quotes arrive. Exercise resize and different display scales. Compare the bubble to its candle within one logical pixel in every presented frame. Count the display refreshes during motion and retain per-frame times. A missed refresh or a stale overlay during the 60 Hz trial fails even if the final still is aligned."
+    },
+    "chart-free-event-desk": {
+      "procedure": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/chart-free-event-desk"}},
+      "local_input": {"$source": {"path": "tests/fixtures/workbench-inputs-v2.json", "pointer": "/event_desk"}},
+      "observation": "Use the local event revision, impact interpretations, three quote series and note for the first renderer trial. Publish the supplied 09:20 append as its next revision. Record the grant and the exact revision used by each view."
+    },
+    "reference-redesign": {
+      "procedure": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/reference-redesign"}},
+      "observation": "Include a previously unseen background color and negative letter spacing chosen after the build is frozen. Inspect the computed styles, first visible frame and a successful click with the production content policy active."
+    },
+    "linked-spread-research": {
+      "procedure": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/linked-spread-research"}},
+      "local_input": {"$source": {"path": "tests/fixtures/workbench-inputs-v2.json", "pointer": "/spread_research"}},
+      "stages": "For the renderer trial supply the fixed paired histories and precomputed, versioned financial rows from local input. For packaged acceptance run the two ordinary local Parquet imports and the authorized analysis path. Compare the resulting values and day-T locator with the independent procedure oracle. Record input kind, calculation revision and observation for each stage."
+    },
+    "scoped-edit-continuity": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/scoped-edit-continuity"}},
+    "fault-and-permission-containment": {
+      "given": "Start the last accepted canvas and an ordered quote replay. Declare a bounded memory budget for the candidate before injecting a fault. Use synthetic file, SQLite, credential, position and strategy markers and a controlled receiver. A permitted positive control must reach that receiver and be visible to the independent network observer.",
+      "faults": ["malformed draft before activation", "render event loop stalls", "renderer exceeds its memory limit"],
+      "draft_rejection": "Reject the malformed draft before activation, retain the accepted interactive view, and route its diagnostic through the scoped repair procedure.",
+      "isolation": "The canvas runs in an OS process independently terminable from the trusted shell UI, Rust supervisor and quote service. On native WebView2 and WebKitGTK identify the actual processes and their roles and exercise termination. The shell must still accept input during each fault. Measure peak resource use against the declared limit and contain exhaustion before it can terminate the host.",
+      "watchdog": {
+        "max_stall_to_host_intervention_ms": 3000,
+        "procedure": "Use a host monotonic clock and a health response tied to the active renderer event loop. A separate timer that still runs while presentation is stalled cannot satisfy it. By the deadline from the observed stall, the trusted shell is interactive and Rust has initiated termination of the failed instance. On memory-limit breach, contain it immediately. Without user input, create a fresh renderer and restore the last accepted revision. Keep one-click rollback reachable in the shell.",
+        "observe": "Retain stall or limit event, host intervention, old-process exit, replacement identity and first interactive frame of the restored revision. Measure recovery-to-frame separately. Verify that the failed draft never becomes accepted, the host and quote service survive, and the final closed bar and ordered feed positions are accounted for. Include a healthy idle canvas as a control."
+      },
+      "permissions": {
+        "policy": "The authored frame has no privileged Tauri bridge, including window.__TAURI_INTERNALS__, and has no ambient filesystem, database, credential or network authority. Apply a default-deny CSP (default-src 'none') with narrowly scoped packaged assets and necessary local style or blob resources. Enforce navigation, new-window and networking restrictions at the host or isolation boundary, including WebRTC.",
+        "observations": ["direct host command and protected local resource access", "fetch and XHR", "image resource loads", "CSS background images", "new-window and external navigation", "WebRTC connection establishment"],
+        "verdict": "For each route inspect the host decision and independent network observation on both native runtimes. Require zero unauthorized reads or writes, no external window or connection, and zero bytes sent by the canvas or on its behalf to unapproved destinations. The healthy control establishes observer coverage. Missing visibility blocks the verdict. Keep production credentials, private records and public endpoints outside the trial."
+      }
+    },
+    "bidirectional-evidence": {
+      "given": "Open the local event desk, a separately pinned comparison, and an authorized AI session. Read the initial selection revision. Use the custom impact cell, its underlying event, and the neighboring future cell for the race case.",
+      "clicked": {"kind": "table_row", "source_id": "sim-impacts", "source_revision": "impact-1", "locator": "equity-0910"},
+      "related": {"$source": {"path": "tests/fixtures/workbench-inputs-v2.json", "pointer": "/event_desk/impact/event_target"}},
+      "newer": {"kind": "table_row", "source_id": "sim-impacts", "source_revision": "impact-1", "locator": "future-0910"},
+      "act": "Hover, then click the custom cell. The canvas sends its standard evidence target and expected_selection_revision through workspace.selectEvidence. Ask the AI why the cell is unusual. Read the selected target and revision through workspace.getContext, then have the AI select the related event through the same registry. Repeat with a user click on the newer cell before the AI's earlier request arrives.",
+      "observe": [
+        "Hover leaves the shared revision unchanged. The initial click advances it once. The answer cites the selected revision and the 25 basis point surprise relative to zero. The cell direction is identified as a fixture interpretation. A current reverse selection advances the revision once and highlights exactly the related event while the pinned comparison stays fixed.",
+        "The core rejects an intent with the superseded revision. The newer selection and revision survive. Each separately granted external MCP client sees the same current target and revision. A read-only client cannot change them. Exercise the granted reverse action and revocation with the clients covered by configured-external-ai-clients, retaining redacted client-specific observations."
+      ]
+    },
+    "data-quality-and-cold-restore": {
+      "given": "Use an accepted custom event desk whose authored definition deliberately omits quality labels. Save its revision, frozen bindings, selection and note. Retain the grant and cached synthetic values.",
+      "states": [
+        {"input": "healthy query with no matches", "expect": "Successful empty result with healthy coverage."},
+        {"input": "old last quote while still connected", "expect": "Stale and the actual as-of time."},
+        {"input": "missing expected bar with a recent quote", "expect": "Gapped coverage and the missing interval."},
+        {"input": "feed disconnected", "expect": "Disconnected, alongside independently observed freshness and coverage."},
+        {"input": "source grant revoked", "expect": "Revoked with the original binding identity and no display of protected values."}
+      ],
+      "act": "Run the states independently and with a combined stale, gapped and disconnected stream. Inspect prominent trusted-shell status while the canvas is open. Fully stop the application and renderer, then launch a fresh process twice: once with the grant valid and once after revocation with the old cache present.",
+      "observe": "Keep Simulated visible for accessible sample data. Shell status tracks each dimension even when the authored view ignores it. On both cold launches restore the accepted definition, local packaged assets and frozen references with zero model calls, dependency downloads or vendor recompiles. Check grants before the first data frame. A revoked binding causes zero protected reads and zero frames containing cached values. Keep the user's layout and note under their own rights and retain the original source identity."
+    }
+  },
+  "gates": {
+    "fixed-host": "Across all authored cases and the blind challenge, compare package and host identities before and after. Keep the Rust kernel, privileged frontend, protocol, primitives, vendor assets and permissions fixed. Retain editable definition changes and ordinary operation receipts.",
+    "state-continuity": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/gates/state-continuity"}},
+    "financial-truth": {
+      "authority": "The core admits and versions authorized financial results such as adjusted prices, RSI, the paired spread, Z-score, volatility and forward return. Each binds its inputs, method, revision, units, availability and missing values. Only these attributable results can supply financial claims or action inputs.",
+      "visual_transforms": "The canvas may map coordinates, bin accepted points, normalize histogram areas and draw a smoothed density. Label such output as a visual projection. Expose the source revision, included and missing rows, bin edges, normalization and kernel bandwidth. To cite a numerical probability or density as analysis, use a versioned independently reproducible calculation with those parameters. Changing a visual parameter affects the projection and preserves the accepted financial result.",
+      "oracle": "Compare both financial values and plotted statistics to the spread case's independent expectations. Through the trusted shell inspect the point, source, units, revision, time and quality. A fabricated value, suppressed quality state or presentation-derived financial claim fails."
+    },
+    "sustained-performance": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/gates/sustained-performance"}},
+    "hot-edit-and-repair": {
+      "timing_and_repair": {"$source": {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/gates/hot-edit-and-repair"}},
+      "style_input": {"example_background": "#14171A", "font_px": 16, "tracking_em": -0.02, "expected_tracking_px": -0.32, "example_classes": ["bg-[#14171A]", "tracking-[-0.02em]"]},
+      "style_oracle": "Exercise a previously unshipped literal color and tracking value. If utility classes are offered, include their arbitrary-value syntax. At 16 px the example must render RGB(20,23,26) and -0.32 px tracking. Record computed styles and a working input target on the first correct frame. Measure every warm save including style discovery, generation and application. A missing style, late first styled frame or any sample over 300 ms fails.",
+      "candidate": "Use locally bundled vendor dependencies. Compare bundled incremental style extraction, local runtime generation or direct authored CSS on the same inputs under the production policy. Reopening uses the accepted style artifact. No dependency download or vendor rebuild is required for a local edit."
+    }
+  },
+  "evidence": {
+    "change_smoke": {
+      "check": "workbench-runtime-smoke",
+      "trigger": "Require an automated run for changes to the canvas SDK, shell, renderer, data and intent bridge, style pipeline, process or permission configuration and bundled rendering dependencies once the check is delivered.",
+      "workload": {"history_bars": 10000, "updates_per_second": 10, "seconds": 30, "expected_positions": 300},
+      "observe": "Automate the controlled faults and denial observations, the state comparison across view changes, short replay and actual styled save-to-input timing. Require all positions and the final state, zero changes to protected research state, zero unauthorized traffic and the specified recovery and hot-edit deadlines. Exclude only the requested presentation change and expected incoming market revisions from the state comparison.",
+      "platforms": "Headless automation covers portable presentation, routing and state logic. Exercise OS process containment, effective egress, recovery controls and presented frames in the actual Ubuntu and Windows hosts on affected changes. Preserve the runtime and surface with each result."
+    },
+    "native_and_release": "M2-003 compares native candidates and owns the smoke checks. M2-013 exercises authoring, evidence and cold restoration. M4-005 owns independent MCP client observations. M5-001 binds all eight cases, five gates, blind prompt and the full two-hour workload to the exact Windows candidate. Retain the package hash, grants, fixture revisions, timings, receipts and per-case verdicts. The short smoke workload supplies early feedback only.",
+    "visual_review": "Once the machine checks pass, inspect both reference designs, moving chart anchors, visual hierarchy and interaction feel in the native window. Retain observed captures and feedback separately from automated assertions."
+  }
+}

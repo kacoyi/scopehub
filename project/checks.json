@@ -797,7 +797,7 @@
     {
       "id": "workbench-renderer-probe",
       "status": "planned",
-      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Start with the numeric binding, scoped edit and recovery cases in workbench-qualification-v1. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",
+      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the local inputs in workbench-qualification-v2. Measure same-frame chart geometry, independently terminable rendering and host-supervised recovery. Record visual and interaction fidelity, latency, effective authority, migration cost and the renderer choice.",
       "platforms": "all",
       "command": null,
       "timeout_seconds": 900,
@@ -815,11 +815,20 @@
     {
       "id": "workbench-qualification",
       "status": "planned",
-      "purpose": "Verify tests/fixtures/workbench-qualification-v1.json against the exact Windows package. Require six case observations, five gate results and a challenge issued after package freeze. Use the matching authored-canvas runtime-stability evidence for the sustained workload.",
+      "purpose": "Verify tests/fixtures/workbench-qualification-v2.json against the exact Windows package. Require all eight cases, five gates and a post-freeze challenge, including shared selection and cold recovery after revocation. Reuse matching native client and sustained-workload evidence.",
       "platforms": "windows-x64",
       "command": null,
       "timeout_seconds": 1800,
       "cadence": "release"
+    },
+    {
+      "id": "workbench-runtime-smoke",
+      "status": "planned",
+      "purpose": "Automate the change_smoke procedure in workbench-qualification-v2 for canvas SDK, renderer and shell changes. Observe short replay, state continuity, styled hot edits, watchdog takeover and zero unauthorized egress. Retain distinct headless and native results.",
+      "platforms": "all",
+      "command": null,
+      "timeout_seconds": 900,
+      "cadence": "task"
     },
     {
       "id": "desktop-localization",
