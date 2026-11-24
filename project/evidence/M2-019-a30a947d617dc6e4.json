@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-019",
+  "task_definition_sha256": "6452ed7e218091bba7670268a1646349508b6186f524aae655c85d4d84c71509",
+  "run_id": "20261124T040311.325080Z-48a3f3b2",
+  "recorded_at": "2026-11-24T04:04:27.862201+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "a2b27d9dda6d161774b509c38828c3f1933b30cedbc7a7badcaeea5a9a34a0b8",
+    "file_count": 612,
+    "git_head": "5f9f32d1207b94b71cb18caf48ac9b6a006edc64",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a30a947d617dc6e47ac7c3bacf091fc542ec9a8cff11103a03d8abc52f35dfb5",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/chart-draft-layout/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/chart-draft-layout/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6ffe94f4b4f58d31d7496c143362383b8beddf0242cdc3cda93a197da8453b8e"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "180438cada9f20cf8bcc57dd5da3cb32e8c8bb64bf99d3545dabfe7940090da0"
+    },
+    {
+      "id": "chart-coordinate-prototype",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/chart-coordinate.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "730e3a62e296ff7cb83844928563d108e9f57688b9f61d1e49a32b4c6a956ef9"
+    }
+  ],
+  "project_definition_sha256": "7263036be63e9ff9c2b8d4a2599e46f88291eec842903caeee48ca5dc24d033c",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "281998bc380e4e800a7d86dfd36856de8412c1b1b9edc4fa23711e6a64cf2da8"
+  ]
+}
