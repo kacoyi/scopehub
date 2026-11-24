@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-096",
+  "task_definition_sha256": "e5ac4bf80863b89e1078a521fffb6056107db3ba90f1727b70e22958a528bbd3",
+  "run_id": "20261124T165838.067701Z-34195dc0",
+  "recorded_at": "2026-11-24T17:01:21.986027+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1f1b3447be96c63cb59804287804759352494794af5b9bcc11fa1d3428cc1999",
+    "file_count": 597,
+    "git_head": "a4d1c3acb46f14ef14f3ddbf0c0d1a2fb48b120a",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a654c596bda246150090b44219ccd8bd3e8ced92d2255d325b193a6c7a537e45",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/local-api-settings/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/local-api-settings/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "63e01c9a0a907c2a9d54eee3df19a520da1f59a3d4ab9a95379ed98134af4094"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/local-api-settings/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f28c448920985c643b4f350d46c8219d60cc6506765aee3cf35315f529f2cd3b"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "db61cb84a5bed4b30d4b132df4e953b84e5b8aab350204792807d4bacc79634f"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eaf1ffead7f51a57e75aa00fdc14f6083a792664d1790f6de2fa523d8956fbdc"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d3071789c868ff29db132250cbb7a64b5bb9219cd38948043f7ef5e19fe59c6a"
+    },
+    {
+      "id": "local-api-connection",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/local-api-settings/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "local-api"
+      ],
+      "exit_code": 0,
+      "log_sha256": "01fca82b7901d13386681ab11a75efc803e5a3a0b3f69948bf37d63ae65c5a8d"
+    }
+  ],
+  "project_definition_sha256": "34b02fe7fe9205dcc4f62f39ab59bae573fc8c539b5ef68c7a3b3d59b3929859",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1be7f9b38df22c440f861aecf46573260612ab2317e3a800ea6b63fe66aa01b9",
+    "e1752e8baa3b7c867ae8d013f7d194294be5f1a9caf46224e117a68cd63d6ee9"
+  ]
+}

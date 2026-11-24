@@ -5129,7 +5129,7 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-096"
       ],
@@ -5138,7 +5138,11 @@
         "desktop-localization",
         "local-api-connection"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The exact new loopback placeholder was absent from the existing invariant examples. The static assertions were only invoked inside a separate Playwright localization check, allowing an ordinary UI build to succeed with the omission.",
+        "correction": "Use one Node catalog checker for the ordinary UI build and the existing named localization test. Accept the exact http://127.0.0.1:8080 example while preserving the UI text and every other assertion.",
+        "prevention": "The old ordinary build accepted the baseline, the wired build rejected the old baseline before bundling, and the corrected build preserved rejection of an adjacent URL and untranslated copy. The English and Simplified Chinese source journeys used the identical example and each completed a real synthetic local read. Focused proof is retained at archives/observations/m0-096-catalog-build/index.json. The independent Standard Astra review is retained at archives/observations/m0-096-catalog-build/astra-a4d1c3a.txt."
+      },
       "deferral_reason": null
     },
     {
@@ -5146,14 +5150,18 @@
       "source": "Independent Standard Astra review of c788269c3a46af9a9b55b7a86cdb52425e35741f. Original archives/observations/m0-096-catalog-build/astra-c788269-initial.txt SHA-256 1a9a0765758a5c868ace7c50bdd9f34b59537130863dbd0cc957a7dbe939586b. The Node.js 24.2.0 release notes document when import.meta.main became available.",
       "observation": "The ordinary build launched a shared catalog module guarded by import.meta.main. That attribute is absent in Node 24.0 and 24.1, within the project-supported Node 24 range. The CLI could silently skip validation while the Playwright case still called the function.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-096"
       ],
       "regression_checks": [
         "ui-build"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The first build hook used import.meta.main, which was introduced in Node 24.2.0. The repository supports earlier Node 24 releases.",
+        "correction": "Invoke the shared catalog checker unconditionally from a separate, minimal CLI entry. Keep the Playwright callback calling the same checker.",
+        "prevention": "On a verified official Node 24.0.0 runtime, the original build accepted the control, the corrected build rejected both its unfamiliar URL and untranslated text before Vite, and the corrected build accepted the clean catalog. The project-pinned toolchain also passed. Retain the comparisons at archives/observations/m0-096-catalog-build/index.json and the explicit review approval at archives/observations/m0-096-catalog-build/astra-a4d1c3a.txt."
+      },
       "deferral_reason": null
     }
   ]
