@@ -4593,6 +4593,28 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "verification-budget-stale-clock-overrides-authenticated-failure",
+      "source": "Independent Standard Astra read-only re-review of 6c11bbbe6134ad78105e5c1100df994e3ce3ec76 in the verification-cost checkout, .reports/m0-087/astra-6c11bbb.txt, finding 1, SHA-256 b980be4c345dac49d76a5bba1a379430721ac9cec92b2280f4e4d0852c08bc42.",
+      "observation": "Ordinary CI reported a completed failed pull request while a cached success clock for the same attempt still proved budget recovery after the authenticated job lookup failed. The authenticated workflow failure must also survive an ordinary offline reread of the cache.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-budget-isolated-overrun-changes-growth-recovery",
+      "source": "Independent Standard Astra read-only re-review of 6c11bbbe6134ad78105e5c1100df994e3ce3ec76 in the verification-cost checkout, .reports/m0-087/astra-6c11bbb.txt, finding 2, SHA-256 b980be4c345dac49d76a5bba1a379430721ac9cec92b2280f4e4d0852c08bc42.",
+      "observation": "A median increase from 600/600/600 to 730/730/930 seconds was routed as sustained growth, but one 730-second repaired run cleared it as a budget overrun. In the reverse case, an isolated 930-second observation in the original 600/600/930 baseline prevented recovery after three repaired 600-second observations.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
