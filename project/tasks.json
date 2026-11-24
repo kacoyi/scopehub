@@ -18105,6 +18105,14 @@
         {
           "path": "project/evidence/M0-087-cbef829fd21725a7.json",
           "sha256": "53a3d02fcbadf0d88eca4f25d48970d305a75a1e8d403fac3ac25b317b3c2665"
+        },
+        {
+          "path": "project/evidence/M0-087-4d81b39b6e7c0c72.json",
+          "sha256": "1ee1f94a6041a499171f9dc4a9763447a33e11ffacd9b5825a3af228dd0ec5d3"
+        },
+        {
+          "path": "project/evidence/M0-087-1b91b79fa1d4ab4b.json",
+          "sha256": "d7f9e3ef0bcb21921b1afee29bd49306b18e48b522ab58c7ddc2dda7f779cedc"
         }
       ],
       "next_action": "Measure the complete protected Windows run after rebalancing market recovery and correcting the two Ubuntu regressions. Compare the same checks, original names, cache state and total runner use. Verify the first full main push separately.",
@@ -18199,7 +18207,9 @@
           },
           {
             "failure": "The reassigned market-recovery check loses a prerequisite or its original evidence, writes the shared browser cache from a narrower producer, or publishes warm aggregate timing from a missing or mistyped producer observation.",
-            "checks": ["python-contracts-workers"]
+            "checks": [
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "A Chromium socket retry interleaves host history traces, causing the browser check to reject a valid transport failure or accept an incomplete attempt. The selected history and private undo must remain correct after recovery.",
@@ -18532,18 +18542,39 @@
       "title": "Verify the visible CSV review after folder selection from the chart",
       "milestone": "M1",
       "status": "done",
-      "depends_on": ["M1-036", "M1-037"],
-      "scope": ["tests/ui/local-import.spec.mjs", "project/feedback.json"],
-      "decision_refs": ["0004", "0007"],
+      "depends_on": [
+        "M1-036",
+        "M1-037"
+      ],
+      "scope": [
+        "tests/ui/local-import.spec.mjs",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
       "acceptance": [
         "Reproduce the hosted visibility failure from the ordinary Data sources panel and distinguish the visible CSV review from the retained chart panel.",
         "Verify the presented equity and futures values, the rejected settlement mapping, and cancellation before and after folder selection using the existing synthetic transport fixture. Preserve the existing folder grant, review, publication and chart behavior."
       ],
-      "checks": ["project-state", "python-contracts-workers", "local-import-ui"],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "local-import-ui"
+      ],
       "evidence": [
         {
           "path": "project/evidence/M1-038-87b46858d63ac524.json",
           "sha256": "fe87dbd09c67d91c7b4c14313441982bb9b81bffba6a4b956601864692af87f8"
+        },
+        {
+          "path": "project/evidence/M1-038-4d81b39b6e7c0c72.json",
+          "sha256": "9c5e09748473ba39f8b61076a339235fc19ef2e388e8769378aa05cf1a459dda"
+        },
+        {
+          "path": "project/evidence/M1-038-1b91b79fa1d4ab4b.json",
+          "sha256": "c75ea1f60a8a927fda917303fb2f89a173bdaca5bf91a195284d1ef83d5657cc"
         }
       ],
       "next_action": null,
@@ -18551,27 +18582,53 @@
       "closure_reason": "Astra Standard approved f230621 after checking the red traces and positive entries. The matching Linux task receipt covers the visible review, explicit equity and futures values, cancellation and rejected mapping through the synthetic transport. The originals and review are retained at archives/observations/m1-038-visible-csv/manifest.json.",
       "plan": {
         "outcome": "The existing picker-to-review browser check verifies the active CSV editor even while the suspended chart retains a duplicate source label.",
-        "change_types": ["tooling"],
-        "context": ["tests/ui/local-import.spec.mjs", "apps/desktop/ui/src/main.tsx", "apps/desktop/ui/src/workspace-panels.tsx"],
-        "hypotheses": ["A page-wide text locator reaches the hidden chart heading before the visible import surface. The visible review, selected file and preview can distinguish this from a failed product transition."],
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/local-import.spec.mjs",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/workspace-panels.tsx"
+        ],
+        "hypotheses": [
+          "A page-wide text locator reaches the hidden chart heading before the visible import surface. The visible review, selected file and preview can distinguish this from a failed product transition."
+        ],
         "risks": [
           {
             "failure": "The check rejects a visible review because the suspended chart has a duplicate label, or passes when the wrong source or its values are visible after a pick, cancellation or rejected mapping.",
-            "checks": ["local-import-ui"]
+            "checks": [
+              "local-import-ui"
+            ]
           }
         ],
         "rollback": "Revert the targeted test changes if they lose source or value verification. Retain the original diagnostic.",
         "implementation": {
-          "modules": ["ui"],
-          "entrypoints": ["tests/ui/local-import.spec.mjs", "tests/ui/local-import.playwright.config.mjs"],
-          "rules": [{"path": "project/delivery.json", "pointer": "/scaffold_maintenance"}],
-          "non_goals": ["Production navigation, source access or publication changes and other pilot failures."],
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ui/local-import.spec.mjs",
+            "tests/ui/local-import.playwright.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production navigation, source access or publication changes and other pilot failures."
+          ],
           "open_questions": []
         },
         "evolution": {
           "kind": "refactor",
-          "preserve": ["The native picker intent, retained chart context, CSV access and the existing preview and publication rules."],
-          "change": ["Verify the active editor by its visible region and independently check the data it presents."],
+          "preserve": [
+            "The native picker intent, retained chart context, CSV access and the existing preview and publication rules."
+          ],
+          "change": [
+            "Verify the active editor by its visible region and independently check the data it presents."
+          ],
           "data_plan": "Use the existing synthetic folder catalog and fixture rows. Record the hosted diagnostic and local browser evidence.",
           "cleanup": "Replace the page-wide label assertion and retain one ordinary-entry regression."
         }
@@ -18610,6 +18667,14 @@
         {
           "path": "project/evidence/M0-090-6e1cc856166fae8c.json",
           "sha256": "be06b0bcb42775b3e97a1fe148cf324b3e44182c52b20ef641aa6cc81eb8e72b"
+        },
+        {
+          "path": "project/evidence/M0-090-4d81b39b6e7c0c72.json",
+          "sha256": "2ac7a9bf0f5cebd4dd1f0557e3eb13d79e8731c7e1bd6db753d980954205e804"
+        },
+        {
+          "path": "project/evidence/M0-090-1b91b79fa1d4ab4b.json",
+          "sha256": "739629c4f514f8fc74267acad6abe4bb69a2cab2d9ba4a5ac3b89532cac80e26"
         }
       ],
       "diagnostic_reports": [
