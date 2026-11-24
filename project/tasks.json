@@ -18176,6 +18176,10 @@
             "checks": ["python-contracts-workers"]
           },
           {
+            "failure": "A stale clock overrides a known failed attempt on live or offline handoff, or an isolated slow run changes a linked median regression into a different recovery requirement.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
             "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
             "checks": [
               "python-contracts-workers"

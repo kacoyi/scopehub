@@ -29,6 +29,7 @@ ARCHIVE_KIND = 'scopehub-timing-archive-v1'
 TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
+ATTEMPT_IDENTITY = ('repository', 'run_id', 'run_attempt', 'event', 'head_sha')
 CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
 INTAKE_ATTEMPTS = 2
 MISSING_COMPACT = 'Compact reports are absent for part of the required matrix.'
@@ -464,7 +465,20 @@ def hosted_timing(run, jobs):
 
 
 def ci_key(ci):
-    return tuple(ci.get(key) for key in ('repository', 'run_id', 'run_attempt', 'event', 'head_sha'))
+    return tuple(ci.get(key) for key in ATTEMPT_IDENTITY)
+
+
+def actions_attempt_identity(repository, run):
+    return repository, str(run['id']), str(run['run_attempt']), run['event'], run['head_sha']
+
+
+def authenticated_failure(run, identity):
+    if run['status'] == 'completed' and run['conclusion'] not in {None, 'success'}:
+        # Workflow authority can establish failure without any matching job clock.
+        return {**dict(zip(ATTEMPT_IDENTITY, identity)), 'status': 'completed',
+                'conclusion': run['conclusion'], 'authenticated_failure': True,
+                'head_branch': short_label(run.get('head_branch')), 'jobs': [],
+                'workflow': {'matrix_complete': False, 'identity_complete': False}}
 
 
 def sample_core(sample):
@@ -512,6 +526,12 @@ def valid_clock(run):
         return False
     workflow, jobs = run['workflow'], run['jobs']
     siblings = run.get('sibling_jobs', [])
+    if 'authenticated_failure' in run and (
+            run['authenticated_failure'] is not True or run.get('status') != 'completed'
+            or run['conclusion'] in {None, 'success'} or jobs or siblings
+            or run['event'] not in NORMAL_EVENTS or run['run_attempt'] != '1'
+            or not positive_id(run['run_id']) or not commit_id(run['head_sha'])):
+        return False
     return (isinstance(workflow, dict) and type(workflow['matrix_complete']) is bool
             and (workflow.get('identity_complete') is None or type(workflow['identity_complete']) is bool)
             and (workflow.get('windows_split') is None or type(workflow['windows_split']) is bool)
@@ -573,10 +593,22 @@ def sample_eligible(sample):
 
 
 def attempt_clocks(hosted, issues):
-    clocks, conflicting = {}, set()
+    failures = defaultdict(dict)
+    for run in hosted:
+        if run.get('authenticated_failure'):
+            failures[ci_key(run)][run['conclusion']] = run
+
+    clocks, conflicting, rejected = {}, set(), set()
     for run in hosted:
         key = ci_key(run)
-        if key in conflicting:
+        if key in conflicting or run.get('authenticated_failure'):
+            continue
+        if key in failures and set(failures[key]) != {run['conclusion']}:
+            if key not in rejected:
+                issues.append({'run_id': run['run_id'],
+                               'authenticated_conclusions': sorted(failures[key]),
+                               'error': 'Attempt clock conflicts with the authenticated workflow conclusion.'})
+                rejected.add(key)
             continue
         previous = clocks.get(key)
         if previous is None or not clock_capture_complete(previous):
@@ -589,6 +621,11 @@ def attempt_clocks(hosted, issues):
                 issues.append({'run_id': run['run_id'], 'error': 'Conflicting complete attempt clocks.'})
             elif run.get('head_branch') and not previous.get('head_branch'):
                 clocks[key] = run
+    for key, outcomes in failures.items():
+        if len(outcomes) == 1:
+            clocks.setdefault(key, next(iter(outcomes.values())))
+        elif len(outcomes) > 1:
+            issues.append({'run_id': key[1], 'error': 'Conflicting authenticated workflow conclusions.'})
     return clocks
 
 
@@ -933,17 +970,16 @@ def matches_budget_scope(sample, scope):
 
 
 def linked_timing_window(history, reports):
-    overruns = [row for row in history if report_key(row) in reports and row['seconds']['total'] > HOSTED_BUDGET]
-    if overruns:
-        return overruns, []
-    # A growth finding links the degraded window. Keep its original faster window as the comparison control.
-    for end in range(len(history), 2 * WINDOW - 1, -1):
-        window = history[end - 2 * WINDOW:end]
-        degraded = window[WINDOW:]
-        if (all(report_key(row) in reports for row in degraded)
-                and all(row['seconds']['total'] <= HOSTED_BUDGET for row in window)
-                and metric_review(window, 'total', HOSTED_BUDGET)['material_growth']):
-            return window[:WINDOW], degraded
+    # Use the same attributable window and precedence as the ordinary timing review.
+    for end in range(len(history), 1, -1):
+        window = history[max(0, end - 2 * WINDOW):end]
+        review = metric_review(window, 'total', HOSTED_BUDGET)
+        if review['recent_objective_breaches'] >= 2:
+            if all(report_key(row) in reports for row in review['breach_reports']):
+                return [row for row in history if report_key(row) in reports
+                        and row['seconds']['total'] > HOSTED_BUDGET], []
+        elif review['material_growth'] and all(report_key(row) in reports for row in review['recent_reports']):
+            return window[:WINDOW], window[WINDOW:]
     return [], []
 
 
@@ -986,8 +1022,8 @@ def measure_budget_recovery(scope, repair, reports, samples, ancestor, checkout_
                 recovered_window = [row]
             elif degraded and len(successful) >= WINDOW:
                 recent = successful[-WINDOW:]
-                if (all(item['seconds']['total'] <= HOSTED_BUDGET for item in recent)
-                        and not metric_review([*baseline, *recent], 'total', HOSTED_BUDGET)['material_growth']):
+                restored = metric_review([*baseline, *recent], 'total', HOSTED_BUDGET)
+                if not restored['material_growth'] and restored['recent_objective_breaches'] < 2:
                     recovered_window = recent
             if recovered_window:
                 cutoffs[cohort] = (int(row['ci']['run_id']), timestamp(row['recorded_at']))
@@ -1182,7 +1218,7 @@ def archive_inputs(data, label, issues, *, collection_issues=True):
         notes = admitted_records(data.get('input_issues', []),
                                  lambda note: labels(note, ('error',)) and isinstance(note['error'], str),
                                  f'collection issue in {label}', issues)
-        failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success'
+        failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success' and clock_capture_complete(clock)
                   and failed_capture_is_complete(clock, samples, hosted)}
         issues.extend({**note, 'file': label} for note in notes
                       if not (isinstance(note.get('run_id'), str) and note['run_id'] in failed
@@ -1256,7 +1292,8 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     ambiguous = any(len(group) > 1 for group in groups)
     # Retain distinct observations for diagnostics and future attempts. Incompatible complete clocks
     # must remain visibly incompatible even if an exact retry agrees with one of them.
-    clocks = list({(clock_capture_complete(clock), clock_signature(clock), clock.get('head_branch')): clock
+    clocks = list({(clock_capture_complete(clock), clock_signature(clock), clock.get('head_branch'),
+                    clock.get('authenticated_failure')): clock
                    for clock in hosted if ci_key(clock) == identity}.values())
     clock = attempt_clocks(clocks, issues).get(identity)
     outcome = conclusion or (clock['conclusion'] if clock else None)
@@ -1268,7 +1305,7 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     complete_clock = (clock is not None and clock['conclusion'] == outcome
                       and (clock_capture_complete(clock) if diagnostic else clock_complete(clock)))
     if complete_clock:
-        clocks = [clock]
+        clocks = [clock, *(row for row in clocks if row.get('authenticated_failure'))]
     return [row for group in groups for row in group], clocks, missing, complete_clock, ambiguous
 
 
@@ -1310,7 +1347,7 @@ def collect_new_ci_timing(root, repository, run, samples, hosted):
     if not positive_id(run_id) or event not in NORMAL_EVENTS or str(run['run_attempt']) != '1':
         raise TimingError('Expected a completed automatic first-attempt verification run')
     observed = {**run, 'repository': {'full_name': repository}}
-    identity = ci_key({**observed, 'repository': repository, 'run_id': run_id, 'run_attempt': '1'})
+    identity = actions_attempt_identity(repository, observed)
     local_directory = root / '.reports/timing'
     directory = shared_timing_directory(root) or local_directory
     if directory == local_directory and not directory.resolve().is_relative_to(root.resolve()):
@@ -1329,8 +1366,11 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     run_id = str(run['id'])
     retained_notes = []
     attempts, prior_samples, prior_clocks, prior_issues = read_timing_capture(path, retained_notes)
+    known_clocks = [*prior_clocks, *hosted]
+    if failure := authenticated_failure(run, identity):
+        known_clocks.append(failure)
     combined_samples, combined_clocks, missing, complete_clock, ambiguous = capture_observations(
-        identity, [*prior_samples, *samples], [*prior_clocks, *hosted], retained_notes, conclusion=run['conclusion'],
+        identity, [*prior_samples, *samples], known_clocks, retained_notes, conclusion=run['conclusion'],
     )
     if not missing and complete_clock:
         persisted_issues = retained_notes if ambiguous else []
@@ -1358,7 +1398,9 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
     if not complete_clock and (set(PLATFORMS.values()) - missing or new_samples
-                               or run['conclusion'] != 'success' and not combined_clocks):
+                               or run['conclusion'] != 'success' and not any(
+                                   row['conclusion'] == run['conclusion'] and not row.get('authenticated_failure')
+                                   for row in combined_clocks)):
         try:
             row = inspect_jobs(run, repository)
             if valid_clock(row) and ci_key(row) == identity:
@@ -1381,6 +1423,8 @@ def ci_budget_status(root, repository, run):
     samples, hosted, issues = retained_budget_inputs(root)
     intake = None
     if run:
+        if failure := authenticated_failure(run, actions_attempt_identity(repository, run)):
+            hosted.append(failure)
         try:
             intake, new_samples, new_clocks, new_issues = collect_new_ci_timing(root, repository, run, samples, hosted)
             if intake in {'captured', 'retained', 'ambiguous'}:
