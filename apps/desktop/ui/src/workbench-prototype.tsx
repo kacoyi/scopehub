@@ -9,7 +9,7 @@ import './workbench-prototype.css';
 type SeriesBlock = { kind: 'threshold-tiles'; threshold: number; aboveLabel?: string; belowLabel?: string } | { kind: 'value-table' };
 type Block = SeriesBlock | CandleBlock;
 type Composition = { version: 1; blocks: Block[] };
-type PresentedCandle = CandleBlock & { timeframe: CandleTimeframe };
+type PresentedCandle = CandleBlock & { instance: number; timeframe: CandleTimeframe };
 type PresentedBlock = SeriesBlock | PresentedCandle;
 const blank: Composition = { version: 1, blocks: [] };
 const maxBlocks = 12;
@@ -65,25 +65,76 @@ function parseDraft(text: string): Composition | Message {
   return { version: 1, blocks };
 }
 
+function candlesByBinding<T extends CandleBlock>(candles: readonly T[]) {
+  const groups = new Map<string, T[]>();
+  for (const candle of candles) {
+    const { source, annotation: { field, when } } = candle;
+    const key = JSON.stringify([source, field, when.field]);
+    const group = groups.get(key);
+    if (group) group.push(candle);
+    else groups.set(key, [candle]);
+  }
+  return groups;
+}
+
 function previewBlocks(blocks: Block[], accepted: PresentedBlock[]): PresentedBlock[] {
   const acceptedCandles = accepted.filter(block => block.kind === 'candlestick');
   const draftCandles = blocks.filter(block => block.kind === 'candlestick');
-  const bindingKey = ({ source, annotation }: CandleBlock) => JSON.stringify([source, annotation]);
-  const acceptedKeys = acceptedCandles.map(bindingKey);
-  const draftKeys = draftCandles.map(bindingKey);
-  const sameOrder = draftKeys.length === acceptedKeys.length && draftKeys.every((key, index) => key === acceptedKeys[index]);
-  const periods = new Map(draftCandles.map((block, index) => {
-    const key = draftKeys[index]!;
-    const first = acceptedKeys.indexOf(key);
-    // Duplicate definitions are addressable by order while the candle sequence is unchanged.
-    // In a changed sequence, carry a timeframe only for an unambiguous binding.
-    const unique = first >= 0 && first === acceptedKeys.lastIndexOf(key)
-      && draftKeys.indexOf(key) === draftKeys.lastIndexOf(key);
-    const match = sameOrder ? index : unique ? first : -1;
-    return [block, acceptedCandles[match]?.timeframe ?? '5m'] as const;
-  }));
-  return blocks.map(block => block.kind === 'candlestick'
-    ? { ...block, timeframe: periods.get(block) ?? '5m' } : block);
+  const previousGroups = candlesByBinding(acceptedCandles);
+  const draftGroups = candlesByBinding(draftCandles);
+  const matches = new Map<CandleBlock, PresentedCandle>();
+  const threshold = (candle: CandleBlock) => candle.annotation.when.above;
+
+  for (const [key, candles] of draftGroups) {
+    const previous = previousGroups.get(key) ?? [];
+    const available: (PresentedCandle | undefined)[] = [...previous];
+    const sameCount = previous.length === candles.length;
+    const claim = (candle: CandleBlock, index: number) => {
+      const match = available[index];
+      if (!match) return;
+      matches.set(candle, match);
+      available[index] = undefined;
+    };
+
+    const previousThresholds = previous.map(threshold).sort((a, b) => a - b);
+    const draftThresholds = candles.map(threshold).sort((a, b) => a - b);
+    if (sameCount && draftThresholds.some((value, index) => value !== previousThresholds[index])) {
+      // When a threshold changes, an exact sibling at the same occurrence claims its own instance first.
+      candles.forEach((candle, index) => {
+        if (threshold(candle) === threshold(previous[index]!)) claim(candle, index);
+      });
+    }
+    for (const candle of candles) {
+      if (!matches.has(candle)) {
+        // Match identical definitions in occurrence order, consuming each accepted instance once.
+        claim(candle, available.findIndex(match => match !== undefined && threshold(match) === threshold(candle)));
+      }
+    }
+    if (sameCount) {
+      // Remaining instances in this binding differ only by threshold. Preserve their relative order.
+      const remaining = available.filter(match => match !== undefined);
+      candles.filter(candle => !matches.has(candle)).forEach((candle, index) => {
+        matches.set(candle, remaining[index]!);
+      });
+    }
+  }
+
+  // After exact and threshold matches, carry a field edit only across a one-to-one source match.
+  const claimed = new Set(matches.values());
+  const unmatchedAccepted = acceptedCandles.filter(candle => !claimed.has(candle));
+  const unmatchedDraft = draftCandles.filter(candle => !matches.has(candle));
+  for (const candle of unmatchedDraft) {
+    const previous = unmatchedAccepted.filter(candidate => candidate.source === candle.source);
+    const incoming = unmatchedDraft.filter(candidate => candidate.source === candle.source);
+    if (previous.length === 1 && incoming.length === 1) matches.set(candle, previous[0]!);
+  }
+
+  let nextInstance = Math.max(0, ...acceptedCandles.map(candle => candle.instance)) + 1;
+  return blocks.map(block => {
+    if (block.kind !== 'candlestick') return block;
+    const match = matches.get(block);
+    return { ...block, instance: match?.instance ?? nextInstance++, timeframe: match?.timeframe ?? '5m' };
+  });
 }
 
 const timeLabel = (time: number) => formatDateTime(time, {
@@ -215,7 +266,7 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         </details>}
         {visible.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
           <div className="probe-blocks">{visible.map((block, index) => block.kind === 'candlestick'
-            ? <WorkbenchCandleBlock key={index} block={block} timeframe={block.timeframe}
+            ? <WorkbenchCandleBlock key={`candle-${block.instance}`} block={block} timeframe={block.timeframe}
               selectTimeframe={timeframe => selectTimeframe(block, timeframe)} />
             : <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />)}</div>}
       </section>

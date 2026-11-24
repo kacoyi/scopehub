@@ -197,6 +197,19 @@ try {
         -not (Find-Control 'Block 1 must bind granted synthetic fields and a finite threshold.' $null)
     } | Out-Null
     Wait-Annotation $fifteen $five.value
+
+    # Edit only the condition's threshold in the same foreground editor.
+    $thresholdDraft = $annotationDraft.Replace('"above":0.8', '"above":0.85')
+    (Draft-Pattern).SetValue($thresholdDraft)
+    Invoke-Button 'Preview draft'
+    Wait-Name 'Draft preview'
+    Wait-Annotation $fifteen $five.value
+    Invoke-Button 'Accept view'
+    Wait-Name 'Accepted view'
+    Wait-Annotation $fifteen $five.value
+    Wait-ForProbe 'accepted threshold-only author definition' {
+        (Draft-Pattern).Current.Value -ceq $thresholdDraft
+    } | Out-Null
     Invoke-Button 'Back to chart'
     Wait-Name 'Open workbench prototype'
     Wait-ForProbe 'closed annotation editor' { -not (Find-Control 'Composition JSON' $null) } | Out-Null
@@ -219,6 +232,7 @@ try {
         annotation_round_trip = @($five, $fifteen, $five)
         annotation_rejected_draft_restored = $true
         annotation_restored_after_empty_preview = $fifteen
+        annotation_accepted_threshold_edit = @{ above = 0.85; result = $fifteen }
     } | ConvertTo-Json -Depth 4 -Compress | Write-Output
 } finally {
     if ($null -ne $app) {

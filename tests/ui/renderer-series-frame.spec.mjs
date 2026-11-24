@@ -54,21 +54,11 @@ test('restores the accepted fifteen-minute binding after preview removal and gra
   const authored = `{ "version": 1,\n  "blocks": [${JSON.stringify(annotationBlock)}] }`;
   const invalid = authored.replace('qualification-equity', 'configured-market-data');
 
-  async function expectFifteen() {
-    await expect(block.getByRole('button', { name: '15 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    if (await block.locator('details[open]').count() === 0) await block.getByText('Synthetic result attribution').click();
-    await expect(block.getByText('qualification-equity-15m-bars-v1', { exact: true })).toBeVisible();
-    await expect(block.getByText('qualification-equity-15m-results-v1', { exact: true })).toBeVisible();
-    const row = block.getByRole('row', { name: '2024-01-04T09:30:00.000Z', exact: true });
-    await expect(row.getByRole('cell', { name: '4.7%', exact: true })).toBeVisible();
-    await expect(block.getByText('3.2%', { exact: true })).toHaveCount(0);
-  }
-
   await draft.fill(authored);
   await preview.click();
   await block.getByRole('button', { name: '15 min', exact: true }).click();
   await preview.click();
-  await expectFifteen();
+  await expectTurnover(block, '15m');
   await accept.click();
 
   await draft.fill('{"version":1,"blocks":[]}');
@@ -79,11 +69,11 @@ test('restores the accepted fifteen-minute binding after preview removal and gra
   await preview.click();
   await expect(page.getByRole('alert')).toHaveText('Block 1 must bind granted synthetic fields and a finite threshold.');
   await expect(accept).toBeDisabled();
-  await expectFifteen();
+  await expectTurnover(block, '15m');
   await restore.click();
   await expect(draft).toHaveValue(authored);
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expectFifteen();
+  await expectTurnover(block, '15m');
   await expect.poll(async () => {
     const { candles, bubbles } = await paintedGeometry(chart);
     return [candles.length, bubbles.length];
@@ -106,7 +96,110 @@ test('restores the accepted fifteen-minute binding after preview removal and gra
   await expect(page.getByRole('alert')).toBeVisible();
   await restore.click();
   await expect(draft).toHaveValue(authored);
-  await expectFifteen();
+  await expectTurnover(block, '15m');
+});
+
+async function expectAttribution(block, period) {
+  const minutes = period === '15m' ? 15 : 5;
+  const bar = period === '15m' ? '09:30' : '09:40';
+  await expect(block.getByRole('button', { name: `${minutes} min`, exact: true })).toHaveAttribute('aria-pressed', 'true');
+  if (await block.locator('details[open]').count() === 0) await block.getByText('Synthetic result attribution').click();
+  await expect(block.getByText(`qualification-equity-${period}-bars-v1`, { exact: true })).toBeVisible();
+  await expect(block.getByText(`qualification-equity-${period}-results-v1`, { exact: true })).toBeVisible();
+  return block.getByRole('row', { name: `2024-01-04T${bar}:00.000Z`, exact: true });
+}
+
+async function expectTurnover(block, period) {
+  const row = await expectAttribution(block, period);
+  const value = period === '15m' ? '4.7%' : '3.2%';
+  await expect(row.getByRole('cell', { name: value, exact: true })).toBeVisible();
+  await expect(block.getByText(period === '15m' ? '3.2%' : '4.7%', { exact: true })).toHaveCount(0);
+}
+
+test.describe('candlestick editor identity', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open workbench prototype' }).click();
+    await page.getByRole('button', { name: 'Add candlesticks' }).click();
+    await page.getByRole('button', { name: 'Preview draft' }).click();
+    const block = page.getByRole('region', { name: 'Annotated candlesticks' });
+    await block.getByRole('button', { name: '15 min', exact: true }).click();
+    await expectTurnover(block, '15m');
+    await page.getByRole('button', { name: 'Accept view' }).click();
+  });
+
+  test('keeps the accepted binding when appending and editing duplicate candles', async ({ page }) => {
+    const draft = page.getByRole('textbox', { name: 'Composition JSON' });
+    const preview = page.getByRole('button', { name: 'Preview draft' });
+    const accept = page.getByRole('button', { name: 'Accept view' });
+    const blocks = page.getByRole('region', { name: 'Annotated candlesticks' });
+    const chart = block => block.getByRole('img', { name: 'Candlestick chart with numeric annotations' });
+    const originalChart = await chart(blocks).elementHandle();
+    await page.getByRole('button', { name: 'Add candlesticks' }).click();
+    await preview.click();
+    await expect(blocks).toHaveCount(2);
+    await expectTurnover(blocks.nth(0), '15m');
+    await expectTurnover(blocks.nth(1), '5m');
+    await accept.click();
+
+    // An unchanged duplicate in its existing occurrence keeps its own timeframe.
+    const edited = { ...annotationBlock, annotation: { ...annotationBlock.annotation, when: { field: 'strength', above: 0.85 } } };
+    await draft.fill(JSON.stringify({ version: 1, blocks: [edited, annotationBlock] }));
+    await preview.click();
+    await expectTurnover(blocks.nth(0), '15m');
+    await expectTurnover(blocks.nth(1), '5m');
+    await accept.click();
+
+    // Once the definitions differ, the two chart instances follow their definitions when reordered.
+    const reordered = JSON.stringify({ version: 1, blocks: [annotationBlock, edited] }, null, 2);
+    await draft.fill(reordered);
+    await preview.click();
+    await expectTurnover(blocks.nth(0), '5m');
+    await expectTurnover(blocks.nth(1), '15m');
+    expect(await chart(blocks.nth(1)).evaluate((element, original) => element === original, originalChart)).toBe(true);
+    await accept.click();
+
+    await draft.fill(reordered.replace('qualification-equity', 'configured-market-data'));
+    await preview.click();
+    await expect(page.getByRole('alert')).toHaveText('Block 1 must bind granted synthetic fields and a finite threshold.');
+    await expect(accept).toBeDisabled();
+    await page.getByRole('button', { name: 'Restore accepted view' }).click();
+    await expect(draft).toHaveValue(reordered);
+    await expectTurnover(blocks.nth(0), '5m');
+    await expectTurnover(blocks.nth(1), '15m');
+  });
+
+  test('keeps fifteen-minute attribution when accepting a threshold-only edit', async ({ page }) => {
+    const draft = page.getByRole('textbox', { name: 'Composition JSON' });
+    const preview = page.getByRole('button', { name: 'Preview draft' });
+    const block = page.getByRole('region', { name: 'Annotated candlesticks' });
+    const original = await draft.inputValue();
+    const edited = original.replace('"above": 0.8', '"above": 0.85');
+    await draft.fill(edited);
+    await preview.click();
+    await expectTurnover(block, '15m');
+    await page.getByRole('button', { name: 'Accept view' }).click();
+    await expect(draft).toHaveValue(edited);
+    await expectTurnover(block, '15m');
+  });
+
+  for (const { field, original, replacement, value } of [
+    { field: 'plotted', original: 'turnover', replacement: 'strength', value: '0.9' },
+    { field: 'condition', original: 'strength', replacement: 'turnover', value: '—' },
+  ]) {
+    test(`keeps fifteen-minute attribution when rebinding the ${field} field in place`, async ({ page }) => {
+      const draft = page.getByRole('textbox', { name: 'Composition JSON' });
+      const block = page.getByRole('region', { name: 'Annotated candlesticks' });
+      const edited = (await draft.inputValue()).replace(`"field": "${original}"`, `"field": "${replacement}"`);
+      await draft.fill(edited);
+      await page.getByRole('button', { name: 'Preview draft' }).click();
+      const row = await expectAttribution(block, '15m');
+      await expect(row.getByRole('cell')).toHaveText(['0.9', '0.047', value]);
+      await page.getByRole('button', { name: 'Accept view' }).click();
+      await expect(draft).toHaveValue(edited);
+      await expect(row.getByRole('cell')).toHaveText(['0.9', '0.047', value]);
+    });
+  }
 });
 
 async function paintedGeometry(chart) {

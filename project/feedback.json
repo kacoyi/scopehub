@@ -3878,6 +3878,17 @@
       "regression_checks": ["renderer-prototype-interaction"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "prototype-candlestick-timeframe-on-scoped-edit",
+      "source": "Astra review of a5aba30 against 89867c9. The coordinator reproduced both cases on Ubuntu Tauri/WebKitGTK and retained observations/m2-029-edit-a5aba30/observations.json, SHA-256 d5b00e261d6fd832d9e2707de438e03013ce30d310d536312bac146dc5abd246.",
+      "observation": "Appending an identical candlestick definition changes the existing 15-minute chart and the new chart to five minutes. Changing only the accepted annotation threshold from 0.8 to 0.85 silently replaces the 09:30 UTC result at 4.7% with the five-minute 09:40 UTC result at 3.2%. The native review confirmed that accepting the scoped edit retains the wrong result. The coordinator also identified in-place edits to the plotted or condition field of a sole chart as same-source binding changes that must preserve its timeframe.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -781,7 +781,7 @@
     {
       "id": "renderer-prototype-interaction",
       "status": "implemented",
-      "purpose": "Exercise the blank synthetic renderer prototype, custom encoding, linked selection, source disclosure scope and rejected draft recovery. Measure painted candlestick and annotation geometry in Chromium. On Windows use UI Automation in the compiled WebView2 editor to inspect tiles, table, the authored annotation round trip and recovery of an accepted timeframe after an empty preview.",
+      "purpose": "Exercise the blank synthetic renderer prototype, custom encoding, linked selection, source disclosure scope and rejected draft recovery. Measure painted candlestick and annotation geometry and verify append, reorder and scoped field and threshold edits in Chromium. On Windows use UI Automation in the compiled WebView2 editor to inspect tiles, table, the annotation timeframe round trip, recovery after an empty preview, and a threshold-only edit.",
       "platforms": "all",
       "command": [
         "pnpm",

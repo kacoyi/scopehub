@@ -17344,11 +17344,12 @@
         "Add a valid editable candlestick example through the existing draft flow. Scope source disclosures to their blocks in chart-only and mixed compositions and keep the original disclosure on the blank canvas.",
         "Measure painted candle and annotation anchors independently in the browser after zoom, pan, resize and a timeframe round trip. Reject a binding outside the synthetic grant and retain the last accepted view and author text.",
         "Accept a 15-minute candle binding, preview an empty canvas and reject a grant mismatch. Restore the same 15-minute bar, result revision, value and author text. Keep draft and sibling timeframe changes separate from the accepted binding.",
-        "Extend the native WebView2 editor probe to exercise the same authored binding and verify its accessible UTC rows, values, revisions and recovery on a timeframe round trip. Hand off the repeatable slice to the coordinator for the Windows run and the independent Ubuntu trial."
+        "Keep the selected timeframe and result revision when appending an identical block or applying an unambiguous same-source edit to its threshold, plotted field or condition field. Verify independent replicas, reorder distinguishable blocks by binding, and document the fallback order for indistinguishable definitions.",
+        "Extend the native WebView2 editor probe to verify accessible UTC rows, values and revisions during the timeframe round trip, rejection recovery and threshold-only preview and acceptance. Hand off the repeatable slice to the coordinator for the Windows run and the independent Ubuntu trial."
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
       "evidence": [],
-      "next_action": "Verify the accepted candle timeframe recovery against the recorded regression. Recheck it on the staged Ubuntu candidate and in hosted Windows task checks, then retain matching observations under coordinator review.",
+      "next_action": "Verify the append, scoped edit, reorder and rejection regressions. Review matching native observations under coordinator ownership.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17385,6 +17386,10 @@
           {
             "failure": "An empty preview unmounts a 15-minute accepted binding and rejection restores its text with a different timeframe, result revision and financial value.",
             "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "Appending a duplicate or scoping an edit to a threshold, plotted field or condition field resets the accepted chart's timeframe or assigns a sibling's timeframe, changing the observed financial value and revision.",
+            "checks": ["renderer-prototype-interaction"]
           }
         ],
         "rollback": "Revert the prototype block, its fixture and the scoped chart entry together. Retain observations for M2-003.",
@@ -17413,7 +17418,7 @@
           "kind": "additive",
           "preserve": ["Blank startup, threshold tiles, value tables, accepted draft recovery and the existing chart workspace."],
           "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
-          "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time, with transient presentation state.",
+          "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
         }
       }
