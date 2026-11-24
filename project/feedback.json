@@ -4250,6 +4250,28 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "workspace-history-trace-requires-browser-replay",
+      "source": "Independent Astra review of 2b4835f, retained at .reports/workspace-history-retry/astra-2b4835f.txt (SHA-256 5af56f834295b89aa7de1c6af3e6f5b558b459f8286bb4e7cb2ffd6480cdf226).",
+      "observation": "The ordinary browser fixture withheld a real close until the same logical fetch was admitted again. The review reproduced the false timeout when Chromium makes one complete HTTP attempt. The generic observation also accepted two finished events for the same physical request on successful HTTP 200 and complete HTTP 403 paths because it only checked the first and last stages.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-browser-local-concurrent-timeouts",
+      "source": "Original 46-of-48 local run at .reports/workspace-history-retry/full/workspace-timeframe/results.json (SHA-256 92e10d2ac059435c03afee7266f2efe4e7ffa89a79252d9a3ecc5ba637ad4cab) and .reports/workspace-history-retry/full/playwright.log (SHA-256 76aa6bfa79f1d431c47414dc211dd0d8f4ae7db73586f2a6984681d4bd431458). See the derived timeline at .reports/workspace-history-retry/full-attribution.json.",
+      "observation": "The two failed workers recorded the same end time, 12:08:41.514 UTC. The reopened sample browser observer reached its 18-second deadline after the 5.509-second delayed disconnect and a second host admission, while the fetch was still pending. The fixture budget can expire before the second request's 15-second watchdog. The concurrent parent-IPC case stopped at the Vite readiness gate with an empty child log and never exercised the IPC disconnect. The retained observations establish both failure boundaries and leave the underlying causes unresolved.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
