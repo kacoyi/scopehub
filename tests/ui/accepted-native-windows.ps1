@@ -1,5 +1,5 @@
 # Invoke the controls of a synthetic workspace in its own Windows process and profile.
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,$Identity)
 Add-Type -AssemblyName System.Windows.Forms
 $ui = [Windows.Automation.AutomationElement]
 $scope = [Windows.Automation.TreeScope]::Descendants
@@ -155,14 +155,22 @@ function Use-SeriesProgram([string]$kind) {
     Review-Step 'Preview draft'
     Review-Step 'Accept view'
     Wait-Name 'Accepted view'
+    Archive-Stage ("painted-"+$kind)
+    Save-SeriesPlot $kind
     $day=if ($kind -eq 'dots') { '04' } else { '03' }
     $target="Inspect observation at 2026-02-${day}T00:00:00.000Z"
     $inspect=Wait-ForProbe $target { Find-Control $target $null }
     $inspect.SetFocus()
     [Windows.Forms.SendKeys]::SendWait('{ENTER}')
     $expected=if ($kind -eq 'dots') { '115' } else { 'Unavailable' }
-    $null=Wait-Text ("2026-02-${day}T00:00:00.000Z $([char]0xb7) $expected $([char]0xb7) Unknown")
-    Save-SeriesPlot $kind
+    $null=Wait-ForProbe "chosen $day UTC point and $expected" {
+        $readout=Find-Control 'Accepted observation' $null
+        if (!$readout) { return $false }
+        $texts=@($readout.Current.Name)+@($readout.FindAll($scope,$any) | ForEach-Object { [string]$_.Current.Name })
+        $expectedText="2026-02-${day}T00:00:00.000Z $([char]0xb7) $expected $([char]0xb7) Unknown"
+        return (($texts -join ' ') -replace '\s+',' ').Contains($expectedText)
+    }
+    Archive-Stage ("selected-"+$kind)
 }
 function Save-VisibilityPlot([string]$state) {
     $image=Native-Plot
@@ -266,58 +274,84 @@ try {
     $null=[DrawingWindowCapture]::SetProcessDPIAware()
     [DrawingWindowCapture]::Resize($app.MainWindowHandle,1120,760)
     $visibilityFailure=$null
-    try { Inspect-Visibility } catch {
-        $visibilityFailure=$_
-        Write-Output "Visibility subcheck failed: $($_.Exception.Message)"
-        if (Named-Control 'Back to chart' $type::Button) { Review-Step 'Back to chart' }
+    if ($Identity) {
+        $acceptedHash=$Identity.result_hash
+        Write-Output "Started real native workspace on previously confirmed version $($Identity.version_id)."
+        Wait-Name 'Open blank AI workbench'
+        Archive-Stage 'native-entry'
+    } else {
+        try { Inspect-Visibility } catch {
+            $visibilityFailure=$_
+            Write-Output "Visibility subcheck failed: $($_.Exception.Message)"
+            if (Named-Control 'Back to chart' $type::Button) { Review-Step 'Back to chart' }
+        }
+        Enter-NativeFolder $fixture
+        Select-NativeOption 'Record kind' 1
+        Review-Step 'Inspect raw rows'
+        $null=Wait-Text 'Raw CSV rows'
+        $null=Wait-Text 'series.csv'
+        Archive-Stage 'raw'
+        $columns=[ordered]@{'Symbol column'=2; 'Timestamp column'=1; 'Trading day column'=1; 'Open column'=3
+            'High column'=4; 'Low column'=5; 'Close column'=6; 'Volume column'=8
+            'Instrument type'=1; 'Volume basis'=1; 'Timestamp convention'=1}
+        foreach ($field in $columns.Keys) { Select-NativeOption $field $columns[$field] }
+        $fields=[ordered]@{Venue='FIXTURE'; Timeframe='1d'; 'Calendar ID'='fixture-calendar'; 'Session scope'='regular'
+            Timezone='UTC'; 'Quantity unit'='shares'; 'Price adjustment'='raw'; 'Timestamp format'='%Y-%m-%d'
+            'Trading day format'='%Y-%m-%d'; 'Daily start time'='00:00:00'}
+        foreach ($field in $fields.Keys) { Fill-NativeEdit $field $fields[$field] }
+        foreach ($label in @('Preview mapping','Save reviewed mapping','Publish complete file','Open frozen chart')) { Review-Step $label }
+        Archive-Stage 'published'
+        Select-NativeOption 'Indicator input' 1
+        $period=Wait-ForProbe 'Rolling period' {
+            $control=Named-Control 'Rolling period' $type::Spinner
+            if ($control) { return $control }
+            Named-Control 'Rolling period' $type::Edit
+        }
+        $period.SetFocus()
+        [Windows.Forms.SendKeys]::SendWait('^a2{TAB}')
+        foreach ($label in @('Run preview','Accept preview','Confirm indicator acceptance')) { Review-Step $label }
+        Open-Disclosure 'Accepted provenance and values'
+        $null=Wait-Text 'Unknown, 115, 125, 135'
+        Archive-Stage 'confirmed'
+        $acceptedHash=Read-AcceptedHash
+        Write-Output "Accepted two-period volume mean: Unknown, 115, 125, 135; result SHA256=$acceptedHash"
+        Review-Step 'Open published CSV'
+        Review-Step 'Open series.csv'
+        Review-Step 'Use as workspace source'
     }
-    Enter-NativeFolder $fixture
-    Select-NativeOption 'Record kind' 1
-    Review-Step 'Inspect raw rows'
-    $null=Wait-Text 'Raw CSV rows'
-    $null=Wait-Text 'series.csv'
-    Archive-Stage 'raw'
-    $columns=[ordered]@{'Symbol column'=2; 'Timestamp column'=1; 'Trading day column'=1; 'Open column'=3
-        'High column'=4; 'Low column'=5; 'Close column'=6; 'Volume column'=8
-        'Instrument type'=1; 'Volume basis'=1; 'Timestamp convention'=1}
-    foreach ($field in $columns.Keys) { Select-NativeOption $field $columns[$field] }
-    $fields=[ordered]@{Venue='FIXTURE'; Timeframe='1d'; 'Calendar ID'='fixture-calendar'; 'Session scope'='regular'
-        Timezone='UTC'; 'Quantity unit'='shares'; 'Price adjustment'='raw'; 'Timestamp format'='%Y-%m-%d'
-        'Trading day format'='%Y-%m-%d'; 'Daily start time'='00:00:00'}
-    foreach ($field in $fields.Keys) { Fill-NativeEdit $field $fields[$field] }
-    foreach ($label in @('Preview mapping','Save reviewed mapping','Publish complete file','Open frozen chart')) { Review-Step $label }
-    Archive-Stage 'published'
-    Select-NativeOption 'Indicator input' 1
-    $period=Wait-ForProbe 'Rolling period' {
-        $control=Named-Control 'Rolling period' $type::Spinner
-        if ($control) { return $control }
-        Named-Control 'Rolling period' $type::Edit
-    }
-    $period.SetFocus()
-    [Windows.Forms.SendKeys]::SendWait('^a2{TAB}')
-    foreach ($label in @('Run preview','Accept preview','Confirm indicator acceptance')) { Review-Step $label }
-    Open-Disclosure 'Accepted provenance and values'
-    $null=Wait-Text 'Unknown, 115, 125, 135'
-    Archive-Stage 'confirmed'
-    $acceptedHash=Read-AcceptedHash
-    Write-Output "Accepted two-period volume mean: Unknown, 115, 125, 135; result SHA256=$acceptedHash"
-    Review-Step 'Open published CSV'
-    Review-Step 'Open series.csv'
-    Review-Step 'Use as workspace source'
     Review-Step 'Open blank AI workbench'
     Review-Step 'Drawing studio'
     Select-NativeOption 'Accepted version' 1
     Select-NativeOption 'Numeric series' 1
-    Open-Disclosure 'Accepted series source'
-    if ((Read-AcceptedHash) -ne $acceptedHash) { throw 'Studio and confirmed indicator have different result hashes.' }
-    Open-Disclosure 'Accepted observations'
-    foreach ($day in 3..6) { $null=Wait-Text ('2026-02-{0:D2}T00:00:00.000Z' -f $day) }
-    foreach ($number in @('Unavailable','115','125','135')) { Wait-Name $number }
-    Archive-Stage 'selected-series'
-    $sourcePanel=Wait-ForProbe 'source disclosure' { Find-Control 'Accepted series source' $null }
-    $sourcePanel.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ')
-    Use-SeriesProgram 'dots'
-    Use-SeriesProgram 'strips'
+    $observations=@()
+    try {
+        Open-Disclosure 'Accepted series source'
+        if ((Read-AcceptedHash) -ne $acceptedHash) { throw 'Studio and confirmed indicator have different result hashes.' }
+        if ($Identity) {
+            foreach ($required in @($Identity.version_id,$Identity.revision,$Identity.layer_id)) { $null=Wait-Text $required }
+        }
+        Open-Disclosure 'Accepted observations'
+        foreach ($day in 3..6) { $null=Wait-Text ('2026-02-{0:D2}T00:00:00.000Z' -f $day) }
+        foreach ($number in @('Unavailable','115','125','135')) { Wait-Name $number }
+        Archive-Stage 'selected-series'
+    } catch {
+        $observations+="Source metadata: $($_.Exception.Message)"
+        Write-Output $observations[-1]
+        Archive-Stage 'metadata-observation'
+    }
+    $sourcePanel=Find-Control 'Accepted series source' $null
+    if ($sourcePanel) {
+        $expand=$null
+        if ($sourcePanel.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand) -and
+            $expand.Current.ExpandCollapseState -eq [Windows.Automation.ExpandCollapseState]::Expanded) { $expand.Collapse() }
+    }
+    foreach ($encoding in @('dots','strips')) {
+        try { Use-SeriesProgram $encoding } catch {
+            $observations+="$encoding observation: $($_.Exception.Message)"
+            Write-Output $observations[-1]
+            Archive-Stage ("diagnostic-"+$encoding)
+        }
+    }
     (Named-Control 'Numeric series' $type::ComboBox).SetFocus()
     [Windows.Forms.SendKeys]::SendWait('{END}')
     Wait-Name 'Open a drawing program for the selected series.'
@@ -332,10 +366,12 @@ try {
     Review-Step 'Remove access'
     $null=Wait-Text 'Access removed for this published revision.'
     Archive-Stage 'revoked'
+    if (!$observations.Count) { Write-Output "Windows renderer verified: result $acceptedHash; UTC missing point, both authored shapes, source switch and native revocation." }
     Write-Output 'The private source was removed through the native published-revision library.'
     Review-Step 'Close'
-    Inspect-SampleControls
+    if (!$Identity) { Inspect-SampleControls }
     if ($visibilityFailure) { throw $visibilityFailure }
+    if ($observations.Count) { throw ($observations -join ' / ') }
 } catch {
     # The common dialog can briefly overlay the app. Only capture product content after it has closed.
     if (!(Find-Control 'Choose local CSV folder' $type::Window)) {

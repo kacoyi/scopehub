@@ -289,3 +289,17 @@ test('inspect the accepted volume mean through the native Windows workspace', as
   const [code] = await once(child, 'exit');
   expect(code, 'Native file picker, real indicator acceptance and frozen revision lifecycle').toBe(0);
 });
+
+test('a matching native Windows profile renders the core-confirmed series', async ({}, info) => {
+  test.skip(process.platform !== 'win32', 'Requires the Windows development workspace host.');
+  test.setTimeout(25 * 60_000);
+  const output = process.env.SCOPEHUB_RUN_DIR
+    ? resolve(process.env.SCOPEHUB_RUN_DIR, 'accepted-series-prepared')
+    : info.outputPath('accepted-series-prepared');
+  await mkdir(output, { recursive: true });
+  const script = fileURLToPath(new URL('./renderer-probe-windows.ps1', import.meta.url));
+  const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', script, '-AcceptedOutput', output, '-PreparedSeries'], { stdio: 'inherit', windowsHide: true });
+  const [code] = await once(child, 'exit');
+  expect(code, 'Native binding of the existing confirmed version and result, painted encodings, null readout and invalidation').toBe(0);
+});

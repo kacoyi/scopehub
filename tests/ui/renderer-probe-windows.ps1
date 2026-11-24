@@ -1,5 +1,5 @@
 # Exercise the embedded WebView2 through its accessibility tree in an isolated synthetic profile.
-param([string]$AcceptedOutput)
+param([string]$AcceptedOutput,[switch]$PreparedSeries)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -86,6 +86,16 @@ try {
         $env:SCOPEHUB_DESKTOP_WORKSPACE_DEV = '1'
     }
     $exe = Join-Path $target "$flavor/scopehub-desktop.exe"
+    $preparedIdentity=$null
+    if ($PreparedSeries) {
+        $row=& node (Join-Path $PSScriptRoot 'prepare-native-series-profile.mjs') $temp $appData
+        if ($LASTEXITCODE -or !$row) { throw 'Trusted core import and normal browser confirmation failed.' }
+        $preparedIdentity=$row | ConvertFrom-Json
+        if ($preparedIdentity.series_id -ne 'mean' -or $preparedIdentity.result_hash -notmatch '^[a-f0-9]{64}$') {
+            throw 'Native setup produced an incomplete accepted series identity.'
+        }
+        Write-Output "Trusted Rust import / Chromium confirmation: $row"
+    }
     $app = Start-Process -FilePath $exe -PassThru
     $window = Wait-ForProbe 'native main window' {
         $app.Refresh()
@@ -94,6 +104,14 @@ try {
         }
     }
     if ($window.Current.ProcessId -ne $app.Id) { throw 'Unexpected native window owner.' }
+    if ($PreparedSeries) {
+        $browser=Wait-ForProbe 'embedded native runtime child' {
+            Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" | Select-Object -First 1
+        }
+        Write-Output "Prepared-profile app HWND=$($app.MainWindowHandle) PID=$($app.Id) WebView2=$((Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion) binary=$((Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash)"
+        & (Join-Path $PSScriptRoot 'accepted-native-windows.ps1') -OutputDirectory $AcceptedOutput -Identity $preparedIdentity
+        return
+    }
     Invoke-Button 'Open workbench prototype'
     Wait-Name 'The canvas is empty. Add a block and preview your draft.'
     $sourceName = "Frozen synthetic closes $([char]0x00B7) SIM.CN.FUTURE.001"
