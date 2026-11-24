@@ -1,4 +1,7 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { resolve } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { openDefaultSample } from '../ui/sample-startup.mjs';
@@ -451,3 +454,16 @@ for (const scenario of layoutCases) {
     }
   });
 }
+
+test('align on the actual Windows WebView2 chart', async ({}, info) => {
+  test.skip(process.platform !== 'win32', 'Requires the native Windows chart host.');
+  test.setTimeout(14 * 60_000);
+  const output = process.env.SCOPEHUB_RUN_DIR
+    ? resolve(process.env.SCOPEHUB_RUN_DIR, 'native-chart') : info.outputPath('native-chart');
+  await mkdir(output, { recursive: true });
+  const script = fileURLToPath(new URL('../ui/renderer-probe-windows.ps1', import.meta.url));
+  const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', script, '-ChartOutput', output], { stdio: 'inherit', windowsHide: true });
+  const [code] = await once(child, 'exit');
+  expect(code, 'Native file selection, real candle pixels, hover, zoom and timeframe switch').toBe(0);
+});
