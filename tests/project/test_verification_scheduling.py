@@ -19,7 +19,7 @@ from scripts import check as harness
 from scripts import ci_artifacts
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
-from scripts.verification_scope import ScopeError
+from scripts.verification_scope import ScopeError, preview
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
 
@@ -253,11 +253,11 @@ class WindowsLaneTests(ProjectFixture):
         self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
-        for name in ('python-contracts-workers', 'workspace-timeframe'):
+        for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe'):
             catalog['checks'].append(dict(catalog['checks'][0], id=name))
             catalog['required_change_checks'].append(name)
         catalog['checks'][-1]['command'] = ['{python}', '-c', 'import os, sys; sys.exit(int(os.environ.get("SCOPEHUB_FIXTURE_EXIT", 0)))']
-        catalog['profiles']['records'] = ['environment', 'project-state']
+        catalog['profiles']['records'] = ['environment', 'project-state', 'dependency-review']
         catalog_path.write_bytes(json_bytes(catalog))
 
         def git(*args):
@@ -341,7 +341,54 @@ class WindowsLaneTests(ProjectFixture):
         code, report = self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
         self.assertEqual(0, code)
         self.assertEqual(original.read_bytes(), (self.reports / original.name).read_bytes())
-        self.assertEqual(['environment', 'project-state'], report['selection']['checks'])
+        self.assertEqual(['dependency-review', 'environment', 'project-state'], report['selection']['checks'])
+
+    def test_scoped_aggregate_rejects_a_passed_report_omitting_dependency_review(self):
+        lanes = self.produce('records')
+        report = lanes['core']
+        row = next(row for row in report['checks'] if row['id'] == 'dependency-review')
+        producer = self.downloads / 'verification-windows-2-core'
+        (producer / row['log'].removeprefix('.reports/')).unlink()
+        command = row['command']
+        row.clear()
+        row.update(id='dependency-review', command=command, status='blocked', reason_code='not_selected')
+        for path in (producer / 'test-report.json', producer / 'runs' / report['run_id'] / 'test-report.json'):
+            path.write_bytes(json_bytes(report))
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'selected check results'):
+            self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
+        self.assertFalse((self.reports / 'test-report.json').exists())
+
+    def test_full_fallback_accepts_verified_pr_parents_despite_a_stale_preview(self):
+        event = read_json(self.event)
+        event['pull_request']['merge_commit_sha'] = event['pull_request']['base']['sha']
+        self.event.write_bytes(json_bytes(event))
+        decision = preview(self.root, ci_env=os.environ)
+        self.assertEqual(('full', 'comparison_unavailable'), (decision['profile'], decision['reason_code']))
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        self.assertEqual('passed', report['integration_gates']['status'])
+        self.assertEqual(sorted(harness.select_checks(harness.load_project(self.root))), report['selection']['checks'])
+        self.assertEqual(os.environ['GITHUB_SHA'], report['ci']['checkout_sha'])
+        self.assertEqual(event['pull_request']['head']['sha'], report['ci']['head_sha'])
+
+    def test_scoped_aggregate_requires_a_proven_comparison(self):
+        self.produce('records')
+        event = read_json(self.event)
+        event['pull_request']['merge_commit_sha'] = event['pull_request']['base']['sha']
+        self.event.write_bytes(json_bytes(event))
+        with self.assertRaisesRegex(ScopeError, 'event merge SHA'):
+            self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
+        self.assertFalse((self.reports / 'test-report.json').exists())
+
+    def test_full_fallback_authenticates_pr_parents_at_a_shallow_boundary(self):
+        (self.root / '.git/shallow').write_bytes((os.environ['GITHUB_SHA'] + '\n').encode('ascii'))
+        decision = preview(self.root, ci_env=os.environ)
+        self.assertEqual(('full', 'comparison_unavailable'), (decision['profile'], decision['reason_code']))
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        self.assertEqual('passed', report['integration_gates']['status'])
 
     def test_main_push_binds_the_aggregate_to_before_and_after(self):
         pull = read_json(self.event)['pull_request']
@@ -356,13 +403,22 @@ class WindowsLaneTests(ProjectFixture):
             self.assertEqual('push', report['ci']['event'])
             self.assertEqual(after, report['ci']['head_sha'])
             self.assertEqual(after, report['ci']['checkout_sha'])
-            for changed, error in (({**event, 'before': '0' * 40}, 'commit SHA'),
-                                   ({**event, 'after': pull['head']['sha']}, 'after SHA'),
-                                   ({**event, 'forced': True}, 'ordinary update')):
+            for changed, error in (({**event, 'after': pull['head']['sha']}, 'after SHA'),
+                                   ({**event, 'deleted': True}, 'checked out main revision')):
                 with self.subTest(error=error):
                     self.event.write_bytes(json_bytes(changed))
                     with self.assertRaisesRegex(ScopeError, error):
                         self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            for changed in ({**event, 'before': '0' * 40}, {**event, 'forced': True}):
+                with self.subTest(event=changed):
+                    self.event.write_bytes(json_bytes(changed))
+                    decision = preview(self.root, ci_env=os.environ)
+                    self.assertEqual(('full', 'comparison_unavailable'), (decision['profile'], decision['reason_code']))
+                    shutil.rmtree(self.reports)
+                    code, fallback = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+                    self.assertEqual(0, code)
+                    self.assertEqual(report['ci'], fallback['ci'])
+                    self.assertEqual(report['checks'], fallback['checks'])
 
     def test_aggregate_rejects_missing_stale_and_changed_lane_evidence(self):
         self.produce()

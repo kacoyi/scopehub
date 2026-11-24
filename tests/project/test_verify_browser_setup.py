@@ -134,7 +134,8 @@ class VerifyBrowserSetupTests(unittest.TestCase):
             self.assertEqual([lane], producer['strategy']['matrix']['lane'])
             self.assertIn("github.event_name == 'push' && github.ref == 'refs/heads/main'", producer['if'])
             self.assertIn(f"needs.windows_{lane}.result == 'success'", aggregate['env']['SCOPEHUB_WINDOWS_LANE_RESULT'])
-        self.assertIn('!cancelled()', aggregate['if'])
+        self.assertEqual("${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}",
+                         aggregate['if'])
         steps = self.jobs['windows_python']['steps']
         for command in ('pnpm install --frozen-lockfile', self.step['run']):
             self.assertIn("matrix.lane != 'python'", next(step for step in steps if step.get('run') == command)['if'])
@@ -148,6 +149,29 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         full = next(step for step in aggregate['steps'] if step.get('id') == 'full')
         self.assertEqual('Run uv run python scripts/check.py --require-windows', full['name'])
         self.assertNotIn('continue-on-error', full)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run the workflow failure guard with Bash')
+    def test_protected_windows_job_requires_success_even_after_a_cancelled_dependency(self):
+        aggregate = self.jobs['windows_change']
+        guard = aggregate['steps'][-1]
+        self.assertEqual('${{ always() }}', guard['if'])
+        self.assertNotIn('continue-on-error', guard)
+        condition = aggregate['env']['SCOPEHUB_WINDOWS_LANE_RESULT']
+        expected = ' && '.join(f"needs.{dependency}.result == 'success'" for dependency in aggregate['needs'])
+        self.assertEqual('${{ ' + expected + " && 'success' || 'failure' }}", condition)
+        self.assertEqual("${{ job.status == 'success' && (steps.full.outcome == 'success' || steps.scoped.outcome == 'success') }}",
+                         guard['env']['SCOPEHUB_AGGREGATE_PASSED'])
+        for result, completed_aggregate, expected_exit in (
+            ('success', 'true', 0), ('success', 'false', 1), ('failure', 'true', 1),
+            ('cancelled', 'false', 1), ('skipped', 'false', 1), ('', '', 1),
+        ):
+            with self.subTest(result=result, completed_aggregate=completed_aggregate):
+                completed = subprocess.run(
+                    [guard['shell'], '-c', guard['run']],
+                    env=dict(os.environ, SCOPEHUB_WINDOWS_LANE_RESULT=result, SCOPEHUB_AGGREGATE_PASSED=completed_aggregate),
+                    capture_output=True, timeout=10,
+                )
+                self.assertEqual(expected_exit, completed.returncode)
 
     def test_task_omits_setup_only_for_reviewed_browser_and_build_free_selection(self):
         project = load_project(ROOT)

@@ -312,9 +312,9 @@ jobs:
     steps: *verify_steps
 
   windows_change:
-    # Keep the protected context unique even when this job is skipped on non-PR runs.
+    # Schedule the protected context even when a required producer fails or is cancelled.
     name: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 'verify (windows-latest)' || 'Windows change verification (not requested)' }}
-    if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     needs: [windows_core, windows_browser, windows_python]
     runs-on: windows-latest
     timeout-minutes: 10
@@ -376,5 +376,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Require successful Windows lane jobs
-        if: ${{ !cancelled() && env.SCOPEHUB_WINDOWS_LANE_RESULT != 'success' }}
-        run: exit 1
+        if: ${{ always() }}
+        env:
+          SCOPEHUB_AGGREGATE_PASSED: ${{ job.status == 'success' && (steps.full.outcome == 'success' || steps.scoped.outcome == 'success') }}
+        shell: bash
+        run: test "$SCOPEHUB_WINDOWS_LANE_RESULT" = success && test "$SCOPEHUB_AGGREGATE_PASSED" = true

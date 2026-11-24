@@ -19,7 +19,7 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES, ci_base, require_ancestor
+    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
     from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
                        windows_lane_checks, windows_lanes_run_id)
@@ -31,7 +31,7 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES, ci_base, require_ancestor
+    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
@@ -359,16 +359,22 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
                 raise PublicationError(f'Windows {lane} lane has an unexpected result for {key}.')
         elif row['status'] == 'passed' and (row.get('reason_code') or duration(row.get('duration_seconds')) is None):
             raise PublicationError(f'Windows {lane} lane has an incomplete passing result for {key}.')
+    if profile in SCOPED_PROFILES:
+        statuses = {row['status'] for row in report['checks'] if row['id'] in selected}
+        expected = 'failed' if 'failed' in statuses else 'passed' if statuses == {'passed'} else 'blocked'
+        if report['status'] != expected:
+            raise PublicationError(f'Windows {lane} lane summary differs from its selected check results.')
 
 
 def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *, profile=None):
     """Recheck the event checkout and import only current, digest-checked lane outputs."""
-    base = ci_base(root, source['git_head'], env)
-    require_ancestor(root, base, source['git_head'])
-    event = evidence_json(Path(env['GITHUB_EVENT_PATH']).read_bytes())
-    head = event['pull_request']['head']['sha'] if ci['event'] == 'pull_request' else event['after']
+    checkout = source['git_head']
+    _, head, _ = ci_event_checkout(root, checkout, env)
     if ci['head_sha'] != head:
         raise PublicationError('Windows lane provenance differs from the event head.')
+    if profile:
+        base = ci_base(root, checkout, env)
+        require_ancestor(root, base, checkout)
     names = ('core',) if profile else WINDOWS_LANES
     prefix = 'verification-windows-' + ci['run_attempt'] + '-'
     expected_names = {prefix + lane for lane in names}
