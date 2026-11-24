@@ -33,6 +33,8 @@
 .local-import-card h2 + p, .local-import-card p + .local-import-fields { margin-top: 5px; }
 .local-import-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 10px; }
 .local-import-fields label { display: grid; align-content: start; gap: 3px; min-width: 0; font-size: 12px; }
+.local-import-draft { margin-bottom: 10px; }
+.local-import-draft p { margin-top: 5px; }
 .local-import-wide { grid-column: 1 / -1; }
 .local-import-fields select, .local-import-fields input {
   min-width: 0;

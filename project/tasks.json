@@ -12995,7 +12995,7 @@
         "operations-workflow"
       ],
       "evidence": [],
-      "next_action": "Build the independent settings entry with the local directory picker and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
+      "next_action": "Extend the settings entry delivered in M1-036 with saved connection details and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
       "blocker": null,
       "closure_reason": null
     },
@@ -17735,6 +17735,107 @@
       }
     },
     {
+      "id": "M1-036",
+      "title": "Open and resume a personal CSV folder from My data sources",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M0-051",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0023"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "Offer Settings, Data sources and My data sources in the ordinary chart shell. From an unconfigured profile, the folder entry opens the existing user-initiated picker and approved CSV review flow without an account.",
+        "Cancelling or dismissing the settings or native picker preserves the chart, its selection and focus. Selecting a folder exposes the existing review and explicit publication controls. Reopening a still-granted folder reuses the current session's review without inventing a saved connection."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "local-import-ui",
+        "local-import-publication"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-036-a9c4ee10ae2a3d0d.json",
+          "sha256": "9e4e3c2ebe122c4bc2e00e0b46ca4cd1d6a026eb8417c601baa8480a9b6193b3"
+        },
+        {
+          "path": "project/evidence/M1-036-5681ca91d666426f.json",
+          "sha256": "5a4f623de064d360a4704d3d439aaa4bf6f0f350b477ac38b2eab0408f50ecd7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The local task checks verified the English and Chinese settings entry, picker cancellation, same-session review, chart viewport and focus continuity, and explicit publication through the portable Rust desktop state. The tests substitute the Windows folder dialog, which remains unobserved on this candidate.",
+      "plan": {
+        "outcome": "From the ordinary chart settings a user reaches My data sources and can choose their own local CSV directory, review it through the existing import flow, then return to the original chart.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/workspace-panels.tsx",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "tests/ui/local-import.playwright.config.mjs"
+        ],
+        "hypotheses": [
+          "The chart can expose one settings entry and hand off to the existing local folder flow without a second picker or import implementation."
+        ],
+        "risks": [
+          {
+            "failure": "Opening settings or cancelling the picker changes the chart or silently creates a source grant or publication.",
+            "checks": [
+              "local-import-ui",
+              "local-import-publication"
+            ]
+          }
+        ],
+        "rollback": "Revert this user-facing entry and its focused tests together, retaining the established underlying operation.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/chart-settings.tsx",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ui/local-import.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/my_data_sources"
+            }
+          ],
+          "non_goals": [
+            "Persistent refresh rules, manual records and API connection forms remain in M1-030 and their existing delivery tasks."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The chart default, existing source actions, synthetic labels, session-limited grants and explicit publication."
+          ],
+          "change": [
+            "From the ordinary chart settings a user reaches My data sources and can choose their own local CSV directory, review it through the existing import flow, then return to the original chart."
+          ],
+          "data_plan": "Use explicit native grants and synthetic fixtures in checks. Opening settings writes no user data.",
+          "cleanup": "Keep one path for the underlying action and remove any superseded local interaction while maintaining its callers."
+        }
+      }
+    },
+    {
       "id": "M2-030",
       "title": "Show an editable chart-free state view of the same synthetic result",
       "milestone": "M2",
@@ -17853,6 +17954,115 @@
           ],
           "data_plan": "Read the existing immutable synthetic observations. Keep presentation and selection in the window.",
           "cleanup": "Evaluate this composition with its source binding at the parent renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M1-037",
+      "title": "Draft CSV column mappings from the selected file headers",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-008",
+        "M0-051"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "python/providers",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0023"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "In the normal local CSV import editor, use the observed file headers to propose unambiguous field mappings. Let the user review, correct and preview the draft with the existing deterministic reader. Matching manually supplied mappings produce the same rows and diagnostics.",
+        "Preserve existing explicit bindings. Leave conflicting or missing headers unresolved and leave venue, units, timezone, timestamp convention and adjustment to the existing explicit rules. Never assign settlement or an auxiliary declaration to an OHLC field.",
+        "Work offline with the selected header metadata only. Applying a suggestion edits a draft. Saving, publishing and granting access retain their existing explicit user actions."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "local-import-ui",
+        "local-import-publication"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-037-5681ca91d666426f.json",
+          "sha256": "a10cec396b62009c2341cca8f115d4783e099afa2cb43efb38a49969d8c9af06"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can start a personal CSV mapping from real headers, see its gaps, correct it and preview the same result as manual entry.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "python/providers/csv_bar_mapping.py",
+          "tests/ui/local-import.playwright.config.mjs"
+        ],
+        "hypotheses": [
+          "Unambiguous known header roles can reduce manual mapping without assuming financial conventions."
+        ],
+        "risks": [
+          {
+            "failure": "A guess is presented as confirmed, an explicit binding is overwritten or a settlement field reaches OHLC.",
+            "checks": [
+              "local-import-ui",
+              "local-import-publication"
+            ]
+          },
+          {
+            "failure": "An observed close alias exceeds the binding length limit and is dropped before ambiguity detection, silently choosing a different price column.",
+            "checks": [
+              "local-import-publication"
+            ]
+          }
+        ],
+        "rollback": "Remove the suggestion action and retain the existing manual mapping and reader.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "python/providers/csv_bar_mapping.py",
+            "tests/ui/local-import.playwright.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/local_tools"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            }
+          ],
+          "non_goals": [
+            "A connected model, sampling file contents for a model, broader provider mapping, schema changes and automatic publication."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Reviewed mappings, explicit data semantics, immutable published revisions and the existing preview validator."
+          ],
+          "change": [
+            "Offer an editable, local draft made from selected headers."
+          ],
+          "data_plan": "Use the current preview's exact header strings and existing raw-only column classifications. Match only recognized bar aliases and fill empty bindings in the unsaved draft. No new persistent fields or external requests.",
+          "cleanup": "Keep one publication and mapping validation path and one source of truth for existing reserved headers."
         }
       }
     }

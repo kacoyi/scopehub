@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { LayoutPanel11 } from '../../../../contracts/generated/protocol';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
+import { ChartSettings } from './chart-settings';
 import { DecisionNotes } from './decision-notes';
 import { PrivateRecords } from './private-records';
 import { UnavailableSharedSelection } from './frozen-evidence';
@@ -73,7 +74,8 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
+export function ChartWorkspace({ sample, active, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
+  active: boolean;
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
   revisionAccess: PublishedRevisionAccess;
@@ -280,6 +282,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     return () => media.removeEventListener('change', changed);
   }, []);
   useEffect(() => {
+    if (!active) return;
     const keyboard = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || document.querySelector('dialog:modal')) return;
       if (searchQuery !== null || notesOpen || recordsOpen || layout.editing || modelDialogOpen) return;
@@ -298,7 +301,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel, modelDialogOpen]);
+  }, [active, searchQuery, notesOpen, recordsOpen, layout.editing, focusChart, visiblePanel, closePanel, modelDialogOpen]);
   const openSample = onOpenSample ?? (() => { window.location.hash = 'demo'; });
 
   let plot: ReactNode;
@@ -356,7 +359,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   };
   const savedLayouts = workspace?.snapshot?.layouts;
   const pinned = definition?.pinned_instrument;
-  return <main className={'workstation' + (focusChart ? ' chart-only' : '')} style={appearance && {
+  return <main className={'workstation' + (focusChart ? ' chart-only' : '')} inert={!active} style={appearance && {
     '--layout-gain': appearance.gain, '--layout-loss': appearance.loss,
   } as CSSProperties} data-layout-theme={definition?.theme}>
     <header className="topbar">
@@ -400,6 +403,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
         disabled={!savedLayouts || Boolean(workspace.pending) || layout.busy || Boolean(layout.preview)}
         onClick={() => layout.open()}>{t('Edit layout')}</button>}
       <LanguageSettings />
+      <ChartSettings localActions={localActions} />
       <Tool name={focusChart ? t('Exit chart-only view') : t('Chart-only view')} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
     {savedLayouts && <WorkspaceLayoutReview active={savedLayouts.active} state={layout} />}

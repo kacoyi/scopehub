@@ -1,11 +1,11 @@
 import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { test as base, expect } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { painted } from './chart-pixels.mjs';
-import { control, openPanel } from './workspace-controls.mjs';
+import { control, openPanel, watchlistSymbol } from './workspace-controls.mjs';
 
 const folderId = '95ef05fd-a797-4bb7-9e63-112233440001';
 const equity = {
@@ -70,6 +70,22 @@ const catalog = {
   }),
 };
 
+const sampleFixtures = JSON.parse(await readFile(new URL('../fixtures/market/series.json', import.meta.url), 'utf8')).fixtures;
+
+function sampleHistory({ series, from_ms, to_ms, warmup_bars }) {
+  const { history: { dataset, bars } } = sampleFixtures.find(({ history }) =>
+    history.dataset.instrument_id === series.instrument_id && history.dataset.timeframe === series.timeframe);
+  const as_of_ms = dataset.provenance.as_of_ms;
+  return {
+    dataset, bars, total_bars: bars.length, offset: 0, next_cursor: null, stream_position: null,
+    snapshot: { series, from_ms, to_ms, warmup_bars, as_of_ms,
+      dataset_id: dataset.id, dataset_revision: dataset.revision,
+      content_hash: createHash('sha256').update(JSON.stringify(bars)).digest('hex') },
+    quality_state: { as_of_ms, last_observed_ms: dataset.provenance.last_observed_ms,
+      session_state: 'open', freshness: 'current', connection: 'offline', coverage: 'observed', gaps: [], source_kind: 'synthetic' },
+  };
+}
+
 function importedFixture({ payload, requestId }, invalidPart) {
   expect(Object.keys(payload).sort()).toEqual(
     ['file_id', 'folder_id', 'mapping', 'version', ...['expected_sha256', 'row_limit'].filter(field => field in payload)].sort(),
@@ -129,7 +145,8 @@ function importedFixture({ payload, requestId }, invalidPart) {
 // Only synthetic fixture bytes contribute to display data and expected hashes.
 const test = base.extend({
   pickerLocale: ['en', { option: true }],
-  mockNative: async ({ page, baseURL, pickerLocale }, use) => {
+  sampleChart: [false, { option: true }],
+  mockNative: async ({ page, baseURL, pickerLocale, sampleChart }, use) => {
     const choices = [];
     const calls = [];
     const saved = new Map();
@@ -154,7 +171,11 @@ const test = base.extend({
         return null;
       }
       expect(command).toBe('execute_operation');
-      if (args.operation === 'instrument.search') return { instruments: [] };
+      if (args.operation === 'instrument.search') return {
+        instruments: sampleChart ? sampleFixtures.filter(item => item.scenario === 'normal' && item.history.dataset.timeframe === '1m')
+          .map(item => item.instrument) : [],
+      };
+      if (sampleChart && args.operation === 'market.readHistoryPage') return sampleHistory(args.payload);
       if (args.operation === 'market.saveLocalImportMapping') {
         const { preview, file_id } = importedFixture(args);
         expect(preview.issues).toEqual([]);
@@ -210,17 +231,36 @@ const test = base.extend({
   },
 });
 
+async function openPersonalSources(page, labels = { settings: 'Settings', sources: 'Data sources', personal: 'My data sources' }) {
+  await control(page, labels.settings).click();
+  const dialog = page.getByRole('dialog', { name: labels.settings, exact: true });
+  await control(dialog, labels.sources).click();
+  await control(dialog, labels.personal).click();
+  await expect(dialog.getByRole('heading', { name: labels.personal, exact: true })).toBeVisible();
+  return dialog;
+}
+
 test.describe('Simplified Chinese desktop source selection', () => {
   test.use({ locale: 'zh-CN', pickerLocale: 'zh-Hans' });
 
-  test('sends the effective language to the chooser and keeps the selected file name intact', async ({ page, mockNative }) => {
+  test('opens My data sources in Chinese and sends the effective language to the chooser', async ({ page, mockNative }, testInfo) => {
     await page.goto('/');
+    const dialog = await openPersonalSources(page, { settings: '设置', sources: '数据源', personal: '我的数据源' });
+    await expect(dialog.getByRole('status')).toHaveText('尚未选择 CSV 文件夹');
+    await expect(control(dialog, '继续审阅 CSV')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('my-data-sources-zh-Hans.png') });
     mockNative.choices.push(catalog);
-    await control(page, '选择本地 CSV 文件夹').first().click();
+    await control(dialog, '选择本地 CSV 文件夹').click();
+    await expect(dialog).toBeHidden();
     await expect(page.getByRole('button', { name: '语言设置' }).last()).toBeVisible();
     const file = page.getByRole('combobox', { name: 'CSV 文件', exact: true });
     await file.selectOption(equity.fileId);
     await expect(file.locator('option:checked')).toContainText(equity.path);
+    await select(page, '记录类型').selectOption('native_ohlcv');
+    await control(page, '查看原始行').click();
+    await control(page, '根据表头起草映射').click();
+    await expect(select(page, '交易日列')).toHaveValue('TradingDate');
+    await expect(page.getByRole('status').filter({ hasText: '请核对所选列名' })).toContainText('没有可识别的列名');
     await control(page, '语言设置').click();
     const settings = page.getByRole('dialog', { name: '语言设置' });
     await settings.getByRole('combobox').selectOption('en');
@@ -245,7 +285,101 @@ function select(page, name) {
   return page.getByRole('combobox', { name, exact: true });
 }
 
-async function enterMapping(page, file, close = file.columns.close) {
+test.describe('My data sources in the ordinary chart', () => {
+  test.use({ sampleChart: true });
+
+  test('cancels the picker and resumes the same review without changing the chart viewport', async ({ page, mockNative }, testInfo) => {
+    await page.goto('/');
+    await control(page, 'Open offline sample').click();
+    await openPanel(page, 'Watchlist');
+    const stock = watchlistSymbol(page, 'SIM.CN.STOCK.001');
+    await stock.click();
+    await control(page, '5m').click();
+    await control(page, 'Close-price line').click();
+    const history = page.getByRole('region', { name: 'Price chart' }).locator('.history');
+    await expect(history).toHaveAttribute('data-timeframe', '5m');
+    await expect(history).toHaveAttribute('data-instrument', 'SIM.CN.STOCK.001');
+    await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
+    // Compare the drawn price series without crosshair or hover labels.
+    const priceViewport = () => history.locator('.chart canvas').first().evaluate(canvas => {
+      const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      let signature = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i] === 115 && pixels[i + 1] === 184 && pixels[i + 2] === 246) signature = (signature * 31 + i) | 0;
+      }
+      return signature;
+    });
+    const beforeZoom = await priceViewport();
+    await control(page, 'Zoom in').click();
+    await expect.poll(priceViewport).not.toEqual(beforeZoom);
+    const zoomed = await priceViewport();
+    const settings = control(page, 'Settings');
+    const chooserCalls = () => mockNative.calls.filter(call => call.command === 'choose_local_csv_folder');
+    const expectOriginalChart = async () => {
+      await expect(settings).toBeFocused();
+      await expect(stock).toHaveAttribute('aria-pressed', 'true');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(control(page, 'Close-price line')).toHaveAttribute('aria-pressed', 'true');
+      await expect.poll(priceViewport).toEqual(zoomed);
+    };
+
+    const dialog = await openPersonalSources(page);
+    const choose = control(dialog, 'Choose local CSV folder');
+    const resume = control(dialog, 'Resume CSV review');
+    await expect(dialog.getByRole('status')).toHaveText('No CSV folder selected');
+    await expect(resume).toHaveCount(0);
+    await expect(choose).toBeFocused();
+    expect(chooserCalls()).toHaveLength(0);
+
+    const picker = Promise.withResolvers();
+    mockNative.choices.push(picker.promise);
+    await choose.press('Enter');
+    await expect(dialog.getByRole('status')).toHaveText('Waiting for folder selection…');
+    await expect(choose).toBeDisabled();
+    picker.resolve(null);
+    await expect(dialog.getByRole('status')).toHaveText('No CSV folder selected');
+    await expect(choose).toBeFocused();
+    await expect(resume).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expectOriginalChart();
+    expect(chooserCalls()).toHaveLength(1);
+
+    await openPersonalSources(page);
+    mockNative.choices.push(catalog);
+    await choose.click();
+    await expect(dialog).toBeHidden();
+    const back = control(page, 'Back to chart');
+    await expect(back).toBeFocused();
+    await expect(history).toBeHidden();
+    const review = page.getByRole('region', { name: 'Local CSV import' });
+    await expect(review).toContainText(catalog.display_name);
+    await select(review, 'CSV file').selectOption(future.fileId);
+    await expect(control(review, 'Inspect raw rows')).toBeEnabled();
+    await page.screenshot({ path: testInfo.outputPath('csv-review.png') });
+    await back.click();
+    await expectOriginalChart();
+
+    await openPersonalSources(page);
+    await expect(dialog.getByRole('status')).toHaveText('Folder available in this session');
+    await expect(dialog.getByText(catalog.display_name, { exact: true })).toBeVisible();
+    mockNative.choices.push(null);
+    await choose.click();
+    await expect(dialog.getByRole('status')).toHaveText('Folder available in this session');
+    await expect(choose).toBeFocused();
+    await page.screenshot({ path: testInfo.outputPath('my-data-sources-session.png') });
+    await resume.click();
+    await expect(select(review, 'CSV file')).toHaveValue(future.fileId);
+    await back.click();
+    await expectOriginalChart();
+    const importCalls = mockNative.calls.filter(call => !['instrument.search', 'market.readHistoryPage'].includes(call.args?.operation));
+    expect(importCalls).toEqual(Array.from({ length: 3 }, () => ({
+      command: 'choose_local_csv_folder', args: { locale: 'en' },
+    })));
+  });
+});
+
+async function enterSeriesDeclarations(page, file) {
   await select(page, 'Record kind').selectOption('native_ohlcv');
   await select(page, 'Instrument type').selectOption(file.settings.instrument_kind);
   for (const [key, name] of Object.entries(mappingFields)) {
@@ -253,8 +387,12 @@ async function enterMapping(page, file, close = file.columns.close) {
   }
   await select(page, 'Volume basis').selectOption('per_bar');
   await select(page, 'Timestamp convention').selectOption('bar_start');
+}
+
+async function enterMapping(page, file, close = file.columns.close) {
+  await enterSeriesDeclarations(page, file);
   for (const [key, name] of Object.entries(columnFields)) {
-    await select(page, name).selectOption(key === 'close' ? close : file.columns[key]);
+    await select(page, name).selectOption(key === 'close' ? close : file.columns[key] ?? { label: 'No volume column' });
   }
 }
 
@@ -279,7 +417,7 @@ test('mocked native transport preserves the current source on cancel and support
   mockNative.choices.push(catalog);
   await choose();
   await expect(page.getByText('Local CSV', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Simulated', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Simulated', { exact: true })).toBeHidden();
   const fileSelector = select(page, 'CSV file');
   const rawRows = page.getByRole('table', { name: 'Raw CSV rows' }).locator('tbody tr');
   const normalizedRows = page.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr');
@@ -308,7 +446,17 @@ test('mocked native transport preserves the current source on cancel and support
   await control(page, 'Inspect raw rows').click();
   await expect(page.getByText(sourceIdentity(future).sha256, { exact: true }).first()).toBeVisible();
   await expect(page.getByText('PrevSettlementPrice', { exact: true }).first()).toBeVisible();
-  await enterMapping(page, future, 'PrevSettlementPrice');
+  await select(page, 'Record kind').selectOption('native_ohlcv');
+  const callsBeforeDraft = mockNative.calls.length;
+  await control(page, 'Draft mapping from headers').click();
+  await expect(select(page, 'Close column')).toHaveValue('Close');
+  await expect(select(page, 'Timestamp column')).toHaveValue('');
+  await expect(page.getByRole('status').filter({ hasText: 'No recognized header' })).toContainText('Timestamp column');
+  expect(mockNative.calls).toHaveLength(callsBeforeDraft);
+  await enterSeriesDeclarations(page, future);
+  await select(page, 'Timestamp column').selectOption('Start');
+  await select(page, 'Volume column').selectOption('Contracts');
+  await select(page, 'Close column').selectOption('PrevSettlementPrice');
   await control(page, 'Preview mapping').click();
   await expect(page.getByText('Previous settlement price cannot be mapped to OHLC.', { exact: false }).first()).toBeVisible();
   await expect(chart.locator('canvas')).toHaveCount(0);
@@ -465,6 +613,241 @@ base('ordinary browser without native transport has no folder selection action',
   await expect(control(page, 'Choose local CSV folder')).toHaveCount(0);
   await expect(control(page, 'Open published CSV')).toHaveCount(0);
   await expect(page.locator('input[type=file]')).toHaveCount(0);
+  const settings = await openPersonalSources(page);
+  await expect(settings.getByText('Local CSV selection is available in the desktop app.')).toBeVisible();
+  await expect(control(settings, 'Choose local CSV folder')).toHaveCount(0);
+});
+
+base('opens a CSV folder from Settings, previews a corrected header draft and resumes the same review', {
+  tag: ['@profile-local-csv', '@csv-header-draft'],
+}, async ({ page, baseURL }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const unique = {
+    settings: future.settings,
+    columns: {
+      symbol: 'Ticker', timestamp: 'Bar-Start', trading_day: 'TradeDate', open: 'Open_Price',
+      high: '最高价', low: 'Low', close: 'Close', volume: 'Volume',
+    },
+  };
+  const ambiguous = {
+    settings: unique.settings,
+    columns: { ...unique.columns, symbol: 'Vendor Symbol', low: 'Vendor Floor', close: 'CLOSE PRICE', volume: null },
+  };
+  const extraHeaders = ['SettlementPrice', 'PrevSettlementPrice', 'OpenInterest', 'Venue', 'Quantity.Unit', 'Price-Adjustment', 'TimeZone'];
+  const paddedClose = 'Close' + ' '.repeat(1_020);
+  const conflictingRow = ['CU2605', '2026-04-14 21:05', '2026-04-15', '100', '220', '96', '101', '31'];
+  const records = [
+    ['CU2605', '2026-04-14 21:05', '2026-04-15', '100', '106', '96', '102', '31', '105', '99', '45', 'TEST-FU', 'contracts', 'raw', 'Asia/Shanghai'],
+    ['CU2605', '2026-04-14 21:10', '2026-04-15', '102', '108', '101', '105', '37', '107', '99', '46', 'TEST-FU', 'contracts', 'raw', 'UTC'],
+    ['CU2605', '2026-04-14 21:15', '2026-04-15', '105', '109', '104', '106', '', '108', '99', '47', 'TEST-FU', 'contracts', 'raw', 'Asia/Shanghai'],
+  ];
+  const temporary = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-csv-header-draft-'));
+  const profile = join(temporary, 'profile');
+  const folder = join(temporary, 'selected-csv');
+  const writeCsv = (name, header, rows) => writeFile(join(folder, name), [header, ...rows].map(row => row.join(',')).join('\n') + '\n');
+  let bridge;
+  try {
+    await mkdir(profile, { mode: 0o700 });
+    await mkdir(folder, { mode: 0o700 });
+    const header = [...Object.values(unique.columns), ...extraHeaders];
+    await writeCsv('unique.csv', header, records);
+    await writeCsv('ambiguous.csv', [
+      ...header.map(column => column === 'Low' ? ambiguous.columns.low : column), ambiguous.columns.close, ambiguous.columns.symbol,
+    ], records.map((row, index) => [...row, String(103 + 2 * index), 'CU2605-alt']));
+    await writeCsv('invalid.csv', [...header, 'Close'], [[...records[0], '103']]);
+    const barHeaders = Object.values(unique.columns);
+    await writeCsv('overlength-conflict.csv', [...barHeaders, paddedClose], [[...conflictingRow, '202']]);
+    await writeCsv('overlength-only.csv', barHeaders.map(column => column === 'Close' ? paddedClose : column), [conflictingRow]);
+
+    bridge = startLocalImportBridge(binary, profile, folder);
+    const calls = [];
+    const requests = [];
+    let cancelNextPicker = false;
+    page.on('request', request => requests.push(request.url()));
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      if (command === 'choose_local_csv_folder' && cancelNextPicker) {
+        cancelNextPicker = false;
+        const reply = { result: null };
+        calls.push({ command, args, reply });
+        return reply;
+      }
+      const reply = await bridge.request(command, args);
+      calls.push({ command, args, reply });
+      return reply;
+    });
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+
+    const file = select(page, 'CSV file');
+    const kind = select(page, 'Record kind');
+    const field = key => select(page, columnFields[key]);
+    const suggest = control(page, 'Draft mapping from headers');
+    const preview = control(page, 'Preview mapping');
+    const diagnostics = page.getByRole('region', { name: 'Diagnostics' });
+    const normalized = page.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr');
+    const suggestion = page.getByRole('status').filter({ hasText: 'Review the column selections' });
+    const previewCalls = () => calls.filter(call => call.args?.operation === 'market.previewLocalImport');
+    async function openCsv(name) {
+      await file.selectOption({ label: name });
+      await kind.selectOption('native_ohlcv');
+      await expect(suggest).toBeDisabled();
+      await expect(suggestion).toHaveCount(0);
+      await control(page, 'Inspect raw rows').click();
+      await expect(diagnostics).toBeVisible();
+    }
+    async function applyDraft() {
+      const count = calls.length;
+      const requestCount = requests.length;
+      await suggest.click();
+      await expect(suggestion).toBeVisible();
+      expect(calls).toHaveLength(count);
+      expect(requests).toHaveLength(requestCount);
+      await expect(control(page, 'Save reviewed mapping')).toHaveCount(0);
+      await expect(control(page, 'Publish complete file')).toHaveCount(0);
+    }
+    async function mappedPreview() {
+      const count = previewCalls().length;
+      await preview.click();
+      await expect.poll(() => previewCalls().length).toBe(count + 1);
+      await expect(preview).toBeEnabled();
+      const { args, reply } = previewCalls().at(-1);
+      const { mapping_revision, ...result } = reply.result.preview;
+      expect(mapping_revision).toBe(args.payload.mapping.revision);
+      expect(result.file_sha256).toBe(args.payload.expected_sha256);
+      return { mapping: args.payload.mapping, result };
+    }
+
+    await page.goto('/');
+    const settings = await openPersonalSources(page);
+    const chooseFolder = control(settings, 'Choose local CSV folder');
+    expect(calls).toHaveLength(0);
+    await chooseFolder.click();
+    await expect(settings).toBeHidden();
+    await openCsv('unique.csv');
+    await applyDraft();
+    for (const [key, column] of Object.entries(unique.columns)) await expect(field(key)).toHaveValue(column);
+    await expect(suggestion.getByRole('list')).toHaveCount(0);
+    const incomplete = await mappedPreview();
+    expect(incomplete.mapping).not.toHaveProperty('timezone');
+    expect(incomplete.mapping).not.toHaveProperty('venue');
+    expect(incomplete.mapping).not.toHaveProperty('quantity_unit');
+    expect(incomplete.mapping).not.toHaveProperty('price_adjustment');
+    expect(incomplete.mapping).not.toHaveProperty('volume_semantics');
+    expect(incomplete.mapping).not.toHaveProperty('timestamp_convention');
+    expect(incomplete.result.issues.map(issue => issue.code)).toEqual(expect.arrayContaining([
+      'declaration_required', 'volume_ambiguous', 'timestamp_convention', 'date_format',
+    ]));
+    await enterSeriesDeclarations(page, unique);
+    const selected = await mappedPreview();
+    expect(selected.result.rows.map(row => row.normalized?.volume)).toEqual([31, undefined, null]);
+    expect(selected.result.rows[1].issues.map(issue => issue.code)).toEqual(['timezone_mismatch']);
+    expect(selected.result.raw_only_columns).toEqual(expect.arrayContaining([
+      { column: 'SettlementPrice', reason: 'Preserved for review as settlement price.' },
+      { column: 'Quantity.Unit', reason: 'Preserved for review as declared quantity unit.' },
+    ]));
+    await expect(normalized).toHaveCount(2);
+    await expect(normalized.last()).toContainText('Unknown');
+    await select(page, 'Delimiter').selectOption(';');
+    await expect(suggest).toBeDisabled();
+    await expect(suggestion).toHaveCount(0);
+    await select(page, 'Delimiter').selectOption(',');
+
+    await openCsv('invalid.csv');
+    await expect(diagnostics).toContainText('Use nonempty, unique CSV column headers.');
+    await expect(suggest).toBeDisabled();
+
+    await openCsv('ambiguous.csv');
+    await enterSeriesDeclarations(page, ambiguous);
+    await field('symbol').selectOption(ambiguous.columns.symbol);
+    await field('volume').selectOption({ label: 'No volume column' });
+    await applyDraft();
+    await expect(field('symbol')).toHaveValue(ambiguous.columns.symbol);
+    await expect(field('volume')).toHaveValue('No volume column');
+    await expect(field('close')).toHaveValue('');
+    await expect(field('low')).toHaveValue('');
+    await expect(suggestion.getByRole('listitem')).toHaveText([
+      'Low column · No recognized header', 'Close column · Choose among “Close”, “CLOSE PRICE”',
+    ]);
+    const unresolved = await mappedPreview();
+    expect(unresolved.result.issues.map(issue => [issue.field, issue.code])).toEqual([
+      ['low', 'column_required'], ['close', 'column_required'],
+    ]);
+    await field('low').selectOption(ambiguous.columns.low);
+    await field('close').selectOption(ambiguous.columns.close);
+    await expect(suggestion.getByRole('list')).toHaveCount(0);
+    const corrected = await mappedPreview();
+    expect(corrected.mapping.columns).toEqual(ambiguous.columns);
+    expect(corrected.result.rows[0]).toMatchObject({ symbol: 'CU2605-alt', normalized: { close: 103, volume: null } });
+    expect(corrected.result.rows[1].issues.map(issue => issue.code)).toEqual(['timezone_mismatch']);
+    await expect(normalized).toHaveCount(2);
+    const correctedRows = await normalized.allTextContents();
+    const correctedDiagnostics = await diagnostics.textContent();
+
+    const previewCount = previewCalls().length;
+    await control(page, 'Back to chart').click();
+    await expect(control(page, 'Settings')).toBeFocused();
+    await openPersonalSources(page);
+    cancelNextPicker = true;
+    await chooseFolder.click();
+    await expect(settings.getByRole('status')).toHaveText('Folder available in this session');
+    await expect(chooseFolder).toBeFocused();
+    await control(settings, 'Resume CSV review').click();
+    await expect(file.locator('option:checked')).toHaveText('ambiguous.csv');
+    await expect(field('close')).toHaveValue(ambiguous.columns.close);
+    await expect(normalized).toHaveText(correctedRows);
+    await expect(diagnostics).toHaveText(correctedDiagnostics);
+    expect(previewCalls()).toHaveLength(previewCount);
+
+    await file.selectOption({ label: 'unique.csv' });
+    await openCsv('ambiguous.csv');
+    await enterMapping(page, ambiguous);
+    const manual = await mappedPreview();
+    expect(manual.mapping.columns).toEqual(corrected.mapping.columns);
+    expect(manual.result).toEqual(corrected.result);
+    await expect(normalized).toHaveText(correctedRows);
+    await expect(diagnostics).toHaveText(correctedDiagnostics);
+
+    await base.step('counts overlength close aliases before applying a valid binding', async () => {
+      await openCsv('overlength-conflict.csv');
+      const raw = previewCalls().at(-1).reply.result.preview;
+      expect(raw.header).toEqual([...barHeaders, paddedClose]);
+      expect(raw.rows[0].raw_fields).toEqual([...conflictingRow, '202']);
+      await enterSeriesDeclarations(page, unique);
+      await applyDraft();
+      await expect(field('close')).toHaveValue('');
+      await expect(suggestion.getByRole('listitem')).toHaveText('Close column · At least one matching header is too long to bind.');
+      const unresolved = await mappedPreview();
+      expect(unresolved.result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'close', code: 'column_required' })]));
+      await expect(normalized).toHaveCount(0);
+      await field('close').selectOption('Close');
+      const explicit = await mappedPreview();
+      expect(explicit.mapping.columns.close).toBe('Close');
+      expect(explicit.result.rows[0].normalized.close).toBe(101);
+      await expect(normalized).toHaveCount(1);
+
+      await openCsv('overlength-only.csv');
+      await applyDraft();
+      await expect(field('close')).toHaveValue('');
+      await expect(field('close').locator('option')).toHaveCount(barHeaders.length);
+      await expect(suggestion.getByRole('listitem')).toHaveText('Close column · At least one matching header is too long to bind.');
+    });
+    const picks = calls.filter(call => call.command === 'choose_local_csv_folder');
+    expect(picks.map(call => call.reply.result?.display_name ?? null)).toEqual(['selected-csv', null]);
+    expect(calls.filter(call => /saveLocalImportMapping|publishLocalImport/.test(call.args?.operation))).toEqual([]);
+    expect(requests.every(url => new URL(url).origin === baseURL)).toBe(true);
+  } finally {
+    await bridge?.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
 });
 
 
@@ -557,7 +940,8 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     }
 
     await page.goto('/');
-    await control(page, 'Choose local CSV folder').last().click();
+    const settings = await openPersonalSources(page);
+    await control(settings, 'Choose local CSV folder').click();
     await previewAndSave();
     await expect(page.getByText('Original extra field', { exact: true })).toBeVisible();
     await expect(page.getByText('Second line from the source', { exact: false })).toHaveCount(0);

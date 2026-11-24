@@ -4089,6 +4089,28 @@
         "prevention": "The browser regression switches the eighth block in a valid large composition and checks rejection and recovery of a genuinely oversized composition."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "csv-header-draft-overlength-ambiguity",
+      "source": "Independent Astra review of d32e221 retained in archives/observations/m1-037-118c6ef/m1-036-037-astra-d32e221.txt (SHA-256 c369fc32277c638c01c2a0e420ef2ba052a411d071fa26f0880f1b5bc56213d4). The original failing run is retained at archives/runs/20261124T111043.682851Z-363ffbde/test-report.json.",
+      "observation": "The CSV reader preserves distinct raw headers Close and Close followed by 1020 spaces, with respective values 101 and 202. Both match the draft's close alias after trimming. The editor discards the overlength name before counting candidates and silently binds Close, selecting 101 without an ambiguity warning.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M1-037"],
+      "regression_checks": ["local-import-publication"],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111043.682851Z-363ffbde",
+          "source_commit": "d32e221e3eeb69b3ac437136b7d54efb5e9310cb",
+          "report_sha256": "ad31c0f84945e305c9a0e48a41db87d9d58fb3c10fbdc08719c2ab9bd7a1b41f"
+        }
+      ],
+      "resolution": {
+        "cause": "The editor discarded an overlength header before counting all observed aliases for a price field.",
+        "correction": "Count every observed matching header and apply the binding length limit only after establishing a unique candidate. A person can explicitly bind a valid header when the draft is ambiguous.",
+        "prevention": "The Rust-backed editor regression retains the two distinct close prices, checks the unresolved draft and the manually selected close of 101, and separately checks the single unbindable header."
+      },
+      "deferral_reason": null
     }
   ]
 }
