@@ -10,7 +10,7 @@
     "native_host_binary_sha256": "9028ba8243cfc01fc23c31edc13b420b9fec1f988d8bffe98683c3f6dbd4938e",
     "host": "Ubuntu 26.04.1 LTS, x86_64, GTK 3.24.52, WebKitGTK 2.52.6",
     "build": "Production frontend assets embedded in a debug Tauri host with the ubuntu-desktop and tauri/custom-protocol features.",
-    "display": "Private Xvfb display at 1x with software rendering, 1280 by 800 and 1050 by 820 logical pixels.",
+    "display": "Private 1600 by 1200 Xvfb display at 1x with software rendering. The captured application windows measured 1280 by 800 and 1050 by 820 logical pixels.",
     "inputs": {
       "fixture": "tests/fixtures/workbench-qualification-v1.json",
       "fixture_sha256": "a8e8b233e4c9816f874b29d9dcf3094cce997e15d7ff158ec64a8419826c5e78",
