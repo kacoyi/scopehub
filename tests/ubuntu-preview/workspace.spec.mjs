@@ -838,6 +838,30 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
   const observation = {};
   let savedLayer;
   let savedOutput;
+  const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
+  const outputFrame = async (server, request, signal) => {
+    const response = await post(server, request, {}, signal);
+    return { request, http: response.status, body: await response.json() };
+  };
+  const readOutputAfterAdmission = async (server, request, { timeout = 10_000, observe = () => {} } = {}) => {
+    const signal = AbortSignal.timeout(timeout);
+    let frame;
+    await expect.poll(async () => {
+      frame = await outputFrame(server, request, signal);
+      await observe(frame);
+      // Only this read's explicit pre-admission refusal is safe to retry.
+      return frame.http === 429 && frame.body.ok === false
+        && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
+    }, { timeout, message: 'The accepted indicator output read obtains admission' }).toBe(false);
+    return frame;
+  };
+  const requireSavedOutput = frame => {
+    expect(frame).toMatchObject({ http: 200, body: { ok: true, result: {
+      layer_id: savedLayer.layer_id, version_id: savedLayer.version_id,
+      document: { artifact: expect.any(Object), snapshot: expect.any(Object) },
+    } } });
+    return frame.body.result;
+  };
   try {
     await seedFrozenEvidence(profile, id, a, a + day, bars);
     await seedFrozenEvidence(profile, other, a, a + day, revised);
@@ -971,8 +995,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await expect(preview.getByText(/Preview layers/)).toHaveCount(0);
         workspaceRevision = 1;
 
-        const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
-        savedOutput = await reply(server, outputRequest());
+        savedOutput = requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()));
         expect(savedOutput.document.artifact).toEqual(warmed.event.artifact);
         expect(savedOutput.document.snapshot).toEqual(warmed.event.snapshot);
         expect(savedOutput.document.resolved_parameters).toEqual({ period: 3 });
@@ -988,7 +1011,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const nextFailureId = nextFailure.outcome.result.task_id;
         await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
         expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
-        expect(await reply(server, outputRequest())).toEqual(savedOutput);
+        expect(requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
         await expect(plot).toBeVisible();
 
         const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
@@ -1030,11 +1053,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           const body = await response.json().catch(() => undefined);
           return body?.ok === true && matches(body.result, response.request());
         }, { timeout: 8_000 });
-        const readOutput = async () => {
-          const request = outputRequest();
-          const response = await post(server, request, {}, AbortSignal.timeout(3_000));
-          return { request, http: response.status, body: await response.json() };
-        };
+        const readOutput = () => outputFrame(server, outputRequest(), AbortSignal.timeout(3_000));
         const readSnapshot = async (tag, signal = AbortSignal.timeout(5_000)) => {
           const response = await post(server, snapshot, tag.headers, signal);
           return { http: response.status, body: await response.json() };
@@ -1254,15 +1273,23 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
               record('post-undo-admission-probe', { forwarded_reads: forwarded, http });
               return http;
             }, { timeout: 3_000, message: 'The workspace rejected the malformed probe after admission became idle' }).toBe(400);
-            const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async () => {
-              undoStages.busy_output = await readOutput();
-              expect(undoStages.busy_output).toMatchObject({ http: 429, body: busy });
+            let output;
+            const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async ({ tag }) => {
+              output = await readOutputAfterAdmission(server, outputRequest(), {
+                timeout: 3_000,
+                async observe(attempt) {
+                  if (undoStages.busy_output) return;
+                  undoStages.busy_output = attempt;
+                  expect(attempt).toMatchObject({ http: 429, body: busy });
+                  tag.release();
+                  await tag.wait('drained');
+                },
+              });
             });
             expect(restoredSnapshot).toMatchObject({ http: 200, body: { ok: true, result: { workspace: { revision: 3 } } } });
-            const output = await readOutput();
             undoStages.recovered_output = output;
-            expect(output).toMatchObject({ http: 200, body: { ok: true } });
-            expect(output.body.result).toEqual(savedOutput);
+            expect(output.request).toEqual(undoStages.busy_output.request);
+            expect(requireSavedOutput(output)).toEqual(savedOutput);
             releaseUndoReads.resolve(true);
             expect(explicitMutations.map(request => request.intent.operation)).toEqual(['indicator.remove', 'workspace.undo']);
             const durable = durableLayerMutations();
@@ -1331,8 +1358,8 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await accepted.getByText('Accepted provenance and values').click();
         await expect(accepted.getByText('mean · 3')).toBeVisible();
         expect(reruns).toBe(0);
-        const restore = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id };
-        expect(await reply(server, restore)).toEqual(savedOutput);
+        const restore = outputRequest();
+        expect(requireSavedOutput(await readOutputAfterAdmission(server, restore))).toEqual(savedOutput);
         await dialog.getByRole('button', { name: 'Use as workspace source' }).click();
         const mainChart = page.getByRole('region', { name: 'Price chart' });
         await mainChart.getByText('Indicators', { exact: true }).click();
@@ -1347,8 +1374,9 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         } finally {
           database.close();
         }
-        const withheld = await (await post(server, restore)).json();
-        expect(withheld).toMatchObject({ ok: false, error: { code: 'PERMISSION_DENIED' } });
+        const denied = await readOutputAfterAdmission(server, restore);
+        expect(denied).toMatchObject({ http: 200, body: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } });
+        const withheld = denied.body;
         expect(withheld.result).toBeUndefined();
         expect(await reply(server, { type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id }))
           .toMatchObject({ layers: [{ ...savedLayer, available: false }] });

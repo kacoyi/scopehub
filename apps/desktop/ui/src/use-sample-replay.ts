@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { MarketStreamGap, MarketStreamGapEvent, MarketSubscriptionOutput } from '../../../../contracts/generated/protocol';
 import { message } from './i18n';
 import { describeMarketFailure, invalidMarketData, readStreamPosition, type Bar, type ChartHistory, type MarketFailure } from './market';
@@ -15,6 +16,32 @@ type ReplayStatus =
   | { state: 'starting' | 'playing' | 'complete' | 'gap' | ReplayRecoveryStatus }
   | { state: 'failed'; failure: MarketFailure };
 type Replay = ReplayStatus & { history: ChartHistory; bar?: Bar; repairedBars?: readonly Bar[]; gap: ReplayGap | undefined };
+
+// Match the sample worker's interval even when transport delivers both bars together.
+const samplePartialDisplayMs = 600;
+
+function afterPartialDisplay(signal: AbortSignal): Promise<void> {
+  if (signal.aborted || document.visibilityState !== 'visible') return Promise.resolve();
+  return new Promise(resolve => {
+    let frame: number;
+    let timer: number | undefined;
+    function finish() {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      document.removeEventListener('visibilitychange', finish);
+      resolve();
+    }
+    signal.addEventListener('abort', finish, { once: true });
+    document.addEventListener('visibilitychange', finish, { once: true });
+    // The chart SDK draws at an animation frame after the layout effect updates its data.
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        timer = window.setTimeout(finish, samplePartialDisplayMs);
+      });
+    });
+  });
+}
 
 export function useSampleReplay(history: ChartHistory | undefined) {
   const [replay, setReplay] = useState<Replay>();
@@ -37,9 +64,19 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     let bar = initial;
     let hasUpdate = false;
     let gap: ReplayGap | undefined;
-    const update = (status: ReplayStatus, repairedBars?: readonly Bar[]) => {
-      if (!signal.aborted) setReplay({ history, ...status, gap,
+    let display = Promise.resolve();
+    const update = (status: ReplayStatus, repairedBars?: readonly Bar[], presentPartial = false) => {
+      const view: Replay = { history, ...status, gap,
         ...(repairedBars ? { repairedBars } : hasUpdate ? { bar } : {}),
+      };
+      // Validate at the transport's pace and project each accepted partial before later states.
+      display = display.then(() => {
+        if (signal.aborted) return;
+        if (presentPartial) {
+          flushSync(() => setReplay(view));
+          return afterPartialDisplay(signal);
+        }
+        setReplay(view);
       });
     };
     update({ state: 'starting' });
@@ -122,7 +159,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
         observed = next.observed_at_ms;
         bar = next.bar;
         hasUpdate = true;
-        update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' });
+        update({ state: stream.recovery === 'resumed' ? 'resumed' : 'playing' }, undefined, !bar.is_closed);
       });
       if (stream.repair) {
         if (result?.status !== 'complete') throw invalidMarketData();
@@ -151,6 +188,7 @@ export function useSampleReplay(history: ChartHistory | undefined) {
     } catch (error) {
       update({ state: 'failed', failure: describeMarketFailure(error) });
     } finally {
+      await display;
       if (active.current?.controller === controller) active.current = undefined;
     }
   }
