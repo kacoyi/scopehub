@@ -172,6 +172,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   const [staleSelectionRevision, setStaleSelectionRevision] = useState<number>();
   const visible = view !== undefined;
   const returnedToAnswer = evidenceFeedback?.returned === true;
+  const readingEvidence = evidenceFeedback !== undefined;
   const chartScope = connection?.route.scope === 'conversation_text_and_sample_closes';
   const selection = chartScope ? chartSelection : undefined;
   const usingOpenAi = provider === 'openai_responses';
@@ -305,13 +306,13 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
   }, [visible]);
 
   useEffect(() => {
-    if (view === 'question' && !returnedToAnswer && !working && !connectionUnconfirmed && !trackedTurn) questionField.current?.focus();
-  }, [view, working, connectionUnconfirmed, trackedTurn, returnedToAnswer]);
+    if (view === 'question' && !readingEvidence && !working && !connectionUnconfirmed && !trackedTurn) questionField.current?.focus();
+  }, [view, working, connectionUnconfirmed, trackedTurn, readingEvidence]);
 
   useEffect(() => {
     const log = transcript.current;
-    if (log && !returnedToAnswer) log.scrollTop = log.scrollHeight;
-  }, [turns, view, returnedToAnswer]);
+    if (log && !readingEvidence) log.scrollTop = log.scrollHeight;
+  }, [turns, view, readingEvidence]);
 
   useEffect(() => {
     if (!workspaceId || !pending || working) return;

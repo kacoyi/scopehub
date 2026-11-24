@@ -12,7 +12,7 @@ import type { PublishedRevisionAccess } from './published-revision-access';
 import { demoProvider, isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import type { ModelChartAnchor } from './model-chat';
-import type { ModelChartSelection } from './model-chat-transport';
+import { matchesModelChartSelection, type ModelChartSelection } from './model-chat-transport';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
@@ -75,16 +75,6 @@ export type RestoredChartSource = {
 };
 
 export type RevealModelChartBar = (anchor: ModelChartAnchor, confirmed: LocalWorkspace['snapshot']) => (() => void) | undefined;
-
-function matchesModelSelection(state: LocalWorkspace['snapshot'], selection: ModelChartSelection) {
-  const source = state?.source;
-  const shared = state?.chart_evidence;
-  return state && source?.kind === 'sample' && (source.instrument_id === null || source.instrument_id === selection.instrumentId)
-    && state.workspace.id === selection.workspaceId && state.selection_revision === selection.selectionRevision
-    && shared && 'revision_id' in shared && shared.revision_id === selection.sourceReference
-    && shared.snapshot_hash === selection.snapshotHash && shared.range.from_ms === selection.range.from_ms
-    && shared.range.to_ms === selection.range.to_ms;
-}
 
 export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings, revealModelChartBar, modelAnchor, returnToAnswer }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
@@ -218,7 +208,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   const replayGap = replay?.gap;
   const repairedBars = replay?.repairedBars;
   const matchesModelAnchor = ({ selection, row }: ModelChartAnchor) => {
-    if (!integratedSample || selectionBlocked || workspace?.sourceRecovery || !history || !matchesModelSelection(state, selection)
+    if (!integratedSample || selectionBlocked || workspace?.sourceRecovery || !history || !matchesModelChartSelection(state, selection)
       || history.dataset.mode !== 'simulated' || history.dataset.provider_id !== demoProvider
       || selected?.id !== selection.instrumentId || history.dataset.instrument_id !== selection.instrumentId
       || timeframe !== selection.timeframe || history.dataset.timeframe !== selection.timeframe
@@ -230,7 +220,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   };
   useImperativeHandle(revealModelChartBar, () => (anchor, confirmed) => {
     const handle = chart.current;
-    if (!handle || !matchesModelSelection(confirmed, anchor.selection) || !matchesModelAnchor(anchor)) return;
+    if (!handle || confirmed?.source?.kind !== 'sample' || !matchesModelChartSelection(confirmed, anchor.selection)
+      || !matchesModelAnchor(anchor)) return;
     const restore = handle.revealEvidenceBar(anchor.row);
     if (restore) return () => { if (chart.current === handle) restore(); };
   });

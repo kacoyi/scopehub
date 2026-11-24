@@ -4035,23 +4035,33 @@
     },
     {
       "id": "rejected-chart-evidence-leaves-stale-composer-binding",
-      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f. Original review retained at .reports/m4-015-astra-15093fe.txt.",
-      "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send.",
+      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f, retained at .reports/m4-015-astra-15093fe.txt. Local browser reproduction retained at .reports/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
+      "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",
       "severity": "major",
       "status": "open",
       "task_ids": ["M4-016"],
       "regression_checks": ["model-connection-workflow"],
+      "diagnostic_reports": [{
+        "run_id": "20261124T111053.555558Z-28236d9b",
+        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+      }],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "rejected-chart-evidence-retry-loses-reading-position",
-      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f. Original review retained at .reports/m4-015-astra-15093fe.txt.",
-      "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The earlier follow-up test sent a deliberate question before clearing the selection, omitting this ordering.",
+      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f, retained at .reports/m4-015-astra-15093fe.txt. Local browser reproduction retained at .reports/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
+      "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The browser reproduction lost focus and moved the transcript scroll offset from 20 to 689 pixels after only a local snapshot read.",
       "severity": "major",
       "status": "open",
       "task_ids": ["M4-016"],
       "regression_checks": ["model-connection-workflow"],
+      "diagnostic_reports": [{
+        "run_id": "20261124T111053.555558Z-28236d9b",
+        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+      }],
       "resolution": null,
       "deferral_reason": null
     }

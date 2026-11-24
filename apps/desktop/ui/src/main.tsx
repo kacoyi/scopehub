@@ -9,10 +9,10 @@ import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, localImpor
 import { LocalPreviewChart } from './local-preview-chart';
 import { OpenLocalRevisionDialog } from './local-revision-dialog';
 import { ModelChat, type ModelChartAnchor, type ModelChatView } from './model-chat';
-import type { ModelChartSelection } from './model-chat-transport';
+import { matchesModelChartSelection, type ModelChartSelection } from './model-chat-transport';
 import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
-import { nativeTextWorkspaceId, readWorkspaceSnapshot, useLocalWorkspace } from './use-local-workspace';
+import { nativeTextWorkspaceId, readWorkspaceSnapshot, useLocalWorkspace, type LocalWorkspace } from './use-local-workspace';
 import { useRestoredWorkspaceSource } from './workspace-source';
 
 function initialSource(): boolean {
@@ -35,6 +35,7 @@ function App() {
   const [openingRevision, setOpeningRevision] = useState(false);
   const [modelChatView, setModelChatViewState] = useState<ModelChatView>();
   const [modelSelection, setModelSelection] = useState<ModelChartSelection>();
+  const [observedSelectionSnapshot, setObservedSelectionSnapshot] = useState<LocalWorkspace['snapshot']>();
   const revealModelChartBar = useRef<RevealModelChartBar>(null);
   const evidenceCheck = useRef<AbortController | undefined>(undefined);
   const [checkingEvidence, setCheckingEvidence] = useState(false);
@@ -53,7 +54,11 @@ function App() {
   const displaySnapshot = useMemo(() => snapshot && targetRevoked
     ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetRevoked]);
   const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };
-  const currentModelSelection = !local && !targetRevoked && modelSelection?.selectionRevision === snapshot?.selection_revision
+  const modelSelectionOutdated = modelSelection && observedSelectionSnapshot?.workspace.id === modelSelection.workspaceId
+    && observedSelectionSnapshot.selection_revision >= modelSelection.selectionRevision
+    && !matchesModelChartSelection(observedSelectionSnapshot, modelSelection);
+  const currentModelSelection = !local && !targetRevoked && !modelSelectionOutdated
+    && modelSelection?.selectionRevision === snapshot?.selection_revision
     ? modelSelection : undefined;
   const returnToAnswer = useCallback((unavailable = false) => {
     if (!evidenceNavigation || !('restore' in evidenceNavigation)) return;
@@ -78,6 +83,8 @@ function App() {
       // Recheck the local authority without reloading the chart or rereading any rows.
       const confirmed = await readWorkspaceSnapshot(AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]));
       controller.signal.throwIfAborted();
+      setObservedSelectionSnapshot(previous => previous?.workspace.id === confirmed.workspace.id
+        && previous.selection_revision > confirmed.selection_revision ? previous : confirmed);
       const restore = revealModelChartBar.current?.(anchor, confirmed);
       if (restore) {
         setEvidenceNavigation({ anchor, restore });

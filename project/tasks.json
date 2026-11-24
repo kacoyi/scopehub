@@ -17845,7 +17845,7 @@
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "model-connection-workflow"],
       "evidence": [],
-      "next_action": "Reproduce both Astra findings independently in the real chart and synthetic model browser workflow before changing product code.",
+      "next_action": "Verify the corrective candidate and archive its passing checks for focused Astra review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

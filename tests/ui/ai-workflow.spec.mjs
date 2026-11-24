@@ -890,7 +890,19 @@ test('chart evidence navigation preserves follow-ups and invalidates the revoked
     await expect(chat(page).getByText('Selected chart ·', { exact: false })).toHaveCount(0);
     // A form-level submit must be fenced as well as the disabled control.
     await question(page).evaluate(field => field.form.requestSubmit());
+
+    await control(chat(page), 'Close').click();
+    const data = page.getByRole('complementary', { name: 'Data window' });
+    await control(data, `Select bar at ${new Date(intervalB.time_ms).toISOString()}`).click();
+    await control(page, 'Reload workspace state').click();
+    await expect(control(data, 'Clear chart selection')).toHaveCount(0);
+    await selectChartBar(page, intervalB);
+    await openChat(page);
+    await expect(question(page)).toHaveValue(draft);
+    await expect(submit).toBeEnabled();
+    await expect(chat(page).getByText(`Selected chart · Bar starting ${new Date(intervalB.time_ms).toISOString()}`)).toBeVisible();
     expect(sends).toHaveLength(0);
+    expect(peer.traffic).toHaveLength(4);
   })));
 });
 
