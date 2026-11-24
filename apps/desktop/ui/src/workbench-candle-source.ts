@@ -38,6 +38,7 @@ export const candleSource = {
 } as const;
 
 export type NumericField = keyof Fields;
+export type CandleTimeframe = keyof typeof candleSource.frames;
 export type AnnotationBinding = {
   field: NumericField;
   when: { field: NumericField; above: number };

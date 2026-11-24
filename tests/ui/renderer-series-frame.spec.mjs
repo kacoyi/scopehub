@@ -42,6 +42,73 @@ test('offers an editable candle binding and scopes the source disclosures to the
   await expect(block.getByText('SIM.CN.FUTURE.001', { exact: false })).toHaveCount(0);
 });
 
+test('restores the accepted fifteen-minute binding after preview removal and grant rejection', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open workbench prototype' }).click();
+  const draft = page.getByRole('textbox', { name: 'Composition JSON' });
+  const preview = page.getByRole('button', { name: 'Preview draft' });
+  const accept = page.getByRole('button', { name: 'Accept view' });
+  const restore = page.getByRole('button', { name: 'Restore accepted view' });
+  const block = page.getByRole('region', { name: 'Annotated candlesticks' });
+  const chart = block.getByRole('img', { name: 'Candlestick chart with numeric annotations' });
+  const authored = `{ "version": 1,\n  "blocks": [${JSON.stringify(annotationBlock)}] }`;
+  const invalid = authored.replace('qualification-equity', 'configured-market-data');
+
+  async function expectFifteen() {
+    await expect(block.getByRole('button', { name: '15 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    if (await block.locator('details[open]').count() === 0) await block.getByText('Synthetic result attribution').click();
+    await expect(block.getByText('qualification-equity-15m-bars-v1', { exact: true })).toBeVisible();
+    await expect(block.getByText('qualification-equity-15m-results-v1', { exact: true })).toBeVisible();
+    const row = block.getByRole('row', { name: '2024-01-04T09:30:00.000Z', exact: true });
+    await expect(row.getByRole('cell', { name: '4.7%', exact: true })).toBeVisible();
+    await expect(block.getByText('3.2%', { exact: true })).toHaveCount(0);
+  }
+
+  await draft.fill(authored);
+  await preview.click();
+  await block.getByRole('button', { name: '15 min', exact: true }).click();
+  await preview.click();
+  await expectFifteen();
+  await accept.click();
+
+  await draft.fill('{"version":1,"blocks":[]}');
+  await preview.click();
+  await expect(page.getByText('The canvas is empty. Add a block and preview your draft.')).toBeVisible();
+  await expect(chart).toHaveCount(0);
+  await draft.fill(invalid);
+  await preview.click();
+  await expect(page.getByRole('alert')).toHaveText('Block 1 must bind granted synthetic fields and a finite threshold.');
+  await expect(accept).toBeDisabled();
+  await expectFifteen();
+  await restore.click();
+  await expect(draft).toHaveValue(authored);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expectFifteen();
+  await expect.poll(async () => {
+    const { candles, bubbles } = await paintedGeometry(chart);
+    return [candles.length, bubbles.length];
+  }).toEqual([1, 1]);
+
+  // Editing another block, including one at the former candle position, cannot overwrite the accepted timeframe.
+  const other = { ...annotationBlock, annotation: { ...annotationBlock.annotation, field: 'strength' } };
+  await draft.fill(JSON.stringify({ version: 1, blocks: [other, annotationBlock] }));
+  await preview.click();
+  await expect(block).toHaveCount(2);
+  await expect(block.nth(0).getByRole('button', { name: '5 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const previewPeriod = block.nth(1).getByRole('button', { name: '15 min', exact: true });
+  await expect(previewPeriod).toHaveAttribute('aria-pressed', 'true');
+  await block.nth(1).getByRole('button', { name: '5 min', exact: true }).click();
+  await expect(previewPeriod).toHaveAttribute('aria-pressed', 'false');
+  await block.nth(0).getByRole('button', { name: '15 min', exact: true }).click();
+  await expect(previewPeriod).toHaveAttribute('aria-pressed', 'false');
+  await draft.fill(invalid);
+  await preview.click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await restore.click();
+  await expect(draft).toHaveValue(authored);
+  await expectFifteen();
+});
+
 async function paintedGeometry(chart) {
   // Infer geometry from actual ink on the price pane, independently of the chart API and attribution table.
   return chart.locator('canvas').evaluateAll(canvases => {

@@ -1,17 +1,16 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { mountCandleAnnotations } from './chart-adapter/candle-annotations';
 import { formatDateTime, formatNumber, t, useLocale } from './i18n';
-import { candleSource, type CandleBlock, type NumericField } from './workbench-candle-source';
+import { candleSource, type CandleBlock, type CandleTimeframe, type NumericField } from './workbench-candle-source';
 
 const fields = Object.keys(candleSource.fields) as NumericField[];
 const timeframes = ['5m', '15m'] as const;
 const timeLabel = (time: number) => formatDateTime(time, {
   timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 });
-type Timeframe = typeof timeframes[number];
-
-export function WorkbenchCandleBlock({ block }: { block: CandleBlock }) {
-  const [timeframe, setTimeframe] = useState<Timeframe>('5m');
+export function WorkbenchCandleBlock({ block, timeframe, selectTimeframe }: {
+  block: CandleBlock; timeframe: CandleTimeframe; selectTimeframe: (timeframe: CandleTimeframe) => void;
+}) {
   const element = useRef<HTMLDivElement>(null);
   const handle = useRef<ReturnType<typeof mountCandleAnnotations>>(null);
   const locale = useLocale();
@@ -51,7 +50,7 @@ export function WorkbenchCandleBlock({ block }: { block: CandleBlock }) {
     <p>{t('Simulated')} · {candleSource.instrument}</p>
     <div className="probe-actions">
       {timeframes.map(period => <button key={period} type="button" aria-pressed={period === timeframe}
-        onClick={() => setTimeframe(period)}>{t('{count} min', { count: period === '5m' ? 5 : 15 })}</button>)}
+        onClick={() => selectTimeframe(period)}>{t('{count} min', { count: period === '5m' ? 5 : 15 })}</button>)}
       <button type="button" onClick={() => handle.current?.zoomIn()}>{t('Zoom in')}</button>
       <button type="button" onClick={() => handle.current?.zoomOut()}>{t('Zoom out')}</button>
     </div>

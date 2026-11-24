@@ -3,12 +3,14 @@ import fixture from './workbench-synthetic-closes.json';
 import { formatDateTime, formatNumber, message, t, type Message } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { WorkbenchCandleBlock } from './workbench-candle-block';
-import { candleSource, isNumericField, type CandleBlock } from './workbench-candle-source';
+import { candleSource, isNumericField, type CandleBlock, type CandleTimeframe } from './workbench-candle-source';
 import './workbench-prototype.css';
 
 type SeriesBlock = { kind: 'threshold-tiles'; threshold: number; aboveLabel?: string; belowLabel?: string } | { kind: 'value-table' };
 type Block = SeriesBlock | CandleBlock;
 type Composition = { version: 1; blocks: Block[] };
+type PresentedCandle = CandleBlock & { timeframe: CandleTimeframe };
+type PresentedBlock = SeriesBlock | PresentedCandle;
 const blank: Composition = { version: 1, blocks: [] };
 const maxBlocks = 12;
 const maxLength = 4096;
@@ -63,6 +65,27 @@ function parseDraft(text: string): Composition | Message {
   return { version: 1, blocks };
 }
 
+function previewBlocks(blocks: Block[], accepted: PresentedBlock[]): PresentedBlock[] {
+  const acceptedCandles = accepted.filter(block => block.kind === 'candlestick');
+  const draftCandles = blocks.filter(block => block.kind === 'candlestick');
+  const bindingKey = ({ source, annotation }: CandleBlock) => JSON.stringify([source, annotation]);
+  const acceptedKeys = acceptedCandles.map(bindingKey);
+  const draftKeys = draftCandles.map(bindingKey);
+  const sameOrder = draftKeys.length === acceptedKeys.length && draftKeys.every((key, index) => key === acceptedKeys[index]);
+  const periods = new Map(draftCandles.map((block, index) => {
+    const key = draftKeys[index]!;
+    const first = acceptedKeys.indexOf(key);
+    // Duplicate definitions are addressable by order while the candle sequence is unchanged.
+    // In a changed sequence, carry a timeframe only for an unambiguous binding.
+    const unique = first >= 0 && first === acceptedKeys.lastIndexOf(key)
+      && draftKeys.indexOf(key) === draftKeys.lastIndexOf(key);
+    const match = sameOrder ? index : unique ? first : -1;
+    return [block, acceptedCandles[match]?.timeframe ?? '5m'] as const;
+  }));
+  return blocks.map(block => block.kind === 'candlestick'
+    ? { ...block, timeframe: periods.get(block) ?? '5m' } : block);
+}
+
 const timeLabel = (time: number) => formatDateTime(time, {
   timeZone: fixture.dataset.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 });
@@ -95,9 +118,9 @@ function SeriesBlock({ block, selected, select }: {
 }
 
 export function WorkbenchPrototype({ close }: { close: () => void }) {
-  const [accepted, setAccepted] = useState({ composition: blank, text: encode(blank) });
+  const [accepted, setAccepted] = useState<{ blocks: PresentedBlock[]; text: string }>({ blocks: [], text: encode(blank) });
   const [draft, setDraft] = useState(encode(blank));
-  const [preview, setPreview] = useState<Composition>();
+  const [preview, setPreview] = useState<PresentedBlock[]>();
   const [error, setError] = useState<Message>();
   const [selected, setSelected] = useState<number>();
   const heading = useRef<HTMLHeadingElement>(null);
@@ -134,13 +157,19 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
       }
     } else {
       setError(undefined);
-      setPreview(parsed);
+      setPreview(current => current ?? previewBlocks(parsed.blocks, accepted.blocks));
     }
   }
 
-  const visible = preview ?? accepted.composition;
-  const hasCandles = visible.blocks.some(block => block.kind === 'candlestick');
-  const showCloses = !hasCandles || visible.blocks.some(block => block.kind !== 'candlestick');
+  function selectTimeframe(block: PresentedCandle, timeframe: CandleTimeframe) {
+    const update = (blocks: PresentedBlock[]) => blocks.map(candidate => candidate === block ? { ...block, timeframe } : candidate);
+    if (preview) setPreview(current => current && update(current));
+    else setAccepted(current => ({ ...current, blocks: update(current.blocks) }));
+  }
+
+  const visible = preview ?? accepted.blocks;
+  const hasCandles = visible.some(block => block.kind === 'candlestick');
+  const showCloses = !hasCandles || visible.some(block => block.kind !== 'candlestick');
   return <dialog className="probe" ref={dialog} aria-labelledby="probe-heading"
     onCancel={event => { event.preventDefault(); close(); }}>
     <header className="probe-header">
@@ -166,7 +195,7 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         <div className="probe-actions">
           <button type="button" className="primary" onClick={() => inspect()}>{t('Preview draft')}</button>
           <button type="button" disabled={!preview} onClick={() => {
-            if (preview) { setAccepted({ composition: preview, text: draft }); setPreview(undefined); }
+            if (preview) { setAccepted({ blocks: preview, text: draft }); setPreview(undefined); }
           }}>{t('Accept view')}</button>
           <button type="button" onClick={() => edit(accepted.text)}>{t('Restore accepted view')}</button>
         </div>
@@ -184,9 +213,10 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
             <dt>{t('Snapshot hash')}</dt><dd>{fixture.snapshot.content_hash}</dd>
             <dt>{t('Time zone')}</dt><dd>{fixture.dataset.timezone}</dd></dl>
         </details>}
-        {visible.blocks.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
-          <div className="probe-blocks">{visible.blocks.map((block, index) => block.kind === 'candlestick'
-            ? <WorkbenchCandleBlock key={index} block={block} />
+        {visible.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
+          <div className="probe-blocks">{visible.map((block, index) => block.kind === 'candlestick'
+            ? <WorkbenchCandleBlock key={index} block={block} timeframe={block.timeframe}
+              selectTimeframe={timeframe => selectTimeframe(block, timeframe)} />
             : <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />)}</div>}
       </section>
     </div>

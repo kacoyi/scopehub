@@ -172,6 +172,31 @@ try {
         (Draft-Pattern).Current.Value -ceq $annotationDraft
     } | Out-Null
     Wait-Annotation $five $fifteen.value
+
+    Invoke-Button 'Preview draft'
+    Invoke-Button '15 min'
+    Wait-Annotation $fifteen $five.value
+    Invoke-Button 'Accept view'
+    Wait-Name 'Accepted view'
+    (Draft-Pattern).SetValue('{"version":1,"blocks":[]}')
+    Invoke-Button 'Preview draft'
+    Wait-Name 'The canvas is empty. Add a block and preview your draft.'
+    Wait-ForProbe 'candlestick chart removed by preview' {
+        -not (Find-Control 'Candlestick chart with numeric annotations' $null)
+    } | Out-Null
+    (Draft-Pattern).SetValue($annotationDraft.Replace('qualification-equity', 'configured-market-data'))
+    Invoke-Button 'Preview draft'
+    Wait-Name 'Block 1 must bind granted synthetic fields and a finite threshold.'
+    Open-Disclosure 'Synthetic result attribution'
+    Wait-Annotation $fifteen $five.value
+    Invoke-Button 'Restore accepted view'
+    Wait-ForProbe 'restored fifteen-minute author definition' {
+        (Draft-Pattern).Current.Value -ceq $annotationDraft
+    } | Out-Null
+    Wait-ForProbe 'grant rejection cleared by restore' {
+        -not (Find-Control 'Block 1 must bind granted synthetic fields and a finite threshold.' $null)
+    } | Out-Null
+    Wait-Annotation $fifteen $five.value
     Invoke-Button 'Back to chart'
     Wait-Name 'Open workbench prototype'
     Wait-ForProbe 'closed annotation editor' { -not (Find-Control 'Composition JSON' $null) } | Out-Null
@@ -193,6 +218,7 @@ try {
         annotation_fixture_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath 'tests/fixtures/workbench-qualification-v1.json').Hash.ToLowerInvariant()
         annotation_round_trip = @($five, $fifteen, $five)
         annotation_rejected_draft_restored = $true
+        annotation_restored_after_empty_preview = $fifteen
     } | ConvertTo-Json -Depth 4 -Compress | Write-Output
 } finally {
     if ($null -ne $app) {

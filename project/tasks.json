@@ -17343,11 +17343,12 @@
         "Through the normal synthetic prototype entry, author a candlestick binding that displays 3.2% only on the 09:40 UTC five-minute candle and 4.7% on the 09:30 UTC fifteen-minute candle. Show result, revision, unit and bar attribution, including missing values.",
         "Add a valid editable candlestick example through the existing draft flow. Scope source disclosures to their blocks in chart-only and mixed compositions and keep the original disclosure on the blank canvas.",
         "Measure painted candle and annotation anchors independently in the browser after zoom, pan, resize and a timeframe round trip. Reject a binding outside the synthetic grant and retain the last accepted view and author text.",
+        "Accept a 15-minute candle binding, preview an empty canvas and reject a grant mismatch. Restore the same 15-minute bar, result revision, value and author text. Keep draft and sibling timeframe changes separate from the accepted binding.",
         "Extend the native WebView2 editor probe to exercise the same authored binding and verify its accessible UTC rows, values, revisions and recovery on a timeframe round trip. Hand off the repeatable slice to the coordinator for the Windows run and the independent Ubuntu trial."
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
       "evidence": [],
-      "next_action": "Review the scoped M2-029 report and dispatch its hosted Windows task checks. Recheck the source disclosure and add control in the staged Ubuntu candidate and retain the applicable observations under coordinator review.",
+      "next_action": "Verify the accepted candle timeframe recovery against the recorded regression. Recheck it on the staged Ubuntu candidate and in hosted Windows task checks, then retain matching observations under coordinator review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17380,6 +17381,10 @@
           {
             "failure": "A canvas-wide source disclosure attributes the synthetic equity candles to the legacy futures fixture.",
             "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "An empty preview unmounts a 15-minute accepted binding and rejection restores its text with a different timeframe, result revision and financial value.",
+            "checks": ["renderer-prototype-interaction"]
           }
         ],
         "rollback": "Revert the prototype block, its fixture and the scoped chart entry together. Retain observations for M2-003.",
@@ -17398,7 +17403,7 @@
           ],
           "non_goals": [
             "Author code execution, real data, permissions or persistence.",
-            "The full unconventional indicator case, native presentation metrics, OS isolation, renderer selection or release qualification."
+            "The full unconventional indicator case, OS isolation, renderer selection or release qualification. Moving native viewport edges and compositor presentation remain in M2-003. The Windows probe observes UI Automation."
           ],
           "open_questions": [
             "Does the rendered annotation anchor stay within one logical pixel of its underlying candle when the chart geometry and timeframe change?"
@@ -17407,7 +17412,7 @@
         "evolution": {
           "kind": "additive",
           "preserve": ["Blank startup, threshold tiles, value tables, accepted draft recovery and the existing chart workspace."],
-          "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks."],
+          "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
           "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time, with transient presentation state.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
         }

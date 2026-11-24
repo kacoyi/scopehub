@@ -3867,6 +3867,17 @@
       "regression_checks": ["renderer-prototype-interaction"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "prototype-accepted-candlestick-timeframe-recovery",
+      "source": "Independent Astra reproduction through the normal React workbench entry at 89867c9. The coordinator repeated it in Ubuntu Tauri/WebKitGTK and retained observations/m2-029-review-89867c9/observations.json, SHA-256 757281b4ea663e6964d2660008a787df2feb397f18c6b6eed335c42e43623d7e.",
+      "observation": "The reviewer accepted a candlestick showing the 15-minute 09:30 UTC result at 4.7%, previewed an empty composition, then rejected a grant-mismatched draft. Restore returned the original author text but switched the chart to the 5-minute 09:40 UTC result at 3.2%. The focused Chromium regression reproduced the reset of the 15-minute control after the chart was removed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
