@@ -748,6 +748,9 @@ test('selected chart conversation negotiates the bounded tool through the owned 
           .toEqual([[workspaceEndpoint, { type: 'snapshot' }]]);
         observeNavigation = false;
         const correction = 'Use the corrected selected interval and tell me its close.';
+        await question(page).fill(correction);
+        await expect(control(chat(page), 'Send')).toBeEnabled();
+        await expect(chat(page).getByText(`Selected chart · Bar starting ${new Date(intervalB.time_ms).toISOString()}`)).toBeVisible();
         // Lose the accepted send and first tool-continuation poll. Subsequent
         // terminal replies carry a valid shape but the wrong frozen revision.
         let lostSend = false;
@@ -837,7 +840,18 @@ test('selected chart conversation negotiates the bounded tool through the owned 
   }));
 });
 
-test('chart evidence navigation preserves follow-ups and detects another client clearing the selection', async ({ browser }) => {
+async function clearPeerSelection(dispatch, selection) {
+  const cleared = await dispatch({
+    type: 'request', protocol_version: '1.1', operation: 'workspace.selectEvidence',
+    request_id: randomUUID(), message_id: randomUUID(), timestamp_ms: Date.now(),
+    workspace_id: selection.workspace_id, expected_selection_revision: selection.selection_revision, target: null,
+  });
+  expect(cleared).toMatchObject({ ok: true, result: { selection: {
+    target: null, selection_revision: selection.selection_revision + 1,
+  } } });
+}
+
+test('chart evidence navigation preserves follow-ups and invalidates the revoked composer binding', async ({ browser }) => {
   await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
     peer.respond(chartReply);
     await openSampleChart(page);
@@ -856,21 +870,67 @@ test('chart evidence navigation preserves follow-ups and detects another client 
     await expect(chat(page).getByText(followUpAnswer, { exact: true })).toBeVisible();
     await expect(question(page)).toBeFocused();
 
-    const cleared = await dispatch({
-      type: 'request', protocol_version: '1.1', operation: 'workspace.selectEvidence',
-      request_id: randomUUID(), message_id: randomUUID(), timestamp_ms: Date.now(),
-      workspace_id: selection.workspace_id, expected_selection_revision: selection.selection_revision, target: null,
-    });
-    expect(cleared).toMatchObject({ ok: true, result: { selection: {
-      target: null, selection_revision: selection.selection_revision + 1,
-    } } });
+    const draft = 'Keep this unsent question when its selected bar becomes stale.';
+    await question(page).fill(draft);
+    const submit = control(chat(page), 'Send');
+    await expect(submit).toBeEnabled();
+    await clearPeerSelection(dispatch, selection);
     const afterClear = persistedRows(profile);
+    const sends = [];
+    page.on('request', request => { if (isAction(request, 'send')) sends.push(request); });
     await showCitedBar(answer).click();
     await expect(answer.getByRole('alert')).toHaveText(unavailableCitedBar);
     await expect(answer.getByText(closeAnswer(intervalA), { exact: true })).toBeVisible();
     await expect(citedBar(page)).toBeHidden();
+    await expect(question(page)).toHaveValue(draft);
     expect(peer.traffic).toHaveLength(4);
     expect(persistedRows(profile)).toEqual(afterClear);
+    await expect(submit).toBeDisabled();
+    await expect(chat(page).getByText(reselect, { exact: true })).toBeVisible();
+    await expect(chat(page).getByText('Selected chart ·', { exact: false })).toHaveCount(0);
+    // A form-level submit must be fenced as well as the disabled control.
+    await question(page).evaluate(field => field.form.requestSubmit());
+    expect(sends).toHaveLength(0);
+  })));
+});
+
+test('keyboard retry of a returned stale chart citation preserves its reading position', async ({ browser }) => {
+  await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async (page, dispatch) => {
+    peer.respond(chartReply);
+    await openSampleChart(page);
+    const selection = await selectChartBar(page, intervalA);
+    await askBeforeSetup(page);
+    await activateRoute(page, await propose(page, peer.origin, true));
+    await send(page);
+    await expectChartAnswer(page, intervalA);
+
+    const laterAnswer = 'Later synthetic context for the conversation. '.repeat(22).trim();
+    peer.respond(body => body?.tools ? providerToolCall : assistant(laterAnswer));
+    await send(page, followUp);
+    await expect(chat(page).getByText(laterAnswer, { exact: true })).toBeVisible();
+    const firstAnswer = chat(page).getByRole('article').filter({ hasText: closeAnswer(intervalA) });
+    const show = showCitedBar(firstAnswer);
+    await show.press('Enter');
+    const back = control(citedBar(page), 'Back to answer');
+    await expect(back).toBeFocused();
+    await back.press('Enter');
+    await expect(show).toBeFocused();
+
+    const transcript = chat(page).getByRole('log', { name: 'Conversation' });
+    const top = await transcript.evaluate(log => log.scrollTop);
+    expect(await transcript.evaluate(log => log.scrollHeight - log.clientHeight - log.scrollTop)).toBeGreaterThan(40);
+    await clearPeerSelection(dispatch, selection);
+    const afterClear = persistedRows(profile);
+    const requests = [];
+    page.on('request', request => requests.push([new URL(request.url()).pathname, request.postDataJSON()]));
+    await show.press('Enter');
+    await expect(firstAnswer.getByRole('alert')).toHaveText(unavailableCitedBar);
+    await expect(citedBar(page)).toBeHidden();
+    expect(requests).toEqual([[workspaceEndpoint, { type: 'snapshot' }]]);
+    expect(peer.traffic).toHaveLength(4);
+    expect(persistedRows(profile)).toEqual(afterClear);
+    await expect.soft(show).toBeFocused({ timeout: 1000 });
+    expect(await transcript.evaluate(log => log.scrollTop)).toBe(top);
   })));
 });
 
