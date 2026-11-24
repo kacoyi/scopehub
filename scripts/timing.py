@@ -26,6 +26,7 @@ ARCHIVE_KIND = 'scopehub-timing-archive-v1'
 TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
+CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
@@ -668,20 +669,25 @@ def budget_follow_up(view, feedback, tasks):
     }
 
 
-def offline_budget_status(root, feedback, tasks):
+def retained_budget_inputs(root):
     # Keep ordinary status bounded to the latest saved reviews and local runs.
     # Hosted samples need the matching Actions clocks already stored in a timing archive.
     directory = root / '.reports/timing'
     archives, issues = [], []
+    incremental = defaultdict(list)
     for path in directory.glob('*.json'):
+        if match := CI_TIMING_NAME.fullmatch(path.name):
+            incremental[match[1]].append((int(match[2]), path))
+            continue
         try:
             archives.append((path.stat().st_mtime_ns, path))
         except OSError as error:
             issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
+    recent = [path for entries in incremental.values() for _, path in sorted(entries)[-MAX_RECENT:]]
     archives = [path for _, path in sorted(archives)[-4:]]
     local = sorted(root.glob('.reports/runs/*/test-report.json'), reverse=True)[:MAX_RECENT]
     samples, hosted = [], []
-    for path in [*archives, *local]:
+    for path in [*recent, *archives, *local]:
         try:
             with path.open('rb') as content:
                 limit = 2 * 1024 * 1024
@@ -692,10 +698,15 @@ def offline_budget_status(root, feedback, tasks):
             if data.get('kind') == ARCHIVE_KIND:
                 samples.extend(data['samples'])
                 hosted.extend(data['hosted'])
+                issues.extend(data.get('input_issues', ()))
             elif path in local and not data.get('ci') and (data.get('selection') or {}).get('profile') == 'fast':
                 samples.append(report_sample(data))
         except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
             issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
+    return samples, hosted, issues
+
+
+def budget_status(samples, hosted, issues, feedback, tasks):
     try:
         view = timing_view(samples, hosted=hosted)
         follow_up = budget_follow_up(view, feedback, tasks)
@@ -704,8 +715,88 @@ def offline_budget_status(root, feedback, tasks):
         follow_up = budget_follow_up(view, feedback, tasks)
         issues.append({'error': str(error)})
     return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
+            'elapsed_observations': [
+                {key: row[key] for key in (*BUDGET_SCOPE, 'sample_count', 'status')}
+                for row in view['objective_reviews']
+            ],
+            'comparable_elapsed_observations': [
+                {**{key: group[key] for key in (*BUDGET_SCOPE, 'cache')},
+                 'sample_count': metric['sample_count'], 'status': metric['status']}
+                for group in view['reviews'] for metric in group['metrics']
+                if metric['objective_seconds'] is not None
+            ],
             'input_issues': issues,
             'timing_command': 'pnpm project:timing'}
+
+
+def offline_budget_status(root, feedback, tasks):
+    return budget_status(*retained_budget_inputs(root), feedback, tasks)
+
+
+def collect_new_ci_timing(root, repository, run, samples, hosted):
+    run_id = str(run['id'])
+    if not positive_id(run_id) or run['event'] not in NORMAL_EVENTS or str(run['run_attempt']) != '1':
+        raise TimingError('Expected a completed automatic first-attempt verification run')
+    observed = {**run, 'repository': {'full_name': repository}}
+    identity = ci_key({**observed, 'repository': repository, 'run_id': run_id, 'run_attempt': '1'})
+    recorded = [row for row in samples if ci_key(row.get('ci') or {}) == identity]
+    clock = next((row for row in reversed(hosted) if ci_key(row) == identity
+                  and row['workflow']['identity_complete']), None)
+    if clock and {row['platform'] for row in recorded} == set(PLATFORMS.values()):
+        return 'retained', [], [], []
+
+    path = root / '.reports/timing' / f'ci-{run["event"]}-{run_id}-1.json'
+    if not path.parent.resolve().is_relative_to(root.resolve()):
+        raise TimingError('The timing intake directory must be inside this checkout.')
+    pending = {'kind': ARCHIVE_KIND, 'samples': [], 'hosted': [],
+               'input_issues': [{'run_id': run_id, 'error': 'Incremental timing capture is unfinished.'}]}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        # Claim the run before any requests. Polling reuses even a partial capture.
+        with path.open('xb') as output:
+            output.write(json_bytes(pending))
+    except FileExistsError:
+        return 'retained', [], [], []
+
+    new_samples, new_clocks, issues = [], [], []
+    try:
+        if {row['platform'] for row in recorded} != set(PLATFORMS.values()):
+            new_samples = download_timing(repository, run_id, '1')
+    except (OSError, subprocess.SubprocessError, AttributeError, KeyError, TypeError, ValueError) as error:
+        issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
+    if {row['platform'] for row in [*recorded, *new_samples]} != set(PLATFORMS.values()):
+        issues.append({'run_id': run_id, 'error': 'Compact reports are absent for part of the required matrix.'})
+    try:
+        if not clock and (recorded or new_samples):
+            clock = inspect_jobs(observed, repository)
+            new_clocks.append(clock)
+    except (OSError, subprocess.SubprocessError, AttributeError, KeyError, TypeError, ValueError) as error:
+        issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
+    if not clock or not clock['workflow']['identity_complete'] or not clock['workflow']['matrix_complete']:
+        issues.append({'run_id': run_id, 'error': 'Complete matching attempt job clocks are unavailable.'})
+    archive = {**pending, 'samples': new_samples, 'hosted': new_clocks, 'input_issues': issues}
+    with TemporaryDirectory(dir=path.parent, prefix='.timing-') as temporary:
+        staged = Path(temporary) / path.name
+        staged.write_bytes(json_bytes(archive))
+        staged.replace(path)
+    return ('partial' if issues else 'captured'), new_samples, new_clocks, issues
+
+
+def ci_budget_status(root, repository, run):
+    samples, hosted, issues = retained_budget_inputs(root)
+    intake = None
+    if run:
+        try:
+            intake, new_samples, new_clocks, new_issues = collect_new_ci_timing(root, repository, run, samples, hosted)
+            samples.extend(new_samples)
+            hosted.extend(new_clocks)
+            issues.extend(new_issues)
+        except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
+            intake = 'unavailable'
+            issues.append({'run_id': str(run['id']), 'error': str(error)})
+    tasks = {task['id']: task for task in read_json(root / 'project/tasks.json')['tasks']}
+    feedback = read_json(root / 'project/feedback.json')['items']
+    return {**budget_status(samples, hosted, issues, feedback, tasks), 'intake': intake}
 
 
 def download_timing(repository, run_id, attempt):

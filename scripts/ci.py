@@ -9,8 +9,10 @@ import subprocess
 
 if __package__:
     from .project import ProjectError, checkout_git_environment, read_json, source_identity
+    from .timing import ci_budget_status
 else:
     from project import ProjectError, checkout_git_environment, read_json, source_identity
+    from timing import ci_budget_status
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -171,11 +173,13 @@ def status(root=ROOT, run_id=None):
             f'gh run download {run} --repo {repository} --name verification-windows-latest --dir .reports/ci/{run}/windows',
             f'pnpm project:record <task-id> --report .reports/ci/{run}/windows/test-report.json --artifact-root .reports/ci/{run}/windows',
         ]
-        if (result['status'] == 'passed' and result['run']['event'] in {'pull_request', 'push'}
-                and str(result['run']['run_attempt']) == '1'):
-            archive = f'.reports/timing/intake-{run}.json'
-            if not (root / archive).is_file():
-                result['timing_intake_command'] = f'pnpm project:timing --recent 12 --save {archive}'
+    observed = result['run']
+    timing_run = observed if (result['status'] == 'passed' and observed['event'] in {'pull_request', 'push'}
+                              and str(observed['run_attempt']) == '1') else None
+    try:
+        result['verification_budget'] = ci_budget_status(root, repository, timing_run)
+    except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
+        result['verification_budget'] = {'timing_available': False, 'intake': 'unavailable', 'error': str(error)}
     return result
 
 

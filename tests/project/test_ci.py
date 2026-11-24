@@ -78,6 +78,7 @@ class HostedStatusTests(unittest.TestCase):
         with (patch.object(ci, 'github_identity', return_value=repository),
               patch.object(ci, 'source_identity', return_value=source),
               patch.object(ci, 'read_json', return_value={'branch': 'main'}),
+              patch.object(ci, 'ci_budget_status', return_value={}),
               patch.object(ci, 'command', side_effect=command)):
             return ci.status(), requests
 
@@ -107,8 +108,6 @@ class HostedStatusTests(unittest.TestCase):
         self.assertEqual(('failed', 11, 'b' * 40), (weekly['status'], weekly['run']['id'], weekly['run']['head_sha']))
         recovered, _ = self.inspect([push, failed, dict(queued, status='completed', conclusion='success')])
         self.assertFalse(recovered['weekly_regression']['requires_review'])
-        self.assertEqual('pnpm project:timing --recent 12 --save .reports/timing/intake-16.json',
-                         recovered['timing_intake_command'])
         missing, _ = self.inspect([push], unavailable='schedule')
         self.assertEqual('passed', missing['status'])
         self.assertEqual('unavailable', missing['weekly_regression']['status'])

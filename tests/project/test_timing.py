@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from scripts import ci_artifacts, timing
+from scripts import ci, ci_artifacts, timing
 from tests.project.fixtures import isolated_git_environment
 
 
@@ -683,6 +683,50 @@ class TimingRegressionTests(unittest.TestCase):
 
 
 class RecentTimingTests(unittest.TestCase):
+    def test_ci_status_collects_one_new_attempt_and_reuses_partial_and_complete_clocks(self):
+        repository = 'fixture/scopehub'
+        source = {'git_head': 'a' * 40, 'working_tree_dirty': False}
+        run = hosted_run()
+        linux = hosted_job(21, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
+        windows = hosted_job(22, 'windows', '00:20', '17:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '16:40')
+        workflow = timing.hosted_timing(run, [linux, windows])
+        samples = []
+        for platform in ('Linux', 'Windows'):
+            report = fast_report(20, 180)
+            report['selection']['profile'] = 'full'
+            report['environment']['system'] = platform
+            report['ci'] = {'repository': repository, 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
+                            'head_sha': source['git_head'], 'checkout_sha': source['git_head']}
+            samples.append(timing.report_sample(report))
+        for selection, expected in ((samples, 'captured'), (samples[1:], 'partial')):
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for name, content in [('branch-protection', {'branch': 'main'}), ('tasks', {'tasks': []}),
+                                      ('feedback', {'items': []})]:
+                    path = root / 'project' / f'{name}.json'
+                    path.parent.mkdir(exist_ok=True)
+                    path.write_bytes(timing.json_bytes(content))
+                with (patch.object(ci, 'github_identity', return_value=repository),
+                      patch.object(ci, 'source_identity', return_value=source),
+                      patch.object(ci, 'checkout_branch', return_value='topic'),
+                      patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                      patch.object(ci, 'workflow_runs', return_value=[run]),
+                      patch.object(timing, 'download_timing', return_value=selection) as download,
+                      patch.object(timing, 'inspect_jobs', return_value=workflow) as jobs):
+                    first = ci.status(root)
+                    repeat = ci.status(root)
+                    ordinary = timing.offline_budget_status(root, [], {})
+                self.assertEqual(('passed', 'passed'), (first['status'], repeat['status']))
+                self.assertEqual(expected, first['verification_budget']['intake'])
+                self.assertEqual('retained', repeat['verification_budget']['intake'])
+                self.assertEqual(ordinary['elapsed_observations'], repeat['verification_budget']['elapsed_observations'])
+                self.assertEqual(len(selection), len(ordinary['elapsed_observations']))
+                self.assertTrue(all(row['sample_count'] == 1 for row in ordinary['elapsed_observations']))
+                self.assertEqual(expected == 'partial', bool(ordinary['input_issues']))
+                download.assert_called_once_with(repository, '11', '1')
+                jobs.assert_called_once()
+
     def test_recent_queries_are_bounded_to_completed_pr_and_main_workflow_runs(self):
         pr = dict(hosted_run(run_id=11), conclusion='failure')
         main = dict(hosted_run(run_id=12), event='push', head_branch='main')
