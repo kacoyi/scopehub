@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M4-015",
   "tasks": [
     {
       "id": "M0-001",
@@ -17731,6 +17731,98 @@
           "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
           "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M4-015",
+      "title": "Reveal a cited model evidence row on its original chart",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M1-008",
+        "M4-011"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0019"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "On a returned, explicitly permitted selected-chart tool result, use an ordinary visible action to reveal the cited UTC bar and close on the original chart. Identify the exact source, instrument, timeframe and revision from information actually available.",
+        "Returning restores the answer and the prior chart context. Refuse a stale, revoked or mismatched source, timeframe or revision with an explicit state. Following evidence performs no new model turn, provider request, profile write or grant."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "model-connection-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Connect a cited row to the real chart through an ordinary button, then show the valid and stale cases using the existing local model fixture.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A researcher can follow a close price cited in a conversation to its exact bar on the current authorized chart and return to the same answer.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/model-chat.tsx",
+          "apps/desktop/ui/src/chart-workspace.tsx",
+          "apps/desktop/ui/src/price-chart.tsx",
+          "tests/ui/ai-workflow.config.mjs"
+        ],
+        "hypotheses": [
+          "Current scoped chart context and the evidence returned with the completed model turn can support a local, temporary chart anchor."
+        ],
+        "risks": [
+          {
+            "failure": "A shared UTC time highlights a bar from a different instrument, timeframe or revision, or navigation dispatches another model request.",
+            "checks": [
+              "model-connection-workflow"
+            ]
+          }
+        ],
+        "rollback": "Revert this user-facing entry and its focused tests together, retaining the established underlying operation.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/model-chat.tsx",
+            "apps/desktop/ui/src/chart-workspace.tsx",
+            "apps/desktop/ui/src/price-chart.tsx",
+            "tests/ui/ai-workflow.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/shared_evidence/navigation"
+            }
+          ],
+          "non_goals": [
+            "Live external services, new credentials, model permission changes, investment advice and arbitrary document navigation are outside this slice."
+          ],
+          "open_questions": [
+            "Which fields on the actual turn and chart establish an exact match before the chart is highlighted?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The user's prior chart selection, context, model authorization, and completed answer."
+          ],
+          "change": [
+            "A researcher can follow a close price cited in a conversation to its exact bar on the current authorized chart and return to the same answer."
+          ],
+          "data_plan": "Use only already authorized returned chart evidence. Keep the temporary highlight and navigation state in the window.",
+          "cleanup": "Keep one path for the underlying action and remove any superseded local interaction while maintaining its callers."
         }
       }
     }
