@@ -81,6 +81,7 @@
         "market.subscribe",
         "market.previewLocalImport",
         "market.saveLocalImportMapping",
+        "market.localApiConnection",
         "market.loadLocalImportMapping",
         "market.listLocalImportRevisions",
         "market.readLocalImportRevision",
@@ -9595,6 +9596,374 @@
         "record"
       ],
       "additionalProperties": false
+    },
+    "SavedLocalApiConnection": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "origin": {
+          "type": "string",
+          "pattern": "^http://127[.]0[.]0[.]1:[1-9][0-9]{0,4}$",
+          "maxLength": 22
+        },
+        "rule_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "origin",
+        "rule_version"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiSample": {
+      "type": "object",
+      "properties": {
+        "instrument": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"
+        },
+        "observed_at_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8640000000000000
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9 /.-]{0,15}$"
+        }
+      },
+      "required": [
+        "instrument",
+        "observed_at_ms",
+        "value",
+        "unit"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionStatusInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "status"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionSaveInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "save"
+        },
+        "expected_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "origin": {
+          "type": "string",
+          "pattern": "^http://127[.]0[.]0[.]1:[1-9][0-9]{0,4}$",
+          "maxLength": 22
+        }
+      },
+      "required": [
+        "action",
+        "expected_id",
+        "name",
+        "origin"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionTrialInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "trial"
+        },
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionInput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LocalApiConnectionStatusInput"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionSaveInput"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionTrialInput"
+        }
+      ]
+    },
+    "LocalApiConnectionStatusOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "status"
+        },
+        "connection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SavedLocalApiConnection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "connection"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionSaveOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "save"
+        },
+        "connection": {
+          "$ref": "#/$defs/SavedLocalApiConnection"
+        }
+      },
+      "required": [
+        "action",
+        "connection"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionTrialOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "trial"
+        },
+        "connection": {
+          "$ref": "#/$defs/SavedLocalApiConnection"
+        },
+        "sample": {
+          "$ref": "#/$defs/LocalApiSample"
+        }
+      },
+      "required": [
+        "action",
+        "connection",
+        "sample"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionOutput": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LocalApiConnectionStatusOutput"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionSaveOutput"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionTrialOutput"
+        }
+      ]
+    },
+    "LocalApiConnectionRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.localApiConnection"
+        },
+        "payload": {
+          "$ref": "#/$defs/LocalApiConnectionInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.localApiConnection"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/LocalApiConnectionOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionError": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.localApiConnection"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": false
+        },
+        "result": {
+          "$ref": "#/$defs/LocalApiConnectionOutput"
+        },
+        "error": {
+          "$ref": "#/$defs/MarketPageFault"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "LocalApiConnectionReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LocalApiConnectionResponse"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionError"
+        }
+      ]
     },
     "LoadLocalImportMappingInput": {
       "type": "object",

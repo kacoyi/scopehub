@@ -1,0 +1,85 @@
+[
+  {
+    "name": "save a reviewed loopback origin",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "save",
+        "expected_id": null,
+        "name": "Local sample",
+        "origin": "http://127.0.0.1:8080"
+      }
+    }
+  },
+  {
+    "name": "reject credentials in a loopback origin",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "save",
+        "expected_id": null,
+        "name": "Local sample",
+        "origin": "http://127.0.0.1:8080?key=secret"
+      }
+    }
+  },
+  {
+    "name": "reject a non-loopback origin",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "save",
+        "expected_id": null,
+        "name": "Local sample",
+        "origin": "http://192.0.2.1:8080"
+      }
+    }
+  },
+  {
+    "name": "reject trial destination supplied by the UI",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "trial",
+        "id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+        "origin": "http://127.0.0.1:8080"
+      }
+    }
+  }
+]

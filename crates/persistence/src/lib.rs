@@ -18,12 +18,12 @@ use rusqlite::{
 use scopehub_application::{
     APPLY_LAYOUT, Actor, ChartEvidenceRef, ChartEvidenceStatus, DecisionNoteBackupData,
     DecisionNoteChange, DecisionNoteMutation, DecisionNoteReplay, DecisionNoteRestorePlan,
-    IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord, PrivateRecordPlan,
-    SET_TIMEFRAME, StoredLocalDataset, StoredWorkspaceView, Timeframe, UNDO, WorkspaceBinding,
-    WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState,
-    WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey, WorkspaceSourcePreference,
-    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
-    failure,
+    IndicatorLayerRef, IndicatorLayerUndo, IndicatorVersionRecord, LocalApiConnection,
+    PrivateRecordPlan, SET_TIMEFRAME, StoredLocalDataset, StoredWorkspaceView, Timeframe, UNDO,
+    WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange, WorkspaceLayoutSnapshot,
+    WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay, WorkspaceReplayKey,
+    WorkspaceSourcePreference, WorkspaceState, WorkspaceStore, WorkspaceTransaction,
+    WorkspaceUndoAccess, WorkspaceUndoTarget, failure,
 };
 use scopehub_domain::protocol::{
     DecisionNoteDate, DecisionNoteReadOutput, Error, ErrorCode, PrivateRecordArchiveEntry,
@@ -42,7 +42,8 @@ const FOLDER_MANIFEST_SCHEMA_VERSION: i64 = 7;
 const PRIVATE_RECORD_SCHEMA_VERSION: i64 = 8;
 const WORKSPACE_LAYOUT_SCHEMA_VERSION: i64 = 9;
 const INDICATOR_VERSIONS_SCHEMA_VERSION: i64 = 10;
-const SCHEMA_VERSION: i64 = INDICATOR_VERSIONS_SCHEMA_VERSION;
+const LOCAL_API_SCHEMA_VERSION: i64 = 11;
+const SCHEMA_VERSION: i64 = LOCAL_API_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -272,6 +273,10 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     if version < INDICATOR_VERSIONS_SCHEMA_VERSION {
         connection.execute_batch(include_str!("indicator_versions.sql"))?;
         record_migration(connection, INDICATOR_VERSIONS_SCHEMA_VERSION)?;
+    }
+    if version < LOCAL_API_SCHEMA_VERSION {
+        connection.execute_batch(include_str!("local_api.sql"))?;
+        record_migration(connection, LOCAL_API_SCHEMA_VERSION)?;
     }
     Ok(())
 }
@@ -563,6 +568,32 @@ struct SqliteTransaction<'a> {
 }
 
 impl WorkspaceTransaction for SqliteTransaction<'_> {
+    fn local_api_connection(&self) -> Result<Option<LocalApiConnection>, Error> {
+        self.connection
+            .query_row(
+                "SELECT id, name, origin, rule_version FROM local_api_connection WHERE singleton = 1",
+                [],
+                |row| {
+                    Ok(LocalApiConnection {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        origin: row.get(2)?,
+                        rule_version: row.get(3)?,
+                    })
+                },
+            )
+            .optional()
+            .map_err(store_error)
+    }
+
+    fn save_local_api_connection(&mut self, connection: &LocalApiConnection) -> Result<(), Error> {
+        self.connection.execute(
+            "INSERT INTO local_api_connection (singleton, id, name, origin, rule_version) VALUES (1, ?1, ?2, ?3, ?4)
+             ON CONFLICT(singleton) DO UPDATE SET id = excluded.id, name = excluded.name, origin = excluded.origin, rule_version = excluded.rule_version",
+            params![connection.id, connection.name, connection.origin, connection.rule_version],
+        ).map_err(store_error)?;
+        Ok(())
+    }
     fn state(&self) -> Result<WorkspaceState, Error> {
         state(self.connection, &self.binding.workspace_id)
     }

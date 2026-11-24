@@ -7,14 +7,14 @@ use std::{
 
 use scopehub_application::{
     AI_TEXT_CONNECTION, Actor, INDICATOR_CONFIRMATION, LIST_LOCAL_FOLDER_REVISIONS,
-    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_WORKSPACE_OPERATIONS,
-    MarketLifecycle, MarketPort, MarketRegistry, PREPARE_LOCAL_FOLDER_PUBLICATION,
-    PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT, PUBLISH_LOCAL_FOLDER_REFRESH,
-    PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW,
-    READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
-    REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW, SAVE_LOCAL_IMPORT_MAPPING,
-    SELECT_EVIDENCE, TextModelProvider, TextModelWork, failure, is_sample_evidence_selection,
-    is_sample_indicator_preview,
+    LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_API_CONNECTION,
+    LOCAL_WORKSPACE_OPERATIONS, LocalApiAdmission, MarketLifecycle, MarketPort, MarketRegistry,
+    PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT,
+    PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
+    READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
+    REVOKE_LOCAL_FOLDER_REVISION, REVOKE_LOCAL_IMPORT_REVISION, RUN_INDICATOR_PREVIEW,
+    SAVE_LOCAL_IMPORT_MAPPING, SELECT_EVIDENCE, TextModelProvider, TextModelWork, failure,
+    is_sample_evidence_selection, is_sample_indicator_preview,
 };
 use scopehub_domain::{
     protocol::{Error, ErrorCode},
@@ -40,6 +40,7 @@ pub struct State {
     reads: Mutex<MarketRegistry<MarketWorker>>,
     local_import: LocalImport,
     workspace: WorkspaceBridge,
+    local_api_trial: Mutex<()>,
     trusted_jobs: Mutex<tokio::task::JoinSet<()>>,
     replay: Mutex<()>,
     cancellation: SyncMutex<Cancellation>,
@@ -119,6 +120,7 @@ fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> 
             app_local_data,
             enable_workspace && cfg!(debug_assertions),
         ),
+        local_api_trial: Mutex::new(()),
         trusted_jobs: Mutex::new(tokio::task::JoinSet::new()),
         replay: Mutex::new(()),
         cancellation: SyncMutex::default(),
@@ -146,6 +148,18 @@ impl State {
         authorize_window(window_label)?;
         match operation {
             None => self.workspace.dispatch(operation, payload).await,
+            Some(LOCAL_API_CONNECTION) => match self.workspace.local_api_connection(payload).await?
+            {
+                LocalApiAdmission::Complete(result) => Ok(result),
+                LocalApiAdmission::Trial(trial) => {
+                    let _permit = self
+                        .local_api_trial
+                        .try_lock()
+                        .map_err(|_| failure(ErrorCode::BUSY))?;
+                    let sample = scopehub_worker_host::read_local_api_sample(&trial).await?;
+                    trial.complete(sample)
+                }
+            },
             Some(AI_TEXT_CONNECTION) => {
                 // Serialize job registration with shutdown. The worker never
                 // holds the SQLite admission slot while awaiting the network.

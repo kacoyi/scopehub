@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=46dca670dfefd56dac6025f9cfc0bcd89ddefd21c2d225a790baf9c15e979c24. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -157,6 +157,8 @@ pub enum OperationName {
     MarketPreviewLocalImport,
     #[serde(rename = "market.saveLocalImportMapping")]
     MarketSaveLocalImportMapping,
+    #[serde(rename = "market.localApiConnection")]
+    MarketLocalApiConnection,
     #[serde(rename = "market.loadLocalImportMapping")]
     MarketLoadLocalImportMapping,
     #[serde(rename = "market.listLocalImportRevisions")]
@@ -235,6 +237,7 @@ impl OperationName {
             Self::MarketSubscribe => "market.subscribe",
             Self::MarketPreviewLocalImport => "market.previewLocalImport",
             Self::MarketSaveLocalImportMapping => "market.saveLocalImportMapping",
+            Self::MarketLocalApiConnection => "market.localApiConnection",
             Self::MarketLoadLocalImportMapping => "market.loadLocalImportMapping",
             Self::MarketListLocalImportRevisions => "market.listLocalImportRevisions",
             Self::MarketReadLocalImportRevision => "market.readLocalImportRevision",
@@ -3779,6 +3782,118 @@ pub struct SaveLocalImportMappingInput {
 pub struct SaveLocalImportMappingOutput {
     pub version: u64,
     pub record: SavedLocalImportMapping,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SavedLocalApiConnection {
+    pub id: Uuid,
+    pub name: String,
+    pub origin: String,
+    pub rule_version: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiSample {
+    pub instrument: String,
+    pub observed_at_ms: u64,
+    pub value: f64,
+    pub unit: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionStatusInput {
+    pub action: LocalApiConnectionStatusInputAction,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionSaveInput {
+    pub action: LocalApiConnectionSaveInputAction,
+    pub expected_id: Option<Uuid>,
+    pub name: String,
+    pub origin: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionTrialInput {
+    pub action: LocalApiConnectionTrialInputAction,
+    pub id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum LocalApiConnectionInput {
+    LocalApiConnectionStatusInput(Box<LocalApiConnectionStatusInput>),
+    LocalApiConnectionSaveInput(Box<LocalApiConnectionSaveInput>),
+    LocalApiConnectionTrialInput(Box<LocalApiConnectionTrialInput>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionStatusOutput {
+    pub action: LocalApiConnectionStatusOutputAction,
+    pub connection: Option<SavedLocalApiConnection>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionSaveOutput {
+    pub action: LocalApiConnectionSaveOutputAction,
+    pub connection: SavedLocalApiConnection,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionTrialOutput {
+    pub action: LocalApiConnectionTrialOutputAction,
+    pub connection: SavedLocalApiConnection,
+    pub sample: LocalApiSample,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum LocalApiConnectionOutput {
+    LocalApiConnectionStatusOutput(Box<LocalApiConnectionStatusOutput>),
+    LocalApiConnectionSaveOutput(Box<LocalApiConnectionSaveOutput>),
+    LocalApiConnectionTrialOutput(Box<LocalApiConnectionTrialOutput>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionRequest {
+    pub protocol_version: LocalApiConnectionRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: LocalApiConnectionRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: LocalApiConnectionRequestOperation,
+    pub payload: LocalApiConnectionInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionResponse {
+    pub protocol_version: LocalApiConnectionResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: LocalApiConnectionResponseType,
+    pub request_id: Uuid,
+    pub operation: LocalApiConnectionResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: LocalApiConnectionOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionError {
+    pub protocol_version: LocalApiConnectionErrorProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: LocalApiConnectionErrorType,
+    pub request_id: Uuid,
+    pub operation: LocalApiConnectionErrorOperation,
+    pub ok: ConstBool<false>,
+    pub result: LocalApiConnectionOutput,
+    pub error: MarketPageFault,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum LocalApiConnectionReply11 {
+    LocalApiConnectionResponse(Box<LocalApiConnectionResponse>),
+    LocalApiConnectionError(Box<LocalApiConnectionError>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -9969,6 +10084,186 @@ impl WorkspaceUndoReply11Type {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionStatusInputAction {
+    #[serde(rename = "status")]
+    Value,
+}
+impl LocalApiConnectionStatusInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "status",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionSaveInputAction {
+    #[serde(rename = "save")]
+    Value,
+}
+impl LocalApiConnectionSaveInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionTrialInputAction {
+    #[serde(rename = "trial")]
+    Value,
+}
+impl LocalApiConnectionTrialInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "trial",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionStatusOutputAction {
+    #[serde(rename = "status")]
+    Value,
+}
+impl LocalApiConnectionStatusOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "status",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionSaveOutputAction {
+    #[serde(rename = "save")]
+    Value,
+}
+impl LocalApiConnectionSaveOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "save",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionTrialOutputAction {
+    #[serde(rename = "trial")]
+    Value,
+}
+impl LocalApiConnectionTrialOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "trial",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl LocalApiConnectionRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl LocalApiConnectionRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionRequestOperation {
+    #[serde(rename = "market.localApiConnection")]
+    Value,
+}
+impl LocalApiConnectionRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.localApiConnection",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl LocalApiConnectionResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl LocalApiConnectionResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionResponseOperation {
+    #[serde(rename = "market.localApiConnection")]
+    Value,
+}
+impl LocalApiConnectionResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.localApiConnection",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionErrorProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl LocalApiConnectionErrorProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionErrorType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl LocalApiConnectionErrorType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionErrorOperation {
+    #[serde(rename = "market.localApiConnection")]
+    Value,
+}
+impl LocalApiConnectionErrorOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.localApiConnection",
         }
     }
 }
