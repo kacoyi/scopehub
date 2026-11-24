@@ -4527,7 +4527,7 @@ for (const fault of ['admission busy', 'lost acknowledgement']) {
             });
           } finally {
             releaseFirstReads.resolve();
-            await pageA.unroute(path, holdFirstRead);
+            await pageA.unrouteAll({ behavior: 'wait' });
           }
         });
       });
