@@ -20488,7 +20488,7 @@
             "Amortize the Windows browser fixture preparation in one finite command from the ordinary run setup using the unchanged ACL policy and process limits. Claim each prepared profile at most once. A larger verification run can use the existing one-profile path after the pool is exhausted."
           ],
           "data_plan": "Use only isolated synthetic profiles and the retained original hosted artifacts. No user data format or migrations change.",
-          "cleanup": "Make the fixture supervisor confirm that the complete owned command tree has stopped before removing a failed preparation pool. Retain the pool and the primary error if termination cannot be confirmed. Workers remove acquired profiles, and suite teardown removes unused profiles and claim markers."
+          "cleanup": "Use the same caller deadline before interpreter readiness and after granting the supervisor authority. An interpreter without the grant cannot acquire a pool, and an expired result cannot become a fixture. Make the supervisor confirm that the complete owned command tree has stopped before removing a failed preparation pool. Retain the pool and the primary error if termination cannot be confirmed. Workers remove acquired profiles, and suite teardown removes unused profiles and claim markers."
         }
       }
     }

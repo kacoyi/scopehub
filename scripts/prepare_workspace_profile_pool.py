@@ -39,14 +39,15 @@ def prepare(command, pool: Path, timeout: float) -> int:
         command, cwd=Path.cwd(), env=os.environ.copy(), log_path=log,
         timeout=timeout, cancel=expired,
     )
-    if exit_code == 0 and reason is None:
+    late_success = exit_code == 0 and reason is None
+    if late_success and not expired():
         return 0
 
     print(log_tail(log), end='', file=sys.stderr)
     if reason == 'cleanup_failed':
         print(f'Workspace profile pool retained because process exit was not confirmed: {pool}', file=sys.stderr)
         return exit_code or 1
-    if reason == 'timeout' or (reason == 'interrupted' and expired()):
+    if late_success or reason == 'timeout' or (reason == 'interrupted' and expired()):
         print('Workspace profile preparation reached its deadline.', file=sys.stderr)
         exit_code = 124
     try:
@@ -64,6 +65,11 @@ def main() -> int:
     parser.add_argument('count', type=int)
     parser.add_argument('deadline_ms', type=int)
     args = parser.parse_args()
+    # A cold or abandoned interpreter may arrive late. It cannot acquire the
+    # directory or start a bridge without the caller's one-byte authorization.
+    print('scopehub-workspace-profile-ready', flush=True)
+    if sys.stdin.buffer.read(1) != b'1':
+        return 125
     remaining = min(12.0, (args.deadline_ms - time.time_ns() // 1_000_000) / 1000)
     return prepare(
         [args.bridge, '--prepare-profile-pool', str(args.pool / 'profiles'), str(args.count)],

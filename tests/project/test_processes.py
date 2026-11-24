@@ -132,6 +132,20 @@ time.sleep(30)
         self.assertFalse(pool.exists())
         self.assertIn('Check stopped: timeout', diagnostic.getvalue())
 
+    def test_workspace_profile_supervisor_refuses_start_when_grant_is_absent_or_expired(self):
+        path = Path(prepare_workspace_profile_pool.__file__)
+        for grant, deadline, expected in [(b'', 12_000, 125), (b'1', -1, 124)]:
+            with self.subTest(grant=grant, deadline=deadline):
+                pool = self.root / 'ungranted'
+                result = subprocess.run(
+                    [sys._base_executable, '-B', str(path), str(self.root / 'unused-bridge'), str(pool), '2',
+                     str(time.time_ns() // 1_000_000 + deadline)],
+                    input=grant, capture_output=True, timeout=10, check=False,
+                )
+                self.assertEqual(expected, result.returncode, result.stderr)
+                self.assertEqual('scopehub-workspace-profile-ready', result.stdout.decode().strip())
+                self.assertFalse(pool.exists())
+
     def test_workspace_profile_pool_retains_root_if_cleanup_cannot_be_confirmed(self):
         pool = self.root / 'pool'
         diagnostic = StringIO()

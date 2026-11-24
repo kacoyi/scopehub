@@ -1,22 +1,85 @@
-import { execFile } from 'node:child_process';
-import { lstat, mkdir } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { lstat, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 
-const exec = promisify(execFile);
 const supervisor = fileURLToPath(new URL('../../scripts/prepare_workspace_profile_pool.py', import.meta.url));
 const profileCount = 64;
+const preparationTimeoutMs = 12_000;
+const readyLine = 'scopehub-workspace-profile-ready';
 let nextSlot = 0;
 
+function deadlineError() {
+  return Object.assign(new Error('Workspace profile preparation reached its deadline.'), { code: 'ETIMEDOUT' });
+}
+
+function runPreparation(python, bridge, pool, deadline, remaining) {
+  const child = spawn(python, ['-B', supervisor, bridge, pool, String(profileCount), String(deadline)], {
+    windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  return new Promise((resolve, reject) => {
+    let granted = false;
+    let denied = false;
+    let launchError;
+    let stderr = '';
+    const read = createInterface({ input: child.stdout, crlfDelay: Infinity });
+    const denyStartup = error => {
+      if (denied) return;
+      denied = true;
+      read.close();
+      // No authorization has been sent. Even a surviving redirector descendant
+      // sees EOF and cannot start work or acquire the pool.
+      child.stdin.destroy();
+      child.stdout.destroy();
+      child.stderr.destroy();
+      child.kill();
+      reject(error);
+    };
+    const startup = setTimeout(() => denyStartup(deadlineError()), Math.max(0, remaining()));
+    child.stderr.setEncoding('utf8').on('data', chunk => {
+      stderr = (stderr + chunk).slice(-8192);
+    });
+    child.on('error', error => { launchError = error; });
+    child.stdin.on('error', error => { launchError ??= error; });
+    read.once('line', line => {
+      if (denied) return;
+      clearTimeout(startup);
+      if (remaining() <= 0) {
+        denyStartup(deadlineError());
+      } else if (line !== readyLine) {
+        denyStartup(new Error('Workspace profile supervisor returned invalid readiness.'));
+      } else {
+        granted = true;
+        child.stdin.end('1');
+      }
+    });
+    child.once('close', (code, signal) => {
+      clearTimeout(startup);
+      read.close();
+      if (granted && code === 0) {
+        resolve();
+      } else {
+        reject(Object.assign(launchError ?? new Error(stderr.trim() || 'Workspace profile preparation failed.'), {
+          code: launchError?.code ?? code, signal, stderr,
+        }));
+      }
+    });
+  });
+}
+
 export async function prepareProfilePool(python, bridge, pool) {
-  // The first cold start is included in the same outer limit as a single profile.
   const started = performance.now();
+  const remaining = () => preparationTimeoutMs - (performance.now() - started);
   try {
-    // The supervisor enforces the deadline and waits for all owned descendants.
-    // Killing the supervisor here could race its cleanup and leave a live writer.
-    const deadline = Date.now() + 12_000;
-    await exec(python, ['-B', supervisor, bridge, pool, String(profileCount), String(deadline)], { windowsHide: true });
+    await runPreparation(python, bridge, pool, Date.now() + preparationTimeoutMs, remaining);
+    if (remaining() <= 0) {
+      // A successful supervisor exit confirms the tree is stopped. An expired
+      // result cannot enter the test run and this finished pool can be removed.
+      await rm(pool, { recursive: true, force: true, maxRetries: 3 })
+        .catch(error => console.error('Expired workspace profile pool cleanup failed.', error));
+      throw deadlineError();
+    }
   } catch (error) {
     console.error(`Workspace profile preparation failed after ${Math.round(performance.now() - started)}ms.`);
     throw error;
