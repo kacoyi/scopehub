@@ -17459,7 +17459,7 @@
         "0027"
       ],
       "acceptance": [
-        "The accepted overlay remains visible on every sampled frame of repeated real pointer motion on one unchanged chart viewport. The trusted readout tracks the current candle and only the current guest highlight can become final.",
+        "The accepted overlay remains visible on every sampled frame of repeated real pointer motion on one unchanged chart viewport. The trusted readout tracks the current candle. Every sampled scene is neutral or highlights only that candle, including while the selected guest evaluation is pending or rejected.",
         "Superseded evaluations and invalid drafts cannot replace the accepted base. Leaving the bound chart or changing its coordinate mapping cannot leave old geometry visible."
       ],
       "checks": [

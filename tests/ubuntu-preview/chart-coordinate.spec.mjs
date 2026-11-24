@@ -184,6 +184,9 @@ test('accepted geometry stays visible on every sampled frame of real crosshair m
     observations,
   }, null, 2) + '\n');
   expect(observations.map(move => move.blankFrames)).toEqual([0, 0, 0, 0, 0, 0]);
+  const mismatches = observations.map(({ frames, time }) => frames.filter(frame => frame.time === time
+    && frame.radii.join(',') !== '5,5' && frame.radii.join(',') !== (time === first ? '8,5' : '5,8')).length);
+  expect(mismatches).toEqual([0, 0, 0, 0, 0, 0]);
 });
 
 test('superseded guest work cannot change the current selection or restore obsolete geometry', async ({ page }) => {
@@ -223,6 +226,8 @@ test('superseded guest work cannot change the current selection or restore obsol
   await expect(readout).toContainText(first);
   await expect.poll(held).toEqual([{ selected: 0, terminated: false }]);
   await expect(circles).toHaveCount(2);
+  await expect(circles.first()).toHaveAttribute('r', '5');
+  await expect(circles.last()).toHaveAttribute('r', '5');
 
   await move(1);
   await expect.poll(held).toEqual([{ selected: 0, terminated: true }]);
@@ -245,4 +250,38 @@ test('superseded guest work cannot change the current selection or restore obsol
   await page.getByRole('button', { name: '1m', exact: true }).click();
   await expect(page.getByLabel('Open chart drawing program')).toBeVisible();
   await expect(overlay).toHaveCount(0);
+});
+
+test('a guest that rejects the current candle leaves the unselected drawing visible', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+  const original = await readFile(program, 'utf8');
+  const overlay = page.getByRole('img', { name: 'Projected chart drawing' });
+  const circles = overlay.locator('circle');
+  const readout = page.getByLabel('Drawing crosshair observation');
+  await page.getByLabel('Open chart drawing program').setInputFiles({
+    name: 'reject-second-candle.js',
+    mimeType: 'text/javascript',
+    buffer: Buffer.from(original + '\nif (selected === 1) throw new Error("second candle rejected");\n'),
+  });
+  await page.getByRole('button', { name: 'Accept chart drawing', exact: true }).click();
+  const anchors = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+  const move = index => page.mouse.move(anchors[index].left + anchors[index].x, anchors[index].top + anchors[index].y);
+  await move(0);
+  await expect(readout).toContainText(first);
+  await expect(circles.first()).toHaveAttribute('r', '8');
+  await expect(overlay.locator('line')).toHaveCount(1);
+
+  await move(1);
+  await expect(readout).toContainText(second);
+  await expect(page.getByRole('alert')).toContainText('This chart drawing could not be displayed.');
+  await expect(circles).toHaveCount(2);
+  await expect(circles.first()).toHaveAttribute('r', '5');
+  await expect(circles.last()).toHaveAttribute('r', '5');
+  await expect(overlay.locator('line')).toHaveCount(0);
+
+  await move(0);
+  await expect(readout).toContainText(first);
+  await expect(circles.first()).toHaveAttribute('r', '8');
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });

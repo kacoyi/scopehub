@@ -3893,7 +3893,7 @@
     {
       "id": "chart-crosshair-overlay-flicker",
       "source": "t96 independent Chinese interaction with frozen 602260e on the local 1462 trial.",
-      "observation": "After accepting chart-price-anchors.js on a stationary 1440 by 900 chart, six alternating real pointer moves between the two candle anchors showed zero circles for five requestAnimationFrame samples on each move (about 83 ms). The authored overlay returned in about 100 ms. The same source, authority and viewport remained. The M2-017 test previously waited only for settled geometry.",
+      "observation": "After accepting chart-price-anchors.js on a stationary 1440 by 900 chart, six alternating real pointer moves between the two candle anchors showed zero circles for five requestAnimationFrame samples on each move (about 83 ms). The authored overlay returned in about 100 ms. The same source, authority and viewport remained. The M2-017 test previously waited only for settled geometry. The first repair (4fd7b14) kept circles visible but paired the new trusted timestamp with the old guest rim for five frames on each of moves two through six. Retained red and continuity samples document both failures.",
       "severity": "major",
       "status": "open",
       "task_ids": [
