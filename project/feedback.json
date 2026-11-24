@@ -4032,6 +4032,39 @@
         "prevention": "The hosted Windows run observed the 5 min and 15 min buttons using TogglePattern, verified the financial results and read back the exact recovered draft through UI Automation. The original failure and log remain in the diagnostic archive."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-presentation-append-steals-binding",
+      "source": "Independent Standard Astra review in Herdr t9v at 6e3760446fb5e137e5aa610880c9c8763069f92e.",
+      "observation": "After accepting a 15-minute candlestick, changing its presentation to lights and appending an identical candlestick before preview moved the 15-minute binding to the new block. The original block showed five-minute observations instead. The normal editor reproduction in .reports/m2-030-review-red/results.json found the original block's 15-minute control unpressed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-030"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-selection-crosses-result-identity",
+      "source": "Independent Standard Astra review in Herdr t9v at 6e3760446fb5e137e5aa610880c9c8763069f92e.",
+      "observation": "Selecting the 09:30 UTC five-minute strength result (0.15) and switching to fifteen minutes silently selected the 09:30 UTC fifteen-minute strength result (0.90) from a different revision. The normal editor reproduction in .reports/m2-030-review-red/results.json found the fifteen-minute bar already pressed before any new selection.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M2-030"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "prototype-state-editor-formatting-rejects-valid-draft",
+      "source": "Independent Standard Astra review in Herdr t9v at 6e3760446fb5e137e5aa610880c9c8763069f92e.",
+      "observation": "With seven default state blocks and an eighth candlestick, switching the last block to lights reported the 4096-character limit. The editor's indented output was 4300 characters and the same definition in compact JSON was 2136 characters. The normal editor reproduction in .reports/m2-030-review-red/results.json observed the rejection alert after switching the eighth block.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": ["M2-030"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

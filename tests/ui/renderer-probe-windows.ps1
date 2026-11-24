@@ -259,9 +259,18 @@ try {
     } | Out-Null
     Invoke-Button '09:30 UTC Red'
     Wait-Name 'Selected result'
-    Wait-Name $fifteen.bar_utc
-    Wait-Name $fifteen.result_revision
-    Wait-Name '0.9'
+    $stateSource = 'qualification-equity'
+    $stateValue = '0.9'
+    $stateAttribution = @($fifteen.bar_utc, $stateSource, $fifteen.series_revision, $fifteen.result_revision, $stateValue)
+    Wait-ForProbe "selected result: $($stateAttribution -join ', ')" {
+        $groupType = [Windows.Automation.ControlType]::Group
+        $within = Find-Control 'Selected result' $groupType
+        if (!$within) { $within = Find-Control 'State lights' $groupType }
+        # Some WebView2 UIA trees flatten named regions. The view contains one state block and no chart here.
+        if (!$within) { $within = $window }
+        $missing = @($stateAttribution | Where-Object { -not (Find-Control $_ $null $within) })
+        $missing.Count -eq 0
+    } | Out-Null
 
     Invoke-Button 'Back to chart'
     Wait-Name 'Open workbench prototype'
@@ -286,7 +295,10 @@ try {
         annotation_rejected_draft_restored = $true
         annotation_restored_after_empty_preview = $fifteen
         annotation_accepted_threshold_edit = @{ above = 0.85; result = $fifteen }
-        state_light_selection = @{ timeframe = '15m'; bar_utc = $fifteen.bar_utc; result_revision = $fifteen.result_revision; value = 0.9 }
+        state_light_selection = @{
+            timeframe = '15m'; bar_utc = $fifteen.bar_utc; source = $stateSource; value = 0.9
+            series_revision = $fifteen.series_revision; result_revision = $fifteen.result_revision
+        }
     } | ConvertTo-Json -Depth 4 -Compress | Write-Output
 } finally {
     if ($null -ne $app) {

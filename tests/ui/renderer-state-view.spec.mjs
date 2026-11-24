@@ -5,6 +5,13 @@ const fixture = JSON.parse(readFileSync(new URL('../fixtures/workbench-qualifica
 const strengths = fixture.cases['unconventional-indicator'].strength_by_bar;
 const authored = '{ "version": 1,\n  "blocks": [{ "kind": "candlestick", "source": "qualification-equity",'
   + ' "annotation": { "field": "turnover", "when": { "field": "strength", "above": 0.8 } } }] }';
+const [candleBlock] = JSON.parse(authored).blocks;
+const defaultLights = {
+  ...candleBlock,
+  presentation: {
+    kind: 'state-lights', ranges: [{ below: 0.4, tone: 'green' }, { below: 0.8, tone: 'amber' }], otherwise: { tone: 'red' },
+  },
+};
 
 async function openEditor(page) {
   await page.goto('/');
@@ -81,6 +88,7 @@ test('switches to chart-free state lights and edits a range over the same frozen
   await preview.click();
   await expect(chart).toBeVisible();
   await expect(candles.getByRole('button', { name: '5 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await accept.click();
   await presentation.selectOption('state-lights');
   await preview.click();
   await expect(reclassified).toHaveAttribute('aria-pressed', 'true');
@@ -92,6 +100,9 @@ test('switches to chart-free state lights and edits a range over the same frozen
   await draft.fill(JSON.stringify(otherField));
   await preview.click();
   await expect(lights.getByRole('button', { name: '09:30 UTC Low turnover' })).toBeVisible();
+  await expect(reclassified).toHaveAttribute('aria-pressed', 'false');
+  await expect(result.locator('dd')).toHaveCount(0);
+  await reclassified.click();
   await expect(reclassified).toHaveAttribute('aria-pressed', 'true');
   await expect(result.locator('dd').last()).toHaveText('0.011');
   expect(dataRequests).toEqual([]);
@@ -137,4 +148,104 @@ test('rejects invalid state ranges and restores the accepted binding and author 
   await localized.getByRole('button', { name: '09:45 UTC 未知' }).click();
   await expect(localized.getByRole('region', { name: '选中的结果' }).getByText('未知', { exact: true })).toBeVisible();
   await expect(page.getByRole('dialog', { name: '工作台原型' })).toHaveJSProperty('scrollWidth', 380);
+});
+
+test('keeps the original binding when switching presentation and appending before preview', async ({ page }) => {
+  const { draft, preview, accept, presentation, candles, lights, result } = await openEditor(page);
+  await presentation.selectOption('state-lights');
+  await page.getByRole('button', { name: 'Add candlesticks' }).click();
+  await preview.click();
+  await expect(lights.getByRole('button', { name: '15 min' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(candles.getByRole('button', { name: '5 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await lights.getByRole('button', { name: '09:30 UTC Red' }).click();
+  await expect(result.locator('dd')).toHaveText([
+    '2024-01-04T09:30:00.000Z', 'qualification-equity', 'qualification-equity-15m-bars-v1',
+    'qualification-equity-15m-results-v1', '0.9',
+  ]);
+  await accept.click();
+
+  const reordered = JSON.parse(await draft.inputValue());
+  reordered.blocks.reverse();
+  await draft.fill(JSON.stringify(reordered));
+  await preview.click();
+  await expect(page.getByRole('region', { name: 'Workbench canvas' }).getByRole('heading', { level: 3 }))
+    .toHaveText(['Annotated candlesticks', 'State lights']);
+  await expect(candles.getByRole('button', { name: '5 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(lights.getByRole('button', { name: '15 min' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(result.locator('dd').last()).toHaveText('0.9');
+});
+
+test('scopes inspection to the selected timeframe and result revision at a shared UTC bar', async ({ page }) => {
+  const { preview, accept, presentation, lights, result } = await openEditor(page);
+  await presentation.selectOption('state-lights');
+  await preview.click();
+  await lights.getByRole('button', { name: '5 min', exact: true }).click();
+  const five = lights.getByRole('button', { name: '09:30 UTC Green' });
+  const fifteen = lights.getByRole('button', { name: '09:30 UTC Red' });
+  await five.click();
+  await accept.click();
+  await expect(result.getByText('qualification-equity-5m-results-v1', { exact: true })).toBeVisible();
+  await expect(result.locator('dd').last()).toHaveText('0.15');
+
+  await lights.getByRole('button', { name: '15 min' }).click();
+  await expect(fifteen).toHaveAttribute('aria-pressed', 'false');
+  await expect(result.locator('dd')).toHaveCount(0);
+  await lights.getByRole('button', { name: '5 min', exact: true }).click();
+  await expect(five).toHaveAttribute('aria-pressed', 'true');
+  await expect(result.locator('dd').last()).toHaveText('0.15');
+
+  await lights.getByRole('button', { name: '15 min' }).click();
+  await fifteen.click();
+  await expect(result.locator('dd')).toHaveText([
+    '2024-01-04T09:30:00.000Z', 'qualification-equity', 'qualification-equity-15m-bars-v1',
+    'qualification-equity-15m-results-v1', '0.9',
+  ]);
+  await lights.getByRole('button', { name: '5 min', exact: true }).click();
+  await expect(five).toHaveAttribute('aria-pressed', 'false');
+  await expect(result.locator('dd')).toHaveCount(0);
+});
+
+test('switches presentation at the JSON size limit using compact authoring when needed', async ({ page }) => {
+  const { draft, preview, accept, candles, lights } = await openEditor(page);
+  const switchLast = index => page.getByRole('combobox', { name: `Block ${index} presentation` }).selectOption('state-lights');
+  const restore = page.getByRole('button', { name: 'Restore accepted view' });
+  const limit = 4096;
+  const mixed = { version: 1, blocks: [...Array(7).fill(defaultLights), candleBlock] };
+  const mixedText = JSON.stringify(mixed, null, 2);
+  expect(mixedText.length).toBeLessThan(limit);
+  expect(JSON.stringify({ version: 1, blocks: Array(8).fill(defaultLights) }, null, 2).length).toBeGreaterThan(limit);
+  await draft.fill(mixedText);
+  await preview.click();
+  await accept.click();
+  await switchLast(8);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  const compact = await draft.inputValue();
+  expect(compact.length).toBeLessThanOrEqual(limit);
+  expect(JSON.parse(compact)).toEqual({ version: 1, blocks: Array(8).fill(defaultLights) });
+  await preview.click();
+  await expect(lights).toHaveCount(8);
+  await restore.click();
+  await expect(draft).toHaveValue(mixedText);
+  await expect(candles).toHaveCount(1);
+
+  const labeled = length => {
+    const block = structuredClone(defaultLights);
+    for (const style of [...block.presentation.ranges, block.presentation.otherwise]) style.label = 'a'.repeat(length);
+    return block;
+  };
+  const largeStates = [...Array(8).fill(labeled(48)), labeled(18)];
+  const largeText = `{ "version": 1,\n "blocks": ${JSON.stringify([...largeStates, candleBlock])}\n}`;
+  expect(largeText.length).toBeLessThan(limit);
+  expect(JSON.stringify({ version: 1, blocks: [...largeStates, defaultLights] }).length).toBeGreaterThan(limit);
+  await draft.fill(largeText);
+  await preview.click();
+  await accept.click();
+  await switchLast(10);
+  await expect(page.getByRole('alert')).toHaveText('Keep the draft within 4096 characters.');
+  await expect(accept).toBeDisabled();
+  await expect(candles).toHaveCount(1);
+  await expect(draft).toHaveValue(largeText);
+  await restore.click();
+  await expect(draft).toHaveValue(largeText);
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });

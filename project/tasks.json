@@ -17745,7 +17745,8 @@
       "scope": [
         "apps/desktop/ui",
         "tests/ui",
-        "project/checks.json"
+        "project/checks.json",
+        "project/feedback.json"
       ],
       "decision_refs": [
         "0004",
@@ -17765,7 +17766,7 @@
         "renderer-prototype-interaction"
       ],
       "evidence": [],
-      "next_action": "Review the local state-view candidate and run coordinated task checks, including selected-bar inspection in Windows WebView2.",
+      "next_action": "Review the repaired state-view candidate, run the coordinated task checks including scoped WebView2 attribution, then archive evidence for the three open findings.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -17785,7 +17786,7 @@
         ],
         "risks": [
           {
-            "failure": "A missing value is classified as low, or a style edit changes the bar or timeframe.",
+            "failure": "A missing value is classified as low. A presentation switch followed by an identical append gives the original timeframe to the new block, or inspection silently selects another timeframe, revision or field at the same bar start.",
             "checks": [
               "renderer-prototype-interaction"
             ]
@@ -17794,6 +17795,12 @@
             "failure": "The chart-free view misstates the source, requests a new operation or breaks existing authored candle definitions.",
             "checks": [
               "architecture",
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "The editor rejects a valid presentation switch due to generated indentation, exceeds the authoring limit, or modifies the accepted author text during recovery.",
+            "checks": [
               "renderer-prototype-interaction"
             ]
           }
@@ -17821,9 +17828,7 @@
           "non_goals": [
             "No provider integration, persistent format, user code execution, full indicator qualification or renderer selection."
           ],
-          "open_questions": [
-            "How can the editor preserve the binding while allowing a user to change its visual mapping with ordinary controls and authored text?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",
@@ -17831,7 +17836,7 @@
             "Existing candlestick definitions, accepted view recovery and the synthetic source and result revisions."
           ],
           "change": [
-            "Add an editable chart-free encoding with textual state labels and result inspection."
+            "Add an editable chart-free encoding with textual state labels and result inspection. Structured draft edits retain block identity through append and reorder. Inspection follows the exact selected result. Use compact JSON when indentation would exceed the authoring limit."
           ],
           "data_plan": "Read the existing immutable synthetic observations. Keep presentation and selection in the window.",
           "cleanup": "Evaluate this composition with its source binding at the parent renderer decision."

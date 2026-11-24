@@ -12,7 +12,8 @@ type ResultPresentation = StateMapping & { kind: 'candlesticks' | 'state-lights'
 type ResultBlock = CandleBlock & { presentation?: ResultPresentation };
 type Block = SeriesBlock | ResultBlock;
 type Composition = { version: 1; blocks: Block[] };
-type PresentedResult = ResultBlock & { instance: number; timeframe: CandleTimeframe; selectedBar: number | undefined };
+type ResultSelection = { scope: string; barOpenMs: number };
+type PresentedResult = ResultBlock & { instance: number; timeframe: CandleTimeframe; selection: ResultSelection | undefined };
 type PresentedBlock = SeriesBlock | PresentedResult;
 const blank: Composition = { version: 1, blocks: [] };
 const stateLights: ResultPresentation = {
@@ -121,10 +122,10 @@ function resultsByBinding<T extends ResultBlock>(results: readonly T[]) {
   return groups;
 }
 
-function previewBlocks(blocks: Block[], accepted: PresentedBlock[]): PresentedBlock[] {
-  const acceptedResults = accepted.filter(block => block.kind === 'candlestick');
+function previewBlocks(blocks: Block[], reference: PresentedBlock[], lastAcceptedInstance: number): PresentedBlock[] {
+  const previousResults = reference.filter(block => block.kind === 'candlestick');
   const draftResults = blocks.filter(block => block.kind === 'candlestick');
-  const previousGroups = resultsByBinding(acceptedResults);
+  const previousGroups = resultsByBinding(previousResults);
   const draftGroups = resultsByBinding(draftResults);
   const matches = new Map<ResultBlock, PresentedResult>();
   const definition = (block: ResultBlock) => JSON.stringify([block.annotation.when.above, block.presentation]);
@@ -150,7 +151,7 @@ function previewBlocks(blocks: Block[], accepted: PresentedBlock[]): PresentedBl
     }
     for (const result of results) {
       if (!matches.has(result)) {
-        // Match identical definitions in occurrence order, consuming each accepted instance once.
+        // Match identical definitions in occurrence order, consuming each previous instance once.
         claim(result, available.findIndex(match => match !== undefined && definition(match) === definition(result)));
       }
     }
@@ -169,20 +170,20 @@ function previewBlocks(blocks: Block[], accepted: PresentedBlock[]): PresentedBl
 
   // After matching definitions within each binding, carry a field edit only across a one-to-one source match.
   const claimed = new Set(matches.values());
-  const unmatchedAccepted = acceptedResults.filter(result => !claimed.has(result));
+  const unmatchedPrevious = previousResults.filter(result => !claimed.has(result));
   const unmatchedDraft = draftResults.filter(result => !matches.has(result));
   for (const result of unmatchedDraft) {
-    const previous = unmatchedAccepted.filter(candidate => candidate.source === result.source);
+    const previous = unmatchedPrevious.filter(candidate => candidate.source === result.source);
     const incoming = unmatchedDraft.filter(candidate => candidate.source === result.source);
     if (previous.length === 1 && incoming.length === 1) matches.set(result, previous[0]!);
   }
 
-  let nextInstance = Math.max(0, ...acceptedResults.map(result => result.instance)) + 1;
+  let nextInstance = Math.max(lastAcceptedInstance, ...previousResults.map(result => result.instance)) + 1;
   return blocks.map(block => {
     if (block.kind !== 'candlestick') return block;
     const match = matches.get(block);
     return { ...block, instance: match?.instance ?? nextInstance++, timeframe: match?.timeframe ?? '5m',
-      selectedBar: match?.selectedBar };
+      selection: match?.selection };
   });
 }
 
@@ -220,6 +221,7 @@ function SeriesBlock({ block, selected, select }: {
 export function WorkbenchPrototype({ close }: { close: () => void }) {
   const [accepted, setAccepted] = useState<{ blocks: PresentedBlock[]; text: string }>({ blocks: [], text: encode(blank) });
   const [draft, setDraft] = useState(encode(blank));
+  const [draftReference, setDraftReference] = useState<PresentedBlock[]>();
   const [preview, setPreview] = useState<PresentedBlock[]>();
   const [error, setError] = useState<Message>();
   const [selected, setSelected] = useState<number>();
@@ -239,11 +241,25 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
   }
 
   const parsed = parseDraft(draft);
+  const lastAcceptedInstance = Math.max(0, ...accepted.blocks.flatMap(block => block.kind === 'candlestick' ? [block.instance] : []));
 
-  function writeDraft(composition: Composition) {
-    const next = encode(composition);
-    if (next.length <= maxLength) edit(next);
-    else {
+  function presentDraft(blocks: Block[]) {
+    return preview ?? previewBlocks(blocks, draftReference ?? accepted.blocks, lastAcceptedInstance);
+  }
+
+  function writeDraft(blocks: PresentedBlock[]) {
+    const composition: Composition = { version: 1, blocks: blocks.map(block => {
+      if (block.kind !== 'candlestick') return block;
+      const { kind, source, annotation, presentation } = block;
+      return { kind, source, annotation, ...(presentation && { presentation }) };
+    }) };
+    const formatted = encode(composition);
+    const next = formatted.length <= maxLength ? formatted : JSON.stringify(composition);
+    if (next.length <= maxLength) {
+      edit(next);
+      // Structured controls know which draft block each edit targets. Retain those identities for preview and text edits.
+      setDraftReference(blocks);
+    } else {
       setError(message('Keep the draft within {limit} characters.', { limit: maxLength }));
       setPreview(undefined);
     }
@@ -258,18 +274,23 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         setError(message('A composition supports up to {limit} blocks.', { limit: maxBlocks }));
         setPreview(undefined);
       } else {
-        writeDraft({ ...parsed, blocks: [...parsed.blocks, block] });
+        const reference = presentDraft(parsed.blocks);
+        writeDraft(previewBlocks([...parsed.blocks, block], reference, lastAcceptedInstance));
       }
     } else {
       setError(undefined);
-      setPreview(current => current ?? previewBlocks(parsed.blocks, accepted.blocks));
+      setPreview(presentDraft(parsed.blocks));
     }
   }
 
-  function updateResult(block: PresentedResult, changes: Partial<Pick<PresentedResult, 'timeframe' | 'selectedBar'>>) {
-    const update = (blocks: PresentedBlock[]) => blocks.map(candidate => candidate === block ? { ...block, ...changes } : candidate);
+  function updateResult(block: PresentedResult, changes: Partial<Pick<PresentedResult, 'timeframe' | 'selection'>>) {
+    const update = (blocks: PresentedBlock[]) => blocks.map(candidate => candidate.kind === 'candlestick'
+      && candidate.instance === block.instance ? { ...candidate, ...changes } : candidate);
     if (preview) setPreview(current => current && update(current));
-    else setAccepted(current => ({ ...current, blocks: update(current.blocks) }));
+    else {
+      setAccepted(current => ({ ...current, blocks: update(current.blocks) }));
+      setDraftReference(current => current && update(current));
+    }
   }
 
   const visible = preview ?? accepted.blocks;
@@ -301,9 +322,9 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
             <select id={`probe-presentation-${index}`} value={presentation?.kind ?? 'candlesticks'}
               onChange={event => {
                 const kind = event.currentTarget.value === 'state-lights' ? 'state-lights' : 'candlesticks';
-                const blocks = [...parsed.blocks];
-                blocks[index] = { ...block, presentation: { ...(presentation ?? stateLights), kind } };
-                writeDraft({ ...parsed, blocks });
+                writeDraft(presentDraft(parsed.blocks).map((candidate, position) => position === index
+                  && candidate.kind === 'candlestick'
+                  ? { ...candidate, presentation: { ...(presentation ?? stateLights), kind } } : candidate));
               }}>
               <option value="candlesticks">{t('Candlesticks')}</option>
               <option value="state-lights">{t('State lights')}</option>
@@ -321,9 +342,9 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         <div className="probe-actions">
           <button type="button" className="primary" onClick={() => inspect()}>{t('Preview draft')}</button>
           <button type="button" disabled={!preview} onClick={() => {
-            if (preview) { setAccepted({ blocks: preview, text: draft }); setPreview(undefined); }
+            if (preview) { setAccepted({ blocks: preview, text: draft }); setPreview(undefined); setDraftReference(undefined); }
           }}>{t('Accept view')}</button>
-          <button type="button" onClick={() => edit(accepted.text)}>{t('Restore accepted view')}</button>
+          <button type="button" onClick={() => { edit(accepted.text); setDraftReference(undefined); }}>{t('Restore accepted view')}</button>
         </div>
         {error && <p role="alert">{t(error)}</p>}
       </div>
@@ -342,12 +363,18 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         {visible.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
           <div className="probe-blocks">{visible.map((block, index) => {
             if (block.kind !== 'candlestick') return <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />;
-            const { instance, timeframe, presentation, selectedBar } = block;
+            const { instance, source, timeframe, presentation, selection } = block;
             const controls = timeframes.map(period => <button key={period} type="button" aria-pressed={period === timeframe}
               onClick={() => updateResult(block, { timeframe: period })}>{t('{count} min', { count: period === '5m' ? 5 : 15 })}</button>);
-            if (presentation?.kind === 'state-lights') return <WorkbenchStateBlock key={`result-${instance}`}
-              field={block.annotation.when.field} source={block.source} timeframe={timeframe} controls={controls}
-              mapping={presentation} selectedBar={selectedBar} selectBar={time => updateResult(block, { selectedBar: time })} />;
+            if (presentation?.kind === 'state-lights') {
+              const field = block.annotation.when.field;
+              const { seriesRevision, resultRevision } = candleSource.frames[timeframe];
+              const scope = JSON.stringify([source, timeframe, seriesRevision, resultRevision, field]);
+              return <WorkbenchStateBlock key={`result-${instance}`} field={field} source={source}
+                timeframe={timeframe} controls={controls} mapping={presentation}
+                selectedBar={selection?.scope === scope ? selection.barOpenMs : undefined}
+                selectBar={barOpenMs => updateResult(block, { selection: { scope, barOpenMs } })} />;
+            }
             return <WorkbenchCandleBlock key={`result-${instance}`} block={block} timeframe={timeframe} controls={controls} />;
           })}</div>}
       </section>
