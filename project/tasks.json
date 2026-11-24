@@ -18115,7 +18115,7 @@
           "sha256": "d7f9e3ef0bcb21921b1afee29bd49306b18e48b522ab58c7ddc2dda7f779cedc"
         }
       ],
-      "next_action": "Verify the measured full Windows PR result and the protected handoff to the first genuine main push. Resolve the independent review of the feedback identifier before publication.",
+      "next_action": "The fourth full pull request passed in 866 seconds with 2805 runner seconds. Verify all corrected budget and interaction regressions on the combined candidate, then bind the final protected pull request to the post-merge main-push assignment.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18207,7 +18207,9 @@
           },
           {
             "failure": "A busy or unavailable capture prevents the authenticated failure from reaching the next offline reader, or a missing recorded trend baseline is replaced by older timing.",
-            "checks": ["python-contracts-workers"]
+            "checks": [
+              "python-contracts-workers"
+            ]
           },
           {
             "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
@@ -18271,6 +18273,12 @@
           },
           {
             "failure": "A repair receipt substitutes for a real main-push observation after the follow-up owner is removed, or a later verified records-only closure is held to a new full PR timing requirement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A candidate changes or omits the feedback or task identity in the governed main-push policy, including at first introduction, and skips the actual closure check or disrupts unrelated integration.",
             "checks": [
               "python-contracts-workers"
             ]
