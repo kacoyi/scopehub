@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import fixture from './workbench-synthetic-closes.json';
 import { formatDateTime, formatNumber, message, t, type Message } from './i18n';
 import { LanguageSettings } from './language-settings';
@@ -15,6 +15,8 @@ type Composition = { version: 1; blocks: Block[] };
 type ResultSelection = { scope: string; barOpenMs: number };
 type PresentedResult = ResultBlock & { instance: number; timeframe: CandleTimeframe; selection: ResultSelection | undefined };
 type PresentedBlock = SeriesBlock | PresentedResult;
+type WorkbenchView = { blocks: PresentedBlock[]; selected: number | undefined };
+type AcceptedWorkbench = WorkbenchView & { text: string };
 const blank: Composition = { version: 1, blocks: [] };
 const stateLights: ResultPresentation = {
   kind: 'state-lights',
@@ -218,13 +220,19 @@ function SeriesBlock({ block, selected, select }: {
   </section>;
 }
 
-export function WorkbenchPrototype({ close }: { close: () => void }) {
-  const [accepted, setAccepted] = useState<{ blocks: PresentedBlock[]; text: string }>({ blocks: [], text: encode(blank) });
-  const [draft, setDraft] = useState(encode(blank));
+export function createBlankWorkbench(): AcceptedWorkbench {
+  return { blocks: [], text: encode(blank), selected: undefined };
+}
+
+export function WorkbenchPrototype({ accepted, setAccepted, close }: {
+  accepted: AcceptedWorkbench;
+  setAccepted: Dispatch<SetStateAction<AcceptedWorkbench>>;
+  close: () => void;
+}) {
+  const [draft, setDraft] = useState(accepted.text);
   const [draftReference, setDraftReference] = useState<PresentedBlock[]>();
-  const [preview, setPreview] = useState<PresentedBlock[]>();
+  const [preview, setPreview] = useState<WorkbenchView>();
   const [error, setError] = useState<Message>();
-  const [selected, setSelected] = useState<number>();
   const heading = useRef<HTMLHeadingElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -244,7 +252,7 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
   const lastAcceptedInstance = Math.max(0, ...accepted.blocks.flatMap(block => block.kind === 'candlestick' ? [block.instance] : []));
 
   function presentDraft(blocks: Block[]) {
-    return preview ?? previewBlocks(blocks, draftReference ?? accepted.blocks, lastAcceptedInstance);
+    return preview?.blocks ?? previewBlocks(blocks, draftReference ?? accepted.blocks, lastAcceptedInstance);
   }
 
   function writeDraft(blocks: PresentedBlock[]) {
@@ -279,21 +287,26 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
       }
     } else {
       setError(undefined);
-      setPreview(presentDraft(parsed.blocks));
+      setPreview(preview ?? { blocks: presentDraft(parsed.blocks), selected: accepted.selected });
     }
   }
 
   function updateResult(block: PresentedResult, changes: Partial<Pick<PresentedResult, 'timeframe' | 'selection'>>) {
     const update = (blocks: PresentedBlock[]) => blocks.map(candidate => candidate.kind === 'candlestick'
       && candidate.instance === block.instance ? { ...candidate, ...changes } : candidate);
-    if (preview) setPreview(current => current && update(current));
+    if (preview) setPreview(current => current && { ...current, blocks: update(current.blocks) });
     else {
       setAccepted(current => ({ ...current, blocks: update(current.blocks) }));
       setDraftReference(current => current && update(current));
     }
   }
 
-  const visible = preview ?? accepted.blocks;
+  function selectRow(selected: number) {
+    if (preview) setPreview(current => current && { ...current, selected });
+    else setAccepted(current => ({ ...current, selected }));
+  }
+
+  const { blocks: visible, selected } = preview ?? accepted;
   const hasResults = visible.some(block => block.kind === 'candlestick');
   const showCloses = visible.length === 0 || visible.some(block => block.kind !== 'candlestick');
   return <dialog className="probe" ref={dialog} aria-labelledby="probe-heading"
@@ -342,7 +355,12 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         <div className="probe-actions">
           <button type="button" className="primary" onClick={() => inspect()}>{t('Preview draft')}</button>
           <button type="button" disabled={!preview} onClick={() => {
-            if (preview) { setAccepted({ blocks: preview, text: draft }); setPreview(undefined); setDraftReference(undefined); }
+            if (preview) {
+              const selected = preview.blocks.some(block => block.kind !== 'candlestick') ? preview.selected : undefined;
+              setAccepted({ blocks: preview.blocks, text: draft, selected });
+              setPreview(undefined);
+              setDraftReference(undefined);
+            }
           }}>{t('Accept view')}</button>
           <button type="button" onClick={() => { edit(accepted.text); setDraftReference(undefined); }}>{t('Restore accepted view')}</button>
         </div>
@@ -362,7 +380,7 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         </details>}
         {visible.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
           <div className="probe-blocks">{visible.map((block, index) => {
-            if (block.kind !== 'candlestick') return <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />;
+            if (block.kind !== 'candlestick') return <SeriesBlock key={index} block={block} selected={selected} select={selectRow} />;
             const { instance, source, timeframe, presentation, selection } = block;
             const controls = timeframes.map(period => <button key={period} type="button" aria-pressed={period === timeframe}
               onClick={() => updateResult(block, { timeframe: period })}>{t('{count} min', { count: period === '5m' ? 5 : 15 })}</button>);

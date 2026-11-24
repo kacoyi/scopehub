@@ -182,8 +182,18 @@ try {
         timeframe = '15m'; bar_utc = '2024-01-04T09:30:00.000Z'; value = '4.7%'
         series_revision = 'qualification-equity-15m-bars-v1'; result_revision = 'qualification-equity-15m-results-v1'
     }
+    $timer.Restart()
     Invoke-Button 'Open workbench prototype'
-    Wait-Name 'The canvas is empty. Add a block and preview your draft.'
+    Wait-Name 'Accepted view'
+    Wait-Name 'Threshold tiles'
+    Wait-Name 'Value table'
+    Wait-Name '21:01 3499.8 At or above'
+    $reopenMs = $timer.ElapsedMilliseconds
+    Wait-ForProbe 'reopened accepted chart-free definition' {
+        (Draft-Pattern).Current.Value -ceq $accepted
+    } | Out-Null
+    Open-Disclosure $sourceName
+    Wait-Name $hash
     $annotationDraft = '{"version":1,"blocks":[{"kind":"candlestick","source":"qualification-equity","annotation":{"field":"turnover","when":{"field":"strength","above":0.8}}}]}'
     (Draft-Pattern).SetValue($annotationDraft)
     Invoke-Button 'Preview draft'
@@ -288,7 +298,7 @@ try {
         binary_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash.ToLowerInvariant()
         fixture = $hash
         measurement = 'UI Automation invocation to accessible result, including polling'
-        compose_ms = $composeMs; edit_ms = $editMs; recovery_ms = $recoverMs
+        compose_ms = $composeMs; edit_ms = $editMs; recovery_ms = $recoverMs; reopen_ms = $reopenMs
         annotation_scope = 'UI Automation UTC attribution rows and editor recovery in WebView2'
         annotation_fixture_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath 'tests/fixtures/workbench-qualification-v1.json').Hash.ToLowerInvariant()
         annotation_round_trip = @($five, $fifteen, $five)
