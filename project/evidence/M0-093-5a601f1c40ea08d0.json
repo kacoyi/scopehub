@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-093",
+  "task_definition_sha256": "95b1d4e9426616445e120a8800edc2496bc18e895c8cd7295beadffaf7a67336",
+  "run_id": "20261124T153716.971958Z-51ba4f90",
+  "recorded_at": "2026-11-24T15:42:35.162761+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "aaece15ff7e001823fb01be780168aaee2b4e7831a3f4a7a3137e5c9579439f7",
+    "file_count": 584,
+    "git_head": "266b8434a741d7f329491ad1d0539f9c830429aa",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "5a601f1c40ea08d07cc1c44e6bd10721619aeabc7d9f7670087e70cb6db81989",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f92c8a33177d47b3670b6a92ea29b01ca416f1d5691e542edf0a53aadf6c93b0"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "693ac9f4daa8eeed59d22dde738d8ce8a41fd4cb0ecb6a42a18d97d7308dd57a"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d2198b60d72f51b6ab685566d175a87502284bd00e4120912f2aa9706c67b56f"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "987172f396f0f2186645cc063cb16a88a9623b2eac44ff3312c55fddc5b4b6ed"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0dd717c8f2e91217959f8bb138427ec3dae1f951480249f161b246dd873ed28f"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4d294a89972f8b649b4e99085d21470140e0c08327b36d46144194096dddb543"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6981eb55f45a6bad74064c6cfde2495f701da9dfce4d3f2c0db7afc7d55f5b4a"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "500559dfb389db723d8b35317b44df5b728684dfb3de4b8b375aff51cd046f1d"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62a26ab7fc9937c4c97600d415d7c3a00ef290f30dfaeac55b6ab0fcb57cb88a"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5800652f6716256ec89c5fc6cac9e43135a7ccb13fdaa508ee24186771a53b0f"
+    }
+  ],
+  "project_definition_sha256": "ce573d3e59548d88704c6f6fb73e1d772ddb71b6d94b3b581ac3d66a050e0dad",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "164f08110133f05680f15c38003e6feb4129c772868302e7fe07666514ac06f4",
+    "6f347b0bc451fe116ffaf475159f45206fff7fb7645a483dd717fe2d6f7b1640",
+    "c1fdffd8c350d088665c8de85428010f8fef1f6fbec4fa0930966e8d99cec9a3"
+  ]
+}

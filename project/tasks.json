@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-093",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19129,7 +19129,7 @@
       "id": "M0-093",
       "title": "Restore the market and workspace paths on the protected main check",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-092"
       ],
@@ -19162,10 +19162,15 @@
         "workspace-timeframe",
         "desktop-localization"
       ],
-      "evidence": [],
-      "next_action": "Reproduce each retained case at its first observable failing boundary, combine the three reviewed corrections, and run the single required task and exact protected recovery PR.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-093-5a601f1c40ea08d0.json",
+          "sha256": "ee982961c115a99dcff558e8fa1970ed1d79ed071a987c92eefe63b01733a377"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The exact reviewed combined revision 266b8434 passed all 11 required local checks and the environment check in run 20261124T153716.971958Z-51ba4f90. The market replay, indicator read, and private cancellation corrections each passed independent Standard review and their focused regressions. The original protected main failures are retained in archives/observations/m0-093-protected-main-45421408601/index.json. Local technical verification is complete. The matching protected recovery PR still needs passing Windows and Linux results, and the subsequent ordinary main run still needs verification. M0-091 retains the separate main budget measurement and its open governed finding.",
       "plan": {
         "outcome": "The next reviewed recovery candidate completes the same protected Windows and Linux product paths with the original three behavioral assertions intact.",
         "change_types": [
