@@ -446,6 +446,16 @@ class PRMainComparisonTests(unittest.TestCase):
                      'pr_seconds': 3, 'main_seconds': 5, 'main_minus_pr_seconds': 2},
                     comparison,
                 )
+        broken_main = {**main[0], 'ci': {**main[0]['ci'], 'run_id': '13'},
+                       'checks': [dict(row) for row in main[0]['checks']]}
+        generator = next(row for row in broken_main['checks'] if row['id'] == 'generated-contracts')
+        del generator['exit_code']
+        issues = []
+        view = timing.timing_view([pr[0], broken_main, main[0]],
+                                  hosted=[pr[1], {**main[1], 'run_id': '13'}, main[1]], issues=issues)
+        comparison, = view['pr_main_comparisons']
+        self.assertEqual('comparable', comparison['status'])
+        self.assertEqual(1, len(issues))
 
     def test_missing_or_changed_proof_keeps_comparison_unknown(self):
         different_tree = self.git('mktree', contents=f'040000 tree {self.tree}\tother\n')
@@ -801,7 +811,7 @@ class RecentTimingTests(unittest.TestCase):
         path.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks}))
 
     def test_malformed_timing_preserves_all_ci_verdicts_and_other_observations(self):
-        observations = [self.budget_run(day, '17:00') for day in (14, 15)]
+        observations = [self.budget_run(day, '17:00') for day in (14, 15, 16)]
         samples = [sample for _, rows, _ in observations for sample in rows]
         clocks = [clock for _, _, clock in observations]
         with tempfile.TemporaryDirectory() as directory:
@@ -813,9 +823,11 @@ class RecentTimingTests(unittest.TestCase):
                 (records / f'{file}.json').write_bytes(timing.json_bytes(content))
             archives = root / '.reports/timing'
             malformed = dict(samples[0], seconds={'harness': [], 'check_work': None})
-            self.write_archive(archives / 'mixed.json', [{}, malformed, *samples], [False, *clocks])
+            missing_exit = dict(samples[-1], checks=[dict(row) for row in samples[-1]['checks']])
+            del missing_exit['checks'][0]['exit_code']
+            self.write_archive(archives / 'mixed.json', [{}, malformed, *samples[:-1], missing_exit], [False, *clocks])
             (archives / 'deep.json').write_bytes(b'[' * 12000 + b'0' + b']' * 12000)
-            observation = observations[-1][0]
+            observation = observations[1][0]
             source = {'git_head': observation['head_sha'], 'working_tree_dirty': False}
             with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
                   patch.object(ci, 'source_identity', return_value=source),
@@ -831,7 +843,68 @@ class RecentTimingTests(unittest.TestCase):
                     breach, = budget['repeated_breaches']
                     self.assertEqual(['14', '15'], breach['recent_runs'])
                     self.assertEqual('assignment_needed', breach['status'])
-                    self.assertGreaterEqual(len(budget['input_issues']), 4)
+                    self.assertGreaterEqual(len(budget['input_issues']), 5)
+
+    def test_incomplete_and_conflicting_clocks_cannot_supply_a_recurrence(self):
+        first, second, third = [self.budget_run(day, '17:00') for day in (14, 15, 16)]
+        samples = [row for _, rows, _ in (first, second, third) for row in rows]
+        a, b, c = [clock for _, _, clock in (first, second, third)]
+        self.assertEqual(1, len(timing.budget_status(samples, [a, b], [], [], {})['repeated_breaches']))
+        incomplete = dict(b, jobs=[row for row in b['jobs'] if row['platform'] == 'Windows'])
+        partial = timing.budget_status(samples, [a, incomplete], [], [], {})
+        self.assertTrue(partial['timing_available'])
+        self.assertEqual([], partial['repeated_breaches'])
+
+        conflicting_jobs = [dict(row, seconds={**row['seconds'], 'total': 840})
+                            if row['platform'] == 'Windows' else row for row in b['jobs']]
+        conflict = dict(b, jobs=conflicting_jobs, workflow={**b['workflow'], 'total_elapsed_seconds': 840})
+        for duplicates in ((b, conflict), (conflict, b)):
+            with self.subTest(duplicates=duplicates[0]['workflow']):
+                view = timing.budget_status(samples, [a, *duplicates, c], [], [], {})
+                breach, = view['repeated_breaches']
+                self.assertEqual(['14', '16'], breach['recent_runs'])
+                self.assertTrue(any('Conflicting complete attempt clocks' in issue['error'] for issue in view['input_issues']))
+
+    def test_current_capture_backfills_and_merges_local_and_shared_observations(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        linux, windows = rows
+        repository = 'fixture/scopehub'
+        existing_error = {'run_id': '14', 'error': 'Compact reports are absent for part of the required matrix.'}
+        for kind, local_rows, shared_rows, expected_downloads in (
+            ('complete local', rows, [], 0),
+            ('partial local', [linux], [], 1),
+            ('complementary archives', [windows], [linux], 0),
+            ('retry partial shared', [], [linux], 1),
+        ):
+            with self.subTest(case=kind), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                root, shared = base / 'checkout', base / 'common'
+                (root / 'project').mkdir(parents=True)
+                for name, content in (('tasks', {'tasks': []}), ('feedback', {'items': []})):
+                    (root / 'project' / f'{name}.json').write_bytes(timing.json_bytes(content))
+                if local_rows:
+                    local_clocks = [] if shared_rows else [clock]
+                    self.write_archive(root / '.reports/timing/local.json', local_rows, local_clocks)
+                path = shared / 'ci-pull_request-14-1.json'
+                if shared_rows:
+                    shared.mkdir()
+                    timing.save_timing_capture(path, 1, shared_rows, [clock], [existing_error])
+                with (patch.object(timing, 'shared_timing_directory', return_value=shared),
+                      patch.object(timing, 'download_timing', return_value=[windows]) as download,
+                      patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                    current = timing.ci_budget_status(root, repository, run)
+                    repeated = timing.ci_budget_status(root, repository, run)
+                self.assertEqual('captured' if expected_downloads else 'retained', current['intake'])
+                self.assertEqual('retained', repeated['intake'])
+                self.assertEqual([], current['input_issues'])
+                self.assertEqual([], repeated['input_issues'])
+                persisted = timing.read_json(path)
+                self.assertCountEqual(['Linux', 'Windows'], [row['platform'] for row in persisted['samples']])
+                self.assertEqual([clock], persisted['hosted'])
+                self.assertEqual([], persisted['input_issues'])
+                self.assertEqual(expected_downloads, download.call_count)
+                if expected_downloads:
+                    download.assert_called_once_with(repository, '14', '1', platforms={'Windows'})
 
     def test_recent_cold_successes_do_not_hide_warm_recurrence(self):
         observations = [self.budget_run(day, '17:00', cache='warm') for day in (14, 15)]
