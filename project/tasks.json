@@ -18185,7 +18185,7 @@
             "checks": ["python-contracts-workers"]
           },
           {
-            "failure": "The reassigned market-recovery check loses a prerequisite or its original evidence, writes the shared browser cache from a narrower producer, or hides an incomplete Cargo restore in aggregate timing.",
+            "failure": "The reassigned market-recovery check loses a prerequisite or its original evidence, writes the shared browser cache from a narrower producer, or publishes warm aggregate timing from a missing or mistyped producer observation.",
             "checks": ["python-contracts-workers"]
           },
           {

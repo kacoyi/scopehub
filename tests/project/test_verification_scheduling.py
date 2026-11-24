@@ -356,10 +356,17 @@ class WindowsLaneTests(ProjectFixture):
             destination.write_bytes(json_bytes(ci_artifacts.report_sample(lanes[lane], cache='warm')))
         destination = self.downloads / 'verification-windows-2-python' / ci_artifacts.TIMING_FILE
         warm = ci_artifacts.report_sample(lanes['python'], cache='warm')
+        python_result = next(row for row in lanes['python']['checks'] if row['id'] == 'python-contracts-workers')
+        boolean_exit = [{**row, 'exit_code': False} if row['id'] == python_result['id'] else row
+                        for row in warm['checks']]
+        missing_task = {key: value for key, value in warm.items() if key != 'task_id'}
         for label, timing, expected in (
             ('missing', None, 'unknown'), ('malformed', b'{"cache":', 'unknown'),
             ('another checkout', json_bytes({**warm, 'source_commit': '0' * 40}), 'unknown'),
             ('invalid cache', json_bytes({**warm, 'cache': ['warm']}), 'unknown'),
+            ('boolean exit code', json_bytes({**warm, 'checks': boolean_exit}), 'unknown'),
+            ('numeric coverage flag', json_bytes({**warm, 'coverage_complete': 1}), 'unknown'),
+            ('missing task field', json_bytes(missing_task), 'unknown'),
             ('partial match', json_bytes({**warm, 'cache': 'partial'}), 'unknown'),
             ('miss', json_bytes({**warm, 'cache': 'not_restored'}), 'unknown'),
             ('warm match', json_bytes(warm), 'warm'),
@@ -373,6 +380,7 @@ class WindowsLaneTests(ProjectFixture):
                 shutil.rmtree(self.reports)
                 self.assertEqual(0, code)
                 self.assertEqual('passed', report['status'])
+                self.assertIn(python_result, report['checks'])
                 self.assertIn(f'cache={expected}', output.read_text(encoding='utf-8').splitlines())
 
     def test_scoped_aggregate_republishes_the_original_selection_and_report(self):

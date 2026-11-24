@@ -4271,6 +4271,17 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-aggregate-cache-accepts-mistyped-timing",
+      "source": "Independent Astra review of 3acb4aa. Replayed the authenticated run 45393623602 Python producer report and compact timing from archives/observations/m0-087-hosted-45393623602/producer-python/.",
+      "observation": "The Windows aggregate accepted a warm compact sample with a boolean exit code in place of zero or a numeric coverage flag in place of a boolean. Removing task_id was also accepted as an explicit null. A mistyped or incomplete producer sample could therefore admit an otherwise warm run to the warm-cache timing comparison, even though the underlying check result remained valid.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "rejected-chart-evidence-leaves-stale-composer-binding",
       "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f and focused confirmation on d1d04a3, retained under archives/observations/m4-016-d1d04a3/. Local browser reproduction at archives/runs/20261124T111053.555558Z-28236d9b/test-report.json.",
       "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",

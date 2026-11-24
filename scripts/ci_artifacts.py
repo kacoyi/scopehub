@@ -2,6 +2,7 @@
 
 import argparse
 from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path
 import re
@@ -372,12 +373,16 @@ def matching_lane_timing(incoming, report):
         return {}
     try:
         timing = evidence_json(timing_file.read_bytes())
-    except (OSError, ValueError):
+        if not isinstance(timing, dict) or not isinstance(timing.get('cache'), str):
+            return {}
+        sample = report_sample(report, cache=timing['cache'])
+        # Require every projected field and preserve JSON types, including false versus zero.
+        projected = {key: timing[key] for key in sample}
+        if json.dumps(projected, sort_keys=True, allow_nan=False) == json.dumps(sample, sort_keys=True):
+            return timing
+    except (OSError, KeyError, ValueError, RecursionError):
         return {}
-    if not isinstance(timing, dict) or not isinstance(timing.get('cache'), str):
-        return {}
-    sample = report_sample(report, cache=timing['cache'])
-    return timing if all(timing.get(key) == value for key, value in sample.items()) else {}
+    return {}
 
 
 def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *, profile=None):
