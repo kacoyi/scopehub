@@ -70,7 +70,7 @@
           "applies_when": "canvas_demonstrably_uses_a_different_native_runtime",
           "authority": {"$source": {"path": "contracts/decisions/0027-v1-user-composed-workbench.json", "pointer": "/decision"}},
           "required_observations": ["different_runtime_identity", "native_renderer_loss_signal", "affected_canvas_instance"],
-          "trial": "Use this path only when the tested canvas is demonstrably based on a different native runtime. Record its actual native renderer-loss signal for the affected instance and correlate it with all common observations. Apply the same isolation, watchdog deadline and recovery verdict."
+          "trial": "Use this path only when the tested canvas is demonstrably based on a different native runtime. Require the common observations and the observations for this runtime. Keep WebView2-specific observations exclusive to the WebView2 branch. Record the actual native renderer-loss signal for the affected instance and correlate it with all common observations. Apply the same isolation, watchdog deadline and recovery verdict."
         }
       },
       "bridge_admission": {

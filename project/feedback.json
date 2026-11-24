@@ -3870,8 +3870,8 @@
     },
     {
       "id": "workbench-qualification-native-loss-parity",
-      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1.",
-      "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery.",
+      "source": "Independent Astra review of PR 73 at 123ff9e3fb2e0cf48b9fc02cbf554a6f622942a1 and re-review at d4cea0de98d2322a238f4b49195dee84a0f2aed7.",
+      "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery. The re-review added ProcessFailed to the shared required observations at d4cea0d. All five specification tests still passed because the checks required minimum evidence without excluding WebView2-specific observations from the requirements effective for other runtimes.",
       "severity": "major",
       "status": "open",
       "task_ids": ["M2-028"],

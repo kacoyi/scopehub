@@ -46,21 +46,26 @@ class WorkbenchQualificationTests(unittest.TestCase):
                 self.assert_denied_paths({**paths, 'per_path': {**per_path, **change}})
 
     def assert_native_loss(self, loss):
+        common_observations = set(loss['required_observations'])
         self.assertLessEqual({
             'rust_supervisor_loss', 'independent_old_pid_exit', 'fresh_renderer_identity',
             'first_interactive_frame_of_accepted_revision', 'shell_paint_and_input', 'live_quote_service',
-        }, set(loss['required_observations']))
+        }, common_observations)
         webview = loss['webview2']
+        webview_observations = set(webview['required_observations'])
         self.assertEqual('canvas_uses_webview2', webview['applies_when'])
         self.assertLessEqual({
             'user_data_folder_sharing', 'core_webview2_environment_sharing', 'actual_live_renderer_reuse',
             'ProcessFailed', 'failure_kind', 'affected_control',
-        }, set(webview['required_observations']))
+        }, webview_observations)
         other = loss['other_native_runtime']
+        other_observations = set(other['required_observations'])
         self.assertEqual('canvas_demonstrably_uses_a_different_native_runtime', other['applies_when'])
         self.assertEqual(source('contracts/decisions/0027-v1-user-composed-workbench.json', '/decision'), other['authority'])
         self.assertLessEqual({'different_runtime_identity', 'native_renderer_loss_signal', 'affected_canvas_instance'},
-                             set(other['required_observations']))
+                             other_observations)
+        misplaced = webview_observations & (common_observations | other_observations)
+        self.assertFalse(misplaced, f'WebView2-specific observations outside the WebView2 branch: {sorted(misplaced)}')
 
     def test_native_loss_requires_runtime_specific_and_common_evidence(self):
         loss = self.containment['native_process_failure']
@@ -76,6 +81,18 @@ class WorkbenchQualificationTests(unittest.TestCase):
             requirements = rejected if branch == 'common' else rejected[branch]
             requirements['required_observations'].remove(observation)
             with self.subTest(branch=branch, observation=observation), self.assertRaises(AssertionError):
+                self.assert_native_loss(rejected)
+
+    def test_webview2_observations_are_exclusive_to_their_runtime(self):
+        loss = self.containment['native_process_failure']
+        expanded = deepcopy(loss)
+        expanded['required_observations'].append('renderer_version_at_recovery')
+        self.assert_native_loss(expanded)
+        for branch in ('common', 'other_native_runtime'):
+            rejected = deepcopy(loss)
+            requirements = rejected if branch == 'common' else rejected[branch]
+            requirements['required_observations'].append('ProcessFailed')
+            with self.subTest(branch=branch), self.assertRaisesRegex(AssertionError, 'WebView2-specific.*ProcessFailed'):
                 self.assert_native_loss(rejected)
 
     def assert_cold_reopen(self, reopen):
