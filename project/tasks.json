@@ -19180,7 +19180,7 @@
         }
       ],
       "evidence": [],
-      "next_action": "Verify the narrow scheduler, artifact and timing cases locally and request an independent Standard review. Reuse the next ordinary main measurement before deciding whether this fallback is needed.",
+      "next_action": "Keep the locally reviewed fallback available. Use the next ordinary full Windows main observation under M0-091 to decide whether to park it or consider later delivery with its own required evidence.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -19196,7 +19196,8 @@
           "project/feedback.json"
         ],
         "hypotheses": [
-          "The archived projection puts the failed 928-second main near 829 seconds with about 219 additional runner seconds. The 1192-second cache seed remains over budget. Evidence and limitations are in archives/observations/m0-094-windows-recovery-startup-study/SHA256SUMS (SHA-256 fae92b8237b6acc1f05c3edccc2bb03813758fabc1fbb50ce35d159b28820ab0).",
+          "In failed full main 45421408601, the successful Python producer spent 216 seconds in setup, including 105 seconds restoring the exact 2.738 GB Cargo cache and 37 seconds installing and probing pinned Chromium. The archived projection puts that 928-second workflow near 829 seconds with about 219 additional runner seconds. The 1192-second cache seed remains over budget. Evidence and limitations are in archives/observations/m0-094-windows-recovery-startup-study/SHA256SUMS (SHA-256 fae92b8237b6acc1f05c3edccc2bb03813758fabc1fbb50ce35d159b28820ab0).",
+          "M0-094 owns the technical fallback. M0-091 owns the comparable ordinary main timing observation under verification-main-push-feedback-budget-overrun, whose task owners remain M0-087 and M0-091. The fallback study informs that decision without changing the governed record.",
           "The isolated Linux contracts run preserved all 700 named outcomes without Node, pnpm, Chromium, or a restored Cargo cache. The real Cargo fixture still needs pinned Rust, and Windows-specific behavior remains unmeasured."
         ],
         "risks": [
@@ -19222,13 +19223,19 @@
             ]
           },
           {
+            "failure": "Linking the fallback as a third owner of the governed main timing finding makes ordinary delivery block on that finding and prevents the protected two-owner closure.",
+            "checks": [
+              "project-state"
+            ]
+          },
+          {
             "failure": "The four-producer timing reader promotes a sample without producer cache provenance, discards a conflicting original during archive reload, or accepts an incomplete unmarked layout as legacy.",
             "checks": [
               "python-contracts-workers"
             ]
           }
         ],
-        "rollback": "Keep M0-091 open and park the local candidate if the ordinary product repair meets the budget, if setup independence fails, or if stronger verification no longer establishes comparable coverage and provenance.",
+        "rollback": "Park the local candidate if the ordinary product repair meets the budget, if setup independence fails, or if stronger verification no longer establishes comparable coverage and provenance. M0-091 retains its independent measurement and disposition.",
         "implementation": {
           "modules": [
             "development-tooling"

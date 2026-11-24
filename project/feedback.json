@@ -4207,8 +4207,7 @@
       "status": "open",
       "task_ids": [
         "M0-087",
-        "M0-091",
-        "M0-094"
+        "M0-091"
       ],
       "regression_checks": [
         "python-contracts-workers"
