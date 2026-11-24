@@ -4126,9 +4126,9 @@
         "event": "pull_request",
         "profile": "full",
         "platform": "Windows",
-        "repair_commit": "df99e89dd7f0c0b5f4a2cef31a9b7398b461947d"
+        "repair_commit": "9b56536498f06ba7807d5bfbcb987601ba511268"
       },
-      "source": "Owner feedback on 2026-11-24, two authenticated successful full Windows runs 45360774012 and 45366344153, and the coordinator observed waiting for hosted acceptance before dispatching independent implementation.",
+      "source": "Owner feedback on 2026-11-24, six authenticated full Windows PR checks and the coordinator observing that independent implementation was waiting on hosted acceptance. The original reports are retained under archives/runs at the listed diagnostic identities.",
       "observation": "Routine validation repeatedly exceeded the existing 15-minute feedback objective. The Windows Python test check alone consumed 822.6 and 812.2 seconds. From a shared base, repeated intermediate runs and serial waits consumed time while independent product work could proceed. The earlier timing work had not prevented these further oversized cycles.",
       "severity": "major",
       "status": "open",
@@ -4163,6 +4163,11 @@
           "run_id": "20261124T112804.218711Z-f20fd588",
           "source_commit": "c4f9e9424621c84754d3539a747d3ae56302361a",
           "report_sha256": "85f43c47a64a0f3e0bdc93f0df744e9247a0f1c9ccc67b3b9503dbfab57c9657"
+        },
+        {
+          "run_id": "20261124T120658.709802Z-359f5aa7",
+          "source_commit": "19ee8754a75d632ad838539ff799d2c26eba1940",
+          "report_sha256": "c2e5f4400ac704d5c75b6091378bee987521f49b3d765f014e58e5aacf862793"
         }
       ],
       "resolution": null,
@@ -4175,14 +4180,18 @@
         "event": "push",
         "profile": "full",
         "platform": "Windows",
-        "repair_commit": "df99e89dd7f0c0b5f4a2cef31a9b7398b461947d"
+        "repair_commit": "9b56536498f06ba7807d5bfbcb987601ba511268"
       },
-      "source": "Authenticated successful main pushes 45371103989, 45376798249 and 45383842961. Their original Windows reports are retained at archives/runs/20261124T100820.639261Z-a7e0e867/test-report.json, archives/runs/20261124T104146.622275Z-4b9b7b0a/test-report.json and archives/runs/20261124T112647.907584Z-badcfd8a/test-report.json.",
-      "observation": "Three comparable warm full main pushes took 1720, 1940 and 1970 seconds on the Windows path against the 900-second objective. The current workflow uses the same Windows core, browser and Python split for pull requests and main pushes. A successful full post-merge main push with comparable coverage and recorded cache state is required before reporting a new main time.",
+      "source": "Authenticated ordinary main pushes 45371103989, 45376798249, 45383842961, 45389486376 and 45394539742. The original Windows reports and their logs are retained under archives/runs at the listed diagnostic identities.",
+      "observation": "Five successful full main pushes using the previous Windows scheduler and a warm Cargo cache took 1720, 1940, 1970, 1588 and 1932 seconds. The objective is 900 seconds. A successful ordinary full main push containing the repair must establish its own elapsed time, coverage, cache state and runner occupancy.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T100820.639261Z-a7e0e867",
@@ -4198,6 +4207,16 @@
           "run_id": "20261124T112647.907584Z-badcfd8a",
           "source_commit": "6a4bbd6b7270b82a62565305ac3a25190c20af83",
           "report_sha256": "e6c6cfcc59f501854b50556fd04b2e898bf92e5c6ef879e90856893227a8d5c1"
+        },
+        {
+          "run_id": "20261124T120401.666060Z-652b9d47",
+          "source_commit": "3d9da56fc22b6bf4e6e13b1ca458bb14e8de2781",
+          "report_sha256": "e3939e7dbd6891734a1c97a8d6c7a17a669696333473a8f66fb376e69ace8718"
+        },
+        {
+          "run_id": "20261124T123520.755752Z-3956398f",
+          "source_commit": "95f17740005637e1c85ad7215e1ca4c8cfd57014",
+          "report_sha256": "50a25780275ae0a3c8fdec5beef84e63d9177d1db0fa5405df725e38f1cd1bd7"
         }
       ],
       "resolution": null,
