@@ -29,7 +29,7 @@
     {
       "dimension": "Numeric ownership and projections",
       "tree": "Host binds approved fields, applies meter scales and owns inspection. It cannot position arbitrary marks on the shared time/value frame.",
-      "drawing": "Host provides time/value mappings with fit and expand on a dedicated synthetic reference viewport, or a chart-free frame. Accepted-series programs receive a time key and finite-or-null value only. Two presentations preserve one approved core version, including the warm-up null. Formula execution remains in the Rust-controlled calculation path. Live market-chart crosshair synchronization remains unmeasured."
+      "drawing": "Host provides time/value mappings with fit and expand on a dedicated synthetic reference viewport, or a chart-free frame. Accepted-series programs receive a time key and finite-or-null value only. Two presentations preserve one approved core version, including the warm-up null. Formula execution remains in the Rust-controlled calculation path. The separate combined candidate has native chart-coordinate evidence indexed below."
     },
     {
       "dimension": "Isolation and failure",
@@ -81,13 +81,25 @@
     }
   },
   "open": [
-    "Windows matching is pending for the accepted-series and public visibility/recovery workloads. Hosted run 45314545439 failed during test setup in the Chromium private handoff and the native folder chooser. The original report and logs are retained. Hosted retry 45316222536 includes the test-only aef3d48 profile-binding fix and the independent native chooser fix. The matching Ubuntu accepted-series and public visibility observations are verified.",
-    "Main chart viewport and crosshair linkage, persisted workbench binding/default migration and representative end-user feedback remain open under the recorded tasks. Installer, physical release and live external-client qualification remain separate."
+    "The ef0a1e1 accepted-series and visibility workloads have verified Ubuntu observations. Windows run 45316222536 passed the three repaired Chromium handoffs. Its native timeout capture had a one-row crop discrepancy. Full accepted and restored RGB matched at 743x280, and all 278 aligned interior rows matched the timeout capture. Review the original report and artifacts of Windows retry 45317944953 before assigning a native outcome.",
+    "Review the matched Windows chart report from 45318214792 for the combined candidate. Keep the engineering disposition open pending that review and the separate accepted-series review. Persisted workbench defaults and representative end-user feedback remain open. Installer, physical release and live external-client qualification have separate gates."
   ],
   "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
   "verification": [
     "pnpm exec playwright test --config tests/ui/renderer-comparison.config.mjs",
     "uv run python scripts/renderer_probe.py --retained-only --archive-root /mnt/storage_2/scopehub-dev/archives",
     "SCOPEHUB_ARCHIVE_ROOT=/mnt/storage_2/scopehub-dev/archives pnpm check --task M2-003"
-  ]
+  ],
+  "combined_chart": {
+    "candidate": "602260e861b1781d79fc1a145bbf4642c5d6da6c",
+    "fingerprint": "76538825c899f014b9e666a3a7e506ccc52a29df9e93121c474a72728c426a7d",
+    "guest": "tests/fixtures/workbench/chart-price-anchors.js",
+    "guest_sha256": "ac20d9a0cbd4624a36913c75d08df015b2e26602357f62a4e71600df83ded47e",
+    "ubuntu_index": "archives/worktrees/507bc0c0a7363d39dfba327705db7a77ee0a568c/files/.reports/m2-017-native/ubuntu-index.json",
+    "index_sha256": "af571cc1289a9fa57bb729b48c8c30af69b433cbadad2766e79a8d2abff609d9",
+    "report_sha256": "e38383d87360463ac65b2b0ee723a7a753a22f9ee5a53dddc1dbbe0ff8de7471",
+    "ubuntu": "Ubuntu 26.04.1, Tauri development host 6aee5586, WebKitGTK 2.52.6. A native GTK file selection loaded the frozen program on the synthetic one-minute futures chart. The two rings tracked candle pixels at 1380x920, 1040x805 and 1300x940. The crosshair and selected bar agreed on 13:00 UTC at 3499.2 CNY and 13:01 UTC at 3499.8 CNY. Moving to the price axis cleared the readout. Zoom clipped both rings and Fit restored them. Switching to 5m cleared the program binding.",
+    "review": "Verified the 53 indexed originals, Git tree and guest bytes. In the centered 5 by 5 patches the earlier and later candle colors occupied 21 and 13 pixels, 17 and 17 pixels, and 21 and 17 pixels at the three sizes. These are observed native chart pixels on Xvfb.",
+    "windows_run": 45318214792
+  }
 }
