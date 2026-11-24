@@ -57,10 +57,10 @@ const setCode = text => {
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(editor, text);
   editor.dispatchEvent(new Event('input', {bubbles:true}));
 };
-setCode('// stock free\\nif ([typeof fetch, typeof document, typeof __TAURI_INTERNALS__, typeof process, typeof indexedDB, typeof confirm].every(x => x === "undefined")) rect(22,30,rows[0].volume,10,0);');
+setCode(PUBLIC_SURFACE_GUEST);
 await wait(() => !button('Preview draft').disabled);
 button('Preview draft').click();
-await wait(() => document.querySelector('figure rect')?.getAttribute('width') === '20');
+await wait(() => document.querySelector('figure rect')?.getAttribute('width') === '120');
 button('Restore accepted view').click();
 await wait(() => document.querySelector('figure circle')?.getAttribute('cx') === '202');
 setCode('// future free\\nwhile (true) {}');
@@ -76,8 +76,8 @@ await wait(() => document.querySelector('dialog[open] [role=alert]')?.textConten
 const stopMs = performance.now() - stallStart;
 button('Restore accepted view').click();
 await wait(() => editor.value.startsWith('// future overlay') && !document.querySelector('[role=alert]'));
-return JSON.stringify({width,height,actualSeparation,firstRenderMs,hostEditMs,stopMs,restoredX:document.querySelector('figure circle').getAttribute('cx')});
-"""
+return JSON.stringify({publicSurfaceMarkerWidth:120,width,height,actualSeparation,firstRenderMs,hostEditMs,stopMs,restoredX:document.querySelector('figure circle').getAttribute('cx')});
+""".replace("PUBLIC_SURFACE_GUEST", json.dumps((root / "tests/fixtures/workbench/guest-public-surface.js").read_text()))
 
 
 def main():

@@ -32,6 +32,35 @@ def png_size(data):
     return struct.unpack('>II', data[16:24])
 
 
+def verify_ubuntu_binding(root, review):
+    reference = review['ubuntu_binding']
+    folder = root / reference['directory']
+    index = json.loads(verified(folder / 'ubuntu-index.json', reference['index_sha256']))
+    require(index['files'][index['report']] == reference['report_sha256'], 'Ubuntu report identity differs')
+
+    def original(name):
+        return verified(folder / name, index['files'][name])
+
+    report = json.loads(original(index['report']))
+    require(report['candidate'] == review['candidate'] and report['fingerprint'] == review['fingerprint'],
+            'Ubuntu accepted-series runtime differs')
+    for name in ['accepted-series-dots.js', 'accepted-series-strips.js']:
+        require(original('sources/' + name) == (FIXTURES / name).read_bytes(), 'Ubuntu binding guest differs')
+    prefix = 'ef0a1e1-05/'
+    for state in ['dots-selected', 'strips-selected', 'studio-table', 'live-revoked']:
+        png_size(original(prefix + state + '.png'))
+    table = original(prefix + 'studio-table.json').decode()
+    revoked = original(prefix + 'live-revoked.json').decode()
+    identity = report['profile_identity']
+    require(identity['Output'] in table and identity['Accepted version'] in table
+            and identity['Output unit'] == 'Unknown' and identity['Source volume unit'] == 'shares',
+            'Ubuntu table source identity or units differ')
+    require('Accepted series unavailable.' in revoked and 'Blank canvas' in revoked and
+            all(label not in revoked for label in [identity['Output'], 'Undo accepted edit', 'Program geometry']),
+            'Revoked Ubuntu view still presents the old output')
+    return identity['Output']
+
+
 def verify_evidence(root, review):
     # The pinned private manifests list synthetic files. Only open named inputs.
     native_ref = review['native_index']
@@ -92,7 +121,8 @@ def verify_evidence(root, review):
             and observed['denied'] == 'PERMISSION_DENIED' and observed['delayedPreRevocationOutput'] == 'released'
             and observed['listing']['layers'] == [{'layer_id': accepted['layer_id'], 'version_id': accepted['version_id'],
                                                   'available': False}], 'Missing rendering or revocation evidence')
-    return {'paired_native_pennants': hosted['candidate'], 'ubuntu_host': ubuntu['native_host'],
+    ubuntu_hash = verify_ubuntu_binding(root, review)
+    return {'ubuntu_native_binding_result_hash': ubuntu_hash, 'paired_native_pennants': hosted['candidate'], 'ubuntu_host': ubuntu['native_host'],
             'windows_webview2': hosted['native_windows']['webview2'], 'browser_binding_version': accepted['version_id'],
             'browser_binding_result_hash': accepted['document']['artifact']['result_hash']}
 

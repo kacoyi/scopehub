@@ -55,8 +55,20 @@
     "sha256": "ec0939cd4d8d67f2c37738c5fe7eea9f2cacbcf1e4a0a64c36d114a44954c25d",
     "observation": "Verified the exact browser/Rust runtime. Accepted series version ecb9a960-66b4-4ee5-9b69-9c0739f93675, result hash 1106f86c14d69b6238f770553db8b47db434f8fc65c6c9b4c59d9c2f95e02940. One observed revocation withdrew geometry, value, selection and undo in about 1871 ms including polling. A delayed earlier success could not restore them. A subsequent core read was denied. This is a single elapsed observation."
   },
+  "ubuntu_binding": {
+    "directory": "worktrees/0f1a6263c9e04bad50558721659e69a75c3d029b/files/.reports/m2-003-accepted-native",
+    "index_sha256": "6b471abae24a4ef9f4869f6cf7c6f88c253b67cb96102282ddf7920f2ddfa521",
+    "report_sha256": "376779979bbe5c0a204dc7bf374c3393f6a654fd87894b17574eb162f1e3a2ee",
+    "observations": "Same ef0a1e1 frontend, separate identified Linux Tauri host. Ubuntu 26.04.1, WebKitGTK 2.52.6 and GTK3 3.24.52. Native folder and program choosers and explicit indicator confirmation. The first window displayed the correct accepted rows and 861x323 plot, selected the 115 and missing observations, and cleared the prior scene when switching to the other series. Revoking in a second real app window cleared the still-open first window. Replayed raw-bar smoke on the same binary: host stroke median 36.455 ms (n=6), guest scalar 113.18 ms (n=5) including native input to screenshot detection. Normal close observed at 114 ms."
+  },
+  "public_surface": {
+    "guest": "tests/fixtures/workbench/guest-public-surface.js",
+    "sha256": "4cc37306be26e5f30ec2bcfb7c3eb65b91f8735e4483d297c17c937f88311dc4",
+    "purpose": "A benign guest inspects the public presence of the 19 named browser, storage, network, native and confirmation interfaces. Successful admission produces the known 120-unit volume rectangle. Separately submit a stalled draft, observe host interaction, interruption and restoration. This establishes ordinary public visibility and bounded execution on the observed build.",
+    "ephemeral_webkit": "On ef0a1e1 production assets with their CSP and no native bridge, WebKitGTK 2.52.6 painted the 120-unit mark. While the stalled draft was outstanding, host stroke changed after 24 ms, timeout appeared at 167 ms and the restored reference anchor was x=202. One automation observation, not a frame or service bound."
+  },
   "open": [
-    "Matching two-platform accepted-series evidence and effective guest capability limits for the executable candidate. The Ubuntu verifier reports a successful ef0a1e1 native import/confirm/select/switch/revoke workflow and draft recovery. Windows matching and durable receipt collation are in progress. Source-level capability inspection has a distinct scope from effective native denial.",
+    "Matching two-platform accepted-series evidence and effective guest capability limits for the executable candidate. The Ubuntu accepted-series evidence is verified. Windows matching and the two native public-visibility observations are in progress. Source-level capability inspection has a distinct scope from effective native denial.",
     "Main chart viewport and crosshair linkage, persisted workbench binding/default migration and representative end-user feedback remain open under the recorded tasks. Installer, physical release and live external-client qualification remain separate."
   ],
   "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
