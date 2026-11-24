@@ -5,7 +5,7 @@
   "fingerprint": "2b1dd83b49712b08a83e07493a226c2443749a516c8680094511059dc1ffac11",
   "pennant_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
   "pennant_fingerprint": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
-  "recommendation": "Select editable author definitions with replaceable presentation as the workbench architecture. The fixed-host trials produced new geometry, mappings, local controls and scoped edits from independently authored source. Catalogue assembly alone fails the contract. Use the isolated QuickJS guest as the engineering baseline for authored plotting. Windows reproduced both accepted-output presentations on ef0a1e1 and trusted crosshair endpoints on the separate 5f9f32d chart adapter. Live Windows revocation clearance remains open. An authorable host-interpreted grammar remains eligible for other presentation needs if it passes the same expressiveness criterion.",
+  "recommendation": "Select editable author definitions with replaceable presentation as the workbench architecture. The fixed-host trials produced new geometry, mappings, local controls and scoped edits from independently authored source. Catalogue assembly alone fails the contract. Use the isolated QuickJS guest as the engineering baseline for authored plotting. Windows reproduced both accepted-output presentations on ef0a1e1 and trusted crosshair endpoints on the separate 5f9f32d chart adapter. The open ef0a1e1 Windows view cleared after registered revocation on the same synthetic profile (run 45331634154). An authorable host-interpreted grammar remains eligible for other presentation needs if it passes the same expressiveness criterion.",
   "remaining_chart_free_journey": {
     "task": "M2-013",
     "check": "chart-free-workbench",
@@ -158,15 +158,26 @@
           "log_sha256": "e12afda3cc88e6f7fcf551f366fed8bad376a0227a0c3f207b1ac2742605d5f2",
           "check_outcome": "failed",
           "observation": "On the ef0a1e1 UI, the prepared WebView2 window restored the FIX daily chart with close 16 and volume 140. At binding-interrupted the studio showed Accepted series unavailable and a blank canvas. After the driver attempted Back to chart, the next captured accessibility tree still showed Drawing studio, now with its version combobox and a blank canvas. The driver timed out waiting for the chart. No exact version selection, accepted-output display or revocation occurred. The captures contain no workspace error code to identify the cause."
+        },
+        "live_revocation_observed": {
+          "workflow_run": 45331634154,
+          "run_id": "20261124T051456.193062Z-e034934b",
+          "source_commit": "e8714238603b824efb28632e9a0d5f9bc24b47df",
+          "report_sha256": "6661a3e830f771f6aa789521e855496780b87c86c2f507bb8683650c243fce7e",
+          "check_outcome": "passed",
+          "archive": "archives/runs/20261124T051456.193062Z-e034934b/test-report.json",
+          "version": "f0db458d-bc25-4ad9-8bc6-cd9cb53e9d5d",
+          "result_hash": "3fc41fa523ba9f00a89770c83a266a21769abe9c4760be0bb427810cae023955",
+          "observation": "WebView2 157, PID 6376, HWND 393682 on ef0a1e1. Normal selection displayed three rings, Feb 4 value 115 and undo. A second registered client revoked revision 665892da-1bdf-467f-bbf7-9a8ff4e889b7 and returned a matching receipt. The same open window reported unavailable and dropped identity, geometry, readout and undo. The retained before/after images contain 303 then zero ring-color pixels in the former 732 by 275 plot."
         }
       }
     }
   },
   "open": [
-    "Observe actual revocation of the bound version on Windows and clearance of the open view, readout and undo. The original runtime already demonstrated both accepted presentations and source switching there. The corrected focus runtime has a separate unqualified Windows picker observation.",
+    "Windows native wizard completion, focus-retry attribution and follow-up file-picker cancellation use separate observations. The original frozen binding and real live revocation are verified.",
     "Ubuntu and Windows chart endpoint mapping have matched native evidence on the identified chart revisions. Continuous Windows hover timing, whole-workbench composition and reopen, and physical release qualification retain separate scopes. The major composition feedback remains open."
   ],
-  "revisit": "Revisit the isolated plotting baseline if a native view retains privileged data after the host learns of a real revocation, or if a verified renderer-specific boundary, coordinate or recovery failure survives a host fix. Current Windows evidence stops before revocation is issued. M2-013 owns durable composition and reopen; external client pairing and physical installation have independent checks.",
+  "revisit": "Revisit the isolated plotting baseline if a native view retains privileged data after the host learns of a real revocation, or if a verified renderer-specific boundary, coordinate or recovery failure survives a host fix. The original frozen implementation passed this revocation observation on both hosted Windows and Ubuntu. M2-013 owns durable composition and reopen; external client pairing and physical installation have independent checks.",
   "verification": [
     "pnpm exec playwright test --config tests/ui/renderer-comparison.config.mjs",
     "uv run python scripts/renderer_probe.py --retained-only --archive-root /mnt/storage_2/scopehub-dev/archives",
