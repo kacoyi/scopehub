@@ -55,10 +55,13 @@ while time.monotonic() < deadline:
     done = pathlib.Path('done')
     if done.exists():
         result = done.read_text()
-        if result == 'signal':
+        if result in ('signal', 'group-signal'):
             import os, signal
-            os.kill(os.getpid(), signal.SIGTERM)
-        raise SystemExit(int(result))
+            if result == 'group-signal':
+                os.killpg(os.getpgrp(), signal.SIGTERM)
+            else:
+                os.kill(os.getpid(), signal.SIGTERM)
+        raise SystemExit(7 if result == 'ignored-sigchld' else int(result))
     time.sleep(.01)
 raise SystemExit('fixture was never released')
 """
@@ -72,6 +75,8 @@ class MarketRecoveryProcessTests(unittest.TestCase):
         command = next(check['command'] for check in catalog if check['id'] == 'market-recovery')
         for mode, expected in [('0', (0, None)), ('7', (7, None)),
                                ('signal', (-signal.SIGTERM, None)),
+                               ('group-signal', (-signal.SIGTERM, None)),
+                               ('ignored-sigchld', (7, None)),
                                ('serial', (None, 'interrupted')),
                                ('overlap', (None, 'interrupted'))]:
             with self.subTest(mode=mode), ExitStack() as resources:
@@ -120,11 +125,17 @@ class MarketRecoveryProcessTests(unittest.TestCase):
                 with (patch.object(harness, 'ROOT', work),
                       patch('scripts.check.shutil.which', return_value=str(shim)),
                       redirect_stdout(StringIO())):
-                    result = harness.execute('market-recovery', command, dict(os.environ), run_dir,
-                                             timeout=15, cancel=cancel.is_set if mode == 'overlap' else None)
+                    previous_sigchld = signal.getsignal(signal.SIGCHLD)
+                    if mode == 'ignored-sigchld':
+                        signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+                    try:
+                        result = harness.execute('market-recovery', command, dict(os.environ), run_dir,
+                                                 timeout=15, cancel=cancel.is_set if mode == 'overlap' else None)
+                    finally:
+                        if mode == 'ignored-sigchld':
+                            signal.signal(signal.SIGCHLD, previous_sigchld)
 
-                self.assertEqual(expected, (result['exit_code'], result.get('reason_code')),
-                                 log_tail(work / result['log']))
+                observed['outcome'] = (result['exit_code'], result.get('reason_code'))
                 log = (work / result['log']).read_bytes()
                 self.assertIn(b'detached writer started', log)
                 self.assertEqual(result['log_sha256'], hashlib.sha256(log).hexdigest())
@@ -145,6 +156,7 @@ class MarketRecoveryProcessTests(unittest.TestCase):
                 ]
                 observed['unrelated_alive'] = control.poll() is None
                 print(f'{mode}: {json.dumps(observed)}', flush=True)
+                self.assertEqual(expected, observed['outcome'], log_tail(work / result['log']))
                 self.assertIs(True, observed['rebound'], observed)
                 self.assertEqual([True, True], observed['reaped'], observed)
                 self.assertTrue(observed['unrelated_alive'], observed)
