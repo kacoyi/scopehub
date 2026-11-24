@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-037",
   "tasks": [
     {
       "id": "M0-001",
@@ -17731,6 +17731,104 @@
           "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
           "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
+        }
+      }
+    },
+    {
+      "id": "M1-037",
+      "title": "Draft CSV column mappings from the selected file headers",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-008",
+        "M0-051"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "python/providers",
+        "tests",
+        "project/checks.json"
+      ],
+      "decision_refs": [
+        "0007",
+        "0023"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "In the normal local CSV import editor, use the observed file headers to propose unambiguous field mappings. Let the user review, correct and preview the draft with the existing deterministic reader. Matching manually supplied mappings produce the same rows and diagnostics.",
+        "Preserve existing explicit bindings. Leave conflicting or missing headers unresolved and leave venue, units, timezone, timestamp convention and adjustment to the existing explicit rules. Never assign settlement or an auxiliary declaration to an OHLC field.",
+        "Work offline with the selected header metadata only. Applying a suggestion edits a draft. Saving, publishing and granting access retain their existing explicit user actions."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "local-import-ui"
+      ],
+      "evidence": [],
+      "next_action": "Connect a bounded header suggestion to the actual CSV editor and exercise both a unique and an ambiguous column set.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A user can start a personal CSV mapping from real headers, see its gaps, correct it and preview the same result as manual entry.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "apps/desktop/ui/src/local-import-transport.ts",
+          "python/providers/csv_bar_mapping.py",
+          "tests/ui/local-import.playwright.config.mjs"
+        ],
+        "hypotheses": [
+          "Unambiguous known header roles can reduce manual mapping without assuming financial conventions."
+        ],
+        "risks": [
+          {
+            "failure": "A guess is presented as confirmed, an explicit binding is overwritten or a settlement field reaches OHLC.",
+            "checks": [
+              "local-import-ui"
+            ]
+          }
+        ],
+        "rollback": "Remove the suggestion action and retain the existing manual mapping and reader.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/ui/src/local-import-transport.ts",
+            "python/providers/csv_bar_mapping.py",
+            "tests/ui/local-import.playwright.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/local_tools"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            }
+          ],
+          "non_goals": [
+            "A connected model, sampling file contents for a model, broader provider mapping, schema changes and automatic publication."
+          ],
+          "open_questions": [
+            "Which current header classifications and rejection rules can be reused across manual selection and suggestions?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Reviewed mappings, explicit data semantics, immutable published revisions and the existing preview validator."
+          ],
+          "change": [
+            "Offer an editable, local draft made from selected headers."
+          ],
+          "data_plan": "Use selected local header metadata in the current session. No new persistent fields or external requests.",
+          "cleanup": "Keep one publication and mapping validation path and one source of truth for existing reserved headers."
         }
       }
     }
