@@ -17496,6 +17496,132 @@
       }
     },
     {
+      "id": "M0-086",
+      "title": "Restore reliable frozen chart admission in the native transport regression",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-085"
+      ],
+      "scope": [
+        "tests/ui/desktop-workspace.spec.mjs",
+        "apps/desktop/ui",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Identify the first failing frozen chart read in the protected Ubuntu job and exercise the same admission boundary with synthetic data. A valid published revision opens and a rejected read remains explicit.",
+        "Keep revision proof, protected workspace state, the uncertain-write deadline and late-response assertions exercised through the normal native transport path. Retain the diagnostic and verify the corrective change.",
+        "Closing the published CSV dialog or cancelling the editor's active frozen chart read prevents a retry and stale presentation. Test gate rejection and exceptions preserve the original failure and release admission."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport",
+        "ui-build",
+        "market-workflow",
+        "local-import-ui"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-086-89bd7aa89a32c744.json",
+          "sha256": "d90e2b824200bf2fa208888281d858a42670d516595641c9382dae219698e372"
+        },
+        {
+          "path": "project/evidence/M0-086-7163e992a3a5a3ed.json",
+          "sha256": "a61c430e37344b6680cc9b05a835b01f21941cf470c07061402a67e935a6cbf8"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T075459.275900Z-a4026d20",
+          "source_commit": "30f45c59851a1aa1a97f9582395cd71bacb4b5a3",
+          "report_sha256": "c31932503a04ce3bc8fb54502a614bf66125a47c35707467a4572bba30a06621"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The task passed on 2c523fa. A held read reproduced the visible failure before any write. The foreground read recovers retryable contention, both cancellation entries stop further reads, and rejected or late responses preserve the prior state. The original hosted response code was unavailable.",
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "Opening the seeded published revision reaches the source action reliably, and the protected check still detects a stale reply.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/frozen-evidence.tsx",
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "tests/ui/local-import.spec.mjs",
+          "project/checks.json"
+        ],
+        "hypotheses": [
+          "A held Rust revision status reply reproduced the hosted fallback through retryable BUSY on the first foreground frozen chart invoke. Apply the existing read-only admission retry at the shared frozen chart entry, then check the unchanged permanent rejection and delayed-write recovery."
+        ],
+        "risks": [
+          {
+            "failure": "The valid frozen chart fails before mutation or the change retries a rejected revision, changes source permissions or weakens revision proof.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A foreground chart read retries after close or cancel, or a cancelled result changes the accepted chart or display access.",
+            "checks": [
+              "local-import-ui"
+            ]
+          },
+          {
+            "failure": "A gate failure hangs the source regression or cleanup replaces the original error.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the original Ubuntu diagnostic and revert the narrow correction if either admission or revision proof changes.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing the canvas renderer, source policy or protected workflow requirements."
+          ],
+          "open_questions": [
+            "The initiating reply in the original hosted run is unobserved. The retained artifacts contain the fallback and the failed assertion."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing authority, rejection and deadline assertions; earlier acceptance records."
+          ],
+          "change": [
+            "Retry explicit transient busy responses for foreground authenticated frozen chart reads within the existing read budget. Verify a real busy response and a permanent rejection before entering the delayed write.",
+            "Bind retries to their initiating foreground read and preserve the failure that occurred before a test gate was released."
+          ],
+          "data_plan": "Use a disposable synthetic profile. No user data migration.",
+          "cleanup": "Retain only the regression and the fix. Resume the renderer task after the repair."
+        }
+      }
+    },
+    {
       "id": "M2-029",
       "title": "Probe authored numeric annotations in the candlestick draw cycle",
       "milestone": "M2",

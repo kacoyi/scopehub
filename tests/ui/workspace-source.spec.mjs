@@ -159,7 +159,7 @@ for (const [scenario, title] of contentionCases) {
         record('background-revision-released', response.status());
         if (scenario === 'peer') peerSource = await commitPeer(dispatch, before.selection_revision);
       });
-      release = await holdRevisionRead();
+      ({ release } = await holdRevisionRead());
       record('background-revision-held');
       try {
         await useSource(dialog).click();

@@ -148,17 +148,40 @@ export async function withWorkspace(browser, profile, use, protectedValues = [],
         const response = await post(credentialEndpoint, frame, authorized);
         return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
       };
-      const holdRevisionRead = async () => {
+      const holdRevisionRead = async read => {
+        const listening = new AbortController();
+        const signal = AbortSignal.any([listening.signal, AbortSignal.timeout(8_000)]);
+        let released = false;
+        const release = () => {
+          if (released) return;
+          released = true;
+          if (child.connected) child.send('release-published-revision-gate', () => {});
+        };
         const waitFor = async message => {
-          for await (const [value] of on(child, 'message', { signal: AbortSignal.timeout(8_000) })) {
+          for await (const [value] of on(child, 'message', { signal })) {
             if (value === message) return;
           }
         };
         const armed = waitFor('published-revision-gate-armed');
         const held = waitFor('published-revision-reply-held');
-        child.send('arm-published-revision-gate');
-        await Promise.all([armed, held]);
-        return () => child.send('release-published-revision-gate');
+        const sent = new Promise((resolve, reject) => {
+          child.send('arm-published-revision-gate', error => error ? reject(error) : resolve());
+        });
+        const gateReady = Promise.all([sent, armed, held]);
+        // Tests without a preview dialog can submit an explicit status read.
+        const reply = read && armed.then(read);
+        try {
+          await (reply ? Promise.race([gateReady, reply.then(response => {
+            if (response?.ok === false && response.error) throw response.error;
+            throw new Error('The published revision status read completed before the gate held its reply.');
+          })]) : gateReady);
+          return { release, reply };
+        } catch (error) {
+          release();
+          throw error;
+        } finally {
+          listening.abort();
+        }
       };
       await use(page, dispatch, dispatchCredential, gateStatus ? holdRevisionRead : undefined);
       assertNoBrowserSends();
