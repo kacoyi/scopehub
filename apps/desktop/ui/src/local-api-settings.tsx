@@ -19,13 +19,14 @@ export function LocalApiSettings() {
   const lifetime = useRef<AbortController | null>(null);
   const submitting = useRef(false);
   const heading = useId();
+  const nameInput = useRef<HTMLInputElement>(null);
   const [connection, setConnection] = useState<SavedLocalApiConnection | null>();
   const [name, setName] = useState('');
   const [origin, setOrigin] = useState('');
   const [busy, setBusy] = useState(true);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [failure, setFailure] = useState<string>();
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState<'saved' | 'disconnected'>();
   const [sample, setSample] = useState<LocalApiSample>();
 
   function showConnection(value: SavedLocalApiConnection | null) {
@@ -50,6 +51,10 @@ export function LocalApiSettings() {
     return () => controller.abort();
   }, [loadAttempt]);
 
+  useEffect(() => {
+    if (notice === 'disconnected' && !busy) nameInput.current?.focus();
+  }, [notice, busy]);
+
   async function submit(request: Exclude<LocalApiConnectionInput, { action: 'status' }>) {
     const signal = lifetime.current?.signal;
     if (!signal || signal.aborted || submitting.current) return;
@@ -57,13 +62,16 @@ export function LocalApiSettings() {
     setBusy(true);
     setSample(undefined);
     setFailure(undefined);
-    setSaved(false);
+    setNotice(undefined);
     try {
       const reply = await exchange(request);
       if (signal.aborted) return;
       if (reply.action === 'save' && request.action === 'save') {
         showConnection(reply.connection);
-        setSaved(true);
+        setNotice('saved');
+      } else if (reply.action === 'disconnect' && request.action === 'disconnect' && reply.id === request.id) {
+        showConnection(null);
+        setNotice('disconnected');
       } else if (reply.action === 'trial' && request.action === 'trial' && reply.connection.id === request.id) {
         setSample(reply.sample);
       } else {
@@ -78,7 +86,8 @@ export function LocalApiSettings() {
         const message = code === 'TIMEOUT' ? 'The local API did not respond within the trial limit.'
           : code === 'PERMISSION_DENIED' ? 'The local API refused access.' : 'The trial did not return a usable market sample.';
         setFailure(message);
-      } else setFailure(code === 'INVALID_ARGUMENT' ? 'Enter a name and a loopback origin such as http://127.0.0.1:8080.'
+      } else if (request.action === 'disconnect') setFailure('The local API connection could not be disconnected.');
+      else setFailure(code === 'INVALID_ARGUMENT' ? 'Enter a name and a loopback origin such as http://127.0.0.1:8080.'
         : 'The local API connection could not be saved.');
     } finally {
       submitting.current = false;
@@ -98,11 +107,11 @@ export function LocalApiSettings() {
       <fieldset className="local-import-card" disabled={busy || connection === undefined}>
         <legend>{t('Review local read rule')}</legend>
         <div className="local-import-fields">
-          <label>{t('Connection name')}<input value={name} maxLength={64}
-            onChange={event => { setName(event.target.value); setSample(undefined); setSaved(false); }} /></label>
+          <label>{t('Connection name')}<input ref={nameInput} value={name} maxLength={64}
+            onChange={event => { setName(event.target.value); setSample(undefined); setNotice(undefined); }} /></label>
           <label>{t('Local API origin')}<input value={origin} maxLength={100}
             placeholder="http://127.0.0.1:8080" autoComplete="off" spellCheck={false}
-            onChange={event => { setOrigin(event.target.value); setSample(undefined); setSaved(false); }} /></label>
+            onChange={event => { setOrigin(event.target.value); setSample(undefined); setNotice(undefined); }} /></label>
         </div>
         <p>{t('One read of /market-sample on this loopback origin. No authentication.')}</p>
         {reviewed && <code>{'GET ' + connection.origin + '/market-sample'}</code>}
@@ -110,12 +119,18 @@ export function LocalApiSettings() {
           <button type="submit" className="secondary-button" disabled={!(nameDraft && originDraft)}>{t('Save connection')}</button>
           <button type="button" className="secondary-button" disabled={!reviewed}
             onClick={() => reviewed && void submit({ action: 'trial', id: connection.id })}>{t('Test read')}</button>
+          {connection && <button type="button" className="secondary-button"
+            onClick={() => void submit({ action: 'disconnect', id: connection.id })}>
+            {t('Disconnect {name}', { name: connection.name })}
+          </button>}
         </div>
       </fieldset>
     </form>
     {busy && <p role="status">{t('Working with the local connection…')}</p>}
-    {connection === null && !busy && <p role="status">{t('No local API connection saved.')}</p>}
-    {saved && <p role="status">{t('Saved connection.')}</p>}
+    {connection === null && !busy && <p role="status">
+      {notice === 'disconnected' ? t('Local API connection disconnected.') : t('No local API connection saved.')}
+    </p>}
+    {notice === 'saved' && <p role="status">{t('Saved connection.')}</p>}
     {failure && <p role="alert">{t(failure)}</p>}
     {failure && connection === undefined && !busy && <button type="button" className="secondary-button"
       onClick={() => { setBusy(true); setFailure(undefined); setLoadAttempt(attempt => attempt + 1); }}>

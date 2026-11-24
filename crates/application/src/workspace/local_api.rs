@@ -123,6 +123,18 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                     Ok(LocalApiAdmission::Complete(result))
                 })
             }
+            Some("disconnect") => {
+                let id = request["id"]
+                    .as_str()
+                    .ok_or_else(|| failure(ErrorCode::INVALIDARGUMENT))?;
+                self.port.transact(|tx| {
+                    if !tx.disconnect_local_api_connection(id)? {
+                        return Err(failure(ErrorCode::STALECONTEXT));
+                    }
+                    output(json!({"action": "disconnect", "id": id}))
+                        .map(LocalApiAdmission::Complete)
+                })
+            }
             Some("trial") => self.port.inspect(|tx| {
                 let connection = tx
                     .local_api_connection()?

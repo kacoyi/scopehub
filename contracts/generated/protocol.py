@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -1978,7 +1978,10 @@ class LocalApiConnectionSaveInput(TypedDict):
 class LocalApiConnectionTrialInput(TypedDict):
     action: Literal['trial']
     id: Uuid
-LocalApiConnectionInput = LocalApiConnectionStatusInput | LocalApiConnectionSaveInput | LocalApiConnectionTrialInput
+class LocalApiConnectionDisconnectInput(TypedDict):
+    action: Literal['disconnect']
+    id: Uuid
+LocalApiConnectionInput = LocalApiConnectionStatusInput | LocalApiConnectionSaveInput | LocalApiConnectionTrialInput | LocalApiConnectionDisconnectInput
 class LocalApiConnectionStatusOutput(TypedDict):
     action: Literal['status']
     connection: SavedLocalApiConnection | None
@@ -1989,7 +1992,10 @@ class LocalApiConnectionTrialOutput(TypedDict):
     action: Literal['trial']
     connection: SavedLocalApiConnection
     sample: LocalApiSample
-LocalApiConnectionOutput = LocalApiConnectionStatusOutput | LocalApiConnectionSaveOutput | LocalApiConnectionTrialOutput
+class LocalApiConnectionDisconnectOutput(TypedDict):
+    action: Literal['disconnect']
+    id: Uuid
+LocalApiConnectionOutput = LocalApiConnectionStatusOutput | LocalApiConnectionSaveOutput | LocalApiConnectionTrialOutput | LocalApiConnectionDisconnectOutput
 class LocalApiConnectionRequest(TypedDict):
     protocol_version: Literal['1.1']
     message_id: Uuid
