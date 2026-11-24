@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-092",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -18988,7 +18988,7 @@
       "id": "M0-092",
       "title": "Shorten the Windows Python producer without leaving check processes behind",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-087"
       ],
@@ -19015,10 +19015,15 @@
         "python-contracts-workers",
         "market-recovery"
       ],
-      "evidence": [],
-      "next_action": "Prove safe admission and interruption for the measured Windows pair, coordinate the POSIX cleanup repair, and review the exact combined candidate before requesting a normal hosted observation.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-092-672bfc8ef74dae7d.json",
+          "sha256": "7a7551d2db764aa92a453cd334b68621ee11933457c5b1297ac2f46b610a3471"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The exact combined Linux task passed all four checks on 9415bb08, including 700 Python cases and all 12 market-recovery cases. Both independent Standard Astra re-reviews passed. The original report and review evidence are retained in archives/observations/m0-092-review/index.json. Local technical verification is complete. Protected integration still requires the exact full PR to pass the native Windows Job Object interruption case and to record actual Windows wall time and runner work against the retained controls. The subsequent ordinary protected-main budget measurement remains with M0-091 and its open governed finding.",
       "plan": {
         "outcome": "The full Windows producer shortens its serial critical path while actual failure, cancellation, and original named evidence remain observable.",
         "change_types": [
