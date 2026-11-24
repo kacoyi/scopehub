@@ -20491,6 +20491,139 @@
           "cleanup": "Use the same caller deadline before interpreter readiness and after granting the supervisor authority. An interpreter without the grant cannot acquire a pool, and an expired result cannot become a fixture. Make the supervisor confirm that the complete owned command tree has stopped before removing a failed preparation pool. Retain the pool and the primary error if termination cannot be confirmed. Workers remove acquired profiles, and suite teardown removes unused profiles and claim markers."
         }
       }
+    },
+    {
+      "id": "M2-032",
+      "title": "Restore the accepted prototype workbench on same-session reopen",
+      "milestone": "M2",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M2-014",
+        "M2-031"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/main.tsx",
+        "apps/desktop/ui/src/workbench-prototype.tsx",
+        "tests/ui/renderer-probe.spec.mjs",
+        "tests/ui/renderer-series-frame.spec.mjs",
+        "tests/ui/renderer-probe-windows.ps1",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0027"
+      ],
+      "acceptance": [
+        "From the ordinary chart entry, accept a chart-free table and threshold tiles over the frozen local fixture and select a row. Back to chart and manual reopen in the same window restore the original definition, source identity and linked selection. A restored row control responds to input.",
+        "A first prototype open in a fresh window session starts blank. An unaccepted preview or rejected draft, including its temporary selection, leaves the last accepted definition and selection available on reopen. Keep the existing chart session and source authority.",
+        "Exercise the ordinary positive and rejected cases in the existing renderer interaction check. Retain the matching candidate and the first visible restored-result observation for its measured surface.",
+        "Keep first-open blank and revise the existing same-window reopen expectations. The accepted candle returns frozen and ready for a fresh replay, while the previous replay stays stopped. The native WebView2 editor reopens the same accepted tiles and table through the existing controls."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "renderer-prototype-interaction"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-032-8083c4172300898c.json",
+          "sha256": "b1729378f2ccf5606b9ed21704034db7e625d7c53140285e9fe0457e1f5fb948"
+        },
+        {
+          "path": "project/evidence/M2-032-33a13459c47a0bd3.json",
+          "sha256": "a48b6907fd56110c0a25340306815841db2b614c32963b0cba195a394bca26c4"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra approved 617348ea8be32e0b3d60205b67a7bc4211d7ff5a. Its five source and test files match the accepted integration source 94b6031f5df34876dae08071524962d6b8f5f079 byte for byte. The same task workflow 45473025581 passed on Linux Chromium and Windows WebView2. Ordinary close and reopen restored the accepted value table, threshold tiles, frozen source and selected 21:01 value 3499.8. Preview-only selection and the rejected draft left the accepted state intact, and a new Chromium window session opened blank. The accepted candle returned frozen and the old quote replay stayed stopped. The actual-base Chromium probe observed the first restored visible result with an enabled row at 15 ms in archives/observations/m2-032-actual-main-94b6031/actual-base-focused/results.json. WebView2 UI Automation recorded 127 ms to the accessible result including polling. The Linux WebKitGTK experiment recorded a restored buffer at 31.198 ms and another at 34.500 ms after draft rejection under nested Weston and Xvfb in archives/observations/m2-032-session-reopen-617348e/observations.json; it measures that virtual host.",
+      "plan": {
+        "outcome": "A user returns to the same accepted synthetic workbench and selected value after going back to the chart within one open desktop window.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/workbench-prototype.tsx",
+          "tests/ui/renderer-probe.spec.mjs",
+          "archives/observations/m2-003-view-recovery-427540b/observations.json (SHA-256 ce735b5609fca10680d75a22543ab68004872d707b6a980c57acb570dd2f2cb0)"
+        ],
+        "hypotheses": [
+          "The host App outlives the conditional dialog. A session record holding only accepted state can restore the view through ordinary remount while transient drafts remain dialog-local.",
+          "M2-023 commit 1d71972 separates new drawing creation and named drawing restoration. That independent branch uses the saved layout path; f676123 has the temporary prototype entry. Keep the prototype record scoped to that entry and preserve the named drawing path."
+        ],
+        "risks": [
+          {
+            "failure": "A rejected draft or a preview-only click overwrites the accepted state, or a fresh window inherits a prior session.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "The restored composition loses its frozen binding or selection, opens without a working control, or changes the underlying chart.",
+            "checks": [
+              "renderer-prototype-interaction",
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "The prior Chromium candle and native WebView2 cases still expect blank on reopen, or restoring a candle resumes its prior timed replay.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "A temporary UI session changes source permissions or adds a second persistence route.",
+            "checks": [
+              "architecture",
+              "renderer-prototype-interaction"
+            ]
+          }
+        ],
+        "rollback": "Revert the host session transfer and its regression together. The app can return to the transient prototype without a storage conversion.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "tests/ui/renderer-probe.spec.mjs",
+            "tests/ui/renderer-series-frame.spec.mjs",
+            "tests/ui/renderer-probe-windows.ps1"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/extensibility"
+            },
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/shared_evidence/attribution"
+            }
+          ],
+          "non_goals": [
+            "Disk persistence, named drawing restoration, new access, native process failure recovery and renderer selection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The default chart, existing source checks, named layout ownership, first-open blank canvas and in-dialog edit and restore actions."
+          ],
+          "change": [
+            "Keep the last accepted temporary composition and its selection with the lifetime of its desktop App instead of the dialog.",
+            "As identified in the Astra review of d5e3aad, replace old blank-on-reopen expectations in the existing candle and WebView2 cases. Keep first-open blank, the same approved definition and the dialog-owned replay lifetime."
+          ],
+          "data_plan": "Retain only the existing synthetic binding and accepted view state in one mounted App. Close discards preview and editor state. A fresh App starts blank.",
+          "cleanup": "Keep the accepted state scoped to the prototype entry until the product workbench replaces it."
+        }
+      }
     }
   ]
 }
