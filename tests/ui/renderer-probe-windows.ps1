@@ -22,8 +22,11 @@ function Wait-ForProbe($description, [scriptblock]$observe) {
         try {
             $value = & $observe
             if ($value) { return $value }
-        } catch [System.Windows.Automation.ElementNotAvailableException] {
-            # WebView2 can replace accessibility nodes during a React render.
+        } catch {
+            $errorType=$_.Exception.GetBaseException()
+            # Re-resolve a WebView2 node invalidated between enumeration and activation.
+            if ($errorType -isnot [System.Windows.Automation.ElementNotAvailableException] -and
+                $errorType -isnot [System.InvalidOperationException]) { throw }
         }
         Start-Sleep -Milliseconds 100
     } while ($watch.Elapsed.TotalSeconds -lt 25)

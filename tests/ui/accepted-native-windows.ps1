@@ -11,7 +11,7 @@ $value = [Windows.Automation.ValuePattern]::Pattern
 function Named-Control([string]$label, $kind) {
     $condition = [Windows.Automation.PropertyCondition]::new($ui::ControlTypeProperty,$kind)
     foreach ($item in $window.FindAll($scope,$condition)) {
-        if (($item.Current.Name -eq $label -or $item.Current.Name.StartsWith("$label ")) -and $item.Current.IsEnabled) {
+        if (($item.Current.Name -eq $label -or ([string]$item.Current.Name).StartsWith("$label ")) -and $item.Current.IsEnabled) {
             return $item
         }
     }
@@ -26,15 +26,34 @@ function Fill-NativeEdit([string]$label, [string]$text) {
     $edit = Wait-ForProbe $label { Named-Control $label $type::Edit }
     $edit.GetCurrentPattern($value).SetValue($text)
 }
+function Try-Activate($control) {
+    if (!$control -or !$control.Current.IsEnabled) { return $false }
+    $pattern=$null
+    if ($control.TryGetCurrentPattern($invoke,[ref]$pattern)) {
+        $pattern.Invoke()
+        return $true
+    }
+    $bounds=$control.Current.BoundingRectangle
+    if ($bounds.IsEmpty -or $bounds.Width -le 0 -or $bounds.Height -le 0) { return $false }
+    $x=[int]($bounds.X+$bounds.Width/2); $y=[int]($bounds.Y+$bounds.Height/2)
+    $atPoint=[Windows.Automation.AutomationElement]::FromPoint([Windows.Point]::new($x,$y))
+    if (!$atPoint -or ([string]$atPoint.Current.Name) -ne ([string]$control.Current.Name)) { return $false }
+    [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+    return $true
+}
 function Review-Step([string]$label) {
     Write-Output "Native workspace control: $label"
-    $control = Wait-ForProbe $label { Named-Control $label $type::Button }
-    $control.GetCurrentPattern($invoke).Invoke()
+    $null=Wait-ForProbe $label { Try-Activate (Named-Control $label $type::Button) }
+}
+function Archive-Stage([string]$name) {
+    $image=[DrawingWindowCapture]::OwnedClient($app.MainWindowHandle)
+    try { $image.Save((Join-Path $OutputDirectory "$name.png"),[Drawing.Imaging.ImageFormat]::Png) }
+    finally { $image.Dispose() }
 }
 function Wait-Text([string]$text) {
     Wait-ForProbe $text {
         foreach ($n in $window.FindAll($scope,$any)) {
-            if ($n.Current.Name.Contains($text)) { return $n }
+            if (([string]$n.Current.Name).Contains($text)) { return $n }
         }
     }
 }
@@ -74,7 +93,7 @@ function Open-Disclosure([string]$label) {
     $control=Wait-ForProbe $label { Find-Control $label $null }
     $expand=$null
     if ($control.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand)) { $expand.Expand() }
-    else { $control.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ') }
+    elseif (!(Try-Activate $control)) { $control.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ') }
 }
 function Read-AcceptedHash {
     Wait-ForProbe 'accepted output digest next to Output' {
@@ -220,7 +239,7 @@ function Inspect-SampleControls {
     Review-Step 'Accept view'
     Wait-Name 'Accepted view'
     $target=Wait-ForProbe 'first frozen sample point' {
-        $window.FindAll($scope,$any) | Where-Object { $_.Current.Name.StartsWith('Inspect observation at ') } | Select-Object -First 1
+        $window.FindAll($scope,$any) | Where-Object { ([string]$_.Current.Name).StartsWith('Inspect observation at ') } | Select-Object -First 1
     }
     $target.SetFocus()
     [Windows.Forms.SendKeys]::SendWait('{ENTER}')
@@ -257,6 +276,7 @@ try {
     Review-Step 'Inspect raw rows'
     $null=Wait-Text 'Raw CSV rows'
     $null=Wait-Text 'series.csv'
+    Archive-Stage 'raw'
     $columns=[ordered]@{'Symbol column'=2; 'Timestamp column'=1; 'Trading day column'=1; 'Open column'=3
         'High column'=4; 'Low column'=5; 'Close column'=6; 'Volume column'=8
         'Instrument type'=1; 'Volume basis'=1; 'Timestamp convention'=1}
@@ -266,6 +286,7 @@ try {
         'Trading day format'='%Y-%m-%d'; 'Daily start time'='00:00:00'}
     foreach ($field in $fields.Keys) { Fill-NativeEdit $field $fields[$field] }
     foreach ($label in @('Preview mapping','Save reviewed mapping','Publish complete file','Open frozen chart')) { Review-Step $label }
+    Archive-Stage 'published'
     Select-NativeOption 'Indicator input' 1
     $period=Wait-ForProbe 'Rolling period' {
         $control=Named-Control 'Rolling period' $type::Spinner
@@ -277,6 +298,7 @@ try {
     foreach ($label in @('Run preview','Accept preview','Confirm indicator acceptance')) { Review-Step $label }
     Open-Disclosure 'Accepted provenance and values'
     $null=Wait-Text 'Unknown, 115, 125, 135'
+    Archive-Stage 'confirmed'
     $acceptedHash=Read-AcceptedHash
     Write-Output "Accepted two-period volume mean: Unknown, 115, 125, 135; result SHA256=$acceptedHash"
     Review-Step 'Open published CSV'
@@ -291,6 +313,7 @@ try {
     Open-Disclosure 'Accepted observations'
     foreach ($day in 3..6) { $null=Wait-Text ('2026-02-{0:D2}T00:00:00.000Z' -f $day) }
     foreach ($number in @('Unavailable','115','125','135')) { Wait-Name $number }
+    Archive-Stage 'selected-series'
     $sourcePanel=Wait-ForProbe 'source disclosure' { Find-Control 'Accepted series source' $null }
     $sourcePanel.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ')
     Use-SeriesProgram 'dots'
@@ -300,6 +323,7 @@ try {
     Wait-Name 'Open a drawing program for the selected series.'
     if ((Find-Control 'Accepted observation' $null) -or (Find-Control 'Undo accepted edit' $null) -or
         (Find-Control 'Inspect observation at 2026-02-03T00:00:00.000Z' $null)) { throw 'Previous state survived the series change.' }
+    Archive-Stage 'switched'
     Review-Step 'Back to chart'
     Review-Step 'Data sources'
     Review-Step 'Open published CSV'
@@ -307,12 +331,16 @@ try {
     Review-Step 'Remove frozen chart access'
     Review-Step 'Remove access'
     $null=Wait-Text 'Access removed for this published revision.'
+    Archive-Stage 'revoked'
     Write-Output 'The private source was removed through the native published-revision library.'
     Review-Step 'Close'
     Inspect-SampleControls
     if ($visibilityFailure) { throw $visibilityFailure }
 } catch {
-    # Emit only the named ScopeHub window's controls, without inspecting other windows.
+    # The common dialog can briefly overlay the app. Only capture product content after it has closed.
+    if (!(Find-Control 'Choose local CSV folder' $type::Window)) {
+        try { Archive-Stage 'failure' } catch { Write-Output 'No owned client image available.' }
+    }
     $controls=@($window.FindAll($scope,$any) | Where-Object { $_.Current.Name } |
         ForEach-Object { "$($_.Current.ControlType.ProgrammaticName) $($_.Current.Name)" })
     Write-Output ($controls -join "`n")

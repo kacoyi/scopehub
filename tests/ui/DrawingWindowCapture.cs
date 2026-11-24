@@ -88,6 +88,21 @@ public static class DrawingWindowCapture {
             throw new InvalidOperationException("Could not resize the test window.");
     }
 
+    public static Bitmap OwnedClient(IntPtr window) {
+        Rect bounds; Point p = new Point(0,0);
+        if (!GetClientRect(window,out bounds) || !ClientToScreen(window,ref p))
+            throw new InvalidOperationException("Synthetic client window is unavailable.");
+        return Plot(window,p.X,p.Y,bounds.Right,bounds.Bottom);
+    }
+    public static void ClickOwned(IntPtr app, int x, int y) {
+        SetForegroundWindow(app);
+        IntPtr hit=WindowFromPoint(new Point(x,y));
+        if (hit != app && !IsChild(app,hit)) throw new InvalidOperationException("Control outside owned client window.");
+        if (!SetCursorPos(x,y)) throw new InvalidOperationException("Cannot move to the test control.");
+        mouse_event(2,0,0,0,UIntPtr.Zero);
+        mouse_event(4,0,0,0,UIntPtr.Zero);
+    }
+
     public static Bitmap Plot(IntPtr window, double left, double top, double width, double height) {
         Rect client;
         Point origin = new Point(0, 0);

@@ -300,7 +300,8 @@ def stage_artifacts(root, destination, env):
             for path in browser_artifacts(reports, directory, check):
                 copy_file(path, destination / path.relative_to(reports))
     if 'workbench-drawing-runtime' in executed:
-        for filename in ('dots.png', 'strips.png', 'visibility-accepted.png', 'visibility-timeout.png', 'visibility-restored.png'):
+        for filename in ('dots.png', 'strips.png', 'visibility-accepted.png', 'visibility-timeout.png', 'visibility-restored.png',
+                         'raw.png', 'published.png', 'confirmed.png', 'selected-series.png', 'switched.png', 'revoked.png', 'failure.png'):
             relative = f'{run}/accepted-series-native/{filename}'
             image = optional_path(reports, relative)
             if image is not None:
