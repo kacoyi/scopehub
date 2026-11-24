@@ -18115,7 +18115,7 @@
           "sha256": "d7f9e3ef0bcb21921b1afee29bd49306b18e48b522ab58c7ddc2dda7f779cedc"
         }
       ],
-      "next_action": "The fourth full pull request passed in 866 seconds with 2805 runner seconds. Verify all corrected budget and interaction regressions on the combined candidate, then bind the final protected pull request to the post-merge main-push assignment.",
+      "next_action": "The fourth full pull request passed in 866 seconds. Record the combined regression results and verify the final protected pull request and the first genuine main push.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -18206,7 +18206,7 @@
             ]
           },
           {
-            "failure": "A busy or unavailable capture prevents the authenticated failure from reaching the next offline reader, or a missing recorded trend baseline is replaced by older timing.",
+            "failure": "A busy or unavailable capture or a newer-run retention window prevents the authenticated failure from reaching an offline reader that still admits its stale success, or a missing recorded trend baseline is replaced by older timing.",
             "checks": [
               "python-contracts-workers"
             ]

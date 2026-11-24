@@ -1015,6 +1015,7 @@ class RecentTimingTests(unittest.TestCase):
                            [baseline[0][2], baseline[1][2], stale_clock])
         prior = timing.offline_budget_status(root, [finding], {})
         self.assertEqual('recovered', prior['budget_recovery'][0]['recovery']['status'])
+        self.retain_newer_cold_attempts(root, 'pull_request', after, checkout=checkout)
         with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
               patch.object(ci, 'source_identity', return_value={'git_head': after, 'working_tree_dirty': False}),
               patch.object(ci, 'checkout_branch', return_value=run['head_branch']),
@@ -1042,6 +1043,11 @@ class RecentTimingTests(unittest.TestCase):
         observed, = [sample for sample in merged['samples']
                      if sample['platform'] == 'Windows' and sample['ci']['run_id'] == '16']
         self.assertEqual(('failure', None), (observed['workflow_conclusion'], observed['seconds']['total']))
+        _, distinct_samples, distinct_clock = self.budget_run(29, '14:55', head=after, checkout=checkout)
+        self.write_archive(root / '.reports/timing/distinct-success.json', distinct_samples, [distinct_clock])
+        unrelated = timing.offline_budget_status(root, [finding], {})
+        distinct = unrelated['budget_recovery'][0]['recovery']['comparisons'][0]['recovered']
+        self.assertEqual(('29', 895.0), (distinct['hosted_run_id'], distinct['elapsed_seconds']))
 
     def test_busy_timing_writer_cannot_block_ordinary_offline_failure_retention(self):
         root, (before, repair, after) = self.recovery_fixture()
@@ -1054,8 +1060,7 @@ class RecentTimingTests(unittest.TestCase):
         (records / 'feedback.json').write_bytes(timing.json_bytes({'items': [finding]}))
         initial = self.offline_observations(root, finding, *baseline, (run, samples, clock))
         self.assertEqual('recovered', initial['budget_recovery'][0]['recovery']['status'])
-        shared = timing.shared_timing_directory(root)
-        shared.mkdir()
+        shared = self.retain_newer_cold_attempts(root, 'push', after)
         with (timing.exclusive_git_lock(shared / 'ci-push-16-1.lock'),
               patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request'))):
             live = timing.ci_budget_status(root, run['repository']['full_name'], dict(run, conclusion='failure'))
@@ -1064,6 +1069,13 @@ class RecentTimingTests(unittest.TestCase):
         for observation in (live, offline):
             self.assertEqual('pending', observation['budget_recovery'][0]['recovery']['status'])
             self.assertTrue(any(note.get('authenticated_conclusions') == ['failure'] for note in observation['input_issues']))
+
+    def retain_newer_cold_attempts(self, root, event, head, *, checkout=None):
+        shared = timing.shared_timing_directory(root)
+        for day in range(17, 17 + timing.MAX_RECENT):
+            _, rows, clock = self.budget_run(day, '10:00', head=head, checkout=checkout, event=event, cache='cold')
+            self.write_archive(shared / f'ci-{event}-{day}-1.json', rows, [clock])
+        return shared
 
     def test_post_recovery_uses_fresh_trend_windows_and_keeps_an_active_owner(self):
         root, (before, repair, after) = self.recovery_fixture()
