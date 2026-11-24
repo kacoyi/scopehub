@@ -387,7 +387,7 @@
     {
       "id": "local-import-ui",
       "status": "implemented",
-      "purpose": "Exercise local CSV selection intent, cancellation, explicit mapping, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute. Native dialog behavior and durable import require separate evidence.",
+      "purpose": "Exercise ordinary chart Settings and My data sources in English and Chinese, picker cancellation, chart focus and viewport continuity, same-session CSV review, explicit mapping, and stock and futures previews in the built UI with a synthetic Tauri invoke substitute. Native dialog behavior and durable import require separate evidence.",
       "platforms": "all",
       "command": [
         "pnpm",

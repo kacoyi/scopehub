@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-036",
+  "focus_task_id": "M1-030",
   "tasks": [
     {
       "id": "M0-001",
@@ -17738,7 +17738,7 @@
       "id": "M1-036",
       "title": "Open and resume a personal CSV folder from My data sources",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-051",
         "M1-008"
@@ -17761,12 +17761,18 @@
         "architecture",
         "ui-build",
         "market-workflow",
-        "local-import-ui"
+        "local-import-ui",
+        "local-import-publication"
       ],
-      "evidence": [],
-      "next_action": "Connect the normal settings entry to the existing local CSV picker and demonstrate selection and cancellation before broader checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-036-a9c4ee10ae2a3d0d.json",
+          "sha256": "9e4e3c2ebe122c4bc2e00e0b46ca4cd1d6a026eb8417c601baa8480a9b6193b3"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The local task checks verified the English and Chinese settings entry, picker cancellation, same-session review, chart viewport and focus continuity, and explicit publication through the portable Rust desktop state. The tests substitute the Windows folder dialog, which remains unobserved on this candidate.",
       "plan": {
         "outcome": "From the ordinary chart settings a user reaches My data sources and can choose their own local CSV directory, review it through the existing import flow, then return to the original chart.",
         "change_types": [
@@ -17785,7 +17791,8 @@
           {
             "failure": "Opening settings or cancelling the picker changes the chart or silently creates a source grant or publication.",
             "checks": [
-              "local-import-ui"
+              "local-import-ui",
+              "local-import-publication"
             ]
           }
         ],
@@ -17796,9 +17803,9 @@
           ],
           "entrypoints": [
             "apps/desktop/ui/src/chart-workspace.tsx",
-            "apps/desktop/ui/src/workspace-panels.tsx",
-            "apps/desktop/ui/src/local-import-transport.ts",
-            "tests/ui/local-import.playwright.config.mjs"
+            "apps/desktop/ui/src/chart-settings.tsx",
+            "apps/desktop/ui/src/main.tsx",
+            "tests/ui/local-import.spec.mjs"
           ],
           "rules": [
             {
@@ -17809,9 +17816,7 @@
           "non_goals": [
             "Persistent refresh rules, manual records and API connection forms remain in M1-030 and their existing delivery tasks."
           ],
-          "open_questions": [
-            "Which existing chart controls can share the folder action and restore focus on cancellation?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",

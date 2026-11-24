@@ -1,11 +1,11 @@
 import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { test as base, expect } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { painted } from './chart-pixels.mjs';
-import { control, openPanel } from './workspace-controls.mjs';
+import { control, openPanel, watchlistSymbol } from './workspace-controls.mjs';
 
 const folderId = '95ef05fd-a797-4bb7-9e63-112233440001';
 const equity = {
@@ -70,6 +70,22 @@ const catalog = {
   }),
 };
 
+const sampleFixtures = JSON.parse(await readFile(new URL('../fixtures/market/series.json', import.meta.url), 'utf8')).fixtures;
+
+function sampleHistory({ series, from_ms, to_ms, warmup_bars }) {
+  const { history: { dataset, bars } } = sampleFixtures.find(({ history }) =>
+    history.dataset.instrument_id === series.instrument_id && history.dataset.timeframe === series.timeframe);
+  const as_of_ms = dataset.provenance.as_of_ms;
+  return {
+    dataset, bars, total_bars: bars.length, offset: 0, next_cursor: null, stream_position: null,
+    snapshot: { series, from_ms, to_ms, warmup_bars, as_of_ms,
+      dataset_id: dataset.id, dataset_revision: dataset.revision,
+      content_hash: createHash('sha256').update(JSON.stringify(bars)).digest('hex') },
+    quality_state: { as_of_ms, last_observed_ms: dataset.provenance.last_observed_ms,
+      session_state: 'open', freshness: 'current', connection: 'offline', coverage: 'observed', gaps: [], source_kind: 'synthetic' },
+  };
+}
+
 function importedFixture({ payload, requestId }, invalidPart) {
   expect(Object.keys(payload).sort()).toEqual(
     ['file_id', 'folder_id', 'mapping', 'version', ...['expected_sha256', 'row_limit'].filter(field => field in payload)].sort(),
@@ -129,7 +145,8 @@ function importedFixture({ payload, requestId }, invalidPart) {
 // Only synthetic fixture bytes contribute to display data and expected hashes.
 const test = base.extend({
   pickerLocale: ['en', { option: true }],
-  mockNative: async ({ page, baseURL, pickerLocale }, use) => {
+  sampleChart: [false, { option: true }],
+  mockNative: async ({ page, baseURL, pickerLocale, sampleChart }, use) => {
     const choices = [];
     const calls = [];
     const saved = new Map();
@@ -154,7 +171,11 @@ const test = base.extend({
         return null;
       }
       expect(command).toBe('execute_operation');
-      if (args.operation === 'instrument.search') return { instruments: [] };
+      if (args.operation === 'instrument.search') return {
+        instruments: sampleChart ? sampleFixtures.filter(item => item.scenario === 'normal' && item.history.dataset.timeframe === '1m')
+          .map(item => item.instrument) : [],
+      };
+      if (sampleChart && args.operation === 'market.readHistoryPage') return sampleHistory(args.payload);
       if (args.operation === 'market.saveLocalImportMapping') {
         const { preview, file_id } = importedFixture(args);
         expect(preview.issues).toEqual([]);
@@ -210,13 +231,27 @@ const test = base.extend({
   },
 });
 
+async function openPersonalSources(page, labels = { settings: 'Settings', sources: 'Data sources', personal: 'My data sources' }) {
+  await control(page, labels.settings).click();
+  const dialog = page.getByRole('dialog', { name: labels.settings, exact: true });
+  await control(dialog, labels.sources).click();
+  await control(dialog, labels.personal).click();
+  await expect(dialog.getByRole('heading', { name: labels.personal, exact: true })).toBeVisible();
+  return dialog;
+}
+
 test.describe('Simplified Chinese desktop source selection', () => {
   test.use({ locale: 'zh-CN', pickerLocale: 'zh-Hans' });
 
-  test('sends the effective language to the chooser and keeps the selected file name intact', async ({ page, mockNative }) => {
+  test('opens My data sources in Chinese and sends the effective language to the chooser', async ({ page, mockNative }, testInfo) => {
     await page.goto('/');
+    const dialog = await openPersonalSources(page, { settings: '设置', sources: '数据源', personal: '我的数据源' });
+    await expect(dialog.getByRole('status')).toHaveText('尚未选择 CSV 文件夹');
+    await expect(control(dialog, '继续审阅 CSV')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('my-data-sources-zh-Hans.png') });
     mockNative.choices.push(catalog);
-    await control(page, '选择本地 CSV 文件夹').first().click();
+    await control(dialog, '选择本地 CSV 文件夹').click();
+    await expect(dialog).toBeHidden();
     await expect(page.getByRole('button', { name: '语言设置' }).last()).toBeVisible();
     const file = page.getByRole('combobox', { name: 'CSV 文件', exact: true });
     await file.selectOption(equity.fileId);
@@ -244,6 +279,100 @@ const columnFields = {
 function select(page, name) {
   return page.getByRole('combobox', { name, exact: true });
 }
+
+test.describe('My data sources in the ordinary chart', () => {
+  test.use({ sampleChart: true });
+
+  test('cancels the picker and resumes the same review without changing the chart viewport', async ({ page, mockNative }, testInfo) => {
+    await page.goto('/');
+    await control(page, 'Open offline sample').click();
+    await openPanel(page, 'Watchlist');
+    const stock = watchlistSymbol(page, 'SIM.CN.STOCK.001');
+    await stock.click();
+    await control(page, '5m').click();
+    await control(page, 'Close-price line').click();
+    const history = page.getByRole('region', { name: 'Price chart' }).locator('.history');
+    await expect(history).toHaveAttribute('data-timeframe', '5m');
+    await expect(history).toHaveAttribute('data-instrument', 'SIM.CN.STOCK.001');
+    await expect.poll(() => painted(page, 'line')).toBeGreaterThan(20);
+    // Compare the drawn price series without crosshair or hover labels.
+    const priceViewport = () => history.locator('.chart canvas').first().evaluate(canvas => {
+      const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      let signature = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i] === 115 && pixels[i + 1] === 184 && pixels[i + 2] === 246) signature = (signature * 31 + i) | 0;
+      }
+      return signature;
+    });
+    const beforeZoom = await priceViewport();
+    await control(page, 'Zoom in').click();
+    await expect.poll(priceViewport).not.toEqual(beforeZoom);
+    const zoomed = await priceViewport();
+    const settings = control(page, 'Settings');
+    const chooserCalls = () => mockNative.calls.filter(call => call.command === 'choose_local_csv_folder');
+    const expectOriginalChart = async () => {
+      await expect(settings).toBeFocused();
+      await expect(stock).toHaveAttribute('aria-pressed', 'true');
+      await expect(control(page, '5m')).toHaveAttribute('aria-pressed', 'true');
+      await expect(control(page, 'Close-price line')).toHaveAttribute('aria-pressed', 'true');
+      await expect.poll(priceViewport).toEqual(zoomed);
+    };
+
+    const dialog = await openPersonalSources(page);
+    const choose = control(dialog, 'Choose local CSV folder');
+    const resume = control(dialog, 'Resume CSV review');
+    await expect(dialog.getByRole('status')).toHaveText('No CSV folder selected');
+    await expect(resume).toHaveCount(0);
+    await expect(choose).toBeFocused();
+    expect(chooserCalls()).toHaveLength(0);
+
+    const picker = Promise.withResolvers();
+    mockNative.choices.push(picker.promise);
+    await choose.press('Enter');
+    await expect(dialog.getByRole('status')).toHaveText('Waiting for folder selection…');
+    await expect(choose).toBeDisabled();
+    picker.resolve(null);
+    await expect(dialog.getByRole('status')).toHaveText('No CSV folder selected');
+    await expect(choose).toBeFocused();
+    await expect(resume).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expectOriginalChart();
+    expect(chooserCalls()).toHaveLength(1);
+
+    await openPersonalSources(page);
+    mockNative.choices.push(catalog);
+    await choose.click();
+    await expect(dialog).toBeHidden();
+    const back = control(page, 'Back to chart');
+    await expect(back).toBeFocused();
+    await expect(history).toBeHidden();
+    const review = page.getByRole('region', { name: 'Local CSV import' });
+    await expect(review).toContainText(catalog.display_name);
+    await select(review, 'CSV file').selectOption(future.fileId);
+    await expect(control(review, 'Inspect raw rows')).toBeEnabled();
+    await page.screenshot({ path: testInfo.outputPath('csv-review.png') });
+    await back.click();
+    await expectOriginalChart();
+
+    await openPersonalSources(page);
+    await expect(dialog.getByRole('status')).toHaveText('Folder available in this session');
+    await expect(dialog.getByText(catalog.display_name, { exact: true })).toBeVisible();
+    mockNative.choices.push(null);
+    await choose.click();
+    await expect(dialog.getByRole('status')).toHaveText('Folder available in this session');
+    await expect(choose).toBeFocused();
+    await page.screenshot({ path: testInfo.outputPath('my-data-sources-session.png') });
+    await resume.click();
+    await expect(select(review, 'CSV file')).toHaveValue(future.fileId);
+    await back.click();
+    await expectOriginalChart();
+    const importCalls = mockNative.calls.filter(call => !['instrument.search', 'market.readHistoryPage'].includes(call.args?.operation));
+    expect(importCalls).toEqual(Array.from({ length: 3 }, () => ({
+      command: 'choose_local_csv_folder', args: { locale: 'en' },
+    })));
+  });
+});
 
 async function enterMapping(page, file, close = file.columns.close) {
   await select(page, 'Record kind').selectOption('native_ohlcv');
@@ -279,7 +408,7 @@ test('mocked native transport preserves the current source on cancel and support
   mockNative.choices.push(catalog);
   await choose();
   await expect(page.getByText('Local CSV', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Simulated', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Simulated', { exact: true })).toBeHidden();
   const fileSelector = select(page, 'CSV file');
   const rawRows = page.getByRole('table', { name: 'Raw CSV rows' }).locator('tbody tr');
   const normalizedRows = page.getByRole('table', { name: 'Normalized bars' }).locator('tbody tr');
@@ -465,6 +594,9 @@ base('ordinary browser without native transport has no folder selection action',
   await expect(control(page, 'Choose local CSV folder')).toHaveCount(0);
   await expect(control(page, 'Open published CSV')).toHaveCount(0);
   await expect(page.locator('input[type=file]')).toHaveCount(0);
+  const settings = await openPersonalSources(page);
+  await expect(settings.getByText('Local CSV selection is available in the desktop app.')).toBeVisible();
+  await expect(control(settings, 'Choose local CSV folder')).toHaveCount(0);
 });
 
 
@@ -557,7 +689,8 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     }
 
     await page.goto('/');
-    await control(page, 'Choose local CSV folder').last().click();
+    const settings = await openPersonalSources(page);
+    await control(settings, 'Choose local CSV folder').click();
     await previewAndSave();
     await expect(page.getByText('Original extra field', { exact: true })).toBeVisible();
     await expect(page.getByText('Second line from the source', { exact: false })).toHaveCount(0);
