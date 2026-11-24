@@ -19,6 +19,7 @@
   "An opaque directory component blocks inspection of the accepted source.": "目录路径中有无法检查的部分，无法核对已接受的数据源。",
   "Apply a closed-bar mapping to see a chart of the normalized rows.": "应用已收盘 K 线映射，以查看规范化数据的图表。",
   "Asia/Shanghai or UTC": "Asia/Shanghai 或 UTC",
+  "At least one matching header is too long to bind.": "至少有一个匹配的列名过长，无法绑定。",
   "Bar comparison": "K 线对比",
   "Bar end": "K 线结束时间",
   "Bar mapping": "K 线映射",

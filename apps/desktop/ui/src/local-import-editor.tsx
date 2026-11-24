@@ -80,13 +80,17 @@ const columnFields = [
 
 const unmappedColumnReason = 'No supported bar field is mapped to this column.';
 
-function draftColumnsFromHeaders(preview: CsvPreview, columns: string[], bound: CsvColumnMappingV1 | undefined) {
-  if (columns.length === 0 || preview.issues.some(issue => issue.field === 'header' || issue.code === 'decode_failed')) return;
+function canBindColumn(column: string) {
+  return column.length > 0 && (column.length <= 1_024 || (column.length <= 2_048 && [...column].length <= 1_024));
+}
+
+function draftColumnsFromHeaders(preview: CsvPreview, bound: CsvColumnMappingV1 | undefined) {
+  if (preview.header.length === 0 || preview.issues.some(issue => issue.field === 'header' || issue.code === 'decode_failed')) return;
 
   // Reuse the reader's classifications for raw-only columns, including source declarations.
   const auxiliary = new Set(preview.raw_only_columns
     .filter(({ reason }) => reason !== unmappedColumnReason).map(({ column }) => column));
-  const headers = columns.filter(column => !auxiliary.has(column)).map(column => ({
+  const headers = preview.header.filter(column => !auxiliary.has(column)).map(column => ({
     column, key: column.trim().toLowerCase().replace(/[ _-]+/g, '_'),
   }));
   const assigned = new Set(Object.values(bound ?? {}));
@@ -96,7 +100,8 @@ function draftColumnsFromHeaders(preview: CsvPreview, columns: string[], bound: 
     if (bound?.[field] !== undefined) continue;
     const candidates = headers.filter(({ key }) => aliases.some(alias => alias === key)).map(({ column }) => column);
     const [candidate] = candidates;
-    if (candidate !== undefined && candidates.length === 1 && !assigned.has(candidate)) {
+    // An overlength alias still makes the field ambiguous, even when it cannot be bound.
+    if (candidate !== undefined && candidates.length === 1 && canBindColumn(candidate) && !assigned.has(candidate)) {
       fill[field] = candidate;
       assigned.add(candidate);
     } else {
@@ -375,9 +380,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     && mapped.preview.rows.some(row => row.normalized?.is_closed) ? inspection : undefined;
   const savedDraft = approved?.draft === draft ? approved : undefined;
   const publishable = savedDraft && reviewed?.output.sha256 === savedDraft.sha256 ? savedDraft : undefined;
-  const columns = [...new Set((visible?.header ?? []).filter(column => column.length > 0
-    && (column.length <= 1_024 || (column.length <= 2_048 && [...column].length <= 1_024))))];
-  const suggestions = native && visible ? draftColumnsFromHeaders(visible, columns, draft.columns) : undefined;
+  const columns = [...new Set((visible?.header ?? []).filter(canBindColumn))];
+  const suggestions = native && visible ? draftColumnsFromHeaders(visible, draft.columns) : undefined;
   let noVolume = 'No volume column';
   while (columns.includes(noVolume)) noVolume += ' ';
 
@@ -777,11 +781,13 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
               {suggestions.unresolved.length > 0 && <ul className="local-import-issues">
                 {suggestions.unresolved.map(({ label, candidates }) => {
                   const [header] = candidates;
+                  const overlength = candidates.some(candidate => !canBindColumn(candidate));
                   return <li key={label}>
                     <strong>{t(label)}</strong>{' · '}
-                    {header === undefined ? t('No recognized header') : candidates.length === 1
-                      ? t('Header “{header}” is already bound', { header })
-                      : t('Choose among {headers}', { headers: candidates.map(header => `“${header}”`).join(', ') })}
+                    {header === undefined ? t('No recognized header') : overlength
+                      ? t('At least one matching header is too long to bind.') : candidates.length === 1
+                        ? t('Header “{header}” is already bound', { header })
+                        : t('Choose among {headers}', { headers: candidates.map(header => `“${header}”`).join(', ') })}
                   </li>;
                 })}
               </ul>}

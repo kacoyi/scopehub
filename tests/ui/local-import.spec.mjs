@@ -635,6 +635,8 @@ base('opens a CSV folder from Settings, previews a corrected header draft and re
     columns: { ...unique.columns, symbol: 'Vendor Symbol', low: 'Vendor Floor', close: 'CLOSE PRICE', volume: null },
   };
   const extraHeaders = ['SettlementPrice', 'PrevSettlementPrice', 'OpenInterest', 'Venue', 'Quantity.Unit', 'Price-Adjustment', 'TimeZone'];
+  const paddedClose = 'Close' + ' '.repeat(1_020);
+  const conflictingRow = ['CU2605', '2026-04-14 21:05', '2026-04-15', '100', '220', '96', '101', '31'];
   const records = [
     ['CU2605', '2026-04-14 21:05', '2026-04-15', '100', '106', '96', '102', '31', '105', '99', '45', 'TEST-FU', 'contracts', 'raw', 'Asia/Shanghai'],
     ['CU2605', '2026-04-14 21:10', '2026-04-15', '102', '108', '101', '105', '37', '107', '99', '46', 'TEST-FU', 'contracts', 'raw', 'UTC'],
@@ -654,6 +656,9 @@ base('opens a CSV folder from Settings, previews a corrected header draft and re
       ...header.map(column => column === 'Low' ? ambiguous.columns.low : column), ambiguous.columns.close, ambiguous.columns.symbol,
     ], records.map((row, index) => [...row, String(103 + 2 * index), 'CU2605-alt']));
     await writeCsv('invalid.csv', [...header, 'Close'], [[...records[0], '103']]);
+    const barHeaders = Object.values(unique.columns);
+    await writeCsv('overlength-conflict.csv', [...barHeaders, paddedClose], [[...conflictingRow, '202']]);
+    await writeCsv('overlength-only.csv', barHeaders.map(column => column === 'Close' ? paddedClose : column), [conflictingRow]);
 
     bridge = startLocalImportBridge(binary, profile, folder);
     const calls = [];
@@ -810,6 +815,31 @@ base('opens a CSV folder from Settings, previews a corrected header draft and re
     expect(manual.result).toEqual(corrected.result);
     await expect(normalized).toHaveText(correctedRows);
     await expect(diagnostics).toHaveText(correctedDiagnostics);
+
+    await base.step('counts overlength close aliases before applying a valid binding', async () => {
+      await openCsv('overlength-conflict.csv');
+      const raw = previewCalls().at(-1).reply.result.preview;
+      expect(raw.header).toEqual([...barHeaders, paddedClose]);
+      expect(raw.rows[0].raw_fields).toEqual([...conflictingRow, '202']);
+      await enterSeriesDeclarations(page, unique);
+      await applyDraft();
+      await expect(field('close')).toHaveValue('');
+      await expect(suggestion.getByRole('listitem')).toHaveText('Close column · At least one matching header is too long to bind.');
+      const unresolved = await mappedPreview();
+      expect(unresolved.result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'close', code: 'column_required' })]));
+      await expect(normalized).toHaveCount(0);
+      await field('close').selectOption('Close');
+      const explicit = await mappedPreview();
+      expect(explicit.mapping.columns.close).toBe('Close');
+      expect(explicit.result.rows[0].normalized.close).toBe(101);
+      await expect(normalized).toHaveCount(1);
+
+      await openCsv('overlength-only.csv');
+      await applyDraft();
+      await expect(field('close')).toHaveValue('');
+      await expect(field('close').locator('option')).toHaveCount(barHeaders.length);
+      await expect(suggestion.getByRole('listitem')).toHaveText('Close column · At least one matching header is too long to bind.');
+    });
     const picks = calls.filter(call => call.command === 'choose_local_csv_folder');
     expect(picks.map(call => call.reply.result?.display_name ?? null)).toEqual(['selected-csv', null]);
     expect(calls.filter(call => /saveLocalImportMapping|publishLocalImport/.test(call.args?.operation))).toEqual([]);
