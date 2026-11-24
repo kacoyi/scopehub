@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-029",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17335,7 +17335,7 @@
       "id": "M2-029",
       "title": "Probe authored numeric annotations in the candlestick draw cycle",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M2-014", "M2-025"],
       "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json", "project/development.json"],
       "decision_refs": ["0004", "0007", "0027"],
@@ -17348,10 +17348,23 @@
         "Extend the native WebView2 editor probe to verify accessible UTC rows, values and revisions during the timeframe round trip, rejection recovery and threshold-only preview and acceptance. Hand off the repeatable slice to the coordinator for the Windows run and the independent Ubuntu trial."
       ],
       "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
-      "evidence": [],
-      "next_action": "Re-run the repaired native WebView2 observer and verify the named control actions and their accessible postconditions. The coordinator owns the hosted run and evidence archive.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-029-a54db22ae150b4d4.json",
+          "sha256": "33bb7e815bc942132698c3465a77f892c430bc7e79d586f6248635143eac17e7"
+        },
+        {
+          "path": "project/evidence/M2-029-d0aad5a156051efb.json",
+          "sha256": "71d65ced504839f5128ec631ad773fac3c7f7529ec48956a3d2ee4d38aa1ff46"
+        },
+        {
+          "path": "project/evidence/M2-029-261f2c83d060d699.json",
+          "sha256": "9c887193f45248c0fc42a24ff5c2b091c1e4cc376d0318c46b17cfc032d71afd"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Archived local and hosted Linux and Windows task checks on c637c35. Read-only review, Chromium, the staged Ubuntu native window and hosted WebView2 verified the scoped synthetic binding and recovery. Six settled Ubuntu captures placed the annotation tip within one logical pixel of its wick. See contracts/reviews/2026-11-24-candlestick-native-observations.json. M2-003 retains moving-frame, native containment and renderer selection work.",
       "plan": {
         "outcome": "A declarative numeric annotation follows its exact candle as the viewport or timeframe changes. A reviewer can inspect the frozen input and recover the accepted draft.",
         "change_types": ["ui"],

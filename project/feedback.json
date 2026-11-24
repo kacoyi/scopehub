@@ -3862,10 +3862,14 @@
       "source": "Coordinator report from the staged Ubuntu Tauri/WebKitGTK M2-029 trial.",
       "observation": "The chart-only synthetic equity composition displayed the legacy futures source disclosure above its candlesticks. The host painted the expected annotations on the timeframe switch and restored the view after rejecting an unknown source.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M2-029"],
       "regression_checks": ["renderer-prototype-interaction"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The canvas displayed its original synthetic futures source independently of which blocks were visible.",
+        "correction": "The canvas discloses the futures source for the tile and table blocks and each candlestick discloses its synthetic equity binding.",
+        "prevention": "The Chromium regression covers the blank, chart-only and mixed canvas. The hosted WebView2 probe checks the chart-only disclosure."
+      },
       "deferral_reason": null
     },
     {
@@ -3873,10 +3877,14 @@
       "source": "Independent Astra reproduction through the normal React workbench entry at 89867c9. The coordinator repeated it in Ubuntu Tauri/WebKitGTK and retained observations/m2-029-review-89867c9/observations.json, SHA-256 757281b4ea663e6964d2660008a787df2feb397f18c6b6eed335c42e43623d7e.",
       "observation": "The reviewer accepted a candlestick showing the 15-minute 09:30 UTC result at 4.7%, previewed an empty composition, then rejected a grant-mismatched draft. Restore returned the original author text but switched the chart to the 5-minute 09:40 UTC result at 3.2%. The focused Chromium regression reproduced the reset of the 15-minute control after the chart was removed.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M2-029"],
       "regression_checks": ["renderer-prototype-interaction"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The chart component owned the selected timeframe and lost it when an empty draft unmounted the accepted chart.",
+        "correction": "The workbench retains the accepted block timeframes with their validated definitions and original authored text. Preview changes stay with the draft.",
+        "prevention": "The browser and both native desktop observations remove the chart, reject an ungranted source and recover the 09:30 UTC fifteen-minute result at 4.7% with the expected revisions."
+      },
       "deferral_reason": null
     },
     {
@@ -3884,10 +3892,14 @@
       "source": "Astra review of a5aba30 against 89867c9. The coordinator reproduced both cases on Ubuntu Tauri/WebKitGTK and retained observations/m2-029-edit-a5aba30/observations.json, SHA-256 d5b00e261d6fd832d9e2707de438e03013ce30d310d536312bac146dc5abd246.",
       "observation": "Appending an identical candlestick definition changes the existing 15-minute chart and the new chart to five minutes. Changing only the accepted annotation threshold from 0.8 to 0.85 silently replaces the 09:30 UTC result at 4.7% with the five-minute 09:40 UTC result at 3.2%. The native review confirmed that accepting the scoped edit retains the wrong result. The coordinator also identified in-place edits to the plotted or condition field of a sole chart as same-source binding changes that must preserve its timeframe.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M2-029"],
       "regression_checks": ["renderer-prototype-interaction"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The preview reconciled blocks using their complete binding and required a unique match. A scoped edit or duplicate could reset an existing block.",
+        "correction": "Reconcile the transient instances by source, unchanged bindings and their occurrences. Preserve a single remaining same-source field edit and give a new instance its own timeframe.",
+        "prevention": "Chromium checks duplicates, distinguishable reordering, isolated switching and scoped field edits against independent UTC rows, values and revisions. Native Ubuntu repeats append, threshold and plotted-field edits, and WebView2 checks the threshold edit."
+      },
       "deferral_reason": null
     },
     {
@@ -3895,7 +3907,7 @@
       "source": "Authenticated Windows task run 45362475052 at a5aba30. Retain archives/runs/20261124T091241.788693Z-00666947/test-report.json and its renderer-prototype-interaction log.",
       "observation": "All five Chromium cases passed and the native executable built. The WebView2 probe stopped at tests/ui/renderer-probe-windows.ps1:49 when GetCurrentPattern(InvokePattern) returned Unsupported Pattern for a button. The log did not identify the requested control or list its patterns. A timeframe button exposing TogglePattern is a hypothesis.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M2-029"],
       "regression_checks": ["renderer-prototype-interaction"],
       "diagnostic_reports": [
@@ -3905,7 +3917,11 @@
           "report_sha256": "066efa3114059e13136f68726d45319d3632143e2ba4d7721f0d0d4b5d491590"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The probe assumed every enabled button supported InvokePattern. The original failure did not name the button.",
+        "correction": "Select an action supported by the named, enabled control. Report the requested control and observable patterns if activation fails.",
+        "prevention": "The hosted Windows run observed the 5 min and 15 min buttons using TogglePattern, verified the financial results and read back the exact recovered draft through UI Automation. The original failure and log remain in the diagnostic archive."
+      },
       "deferral_reason": null
     }
   ]

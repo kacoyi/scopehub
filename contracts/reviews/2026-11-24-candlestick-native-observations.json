@@ -1,0 +1,165 @@
+{
+  "date": "2026-11-24",
+  "task": "M2-029",
+  "ubuntu": {
+    "task": "M2-029",
+    "observed_at": "2026-11-24T09:26:28.931216+00:00",
+    "purpose": "Independent observation of the opt-in synthetic workbench in a native development window.",
+    "frontend_commit": "c637c35de1cd56d88c3d24d5b1c4fb4bd2c699bf",
+    "native_host_commit": "6aee5586e23392fa341d4779bbe92f9936441c97",
+    "native_host_binary_sha256": "9028ba8243cfc01fc23c31edc13b420b9fec1f988d8bffe98683c3f6dbd4938e",
+    "host": "Ubuntu 26.04.1 LTS, x86_64, GTK 3.24.52, WebKitGTK 2.52.6",
+    "build": "Production frontend assets embedded in a debug Tauri host with the ubuntu-desktop and tauri/custom-protocol features.",
+    "display": "Private Xvfb display at 1x with software rendering, 1280 by 800 and 1050 by 820 logical pixels.",
+    "inputs": {
+      "fixture": "tests/fixtures/workbench-qualification-v1.json",
+      "fixture_sha256": "a8e8b233e4c9816f874b29d9dcf3094cce997e15d7ff158ec64a8419826c5e78",
+      "source": "qualification-equity",
+      "when": "strength > 0.8",
+      "field": "turnover",
+      "instrument": "SIM.EQUITY.QUALIFICATION.001"
+    },
+    "observations": {
+      "five_minute": "3.2% on the 09:40 UTC candle.",
+      "fifteen_minute": "4.7% on the 09:30 UTC candle.",
+      "geometry": {
+        "five-minute": {
+          "candles": 4,
+          "target_index": 2,
+          "candle_wick_x": 846.0,
+          "bubble_tip_x": 845.0,
+          "error_logical_px": 1.0,
+          "vertical_gap_px": 3
+        },
+        "five-minute-zoom": {
+          "candles": 4,
+          "target_index": 2,
+          "candle_wick_x": 863.0,
+          "bubble_tip_x": 862.5,
+          "error_logical_px": 0.5,
+          "vertical_gap_px": 3
+        },
+        "five-minute-pan": {
+          "candles": 4,
+          "target_index": 2,
+          "candle_wick_x": 895.0,
+          "bubble_tip_x": 894.5,
+          "error_logical_px": 0.5,
+          "vertical_gap_px": 3
+        },
+        "five-minute-resize": {
+          "candles": 4,
+          "target_index": 2,
+          "candle_wick_x": 670.0,
+          "bubble_tip_x": 669.5,
+          "error_logical_px": 0.5,
+          "vertical_gap_px": 3
+        },
+        "fifteen-minute": {
+          "candles": 1,
+          "target_index": 0,
+          "candle_wick_x": 664.0,
+          "bubble_tip_x": 663.5,
+          "error_logical_px": 0.5,
+          "vertical_gap_px": 3
+        },
+        "five-minute-roundtrip": {
+          "candles": 4,
+          "target_index": 2,
+          "candle_wick_x": 712.0,
+          "bubble_tip_x": 711.5,
+          "error_logical_px": 0.5,
+          "vertical_gap_px": 3
+        }
+      },
+      "recovery": "An invalid source preserves the accepted view. A separate run accepted the fifteen-minute view, previewed an empty composition, rejected an unknown source and restored the original 4.7% binding and exact authored text.",
+      "scoped_edits": "Editing the accepted threshold from 0.8 to 0.85 retained the fifteen-minute 09:30 row and 4.7%. Adding another candlestick kept the first on fifteen minutes and opened the second at five minutes and 3.2%. Both persisted when the edits were accepted. Rebinding the plotted field to strength on the same chart retained 09:30 UTC, its fifteen-minute revisions and the unitless 0.9 annotation."
+    },
+    "measurement": "Read the visible candle wick and bubble leader tip from each retained native window capture at rest. The longest continuous motion and presented-frame qualification remain under M2-003.",
+    "prior_observations": [
+      {
+        "manifest": "observations/m2-029-review-89867c9/observations.json",
+        "sha256": "757281b4ea663e6964d2660008a787df2feb397f18c6b6eed335c42e43623d7e"
+      },
+      {
+        "manifest": "observations/m2-029-edit-a5aba30/observations.json",
+        "sha256": "d5b00e261d6fd832d9e2707de438e03013ce30d310d536312bac146dc5abd246"
+      }
+    ],
+    "local_archive": "observations/m2-029-candlestick-c637c35",
+    "reproduce": {
+      "inspect_attribution": "python3 check-snapshots.py",
+      "measure_captures": "python3 measure.py chart"
+    },
+    "manifest_sha256": "2c9cde0532f53252f398d3c86d7f13bb5fea0b3cc285b63cc18a5ed76ab992f8"
+  },
+  "windows": {
+    "source_commit": "c637c35de1cd56d88c3d24d5b1c4fb4bd2c699bf",
+    "workflow_run": "https://github.com/kacoyi/scopehub/actions/runs/45365206968",
+    "harness_run": "20261124T092940.333850Z-4092db48",
+    "report_sha256": "261f2c83d060d69948d267fad4e6a0b893a0ab4da6929709720764872f73af28",
+    "check_log_sha256": "8f8a0ae13bd4251f110a5f4dae5ff80ef180a39706588fdac6b9162e33d532f2",
+    "local_archive": "runs/20261124T092940.333850Z-4092db48/test-report.json",
+    "timeframe_control_actions": [
+      "UI Automation control '15 min' used TogglePattern.Toggle.",
+      "UI Automation control '5 min' used TogglePattern.Toggle.",
+      "UI Automation control '15 min' used TogglePattern.Toggle."
+    ],
+    "observation": {
+      "binary_sha256": "dcf35e29e8553ed08697133ea232255f09a1e4f9ccd2dfa17c1a940e396add24",
+      "os_version": "Microsoft Windows NT 10.0.26100.0",
+      "recovery_ms": 100,
+      "measurement": "UI Automation invocation to accessible result, including polling",
+      "runtime_version": "157.0.4341.46",
+      "annotation_round_trip": [
+        {
+          "bar_utc": "2024-01-04T09:40:00.000Z",
+          "timeframe": "5m",
+          "series_revision": "qualification-equity-5m-bars-v1",
+          "result_revision": "qualification-equity-5m-results-v1",
+          "value": "3.2%"
+        },
+        {
+          "bar_utc": "2024-01-04T09:30:00.000Z",
+          "timeframe": "15m",
+          "series_revision": "qualification-equity-15m-bars-v1",
+          "result_revision": "qualification-equity-15m-results-v1",
+          "value": "4.7%"
+        },
+        {
+          "bar_utc": "2024-01-04T09:40:00.000Z",
+          "timeframe": "5m",
+          "series_revision": "qualification-equity-5m-bars-v1",
+          "result_revision": "qualification-equity-5m-results-v1",
+          "value": "3.2%"
+        }
+      ],
+      "host": "Windows WebView2",
+      "annotation_rejected_draft_restored": true,
+      "annotation_scope": "UI Automation UTC attribution rows and editor recovery in WebView2",
+      "annotation_accepted_threshold_edit": {
+        "result": {
+          "bar_utc": "2024-01-04T09:30:00.000Z",
+          "timeframe": "15m",
+          "series_revision": "qualification-equity-15m-bars-v1",
+          "result_revision": "qualification-equity-15m-results-v1",
+          "value": "4.7%"
+        },
+        "above": 0.85
+      },
+      "edit_ms": 79,
+      "fixture": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1",
+      "annotation_restored_after_empty_preview": {
+        "bar_utc": "2024-01-04T09:30:00.000Z",
+        "timeframe": "15m",
+        "series_revision": "qualification-equity-15m-bars-v1",
+        "result_revision": "qualification-equity-15m-results-v1",
+        "value": "4.7%"
+      },
+      "compose_ms": 259,
+      "source_commit": "c637c35de1cd56d88c3d24d5b1c4fb4bd2c699bf",
+      "annotation_fixture_sha256": "a8e8b233e4c9816f874b29d9dcf3094cce997e15d7ff158ec64a8419826c5e78"
+    },
+    "scope": "The hosted WebView2 UI Automation run observed the timeframe round trip, denied edit, restoration after unmount and threshold edit. Native Windows moving edges, presented pixels and display timing remain in M2-003. Physical packaged Windows acceptance remains open."
+  }
+}
