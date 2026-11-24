@@ -412,9 +412,11 @@ def hosted_timing(run, jobs):
                          for step in job.get('steps', [])}
     recovery_layout = (WINDOWS_RECOVERY_MARKER in aggregate_markers
                        or any(job.get('name') == WINDOWS_PRODUCERS['recovery'] for job in jobs))
+    legacy_layout = WINDOWS_AGGREGATE_MARKER in aggregate_markers
     expected = WINDOWS_PRODUCERS if recovery_layout else LEGACY_WINDOWS_LANES
+    identified_layout = legacy_layout != recovery_layout
     split = run.get('event') in NORMAL_EVENTS and (
-        recovery_layout or WINDOWS_AGGREGATE_MARKER in aggregate_markers
+        recovery_layout or legacy_layout
         or any(job.get('name') in WINDOWS_PRODUCERS.values() for job in jobs)
     )
     rows, siblings, producers = [], [], {}
@@ -446,7 +448,7 @@ def hosted_timing(run, jobs):
 
     actual = [*rows, *siblings]
     runners = [row['seconds']['runner'] for row in actual]
-    if split and aggregate:
+    if split and aggregate and identified_layout:
         split_windows_seconds(aggregate, producers, requested, expected)
     ids = [row['job_id'] for row in actual if row['job_id'] is not None]
     if len(set(ids)) != len(ids):
@@ -454,7 +456,7 @@ def hosted_timing(run, jobs):
             if ids.count(row['job_id']) > 1:
                 row['identity_issues']['conflicts'].append('duplicate_job_id')
     bound_matrix = (len(rows) == len(PLATFORMS) and {row['platform'] for row in rows} == set(PLATFORMS.values())
-                    and (not split or has_windows_producers(siblings, expected))
+                    and (not split or identified_layout and has_windows_producers(siblings, expected))
                     and all(not row['identity_issues']['conflicts'] for row in actual))
     complete = (bound_matrix and run.get('status') == 'completed'
                 and all(row['status'] == 'completed' for row in actual))
@@ -694,12 +696,14 @@ def coalesce_samples(samples, issues):
                 issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
                                'error': 'Conflicting complete timing samples for this run and platform.'})
                 continue
-            sample = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
-            if 'windows_caches' in sample and windows_aggregate_cache(sample['windows_caches']) != sample['cache']:
+            cache = next(iter(caches), 'unknown')
+            lane_caches = observed or previously_observed
+            if lane_caches is not None and windows_aggregate_cache(lane_caches) != cache:
                 group.append(sample)
                 issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
                                'error': 'Conflicting Windows producer and aggregate cache observations.'})
                 continue
+            sample = {**previous, **sample, 'cache': cache}
             if previous_proof is not None and proof is None:
                 sample['generated_contracts'] = previous_proof
         except TIMING_INPUT_ERRORS:
@@ -724,7 +728,11 @@ def merge_samples(samples, hosted, issues):
         seconds = {key: sample['seconds'][key] for key in ('harness', 'check_work')}
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
-        yield {**sample, 'seconds': seconds,
+        cache = sample['cache']
+        if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
+                and sample['profile'] == 'full' and 'windows_caches' not in sample):
+            cache = 'unknown'
+        yield {**sample, 'seconds': seconds, 'cache': cache,
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
                'workflow_conclusion': run['conclusion'] if run else None,

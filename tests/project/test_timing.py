@@ -129,12 +129,27 @@ class ReportTimingTests(unittest.TestCase):
         missing = {lane: state for lane, state in states.items() if lane != 'recovery'}
         with self.assertRaisesRegex(ValueError, 'one cache state'):
             timing.windows_aggregate_cache(missing)
-        for observations, conflict in (([warm, current], False), ([current, warm], False), ([warm, unknown], True)):
+        for observations in ([warm, current], [current, warm]):
             issues = []
-            rows = timing.coalesce_samples(observations, issues)
-            self.assertEqual(conflict, bool(issues))
-            if not conflict:
-                self.assertEqual([[current]], rows)
+            self.assertEqual([[current]], timing.coalesce_samples(observations, issues))
+            self.assertEqual([], issues)
+        identity = timing.ci_key(warm['ci'])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'capture.json'
+            for observations in ([warm, unknown], [unknown, warm]):
+                with self.subTest(first_cache=observations[0]['cache']):
+                    issues = []
+                    samples, clocks, _, _, ambiguous = timing.capture_observations(identity, observations, [], issues)
+                    self.assertTrue(ambiguous)
+                    timing.save_timing_capture(path, 1, samples, clocks, issues)
+                    reload_issues = []
+                    _, retained, retained_clocks, _ = timing.read_timing_capture(path, reload_issues)
+                    self.assertEqual(observations, retained)
+                    self.assertEqual([], reload_issues)
+                    _, _, _, _, remains_ambiguous = timing.capture_observations(
+                        identity, retained, retained_clocks, reload_issues,
+                    )
+                    self.assertTrue(remains_ambiguous)
 
     def test_explicit_harness_clock_is_independent_of_overlapping_check_work(self):
         report = historical_report()
@@ -287,6 +302,42 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertFalse(timing.clock_complete(failed))
             retained['sibling_jobs'].pop()
             self.assertFalse(timing.clock_complete(retained))
+
+    def test_unmarked_split_job_data_cannot_be_recognized_as_complete_legacy(self):
+        *producers, aggregate = self.split_windows_jobs()
+        unmarked = dict(aggregate, steps=aggregate['steps'][:1])
+        result = timing.hosted_timing(hosted_run(), [*producers, unmarked])
+        self.assertFalse(timing.clock_capture_complete(result))
+        self.assertIsNone(result['workflow']['total_elapsed_seconds'])
+        self.assertIsNone(result['workflow']['runner_work_seconds'])
+
+    def test_four_producer_wall_clock_needs_every_cache_state_to_enter_the_warm_cohort(self):
+        *producers, aggregate = self.split_windows_jobs()
+        legacy = timing.hosted_timing(hosted_run(), [*producers, aggregate])
+        aggregate = dict(aggregate, steps=[
+            aggregate['steps'][0], {'name': timing.WINDOWS_RECOVERY_MARKER, 'conclusion': 'success'},
+        ])
+        recovery = hosted_job(36, 'windows', '00:35', '05:05',
+                              'Verify the Windows recovery lane', '02:00', '05:00')
+        recovery['name'] = 'Windows change checks (recovery)'
+        current = timing.hosted_timing(hosted_run(), [*producers, recovery, aggregate])
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+        scalar = timing.report_sample(report, cache='warm')
+        states = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
+        for clock, sample, cache in ((current, scalar, 'unknown'),
+                                     (current, dict(scalar, windows_caches=states), 'warm'),
+                                     (legacy, scalar, 'warm')):
+            with self.subTest(cache=cache, layout=clock['workflow'].get('windows_recovery_producer')):
+                view = timing.timing_view([sample], hosted=[clock])
+                review, = view['reviews']
+                observed, = view['samples']
+                self.assertEqual(cache, review['cache'])
+                self.assertEqual(765, observed['seconds']['total'])
+                self.assertIsNone(observed['review_exclusion'])
 
     def test_scoped_windows_counts_launched_setup_siblings_and_uses_only_the_core_harness(self):
         run = dict(hosted_run(), event='push')
