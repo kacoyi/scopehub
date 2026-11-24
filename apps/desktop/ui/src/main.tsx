@@ -46,6 +46,10 @@ function App() {
   const supportsSourcePreference = source !== undefined;
   const sample = localWorkspace ? Boolean(snapshot && (source?.kind === 'sample' || source == null && legacySample)) : legacySample;
   const { restored, retry } = useRestoredWorkspaceSource(localWorkspace, revisionAccess);
+  const drawingSnapshot = restored?.status === 'ready' && !localWorkspace?.sourceRecovery && !localWorkspace?.error
+    && localWorkspace?.pending !== 'source' && revisionAccess.canDisplay(restored.revision_id) ? restored.chart?.history.snapshot : undefined;
+  const drawingScope = drawingSnapshot && JSON.stringify([drawingSnapshot.dataset_id, drawingSnapshot.dataset_revision,
+    snapshot?.workspace.id, snapshot?.selection_revision, snapshot?.workspace.revision]);
   const target = snapshot?.chart_evidence;
   const targetRevoked = Boolean(target && 'revision_id' in target && revisionAccess.revoked.has(target.revision_id));
   const displaySnapshot = useMemo(() => snapshot && targetRevoked
@@ -132,7 +136,9 @@ function App() {
 
   return <>
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
-    {authoring === 'drawing' && <DrawingWorkbench workspace={localWorkspace} hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
+    {authoring === 'drawing' && <DrawingWorkbench key={drawingScope}
+      sourceUnavailable={source?.kind === 'frozen' && !drawingSnapshot && restored?.status !== 'loading'}
+      bindingSnapshot={drawingSnapshot} access={revisionAccess} workspace={localWorkspace} hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
     {authoring === 'tree' && <WorkbenchAuthoring close={closeWorkbench} ask={askWorkbench}
       openDrawing={() => { setAuthoringTurn(undefined); setAuthoring('drawing'); }} />}
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}

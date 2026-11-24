@@ -608,7 +608,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
         <p className="model-muted" role="status">{connection?.route.kind === 'offline_mock' ? t('Offline mock enabled')
           : connection ? <>{t('{provider} connected', { provider: providerName(connection.route.kind) })} · <bdi>{connection.route.model}</bdi></>
             : t('No model connected')}</p>
-        {authoring && <p className="model-muted">{t('This turn sends your intent, synthetic source descriptions and the accepted view definition through the current model connection. Source rows stay on this device.')}</p>}
+        {authoring && <p className="model-muted">{t('This turn sends your intent, drawing or composition instructions and the accepted view definition through the current model connection. Source rows stay on this device.')}</p>}
         {needsAuthoringModel && <p role="status">{t('Connect a model in AI settings to author a view.')}</p>}
         <div ref={transcript} className="model-transcript" role="log" aria-label={t('Conversation')}>
           {turns.filter(turn => turn.authored?.scope === authoring?.scope).map(turn => <article key={turn.id} className="model-turn">

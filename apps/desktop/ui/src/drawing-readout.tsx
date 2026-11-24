@@ -7,7 +7,7 @@ import { sources } from './workbench-composition';
 import type { Drawing } from './drawing-program';
 
 type Query = {
-  source: Drawing['source']; field: NonNullable<Drawing['difference']>['field']; parameter: number;
+  source: keyof typeof sources; field: NonNullable<Drawing['difference']>['field']; parameter: number;
   workspaceId: string; revision: number; selectionRevision: number;
 };
 type Readout = { points: { time_ms: number; value: number | null }[]; resultHash: string };

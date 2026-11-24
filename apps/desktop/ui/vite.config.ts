@@ -9,6 +9,9 @@ export default defineConfig(({ command, mode, isPreview }) => {
   const history = serving && (mode === 'ubuntu-preview' || workspace);
   const testPreview = process.env.SCOPEHUB_TEST_PREVIEW === '1';
   return {
+    // History and authenticated workspaces can run concurrently. Their defines
+    // differ, so their optimized worker modules need independent URLs on disk.
+    cacheDir: `node_modules/.vite-${mode}`,
     plugins: [react(), ...(history ? [ubuntuPreview()] : []), ...(workspace ? [ubuntuWorkspace()] : [])],
     // Discover the worker-only interpreter before serving the editor. Late
     // dependency optimization reloads the page and discards the first draft.

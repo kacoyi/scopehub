@@ -4,7 +4,7 @@ import { markLimit, readProgram, validMark, validTarget, viewport, type ViewBoun
 
 export type RenderRequest = {
   code: string;
-  rows: { time_ms: number; open: number; high: number; low: number; close: number; volume: number }[];
+  rows: { time_ms: number; value: number | null }[] | { time_ms: number; open: number; high: number; low: number; close: number; volume: number }[];
   bounds: ViewBounds; controls: Controls;
 };
 
@@ -48,7 +48,7 @@ async function evaluate({ code, rows, bounds, controls }: RenderRequest) {
         vm.setProp(vm.global, name, fn);
         fn.dispose();
       }
-      // Only repository-owned, frozen numeric input crosses into this VM. There
+      // Only the host-selected numeric projection crosses into this VM. There
       // is no module loader, pending-job pump, DOM, worker API or native bridge.
       const globals = vm.evalCode('globalThis.rows = ' + JSON.stringify(rows) + ';globalThis.params = '
         + JSON.stringify(controls.params) + ';globalThis.selected = ' + JSON.stringify(controls.selected),
@@ -60,7 +60,7 @@ async function evaluate({ code, rows, bounds, controls }: RenderRequest) {
       const failed = Boolean(result.error);
       result.dispose();
       if (performance.now() >= deadline) return { status: 'timeout' };
-      if (failed || invalid || !marks.length) return { status: 'rejected' };
+      if (failed || invalid || (!marks.length && !code.startsWith('// series free'))) return { status: 'rejected' };
       return { status: 'ready', marks, targets };
     } finally { vm.dispose(); }
   } finally { runtime.dispose(); }

@@ -1,8 +1,9 @@
+import type { Point } from '../../../../contracts/generated/protocol';
 import { sources, type NumericField } from './workbench-composition';
 
 export type Scalar = { name: string; min: number; max: number; step: number; initial: number };
 export type Drawing = {
-  source: keyof typeof sources; mode: 'free' | 'overlay'; code: string;
+  source: keyof typeof sources | 'series'; mode: 'free' | 'overlay'; code: string;
   scalars: Scalar[]; difference?: { field: NumericField; parameter: string };
 };
 export type Controls = { params: Record<string, number>; selected: number };
@@ -31,9 +32,10 @@ export function readProgram(text: string): Drawing | undefined {
   if (text.length > programLimit + 32) return;
   const trimmed = text.trim();
   const code = /^\x60\x60\x60(?:javascript|js)?\s*\n([\s\S]+?)\n\x60\x60\x60$/i.exec(trimmed)?.[1]?.trim() ?? trimmed;
-  const header = /^\/\/ (stock|future) (free|overlay)\r?\n/.exec(code);
+  const header = /^\/\/ (stock|future|series) (free|overlay)\r?\n/.exec(code);
   if (header && code.length <= programLimit) {
     const result: Drawing = { source: header[1] as Drawing['source'], mode: header[2] as Drawing['mode'], code, scalars: [] };
+    if (result.source === 'series' && result.mode !== 'free') return;
     for (const line of code.split(/\r?\n/).slice(1)) {
       const [comment, directive, ...args] = line.trim().split(/\s+/);
       if (comment !== '//' || !['scalar', 'difference'].includes(directive ?? '')) continue;
@@ -48,7 +50,7 @@ export function readProgram(text: string): Drawing | undefined {
           || (max - min) / step > 10000 || !allowedValue(scalar, initial) || !allowedValue(scalar, max)) return;
         result.scalars.push(scalar);
       } else {
-        if (result.difference || args.length !== 2 || !['open','high','low','close','volume'].includes(name ?? '')
+        if (result.source === 'series' || result.difference || args.length !== 2 || !['open','high','low','close','volume'].includes(name ?? '')
           || !result.scalars.some(s => s.name === args[1])) return;
         result.difference = { field: name as NumericField, parameter: args[1]! };
       }
@@ -57,36 +59,51 @@ export function readProgram(text: string): Drawing | undefined {
   }
 }
 
-export function drawingPrompt(accepted?: Drawing) {
+export function drawingPrompt(accepted?: Drawing, series = false) {
   return [
-    'Write a complete synthetic drawing in plain JavaScript, max 900 characters. First line: // <stock|future> <free|overlay>.',
-    'rows contains two frozen 1m bars with time_ms,open,high,low,close,volume. Use for/if/Math for geometry only.',
-    'Viewport 640x240. xTime(time_ms), yValue(price) map to the shared price overlay. Free mode has no axes.',
+    series ? 'Write a complete drawing in plain JavaScript, max 900 characters. First line: // series free.'
+      : 'Write a complete synthetic drawing in plain JavaScript, max 900 characters. First line: // <stock|future> <free|overlay>.',
+    series ? 'rows contains the selected accepted observations with time_ms and value (finite number or null). Preserve missing values.'
+      : 'rows contains two frozen 1m bars with time_ms,open,high,low,close,volume. Use for/if/Math for geometry only.',
+    'Viewport 640x240. xTime(time_ms) and yValue(value) use host bounds. Free mode has no axes.',
     'Draw with line(x1,y1,x2,y2,ink), circle(x,y,r,ink), rect(x,y,w,h,ink). ink=0..3. Local stroke weight is adjustable.',
     'Optional // scalar name min max step default; read params.name. hit(rowIndex,x,y,r) binds a selectable area; selected is its index or -1.',
-    '// difference field name requests a host-calculated selected field minus that scalar. No guest readout formulas. Accepted program:', accepted?.code ?? 'none', 'User intent:',
+    ...(series ? [] : ['// difference field name requests a host-calculated selected field minus that scalar.']),
+    'No guest readout formulas. Accepted program:', accepted?.code ?? 'none', 'User intent:',
   ].join('\n') + '\n';
 }
 
 export type ViewBounds = { from: number; to: number; low: number; high: number };
 
-// This candidate admits only the two non-empty, pinned fixtures. A wider
-// host window changes both domains without changing either series or program.
-export function viewBounds(source: Drawing['source'], expanded: boolean): ViewBounds {
+export function seriesBounds(points: Point[]): ViewBounds {
+  const values = points.flatMap(p => p.value === null ? [] : [p.value]);
+  const frame = padBounds(points[0]?.time_ms ?? 0, points.at(-1)?.time_ms ?? 0, 0, 0, false);
+  if (values.length) {
+    frame.low = Math.min(...values);
+    frame.high = Math.max(...values);
+  }
+  return frame;
+}
+
+export function viewBounds(source: keyof typeof sources, expanded: boolean): ViewBounds {
   const bars = sources[source].bars;
-  const from = bars[0]!.time_ms;
-  const to = bars[bars.length - 1]!.time_ms;
-  const low = Math.min(...bars.map(bar => bar.low));
-  const high = Math.max(...bars.map(bar => bar.high));
+  return padBounds(bars[0]!.time_ms, bars.at(-1)!.time_ms,
+    Math.min(...bars.map(bar => bar.low)), Math.max(...bars.map(bar => bar.high)), expanded);
+}
+
+function padBounds(from: number, to: number, low: number, high: number, expanded: boolean): ViewBounds {
   const timePad = from === to ? 30_000 : expanded ? (to - from) / 2 : 0;
   const pricePad = low === high ? 1 : expanded ? (high - low) / 2 : 0;
   return { from: from - timePad, to: to + timePad, low: low - pricePad, high: high + pricePad };
 }
 
 export function viewport({ from, to, low, high }: ViewBounds) {
+  const span = high - low;
+  const fraction = (value: number) => high === low ? 0.5 : Number.isFinite(span)
+    ? (value - low) / span : (value / 2 - low / 2) / (high / 2 - low / 2);
   return {
     xTime: (time: number) => 64 + (time - from) / (to - from) * (width - 88),
-    yValue: (value: number) => height - 32 - (value - low) / (high - low) * (height - 56),
+    yValue: (value: number) => height - 32 - fraction(value) * (height - 56),
   };
 }
 

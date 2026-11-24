@@ -25,6 +25,18 @@
     "independent_case": "Both externally authored pennant files also run unmodified through the new renderer. The original source-only results and the 19-pixel defect remain separately recorded.",
     "open_evidence": "Physical Windows, renderer selection, live external-client admission and actual accepted indicator binding are separate gates."
   },
+  "independent_native_archive": {
+    "index": "archives/worktrees/cea053aa543ce887a4f26378d7a1290bf4903fe3/files/.reports/m2-003-independent/native-index.json",
+    "sha256": "5adc18113304c437e4788612b126acf0bc5dc6c74066983f11ee167601e13bf8",
+    "scope": "Three sealed Ubuntu native development observations. Both ordinary GTK file selections passed in the third case at 980 and 1280 pixels. XTest input through screenshot detection including capture and polling: host stroke median 44.35 ms (6 samples), program scalar median 127.59 ms (5 samples). Physical desktop sign-off, Windows and release remain separate."
+  },
+  "hosted_windows_v2": {
+    "runtime": "9f0bee3e5997319397feff70414f6b461244a324",
+    "indexed_at": "archives/worktrees/cea053aa543ce887a4f26378d7a1290bf4903fe3/files/.reports/m2-003-independent/hosted-index.json",
+    "index_sha256": "8191d589b3b159b49ca350b52dbf3c49d76bcf603c2fa62884956b9800eae926",
+    "diagnostic": "archives/runs/20261124T021858.871777Z-b5e01470/test-report.json",
+    "scope": "Hosted Windows NT 10.0.26100.0, WebView2 157.0.4341.46. Run 45311046657, x64 Tauri release executable built without bundling. Four retained screenshot digests matched; the revised and restored flag images were identical. Evidence covers v2. Windows v3 and accepted-series binding, physical devices and installer/release acceptance remain separate."
+  },
   "launch_workspace": [
     "cargo build --locked --target-dir target -p scopehub-persistence -p scopehub-worker-host --bins --example history_bridge --jobs 2",
     "profile_parent=$(mktemp -d /tmp/scopehub-drawing-1444.XXXXXXXX)",

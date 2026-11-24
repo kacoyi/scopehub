@@ -9,7 +9,7 @@ const output = process.env.SCOPEHUB_RUN_DIR
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['workbench-authoring.spec.mjs', 'drawing-workbench.spec.mjs', 'drawing-series.spec.mjs'],
+  testMatch: ['workbench-authoring.spec.mjs', 'drawing-workbench.spec.mjs', 'drawing-series.spec.mjs', 'accepted-drawing.spec.mjs'],
   workers: 1,
   timeout: 90_000,
   metadata: { scope: 'Embedded model turn with a test-owned HTTP peer. No connected-model quality or native renderer acceptance.' },
