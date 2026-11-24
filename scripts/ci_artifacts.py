@@ -299,6 +299,12 @@ def stage_artifacts(root, destination, env):
             directory = browser_roots.get(check, f'{run}/{check}')
             for path in browser_artifacts(reports, directory, check):
                 copy_file(path, destination / path.relative_to(reports))
+    if 'chart-coordinate-prototype' in executed:
+        for name in ('aligned.png', 'resized.png', 'clipped.png', 'refit.png', 'switched.png'):
+            relative = f'{run}/native-chart/{name}'
+            image = optional_path(reports, relative)
+            if image is not None:
+                copy_file(image, destination / relative)
     if 'chart-history' in executed:
         relative = browser_roots['chart-history']
         summary = optional_path(reports, relative + '/summary.json')

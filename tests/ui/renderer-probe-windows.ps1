@@ -1,4 +1,5 @@
 # Exercise the embedded WebView2 through its accessibility tree in an isolated synthetic profile.
+param([string]$ChartOutput)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -60,20 +61,29 @@ Push-Location $root
 try {
     New-Item -ItemType Directory -Path $temp | Out-Null
     $config = Join-Path $temp 'tauri.renderer.json'
-    [IO.File]::WriteAllText($config, (@{ identifier = $identifier } | ConvertTo-Json))
+    $overrides=@{identifier=$identifier}
+    if ($ChartOutput) {
+        $stock=Get-Content -LiteralPath (Join-Path $root 'apps/desktop/src-tauri/tauri.conf.json') -Raw | ConvertFrom-Json
+        $stock.app.windows[0] | Add-Member -NotePropertyName url -NotePropertyValue 'index.html?chart-drawing=1#demo'
+        $overrides['app']=@{windows=$stock.app.windows}
+    }
+    [IO.File]::WriteAllText($config, ($overrides | ConvertTo-Json -Depth 8))
     $metadata = cargo metadata --no-deps --format-version 1
     if ($LASTEXITCODE) { throw 'Cargo target directory lookup failed.' }
     # Keep the test-identifier binary away from the normal release executable.
     $target = Join-Path ($metadata | ConvertFrom-Json).target_directory 'x86_64-pc-windows-msvc'
     Push-Location (Join-Path $root 'apps/desktop')
     try {
-        pnpm exec tauri build --no-bundle --target x86_64-pc-windows-msvc --config $config
+        $options=@('--no-bundle','--target','x86_64-pc-windows-msvc','--config',$config)
+        if ($ChartOutput) { $options+='--debug' }
+        pnpm exec tauri build @options
         if ($LASTEXITCODE) { throw 'Native WebView2 probe build failed.' }
     } finally { Pop-Location }
 
     $env:WEBVIEW2_USER_DATA_FOLDER = $browserData
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--lang=en-US'
     $exe = Join-Path $target 'release/scopehub-desktop.exe'
+    if ($ChartOutput) { $exe=Join-Path $target 'debug/scopehub-desktop.exe' }
     $app = Start-Process -FilePath $exe -PassThru
     $window = Wait-ForProbe 'native main window' {
         $app.Refresh()
@@ -82,6 +92,14 @@ try {
         }
     }
     if ($window.Current.ProcessId -ne $app.Id) { throw 'Unexpected native window owner.' }
+    if ($ChartOutput) {
+        $browser=Wait-ForProbe 'embedded WebView2 child' {
+            Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" | Select-Object -First 1
+        }
+        Write-Output "Native chart HWND=$($app.MainWindowHandle) PID=$($app.Id) WebView2=$((Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion) SHA256=$((Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash)"
+        & (Join-Path $PSScriptRoot 'chart-native-windows.ps1') -OutputDirectory $ChartOutput
+        return
+    }
     Invoke-Button 'Open workbench prototype'
     Wait-Name 'The canvas is empty. Add a block and preview your draft.'
     $sourceName = "Frozen synthetic closes $([char]0x00B7) SIM.CN.FUTURE.001"
