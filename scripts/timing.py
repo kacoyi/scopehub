@@ -3,6 +3,7 @@
 import argparse
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
+from functools import cache
 import json
 import os
 from pathlib import Path
@@ -13,11 +14,11 @@ from tempfile import TemporaryDirectory
 
 if __package__:
     from .doctor import tool_version
-    from .verification_scope import SCOPED_PROFILES, ScopeError, git
+    from .verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
     from .worktree import WorktreeError, exclusive_git_lock, git_path
 else:
     from doctor import tool_version
-    from verification_scope import SCOPED_PROFILES, ScopeError, git
+    from verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
     from worktree import WorktreeError, exclusive_git_lock, git_path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -445,6 +446,7 @@ def hosted_timing(run, jobs):
     result = {
         'repository': repository, 'run_id': run_id, 'run_attempt': attempt,
         'head_sha': run.get('head_sha'), 'event': run.get('event'),
+        'head_branch': short_label(run.get('head_branch')),
         'status': run.get('status'), 'conclusion': run.get('conclusion'), 'jobs': rows,
         'workflow': {
             'matrix_complete': complete,
@@ -503,6 +505,8 @@ def valid_sample(sample):
 
 def valid_clock(run):
     if not labels(run, ('repository', 'run_id', 'run_attempt', 'event', 'head_sha', 'conclusion')):
+        return False
+    if run.get('head_branch') is not None and short_label(run['head_branch']) is None:
         return False
     workflow, jobs = run['workflow'], run['jobs']
     siblings = run.get('sibling_jobs', [])
@@ -566,10 +570,13 @@ def attempt_clocks(hosted, issues):
         if previous is None or not clock_complete(previous):
             clocks[key] = run
         elif clock_complete(run):
-            if clock_signature(previous) != clock_signature(run):
+            branches = {row.get('head_branch') for row in (previous, run)} - {None}
+            if clock_signature(previous) != clock_signature(run) or len(branches) > 1:
                 conflicting.add(key)
                 del clocks[key]
                 issues.append({'run_id': run['run_id'], 'error': 'Conflicting complete attempt clocks.'})
+            elif run.get('head_branch') and not previous.get('head_branch'):
+                clocks[key] = run
     return clocks
 
 
@@ -638,6 +645,8 @@ def merge_samples(samples, hosted, issues):
         yield {**sample, 'seconds': seconds,
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
+               'workflow_conclusion': run['conclusion'] if run else None,
+               'hosted_head_branch': run.get('head_branch') if run else None,
                'hosted_identity_complete': clock_complete(run) if run else None,
                'slowest_checks': slowest_checks(sample)}
 
@@ -651,14 +660,14 @@ def observation_id(row):
     return row['ci']['run_id'] if row['ci'] else row['run_id']
 
 
-def generated_contracts_proof(sample):
+def generated_contracts_proof(sample, *, eligible_only=True):
     ci = sample['ci']
     proof = sample.get('generated_contracts')
     if not isinstance(proof, dict):
         return None
     parents = proof.get('parents')
     tools = proof.get('tools')
-    if (sample['review_exclusion'] is not None or sample.get('working_tree_dirty') is not False
+    if ((eligible_only and sample['review_exclusion'] is not None) or sample.get('working_tree_dirty') is not False
             or not sample['arch'] or not sample.get('inputs_sha256')
             or proof.get('checkout') != ci['checkout_sha'] or not commit_id(proof.get('tree'))
             or not isinstance(parents, list) or len(parents) != 2 or not all(map(commit_id, parents))
@@ -851,14 +860,128 @@ def local_paths(root):
     })
 
 
-def budget_follow_up(view, feedback, tasks):
-    def report_key(report):
-        return report['run_id'], report['source_commit']
+def report_key(report):
+    return report['run_id'], report['source_commit']
 
-    tracked = {}
+
+def budget_cohort(row, coverage):
+    runner = row['job']['runner_label'] if 'job' in row else row['runner_label']
+    return runner, row['arch'], row['cache'], tuple(coverage)
+
+
+def has_hosted_inputs(sample):
+    ci = sample['ci']
+    digest = sample.get('inputs_sha256')
+    return (ci and ci['event'] in NORMAL_EVENTS and ci['run_attempt'] == '1'
+            and positive_id(ci['run_id']) and commit_id(ci['head_sha'])
+            and commit_id(ci['checkout_sha']) and ci['checkout_sha'] == sample['source_commit']
+            and sample.get('identity_complete') is True and timestamp(sample['recorded_at'])
+            and sample.get('working_tree_dirty') is False and sample['arch'] and sample['cache'] in CACHE_STATES
+            and isinstance(digest, str) and re.fullmatch(r'[0-9a-f]{64}', digest)
+            and sample['job'] and sample['job']['runner_label'] and sample['job']['status'] == 'completed'
+            and not sample['job']['identity_issues']['missing'])
+
+
+def repair_in_hosted_inputs(sample, repair, ancestor):
+    ci = sample['ci']
+    head, checkout = ci['head_sha'], ci['checkout_sha']
+    proof = generated_contracts_proof(sample, eligible_only=False)
+    if ci['event'] == 'push':
+        if head != checkout or sample['hosted_head_branch'] not in {None, 'main'}:
+            return False
+        if not sample['hosted_head_branch'] and not proof:
+            return None
+    contains = ancestor(repair, head)
+    if contains is not True or head == checkout or proof:
+        return contains
+    # A retained PR preview can prove the head is its actual second parent without a local preview object.
+    return ancestor(head, checkout)
+
+
+def recovery_observation(sample):
+    return {**harness_identity(sample), 'hosted_head': sample['ci']['head_sha'],
+            'recorded_at': sample['recorded_at'],
+            'inputs_sha256': sample['inputs_sha256'], 'job_id': sample['job']['job_id'],
+            'conclusion': sample['workflow_conclusion'], 'elapsed_seconds': sample['seconds']['total']}
+
+
+def measure_budget_recovery(scope, repair, reports, samples, ancestor):
+    rows = [sample for sample in samples if has_hosted_inputs(sample)
+            and all((sample['ci'] if key in ('repository', 'event') else sample)[key] == scope[key]
+                    for key in BUDGET_SCOPE)]
+    controls = defaultdict(list)
+    for row in rows:
+        if (report_key(row) in reports and row['review_exclusion'] is None
+                and (row['seconds']['total'] or 0) > HOSTED_BUDGET):
+            controls[budget_cohort(row, coverage_key(row))].append(row)
+
+    comparisons, cutoffs = [], {}
+    for cohort, baseline in controls.items():
+        selected = tuple(key for key, *_ in cohort[3])
+        known = [row for row in rows if report_key(row) in reports and
+                 budget_cohort(row, row['selected']) == (*cohort[:3], selected)]
+        last_time = max(timestamp(row['recorded_at']) for row in known)
+        last_run = max(int(row['ci']['run_id']) for row in known)
+        candidates, history_missing = [], False
+        for row in rows if commit_id(repair) else ():
+            if (timestamp(row['recorded_at']) <= last_time or int(row['ci']['run_id']) <= last_run
+                    or budget_cohort(row, row['selected']) != (*cohort[:3], selected)):
+                continue
+            elapsed = row['seconds']['total']
+            failed = row['workflow_conclusion'] not in {None, 'success'}
+            if not failed and (row['review_exclusion'] is not None or elapsed is None or coverage_key(row) != cohort[3]):
+                continue
+            includes = repair_in_hosted_inputs(row, repair, ancestor)
+            history_missing |= includes is None
+            if includes:
+                candidates.append(row)
+                if not failed and elapsed <= HOSTED_BUDGET and cohort not in cutoffs:
+                    cutoffs[cohort] = int(row['ci']['run_id'])
+        baseline_median = median(row['seconds']['total'] for row in baseline)
+        latest = recovery_observation(candidates[-1]) if candidates else None
+        if latest and latest['conclusion'] == 'success':
+            latest['elapsed_change_seconds'] = round(latest['elapsed_seconds'] - baseline_median, 3)
+        comparisons.append({
+            'runner_label': cohort[0], 'arch': cohort[1], 'cache': cohort[2], 'coverage': cohort[3],
+            'controls': [recovery_observation(row) for row in baseline],
+            'control_median_seconds': baseline_median, 'latest_attempt': latest,
+            'recovered': next((recovery_observation(row) for row in candidates
+                               if int(row['ci']['run_id']) == cutoffs.get(cohort)), None),
+            'history_missing': history_missing,
+        })
+    recovered = bool(controls) and len(controls) == len(cutoffs)
+    event = 'main push' if scope['event'] == 'push' else 'pull request'
+    action = f"Observe a comparable successful ordinary {scope['profile']} {scope['platform']} {event} within {HOSTED_BUDGET} seconds."
+    if not commit_id(repair):
+        action = 'Record the corrective commit. ' + action
+    elif not controls:
+        action = 'Restore a comparable retained over-budget control for this finding. ' + action
+    elif any(row['history_missing'] for row in comparisons):
+        action = 'Make the corrective and hosted input history available locally. ' + action
+    unavailable = sorted(reports - {report_key(row) for row in rows})
+    return {'status': 'recovered' if recovered else 'pending', 'repair_commit': repair,
+            'unavailable_reports': [{'run_id': run, 'source_commit': source} for run, source in unavailable],
+            'comparisons': comparisons, 'next_action': None if recovered else action}, cutoffs
+
+
+def budget_follow_up(view, feedback, tasks, *, root=ROOT):
+    @cache
+    def ancestor(base, head):
+        try:
+            require_complete_history(root)
+            exact_commit(root, base)
+            exact_commit(root, head)
+            return base.encode('ascii') in git(root, 'merge-base', '--all', base, head).split()
+        except (OSError, ScopeError, subprocess.SubprocessError):
+            return None
+
+    tracked, recovered_cohorts = {}, {}
     for item in feedback:
-        if not (scope := item.get('verification_budget')):
+        if not (spec := item.get('verification_budget')):
             continue
+        scope = {key: spec[key] for key in BUDGET_SCOPE}
+        scope_key = tuple(scope.values())
+        reports = {report_key(report) for report in item.get('diagnostic_reports', ())}
         corrective = [tasks[key] for key in item['task_ids'] if key in tasks
                       and tasks[key]['status'] not in {'done', 'cancelled'}]
         owned = item['status'] == 'open' and any(
@@ -866,31 +989,53 @@ def budget_follow_up(view, feedback, tasks):
             all(tasks[key]['status'] == 'done' for key in task.get('depends_on', ()))
             for task in corrective
         )
+        recovery = None
+        if scope['event'] in NORMAL_EVENTS:
+            recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports,
+                                                        view.get('samples', ()), ancestor)
+            for cohort, run in cutoffs.items():
+                key = scope_key, cohort
+                recovered_cohorts[key] = max(recovered_cohorts.get(key, 0), run)
+        status = 'assigned' if owned else 'assignment_needed'
+        if recovery and recovery['status'] == 'recovered':
+            status = 'recovered'
+        elif item['status'] == 'addressed':
+            status = 'recovery_pending' if recovery else 'addressed'
         tracked[item['id']] = (
-            scope,
-            {report_key(report) for report in item.get('diagnostic_reports', ())},
-            {'feedback_id': item['id'], 'feedback_status': item['status'],
-             'status': 'addressed' if item['status'] == 'addressed' else 'assigned' if owned else 'assignment_needed',
+            scope, reports,
+            {'feedback_id': item['id'], 'feedback_status': item['status'], 'status': status,
+             'recovery': recovery,
              'scope': scope,
              'corrective_tasks': [
                  {key: task.get(key) for key in ('id', 'status', 'next_action', 'blocker')} for task in corrective
              ]},
         )
-    def route(row, observed_reports):
+    def route(row, observed_reports, minimum_after_recovery):
         scope = {key: row[key] for key in BUDGET_SCOPE}
         reports = {report_key(report): report for report in observed_reports}
+        cutoff = recovered_cohorts.get((tuple(scope.values()), budget_cohort(row, row['coverage'])))
+        if cutoff:
+            reports = {key: report for key, report in reports.items() if positive_id(report.get('hosted_run_id'))
+                       and int(report['hosted_run_id']) > cutoff}
+            if len(reports) < minimum_after_recovery:
+                return None
         related = [(keys, entry) for candidate, keys, entry in tracked.values() if candidate == scope
-                   and (entry['feedback_status'] != 'addressed' or keys & reports.keys())]
+                   and (entry['status'] in {'assigned', 'assignment_needed'} or keys & reports.keys())]
         recorded = {key for keys, _ in related for key in keys}
         missing = [report for key, report in reports.items() if key not in recorded]
         links = [entry for _, entry in related]
         statuses = {entry['status'] for entry in links}
-        status = ('assigned' if 'assigned' in statuses else 'addressed'
-                  if not missing and statuses == {'addressed'} else 'assignment_needed')
+        status = 'assignment_needed'
+        if 'assigned' in statuses:
+            status = 'assigned'
+        elif not missing and statuses in ({'addressed'}, {'recovery_pending'}, {'recovered'}):
+            status, = statuses
         return {
             **{key: row[key] for key in ('repository', 'event', 'runner_label', 'profile', 'platform', 'arch',
                                         'metric', 'objective_seconds', 'recent_runs', 'recent_objective_breaches')},
             'status': status,
+            'recent_objective_breaches': len(reports) if cutoff and minimum_after_recovery == 2
+            else row['recent_objective_breaches'],
             'feedback': links,
             'unrecorded_reports': missing,
             'next_action': ('Use the original verification reports with pnpm project:diagnostic identify '
@@ -902,22 +1047,26 @@ def budget_follow_up(view, feedback, tasks):
         {**group, **metric} for group in view['reviews'] for metric in group['metrics']
         if metric['objective_seconds'] is not None
     ]
-    breaches = [{**route(row, row['breach_reports']), 'cache': row['cache'], 'coverage': row['coverage']}
-                for row in comparable if row['recent_objective_breaches'] >= 2]
+    breaches = [{**entry, 'cache': row['cache'], 'coverage': row['coverage']}
+                for row in comparable if row['recent_objective_breaches'] >= 2
+                and (entry := route(row, row['breach_reports'], 2))]
     growth = [
-        {**route(row, row['recent_reports']), 'cache': row['cache'], 'coverage': row['coverage'],
+        {**entry, 'cache': row['cache'], 'coverage': row['coverage'],
          'growth_seconds': row['growth_seconds'], 'baseline_runs': row['baseline_runs']}
-        for row in comparable if row['material_growth']
+        for row in comparable if row['material_growth'] and (entry := route(row, row['recent_reports'], 1))
     ]
     opened = [entry for _, _, entry in tracked.values() if entry['feedback_status'] != 'addressed']
+    recovery = [entry for _, _, entry in tracked.values() if entry['recovery']]
     needs_task = any(row['status'] == 'assignment_needed' for row in [*breaches, *growth, *opened])
+    routing = ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
+               if needs_task else next((row['next_action'] for row in [*breaches, *growth] if row['next_action']), None))
+    pending = next((row['recovery']['next_action'] for row in recovery if row['recovery']['next_action']), None)
     return {
         'repeated_breaches': breaches,
         'sustained_growth': growth,
         'open_feedback': opened,
-        'next_action': ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
-                        if needs_task else next((row['next_action'] for row in [*breaches, *growth]
-                                                 if row['next_action']), None)),
+        'budget_recovery': recovery,
+        'next_action': ' '.join(action for action in (routing, pending) if action) or None,
     }
 
 
@@ -999,13 +1148,13 @@ def retained_budget_inputs(root):
     return samples, hosted, issues
 
 
-def budget_status(samples, hosted, issues, feedback, tasks):
+def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
     try:
         view = timing_view(samples, hosted=hosted, issues=issues)
-        follow_up = budget_follow_up(view, feedback, tasks)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root)
     except TIMING_INPUT_ERRORS as error:
         view = {'objective_reviews': [], 'reviews': []}
-        follow_up = budget_follow_up(view, feedback, tasks)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root)
         issues.append({'error': str(error)})
     return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
             'elapsed_observations': [
@@ -1023,7 +1172,7 @@ def budget_status(samples, hosted, issues, feedback, tasks):
 
 
 def offline_budget_status(root, feedback, tasks):
-    return budget_status(*retained_budget_inputs(root), feedback, tasks)
+    return budget_status(*retained_budget_inputs(root), feedback, tasks, root=root)
 
 
 def capture_observations(identity, samples, hosted, issues):
@@ -1034,7 +1183,7 @@ def capture_observations(identity, samples, hosted, issues):
     ambiguous = any(len(group) > 1 for group in groups)
     # Retain distinct observations for diagnostics and future attempts. Incompatible complete clocks
     # must remain visibly incompatible even if an exact retry agrees with one of them.
-    clocks = list({(clock_complete(clock), clock_signature(clock)): clock
+    clocks = list({(clock_complete(clock), clock_signature(clock), clock.get('head_branch')): clock
                    for clock in hosted if ci_key(clock) == identity}.values())
     clock = attempt_clocks(clocks, issues).get(identity)
     complete_clock = clock is not None and clock_complete(clock)
@@ -1121,7 +1270,8 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
             ]
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
-    if not complete_clock and (set(PLATFORMS.values()) - missing or new_samples):
+    if not complete_clock and (set(PLATFORMS.values()) - missing or new_samples
+                               or run['conclusion'] != 'success' and not combined_clocks):
         try:
             row = inspect_jobs(run, repository)
             if valid_clock(row) and ci_key(row) == identity:
@@ -1157,7 +1307,7 @@ def ci_budget_status(root, repository, run):
             issues.append({'run_id': str(run['id']), 'error': str(error)})
     tasks = {task['id']: task for task in read_json(root / 'project/tasks.json')['tasks']}
     feedback = read_json(root / 'project/feedback.json')['items']
-    return {**budget_status(samples, hosted, issues, feedback, tasks), 'intake': intake}
+    return {**budget_status(samples, hosted, issues, feedback, tasks, root=root), 'intake': intake}
 
 
 def download_timing(repository, run_id, attempt, *, platforms=None):
@@ -1282,6 +1432,9 @@ def review_summary(view):
             suffix = f' ({owners})' if owners else ''
             lines.append(f"- Budget follow-up for {row['event']} / {row['profile']} / {row['platform']} — "
                          f"{row['status'].replace('_', ' ')}{suffix}.")
+        for entry in follow_up['budget_recovery']:
+            if action := entry['recovery']['next_action']:
+                lines.append(f"- {entry['feedback_id']}: {action}")
     findings = [(row, metric) for row in view['reviews'] for metric in row['metrics']
                 if metric['material_growth'] and metric['metric'] != 'total']
     sparse = sum(metric['status'] == 'insufficient_samples' for row in view['reviews'] for metric in row['metrics']

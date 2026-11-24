@@ -18168,6 +18168,10 @@
             "checks": ["python-contracts-workers"]
           },
           {
+            "failure": "Handoff treats a verification-budget issue disposition as elapsed recovery without a comparable successful ordinary observation containing the corrective revision, or hides a later recurrence behind historical evidence.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
             "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
             "checks": [
               "python-contracts-workers"

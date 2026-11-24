@@ -735,7 +735,9 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual('assignment_needed', uncovered['repeated_breaches'][0]['status'])
         self.assertIsNotNone(uncovered['next_action'])
         self.assertEqual('assignment_needed', unassigned['repeated_breaches'][0]['status'])
-        self.assertEqual('addressed', addressed['repeated_breaches'][0]['status'])
+        self.assertEqual('recovery_pending', addressed['repeated_breaches'][0]['status'])
+        self.assertEqual('addressed', addressed['budget_recovery'][0]['feedback_status'])
+        self.assertIn('Record the corrective commit', addressed['next_action'])
         unrecorded = [dict(later_reports[1], hosted_run_id='16')]
         self.assertEqual(unrecorded, new_breach['repeated_breaches'][0]['unrecorded_reports'])
         self.assertEqual('assignment_needed', new_breach['repeated_breaches'][0]['status'])
@@ -797,30 +799,181 @@ class TimingRegressionTests(unittest.TestCase):
 
 
 class RecentTimingTests(unittest.TestCase):
-    def budget_run(self, day, finish, *, head='a' * 40, cache='warm'):
+    def budget_run(self, day, finish, *, head='a' * 40, cache='warm', event='pull_request',
+                   checkout=None, outcome='success', extra_check=False):
         repository = 'fixture/scopehub'
-        run = dict(hosted_run(run_id=day, day=day), head_sha=head)
+        checkout = checkout or head
+        run = dict(hosted_run(run_id=day, day=day), head_sha=head, event=event, conclusion=outcome,
+                   head_branch='main' if event == 'push' else 'repair')
         jobs = [
             hosted_job(day * 10, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50', run_id=day, day=day),
             hosted_job(day * 10 + 1, 'windows', '00:20', finish,
                        'Run uv run python scripts/check.py --require-windows', '00:50', '08:30',
                        run_id=day, day=day),
         ]
+        jobs[-1]['conclusion'] = outcome
         workflow = timing.hosted_timing(run, [dict(job, head_sha=head) for job in jobs])
         samples = []
         for platform in ('Linux', 'Windows'):
             report = fast_report(day, 180)
             report['selection']['profile'] = 'full'
             report['environment']['system'] = platform
-            report['source']['git_head'] = head
-            report['ci'] = {'repository': repository, 'run_id': str(day), 'run_attempt': '1', 'event': 'pull_request',
-                            'head_sha': head, 'checkout_sha': head}
+            report['source'].update(git_head=checkout, sha256='c' * 64, working_tree_dirty=False)
+            report['ci'] = {'repository': repository, 'run_id': str(day), 'run_attempt': '1', 'event': event,
+                            'head_sha': head, 'checkout_sha': checkout}
+            if extra_check:
+                report['selection']['checks'].append('extra-check')
+                report['checks'].append(dict(report['checks'][0], id='extra-check'))
+            if outcome == 'failure' and platform == 'Windows':
+                report['status'] = 'failed'
+                report['checks'][0].update(status='failed', exit_code=1)
             samples.append(timing.report_sample(report, cache=cache))
         return run, samples, workflow
 
     def write_archive(self, path, samples, clocks):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks}))
+
+    def recovery_fixture(self):
+        self.enterContext(isolated_git_environment())
+        root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+
+        def git(*args):
+            return subprocess.run(['git', '-C', str(root), '-c', 'user.name=Fixture',
+                                   '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', *args],
+                                  capture_output=True, check=True, text=True).stdout.strip()
+
+        git('init', '-q')
+        commits = []
+        for subject in ('Before repair', 'Repair Windows verification', 'Follow-up on repaired verification'):
+            git('commit', '-qm', subject, '--allow-empty')
+            commits.append(git('rev-parse', 'HEAD'))
+        return root, commits
+
+    def budget_finding(self, event, repair, *observations):
+        return {'id': f'budget-{event}', 'verification_budget': {
+            'repository': 'fixture/scopehub', 'event': event, 'profile': 'full', 'platform': 'Windows',
+            'repair_commit': repair,
+        }, 'status': 'addressed', 'task_ids': ['M0-999'], 'diagnostic_reports': [
+            timing.harness_identity(samples[-1]) for _, samples, _ in observations
+        ]}
+
+    def test_offline_handoff_requires_comparable_recovery_and_routes_a_later_recurrence(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        pr = [self.budget_run(day, '28:22', head=before) for day in (11, 12, 13, 14)]
+        push = self.budget_run(15, '28:40', head=before, event='push')
+        finding = self.budget_finding('pull_request', repair, *pr)
+        main = dict(self.budget_finding('push', repair, push), status='open')
+        task = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the main push.'}
+        path = root / '.reports/timing/offline-budget.json'
+
+        def offline(*observations, items=(finding, main), checkout=root):
+            self.write_archive(checkout / path.relative_to(root),
+                               [sample for _, samples, _ in observations for sample in samples],
+                               [clock for _, _, clock in observations])
+            with patch.object(timing, 'command', side_effect=AssertionError('Offline verification used a remote command')):
+                return timing.offline_budget_status(checkout, items, {task['id']: task})
+
+        post = [self.budget_run(10, '12:00', head=after),                  # An out-of-order earlier run.
+                self.budget_run(16, '12:00', head=before),                 # Earlier code, later clock.
+                self.budget_run(17, '12:00', head=after, cache='cold'),
+                self.budget_run(18, '12:00', head=after, extra_check=True),
+                self.budget_run(19, '12:00', head=after, event='workflow_dispatch'),
+                self.budget_run(20, '18:00', head=after),                 # Faster but still over budget.
+                self.budget_run(21, '12:00', head=after, outcome='failure')]
+        local_pass = timing.report_sample(fast_report(22, 60))
+        self.write_archive(root / '.reports/timing/local-fast.json', [local_pass], [])
+        improved = offline(*pr, push, *post[:-1])['budget_recovery'][0]
+        improved_attempt = improved['recovery']['comparisons'][0]['latest_attempt']
+        self.assertEqual(('recovery_pending', '20', 1080, -622),
+                         (improved['status'], improved_attempt['hosted_run_id'], improved_attempt['elapsed_seconds'],
+                          improved_attempt['elapsed_change_seconds']))
+        pending = offline(*pr, push, *post)
+        self.assertEqual('addressed', pending['budget_recovery'][0]['feedback_status'])
+        self.assertEqual('recovery_pending', pending['budget_recovery'][0]['status'])
+        comparison, = pending['budget_recovery'][0]['recovery']['comparisons']
+        self.assertEqual(('21', 'failure'), (comparison['latest_attempt']['hosted_run_id'],
+                                             comparison['latest_attempt']['conclusion']))
+        self.assertIsNone(comparison['recovered'])
+        self.assertIn('pull request within 900 seconds', pending['next_action'])
+
+        success = self.budget_run(22, '14:59', head=after)
+        wrong_checkout = self.budget_run(22, '14:59', head=after, checkout=before)
+        self.assertEqual('recovery_pending', offline(*pr, push, wrong_checkout)['budget_recovery'][0]['status'])
+        cleared = offline(*pr, push, *post, success)
+        pr_state, main_state = cleared['budget_recovery']
+        proof = pr_state['recovery']['comparisons'][0]['recovered']
+        self.assertEqual(('recovered', '22', 899.0, after),
+                         (pr_state['status'], proof['hosted_run_id'], proof['elapsed_seconds'], proof['source_commit']))
+        self.assertEqual('pending', main_state['recovery']['status'])
+        self.assertIn('main push within 900 seconds', cleared['next_action'])
+        self.assertEqual([], cleared['repeated_breaches'])
+        open_pr = offline(*pr, push, success, items=(dict(finding, status='open'), main))
+        self.assertEqual(('open', 'recovered'), (open_pr['budget_recovery'][0]['feedback_status'],
+                                                open_pr['budget_recovery'][0]['status']))
+        self.assertIn('main push', open_pr['next_action'])
+
+        empty = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        unknown = offline(*pr, push, success, checkout=empty)
+        self.assertIsNone(unknown['budget_recovery'][0]['recovery']['comparisons'][0]['recovered'])
+        self.assertIn('history available locally', unknown['next_action'])
+        fresh = empty / 'fresh'
+        subprocess.run(['git', 'clone', '--quiet', '--no-local', str(root), str(fresh)],
+                       capture_output=True, check=True)
+        fresh_view = offline(*pr, push, success, checkout=fresh)
+        self.assertEqual(['recovered', 'assigned'], [entry['status'] for entry in fresh_view['budget_recovery']])
+
+        push_success = self.budget_run(23, '14:50', head=after, event='push')
+        run, samples, clock = push_success
+        other_branch = (run, samples, dict(clock, head_branch='unprotected'))
+        self.assertEqual('pending', offline(*pr, push, success, other_branch)['budget_recovery'][1]['recovery']['status'])
+        both = offline(*pr, push, *post, success, push_success)
+        self.assertIsNone(both['next_action'])
+        self.assertEqual(['recovered', 'recovered'], [entry['status'] for entry in both['budget_recovery']])
+
+        slow = [self.budget_run(day, '23:30', head=after) for day in (24, 25)]
+        self.assertEqual([], offline(*pr, push, success, push_success, slow[0])['repeated_breaches'])
+        relapse = offline(*pr, push, success, push_success, *slow)
+        breach, = relapse['repeated_breaches']
+        self.assertEqual(('assignment_needed', ['24', '25']),
+                         (breach['status'], [report['hosted_run_id'] for report in breach['unrecorded_reports']]))
+        live = dict(self.budget_finding('pull_request', after, *slow), id='new-budget', status='open')
+        assigned = offline(*pr, push, success, push_success, *slow, items=(finding, main, live))
+        self.assertEqual('assigned', assigned['repeated_breaches'][0]['status'])
+        self.assertEqual('M0-999', assigned['repeated_breaches'][0]['feedback'][0]['corrective_tasks'][0]['id'])
+
+    def test_regular_ci_observes_the_matching_ordinary_success_and_failure(self):
+        for event, outcome in (('pull_request', 'success'), ('push', 'failure')):
+            with self.subTest(event=event, outcome=outcome):
+                root, (before, repair, after) = self.recovery_fixture()
+                baseline = self.budget_run(14, '28:22', head=before, event=event)
+                run, samples, clock = self.budget_run(15, '14:55', head=after, event=event, outcome=outcome)
+                finding = self.budget_finding(event, repair, baseline)
+                records = root / 'project'
+                records.mkdir()
+                for filename, data in [('tasks', {'tasks': []}), ('feedback', {'items': [finding]}),
+                                       ('branch-protection', {'branch': 'main'})]:
+                    (records / f'{filename}.json').write_bytes(timing.json_bytes(data))
+                self.write_archive(root / '.reports/timing/control.json', baseline[1], [baseline[2]])
+                with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+                      patch.object(ci, 'source_identity', return_value={'git_head': after, 'working_tree_dirty': False}),
+                      patch.object(ci, 'checkout_branch', return_value=run['head_branch']),
+                      patch.object(ci, 'workflow_runs', return_value=[run]),
+                      patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                      patch.object(timing, 'download_timing', return_value=samples),
+                      patch.object(timing, 'inspect_jobs', return_value=clock) as jobs):
+                    result = ci.status(root)
+                jobs.assert_called_once()
+                self.assertEqual((15, event, after), tuple(jobs.call_args.args[0][key] for key in
+                                                          ('id', 'event', 'head_sha')))
+                recovery, = result['verification_budget']['budget_recovery']
+                attempt = recovery['recovery']['comparisons'][0]['latest_attempt']
+                self.assertEqual((outcome, '15'), (attempt['conclusion'], attempt['hosted_run_id']))
+                if outcome == 'success':
+                    self.assertEqual(('passed', 'recovered'), (result['status'], recovery['status']))
+                else:
+                    self.assertEqual(('failed', 'recovery_pending'), (result['status'], recovery['status']))
+                    self.assertIn('main push', result['verification_budget']['next_action'])
 
     def test_malformed_timing_preserves_all_ci_verdicts_and_other_observations(self):
         observations = [self.budget_run(day, '17:00') for day in (14, 15, 16)]

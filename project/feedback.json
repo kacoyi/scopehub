@@ -4121,7 +4121,8 @@
         "repository": "kacoyi/scopehub",
         "event": "pull_request",
         "profile": "full",
-        "platform": "Windows"
+        "platform": "Windows",
+        "repair_commit": "df99e89dd7f0c0b5f4a2cef31a9b7398b461947d"
       },
       "source": "Owner feedback on 2026-11-24, two authenticated successful full Windows runs 45360774012 and 45366344153, and the coordinator observed waiting for hosted acceptance before dispatching independent implementation.",
       "observation": "Routine validation repeatedly exceeded the existing 15-minute feedback objective. The Windows Python test check alone consumed 822.6 and 812.2 seconds. From a shared base, repeated intermediate runs and serial waits consumed time while independent product work could proceed. The earlier timing work had not prevented these further oversized cycles.",
@@ -4169,7 +4170,8 @@
         "repository": "kacoyi/scopehub",
         "event": "push",
         "profile": "full",
-        "platform": "Windows"
+        "platform": "Windows",
+        "repair_commit": "df99e89dd7f0c0b5f4a2cef31a9b7398b461947d"
       },
       "source": "Authenticated successful main pushes 45371103989, 45376798249 and 45383842961. Their original Windows reports are retained at archives/runs/20261124T100820.639261Z-a7e0e867/test-report.json, archives/runs/20261124T104146.622275Z-4b9b7b0a/test-report.json and archives/runs/20261124T112647.907584Z-badcfd8a/test-report.json.",
       "observation": "Three comparable warm full main pushes took 1720, 1940 and 1970 seconds on the Windows path against the 900-second objective. The current workflow uses the same Windows core, browser and Python split for pull requests and main pushes. A successful full post-merge main push with comparable coverage and recorded cache state is required before reporting a new main time.",
@@ -4347,6 +4349,17 @@
       "status": "open",
       "task_ids": ["M0-087"],
       "regression_checks": ["workspace-timeframe"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-budget-disposition-hides-unmeasured-recovery",
+      "source": "Coordinator's ordinary handoff probe in the verification-cost checkout at df99e89, .reports/m0-087/unmeasured-disposition-probe.json, SHA-256 90338eddc483c7f1a2be4df0d695af8d5ba6d11c589ed1dd6d623a858630ea3d.",
+      "observation": "Four genuine comparable warm Windows pull requests took 1702, 1736, 1966 and 2088 seconds. With no successful repaired elapsed observation, changing only the issue disposition to addressed made handoff report the timing finding as addressed with no next action. A successful corrective check or historical issue disposition does not establish that a comparable ordinary PR or main push recovered the budget.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
     }

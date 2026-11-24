@@ -1203,7 +1203,8 @@
                   "repository": {"type": ["string", "null"], "minLength": 1},
                   "event": {"enum": ["local", "pull_request", "push"]},
                   "profile": {"type": "string", "minLength": 1},
-                  "platform": {"type": "string", "minLength": 1}
+                  "platform": {"type": "string", "minLength": 1},
+                  "repair_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
                 },
                 "required": ["repository", "event", "profile", "platform"],
                 "additionalProperties": false
