@@ -17,6 +17,7 @@ function deadlineError() {
 function runPreparation(python, bridge, pool, count, deadline, remaining) {
   const child = spawn(python, ['-B', supervisor, bridge, pool, String(count), String(deadline)], {
     windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, SCOPEHUB_WORKSPACE_ACL_PHASES: '1' },
   });
   return new Promise((resolve, reject) => {
     let granted = false;
@@ -58,7 +59,7 @@ function runPreparation(python, bridge, pool, count, deadline, remaining) {
       clearTimeout(startup);
       read.close();
       if (granted && code === 0) {
-        resolve();
+        resolve(stderr);
       } else {
         reject(Object.assign(launchError ?? new Error(stderr.trim() || 'Workspace profile preparation failed.'), {
           code: launchError?.code ?? code, signal, stderr,
@@ -72,13 +73,16 @@ export async function prepareProfilePool(python, bridge, pool, count = profileCo
   const started = performance.now();
   const remaining = () => preparationTimeoutMs - (performance.now() - started);
   try {
-    await runPreparation(python, bridge, pool, count, Date.now() + preparationTimeoutMs, remaining);
+    const phases = await runPreparation(python, bridge, pool, count, Date.now() + preparationTimeoutMs, remaining);
     if (remaining() <= 0) {
       // A successful supervisor exit confirms the tree is stopped. An expired
       // result cannot enter the test run and this finished pool can be removed.
       await rm(pool, { recursive: true, force: true, maxRetries: 3 })
         .catch(error => console.error('Expired workspace profile pool cleanup failed.', error));
       throw deadlineError();
+    }
+    for (const line of phases.split(/\r?\n/)) {
+      if (line.startsWith('Workspace storage worker (prepare) ')) console.info(line);
     }
   } catch (error) {
     console.error(`Workspace profile preparation failed after ${Math.round(performance.now() - started)}ms.`);

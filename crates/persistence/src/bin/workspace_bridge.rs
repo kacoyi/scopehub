@@ -412,6 +412,10 @@ fn serve(
 }
 
 fn main() -> ExitCode {
+    #[cfg(windows)]
+    if let Some(exit) = scopehub_persistence::run_workspace_acl_worker() {
+        std::process::exit(exit);
+    }
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if let [flag, root, count] = args.as_slice()
         && flag == "--prepare-profile-pool"

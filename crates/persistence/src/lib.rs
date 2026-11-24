@@ -82,6 +82,24 @@ impl From<rusqlite::Error> for OpenWorkspaceError {
     }
 }
 
+/// Dispatch the early ACL worker entry in a Windows workspace host.
+#[cfg(windows)]
+pub fn run_workspace_acl_worker() -> Option<i32> {
+    storage::run_acl_worker()
+}
+
+#[cfg(windows)]
+#[doc(hidden)]
+pub fn use_workspace_acl_test_host(filter: &'static str) {
+    scopehub_platform::workspace_acl::use_test_host(filter);
+}
+
+#[cfg(windows)]
+#[doc(hidden)]
+pub fn run_workspace_acl_test_worker() {
+    storage::run_acl_test_worker();
+}
+
 /// An owned connection fixed to one profile and workspace until it is dropped.
 pub struct SqliteWorkspace {
     connection: Connection,

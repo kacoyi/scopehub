@@ -20679,12 +20679,18 @@
         "apps/desktop/src-tauri",
         "tests/ubuntu-preview",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "project/development.json",
+        "scripts/check_architecture.py",
+        "scripts/prepare_workspace_profile_pool.py",
+        "contracts/decisions/0029-supervised-native-windows-workspace-acl.json",
+        "Cargo.lock"
       ],
       "decision_refs": [
         "0004",
         "0007",
-        "0008"
+        "0008",
+        "0029"
       ],
       "acceptance": [
         "The ordinary authorized Windows writer preparation and open use one policy in a supervised worker that does not start a PowerShell interpreter. The unbundled and installed executable can use the same trusted worker after relocation.",
@@ -20711,7 +20717,7 @@
           "report_sha256": "66bc75a2551c438b4158b8e395695a3a30035e4aa1137eee8c64ac9ea96d8b46"
         }
       ],
-      "next_action": "Use the original timeout and matching green to locate the first missing phase. Select the smallest single-authority precompiled or native worker through the standard entry, comparing runtime, build and installation cost before validating the focused native controls.",
+      "next_action": "Independently review the exact native worker and its focused controls. Then use the coordinator-owned ordinary protected #84 comparison to observe real Windows browser admission, compiled desktop and existing storage refusals.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20722,13 +20728,14 @@
         ],
         "context": [
           "crates/persistence/src/storage.rs",
-          "crates/persistence/src/storage_acl.ps1",
           "crates/persistence/src/bin/workspace_bridge.rs",
           "apps/desktop/src-tauri/src/main.rs",
           "apps/desktop/src-tauri/examples/local_import_bridge.rs",
           "tests/ubuntu-preview/workspace.setup.mjs",
           "scripts/prepare_workspace_profile_pool.py",
-          "project/delivery.json"
+          "project/delivery.json",
+          "crates/platform/src/workspace_acl.rs",
+          "crates/platform/src/workspace_acl/windows.rs"
         ],
         "hypotheses": [
           "The ordinary browser producer timed out in the one PowerShell-backed global preparation after 10.290 seconds and ran zero cases. Same execution inputs and the same 64-profile entry passed in 735 ms in official task run 45484754044. No original artifact measures script entry or the ACL phases, so process startup, scheduling, and inner work cannot be distinguished retrospectively.",
@@ -20789,7 +20796,8 @@
             "crates/persistence/src/storage.rs",
             "crates/persistence/src/bin/workspace_bridge.rs",
             "apps/desktop/src-tauri/src/main.rs",
-            "tests/ubuntu-preview/workspace.setup.mjs"
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "crates/platform/src/workspace_acl.rs"
           ],
           "rules": [
             {
@@ -20801,7 +20809,7 @@
             "Blind retry, increased deadlines, profile format changes, ACL exceptions, native-only claims from a cross build, permanent parallel policies, or modifying the accepted M0-102 results."
           ],
           "open_questions": [
-            "Can a precompiled worker be exercised and relocated before protected deployment without introducing a new compiler or a fragile package dependency? Is a self-hosted native worker with explicit test registration a smaller lifetime cost?"
+            "Native Windows runtime equivalence, normal GUI-subsystem pipe handling and current protected timing require ordinary Windows evidence. Linux GNU cross checking and linking establish compilation and same-image composition only."
           ]
         },
         "evolution": {
@@ -20810,7 +20818,7 @@
             "One effective Windows storage policy, trusted profile and file identities, cancellation, finite command bounds, protected creation, explicit refusal, root isolation and original history."
           ],
           "change": [
-            "Remove interpreter launch from the common real Windows preparation and open boundary once the replacement has validated matching application and test entries."
+            "Use the non-inheritable per-call Win32 Job to run a worker hosted by the same executable before UI or database setup. All Windows workspace prepare and open paths use the platform ACL check. The installed or relocated executable carries its own worker. Test executables explicitly register the same policy."
           ],
           "data_plan": "Use synthetic local profiles and existing Windows artifacts. No on-disk migration.",
           "cleanup": "Retain the same timeout and process termination boundary. Confirm owned process exit before deleting disposable profiles, and preserve uncertain recovery state."

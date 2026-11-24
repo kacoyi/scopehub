@@ -47,7 +47,12 @@ def prepare(command, pool: Path, timeout: float) -> int:
     )
     late_success = exit_code == 0 and reason is None
     if late_success and not expired():
-        return 0
+        if os.environ.get('SCOPEHUB_WORKSPACE_ACL_PHASES') == '1':
+            for line in log_tail(log).splitlines():
+                if line.startswith('Workspace storage worker (prepare) '):
+                    print(line, file=sys.stderr)
+        if not expired():
+            return 0
 
     print(log_tail(log), end='', file=sys.stderr)
     if reason == 'cleanup_failed':
