@@ -19134,12 +19134,9 @@
         "M0-092"
       ],
       "scope": [
-        "tests/ubuntu-preview",
-        "apps/desktop",
-        "crates/worker-host",
-        "crates/application",
-        "crates/persistence",
-        "python/worker_runtime",
+        "apps/desktop/ui",
+        "tests/ubuntu-preview/market-workflow.spec.mjs",
+        "tests/ubuntu-preview/workspace.spec.mjs",
         "project/tasks.json",
         "project/feedback.json"
       ],
@@ -19154,9 +19151,16 @@
       ],
       "checks": [
         "project-state",
+        "architecture",
         "python-contracts-workers",
+        "ui-build",
         "market-workflow",
-        "workspace-timeframe"
+        "operations-workflow",
+        "market-fixtures",
+        "market-recovery",
+        "market-live-stream",
+        "workspace-timeframe",
+        "desktop-localization"
       ],
       "evidence": [],
       "next_action": "Reproduce each retained case at its first observable failing boundary, combine the three reviewed corrections, and run the single required task and exact protected recovery PR.",
@@ -19165,7 +19169,11 @@
       "plan": {
         "outcome": "The next reviewed recovery candidate completes the same protected Windows and Linux product paths with the original three behavioral assertions intact.",
         "change_types": [
-          "tooling"
+          "tooling",
+          "ui",
+          "market",
+          "stream-slice",
+          "permissions"
         ],
         "context": [
           "tests/ubuntu-preview/market-workflow.spec.mjs",
@@ -19173,13 +19181,20 @@
           "tests/ubuntu-preview/market-workflow.config.mjs",
           "tests/ubuntu-preview/workspace.config.mjs",
           "project/checks.json",
-          ".github/workflows/verify.yml"
+          ".github/workflows/verify.yml",
+          "apps/desktop/ui/src/use-sample-replay.ts",
+          "apps/desktop/ui/src/private-records.tsx",
+          "apps/desktop/ui/src/i18n/locales/zh-Hans/research.json",
+          "project/delivery.json"
         ],
         "hypotheses": [
           "The final 5-minute stock close remained visible, so the skipped intermediate observation can be investigated independently of final chart state.",
           "The accepted indicator output was undefined at the live read boundary. Distinguish a real failed or unavailable read from timing at the result handoff before selecting a correction.",
           "The second private dialog did not show cancellation. Observe the actual cancellation terminal and independent first approval before changing any interaction or fixture.",
-          "The red run observations are retained in archives/observations/m0-093-protected-main-45421408601/index.json with SHA-256 015aa1734a51d3298f06b21691f21f77dc201b311f634f7cae4ade3ccb880885. The Windows browser producer is an original producer report with its own digest."
+          "The red run observations are retained in archives/observations/m0-093-protected-main-45421408601/index.json with SHA-256 015aa1734a51d3298f06b21691f21f77dc201b311f634f7cae4ade3ccb880885. The Windows browser producer is an original producer report with its own digest.",
+          "The private review focused red reproduced an actual client defect. On a retryable BUSY decline or lost CANCELLED response, the retained old review still offered Save. The accepted recovery must offer only an explicit retry of the original decline and preserve the other window approval.",
+          "The focused indicator reproduction obtained an actual HTTP 429 BUSY on the accepted read while the named Rust snapshot gate held the writer. The original Windows transcript did not retain the raw response, so its error code remains unknown.",
+          "The recovery changes the product replay presentation and private review confirmation UI, including Simplified Chinese recovery messages. The combined required task includes the delivery map for both surfaces along with architecture, localization and the type-checked UI build."
         ],
         "risks": [
           {
@@ -19206,6 +19221,29 @@
               "market-workflow",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "The replay presentation repair changes the live update or market recovery behavior or the synthetic bar data.",
+            "checks": [
+              "market-live-stream",
+              "market-recovery",
+              "market-fixtures"
+            ]
+          },
+          {
+            "failure": "The private recovery UI reopens Save after an unconfirmed decline, changes authorization behavior or loses the localized retry message.",
+            "checks": [
+              "workspace-timeframe",
+              "operations-workflow",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A UI correction compiles only in the focused fixture or crosses the declared module boundaries.",
+            "checks": [
+              "ui-build",
+              "architecture"
+            ]
           }
         ],
         "rollback": "Retain the original failed attempt and each focused reproduction. Revert only the independently identified correction if its paired regression or exact protected recovery fails, then retest the affected case on a reviewed candidate.",
@@ -19215,12 +19253,18 @@
           ],
           "entrypoints": [
             "tests/ubuntu-preview/market-workflow.spec.mjs",
-            "tests/ubuntu-preview/workspace.spec.mjs"
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/use-sample-replay.ts",
+            "apps/desktop/ui/src/private-records.tsx"
           ],
           "rules": [
             {
               "path": "project/delivery.json",
               "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/change_types"
             }
           ],
           "non_goals": [
