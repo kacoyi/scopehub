@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-039",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -12995,7 +12995,7 @@
         "operations-workflow"
       ],
       "evidence": [],
-      "next_action": "Finish the remaining forms and connection lifecycle after the named local API save and trial slice in M1-039.",
+      "next_action": "M1-039 verified saving and reopening one named unauthenticated numeric loopback HTTP connection and making one explicit trial. Deliver the remaining user-owned API presets, authentication and replaceable connections, including refresh and disconnect, under the original acceptance requirements.",
       "blocker": null,
       "closure_reason": null
     },
@@ -19450,7 +19450,7 @@
       "id": "M1-039",
       "title": "Save and trial one local API connection in My data sources",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-036"
       ],
@@ -19486,10 +19486,15 @@
         "state-migrations",
         "local-api-connection"
       ],
-      "evidence": [],
-      "next_action": "Run the focused settings-to-Rust-to-loopback journey, independent review and matching checks within the available implementation scope.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-039-06db35154f25de91.json",
+          "sha256": "0f22fe38ace60c86918a60ec0d7510136417306f58612d72740d11a75aff00bd"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The corrected source c78a1c6 passed all ten required checks and the environment check in run 20261124T162207.832051Z-49b63a63. From My data sources, the user saved and reopened one named unauthenticated numeric loopback HTTP connection and explicitly tried one bounded GET. The task-cadence Chromium check used the real Rust registry and SQLite with a synthetic loopback endpoint and verified FUT-TEST at 47.25 USD, stale-result suppression and exact number rendering. Independent Standard reviews approved the product and the shared protocol fixtures. The task evidence is a local Linux observation. Ordinary Windows compilation, packaged or physical Windows use, and a Windows run of the dedicated task-cadence check require their own observations.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "The named connection persists locally and a deliberate trial shows one actual bounded sample through the ordinary desktop settings UI.",

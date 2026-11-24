@@ -5032,14 +5032,18 @@
       "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
       "observation": "The trial checks the saved ID before awaiting HTTP. A same-profile save through a second native instance can replace it, and the old trial is still delivered with the original ID and displayed as verified.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-039"
       ],
       "regression_checks": [
         "local-api-connection"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The Rust registry verified the saved connection only before the worker awaited the HTTP reply. The dialogue then accepted a result with the original request ID even after a peer had replaced the saved settings.",
+        "correction": "Recheck the saved connection ID, origin and rule version in the profile-bound registry before handing the sample to the UI. Reject a superseded trial with STALE_CONTEXT.",
+        "prevention": "Hold the real reply while a second native bridge replaces the connection in the same SQLite profile. Release the reply, require STALE_CONTEXT and no displayed sample, and verify the request count is unchanged while loading the newer settings. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-53612b9.txt."
+      },
       "deferral_reason": null
     },
     {
@@ -5047,14 +5051,18 @@
       "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
       "observation": "An accepted JSON number can be rounded when the native trial reply crosses into JavaScript. The review reproduced 9007199254740993 becoming 9007199254740992 in the current formatting path while the display labels the sample verified.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-039"
       ],
       "regression_checks": [
         "local-api-connection"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The trial returned an ordinary JSON number through the desktop boundary. JavaScript rounded the provider integer before rendering it as a verified value.",
+        "correction": "Require a JSON number at the provider boundary and carry its original number token as text in the validated desktop result.",
+        "prevention": "Verify exact rendering of 9007199254740993 and refusal of the same provider value in quotes. Exercise valid and rejected protocol vectors in Rust, JavaScript and Python. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-53612b9.txt."
+      },
       "deferral_reason": null
     },
     {
@@ -5062,14 +5070,18 @@
       "source": "Independent Standard Astra t9p review of 929b86821f1bcb5a1f49115360e5e2e1574349c5, archives/observations/m1-039-local-api/api-entry-review/astra-929b868.txt, SHA-256 ef4ba26e1d25cec4f049ae7c66adf984e47610b37cbe8bf00481aa8a3ee7e668. Chromium reproduction archives/observations/m1-039-local-api/api-entry-review-red/local-api-connection/browser-results.json, SHA-256 1fdde2232147e8f480e740ae1933127e66c2c2ad260b1901e44b06f020b2bbed.",
       "observation": "A transient initial BUSY leaves the saved connection undefined and all form controls disabled until the user leaves and reopens the settings page.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-039"
       ],
       "regression_checks": [
         "local-api-connection"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The failed initial status left the form disabled without an in-place reload action.",
+        "correction": "Offer a retry that reads only the saved connection status and clears the previous load error.",
+        "prevention": "Inject BUSY at the first status reply, retry inside the form, and require the current connection name without any additional provider GET. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-53612b9.txt."
+      },
       "deferral_reason": null
     },
     {
@@ -5084,7 +5096,7 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M1-039"
       ],
@@ -5093,7 +5105,11 @@
         "typescript-contracts",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The three language test runners separately listed the private workspace fixture files. The Rust runner omitted the new corpus and had no generated local API request or reply round trip.",
+        "correction": "Use a shared fixture index for Rust, JavaScript and Python and add the generated Rust request and reply projections to the existing round trips.",
+        "prevention": "Retain all private operation input and output coverage and validate every existing rejection and worker separation assertion. The same named Rust check reproduced the original error and passed after correction. All four fixture files are byte-identical across the change, with 73 named cases. Independent Standard Astra t9p review retained at archives/observations/m1-039-local-api/api-entry-review/astra-c78a1c6.txt."
+      },
       "deferral_reason": null
     }
   ]
