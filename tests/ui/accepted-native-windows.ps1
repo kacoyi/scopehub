@@ -137,7 +137,7 @@ function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
         $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
         $walker=[Windows.Automation.TreeWalker]::ControlViewWalker
         for ($i=0; $i -lt 8 -and $hit; $i++) {
-            if ($ui::Compare($b,$hit)) {
+            if ([Windows.Automation.Automation]::Compare($b,$hit)) {
                 [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
                 Write-Host "Verified owned pointer activation of $label at ($x,$y)."
                 return $true
