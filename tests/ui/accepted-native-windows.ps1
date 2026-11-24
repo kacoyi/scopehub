@@ -76,6 +76,13 @@ function Open-Disclosure([string]$label) {
     if ($control.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand)) { $expand.Expand() }
     else { $control.SetFocus(); [Windows.Forms.SendKeys]::SendWait(' ') }
 }
+function Read-AcceptedHash {
+    Wait-ForProbe 'accepted output digest next to Output' {
+        $labels=@($window.FindAll($scope,$any) | ForEach-Object { $_.Current.Name } | Where-Object { $_ })
+        $match=[regex]::Match(($labels -join ' '),'(?i)\bOutput\s+(?:Output\s+)?([a-f0-9]{64})(?:\b|$)')
+        if ($match.Success) { return $match.Groups[1].Value.ToLowerInvariant() }
+    }
+}
 function Native-Plot {
     $svg=Wait-ForProbe 'Axis-free drawing' {
         foreach ($n in $window.FindAll($scope,$any)) {
@@ -264,7 +271,8 @@ try {
     foreach ($label in @('Run preview','Accept preview','Confirm indicator acceptance')) { Review-Step $label }
     Open-Disclosure 'Accepted provenance and values'
     $null=Wait-Text 'Unknown, 115, 125, 135'
-    Write-Output 'Observed the accepted two-period volume mean: Unknown, 115, 125, 135.'
+    $acceptedHash=Read-AcceptedHash
+    Write-Output "Accepted two-period volume mean: Unknown, 115, 125, 135; result SHA256=$acceptedHash"
     Review-Step 'Open published CSV'
     Review-Step 'Open series.csv'
     Review-Step 'Use as workspace source'
@@ -273,6 +281,7 @@ try {
     Select-NativeOption 'Accepted version' 1
     Select-NativeOption 'Numeric series' 1
     Open-Disclosure 'Accepted series source'
+    if ((Read-AcceptedHash) -ne $acceptedHash) { throw 'Studio and confirmed indicator have different result hashes.' }
     Open-Disclosure 'Accepted observations'
     foreach ($day in 3..6) { $null=Wait-Text ('2026-02-{0:D2}T00:00:00.000Z' -f $day) }
     foreach ($number in @('Unavailable','115','125','135')) { Wait-Name $number }
