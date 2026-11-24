@@ -4032,6 +4032,28 @@
         "prevention": "The hosted Windows run observed the 5 min and 15 min buttons using TogglePattern, verified the financial results and read back the exact recovered draft through UI Automation. The original failure and log remain in the diagnostic archive."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "rejected-chart-evidence-leaves-stale-composer-binding",
+      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f. Original review retained at .reports/m4-015-astra-15093fe.txt.",
+      "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M4-016"],
+      "regression_checks": ["model-connection-workflow"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "rejected-chart-evidence-retry-loses-reading-position",
+      "source": "Independent Astra review of 15093feb63dc8fa61c3401b69be1faadb4d3ef0f. Original review retained at .reports/m4-015-astra-15093fe.txt.",
+      "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The earlier follow-up test sent a deliberate question before clearing the selection, omitting this ordering.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M4-016"],
+      "regression_checks": ["model-connection-workflow"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
