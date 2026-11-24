@@ -1,0 +1,68 @@
+{
+  "task": "M2-003",
+  "adr": "0027",
+  "candidate": "ef0a1e1948807fae8a5664e21874fc7e08bc6a8c",
+  "fingerprint": "2b1dd83b49712b08a83e07493a226c2443749a516c8680094511059dc1ffac11",
+  "pennant_runtime": "9f0bee3e5997319397feff70414f6b461244a324",
+  "pennant_fingerprint": "3ec772ad7e0b8060eebf6e35d9410d44d3889278306e0941e9107da968881405",
+  "recommendation": "Provisional engineering preference for isolated QuickJS geometry in the existing Tauri host, with trusted host-owned controls, text and accessible data readouts. Keep the host-interpreted tree available for document-style views. Final renderer selection remains open.",
+  "shared_workload": {
+    "scope": "Live UI of both candidates, ordinary embedded author and revise turns through a controlled local provider. Real authoring handoff by external Codex is separately evidenced by the three sealed cases.",
+    "input": "Pinned two-minute synthetic futures observations, snapshot 3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1. Display volume lengths, select the later minute, revise the same lengths to close prices, reject an invalid presentation and restore the accepted result.",
+    "oracle": "Initial normalized lengths 1 and 80/120. Revised lengths 3499.2/3499.8 and 1. Both return the later close 3499.8 CNY and original volume 80 contracts. The model receives the accepted source in the follow-up. An unsupported tree node and a negative rectangle dimension exercise the two admission paths.",
+    "cross_platform_workload": "Independent v2 pennant exercise on both native engines, two exact external guest files using the same closes and volume-to-length rule. Inspect foreground screenshots, resize and change both domains, edit the later flag and recover the accepted drawing after a rejected draft.",
+    "interpretation": "The native pennant workload establishes the earlier shared runtime and its limits. The two-renderer Chromium comparison uses the current source tree and the Rust workspace. The accepted-series data were qualified separately from these raw synthetic bars."
+  },
+  "comparison": [
+    {
+      "dimension": "Composition, editing and accessibility",
+      "tree": "Validated JSON row/stack/each, text, values, meters and inspect buttons supply semantic HTML and can mix the two admitted sources. Its grammar has no user-defined drawing geometry or generic accepted-series binding.",
+      "drawing": "Standalone readable programs authored new pennants, diamonds and selected rims without host edits. Numbers drive generic bounded primitives. Source-backed targets support click and keyboard. The host supplies the accessible readout; arbitrary guest geometry has no automatic textual or layout semantics. One numeric series per current view."
+    },
+    {
+      "dimension": "Numeric ownership and projections",
+      "tree": "Host binds approved fields, applies meter scales and owns inspection. It cannot position arbitrary marks on the shared time/value frame.",
+      "drawing": "Host provides time/value mappings with fit and expand on a dedicated synthetic reference viewport, or a chart-free frame. Accepted-series programs receive a time key and finite-or-null value only. Two presentations preserve one approved core version, including the warm-up null. Formula execution remains in the Rust-controlled calculation path. Live market-chart crosshair synchronization remains unmeasured."
+    },
+    {
+      "dimension": "Isolation and failure",
+      "tree": "Host parses and validates a bounded JSON grammar. Unknown nodes and late replies leave an accepted view recoverable. Authored text cannot dispatch an operation.",
+      "drawing": "The disposable worker instantiates a guest VM with numeric callbacks, separate from the Tauri window. Browser regressions exercise finite memory, output and wall-time limits, denied ambient capabilities and cancellation. The outer deadline is 3 seconds. The host validates every returned geometry tuple. Native effective capability observations must be attributed to their tested platform and build."
+    },
+    {
+      "dimension": "Native layout and interaction cost",
+      "tree": "The older fixed-block host baseline ran in Tauri/WebKitGTK. AT-SPI observed the accept action in 32.6 ms and restoration in 11.9 ms on a mixed-source development build. The later authorable tree has browser geometry and structural-edit checks. Fixed-block measurements cannot be attributed to the later tree.",
+      "drawing": "V1 native and browser measurements exposed the 19-pixel SVG defect. At v2 the hosted Windows fit/expanded surfaces measured 743x280 and 578x217, with identical revised/restored image bytes. Ubuntu v2 measured 862x324 and 660x248 at two window sizes. At v3 the Ubuntu native stroke median was 44.35 ms (n=6) and scalar median 127.59 ms (n=5), XTest input through screenshot detection. On the separate Chromium static route, warm geometry medians were 12 and 64 ms. These different clocks and workloads cannot rank renderer frame times."
+    },
+    {
+      "dimension": "Packaging and operations",
+      "tree": "Uses the existing React/DOM host, validator and local UI controls. The built product currently contains both candidates; no isolated installer-size comparison was measured.",
+      "drawing": "Three pinned MIT packages including the FFI types. The ef0a1e1 Vite production build emitted a 1019448-byte drawing worker and a 1104470-byte interpreter asset (334613 and 332992 bytes as gzip level 9). A fresh VM per evaluation adds startup and serialization overhead. The 2 MiB guest heap limit excludes interpreter and WebView process memory. No native bridge, CSP or packaging permission changes. An additional bundled browser has no observed justification yet."
+    },
+    {
+      "dimension": "Migration and recovery",
+      "tree": "Existing named chart layouts remain Rust-owned with their existing versioned read/open/reset/undo paths. Two existing workspace-layout regressions reopened a named layout, preserved linked and pinned panels and exercised rejected bindings, reset and undo on this candidate. No conversion of a user's layout is performed. The prototype composition itself is transient.",
+      "drawing": "The editor's draft, accepted scene, parameters, undo and binding live in the open session. A local guest file can be reopened and the core can restore an accepted series under current rights. A persistent editable default still needs a versioned program/API identifier, a binding reference checked on reopen, and migration and recovery tests against previous versions. Earlier drawings and their ABI remain recoverable from the frozen refs. There is no guest copy of accepted numeric points to migrate."
+    }
+  ],
+  "native_index": {
+    "directory": "worktrees/cea053aa543ce887a4f26378d7a1290bf4903fe3/files/.reports/m2-003-independent",
+    "sha256": "5adc18113304c437e4788612b126acf0bc5dc6c74066983f11ee167601e13bf8",
+    "hosted_sha256": "8191d589b3b159b49ca350b52dbf3c49d76bcf603c2fa62884956b9800eae926"
+  },
+  "independent_binding": {
+    "directory": "observations/m2-003-accepted-drawing-ef0a1e1-ecb9a960",
+    "sha256": "ec0939cd4d8d67f2c37738c5fe7eea9f2cacbcf1e4a0a64c36d114a44954c25d",
+    "observation": "Verified the exact browser/Rust runtime. Accepted series version ecb9a960-66b4-4ee5-9b69-9c0739f93675, result hash 1106f86c14d69b6238f770553db8b47db434f8fc65c6c9b4c59d9c2f95e02940. One observed revocation withdrew geometry, value, selection and undo in about 1871 ms including polling. A delayed earlier success could not restore them. A subsequent core read was denied. This is a single elapsed observation."
+  },
+  "open": [
+    "Matching two-platform accepted-series evidence and effective guest capability limits for the executable candidate. The Ubuntu verifier reports a successful ef0a1e1 native import/confirm/select/switch/revoke workflow and draft recovery. Windows matching and durable receipt collation are in progress. Source-level capability inspection has a distinct scope from effective native denial.",
+    "Main chart viewport and crosshair linkage, persisted workbench binding/default migration and representative end-user feedback remain open under the recorded tasks. Installer, physical release and live external-client qualification remain separate."
+  ],
+  "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
+  "verification": [
+    "pnpm exec playwright test --config tests/ui/renderer-comparison.config.mjs",
+    "uv run python scripts/renderer_probe.py --retained-only --archive-root /mnt/storage_2/scopehub-dev/archives",
+    "SCOPEHUB_ARCHIVE_ROOT=/mnt/storage_2/scopehub-dev/archives pnpm check --task M2-003"
+  ]
+}

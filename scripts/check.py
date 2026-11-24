@@ -99,7 +99,7 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_bytes(redacted_check_log(exit_code))
     status = 'passed' if exit_code == 0 and reason is None else 'failed'
-    if exit_code == 77 and reason is None and name in {*FIELD_ACTIONS, *SESSION_CHECKS}:
+    if exit_code == 77 and reason is None and name in {*FIELD_ACTIONS, *SESSION_CHECKS, 'workbench-renderer-probe'}:
         status = 'blocked'
         reason = 'observation_unavailable'
     record = {'id': name, 'status': status, 'command': argv, 'exit_code': exit_code,

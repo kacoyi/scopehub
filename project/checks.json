@@ -813,11 +813,11 @@
     },
     {
       "id": "workbench-renderer-probe",
-      "status": "planned",
-      "purpose": "Verify retained native prototype observations on Ubuntu and Windows using the same synthetic composition. Record visual and interaction fidelity, latency and recovery, authority boundaries, migration cost and the renderer choice.",
+      "status": "implemented",
+      "purpose": "Replay a shared author/revise/select/reject/restore workload on the host tree and isolated drawing API, then verify retained Ubuntu and Windows evidence for the same frozen native pennant program and current accepted-series browser observations. Report unresolved engineering selection gates separately.",
       "platforms": "all",
-      "command": null,
-      "timeout_seconds": 900,
+      "command": ["{python}", "scripts/renderer_probe.py"],
+      "timeout_seconds": 1800,
       "cadence": "task"
     },
     {
