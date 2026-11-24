@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-087",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -18070,7 +18070,7 @@
       "id": "M0-087",
       "title": "Shorten Windows verification and act on repeated feedback-budget overruns",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-046",
         "M0-047"
@@ -18113,11 +18113,15 @@
         {
           "path": "project/evidence/M0-087-1b91b79fa1d4ab4b.json",
           "sha256": "d7f9e3ef0bcb21921b1afee29bd49306b18e48b522ab58c7ddc2dda7f779cedc"
+        },
+        {
+          "path": "project/evidence/M0-087-a53247aee1aab006.json",
+          "sha256": "a6e906e9185d3c46424c57a65ec4c66595f693720024f3bb2c6d663bdca8dddb"
         }
       ],
-      "next_action": "The fourth full pull request passed in 866 seconds. Record the combined regression results and verify the final protected pull request and the first genuine main push.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The ordinary full pull request reached 866 seconds with original behavior verified. The reviewed timing and feedback handoff passed its combined regressions. M0-091 owns the pending measurement of the integrated main push.",
       "plan": {
         "outcome": "An ordinary developer sees the product interaction during iteration and gets the same protected verification at lower cost. Repeated slow runs acquire an accountable corrective task.",
         "change_types": [

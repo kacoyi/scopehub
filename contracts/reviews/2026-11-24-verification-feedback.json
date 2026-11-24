@@ -1,0 +1,116 @@
+{
+  "reviewed_on": "2026-11-24",
+  "tasks": [
+    "M0-087",
+    "M0-091"
+  ],
+  "objective_seconds": 900,
+  "missed_action": "The review recorded a 717-second Windows overrun and three breaches in each historical Windows PR and main-push window. It deferred inspection of Python, Cargo, workspace-timeframe and cache restoration to the next weekly review, due November 28. The handoff closed M0-046 and M0-047 without assigning a new corrective task for the remaining gap.",
+  "previous_review": "contracts/reviews/2026-11-22-verification-timing.json",
+  "warm_full_controls": {
+    "pull_request": {
+      "runs": [
+        "45360774012",
+        "45366344153",
+        "45371401718",
+        "45378153297"
+      ],
+      "windows_elapsed_seconds": [
+        1702,
+        1736,
+        1966,
+        2088
+      ],
+      "median_windows_seconds": 1851,
+      "median_total_runner_seconds": 2598
+    },
+    "old_scheduler_main_push": {
+      "runs": [
+        "45371103989",
+        "45376798249",
+        "45383842961",
+        "45389486376"
+      ],
+      "windows_elapsed_seconds": [
+        1720,
+        1940,
+        1970,
+        1588
+      ],
+      "median_windows_seconds": 1830,
+      "median_total_runner_seconds": 2468
+    }
+  },
+  "failed_trials": [
+    {
+      "run": "45384002726",
+      "windows_elapsed_seconds": 924,
+      "failure": "Two Windows Python staging cases could not read verification-scope.json in the Python producer."
+    },
+    {
+      "run": "45387261521",
+      "windows_elapsed_seconds": 858,
+      "failure": "Four Windows Rust desktop cases hit ACL preparation timeouts. The reopened-sample browser case rejected interleaved socket-retry traces."
+    },
+    {
+      "run": "45393623602",
+      "windows_elapsed_seconds": 933,
+      "failure": "Linux local-import-ui and desktop-workspace-transport failed. The warm Windows-only leg passed at 933 seconds, 33 seconds over budget."
+    }
+  ],
+  "passing_trial": {
+    "run": "45399239580",
+    "head": "e8a16deb85b639e206d38ce05d65ca4b3f889d09",
+    "windows_elapsed_seconds": 866,
+    "workflow_elapsed_seconds": 866,
+    "total_runner_seconds": 2805,
+    "change_from_fixed_pr_median_seconds": {
+      "elapsed": -985,
+      "total_runner_work": 207
+    },
+    "windows_selected_checks": 35,
+    "coverage": "The fourth run retained all 48 original workspace cases, 28 desktop cases and 12 market recovery cases. Of 635 original Python names, 634 kept their names and results. The renamed cache publication guard passed on both platforms. Commit 80301fc restores its original name. The retained comparison includes the name change, strengthened guard and new cases.",
+    "comparison": {
+      "path": "archives/observations/m0-087-fourth-comparison-45399239580/comparison.json",
+      "sha256": "fb8d30e973561fce0b2c75c35322799395e1d2f2b0774deb9104fd2a91e0d768"
+    }
+  },
+  "product_delivery": {
+    "plan_to_first_browser_interaction_seconds": {
+      "M1-036": 365,
+      "M1-037": 444,
+      "M4-015": 472
+    },
+    "pr_open_to_last_required_main_job_seconds": {
+      "76": 4157,
+      "78": 3746,
+      "79": 3650
+    },
+    "interactions": {
+      "path": "archives/observations/m0-087-product-interactions/observations.json",
+      "sha256": "0254ed1544dd7d27fad05d9377597cacec462d4e72a396bc7c2f14dd8e418d8c"
+    },
+    "integration": {
+      "path": "archives/observations/m0-087-product-interactions/integration.json",
+      "sha256": "00b7f32ce60c4c7c18f6c92d448a95136f91116d0c5ec0fb1c524a5f3a44f17f"
+    }
+  },
+  "normal_handoff": {
+    "observed": "A clean worktree read the 866-second pull-request recovery from shared evidence and kept the main push pending. Ordinary CI records authenticated attempts. Status assigns repeat overruns to corrective work and leaves incomplete evidence actionable.",
+    "observation": {
+      "path": "archives/observations/m0-087-coordinator-handoff/status-after-fourth.json",
+      "sha256": "dd851cc522916dfeb4b13a57af68ec58002b031a3e90509f168aa427ead0d578"
+    }
+  },
+  "follow_up": {
+    "task": "M0-091",
+    "status": "pending",
+    "windows_elapsed_seconds": null,
+    "feedback_id": "verification-main-push-feedback-budget-overrun",
+    "next_action": "Retain the first ordinary full protected main push containing the repair. Confirm the exact commit, success, comparable cache and coverage and the 900-second objective. Missing, failed, incomparable or over-budget evidence keeps the finding open with a corrective action."
+  },
+  "diagnostic_details": {
+    "path": "archives/observations/m0-087-coordinator-handoff/control-details.json",
+    "sha256": "290b0fca45087b72f061c1a142c7b66043b30e0a8f7ffd4e2bb539f6c73fa999"
+  }
+}
