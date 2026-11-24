@@ -16,7 +16,9 @@ const baseURL = `http://127.0.0.1:${port}`;
 const report = resolve(process.env.SCOPEHUB_RUN_DIR ?? '.reports', process.env.SCOPEHUB_LOCAL_IMPORT_REPORT ?? 'local-import-ui');
 
 export default defineConfig({
-  testDir: '.', testMatch: 'local-import.spec.mjs', workers: 1, retries: 0, timeout: 45_000,
+  testDir: '.',
+  testMatch: process.env.SCOPEHUB_LOCAL_IMPORT_REPORT === 'local-api-connection' ? 'local-api-connection.spec.mjs' : 'local-import.spec.mjs',
+  workers: 1, retries: 0, timeout: 45_000,
   outputDir: `${report}/browser`,
   reporter: [['list'], ['json', { outputFile: `${report}/browser-results.json` }]],
   use: { baseURL, viewport: { width: 1366, height: 900 }, actionTimeout: 10_000, screenshot: 'only-on-failure', trace: 'retain-on-failure' },

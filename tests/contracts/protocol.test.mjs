@@ -45,6 +45,7 @@ const privateWorkspaceCases = [
   ...read('../fixtures/decision-note-protocol-cases.json'),
   ...read('../fixtures/private-record-protocol-cases.json'),
   ...read('../fixtures/ai-text-connection-protocol-cases.json'),
+  ...read('../fixtures/local-api-protocol-cases.json'),
 ];
 for (const example of privateWorkspaceCases) {
   test(`private workspace: ${example.name}`, () => {
