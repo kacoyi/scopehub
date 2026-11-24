@@ -18132,7 +18132,8 @@
         "hypotheses": [
           "Recent Windows runs spent about 13.5 minutes in the Python check, dominated by temporary Git histories and repeated Git process launches. The existing Python/build overlap makes critical elapsed time more meaningful than summed check seconds.",
           "The existing timing budget already states when to investigate. A development handoff can surface or route an overdue action without new remote polling in ordinary status.",
-          "Even excluding both Python and workspace-timeframe, the other serial checks consumed 928 and 904 seconds on the two Windows controls, before setup. Isolated execution of independent work is necessary to reach the 900-second change objective."
+          "Even excluding both Python and workspace-timeframe, the other serial checks consumed 928 and 904 seconds on the two Windows controls, before setup. Isolated execution of independent work is necessary to reach the 900-second change objective.",
+          "In pilot 45393623602, protected Windows verification passed in 933 seconds end to end. Moving the 120-second market-recovery check from core to the 374-second Python producer can leave browser on the critical path at about 835 seconds, adding roughly 90 to 100 Windows runner seconds for the extra restore and setup. The two browser builds can restore the same Cargo key, with only the existing browser producer saving it on main."
         ],
         "risks": [
           {
@@ -18181,6 +18182,10 @@
           },
           {
             "failure": "The Windows Python producer environment changes nested public artifact staging into lane staging and suppresses typed scope evidence.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "The reassigned market-recovery check loses a prerequisite or its original evidence, writes the shared browser cache from a narrower producer, or hides an incomplete Cargo restore in aggregate timing.",
             "checks": ["python-contracts-workers"]
           },
           {

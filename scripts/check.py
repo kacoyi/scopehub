@@ -72,7 +72,8 @@ PRIVATE_CHECK_LOGS = set(SESSION_CHECKS) | set(FIELD_ACTIONS) | {'configured-ext
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
-# The full core lane runs market-recovery after its build checks to balance hosted elapsed time.
+# Market recovery uses the Python producer's spare Windows time and the browser cache key.
+WINDOWS_PYTHON_CHECKS = {'python-contracts-workers', 'market-recovery'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
                           'local-import-ui', 'market-live-stream', 'market-quality-states',
                           'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
@@ -129,12 +130,11 @@ def check_timeout(check, system):
 
 
 def windows_lane_checks(selected, lane):
-    python = {'python-contracts-workers'}
     if lane == 'python':
-        return selected & python
+        return selected & WINDOWS_PYTHON_CHECKS
     if lane == 'browser':
         return selected & WINDOWS_BROWSER_CHECKS
-    return selected - python - WINDOWS_BROWSER_CHECKS
+    return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS
 
 
 def windows_lanes_run_id(ci):

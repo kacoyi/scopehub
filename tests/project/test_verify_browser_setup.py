@@ -32,9 +32,10 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         cls.narrow = next(step for step in steps if step.get('name', '').endswith(' changes'))
 
     def test_browser_setup_is_required_without_a_successful_prerequisite_opt_out(self):
-        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'",
+        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && "
+                         "(matrix.lane != 'core' || steps.lane.outputs.split != 'true')",
                          self.step['if'])
-        self.assertIn("matrix.lane != 'python'", self.prerequisite['if'])
+        self.assertEqual("steps.lane.outputs.skip != 'true'", self.prerequisite['if'])
         self.assertNotIn('continue-on-error', self.step)
         self.assertEqual('bash', self.step['shell'])
 
@@ -138,10 +139,10 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         self.assertEqual("${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}",
                          aggregate['if'])
         steps = self.jobs['windows_python']['steps']
-        for command in ('pnpm install --frozen-lockfile', self.step['run']):
-            self.assertIn("matrix.lane != 'python'", next(step for step in steps if step.get('run') == command)['if'])
-        restore = next(step for step in steps if step.get('id') == 'cargo_cache')
-        self.assertIn("matrix.lane != 'python'", restore['if'])
+        for step in steps:
+            if step.get('run') == 'pnpm install --frozen-lockfile' or step.get('uses', '').startswith(
+                    ('pnpm/action-setup@', 'actions/setup-node@')):
+                self.assertEqual("steps.lane.outputs.skip != 'true'", step['if'])
         producer_stage = next(step for step in steps if step.get('id') == 'artifacts')
         self.assertEqual("uv run --no-sync python scripts/ci_artifacts.py "
                          "${{ steps.lane.outputs.split == 'true' && 'stage-windows-lane' || 'stage' }}",
@@ -156,6 +157,24 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         full = next(step for step in aggregate['steps'] if step.get('id') == 'full')
         self.assertEqual('Run uv run python scripts/check.py --require-windows', full['name'])
         self.assertNotIn('continue-on-error', full)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run the workflow lane selector with Bash')
+    def test_lane_setup_remains_limited_to_full_for_sibling_producers(self):
+        route = next(step for step in self.steps if step.get('id') == 'lane')
+        self.assertEqual("${{ steps.scope.outcome == 'success' && steps.scope.outputs.decision != '' && "
+                         "steps.scope.outputs.profile || 'full' }}", route['env']['SCOPEHUB_SCOPE'])
+        for lane in ('core', 'browser', 'python'):
+            for profile in ('full', 'localization', 'records', 'tooling'):
+                with self.subTest(lane=lane, profile=profile), tempfile.TemporaryDirectory() as directory:
+                    output = Path(directory) / 'outputs.txt'
+                    subprocess.run(
+                        [route['shell'], '-c', route['run']], timeout=10, capture_output=True, check=True,
+                        env=dict(os.environ, SCOPEHUB_WINDOWS_LANE=lane, SCOPEHUB_SCOPE=profile,
+                                 GITHUB_OUTPUT=str(output)),
+                    )
+                    expected = ['split=true'] if profile == 'full' else [] if lane == 'core' else ['skip=true']
+                    actual = output.read_text(encoding='utf-8').splitlines() if output.exists() else []
+                    self.assertEqual(expected, actual)
 
     @unittest.skipUnless(sys.platform == 'linux', 'Run the workflow failure guard with Bash')
     def test_protected_windows_job_requires_success_even_after_a_cancelled_dependency(self):

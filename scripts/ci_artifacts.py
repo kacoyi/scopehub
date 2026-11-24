@@ -13,7 +13,7 @@ if __package__:
                         windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, task_definition_hash, validate_model, windows_x64)
-    from .timing import CACHE_STATES, TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
+    from .timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from .verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
@@ -25,7 +25,7 @@ else:
                        windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, task_definition_hash, validate_model, windows_x64)
-    from timing import CACHE_STATES, TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
+    from timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
@@ -366,6 +366,20 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
             raise PublicationError(f'Windows {lane} lane summary differs from its selected check results.')
 
 
+def matching_lane_timing(incoming, report):
+    timing_file = optional_path(incoming, TIMING_FILE)
+    if not timing_file:
+        return {}
+    try:
+        timing = evidence_json(timing_file.read_bytes())
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(timing, dict) or not isinstance(timing.get('cache'), str):
+        return {}
+    sample = report_sample(report, cache=timing['cache'])
+    return timing if all(timing.get(key) == value for key, value in sample.items()) else {}
+
+
 def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *, profile=None):
     """Recheck the event checkout and import only current, digest-checked lane outputs."""
     checkout = source['git_head']
@@ -411,15 +425,10 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                     if (reports / relative).exists():
                         raise PublicationError('Windows lane evidence paths overlap.')
                     copy_file(file, reports / relative)
-            if lane != 'python':
-                timing_file = optional_path(incoming, TIMING_FILE)
-                timing = evidence_json(timing_file.read_bytes()) if timing_file else {}
-                cache = timing.get('cache')
-                sample = report_sample(report, cache=cache)
-                matches = all(timing.get(key) == value for key, value in sample.items())
-                caches.add(cache if matches and cache in CACHE_STATES else 'unknown')
-                if lane == 'core' and matches and (generator := timing.get('generated_contracts')):
-                    write_artifact(reports / WINDOWS_GENERATOR_SAMPLE, json_bytes(generator))
+            timing = matching_lane_timing(incoming, report)
+            caches.add(timing.get('cache', 'unknown'))
+            if lane == 'core' and (generator := timing.get('generated_contracts')):
+                write_artifact(reports / WINDOWS_GENERATOR_SAMPLE, json_bytes(generator))
     if output := env.get('GITHUB_OUTPUT'):
         with Path(output).open('a', encoding='utf-8') as stream:
             stream.write(f"cache={next(iter(caches)) if len(caches) == 1 else 'unknown'}\n")
