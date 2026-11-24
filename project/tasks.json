@@ -19231,6 +19231,12 @@
             ]
           },
           {
+            "failure": "The original healthy two-window cancellation loses its natural read timing because the candidate injects a fault or holds the first window read in the ordinary control.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
             "failure": "The private recovery UI reopens Save after an unconfirmed decline, changes authorization behavior or loses the localized retry message.",
             "checks": [
               "workspace-timeframe",
