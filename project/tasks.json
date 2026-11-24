@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-028",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17437,7 +17437,7 @@
       "id": "M2-028",
       "title": "Correct workbench qualification evidence for access, native loss and cold restore",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": ["M2-027"],
       "scope": [
@@ -17451,10 +17451,12 @@
         "The granted cold reopen reproduces a concrete frozen value and its saved selection with provenance. Its revoked counterpart proves zero protected reads and zero protected data frames. The existing project tests exercise source resolution and valid and rejected specification examples."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "The PR 73 coordinator reviews the committed correction and matching M2-028 task report, then archives the specification evidence before closing the task.",
+      "evidence": [
+        {"path": "project/evidence/M2-028-462b29a0b2053939.json", "sha256": "e5a0b247b403e2c1d19e63a75bfa0bb8f90eb13bcf0bd76c135de76a0ed9ec8f"}
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The task checks passed on 045c76d. Independent review verified the four denied paths, candidate-specific native loss evidence and the paired granted and revoked cold-restore requirements. Runtime observations remain with M2-003, M2-013 and M5-001.",
       "plan": {
         "outcome": "Each of the three omissions found in PR 73 is independently detectable in the effective specification before any native or packaged trial is credited.",
         "change_types": ["tooling"],
