@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-038",
+  "focus_task_id": "M0-087",
   "tasks": [
     {
       "id": "M0-001",
@@ -18449,7 +18449,7 @@
       "id": "M1-038",
       "title": "Verify the visible CSV review after folder selection from the chart",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M1-036", "M1-037"],
       "scope": ["tests/ui/local-import.spec.mjs", "project/feedback.json"],
       "decision_refs": ["0004", "0007"],
@@ -18458,10 +18458,15 @@
         "Verify the presented equity and futures values, the rejected settlement mapping, and cancellation before and after folder selection using the existing synthetic transport fixture. Preserve the existing folder grant, review, publication and chart behavior."
       ],
       "checks": ["project-state", "python-contracts-workers", "local-import-ui"],
-      "evidence": [],
-      "next_action": "Independently review the focused locator correction, the retained red reproduction and the matching task checks before acceptance.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-038-87b46858d63ac524.json",
+          "sha256": "fe87dbd09c67d91c7b4c14313441982bb9b81bffba6a4b956601864692af87f8"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Astra Standard approved f230621 after checking the red traces and positive entries. The matching Linux task receipt covers the visible review, explicit equity and futures values, cancellation and rejected mapping through the synthetic transport. The originals and review are retained at archives/observations/m1-038-visible-csv/manifest.json.",
       "plan": {
         "outcome": "The existing picker-to-review browser check verifies the active CSV editor even while the suspended chart retains a duplicate source label.",
         "change_types": ["tooling"],
