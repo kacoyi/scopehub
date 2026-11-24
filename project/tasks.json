@@ -17733,6 +17733,128 @@
           "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
         }
       }
+    },
+    {
+      "id": "M2-030",
+      "title": "Show an editable chart-free state view of the same synthetic result",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-029"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui",
+        "project/checks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0027"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "Through the ordinary workbench editor, display the frozen qualification equity result as a chart-free set of lights. At five minutes the original four strength values 0.15, 0.50, 0.95 and null appear as green, amber, red and unknown with the example thresholds 0.4 and 0.8. Each state also has a readable text label.",
+        "Edit an encoding rule in the draft and inspect the selected result by UTC bar, source and result revision. Reuse the frozen inputs already used by the candlesticks. A presentation change performs no additional financial computation or data access.",
+        "Preserve the selected timeframe and financial identity when changing the presentation of an accepted block. At fifteen minutes strength 0.90 belongs to the 09:30 UTC bar. Reject invalid edits and recover the accepted view. Keep existing authored candle definitions readable."
+      ],
+      "checks": [
+        "architecture",
+        "ui-build",
+        "market-workflow",
+        "renderer-prototype-interaction"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-030-63a8e5f735924921.json",
+          "sha256": "6fe0eb92dddde19827b112cff257c014f06702dc0bb7259b075bda91bcb6d3e6"
+        },
+        {
+          "path": "project/evidence/M2-030-2ee09ad9dd03c78e.json",
+          "sha256": "0527d9efe0d026205a2d9636481149ae718ec67a0790071a16003659d12c9f7d"
+        },
+        {
+          "path": "project/evidence/M2-030-55ed9077f6d896f7.json",
+          "sha256": "bdf88b06118665859d5873c70da47e6346d0daf3ed15451c96221c0b3133b1a7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The normal editor changes the same frozen result from candles to labelled state lights. Selected results retain their source, timeframe and revisions across accepted edits, appends and rejected drafts. The archived Linux and Windows task runs cover the browser interactions and Windows WebView2 selection.",
+      "plan": {
+        "outcome": "A researcher can read and inspect the same conditional result as lights on a chart-free canvas and change how the values are presented.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/workbench-prototype.tsx",
+          "apps/desktop/ui/src/workbench-candle-source.ts",
+          "apps/desktop/ui/src/workbench-candle-block.tsx",
+          "tests/fixtures/workbench-qualification-v1.json",
+          "contracts/workbench-v1.json"
+        ],
+        "hypotheses": [
+          "A small set of editable range and state mappings can express this view over the existing frozen source without a second indicator engine."
+        ],
+        "risks": [
+          {
+            "failure": "A missing value is classified as low. A presentation switch followed by an identical append gives the original timeframe to the new block, or inspection silently selects another timeframe, revision or field at the same bar start.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "The chart-free view misstates the source, requests a new operation or breaks existing authored candle definitions.",
+            "checks": [
+              "architecture",
+              "renderer-prototype-interaction"
+            ]
+          },
+          {
+            "failure": "The editor rejects a valid presentation switch due to generated indentation, exceeds the authoring limit, or modifies the accepted author text during recovery.",
+            "checks": [
+              "renderer-prototype-interaction"
+            ]
+          }
+        ],
+        "rollback": "Remove the prototype presentation option and its editor affordance together while retaining support for previous candle definitions.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "apps/desktop/ui/src/workbench-candle-source.ts",
+            "tests/ui/renderer-probe.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/extensibility"
+            },
+            {
+              "path": "tests/fixtures/workbench-qualification-v1.json",
+              "pointer": "/cases/unconventional-indicator"
+            }
+          ],
+          "non_goals": [
+            "No provider integration, persistent format, user code execution, full indicator qualification or renderer selection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing candlestick definitions, accepted view recovery and the synthetic source and result revisions."
+          ],
+          "change": [
+            "Add an editable chart-free encoding with textual state labels and result inspection. Structured draft edits retain block identity through append and reorder. Inspection follows the exact selected result. Use compact JSON when indentation would exceed the authoring limit."
+          ],
+          "data_plan": "Read the existing immutable synthetic observations. Keep presentation and selection in the window.",
+          "cleanup": "Evaluate this composition with its source binding at the parent renderer decision."
+        }
+      }
     }
   ]
 }
