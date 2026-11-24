@@ -2,10 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import fixture from './workbench-synthetic-closes.json';
 import { formatDateTime, formatNumber, message, t, type Message } from './i18n';
 import { LanguageSettings } from './language-settings';
+import { WorkbenchCandleBlock } from './workbench-candle-block';
+import { candleSource, isNumericField, type CandleBlock, type CandleTimeframe } from './workbench-candle-source';
 import './workbench-prototype.css';
 
-type Block = { kind: 'threshold-tiles'; threshold: number; aboveLabel?: string; belowLabel?: string } | { kind: 'value-table' };
+type SeriesBlock = { kind: 'threshold-tiles'; threshold: number; aboveLabel?: string; belowLabel?: string } | { kind: 'value-table' };
+type Block = SeriesBlock | CandleBlock;
 type Composition = { version: 1; blocks: Block[] };
+type PresentedCandle = CandleBlock & { instance: number; timeframe: CandleTimeframe };
+type PresentedBlock = SeriesBlock | PresentedCandle;
 const blank: Composition = { version: 1, blocks: [] };
 const maxBlocks = 12;
 const maxLength = 4096;
@@ -34,6 +39,17 @@ function parseDraft(text: string): Composition | Message {
   for (const block of value.blocks) {
     if (objectWithKeys(block, ['kind']) && block.kind === 'value-table') {
       blocks.push({ kind: 'value-table' });
+    } else if (objectWithKeys(block, ['kind', 'source', 'annotation']) && block.kind === 'candlestick') {
+      const { annotation, source } = block;
+      if (source !== candleSource.id || !objectWithKeys(annotation, ['field', 'when'])
+          || !isNumericField(annotation.field) || !objectWithKeys(annotation.when, ['field', 'above'])
+          || !isNumericField(annotation.when.field) || typeof annotation.when.above !== 'number'
+          || !Number.isFinite(annotation.when.above)) {
+        return message('Block {index} must bind granted synthetic fields and a finite threshold.', { index: blocks.length + 1 });
+      }
+      blocks.push({ kind: 'candlestick', source, annotation: {
+        field: annotation.field, when: { field: annotation.when.field, above: annotation.when.above },
+      } });
     } else if (objectWithKeys(block, ['kind', 'threshold'], ['aboveLabel', 'belowLabel']) && block.kind === 'threshold-tiles'
         && typeof block.threshold === 'number' && Number.isFinite(block.threshold)
         && validLabel(block.aboveLabel) && validLabel(block.belowLabel)) {
@@ -49,13 +65,85 @@ function parseDraft(text: string): Composition | Message {
   return { version: 1, blocks };
 }
 
+function candlesByBinding<T extends CandleBlock>(candles: readonly T[]) {
+  const groups = new Map<string, T[]>();
+  for (const candle of candles) {
+    const { source, annotation: { field, when } } = candle;
+    const key = JSON.stringify([source, field, when.field]);
+    const group = groups.get(key);
+    if (group) group.push(candle);
+    else groups.set(key, [candle]);
+  }
+  return groups;
+}
+
+function previewBlocks(blocks: Block[], accepted: PresentedBlock[]): PresentedBlock[] {
+  const acceptedCandles = accepted.filter(block => block.kind === 'candlestick');
+  const draftCandles = blocks.filter(block => block.kind === 'candlestick');
+  const previousGroups = candlesByBinding(acceptedCandles);
+  const draftGroups = candlesByBinding(draftCandles);
+  const matches = new Map<CandleBlock, PresentedCandle>();
+  const threshold = (candle: CandleBlock) => candle.annotation.when.above;
+
+  for (const [key, candles] of draftGroups) {
+    const previous = previousGroups.get(key) ?? [];
+    const available: (PresentedCandle | undefined)[] = [...previous];
+    const sameCount = previous.length === candles.length;
+    const claim = (candle: CandleBlock, index: number) => {
+      const match = available[index];
+      if (!match) return;
+      matches.set(candle, match);
+      available[index] = undefined;
+    };
+
+    const previousThresholds = previous.map(threshold).sort((a, b) => a - b);
+    const draftThresholds = candles.map(threshold).sort((a, b) => a - b);
+    if (sameCount && draftThresholds.some((value, index) => value !== previousThresholds[index])) {
+      // When a threshold changes, an exact sibling at the same occurrence claims its own instance first.
+      candles.forEach((candle, index) => {
+        if (threshold(candle) === threshold(previous[index]!)) claim(candle, index);
+      });
+    }
+    for (const candle of candles) {
+      if (!matches.has(candle)) {
+        // Match identical definitions in occurrence order, consuming each accepted instance once.
+        claim(candle, available.findIndex(match => match !== undefined && threshold(match) === threshold(candle)));
+      }
+    }
+    if (sameCount) {
+      // Remaining instances in this binding differ only by threshold. Preserve their relative order.
+      const remaining = available.filter(match => match !== undefined);
+      candles.filter(candle => !matches.has(candle)).forEach((candle, index) => {
+        matches.set(candle, remaining[index]!);
+      });
+    }
+  }
+
+  // After exact and threshold matches, carry a field edit only across a one-to-one source match.
+  const claimed = new Set(matches.values());
+  const unmatchedAccepted = acceptedCandles.filter(candle => !claimed.has(candle));
+  const unmatchedDraft = draftCandles.filter(candle => !matches.has(candle));
+  for (const candle of unmatchedDraft) {
+    const previous = unmatchedAccepted.filter(candidate => candidate.source === candle.source);
+    const incoming = unmatchedDraft.filter(candidate => candidate.source === candle.source);
+    if (previous.length === 1 && incoming.length === 1) matches.set(candle, previous[0]!);
+  }
+
+  let nextInstance = Math.max(0, ...acceptedCandles.map(candle => candle.instance)) + 1;
+  return blocks.map(block => {
+    if (block.kind !== 'candlestick') return block;
+    const match = matches.get(block);
+    return { ...block, instance: match?.instance ?? nextInstance++, timeframe: match?.timeframe ?? '5m' };
+  });
+}
+
 const timeLabel = (time: number) => formatDateTime(time, {
   timeZone: fixture.dataset.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 });
 const price = (value: number) => formatNumber(value, { useGrouping: false, maximumFractionDigits: 15 });
 
 function SeriesBlock({ block, selected, select }: {
-  block: Block; selected: number | undefined; select: (time: number) => void;
+  block: SeriesBlock; selected: number | undefined; select: (time: number) => void;
 }) {
   if (block.kind === 'value-table') return <section className="probe-block">
     <h3>{t('Value table')}</h3>
@@ -81,9 +169,9 @@ function SeriesBlock({ block, selected, select }: {
 }
 
 export function WorkbenchPrototype({ close }: { close: () => void }) {
-  const [accepted, setAccepted] = useState({ composition: blank, text: encode(blank) });
+  const [accepted, setAccepted] = useState<{ blocks: PresentedBlock[]; text: string }>({ blocks: [], text: encode(blank) });
   const [draft, setDraft] = useState(encode(blank));
-  const [preview, setPreview] = useState<Composition>();
+  const [preview, setPreview] = useState<PresentedBlock[]>();
   const [error, setError] = useState<Message>();
   const [selected, setSelected] = useState<number>();
   const heading = useRef<HTMLHeadingElement>(null);
@@ -120,11 +208,19 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
       }
     } else {
       setError(undefined);
-      setPreview(parsed);
+      setPreview(current => current ?? previewBlocks(parsed.blocks, accepted.blocks));
     }
   }
 
-  const visible = preview ?? accepted.composition;
+  function selectTimeframe(block: PresentedCandle, timeframe: CandleTimeframe) {
+    const update = (blocks: PresentedBlock[]) => blocks.map(candidate => candidate === block ? { ...block, timeframe } : candidate);
+    if (preview) setPreview(current => current && update(current));
+    else setAccepted(current => ({ ...current, blocks: update(current.blocks) }));
+  }
+
+  const visible = preview ?? accepted.blocks;
+  const hasCandles = visible.some(block => block.kind === 'candlestick');
+  const showCloses = !hasCandles || visible.some(block => block.kind !== 'candlestick');
   return <dialog className="probe" ref={dialog} aria-labelledby="probe-heading"
     onCancel={event => { event.preventDefault(); close(); }}>
     <header className="probe-header">
@@ -138,14 +234,19 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         <div className="probe-actions">
           <button type="button" onClick={() => inspect({ kind: 'threshold-tiles', threshold: 3499.5 })}>{t('Add threshold tiles')}</button>
           <button type="button" onClick={() => inspect({ kind: 'value-table' })}>{t('Add value table')}</button>
+          <button type="button" onClick={() => inspect({
+            kind: 'candlestick', source: candleSource.id,
+            annotation: { field: 'turnover', when: { field: 'strength', above: 0.8 } },
+          })}>{t('Add candlesticks')}</button>
         </div>
         <label htmlFor="probe-draft">{t('Composition JSON')}</label>
         <textarea id="probe-draft" value={draft} spellCheck={false} maxLength={maxLength} onChange={event => edit(event.currentTarget.value)} />
         <p className="probe-hint">{t('Edit the threshold or set aboveLabel and belowLabel to your own text.')}</p>
+        <p className="probe-hint">{t('Bind strength or turnover and edit the annotation threshold.')}</p>
         <div className="probe-actions">
           <button type="button" className="primary" onClick={() => inspect()}>{t('Preview draft')}</button>
           <button type="button" disabled={!preview} onClick={() => {
-            if (preview) { setAccepted({ composition: preview, text: draft }); setPreview(undefined); }
+            if (preview) { setAccepted({ blocks: preview, text: draft }); setPreview(undefined); }
           }}>{t('Accept view')}</button>
           <button type="button" onClick={() => edit(accepted.text)}>{t('Restore accepted view')}</button>
         </div>
@@ -156,15 +257,18 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
           <h2>{t('Workbench canvas')}</h2>
           <span role="status">{preview ? t('Draft preview') : t('Accepted view')}</span>
         </div>
-        <details className="probe-source">
-          <summary>{t('Frozen synthetic closes')} · {fixture.dataset.instrument_id}</summary>
+        {showCloses && <details className="probe-source">
+          <summary>{hasCandles ? t('Frozen synthetic closes for tiles and tables') : t('Frozen synthetic closes')}
+            {' · '}{fixture.dataset.instrument_id}</summary>
           <dl><dt>{t('Dataset revision')}</dt><dd>{fixture.snapshot.dataset_revision}</dd>
             <dt>{t('Snapshot hash')}</dt><dd>{fixture.snapshot.content_hash}</dd>
             <dt>{t('Time zone')}</dt><dd>{fixture.dataset.timezone}</dd></dl>
-        </details>
-        {visible.blocks.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
-          <div className="probe-blocks">{visible.blocks.map((block, index) =>
-            <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />)}</div>}
+        </details>}
+        {visible.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
+          <div className="probe-blocks">{visible.map((block, index) => block.kind === 'candlestick'
+            ? <WorkbenchCandleBlock key={`candle-${block.instance}`} block={block} timeframe={block.timeframe}
+              selectTimeframe={timeframe => selectTimeframe(block, timeframe)} />
+            : <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />)}</div>}
       </section>
     </div>
   </dialog>;

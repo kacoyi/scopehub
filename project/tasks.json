@@ -4749,7 +4749,7 @@
         "ui-build"
       ],
       "evidence": [],
-      "next_action": "Use the M2-014 slice, the local workbench-qualification-v2 inputs and the staged Ubuntu host in M1-031. Compare accepted-series geometry, interaction, redraw and fault isolation on both native hosts before selecting a renderer.",
+      "next_action": "Use the M2-014 and M2-029 native observations with workbench-qualification-v2 and the M1-031 Ubuntu host. Measure moving annotation alignment and distinct presented frames across 120 refresh opportunities during quote updates, including viewport edges and different display scales. Compare native fault isolation and recovery on both hosts before selecting a renderer.",
       "blocker": null,
       "closure_reason": null,
       "delivery": "current-contract",
@@ -17618,6 +17618,119 @@
           ],
           "data_plan": "Use a disposable synthetic profile. No user data migration.",
           "cleanup": "Retain only the regression and the fix. Resume the renderer task after the repair."
+        }
+      }
+    },
+    {
+      "id": "M2-029",
+      "title": "Probe authored numeric annotations in the candlestick draw cycle",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": ["M2-014", "M2-025"],
+      "scope": ["apps/desktop/ui", "tests/ui", "project/checks.json", "project/development.json"],
+      "decision_refs": ["0004", "0007", "0027"],
+      "acceptance": [
+        "Through the normal synthetic prototype entry, author a candlestick binding that displays 3.2% only on the 09:40 UTC five-minute candle and 4.7% on the 09:30 UTC fifteen-minute candle. Show result, revision, unit and bar attribution, including missing values.",
+        "Add a valid editable candlestick example through the existing draft flow. Scope source disclosures to their blocks in chart-only and mixed compositions and keep the original disclosure on the blank canvas.",
+        "Measure painted candle and annotation anchors independently in the browser after zoom, pan, resize and a timeframe round trip. Reject a binding outside the synthetic grant and retain the last accepted view and author text.",
+        "Accept a 15-minute candle binding, preview an empty canvas and reject a grant mismatch. Restore the same 15-minute bar, result revision, value and author text. Keep draft and sibling timeframe changes separate from the accepted binding.",
+        "Keep the selected timeframe and result revision when appending an identical block or applying an unambiguous same-source edit to its threshold, plotted field or condition field. Verify independent replicas, reorder distinguishable blocks by binding, and document the fallback order for indistinguishable definitions.",
+        "Extend the native WebView2 editor probe to verify accessible UTC rows, values and revisions during the timeframe round trip, rejection recovery and threshold-only preview and acceptance. Hand off the repeatable slice to the coordinator for the Windows run and the independent Ubuntu trial."
+      ],
+      "checks": ["architecture", "ui-build", "market-workflow", "renderer-prototype-interaction"],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-029-a54db22ae150b4d4.json",
+          "sha256": "33bb7e815bc942132698c3465a77f892c430bc7e79d586f6248635143eac17e7"
+        },
+        {
+          "path": "project/evidence/M2-029-d0aad5a156051efb.json",
+          "sha256": "71d65ced504839f5128ec631ad773fac3c7f7529ec48956a3d2ee4d38aa1ff46"
+        },
+        {
+          "path": "project/evidence/M2-029-261f2c83d060d699.json",
+          "sha256": "9c887193f45248c0fc42a24ff5c2b091c1e4cc376d0318c46b17cfc032d71afd"
+        },
+        {
+          "path": "project/evidence/M2-029-f196da6afa415d92.json",
+          "sha256": "26a4ff270961dfb4a86bd9dd31aae2788982f3b87314a02046eec92aab05321a"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Archived local and hosted Linux and Windows task checks on c637c35. Read-only review, Chromium, the staged Ubuntu native window and hosted WebView2 verified the scoped synthetic binding and recovery. Six settled Ubuntu captures placed the annotation tip within one logical pixel of its wick. See contracts/reviews/2026-11-24-candlestick-native-observations.json. M2-003 retains moving-frame, native containment and renderer selection work.",
+      "plan": {
+        "outcome": "A declarative numeric annotation follows its exact candle as the viewport or timeframe changes. A reviewer can inspect the frozen input and recover the accepted draft.",
+        "change_types": ["ui"],
+        "context": [
+          "apps/desktop/ui/src/workbench-prototype.tsx",
+          "apps/desktop/ui/src/chart-adapter/history.ts",
+          "tests/ui/renderer-probe.config.mjs",
+          "tests/ui/renderer-probe-windows.ps1",
+          "tests/fixtures/workbench-qualification-v1.json",
+          "contracts/decisions/0027-v1-user-composed-workbench.json"
+        ],
+        "hypotheses": [
+          "A candlestick series primitive can draw the label at current chart coordinates without projecting the viewport into asynchronous DOM state, as the chart-draft-layout comparison did."
+        ],
+        "risks": [
+          {
+            "failure": "A label drifts from its candle, goes stale during a timeframe switch, or is drawn for a missing value.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "An ungranted field or source is admitted, or a rejected edit loses the accepted composition or its source identity.",
+            "checks": ["architecture", "renderer-prototype-interaction"]
+          },
+          {
+            "failure": "Native WebView2 exposes stale or mismatched attribution even when the Chromium pixel check is green.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "A canvas-wide source disclosure attributes the synthetic equity candles to the legacy futures fixture.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "An empty preview unmounts a 15-minute accepted binding and rejection restores its text with a different timeframe, result revision and financial value.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "Appending a duplicate or scoping an edit to a threshold, plotted field or condition field resets the accepted chart's timeframe or assigns a sibling's timeframe, changing the observed financial value and revision.",
+            "checks": ["renderer-prototype-interaction"]
+          },
+          {
+            "failure": "The native probe assumes InvokePattern for every button and stops without reporting which control and capabilities it observed.",
+            "checks": ["renderer-prototype-interaction"]
+          }
+        ],
+        "rollback": "Revert the prototype block, its fixture and the scoped chart entry together. Retain observations for M2-003.",
+        "implementation": {
+          "modules": ["ui", "chart-adapter"],
+          "entrypoints": [
+            "apps/desktop/ui/src/workbench-prototype.tsx",
+            "apps/desktop/ui/src/chart-adapter/candle-annotations.ts",
+            "tests/ui/renderer-probe.config.mjs",
+            "tests/ui/renderer-probe-windows.ps1"
+          ],
+          "rules": [
+            {"path": "contracts/workbench-v1.json", "pointer": "/customization/extensibility"},
+            {"path": "contracts/workbench-v1.json", "pointer": "/shared_evidence/attribution"},
+            {"path": "tests/fixtures/workbench-qualification-v1.json", "pointer": "/cases/unconventional-indicator"}
+          ],
+          "non_goals": [
+            "Author code execution, real data, permissions or persistence.",
+            "The full unconventional indicator case, OS isolation, renderer selection or release qualification. Moving native viewport edges and compositor presentation remain in M2-003. The Windows probe observes UI Automation."
+          ],
+          "open_questions": [
+            "Does the rendered annotation anchor stay within one logical pixel of its underlying candle when the chart geometry and timeframe change?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": ["Blank startup, threshold tiles, value tables, accepted draft recovery and the existing chart workspace."],
+          "change": ["Allow an authored candlestick block to bind scoped read-only numeric fields to a conditional annotation. Seed an editable example and disclose each source only for its applicable blocks. Retain each accepted block's timeframe in the host with its validated definition and keep preview changes separate."],
+          "data_plan": "Use immutable synthetic inputs, identified by source, timeframe, revision and bar open time. Within each source and field binding, pair identical definitions in occurrence order. For threshold edits within an equal-size group, reserve unchanged occurrences first and pair remaining edits in order. Match a remaining field edit only when one previous and one draft block share that source. Unmatched blocks use five minutes. Instance identities and timeframes stay in memory and outside author JSON.",
+          "cleanup": "Revisit the prototype entry and primitive at the M2-003 renderer decision."
         }
       }
     }
