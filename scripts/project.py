@@ -83,8 +83,10 @@ def task_definition_hash(task):
 def feedback_fingerprint(item):
     # Bind a regression run to the actual observation without publishing its text.
     diagnostics = sorted(report['report_sha256'] for report in item.get('diagnostic_reports', []))
-    return digest(json_bytes([item['id'], item.get('occurrence', 1), item['observation'],
-                              sorted(item['regression_checks']), diagnostics]))
+    identity = [item['id'], item.get('occurrence', 1), item['observation'], sorted(item['regression_checks']), diagnostics]
+    if baseline := item.get('verification_budget', {}).get('growth_baseline'):
+        identity.append(sorted((row['run_id'], row['source_commit'], row['report_sha256']) for row in baseline))
+    return digest(json_bytes(identity))
 
 
 def project_definition_hash(project):
@@ -181,7 +183,7 @@ def require_portable_report_paths(root, value, label, run_ids=()):
 
 
 def validate_report_references(root, record, label):
-    locators = record.get('diagnostic_reports', ())
+    locators = [*record.get('diagnostic_reports', ()), *record.get('verification_budget', {}).get('growth_baseline', ())]
     for locator in locators:
         try:
             validate_locator(locator)

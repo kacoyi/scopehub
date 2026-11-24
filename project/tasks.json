@@ -18206,6 +18206,10 @@
             ]
           },
           {
+            "failure": "A busy or unavailable capture prevents the authenticated failure from reaching the next offline reader, or a missing recorded trend baseline is replaced by older timing.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
             "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
             "checks": [
               "python-contracts-workers"

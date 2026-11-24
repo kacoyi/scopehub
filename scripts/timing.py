@@ -4,6 +4,7 @@ import argparse
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from functools import cache
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -30,7 +31,7 @@ TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
 ATTEMPT_IDENTITY = ('repository', 'run_id', 'run_attempt', 'event', 'head_sha')
-CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
+CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1(?:-failure-[0-9a-f]{64})?\.json\Z')
 INTAKE_ATTEMPTS = 2
 MISSING_COMPACT = 'Compact reports are absent for part of the required matrix.'
 MISSING_CLOCK = 'Complete matching attempt job clocks are unavailable.'
@@ -794,6 +795,7 @@ def metric_review(rows, metric, objective, *, compare_growth=True):
         action = 'Retain representative observations for the next weekly review.'
     return {'metric': metric, 'status': status, 'objective_seconds': objective, 'sample_count': len(values),
             'recent_runs': [run for _, run in recent], 'baseline_runs': [run for _, run in baseline],
+            'baseline_reports': [harness_identity(row) for row in measured[-2 * WINDOW:-WINDOW]] if len(baseline) == WINDOW else [],
             'recent_reports': [harness_identity(row) for row in measured[-WINDOW:]],
             'breach_reports': [harness_identity(row) for row in measured[-WINDOW:]
                                if objective is not None and row['seconds'][metric] > objective],
@@ -969,24 +971,27 @@ def matches_budget_scope(sample, scope):
     return all((sample['ci'] if key in ('repository', 'event') else sample)[key] == scope[key] for key in BUDGET_SCOPE)
 
 
-def linked_timing_window(history, reports):
+def linked_timing_window(history, reports, growth_baseline):
     # Use the same attributable window and precedence as the ordinary timing review.
     for end in range(len(history), 1, -1):
         window = history[max(0, end - 2 * WINDOW):end]
         review = metric_review(window, 'total', HOSTED_BUDGET)
-        if review['recent_objective_breaches'] >= 2:
+        if growth_baseline:
+            if (review['material_growth'] and {report_key(row) for row in review['baseline_reports']} == growth_baseline
+                    and all(report_key(row) in reports for row in review['recent_reports'])):
+                return window[:WINDOW], window[WINDOW:]
+        elif review['recent_objective_breaches'] >= 2:
             if all(report_key(row) in reports for row in review['breach_reports']):
                 return [row for row in history if report_key(row) in reports
                         and row['seconds']['total'] > HOSTED_BUDGET], []
-        elif review['material_growth'] and all(report_key(row) in reports for row in review['recent_reports']):
-            return window[:WINDOW], window[WINDOW:]
     return [], []
 
 
-def measure_budget_recovery(scope, repair, reports, samples, ancestor, checkout_parents):
+def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents):
     rows = [sample for sample in samples if has_hosted_inputs(sample) and matches_budget_scope(sample, scope)]
-    linked = [row for row in rows if report_key(row) in reports]
-    unavailable = sorted(reports - {report_key(row) for row in linked})
+    required_reports = reports | growth_baseline
+    linked = [row for row in rows if report_key(row) in required_reports]
+    unavailable = sorted(required_reports - {report_key(row) for row in linked})
     # All linked observations in this scope bound the correction, even when they belong to another cohort.
     last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
     last_run = max((int(row['ci']['run_id']) for row in linked), default=0)
@@ -997,7 +1002,7 @@ def measure_budget_recovery(scope, repair, reports, samples, ancestor, checkout_
 
     comparisons, cutoffs = [], {}
     for cohort, history in cohorts.items():
-        baseline, degraded = linked_timing_window(history, reports)
+        baseline, degraded = linked_timing_window(history, reports, growth_baseline)
         if not baseline:
             continue
         selected = tuple(key for key, *_ in cohort[3])
@@ -1048,7 +1053,7 @@ def measure_budget_recovery(scope, repair, reports, samples, ancestor, checkout_
     elif unavailable:
         action = 'Restore comparable retained timing for all linked observations. ' + action
     elif not comparisons:
-        action = 'Restore the diagnosed timing controls or the original sustained-growth windows. ' + action
+        action = 'Restore the diagnosed timing controls or link the original sustained-growth baseline reports. ' + action
     elif any(row['history_missing'] for row in comparisons):
         action = 'Make the corrective and hosted input history available locally. ' + action
     elif any(row['degraded_window'] and not row['recovered'] for row in comparisons):
@@ -1095,7 +1100,8 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT):
         )
         recovery = None
         if scope['event'] in NORMAL_EVENTS:
-            recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports,
+            growth_baseline = {report_key(row) for row in spec.get('growth_baseline', ())}
+            recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports, growth_baseline,
                                                         view.get('samples', ()), ancestor, checkout_parents)
             for cohort, cutoff in cutoffs.items():
                 key = scope_key, cohort
@@ -1160,7 +1166,8 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT):
                 for row in comparable if row['recent_objective_breaches'] >= 2]
     growth = [
         {**route(row, row['recent_reports']), 'cache': row['cache'], 'coverage': row['coverage'],
-         'growth_seconds': row['growth_seconds'], 'baseline_runs': row['baseline_runs']}
+         'growth_seconds': row['growth_seconds'], 'baseline_runs': row['baseline_runs'],
+         'baseline_reports': row['baseline_reports']}
         for row in comparable if row['material_growth']
     ]
     opened = [entry for _, _, _, entry in tracked.values() if entry['feedback_status'] != 'addressed']
@@ -1325,6 +1332,31 @@ def save_timing_capture(path, attempts, samples, clocks, issues):
         staged.replace(path)
 
 
+def retain_authenticated_failure(root, failure):
+    # This immutable attempt-and-conclusion record is independent of the job capture writer's lock.
+    key = sha256(json_bytes([*ci_key(failure), failure['conclusion']])).hexdigest()
+    filename = f"ci-{failure['event']}-{failure['run_id']}-1-failure-{key}.json"
+    local = root / '.reports/timing'
+    try:
+        shared = shared_timing_directory(root)
+    except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS):
+        shared = None
+    directories = (shared, local) if shared else (local,)
+    for directory in directories:
+        try:
+            if directory == local and not directory.resolve().is_relative_to(root.resolve()):
+                raise TimingError('The local timing directory must be inside this checkout.')
+            directory.mkdir(parents=True, exist_ok=True)
+            path = directory / filename
+            _, samples, clocks, _ = read_timing_capture(path, [])
+            if samples or clocks != [failure]:
+                save_timing_capture(path, 0, [], [failure], [])
+            return
+        except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            failure_to_write = error
+    raise TimingError(f'Could not retain the authenticated workflow failure: {failure_to_write}')
+
+
 def read_timing_capture(path, issues):
     try:
         data = read_bounded_timing(path)
@@ -1425,6 +1457,10 @@ def ci_budget_status(root, repository, run):
     if run:
         if failure := authenticated_failure(run, actions_attempt_identity(repository, run)):
             hosted.append(failure)
+            try:
+                retain_authenticated_failure(root, failure)
+            except TimingError as error:
+                issues.append({'run_id': failure['run_id'], 'error': str(error)})
         try:
             intake, new_samples, new_clocks, new_issues = collect_new_ci_timing(root, repository, run, samples, hosted)
             if intake in {'captured', 'retained', 'ambiguous'}:

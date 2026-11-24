@@ -4626,6 +4626,28 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "verification-authenticated-failure-lost-during-busy-timing-capture",
+      "source": "Independent Standard Astra read-only re-review of cf81feb317a3ccaf02d6dbf8421d94821231c7e3 in the verification-cost checkout, .reports/m0-087/astra-cf81feb.txt, finding 1, SHA-256 da547ac74a4ceead29ff1722078ea8cece10b40641fc4cffb0edfed2f005815f.",
+      "observation": "Regular CI correctly returned failed and pending when a known failed attempt could not enter its timing capture. An immediate ordinary offline reread then recovered the same run from an old success clock because the current authenticated failure had not been retained independently of the capture lock or capture error.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-budget-missing-growth-baseline-replaced-by-older-run",
+      "source": "Independent Standard Astra read-only re-review of cf81feb317a3ccaf02d6dbf8421d94821231c7e3 in the verification-cost checkout, .reports/m0-087/astra-cf81feb.txt, finding 2, SHA-256 da547ac74a4ceead29ff1722078ea8cece10b40641fc4cffb0edfed2f005815f.",
+      "observation": "The diagnosed baseline was 600/600/930 seconds, followed by 730/730/730. Repaired runs at 700/700/700 remained pending with the full evidence. Removing one original 600-second sample allowed an older 630-second observation to fill its slot, raised the baseline median to 630 and incorrectly established recovery.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

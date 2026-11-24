@@ -1204,7 +1204,8 @@
                   "event": {"enum": ["local", "pull_request", "push"]},
                   "profile": {"type": "string", "minLength": 1},
                   "platform": {"type": "string", "minLength": 1},
-                  "repair_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+                  "repair_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+                  "growth_baseline": {"$ref": "#/$defs/DiagnosticReports", "minItems": 3, "maxItems": 3}
                 },
                 "required": ["repository", "event", "profile", "platform"],
                 "additionalProperties": false

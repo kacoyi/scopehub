@@ -855,13 +855,18 @@ class RecentTimingTests(unittest.TestCase):
         self.fixture_git(root, 'update-ref', f'refs/tags/fixture-{preview[:10]}', preview)
         return preview
 
-    def budget_finding(self, event, repair, *observations):
-        return {'id': f'budget-{event}', 'verification_budget': {
+    def budget_finding(self, event, repair, *observations, growth_baseline=()):
+        finding = {'id': f'budget-{event}', 'verification_budget': {
             'repository': 'fixture/scopehub', 'event': event, 'profile': 'full', 'platform': 'Windows',
             'repair_commit': repair,
         }, 'status': 'addressed', 'task_ids': ['M0-999'], 'diagnostic_reports': [
             timing.harness_identity(samples[-1]) for _, samples, _ in observations
         ]}
+        if growth_baseline:
+            finding['verification_budget']['growth_baseline'] = [
+                timing.harness_identity(samples[-1]) for _, samples, _ in growth_baseline
+            ]
+        return finding
 
     def offline_observations(self, root, finding, *observations, tasks=None):
         self.write_archive(root / '.reports/timing/offline.json',
@@ -929,7 +934,7 @@ class RecentTimingTests(unittest.TestCase):
         base = [self.budget_run(day, '10:00', head=before, event='push') for day in (11, 12, 13)]
         degraded = [self.budget_run(day, '12:10', head=before, event='push') for day in (14, 15, 16)]
         corrected = [self.budget_run(day, '10:00', head=after, event='push') for day in (17, 18, 19)]
-        finding = self.budget_finding('push', repair, *degraded)
+        finding = self.budget_finding('push', repair, *degraded, growth_baseline=base)
         old = self.offline_observations(root, finding, *base, *degraded)
         self.assertEqual(130, old['sustained_growth'][0]['growth_seconds'])
         pending = self.offline_observations(root, finding, *base, *degraded, *corrected[:2])
@@ -951,7 +956,7 @@ class RecentTimingTests(unittest.TestCase):
                         for day, finish in enumerate(degraded, 14)]
                 improved = [self.budget_run(day, finish, head=after, event='push')
                             for day, finish in enumerate(('12:10', '10:00', '10:00'), 17)]
-                finding = self.budget_finding('push', repair, *slow)
+                finding = self.budget_finding('push', repair, *slow, growth_baseline=base)
                 triggered = self.offline_observations(root, finding, *base, *slow)
                 self.assertEqual([], triggered['repeated_breaches'])
                 self.assertEqual(130, triggered['sustained_growth'][0]['growth_seconds'])
@@ -963,7 +968,7 @@ class RecentTimingTests(unittest.TestCase):
                 self.assertEqual(['17', '18', '19'], [row['hosted_run_id'] for row in proof['recovery_window']])
                 missing = self.offline_observations(root, finding, *base[1:], *slow, *improved)
                 self.assertEqual('pending', missing['budget_recovery'][0]['recovery']['status'])
-                self.assertIn('original sustained-growth windows', missing['next_action'])
+                self.assertIn('linked observations', missing['next_action'])
 
         over = [self.budget_run(day, '20:00', head=before, event='push') for day in (21, 22)]
         corrected = self.budget_run(23, '14:55', head=after, event='push')
@@ -971,6 +976,28 @@ class RecentTimingTests(unittest.TestCase):
         recovery = self.offline_observations(root, budget, *over, corrected)['budget_recovery'][0]['recovery']
         self.assertEqual('recovered', recovery['status'])
         self.assertEqual(['23'], [row['hosted_run_id'] for row in recovery['comparisons'][0]['recovery_window']])
+
+    def test_missing_original_growth_baseline_cannot_be_replaced_by_an_older_sample(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        older = self.budget_run(10, '10:30', head=before, event='push')
+        baseline = [self.budget_run(day, finish, head=before, event='push')
+                    for day, finish in enumerate(('10:00', '10:00', '15:30'), 11)]
+        degraded = [self.budget_run(day, '12:10', head=before, event='push') for day in (14, 15, 16)]
+        improved = [self.budget_run(day, '11:40', head=after, event='push') for day in (17, 18, 19)]
+        finding = self.budget_finding('push', repair, *degraded, growth_baseline=baseline)
+        full = self.offline_observations(root, finding, older, *baseline, *degraded, *improved)
+        comparison, = full['budget_recovery'][0]['recovery']['comparisons']
+        self.assertEqual(600, comparison['control_median_seconds'])
+        self.assertEqual(['11', '12', '13'], [row['hosted_run_id'] for row in comparison['controls']])
+        self.assertEqual('pending', full['budget_recovery'][0]['recovery']['status'])
+        missing = self.offline_observations(root, finding, older, *baseline[1:], *degraded, *improved)
+        recovery = missing['budget_recovery'][0]['recovery']
+        self.assertEqual('pending', recovery['status'])
+        self.assertEqual([baseline[0][1][-1]['run_id']], [row['run_id'] for row in recovery['unavailable_reports']])
+        self.assertIn('linked observations', missing['next_action'])
+        corrected = [self.budget_run(day, '10:00', head=after, event='push') for day in (17, 18, 19)]
+        complete = self.offline_observations(root, finding, older, *baseline, *degraded, *corrected)
+        self.assertEqual('recovered', complete['budget_recovery'][0]['recovery']['status'])
 
     def test_authenticated_failure_blocks_the_stale_success_clock_live_and_offline(self):
         root, (before, repair, after) = self.recovery_fixture()
@@ -997,12 +1024,13 @@ class RecentTimingTests(unittest.TestCase):
               patch.object(timing, 'inspect_jobs', side_effect=OSError('Job endpoint unavailable')) as jobs):
             with patch.object(timing, 'collect_new_ci_timing', side_effect=OSError('Capture is unavailable')):
                 uncaptured = ci.status(root)
+            immediate = timing.offline_budget_status(root, [finding], {})
             live = ci.status(root)
         self.assertEqual('failed', live['status'])
         jobs.assert_called_once()
         with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
             offline = timing.offline_budget_status(root, [finding], {})
-        for budget in (uncaptured['verification_budget'], live['verification_budget'], offline):
+        for budget in (uncaptured['verification_budget'], immediate, live['verification_budget'], offline):
             recovery = budget['budget_recovery'][0]['recovery']
             self.assertEqual('pending', recovery['status'])
             self.assertIsNone(recovery['comparisons'][0]['recovered'])
@@ -1014,6 +1042,28 @@ class RecentTimingTests(unittest.TestCase):
         observed, = [sample for sample in merged['samples']
                      if sample['platform'] == 'Windows' and sample['ci']['run_id'] == '16']
         self.assertEqual(('failure', None), (observed['workflow_conclusion'], observed['seconds']['total']))
+
+    def test_busy_timing_writer_cannot_block_ordinary_offline_failure_retention(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        baseline = [self.budget_run(day, '20:00', head=before, event='push') for day in (11, 12)]
+        run, samples, clock = self.budget_run(16, '12:00', head=after, event='push')
+        finding = self.budget_finding('push', repair, *baseline)
+        records = root / 'project'
+        records.mkdir()
+        (records / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+        (records / 'feedback.json').write_bytes(timing.json_bytes({'items': [finding]}))
+        initial = self.offline_observations(root, finding, *baseline, (run, samples, clock))
+        self.assertEqual('recovered', initial['budget_recovery'][0]['recovery']['status'])
+        shared = timing.shared_timing_directory(root)
+        shared.mkdir()
+        with (timing.exclusive_git_lock(shared / 'ci-push-16-1.lock'),
+              patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request'))):
+            live = timing.ci_budget_status(root, run['repository']['full_name'], dict(run, conclusion='failure'))
+            offline = timing.offline_budget_status(root, [finding], {})
+        self.assertEqual('in_progress', live['intake'])
+        for observation in (live, offline):
+            self.assertEqual('pending', observation['budget_recovery'][0]['recovery']['status'])
+            self.assertTrue(any(note.get('authenticated_conclusions') == ['failure'] for note in observation['input_issues']))
 
     def test_post_recovery_uses_fresh_trend_windows_and_keeps_an_active_owner(self):
         root, (before, repair, after) = self.recovery_fixture()
