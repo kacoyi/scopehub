@@ -113,5 +113,15 @@
     "windows_run_id": "20261124T031808.381854Z-26d46421",
     "windows_report_sha256": "b0c6e9887e331976ae101a66e29779e52016856ccf7116a27730a84b5f37b211",
     "windows": "The debug executable launched with WebView2 157.0.4341.46. The native automation requested an unsupported InvokePattern before retaining any chart-alignment capture. Native Windows chart anchors, clipping and crosshair still await observation."
+  },
+  "chart_hover_correction": {
+    "task": "M2-018",
+    "candidate": "0ea5876bf2fe2afc065fa2b2c7b470e7cf232a28",
+    "fingerprint": "32ccf18147088862697a8e41b02cd2844e01f66af4226020d9e5b16f48248ab8",
+    "archive": "archives/observations/m2-018-crosshair-consistency-452236f/manifest.json",
+    "manifest_sha256": "7a06eee96dbadabb3424feae8a7f6aeb3334035584d6b50067fc96a931c7b9e8",
+    "tested_source": "452236f1511fdef13c4bf0b4340613bc0f69eef9",
+    "scope": "On the corrected stationary synthetic chart the coordinator observed six alternating pointer movements in zh-CN Chromium. Across 84 animation callbacks the base marks stayed visible and the old selection decoration never accompanied the new readout. The new decoration appeared after 100 to 115 ms. This samples browser state during callbacks. Native display timing remains unmeasured on this revision.",
+    "independent": "The retained workload includes delayed and rejected selection. A rapid A to B to A sequence held radii at 5 and 5 during B and ended at 8 and 5 on A. The archive records the earlier failing cases alongside the correction."
   }
 }
