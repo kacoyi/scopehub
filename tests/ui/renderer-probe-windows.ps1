@@ -97,18 +97,46 @@ try {
         Write-Output "Trusted Rust import / Chromium confirmation: $row"
     }
     $app = Start-Process -FilePath $exe -PassThru
-    $window = Wait-ForProbe 'native main window' {
-        $app.Refresh()
-        if ($app.MainWindowHandle -ne [IntPtr]::Zero) {
-            [Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+    if ($PreparedSeries) {
+        $document=[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Document)
+        for ($attempt=1;$attempt -le 2;$attempt++) {
+            $pidCondition=[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty,$app.Id)
+            $timer=[Diagnostics.Stopwatch]::StartNew()
+            while (!$app.HasExited -and $timer.Elapsed.TotalSeconds -lt 45 -and !$window) {
+                $candidates=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,$pidCondition)
+                foreach ($c in $candidates) {
+                    if ($c.Current.Name -ne 'ScopeHub' -or !$c.Current.NativeWindowHandle) { continue }
+                    try {
+                        $doc=$c.FindFirst([Windows.Automation.TreeScope]::Descendants,$document)
+                        if ($doc -and $doc.Current.Name -eq 'ScopeHub') { $window=$c; break }
+                    } catch [Windows.Automation.ElementNotAvailableException] {}
+                }
+                if (!$window) { Start-Sleep -Milliseconds 200 }
+            }
+            if ($window) { break }
+            Write-Host "No ScopeHub document exposed on startup $attempt of PID=$($app.Id). Owned top-level windows: $(@($candidates | ForEach-Object { "$($_.Current.ClassName):$($_.Current.Name):$($_.Current.NativeWindowHandle)" }) -join ' | ')"
+            if ($attempt -eq 2) { throw 'No owned Tauri window with a live ScopeHub web document after two ordinary starts.' }
+            if (!$app.HasExited) {
+                $null=$app.CloseMainWindow()
+                if (!$app.WaitForExit(5000)) { Stop-Process -Id $app.Id -Force; $app.WaitForExit() }
+            }
+            $app=Start-Process -FilePath $exe -PassThru
+        }
+    } else {
+        $window = Wait-ForProbe 'native main window' {
+            $app.Refresh()
+            if ($app.MainWindowHandle -ne [IntPtr]::Zero) {
+                [Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+            }
         }
     }
+    $ownedHandle=[IntPtr]$window.Current.NativeWindowHandle
     if ($window.Current.ProcessId -ne $app.Id) { throw 'Unexpected native window owner.' }
     if ($PreparedSeries) {
         $browser=Wait-ForProbe 'embedded native runtime child' {
             Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" | Select-Object -First 1
         }
-        Write-Output "Prepared-profile app HWND=$($app.MainWindowHandle) PID=$($app.Id) WebView2=$((Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion) binary=$((Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash)"
+        Write-Output "Prepared-profile app HWND=$ownedHandle PID=$($app.Id) WebView2=$((Get-Item -LiteralPath $browser.ExecutablePath).VersionInfo.ProductVersion) binary=$((Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash)"
         & (Join-Path $PSScriptRoot 'accepted-native-windows.ps1') -OutputDirectory $AcceptedOutput -Identity $preparedIdentity
         return
     }
