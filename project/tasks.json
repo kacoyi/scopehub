@@ -20379,9 +20379,19 @@
           "run_id": "20261124T191751.193512Z-520f9d9d",
           "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
           "report_sha256": "9f26f5107e91ef5f5420a0c7c1e5bfe2e41e6d11e0deeeb9089efa2f86a3e60e"
+        },
+        {
+          "run_id": "20261124T201729.469593Z-0c3de589",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "659472212fa59440e3decb59239908c0dfc8d895e67bfbeb9e19f332ba3bcfe1"
+        },
+        {
+          "run_id": "20261124T201537.748700Z-a28a86bb",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "d3f533758abe4b8d7221870305611c49e267cc967115fa6f8131d35be4f6e697"
         }
       ],
-      "next_action": "After focused portable controls and independent review, verify the exact candidate on the ordinary Windows profile preparation and workspace browser entries. Record the first batch command wall time, native accepted and refused writer outcomes, and the four original case outcomes before attaching a matching receipt.",
+      "next_action": "Correct the outer directory creation at the supervised Windows browser fixture entry, compare the existing ancestor refusal with the native Rust fixture contract, and use the coordinator-owned native task to verify the same JavaScript path and ordinary writer against the retained failure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20402,7 +20412,8 @@
         "hypotheses": [
           "Four Windows bridge profile preparations failed at the ten-second PowerShell child deadline, before Vite, SQLite or any observed application operation. The same four cases passed on Linux. The raw failure does not isolate PowerShell startup, scheduling or ACL I/O.",
           "The earlier Tauri process-local test admission slot does not govern the separately launched browser bridges. The fourth failure occurred without another running workspace case. Reducing independent cold helper startup is a more direct correction than serializing two browser slots.",
-          "The observed fixture launches can be amortized by preparing their disposable roots together with the same policy before browser concurrency. A directory can inherit a private DACL while taking an elevated token default owner, so use the existing explicit owner and DACL creation for each child. The original report does not identify the mechanism inside the helper or prove the first cold invocation will finish on a later host."
+          "The observed fixture launches can be amortized by preparing their disposable roots together with the same policy before browser concurrency. A directory can inherit a private DACL while taking an elevated token default owner, so use the existing explicit owner and DACL creation for each child. The original report does not identify the mechanism inside the helper or prove the first cold invocation will finish on a later host.",
+          "Actual Windows task 45478673119 rejected a replaceable ancestor during the first browser setup, in 375 ms with zero scenarios. Rust passed its own batch and shared-root controls and Linux passed. CPython 3.12.10 uses a protected full-access Owner Rights ACE for Windows mkdir with mode 0700. That ACE fits the current ancestor refusal. The hosted report did not identify an actual path component or ACE."
         ],
         "risks": [
           {
@@ -20451,6 +20462,14 @@
               "python-contracts-workers",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "The Windows browser supervisor uses different ancestor creation semantics from the passing Rust fixture, or a repair bypasses real replaceable-ancestor refusal and publishes a profile before its protected root can be checked.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Keep both official runs and any focused native diagnostics. Revert only the preparation correction if it cannot retain the original refusal and cleanup contract.",
@@ -20476,7 +20495,7 @@
             "Increased deadlines, weaker ACLs, blanket serialization, retries that hide refusal, new profile or database formats, and alteration of accepted M0-036, M0-071, M0-089, M0-099 or M0-101 task definitions."
           ],
           "open_questions": [
-            "The historical physical guest used explicit owner preparation. No retained evidence establishes the current elevated runner default owner of a plain mkdtemp child. The candidate uses explicit ownership and needs its first real Windows bootstrap and checked writer opens observed."
+            "Confirm the known CPython 3.12.10 mode-dependent descriptor on a same-parent Windows control. Node and Rust have different TEMP/TMP preference, and the original output cannot identify the exact refused ancestor. No alternate root or relaxed ACE policy is authorized."
           ]
         },
         "evolution": {

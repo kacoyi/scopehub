@@ -5443,6 +5443,35 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-profile-pool-outer-directory-fails-ancestor-policy",
+      "source": "Windows and Linux M0-102 task verification 45478673119 attempt 1 at f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb. Original Windows log archives/runs/20261124T201729.469593Z-0c3de589/workspace-timeframe.log, SHA-256 803f5592497a6448a2ed3c412078ba26a2a820ca82d9d4d2e183d464a8c93c23. The exact CPython 3.12.10 Windows mkdir implementation is https://github.com/python/cpython/blob/v3.12.10/Modules/posixmodule.c#L5022-L5046.",
+      "observation": "The ordinary Windows browser global setup returned prepare/replaceable-ancestor after 375 ms and ran zero scenarios. Rust batch preparation, profile isolation and broad-access refusal passed there, as did the Python descendant supervision tests and the Linux task. The browser supervisor creates its exclusive outer directory using Python mode 0700; the passing Rust Windows process fixture uses default inherited creation. The tagged CPython source emits a full-access Owner Rights ACE for that special mode, which meets the current ancestor refusal predicate. The original Windows report lacks the literal rejected path component and ACE.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T201729.469593Z-0c3de589",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "659472212fa59440e3decb59239908c0dfc8d895e67bfbeb9e19f332ba3bcfe1"
+        },
+        {
+          "run_id": "20261124T201537.748700Z-a28a86bb",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "d3f533758abe4b8d7221870305611c49e267cc967115fa6f8131d35be4f6e697"
+        }
+      ]
     }
   ]
 }
