@@ -42,7 +42,8 @@ const FOLDER_MANIFEST_SCHEMA_VERSION: i64 = 7;
 const PRIVATE_RECORD_SCHEMA_VERSION: i64 = 8;
 const WORKSPACE_LAYOUT_SCHEMA_VERSION: i64 = 9;
 const INDICATOR_VERSIONS_SCHEMA_VERSION: i64 = 10;
-const SCHEMA_VERSION: i64 = INDICATOR_VERSIONS_SCHEMA_VERSION;
+const AUTHORED_LAYOUT_SCHEMA_VERSION: i64 = 11;
+const SCHEMA_VERSION: i64 = AUTHORED_LAYOUT_SCHEMA_VERSION;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpenWorkspaceError {
@@ -272,6 +273,11 @@ fn migrate(connection: &Connection, binding: &WorkspaceBinding) -> Result<(), Op
     if version < INDICATOR_VERSIONS_SCHEMA_VERSION {
         connection.execute_batch(include_str!("indicator_versions.sql"))?;
         record_migration(connection, INDICATOR_VERSIONS_SCHEMA_VERSION)?;
+    }
+    // A v10 reader rejects the new optional field inside layout JSON. Gate
+    // the profile before any authored definition can be committed.
+    if version < AUTHORED_LAYOUT_SCHEMA_VERSION {
+        record_migration(connection, AUTHORED_LAYOUT_SCHEMA_VERSION)?;
     }
     Ok(())
 }

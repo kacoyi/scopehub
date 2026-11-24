@@ -911,3 +911,107 @@ fn layout_preview_is_actor_bound_and_a_failed_commit_keeps_the_previous_layout()
     let restored = restored.layouts.unwrap();
     assert!(restored.active.name.is_none() && restored.saved.is_empty() && restored.undo.is_none());
 }
+
+#[test]
+fn local_authored_view_is_private_in_layout_snapshots_previews_receipts_and_replay() {
+    use scopehub_application::{
+        APPLY_LAYOUT, LAYOUT_ID, LOCAL_WORKSPACE_OPERATIONS, PREVIEW_LAYOUT,
+    };
+    use support::command;
+
+    let profile = Profile::new();
+    let mut registry = OperationRegistry::new(store(&profile.0));
+    let local = WorkspaceAccess {
+        operations: LOCAL_WORKSPACE_OPERATIONS,
+        ..access()
+    };
+    let ai = WorkspaceAccess {
+        actor: Actor::Ai,
+        principal_id: "layout-agent",
+        ..local
+    };
+    let target = json!({"kind": "layout", "object_id": LAYOUT_ID});
+    let make = |operation, revision, args| {
+        let mut request = command(operation, revision, Uuid::new_v4(), args);
+        request["scope"]["target"] = target.clone();
+        request
+    };
+    let layout = registry
+        .workspace_snapshot(&local)
+        .unwrap()
+        .layouts
+        .unwrap()
+        .active;
+    let mut definition = serde_json::to_value(layout.definition).unwrap();
+    let marker = "// series free\n// local private definition\ncircle(8,8,4,0);";
+    let id = Uuid::new_v4().to_string();
+    definition["authored_view"] = json!({
+        "api":"series-drawing-1", "source":marker, "scalars":[], "stroke":3,
+        "dataset_id":id,"dataset_revision":"original","layer_id":id,"version_id":id,
+        "series_id":"mean","result_hash":"a".repeat(64)
+    });
+    let edit = json!({"action":"save","name":"Review","definition":definition});
+    let preview = make(PREVIEW_LAYOUT, 0, json!({"edit": edit}));
+    assert_failed(
+        &registry.execute_workspace(&ai, preview.clone()).unwrap(),
+        "PERMISSION_DENIED",
+    );
+    let token =
+        registry.execute_workspace(&local, preview).unwrap()["outcome"]["result"]["preview_token"]
+            .clone();
+    let apply = make(APPLY_LAYOUT, 0, json!({"edit":edit,"preview_token":token}));
+    assert_eq!(
+        registry.execute_workspace(&local, apply).unwrap()["outcome"]["state"],
+        "committed"
+    );
+
+    for access in [
+        &ai,
+        &WorkspaceAccess {
+            paired_client_id: Some("paired"),
+            ..local
+        },
+    ] {
+        let snapshot = registry
+            .workspace_snapshot(access)
+            .unwrap()
+            .layouts
+            .unwrap();
+        assert!(snapshot.active.definition.authored_view.is_none());
+    }
+    let mut public = registry
+        .workspace_snapshot(&ai)
+        .unwrap()
+        .layouts
+        .unwrap()
+        .active
+        .definition;
+    public.link_selection = !public.link_selection;
+    let edit = json!({"action":"save","name":"Review","definition":public});
+    let result = registry
+        .execute_workspace(&ai, make(PREVIEW_LAYOUT, 1, json!({"edit":edit})))
+        .unwrap();
+    assert!(
+        result["outcome"]["result"]["layout"]["definition"]
+            .get("authored_view")
+            .is_none()
+    );
+    let token = &result["outcome"]["result"]["preview_token"];
+    let apply = make(APPLY_LAYOUT, 1, json!({"edit":edit,"preview_token":token}));
+    for _ in 0..2 {
+        let result = registry.execute_workspace(&ai, apply.clone()).unwrap();
+        assert_eq!(result["outcome"]["state"], "committed");
+        assert!(
+            result["outcome"]["result"]["definition"]
+                .get("authored_view")
+                .is_none()
+        );
+    }
+    let current = registry
+        .workspace_snapshot(&local)
+        .unwrap()
+        .layouts
+        .unwrap()
+        .active;
+    assert_eq!(current.definition.authored_view.unwrap().source, marker);
+}

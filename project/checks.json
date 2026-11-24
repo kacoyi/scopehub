@@ -848,7 +848,7 @@
     {
       "id": "workbench-drawing-runtime",
       "status": "implemented",
-      "purpose": "Exercise an embedded synthetic model turn returning a drawing program, independent frozen geometry, bounded host selections and scalar changes, externally authored file edits, validated core readouts, a confirmed and revoked local numeric series in two guest presentations, isolated resource failures and host recovery. Browser qualification only.",
+      "purpose": "Exercise an embedded synthetic model turn returning a drawing program, independent frozen geometry, bounded host selections and scalar changes, externally authored file edits, validated core readouts, a confirmed and revoked local numeric series in two guest presentations, isolated resource failures and host recovery. Save an accepted program in a named layout, restart the writer, revise it and reopen the editable source after revocation. Browser qualification only.",
       "platforms": "all",
       "command": [
         "pnpm",

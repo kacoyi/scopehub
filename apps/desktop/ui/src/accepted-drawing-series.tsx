@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState } from 'react';
-import type { FrozenSnapshot, Point } from '../../../../contracts/generated/protocol';
+import type { FrozenSnapshot, Point, SavedSeriesDrawing11 } from '../../../../contracts/generated/protocol';
 import { listAccepted, readAcceptedLayer, type Accepted, type Layer } from './accepted-layer-reader';
 import { t } from './i18n';
 import type { PublishedRevisionAccess } from './published-revision-access';
@@ -32,11 +32,14 @@ function project(current: FrozenSnapshot, layer: Layer, doc: NonNullable<Accepte
     points: input.map(({ time_ms, value }) => ({ time_ms, value })) };
 }
 
-export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, canDisplay: PublishedRevisionAccess['canDisplay'], workspaceSnapshot: WorkspaceSnapshot) {
+export function useAcceptedDrawingSeries(current: FrozenSnapshot | undefined, canDisplay: PublishedRevisionAccess['canDisplay'], workspaceSnapshot: WorkspaceSnapshot, saved?: SavedSeriesDrawing11) {
   const revision = current?.dataset_id;
-  const [selectedLayer, setLayer] = useState<Layer>();
+  const matching = saved && current?.dataset_id === saved.dataset_id && current.dataset_revision === saved.dataset_revision ? saved : undefined;
+  const [selectedLayer, setLayer] = useState<Layer | undefined>(() => matching && ({
+    layer_id: matching.layer_id, version_id: matching.version_id, available: false,
+  }));
   const version = selectedLayer?.version_id ?? '';
-  const [choice, setChoice] = useState('');
+  const [choice, setChoice] = useState(() => matching ? JSON.stringify([matching.series_id, matching.result_hash]) : '');
   const [options, setOptions] = useState<Choices>({ layers: [] });
   const [failure, setFailure] = useState<'unavailable' | 'size'>();
   useLayoutEffect(() => {

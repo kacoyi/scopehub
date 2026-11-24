@@ -3927,6 +3927,25 @@
         "prevention": "The before/after WebKitGTK observer recorded native picker Escape, both trusted targets and the preserved accepted scene. Archive archives/observations/m2-022-file-cancel-fd39144/manifest.json SHA-256 910b0519c7b56461100b5cd5a9544310bb8e1d395672919e0c05bfa4e909f616. A Chromium/Rust regression protects the version, result hash, source, three circles, selected 115 readout, undo and actual dialog Escape."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "blank-drawing-inherits-active-named-view",
+      "source": "Coordinator review and independent zh-CN Chromium / Rust reproduction on dcdc658. Both named and blank entries opened the same three rings and name in a disposable confirmed volume-mean profile.",
+      "observation": "After saving view A, the blank workbench opened the same definition and name. Saving a new drawing there could silently replace A.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-023"
+      ],
+      "regression_checks": [
+        "workbench-drawing-runtime"
+      ],
+      "resolution": {
+        "cause": "Named reopen and blank create initialized the same studio from the active workspace layout.",
+        "correction": "Keep separate entry intents. A blank studio starts with no program, binding or name, refuses an existing name, and becomes a saved view only after a committed save.",
+        "prevention": "The normal-entry regression saved B, reopened the edited A and checked its controls. Holding and releasing the frozen-chart read restored A while already open. Independent fresh zh-CN sessions confirmed the corrected blank and named entries on port 1470. Observation archives/observations/m2-023-authored-view-1d71972/manifest.json, SHA-256 5f0a6cab0ffd405e9c9d86e0dedeab1508b7031834695ea0171de2666bba554b."
+      },
+      "deferral_reason": null
     }
   ]
 }

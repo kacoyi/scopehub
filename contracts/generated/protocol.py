@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=b3c912e00eecfbc651c92c3b6750679f8bd66dd6160830b6d8bd2d0713f19dc0. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=2508b13a207b8a8b993fe9f1c8a7c8fc5e02707b39f8a732bdfacec59c923c2f. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -2598,6 +2598,7 @@ class WorkspaceLayout11(TypedDict):
     loss_color: str
     link_selection: bool
     pinned_instrument: OpaqueId | None
+    authored_view: NotRequired[SavedSeriesDrawing11]
 class NamedWorkspaceLayout11(TypedDict):
     name: str | None
     definition: WorkspaceLayout11
@@ -2778,3 +2779,14 @@ class AiTextConnectionCompleted11(TypedDict):
     operation: Literal['ai.textConnection']
     result: AiTextConnectionOutput
 AiTextConnectionOutcome11 = AiTextConnectionCompleted11 | ScopedFailure11
+class SavedSeriesDrawing11(TypedDict):
+    api: Literal['series-drawing-1']
+    source: str
+    stroke: int
+    scalars: list[float]
+    dataset_id: Uuid
+    dataset_revision: OpaqueId
+    layer_id: Uuid
+    version_id: Uuid
+    series_id: OpaqueId
+    result_hash: Hash

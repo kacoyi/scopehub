@@ -15607,6 +15607,9 @@
               "type": "null"
             }
           ]
+        },
+        "authored_view": {
+          "$ref": "#/$defs/SavedSeriesDrawing11"
         }
       },
       "required": [
@@ -16797,6 +16800,66 @@
           "$ref": "#/$defs/ScopedFailure11"
         }
       ]
+    },
+    "SavedSeriesDrawing11": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "string",
+          "const": "series-drawing-1"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 900,
+          "pattern": "^// series free\\r?\\n"
+        },
+        "stroke": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "scalars": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          }
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "dataset_revision": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "layer_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "version_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "series_id": {
+          "$ref": "#/$defs/OpaqueId"
+        },
+        "result_hash": {
+          "$ref": "#/$defs/Hash"
+        }
+      },
+      "required": [
+        "api",
+        "source",
+        "stroke",
+        "scalars",
+        "dataset_id",
+        "dataset_revision",
+        "layer_id",
+        "version_id",
+        "series_id",
+        "result_hash"
+      ],
+      "additionalProperties": false
     }
   }
 }

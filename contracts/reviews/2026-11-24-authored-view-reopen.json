@@ -1,0 +1,32 @@
+{
+  "task": "M2-023",
+  "tested_commit": "1d71972ba26bdb8cb4929ce7f138d823852248da",
+  "run_id": "20261124T052811.533219Z-9baabf8f",
+  "report_sha256": "eb5ed2b7050bc957a3f817045717c49cbf1607c4c728828059ee39e0ea9fcba9",
+  "observation_manifest": "archives/observations/m2-023-authored-view-1d71972/manifest.json",
+  "manifest_sha256": "5f0a6cab0ffd405e9c9d86e0dedeab1508b7031834695ea0171de2666bba554b",
+  "product_entry": "Save the accepted series program in Drawing studio. On reopen, use the named chart-header button. Use Edit layout to select another saved layout. Blank AI workbench opens an independent studio.",
+  "storage": "The optional series-drawing-1 attachment is stored in the existing layout save, history and undo transaction. Scalar values are in source declaration order. Exact observations, selection, derived drawing output and rejected drafts are session-only.",
+  "recovery": "The v11 marker and ledger update are atomic. The old writer refuses this format. Reopen a closed pre-upgrade v10 backup with the old reader or keep the upgraded profile with the current reader. No table or legacy JSON rewrite is necessary.",
+  "scope": "Linux Chromium with the Rust writer, and independent Ubuntu Tauri native development observation on the same product revision with the identified host. The persistence slice uses synthetic data. Windows persistence, physical package qualification and the broader M2-013 authored text and disclosure journey have separate scopes.",
+  "independent_ubuntu_native": {
+    "manifest": "archives/observations/m2-023-independent-reopen-1d71972/manifest.json",
+    "manifest_sha256": "db662ae26c557ee45eaa09ea3b95dec96a941ce1b99b9e5e75e602a1018ddf05",
+    "verified_artifacts": 173,
+    "product_commit": "1d71972ba26bdb8cb4929ce7f138d823852248da",
+    "ui_fingerprint": "14bd4eb737f81e6d6673e1808af4f20a8074786bcf9a77b8f554cbad6d42505c",
+    "host_source": "6aee5586e23392fa341d4779bbe92f9936441c97",
+    "executable_sha256": "5e915d6db7021a1d739b59ba634f877402291a888d82c4162792d4c1b36f4ef6",
+    "version_id": "b9a7a53b-9459-4d45-a86a-9df8cd0fd01a",
+    "result_hash": "09f4088b64b45774f046d9b22bb4ea0eb2950a4dade14bd731f2a0267cff1f24",
+    "source_sha256": "e0bbaa7e2c7f1be2526a80cf60133ea8dda2bb09f3ebf043e14b7f6760ffac99",
+    "edited_source_sha256": "ff5e73f581046586f1499a8ce3155eaeb987b96bde80ad9cb9cc74dce5cbeac8",
+    "observation": "After native CSV import and confirmation, the user accepted and saved 177 bytes of editable source. The first process exited normally in 114 ms. A new PID on the same profile reopened the named view with identical program bytes, accepted version, result hash and three ring extents, radius 7 and stroke 4. The blank entry showed zero program bytes, no marks or bound series, and the default stroke 3. Opening the named view again restored it. A local source edit changed only the 135 ring to purple and saved.",
+    "frames": [
+      "native-02/named-reopen.png",
+      "native-02/blank-control.png",
+      "native-02/edited-saved.png"
+    ]
+  },
+  "independent_coordinator": "A separate zh-CN session on port 1470 reopened the named view, three rings and 115 readout, opened blank, and restored the named view again. The coordinator also repeated the private projection and v11 compatibility Rust checks."
+}

@@ -63,6 +63,7 @@ fn default_layout() -> NamedWorkspaceLayout11 {
         name: None,
         definition: WorkspaceLayout11 {
             version: 1,
+            authored_view: None,
             panels: [
                 LayoutPanel11Panel::Watchlist,
                 LayoutPanel11Panel::Inspection,
@@ -147,6 +148,33 @@ pub(super) fn resolve_edit(
     })
 }
 
+// The model may edit the public chart layout. Only the local human workspace
+// reads or writes its private drawing attachment.
+pub(super) fn project_layout(layout: &mut NamedWorkspaceLayout11, access: &WorkspaceAccess<'_>) {
+    if !super::evidence::local_display(access) {
+        layout.definition.authored_view = None;
+    }
+}
+
+fn resolve_scoped(
+    state: WorkspaceLayoutState,
+    mut edit: WorkspaceLayoutEdit11,
+    access: &WorkspaceAccess<'_>,
+) -> Result<WorkspaceLayoutChange, Error> {
+    if !super::evidence::local_display(access)
+        && let WorkspaceLayoutEdit11::SaveWorkspaceLayout11(save) = &mut edit
+    {
+        if save.definition.authored_view.is_some() {
+            return Err(failure(ErrorCode::PERMISSIONDENIED));
+        }
+        save.definition.authored_view = state
+            .saved
+            .get(&save.name)
+            .and_then(|layout| layout.authored_view.clone());
+    }
+    resolve_edit(state, edit)
+}
+
 fn check_access(access: &WorkspaceAccess<'_>, operation: &str) -> Result<(), Error> {
     if !access.disclose_workspace_state || !access.operations.contains(&operation) {
         return Err(failure(ErrorCode::PERMISSIONDENIED));
@@ -204,7 +232,8 @@ pub(super) fn preview(
     let edit = serde_json::from_value(arguments["edit"].clone())
         .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
     let token = preview_token(access, scope, &edit, secret)?;
-    let proposed = resolve_edit(tx.layouts()?, edit)?;
+    let mut proposed = resolve_scoped(tx.layouts()?, edit, access)?;
+    project_layout(&mut proposed.after, access);
     reply.validated(json!({
         "state": "previewed", "operation": PREVIEW_LAYOUT,
         "result": {"layout": proposed.after, "preview_token": token},
@@ -245,7 +274,7 @@ pub(super) fn commit(
         let payload = tx
             .layout_change(&saved.receipt.operation_id, access.actor)?
             .ok_or_else(|| failure(ErrorCode::PERMISSIONDENIED))?;
-        return committed(reply, access.workspace_id, &saved.receipt, &payload.after);
+        return committed(reply, access, &saved.receipt, &payload.after);
     }
     let state = check_revision(tx, scope)?;
     let layouts = tx.layouts()?;
@@ -256,7 +285,7 @@ pub(super) fn commit(
         if arguments["preview_token"].as_str() != Some(expected_token.as_str()) {
             return Err(failure(ErrorCode::STALECONTEXT));
         }
-        let edit = resolve_edit(layouts, input)?;
+        let edit = resolve_scoped(layouts, input, access)?;
         let saved_after = edit
             .saved_name
             .as_ref()
@@ -315,28 +344,30 @@ pub(super) fn commit(
         undoes,
     };
     tx.record_layout(&change, &edit, saved_after.as_ref())?;
-    committed(reply, access.workspace_id, &change.receipt, &edit.after)
+    committed(reply, access, &change.receipt, &edit.after)
 }
 
 fn committed(
     reply: &WorkspaceReply<'_>,
-    workspace_id: &str,
+    access: &WorkspaceAccess<'_>,
     receipt: &WorkspaceReceipt,
     layout: &NamedWorkspaceLayout11,
 ) -> Result<Value, Error> {
     let result = if reply.operation.name == UNDO {
         json!(workspace_projection(
-            workspace_id,
+            access.workspace_id,
             receipt.revision,
             receipt.after
         ))
     } else {
-        json!(layout)
+        let mut visible = layout.clone();
+        project_layout(&mut visible, access);
+        json!(visible)
     };
     reply.validated(json!({
         "state": "committed", "operation": reply.operation.name, "result": result,
         "receipt": OperationReceipt11 {
-            operation_id: receipt.operation_id.clone(), workspace_id: workspace_id.into(),
+            operation_id: receipt.operation_id.clone(), workspace_id: access.workspace_id.into(),
             target: layout_target(), committed_workspace_revision: receipt.revision, undoable: receipt.undoable,
         },
     }))

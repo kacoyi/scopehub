@@ -73,7 +73,7 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, openAuthoring, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
+export function ChartWorkspace({ sample, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, openAuthoring, openSavedView, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
   revisionAccess: PublishedRevisionAccess;
@@ -82,6 +82,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   restoredSampleInstrument?: string | undefined;
   openPrototype: () => void;
   openAuthoring: () => void;
+  openSavedView: () => void;
   onOpenSample?: (() => void) | undefined;
   retryRestoredSource?: (() => void) | undefined;
   chooseSampleInstrument?: ((id: string) => Promise<void>) | undefined;
@@ -401,6 +402,8 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
       {workspace && <button type="button" ref={layoutTrigger} className="period notes-trigger" aria-haspopup="dialog"
         disabled={!savedLayouts || Boolean(workspace.pending) || layout.busy || Boolean(layout.preview)}
         onClick={() => layout.open()}>{t('Edit layout')}</button>}
+      {savedLayouts?.active.definition.authored_view && <button type="button" className="period notes-trigger"
+        onClick={openSavedView}>{t('Open saved view: {name}', { name: savedLayouts.active.name ?? '' })}</button>}
       <LanguageSettings />
       <Tool name={focusChart ? t('Exit chart-only view') : t('Chart-only view')} icon={focusChart ? 'collapse' : 'expand'} active={focusChart} onClick={() => setFocusChart(!focusChart)} />
     </header>
