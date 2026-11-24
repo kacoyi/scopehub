@@ -1,6 +1,7 @@
 """Select publishable evidence from a fresh hosted verification run."""
 
 import argparse
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import re
@@ -8,28 +9,33 @@ import shutil
 import tempfile
 
 if __package__:
-    from .check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
-    from .project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
-    from .timing import TIMING_FILE, generated_contracts_sample, job_summary, report_sample
+    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
+                        windows_lane_checks, windows_lanes_run_id)
+    from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
+                          project_definition_hash, task_definition_hash, validate_model, windows_x64)
+    from .timing import CACHE_STATES, TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from .verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES
+    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
-    from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
-    from project import ProjectError, digest, file_digest, json_bytes, load_project, validate_model
-    from timing import TIMING_FILE, generated_contracts_sample, job_summary, report_sample
+    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
+                       windows_lane_checks, windows_lanes_run_id)
+    from project import (ProjectError, digest, file_digest, json_bytes, load_project,
+                         project_definition_hash, task_definition_hash, validate_model, windows_x64)
+    from timing import CACHE_STATES, TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from verification_evidence import (
         FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES
+    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
+WINDOWS_GENERATOR_SAMPLE = 'windows-generator-sample.json'
 SCOPE_FIELDS = {'profile', 'reason_code', 'base', 'checkout', 'change_count'}
 COMMIT_SHA = re.compile(r'(?!0{40})[0-9a-f]{40}')
 BROWSER_OUTPUTS = {
@@ -236,8 +242,8 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
         release_artifacts(destination / run, source, policy, expected=expected, hosted=True)
 
 
-def stage_artifacts(root, destination, env):
-    reports = root / '.reports'
+def stage_artifacts(root, destination, env, *, reports=None, lane=False):
+    reports = root / '.reports' if reports is None else reports
     latest = optional_path(reports, 'test-report.json')
     if latest is None:
         return False
@@ -255,7 +261,7 @@ def stage_artifacts(root, destination, env):
     if named_report.read_bytes() != contents:
         raise PublicationError('The latest and per-run harness reports differ.')
 
-    scope = scope_provenance(report, digest(contents), env)
+    scope = None if lane else scope_provenance(report, digest(contents), env)
     project = load_project(root)
     destination.mkdir()
     executed = {}
@@ -325,6 +331,105 @@ def stage_artifacts(root, destination, env):
     return True
 
 
+def validate_windows_lane(project, report, source, ci, selected, lane, profile):
+    check_ids = [check['id'] for check in project['catalog']['checks']]
+    if (report['ci'] != ci or report['source'] != source or report['source_end'] != source
+            or not report['source_unchanged'] or not report['project_unchanged']
+            or report['project_definition_sha256'] != project_definition_hash(project)
+            or report['task_definitions'] != {key: task_definition_hash(task) for key, task in project['tasks'].items()}
+            or not windows_x64(report['environment'])):
+        raise PublicationError(f'Windows {lane} lane has another checkout, run, platform or project definition.')
+    if (report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}
+            or [row['id'] for row in report['checks']] != check_ids
+            or report['native_requirement'] != {'requested': False, 'satisfied': True}):
+        raise PublicationError(f'Windows {lane} lane has a different selection or catalog order.')
+    python = report['environment']['python_executable']
+    for row in report['checks']:
+        key = row['id']
+        check = project['checks'][key]
+        command = [python if arg == '{python}' else arg for arg in check['command'] or []]
+        if row['command'] != command:
+            raise PublicationError(f'Windows {lane} lane changed the command for {key}.')
+        if key not in selected or check['status'] != 'implemented':
+            reasons = {'not_selected'} if key not in selected else {
+                'not_implemented' if check['status'] == 'planned' else 'retired', 'earlier_failure',
+            }
+            if (row['status'] != 'blocked' or row.get('reason_code') not in reasons
+                    or {'log', 'log_sha256', 'exit_code'}.intersection(row)):
+                raise PublicationError(f'Windows {lane} lane has an unexpected result for {key}.')
+        elif row['status'] == 'passed' and (row.get('reason_code') or duration(row.get('duration_seconds')) is None):
+            raise PublicationError(f'Windows {lane} lane has an incomplete passing result for {key}.')
+    if profile in SCOPED_PROFILES:
+        statuses = {row['status'] for row in report['checks'] if row['id'] in selected}
+        expected = 'failed' if 'failed' in statuses else 'passed' if statuses == {'passed'} else 'blocked'
+        if report['status'] != expected:
+            raise PublicationError(f'Windows {lane} lane summary differs from its selected check results.')
+
+
+def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *, profile=None):
+    """Recheck the event checkout and import only current, digest-checked lane outputs."""
+    checkout = source['git_head']
+    _, head, _ = ci_event_checkout(root, checkout, env)
+    if ci['head_sha'] != head:
+        raise PublicationError('Windows lane provenance differs from the event head.')
+    if profile:
+        base = ci_base(root, checkout, env)
+        require_ancestor(root, base, checkout)
+    names = ('core',) if profile else WINDOWS_LANES
+    prefix = 'verification-windows-' + ci['run_attempt'] + '-'
+    expected_names = {prefix + lane for lane in names}
+    if not downloads.is_dir() or {path.name for path in downloads.iterdir()} != expected_names:
+        raise PublicationError('Missing or unexpected Windows lane artifacts. Rerun all jobs for this attempt.')
+
+    reports = root / '.reports'
+    run_id = windows_lanes_run_id(ci)
+    rows = {}
+    started = []
+    caches = set()
+    with tempfile.TemporaryDirectory(prefix='scopehub-windows-', dir=env.get('RUNNER_TEMP')) as directory:
+        for lane in names:
+            incoming = checked_path(downloads, prefix + lane, directory=True)
+            staged = Path(directory) / lane
+            if not stage_artifacts(root, staged, env, reports=incoming, lane=not profile):
+                raise PublicationError(f'Windows {lane} lane has no finalized report.')
+            report = evidence_json((staged / 'test-report.json').read_bytes())
+            lane_selection = selected if profile else windows_lane_checks(selected, lane)
+            validate_windows_lane(project, report, source, ci, lane_selection, lane, profile or f'ci-windows-{lane}')
+            if profile and report['status'] == 'passed' and env.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success':
+                raise PublicationError('The scoped Windows lane job did not succeed.')
+            if lane == 'core':
+                core = report
+            if not profile:
+                if (report['run_id'] != run_id or report['environment']['python_executable'] !=
+                        core['environment']['python_executable']):
+                    raise PublicationError(f'Windows {lane} lane has another report identity or Python executable.')
+                started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])
+                rows.update((row['id'], row) for row in report['checks'] if lane == 'core' or row['id'] in lane_selection)
+            for file in staged.rglob('*'):
+                if file.is_file() and (profile or file.name != 'test-report.json'):
+                    relative = file.relative_to(staged)
+                    if (reports / relative).exists():
+                        raise PublicationError('Windows lane evidence paths overlap.')
+                    copy_file(file, reports / relative)
+            if lane != 'python':
+                timing_file = optional_path(incoming, TIMING_FILE)
+                timing = evidence_json(timing_file.read_bytes()) if timing_file else {}
+                cache = timing.get('cache')
+                sample = report_sample(report, cache=cache)
+                matches = all(timing.get(key) == value for key, value in sample.items())
+                caches.add(cache if matches and cache in CACHE_STATES else 'unknown')
+                if lane == 'core' and matches and (generator := timing.get('generated_contracts')):
+                    write_artifact(reports / WINDOWS_GENERATOR_SAMPLE, json_bytes(generator))
+    if output := env.get('GITHUB_OUTPUT'):
+        with Path(output).open('a', encoding='utf-8') as stream:
+            stream.write(f"cache={next(iter(caches)) if len(caches) == 1 else 'unknown'}\n")
+    if profile:
+        return core, 0
+    core['checks'] = [rows[check['id']] for check in project['catalog']['checks']]
+    (reports / 'runs' / run_id).mkdir(parents=True, exist_ok=True)
+    return core, max(0, datetime.now(timezone.utc).timestamp() - min(started))
+
+
 def stage_timing(destination, env, *, has_report):
     if has_report:
         report = evidence_json((destination / 'test-report.json').read_bytes())
@@ -338,8 +443,14 @@ def stage_timing(destination, env, *, has_report):
             },
         }
     sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'))
-    if has_report and (comparison := generated_contracts_sample(report, ROOT, env)):
-        sample['generated_contracts'] = comparison
+    if has_report:
+        if 'SCOPEHUB_WINDOWS_LANE_RESULT' in env:
+            observed = optional_path(ROOT / '.reports', WINDOWS_GENERATOR_SAMPLE)
+            comparison = evidence_json(observed.read_bytes()) if observed else None
+        else:
+            comparison = generated_contracts_sample(report, ROOT, env)
+        if comparison:
+            sample['generated_contracts'] = comparison
     timing_path = destination.parent / TIMING_FILE
     timing_path.write_bytes(json_bytes(sample))
     if has_report:
@@ -358,7 +469,8 @@ def main():
             prepare_reports(ROOT)
             return
         destination = Path(tempfile.mkdtemp(prefix='scopehub-ci-', dir=os.environ['RUNNER_TEMP'])) / 'verification'
-        has_report = stage_artifacts(ROOT, destination, os.environ)
+        lane = os.environ.get('SCOPEHUB_WINDOWS_LANE')
+        has_report = stage_artifacts(ROOT, destination, os.environ, lane=bool(lane and not os.environ.get('SCOPEHUB_SCOPED_PROFILE')))
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
             if has_report:
                 output.write(f'path={destination}\n')

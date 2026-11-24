@@ -20,6 +20,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
         cls.events = workflow[True]  # PyYAML parses the YAML 1.1 boolean spelling "on".
         cls.concurrency = workflow['concurrency']
+        cls.jobs = workflow['jobs']
         cls.job = workflow['jobs']['verify']
         cls.steps = steps = cls.job['steps']
         cls.step = next(
@@ -31,8 +32,8 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         cls.narrow = next(step for step in steps if step.get('name', '').endswith(' changes'))
 
     def test_browser_setup_is_required_without_a_successful_prerequisite_opt_out(self):
-        self.assertEqual("steps.build_setup.outputs.skip != 'true'", self.step['if'])
-        self.assertNotIn('if', self.prerequisite)
+        self.assertTrue(self.step['if'].startswith("steps.build_setup.outputs.skip != 'true'"))
+        self.assertIn("matrix.lane != 'python'", self.prerequisite['if'])
         self.assertNotIn('continue-on-error', self.step)
         self.assertEqual('bash', self.step['shell'])
 
@@ -40,19 +41,23 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         protection = json.loads((ROOT / 'project/branch-protection.json').read_text(encoding='utf-8'))
         required = {check['context'] for check in protection['configuration']['required_status_checks']['checks']}
         self.assertEqual("${{ inputs.task_id && 'verify task' || 'verify' }} (${{ matrix.os }})", self.job['name'])
-        self.assertEqual(required, {f"verify ({row['os']})" for row in self.job['strategy']['matrix']['include']})
+        self.assertEqual({'verify (ubuntu-latest)', 'verify (windows-latest)'}, required)
+        routine = "(github.event_name == 'pull_request' || github.event_name == 'push')"
+        self.assertIn(f"{routine} && '[\"ubuntu-latest\"]'", self.job['strategy']['matrix']['os'])
+        aggregate = self.jobs['windows_change']
+        self.assertIn(f"{routine} && 'verify (windows-latest)'", aggregate['name'])
         checkout = next(step for step in self.steps if step.get('uses', '').startswith('actions/checkout@'))
         self.assertEqual({'fetch-depth': 0, 'persist-credentials': False}, checkout['with'])
         self.assertNotIn('if', checkout)
+        self.assertEqual(checkout, aggregate['steps'][0])
         self.assertEqual('${{ github.event.pull_request.head.sha || github.sha }}', self.job['env']['SCOPEHUB_SOURCE_HEAD'])
         for name in ('Preserve accepted history', 'Initialize CI verification reports',
                      'Fetch the reviewed public publisher advisory'):
             step = next(step for step in self.steps if step.get('name') == name)
-            self.assertNotIn('if', step)
             self.assertLess(self.steps.index(step), self.steps.index(self.narrow))
         stage = next(step for step in self.steps if step.get('id') == 'artifacts')
         self.assertEqual("always() && steps.reports.outcome == 'success'", stage['if'])
-        upload = next(step for step in self.steps if step.get('with', {}).get('name') == 'verification-${{ matrix.os }}')
+        upload = next(step for step in self.steps if "format('verification-{0}', matrix.os)" in step.get('with', {}).get('name', ''))
         self.assertEqual('${{ steps.artifacts.outputs.path }}', upload['with']['path'])
         self.assertNotIn('continue-on-error', upload)
 
@@ -60,14 +65,14 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         self.assertIsNone(self.events['pull_request'])
         self.assertEqual({'branches': ['main']}, self.events['push'])
         self.assertEqual("github.event_name == 'pull_request' || github.event_name == 'push'", self.selector['if'])
-        self.assertEqual('uv run --no-sync python scripts/verification_scope.py --ci', self.selector['run'])
+        self.assertEqual('uv run --no-project python scripts/verification_scope.py --ci', self.selector['run'])
         self.assertTrue(self.selector['continue-on-error'])
         self.assertEqual("${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}",
                          self.prerequisite['env']['SCOPEHUB_SCOPE'])
         self.assertEqual("${{ steps.scope.outputs.decision != '' && 'true' || 'false' }}",
                          self.prerequisite['env']['SCOPEHUB_SCOPE_HAS_DECISION'])
         self.assertEqual('Verify ${{ steps.build_setup.outputs.profile }} changes', self.narrow['name'])
-        self.assertEqual("steps.build_setup.outputs.profile != '' && !inputs.task_id", self.narrow['if'])
+        self.assertEqual("steps.build_setup.outputs.profile != '' && !inputs.task_id && steps.lane.outputs.skip != 'true'", self.narrow['if'])
         self.assertEqual('${{ steps.build_setup.outputs.profile }}', self.narrow['env']['SCOPEHUB_SCOPE'])
         self.assertNotIn('continue-on-error', self.narrow)
         stage = next(step for step in self.steps if step.get('id') == 'artifacts')
@@ -102,7 +107,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         conditions = {
             'pnpm check': f"runner.os != 'Windows' && {fallback}",
             'uv run python scripts/check.py --require-windows':
-                f"runner.os == 'Windows' && inputs.profile != 'release' && {fallback}",
+                f"runner.os == 'Windows' && matrix.lane == '' && inputs.profile != 'release' && {fallback}",
             'uv run python scripts/check.py --profile release --require-windows':
                 "runner.os == 'Windows' && inputs.profile == 'release' && !inputs.task_id",
         }
@@ -117,6 +122,56 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         self.assertEqual("inputs.task_id && inputs.profile == 'release'", reject['if'])
         self.assertNotIn('continue-on-error', reject)
         self.assertLess(self.steps.index(reject), self.steps.index(task))
+
+    def test_routine_windows_changes_use_bounded_native_lanes_and_attempt_bound_aggregation(self):
+        aggregate = self.jobs['windows_change']
+        self.assertEqual('windows-latest', aggregate['runs-on'])
+        lanes = ['core', 'browser', 'python']
+        self.assertEqual([f'windows_{lane}' for lane in lanes], aggregate['needs'])
+        for lane in lanes:
+            producer = self.jobs[f'windows_{lane}']
+            self.assertEqual('windows-latest', producer['runs-on'])
+            self.assertEqual([lane], producer['strategy']['matrix']['lane'])
+            self.assertIn("github.event_name == 'push' && github.ref == 'refs/heads/main'", producer['if'])
+            self.assertIn(f"needs.windows_{lane}.result == 'success'", aggregate['env']['SCOPEHUB_WINDOWS_LANE_RESULT'])
+        self.assertEqual("${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}",
+                         aggregate['if'])
+        steps = self.jobs['windows_python']['steps']
+        for command in ('pnpm install --frozen-lockfile', self.step['run']):
+            self.assertIn("matrix.lane != 'python'", next(step for step in steps if step.get('run') == command)['if'])
+        restore = next(step for step in steps if step.get('id') == 'cargo_cache')
+        self.assertIn("matrix.lane != 'python'", restore['if'])
+        downloads = [step for step in aggregate['steps'] if step.get('uses', '').startswith('actions/download-artifact@')]
+        self.assertEqual(2, len(downloads))
+        for step in downloads:
+            self.assertNotIn('github-token', step['with'])
+            self.assertIn('github.run_attempt', str(step['with']))
+        full = next(step for step in aggregate['steps'] if step.get('id') == 'full')
+        self.assertEqual('Run uv run python scripts/check.py --require-windows', full['name'])
+        self.assertNotIn('continue-on-error', full)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run the workflow failure guard with Bash')
+    def test_protected_windows_job_requires_success_even_after_a_cancelled_dependency(self):
+        aggregate = self.jobs['windows_change']
+        guard = aggregate['steps'][-1]
+        self.assertEqual('${{ always() }}', guard['if'])
+        self.assertNotIn('continue-on-error', guard)
+        condition = aggregate['env']['SCOPEHUB_WINDOWS_LANE_RESULT']
+        expected = ' && '.join(f"needs.{dependency}.result == 'success'" for dependency in aggregate['needs'])
+        self.assertEqual('${{ ' + expected + " && 'success' || 'failure' }}", condition)
+        self.assertEqual("${{ job.status == 'success' && (steps.full.outcome == 'success' || steps.scoped.outcome == 'success') }}",
+                         guard['env']['SCOPEHUB_AGGREGATE_PASSED'])
+        for result, completed_aggregate, expected_exit in (
+            ('success', 'true', 0), ('success', 'false', 1), ('failure', 'true', 1),
+            ('cancelled', 'false', 1), ('skipped', 'false', 1), ('', '', 1),
+        ):
+            with self.subTest(result=result, completed_aggregate=completed_aggregate):
+                completed = subprocess.run(
+                    [guard['shell'], '-c', guard['run']],
+                    env=dict(os.environ, SCOPEHUB_WINDOWS_LANE_RESULT=result, SCOPEHUB_AGGREGATE_PASSED=completed_aggregate),
+                    capture_output=True, timeout=10,
+                )
+                self.assertEqual(expected_exit, completed.returncode)
 
     def test_task_omits_setup_only_for_reviewed_browser_and_build_free_selection(self):
         project = load_project(ROOT)

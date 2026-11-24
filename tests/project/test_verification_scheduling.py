@@ -5,6 +5,7 @@ from io import StringIO
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import subprocess
 import sys
@@ -15,8 +16,10 @@ import unittest
 from unittest.mock import patch
 
 from scripts import check as harness
+from scripts import ci_artifacts
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
+from scripts.verification_scope import ScopeError, preview
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
 
@@ -242,3 +245,239 @@ class HostedSchedulingTests(ProjectFixture):
             self.assertEqual(expected_reuse, reuse_modes)
             report = read_json(self.root / '.reports/test-report.json')
             self.assertEqual([check['id'] for check in catalog['checks']], [result['id'] for result in report['checks']])
+
+
+class WindowsLaneTests(ProjectFixture):
+    def setUp(self):
+        super().setUp()
+        self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe'):
+            catalog['checks'].append(dict(catalog['checks'][0], id=name))
+            catalog['required_change_checks'].append(name)
+        catalog['checks'][-1]['command'] = ['{python}', '-c', 'import os, sys; sys.exit(int(os.environ.get("SCOPEHUB_FIXTURE_EXIT", 0)))']
+        catalog['profiles']['records'] = ['environment', 'project-state', 'dependency-review']
+        catalog_path.write_bytes(json_bytes(catalog))
+
+        def git(*args):
+            command = ['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org', *args]
+            return subprocess.check_output(command, cwd=self.root, stderr=subprocess.PIPE, text=True).strip()
+
+        git('add', '.')
+        tree = git('write-tree')
+        base = git('commit-tree', tree, '-m', 'Fixture base')
+        head = git('commit-tree', tree, '-p', base, '-m', 'Fixture head')
+        merge = git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Fixture merge')
+        git('checkout', '--detach', merge)
+        self.reports = self.root / '.reports'
+        self.event = self.downloads.parent / f'{self.downloads.name}-event.json'
+        self.addCleanup(self.event.unlink, missing_ok=True)
+        self.event.write_bytes(json_bytes({'number': 1, 'pull_request': {'base': {'sha': base}, 'head': {'sha': head}}}))
+        self.enterContext(patch.dict(os.environ, {
+            'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GITHUB_RUN_ID': '10',
+            'GITHUB_RUN_ATTEMPT': '2', 'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_SHA': merge,
+            'GITHUB_REF': 'refs/pull/1/merge', 'GITHUB_EVENT_PATH': str(self.event), 'SCOPEHUB_SOURCE_HEAD': head,
+            'SCOPEHUB_WINDOWS_LANE_RESULT': 'success', 'SCOPEHUB_REVIEW_BASE': base, 'GITHUB_OUTPUT': '',
+        }))
+        self.enterContext(patch.object(harness, 'ROOT', self.root))
+        self.enterContext(patch.object(harness, 'REPORTS', self.reports))
+        self.enterContext(patch.object(harness.platform, 'system', return_value='Windows'))
+        self.enterContext(patch.object(harness.platform, 'machine', return_value='AMD64'))
+        self.enterContext(patch.object(harness, 'maintain_automatically'))
+        self.enterContext(patch.object(harness, 'tool_version', return_value='fixture'))
+
+    def run_harness(self, *args):
+        with (patch.object(sys, 'argv', ['check.py', *args]), redirect_stdout(StringIO()),
+              self.assertRaises(SystemExit) as exit):
+            harness.main()
+        return exit.exception.code, read_json(self.reports / 'test-report.json')
+
+    def produce(self, profile=None, *, browser_exit=0):
+        reports = {}
+        for lane in ('core',) if profile else harness.WINDOWS_LANES:
+            args = ('--profile', profile) if profile else ('--ci-windows-lane', lane)
+            expected_exit = browser_exit if lane == 'browser' else 0
+            with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_EXIT': str(expected_exit)}):
+                code, report = self.run_harness(*args)
+            self.assertEqual(int(bool(expected_exit)), code)
+            destination = self.downloads / f'verification-windows-2-{lane}'
+            if lane == 'browser':
+                run = self.reports / 'runs' / report['run_id'] / 'workspace-timeframe'
+                run.mkdir()
+                (run / 'results.json').write_bytes(b'{"synthetic": true}\n')
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ, lane=not profile))
+            reports[lane] = report
+            shutil.rmtree(self.reports)
+        return reports
+
+    def test_aggregate_keeps_actual_commands_catalog_order_and_evidence_bytes(self):
+        lanes = self.produce()
+        self.assertEqual(['python-contracts-workers'], lanes['python']['selection']['checks'])
+        self.assertEqual(['workspace-timeframe'], lanes['browser']['selection']['checks'])
+        with patch.object(harness, 'execute') as execute:
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        execute.assert_not_called()
+        self.assertEqual(0, code)
+        self.assertEqual('passed', report['status'])
+        self.assertEqual({'requested': True, 'satisfied': True}, report['native_requirement'])
+        self.assertEqual('passed', report['integration_gates']['status'])
+        self.assertEqual([row['id'] for row in lanes['core']['checks']], [row['id'] for row in report['checks']])
+        final = self.downloads / 'published'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, final, os.environ))
+        for lane in lanes.values():
+            for row in lane['checks']:
+                if row['status'] != 'passed':
+                    continue
+                self.assertIn(row, report['checks'])
+                path = final / row['log'].removeprefix('.reports/')
+                self.assertEqual(row['log_sha256'], harness.file_digest(path))
+        browser = final / 'runs' / report['run_id'] / 'workspace-timeframe/results.json'
+        self.assertEqual(b'{"synthetic": true}\n', browser.read_bytes())
+
+    def test_scoped_aggregate_republishes_the_original_selection_and_report(self):
+        self.produce('records')
+        original = self.downloads / 'verification-windows-2-core/test-report.json'
+        code, report = self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        self.assertEqual(original.read_bytes(), (self.reports / original.name).read_bytes())
+        self.assertEqual(['dependency-review', 'environment', 'project-state'], report['selection']['checks'])
+
+    def test_scoped_aggregate_rejects_a_passed_report_omitting_dependency_review(self):
+        lanes = self.produce('records')
+        report = lanes['core']
+        row = next(row for row in report['checks'] if row['id'] == 'dependency-review')
+        producer = self.downloads / 'verification-windows-2-core'
+        (producer / row['log'].removeprefix('.reports/')).unlink()
+        command = row['command']
+        row.clear()
+        row.update(id='dependency-review', command=command, status='blocked', reason_code='not_selected')
+        for path in (producer / 'test-report.json', producer / 'runs' / report['run_id'] / 'test-report.json'):
+            path.write_bytes(json_bytes(report))
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'selected check results'):
+            self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
+        self.assertFalse((self.reports / 'test-report.json').exists())
+
+    def test_full_fallback_accepts_verified_pr_parents_despite_a_stale_preview(self):
+        event = read_json(self.event)
+        event['pull_request']['merge_commit_sha'] = event['pull_request']['base']['sha']
+        self.event.write_bytes(json_bytes(event))
+        decision = preview(self.root, ci_env=os.environ)
+        self.assertEqual(('full', 'comparison_unavailable'), (decision['profile'], decision['reason_code']))
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        self.assertEqual('passed', report['integration_gates']['status'])
+        self.assertEqual(sorted(harness.select_checks(harness.load_project(self.root))), report['selection']['checks'])
+        self.assertEqual(os.environ['GITHUB_SHA'], report['ci']['checkout_sha'])
+        self.assertEqual(event['pull_request']['head']['sha'], report['ci']['head_sha'])
+
+    def test_scoped_aggregate_requires_a_proven_comparison(self):
+        self.produce('records')
+        event = read_json(self.event)
+        event['pull_request']['merge_commit_sha'] = event['pull_request']['base']['sha']
+        self.event.write_bytes(json_bytes(event))
+        with self.assertRaisesRegex(ScopeError, 'event merge SHA'):
+            self.run_harness('--profile', 'records', '--ci-windows-aggregate', str(self.downloads))
+        self.assertFalse((self.reports / 'test-report.json').exists())
+
+    def test_full_fallback_authenticates_pr_parents_at_a_shallow_boundary(self):
+        (self.root / '.git/shallow').write_bytes((os.environ['GITHUB_SHA'] + '\n').encode('ascii'))
+        decision = preview(self.root, ci_env=os.environ)
+        self.assertEqual(('full', 'comparison_unavailable'), (decision['profile'], decision['reason_code']))
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        self.assertEqual('passed', report['integration_gates']['status'])
+
+    def test_main_push_binds_the_aggregate_to_before_and_after(self):
+        pull = read_json(self.event)['pull_request']
+        after = os.environ['GITHUB_SHA']
+        event = {'ref': 'refs/heads/main', 'before': pull['base']['sha'], 'after': after}
+        self.event.write_bytes(json_bytes(event))
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': event['ref'],
+                                     'SCOPEHUB_SOURCE_HEAD': after}):
+            self.produce()
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            self.assertEqual(0, code)
+            self.assertEqual('push', report['ci']['event'])
+            self.assertEqual(after, report['ci']['head_sha'])
+            self.assertEqual(after, report['ci']['checkout_sha'])
+            for changed, error in (({**event, 'after': pull['head']['sha']}, 'after SHA'),
+                                   ({**event, 'deleted': True}, 'checked out main revision')):
+                with self.subTest(error=error):
+                    self.event.write_bytes(json_bytes(changed))
+                    with self.assertRaisesRegex(ScopeError, error):
+                        self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+            for changed in ({**event, 'before': '0' * 40}, {**event, 'forced': True}):
+                with self.subTest(event=changed):
+                    self.event.write_bytes(json_bytes(changed))
+                    decision = preview(self.root, ci_env=os.environ)
+                    self.assertEqual(('full', 'comparison_unavailable'), (decision['profile'], decision['reason_code']))
+                    shutil.rmtree(self.reports)
+                    code, fallback = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+                    self.assertEqual(0, code)
+                    self.assertEqual(report['ci'], fallback['ci'])
+                    self.assertEqual(report['checks'], fallback['checks'])
+
+    def test_aggregate_rejects_missing_stale_and_changed_lane_evidence(self):
+        self.produce()
+        lane = self.downloads / 'verification-windows-2-python'
+        original = lane / 'test-report.json'
+        data = original.read_bytes()
+        report = read_json(original)
+        per_run = lane / 'runs' / report['run_id'] / original.name
+        log = next(lane.rglob('python-contracts-workers.log'))
+        log_data = log.read_bytes()
+        project = harness.load_project(self.root)
+
+        def collect():
+            return ci_artifacts.collect_windows_lanes(
+                self.root, self.downloads, project, report['source'], report['ci'], harness.select_checks(project), os.environ,
+            )
+
+        lane.rename(self.downloads / 'verification-windows-1-python')
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected'):
+            collect()
+        (self.downloads / 'verification-windows-1-python').rename(lane)
+        for changed, error in (
+            (dict(report, ci=dict(report['ci'], run_attempt='1')), 'provenance'),
+            (dict(report, selection=dict(report['selection'], checks=[])), 'selection'),
+            (dict(report, checks=list(reversed(report['checks']))), 'catalog order'),
+            (dict(report, environment=dict(report['environment'], system='Linux')), 'platform'),
+        ):
+            with self.subTest(error=error):
+                for path in (original, per_run):
+                    path.write_bytes(json_bytes(changed))
+                with self.assertRaisesRegex(ci_artifacts.PublicationError, error):
+                    collect()
+                shutil.rmtree(self.reports, ignore_errors=True)
+        for path in (original, per_run):
+            path.write_bytes(data)
+        log.write_bytes(log_data + b'tampered')
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'recorded digest'):
+            collect()
+        payload = read_json(self.event)
+        payload['pull_request']['base']['sha'] = payload['pull_request']['head']['sha']
+        self.event.write_bytes(json_bytes(payload))
+        with self.assertRaisesRegex(ScopeError, 'two parents'):
+            collect()
+
+    def test_cancelled_lane_result_cannot_publish_a_passing_aggregate(self):
+        self.produce()
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'cancelled'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(1, code)
+        self.assertEqual('failed', report['status'])
+
+    def test_failed_command_keeps_its_original_result_log_and_blocks_integration(self):
+        lanes = self.produce(browser_exit=7)
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(1, code)
+        self.assertEqual('failed', report['status'])
+        self.assertEqual('blocked', report['integration_gates']['status'])
+        browser = next(row for row in lanes['browser']['checks'] if row['id'] == 'workspace-timeframe')
+        self.assertEqual(7, browser['exit_code'])
+        self.assertIn(browser, report['checks'])
+        self.assertEqual(browser['log_sha256'], harness.file_digest(self.root / browser['log']))

@@ -144,12 +144,16 @@ class HostedCargoCacheTests(unittest.TestCase):
         self.assertEqual(restore['uses'].split('@')[1], save['uses'].split('@')[1])
         self.assertEqual(restore['with']['path'], save['with']['path'])
         self.assertEqual("${{ steps.cargo_cache.outputs['cache-primary-key'] }}", save['with']['key'])
-        self.assertEqual("steps.build_setup.outputs.skip != 'true'", restore['if'])
+        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'", restore['if'])
         self.assertEqual(
             "success() && !inputs.task_id && steps.build_setup.outputs.profile == '' "
+            "&& (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true')) "
             "&& steps.cargo_cache.outputs['cache-primary-key'] != '' "
             "&& steps.cargo_cache.outputs['cache-hit'] != 'true'", save['if'],
         )
+        key = next(step for step in steps if step.get('id') == 'cargo_keys')
+        self.assertEqual("${{ steps.lane.outputs.split == 'true' && matrix.lane || '' }}", key['env']['SCOPEHUB_WINDOWS_LANE'])
+        self.assertEqual('${{ steps.cargo_keys.outputs.primary }}', restore['with']['key'])
         self.assertGreater(steps.index(save), next(i for i, step in enumerate(steps) if step.get('id') == 'artifacts'))
 
 

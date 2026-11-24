@@ -17954,6 +17954,18 @@
           {
             "failure": "Incomparable work triggers budget recurrence, or two worktrees lose their shared window and the action to associate new evidence.",
             "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Uncertain change classification rejects full Windows coverage for a verified checkout, or permits reduced coverage without a verified comparison.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",

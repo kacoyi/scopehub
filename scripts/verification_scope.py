@@ -402,7 +402,8 @@ def committed_scope(root: Path, base: str, head: str) -> dict:
     return decision
 
 
-def ci_base(root, checkout, env):
+def ci_event_checkout(root, checkout, env):
+    """Bind the actual checkout to the event without deciding if its diff is comparable."""
     name = env.get('GITHUB_EVENT_NAME')
     if name not in {'pull_request', 'push'}:
         raise ScopeError('The GitHub event has no supported change comparison.')
@@ -420,31 +421,40 @@ def ci_base(root, checkout, env):
         pull = event['pull_request']
         base = oid(pull['base']['sha'])
         head = oid(pull['head']['sha'])
-        preview = pull.get('merge_commit_sha')
-        if preview is not None:
-            preview = oid(preview)
         if event.get('action') == 'synchronize':
             # A synchronize payload can retain the previous preview SHA.
             if oid(event.get('after')) != head:
                 raise ScopeError('The synchronized head does not match the pull request head.')
-        elif preview is not None and preview != checkout:
-            raise ScopeError('The event merge SHA does not match the checkout.')
-        # ^@ lists every parent in order. Peeling the event IDs in the same
-        # lookup also proves that each names the commit itself, including
-        # when an event supplies the object ID of an annotated tag.
-        resolved = git(root, 'rev-parse', '--revs-only', f'{checkout}^@',
-                       f'{base}^{{commit}}', f'{head}^{{commit}}', '--')
-        expected = [base.encode('ascii'), head.encode('ascii')]
-        if resolved.splitlines() != expected + expected:
+        # The commit headers retain the actual parents even at a shallow boundary.
+        headers = git(root, 'cat-file', 'commit', checkout).split(b'\n\n', 1)[0]
+        parents = [line.removeprefix(b'parent ') for line in headers.splitlines() if line.startswith(b'parent ')]
+        if parents != [base.encode('ascii'), head.encode('ascii')]:
             raise ScopeError('The checkout does not have the event base and head as its two parents.')
-        return base
+        return event, head, base
 
     if event.get('ref') != 'refs/heads/main' or env.get('GITHUB_REF') != 'refs/heads/main':
         raise ScopeError('Only a push to main has a supported comparison.')
-    if any(event.get(flag, False) is not False for flag in ('forced', 'created', 'deleted')):
-        raise ScopeError('The push does not describe an ordinary update to main.')
     if oid(event.get('after')) != checkout:
         raise ScopeError('The push after SHA does not match the checkout.')
+    if event.get('deleted', False) is not False:
+        raise ScopeError('The push does not identify a checked out main revision.')
+    return event, checkout, None
+
+
+def ci_base(root, checkout, env):
+    event, head, pr_base = ci_event_checkout(root, checkout, env)
+    if pr_base is not None:
+        preview = event['pull_request'].get('merge_commit_sha')
+        if preview is not None:
+            preview = oid(preview)
+        if event.get('action') != 'synchronize' and preview is not None and preview != checkout:
+            raise ScopeError('The event merge SHA does not match the checkout.')
+        resolved = git(root, 'rev-parse', '--revs-only', f'{pr_base}^{{commit}}', f'{head}^{{commit}}', '--')
+        if resolved.splitlines() != [pr_base.encode('ascii'), head.encode('ascii')]:
+            raise ScopeError('The pull request comparison parents are unavailable as commits.')
+        return pr_base
+    if any(event.get(flag, False) is not False for flag in ('forced', 'created')):
+        raise ScopeError('The push does not describe an ordinary update to main.')
     return exact_commit(root, event.get('before'))
 
 

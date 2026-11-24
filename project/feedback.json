@@ -4155,6 +4155,28 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-records-aggregate-accepts-selected-omission",
+      "source": "Independent review of cfdcff2 using a real Windows report's commands and result fields.",
+      "observation": "A records fixture with a passed summary and its selected dependency-review omitted as blocked/not_selected passed the lane validator. With a successful producer job, the protected aggregate could return zero for that report.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-aggregate-rejects-full-comparison-fallback",
+      "source": "Independent review of cfdcff2 using a real two-parent merge and a stale pull request preview SHA.",
+      "observation": "The selector requested full coverage when it could not trust the comparison. The protected aggregate repeated that comparison prerequisite and rejected the complete lane results even though the actual checkout and event parents agreed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
