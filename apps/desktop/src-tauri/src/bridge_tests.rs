@@ -2601,9 +2601,7 @@ async fn new_history_loads_while_preparation_is_held_and_only_its_owner_can_canc
 struct AppLocalData(PathBuf);
 
 fn with_profile_preparation<T>(slot: &std::sync::Mutex<()>, prepare: impl FnOnce() -> T) -> T {
-    let _permit = slot
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let _permit = crate::workspace::lock_test_profile_preparation(slot);
     prepare()
 }
 
@@ -2640,16 +2638,9 @@ impl AppLocalData {
     }
 
     fn prepare(path: &std::path::Path) {
-        let prepare = || scopehub_persistence::SqliteWorkspace::prepare_profile_root(path);
         #[cfg(windows)]
-        let result = {
-            // Bound explicit fixture setup. Bridge calls still run outside this slot.
-            static SLOT: std::sync::Mutex<()> = std::sync::Mutex::new(());
-            with_profile_preparation(&SLOT, prepare)
-        };
-        #[cfg(not(windows))]
-        let result = prepare();
-        result.unwrap();
+        let _preparation = crate::workspace::lock_native_test_profile_preparation();
+        scopehub_persistence::SqliteWorkspace::prepare_profile_root(path).unwrap();
     }
 
     fn database(&self) -> PathBuf {

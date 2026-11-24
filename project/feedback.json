@@ -3291,27 +3291,30 @@
     },
     {
       "id": "windows-acl-prepare-fixture-and-mapping-timeouts",
-      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json.",
+      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout.",
+      "occurrence": 2,
       "severity": "major",
-      "status": "addressed",
-      "observation": "Windows reported three prepare/powershell-timeout failures. Two explicit fixture calls failed inside the existing preparation slot. The third occurred while the folder-refresh test saved a local import mapping through the application. Rust and Python overlapped in the original job; the diagnostic does not isolate the cause.",
+      "status": "open",
+      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa.",
       "task_ids": [
-        "M0-071"
+        "M0-071",
+        "M0-089"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": {
-        "cause": "The Windows test constructor launched an extra PowerShell ACL preparation before dispatch. Two original failures reached explicit fixture preparation and a third reached application provisioning. The original runner slowdown and the exact invocation in the copy case remain unattributed.",
-        "correction": "Reserve an empty per-test directory and let the real bridge create private storage on demand. Preserve explicit preparation at database copy and in the dedicated fixture test.",
-        "prevention": "Run 45052208778 compared the baseline and candidate under the same targeted delay, passed 28 native desktop cases and verified real ten-second timeout and child cleanup. A refused mapping save made no write, and a new request committed revision one. Run 45052294626 verified the uninstrumented candidate on both protected platforms."
-      },
+      "resolution": null,
       "deferral_reason": null,
       "diagnostic_reports": [
         {
           "run_id": "20261122T165618.491721Z-d3e98934",
           "source_commit": "cdf27d7722530bc9d5a5753a3898b67644a1887a",
           "report_sha256": "ba4b14a2ed8d5268091b0978f85187c0f277d755f2e593b9c2b429b8e5aaf867"
+        },
+        {
+          "run_id": "windows-change-45387261521-1",
+          "source_commit": "37ad45f476de9fd009379300beea264704317a7e",
+          "report_sha256": "f898e43f0c624e65c57b9fff7f157fa532a7763a28dc948765fd04e8afd92855"
         }
       ]
     },

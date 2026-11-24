@@ -779,8 +779,26 @@ pub(super) fn credential_failure(error: CredentialError) -> Error {
     fault
 }
 
+#[cfg(test)]
+pub(crate) fn lock_test_profile_preparation(
+    slot: &std::sync::Mutex<()>,
+) -> std::sync::MutexGuard<'_, ()> {
+    slot.lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+#[cfg(all(test, windows))]
+pub(crate) fn lock_native_test_profile_preparation() -> std::sync::MutexGuard<'static, ()> {
+    // Explicit fixtures and real bridge opens share the Windows test process's
+    // helper budget. Acquire before starting either deadline-bound ACL call.
+    static SLOT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    lock_test_profile_preparation(&SLOT)
+}
+
 impl BoundWorkspace {
     fn open(app_local_data: &Path) -> Result<Self, Error> {
+        #[cfg(all(test, windows))]
+        let _preparation = lock_native_test_profile_preparation();
         let directory = app_local_data.join(WORKSPACE_DIRECTORY);
         SqliteWorkspace::prepare_profile_root(&directory)
             .map_err(|_| failure(ErrorCode::INTERNALERROR))?;

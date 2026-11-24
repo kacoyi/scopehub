@@ -18227,6 +18227,50 @@
           "cleanup": "Remove superseded work on the normal check path once the comparison is verified. Keep remaining bottlenecks visible under a named follow-up."
         }
       }
+    },
+    {
+      "id": "M0-089",
+      "title": "Bound desktop test profile admission after Windows ACL timeouts recur",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": ["M0-071"],
+      "scope": ["apps/desktop/src-tauri/src/workspace.rs", "apps/desktop/src-tauri/src/bridge_tests.rs"],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "The native desktop test binary bounds simultaneous storage preparations across its explicit fixture path and the real application workspace open. Preserve true native ACL checks, named tests, storage refusal, helper deadlines, and process and fixture cleanup."
+      ],
+      "checks": ["project-state", "python-contracts-workers", "rust-contracts-workers"],
+      "evidence": [],
+      "next_action": "Exercise the shared test preparation slot, valid workspace open and refused provisioning locally, then compare the full native Windows Rust check on the reviewed integration candidate.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Desktop tests run native profile admission for each case while one storage preparation or open at a time enters the ACL helper path in the Windows desktop test process.",
+        "change_types": ["tooling"],
+        "context": ["apps/desktop/src-tauri/src/bridge_tests.rs", "apps/desktop/src-tauri/src/workspace.rs", "crates/persistence/src/storage.rs", "scripts/rust_workspace.py"],
+        "hypotheses": ["The fixture slot excludes application workspace opens. The original timeout stage and earlier native helper overlap motivate a shared test slot, while the source of latency inside the failed processes remains unknown."],
+        "risks": [
+          {
+            "failure": "The shared slot bypasses native ACL checks, changes production admission or holds test work after a failure or unwind.",
+            "checks": ["rust-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert only the desktop test slot change if matching native coverage still fails or the slot interferes with the independent workspace behaviors. Preserve both occurrences and their diagnostics.",
+        "implementation": {
+          "modules": ["desktop"],
+          "entrypoints": ["apps/desktop/src-tauri/src/bridge_tests.rs", "apps/desktop/src-tauri/src/workspace.rs"],
+          "rules": [{"path": "project/delivery.json", "pointer": "/scaffold_maintenance"}],
+          "non_goals": ["Changes to production ACL policy, helper deadlines, runner topology, or individual check selection."],
+          "open_questions": ["Does serialized preparation eliminate the recorded timeouts on a comparable native Windows runner?"]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": ["Native ACL policy and domain assertions, the existing Rust check command and the original diagnostics."],
+          "change": ["Use the same test-only preparation slot for explicit fixtures and native application startup in the desktop unit-test process."],
+          "data_plan": "Use disposable per-test profile directories and compare the retained failure with local regression logs and later native evidence.",
+          "cleanup": "Replace the separate fixture-only slot when the shared test slot reaches both paths."
+        }
+      }
     }
   ]
 }
