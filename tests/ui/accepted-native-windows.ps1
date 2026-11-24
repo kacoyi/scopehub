@@ -83,11 +83,15 @@ function Open-PreparedSource {
         (Find-Control 'Access to this published CSV was revoked.' $null)
     }
     Show-NativeState 'workspace-initial'
+    if (Find-Control 'Candlestick and volume chart for FIX' $type::Image) { return }
     if (Named-Control 'Reload workspace state' $type::Button) { Review-Step 'Reload workspace state' }
     if (!(Named-Control 'Open published CSV' $type::Button)) { Review-Step 'Data sources' }
     Review-Step 'Open published CSV'
-    Fill-NativeEdit 'Revision ID' $Identity.revision
-    Review-Step 'Open frozen chart'
+    $row=Wait-ForProbe 'published CSV row matching the confirmed revision and fixture' {
+        $entry=Named-Control 'Open series.csv' $type::Button
+        if ($entry -and ([string]$entry.Current.Name).Contains($Identity.revision.Substring(0,8))) { return $entry }
+    }
+    $null=Wait-ForProbe 'open this published CSV revision' { Try-Activate $row }
     Wait-Name 'Use as workspace source'
     Show-NativeState 'published-source'
     Review-Step 'Use as workspace source'
@@ -413,7 +417,18 @@ try {
             Timezone='UTC'; 'Quantity unit'='shares'; 'Price adjustment'='raw'; 'Timestamp format'='%Y-%m-%d'
             'Trading day format'='%Y-%m-%d'; 'Daily start time'='00:00:00'}
         foreach ($field in $fields.Keys) { Fill-NativeEdit $field $fields[$field] }
-        foreach ($label in @('Preview mapping','Save reviewed mapping','Publish complete file','Open frozen chart')) { Review-Step $label }
+        Review-Step 'Preview mapping'
+        $mapping=Wait-ForProbe 'reviewable mapping or the timestamp convention diagnostic' {
+            if (Named-Control 'Save reviewed mapping' $type::Button) { return 'ready' }
+            foreach ($e in $window.FindAll($scope,$any)) {
+                if (([string]$e.Current.Name).Contains('Select a timestamp that identifies the bar start')) { return 'timestamp' }
+            }
+        }
+        if ($mapping -eq 'timestamp') {
+            Select-SeriesChoice 'Timestamp convention' 'Bar start'
+            Review-Step 'Preview mapping'
+        }
+        foreach ($label in @('Save reviewed mapping','Publish complete file','Open frozen chart')) { Review-Step $label }
         Archive-Stage 'published'
         Select-NativeOption 'Indicator input' 1
         $period=Wait-ForProbe 'Rolling period' {
