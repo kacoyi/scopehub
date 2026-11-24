@@ -3878,6 +3878,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "cancelled-frozen-chart-read-can-retry",
+      "source": "Independent review of df22f2a and inspection of the LocalRevisionDialog and LocalImportEditor foreground read entries.",
+      "observation": "Closing the published CSV dialog aborts its lifetime, but the authenticated frozen chart read did not receive the signal. The editor likewise omitted cancellation and excluded chart reads from the Cancel control. With that control exposed and the old request wiring, both views submitted a second read after close or cancel and delivery of a held retryable BUSY response.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-086"
+      ],
+      "regression_checks": [
+        "local-import-ui"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-chart-regression-masks-gate-errors",
+      "source": "Independent review of df22f2a and inspection of the native transport fixture's response barrier.",
+      "observation": "The test waited on a resolver that a thrown dispatch could not settle. Its cleanup asserted the held reply, which could replace an earlier failure. A local malformed status request returned INVALID_ARGUMENT and the fixture surfaced a generic early completion error instead.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-086"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -17350,14 +17350,16 @@
       ],
       "acceptance": [
         "Identify the first failing frozen chart read in the protected Ubuntu job and exercise the same admission boundary with synthetic data. A valid published revision opens and a rejected read remains explicit.",
-        "Keep revision proof, protected workspace state, the uncertain-write deadline and late-response assertions exercised through the normal native transport path. Retain the diagnostic and verify the corrective change."
+        "Keep revision proof, protected workspace state, the uncertain-write deadline and late-response assertions exercised through the normal native transport path. Retain the diagnostic and verify the corrective change.",
+        "Closing the published CSV dialog or cancelling the editor's active frozen chart read prevents a retry and stale presentation. Test gate rejection and exceptions preserve the original failure and release admission."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers",
         "desktop-workspace-transport",
         "ui-build",
-        "market-workflow"
+        "market-workflow",
+        "local-import-ui"
       ],
       "evidence": [],
       "diagnostic_reports": [
@@ -17379,8 +17381,10 @@
         ],
         "context": [
           "apps/desktop/ui/src/frozen-evidence.tsx",
+          "apps/desktop/ui/src/local-import-editor.tsx",
           "apps/desktop/ui/src/use-local-workspace.ts",
           "tests/ui/desktop-workspace.spec.mjs",
+          "tests/ui/local-import.spec.mjs",
           "project/checks.json"
         ],
         "hypotheses": [
@@ -17389,6 +17393,18 @@
         "risks": [
           {
             "failure": "The valid frozen chart fails before mutation or the change retries a rejected revision, changes source permissions or weakens revision proof.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A foreground chart read retries after close or cancel, or a cancelled result changes the accepted chart or display access.",
+            "checks": [
+              "local-import-ui"
+            ]
+          },
+          {
+            "failure": "A gate failure hangs the source regression or cleanup replaces the original error.",
             "checks": [
               "desktop-workspace-transport"
             ]
@@ -17402,6 +17418,7 @@
           ],
           "entrypoints": [
             "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/local-import-editor.tsx",
             "tests/ui/desktop-workspace.spec.mjs"
           ],
           "rules": [
@@ -17423,7 +17440,8 @@
             "Existing authority, rejection and deadline assertions; earlier acceptance records."
           ],
           "change": [
-            "Retry explicit transient busy responses for foreground authenticated frozen chart reads within the existing read budget. Verify a real busy response and a permanent rejection before entering the delayed write."
+            "Retry explicit transient busy responses for foreground authenticated frozen chart reads within the existing read budget. Verify a real busy response and a permanent rejection before entering the delayed write.",
+            "Bind retries to their initiating foreground read and preserve the failure that occurred before a test gate was released."
           ],
           "data_plan": "Use a disposable synthetic profile. No user data migration.",
           "cleanup": "Retain only the regression and the fix. Resume the renderer task after the repair."

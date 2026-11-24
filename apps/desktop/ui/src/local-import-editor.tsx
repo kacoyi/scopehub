@@ -401,10 +401,11 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     }
   }
 
-  async function runRequest<T>(action: ImportAction, invoke: (id: string) => Promise<T>, accept: (value: T) => void) {
+  async function runRequest<T>(action: ImportAction, invoke: (id: string) => Promise<T>, accept: (value: T) => void,
+    cancelRequest = cancelPreview) {
     if (active.current || picker.current) return;
     const id = crypto.randomUUID();
-    const request: Pending = { action, cancelled: false, cancel: () => cancelPreview(id) };
+    const request: Pending = { action, cancelled: false, cancel: () => cancelRequest(id) };
     active.current = request;
     setProgress({ action, phase: 'running' });
     const commits = ['save', 'publish', 'revoke', 'publish-folder', 'revoke-folder'].includes(action);
@@ -623,12 +624,13 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   async function openFrozenChart() {
     if (!published) return;
     const revisionId = published.revision_id;
+    const controller = workspace ? new AbortController() : undefined;
     await runRequest('read', async id => {
       try {
-        return workspace ? await openAuthenticatedFrozenChart(revisionId, id)
+        return controller ? await openAuthenticatedFrozenChart(revisionId, id, controller.signal)
           : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id);
       } catch (error) {
-        if (displayAccessDenied(error)) revisionAccess.revoke(revisionId);
+        if (!controller?.signal.aborted && displayAccessDenied(error)) revisionAccess.revoke(revisionId);
         throw error;
       }
     }, reply => {
@@ -640,7 +642,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       }
       setFrozenFolder(undefined);
       setFrozen(reply);
-    });
+    }, controller ? async () => { controller.abort(); } : undefined);
   }
 
   async function revokeFrozenChart() {
@@ -762,7 +764,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       <div className="local-import-results">
         {progressText && <div className="local-import-card local-import-progress">
           <p role="status">{progressText}</p>
-          {progress && !['read', 'revoke', 'read-folder', 'revoke-folder', 'prepare-folder'].includes(progress.action) && progress.phase !== 'cancelled' &&
+          {progress && !['revoke', 'read-folder', 'revoke-folder', 'prepare-folder'].includes(progress.action)
+            && (progress.action !== 'read' || workspace) && progress.phase !== 'cancelled' &&
             <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>{t('Cancel {action}', { action: t(actionText[progress.action].label) })}</button>}
         </div>}
         {mappingNotice && <div className="local-import-card" role="status">{t(mappingNotice)}</div>}

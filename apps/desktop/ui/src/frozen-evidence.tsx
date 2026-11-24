@@ -8,10 +8,10 @@ import { displayAccessDenied, type PublishedRevisionAccess } from './published-r
 
 export type FrozenChartResult = ReadLocalImportRevisionOutput & { snapshot?: FrozenSnapshot };
 
-export async function openAuthenticatedFrozenChart(revisionId: string, requestId: string, restoreSignal?: AbortSignal) {
+export async function openAuthenticatedFrozenChart(revisionId: string, requestId: string, callerSignal?: AbortSignal) {
   const request = { type: 'frozen_chart', revision_id: revisionId, request_id: requestId } as const;
   const timeout = AbortSignal.timeout(15_000);
-  const signal = restoreSignal ? AbortSignal.any([restoreSignal, timeout]) : timeout;
+  const signal = callerSignal ? AbortSignal.any([callerSignal, timeout]) : timeout;
   const result = await readWorkspaceAfterAdmission<FrozenChartResult>(request, signal);
   if (result.snapshot?.dataset_id !== revisionId || result.snapshot.dataset_revision !== revisionId
     || !/^[0-9a-f]{64}$/.test(result.snapshot.content_hash) || result.bars.length !== result.revision.bar_count) {
