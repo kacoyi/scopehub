@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-086",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17335,7 +17335,7 @@
       "id": "M0-086",
       "title": "Restore reliable frozen chart admission in the native transport regression",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-085"
       ],
@@ -17361,7 +17361,12 @@
         "market-workflow",
         "local-import-ui"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-086-89bd7aa89a32c744.json",
+          "sha256": "d90e2b824200bf2fa208888281d858a42670d516595641c9382dae219698e372"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T075459.275900Z-a4026d20",
@@ -17369,9 +17374,9 @@
           "report_sha256": "c31932503a04ce3bc8fb54502a614bf66125a47c35707467a4572bba30a06621"
         }
       ],
-      "next_action": "Verify the bounded foreground read repair with the native transport regression and hand the matching task report to the coordinator for evidence and closure.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The task passed on 2c523fa. A held read reproduced the visible failure before any write. The foreground read recovers retryable contention, both cancellation entries stop further reads, and rejected or late responses preserve the prior state. The original hosted response code was unavailable.",
       "delivery": "current-contract",
       "plan": {
         "outcome": "Opening the seeded published revision reaches the source action reliably, and the protected check still detects a stale reply.",
