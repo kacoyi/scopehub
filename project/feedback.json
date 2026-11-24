@@ -3856,6 +3856,17 @@
           "report_sha256": "a94d4f351b45a6d4daa71fe0b5db5dfad9d255dcab6d8f38688d5f3487bd14cd"
         }
       ]
+    },
+    {
+      "id": "prototype-candlestick-source-scope",
+      "source": "Coordinator report from the staged Ubuntu Tauri/WebKitGTK M2-029 trial.",
+      "observation": "The chart-only synthetic equity composition displayed the legacy futures source disclosure above its candlesticks. The host painted the expected annotations on the timeframe switch and restored the view after rejecting an unknown source.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

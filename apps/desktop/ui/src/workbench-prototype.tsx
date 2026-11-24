@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import fixture from './workbench-synthetic-closes.json';
 import { formatDateTime, formatNumber, message, t, type Message } from './i18n';
 import { LanguageSettings } from './language-settings';
+import { WorkbenchCandleBlock } from './workbench-candle-block';
+import { candleSource, isNumericField, type CandleBlock } from './workbench-candle-source';
 import './workbench-prototype.css';
 
-type Block = { kind: 'threshold-tiles'; threshold: number; aboveLabel?: string; belowLabel?: string } | { kind: 'value-table' };
+type SeriesBlock = { kind: 'threshold-tiles'; threshold: number; aboveLabel?: string; belowLabel?: string } | { kind: 'value-table' };
+type Block = SeriesBlock | CandleBlock;
 type Composition = { version: 1; blocks: Block[] };
 const blank: Composition = { version: 1, blocks: [] };
 const maxBlocks = 12;
@@ -34,6 +37,17 @@ function parseDraft(text: string): Composition | Message {
   for (const block of value.blocks) {
     if (objectWithKeys(block, ['kind']) && block.kind === 'value-table') {
       blocks.push({ kind: 'value-table' });
+    } else if (objectWithKeys(block, ['kind', 'source', 'annotation']) && block.kind === 'candlestick') {
+      const { annotation, source } = block;
+      if (source !== candleSource.id || !objectWithKeys(annotation, ['field', 'when'])
+          || !isNumericField(annotation.field) || !objectWithKeys(annotation.when, ['field', 'above'])
+          || !isNumericField(annotation.when.field) || typeof annotation.when.above !== 'number'
+          || !Number.isFinite(annotation.when.above)) {
+        return message('Block {index} must bind granted synthetic fields and a finite threshold.', { index: blocks.length + 1 });
+      }
+      blocks.push({ kind: 'candlestick', source, annotation: {
+        field: annotation.field, when: { field: annotation.when.field, above: annotation.when.above },
+      } });
     } else if (objectWithKeys(block, ['kind', 'threshold'], ['aboveLabel', 'belowLabel']) && block.kind === 'threshold-tiles'
         && typeof block.threshold === 'number' && Number.isFinite(block.threshold)
         && validLabel(block.aboveLabel) && validLabel(block.belowLabel)) {
@@ -55,7 +69,7 @@ const timeLabel = (time: number) => formatDateTime(time, {
 const price = (value: number) => formatNumber(value, { useGrouping: false, maximumFractionDigits: 15 });
 
 function SeriesBlock({ block, selected, select }: {
-  block: Block; selected: number | undefined; select: (time: number) => void;
+  block: SeriesBlock; selected: number | undefined; select: (time: number) => void;
 }) {
   if (block.kind === 'value-table') return <section className="probe-block">
     <h3>{t('Value table')}</h3>
@@ -125,6 +139,8 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
   }
 
   const visible = preview ?? accepted.composition;
+  const hasCandles = visible.blocks.some(block => block.kind === 'candlestick');
+  const showCloses = !hasCandles || visible.blocks.some(block => block.kind !== 'candlestick');
   return <dialog className="probe" ref={dialog} aria-labelledby="probe-heading"
     onCancel={event => { event.preventDefault(); close(); }}>
     <header className="probe-header">
@@ -138,10 +154,15 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
         <div className="probe-actions">
           <button type="button" onClick={() => inspect({ kind: 'threshold-tiles', threshold: 3499.5 })}>{t('Add threshold tiles')}</button>
           <button type="button" onClick={() => inspect({ kind: 'value-table' })}>{t('Add value table')}</button>
+          <button type="button" onClick={() => inspect({
+            kind: 'candlestick', source: candleSource.id,
+            annotation: { field: 'turnover', when: { field: 'strength', above: 0.8 } },
+          })}>{t('Add candlesticks')}</button>
         </div>
         <label htmlFor="probe-draft">{t('Composition JSON')}</label>
         <textarea id="probe-draft" value={draft} spellCheck={false} maxLength={maxLength} onChange={event => edit(event.currentTarget.value)} />
         <p className="probe-hint">{t('Edit the threshold or set aboveLabel and belowLabel to your own text.')}</p>
+        <p className="probe-hint">{t('Bind strength or turnover and edit the annotation threshold.')}</p>
         <div className="probe-actions">
           <button type="button" className="primary" onClick={() => inspect()}>{t('Preview draft')}</button>
           <button type="button" disabled={!preview} onClick={() => {
@@ -156,15 +177,17 @@ export function WorkbenchPrototype({ close }: { close: () => void }) {
           <h2>{t('Workbench canvas')}</h2>
           <span role="status">{preview ? t('Draft preview') : t('Accepted view')}</span>
         </div>
-        <details className="probe-source">
-          <summary>{t('Frozen synthetic closes')} · {fixture.dataset.instrument_id}</summary>
+        {showCloses && <details className="probe-source">
+          <summary>{hasCandles ? t('Frozen synthetic closes for tiles and tables') : t('Frozen synthetic closes')}
+            {' · '}{fixture.dataset.instrument_id}</summary>
           <dl><dt>{t('Dataset revision')}</dt><dd>{fixture.snapshot.dataset_revision}</dd>
             <dt>{t('Snapshot hash')}</dt><dd>{fixture.snapshot.content_hash}</dd>
             <dt>{t('Time zone')}</dt><dd>{fixture.dataset.timezone}</dd></dl>
-        </details>
+        </details>}
         {visible.blocks.length === 0 ? <p className="probe-empty">{t('The canvas is empty. Add a block and preview your draft.')}</p> :
-          <div className="probe-blocks">{visible.blocks.map((block, index) =>
-            <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />)}</div>}
+          <div className="probe-blocks">{visible.blocks.map((block, index) => block.kind === 'candlestick'
+            ? <WorkbenchCandleBlock key={index} block={block} />
+            : <SeriesBlock key={index} block={block} selected={selected} select={setSelected} />)}</div>}
       </section>
     </div>
   </dialog>;

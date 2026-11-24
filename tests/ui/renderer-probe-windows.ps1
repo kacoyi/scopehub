@@ -28,7 +28,7 @@ function Wait-ForProbe($description, [scriptblock]$observe) {
     throw "Timed out waiting for $description."
 }
 
-function Find-Control([string]$name, $type) {
+function Find-Control([string]$name, $type, $within = $window) {
     $byName = [Windows.Automation.PropertyCondition]::new(
         [Windows.Automation.AutomationElement]::NameProperty, $name)
     $condition = $byName
@@ -37,7 +37,7 @@ function Find-Control([string]$name, $type) {
             [Windows.Automation.AutomationElement]::ControlTypeProperty, $type)
         $condition = [Windows.Automation.AndCondition]::new($byName, $byType)
     }
-    $window.FindFirst([Windows.Automation.TreeScope]::Descendants, $condition)
+    $within.FindFirst([Windows.Automation.TreeScope]::Descendants, $condition)
 }
 
 function Wait-Name([string]$name) {
@@ -54,6 +54,25 @@ function Draft-Pattern {
         Find-Control 'Composition JSON' ([Windows.Automation.ControlType]::Edit)
     }
     $editor.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern)
+}
+
+function Open-Disclosure([string]$name) {
+    $disclosure = Wait-ForProbe $name { Find-Control $name $null }
+    $pattern = $null
+    if ($disclosure.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$pattern)) {
+        $pattern.Expand()
+    } else {
+        $disclosure.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
+    }
+}
+
+function Wait-Annotation($expected, [string]$otherValue) {
+    Wait-ForProbe "$($expected.bar_utc) $($expected.value) $($expected.result_revision)" {
+        $row = Find-Control $expected.bar_utc $null
+        ($row -and (Find-Control $expected.value $null $row) -and
+            (Find-Control $expected.series_revision $null) -and (Find-Control $expected.result_revision $null) -and
+            (-not (Find-Control $otherValue $null)))
+    } | Out-Null
 }
 
 Push-Location $root
@@ -85,13 +104,7 @@ try {
     Invoke-Button 'Open workbench prototype'
     Wait-Name 'The canvas is empty. Add a block and preview your draft.'
     $sourceName = "Frozen synthetic closes $([char]0x00B7) SIM.CN.FUTURE.001"
-    $source = Wait-ForProbe 'frozen source disclosure' { Find-Control $sourceName $null }
-    $pattern = $null
-    if ($source.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$pattern)) {
-        $pattern.Expand()
-    } else {
-        $source.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
-    }
+    Open-Disclosure $sourceName
     $hash = '3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1'
     Wait-Name $hash
     Invoke-Button 'Add threshold tiles'
@@ -126,6 +139,43 @@ try {
     Invoke-Button 'Back to chart'
     Wait-Name 'Open workbench prototype'
 
+    # Reopen the ordinary editor and inspect the rendered view's accessible attribution.
+    $five = @{
+        timeframe = '5m'; bar_utc = '2024-01-04T09:40:00.000Z'; value = '3.2%'
+        series_revision = 'qualification-equity-5m-bars-v1'; result_revision = 'qualification-equity-5m-results-v1'
+    }
+    $fifteen = @{
+        timeframe = '15m'; bar_utc = '2024-01-04T09:30:00.000Z'; value = '4.7%'
+        series_revision = 'qualification-equity-15m-bars-v1'; result_revision = 'qualification-equity-15m-results-v1'
+    }
+    Invoke-Button 'Open workbench prototype'
+    Wait-Name 'The canvas is empty. Add a block and preview your draft.'
+    $annotationDraft = '{"version":1,"blocks":[{"kind":"candlestick","source":"qualification-equity","annotation":{"field":"turnover","when":{"field":"strength","above":0.8}}}]}'
+    (Draft-Pattern).SetValue($annotationDraft)
+    Invoke-Button 'Preview draft'
+    Wait-Name 'Candlestick chart with numeric annotations'
+    Wait-ForProbe 'chart-only source scope' { -not (Find-Control $sourceName $null) } | Out-Null
+    Open-Disclosure 'Synthetic result attribution'
+    Wait-Annotation $five $fifteen.value
+    Invoke-Button 'Accept view'
+    Wait-Name 'Accepted view'
+    Invoke-Button '15 min'
+    Wait-Annotation $fifteen $five.value
+    Invoke-Button '5 min'
+    Wait-Annotation $five $fifteen.value
+    (Draft-Pattern).SetValue(($annotationDraft -replace '"field":"turnover"', '"field":"rsi"'))
+    Invoke-Button 'Preview draft'
+    Wait-Name 'Block 1 must bind granted synthetic fields and a finite threshold.'
+    Wait-Annotation $five $fifteen.value
+    Invoke-Button 'Restore accepted view'
+    Wait-ForProbe 'restored accepted annotation definition' {
+        (Draft-Pattern).Current.Value -ceq $annotationDraft
+    } | Out-Null
+    Wait-Annotation $five $fifteen.value
+    Invoke-Button 'Back to chart'
+    Wait-Name 'Open workbench prototype'
+    Wait-ForProbe 'closed annotation editor' { -not (Find-Control 'Composition JSON' $null) } | Out-Null
+
     $browser = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" |
         Select-Object -First 1
     if (!$browser.ExecutablePath) { throw 'Missing WebView2 child runtime identity.' }
@@ -139,7 +189,11 @@ try {
         fixture = $hash
         measurement = 'UI Automation invocation to accessible result, including polling'
         compose_ms = $composeMs; edit_ms = $editMs; recovery_ms = $recoverMs
-    } | ConvertTo-Json -Compress | Write-Output
+        annotation_scope = 'UI Automation UTC attribution rows and editor recovery in WebView2'
+        annotation_fixture_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath 'tests/fixtures/workbench-qualification-v1.json').Hash.ToLowerInvariant()
+        annotation_round_trip = @($five, $fifteen, $five)
+        annotation_rejected_draft_restored = $true
+    } | ConvertTo-Json -Depth 4 -Compress | Write-Output
 } finally {
     if ($null -ne $app) {
         if (!$app.HasExited) {
