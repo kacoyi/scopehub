@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -25,9 +26,13 @@ export default async function setup() {
   try {
     await mkdir(join(run, 'ports'));
     if (process.platform === 'win32') {
-      profilePool = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-profiles-'));
+      const pendingPool = join(tmpdir(), 'scopehub-ubuntu-profiles-' + randomUUID());
       const bridge = join(root, 'target', 'debug', 'workspace_bridge.exe');
-      await prepareProfilePool(bridge, profilePool);
+      const python = join(root, '.venv', 'Scripts', 'python.exe');
+      // Only accept the directory after its supervisor has finished and reaped
+      // its children. The supervisor owns cleanup on a failed preparation.
+      await prepareProfilePool(python, bridge, pendingPool);
+      profilePool = pendingPool;
       process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL = profilePool;
     }
     process.env.SCOPEHUB_WORKSPACE_TEST_RUN = run;

@@ -20456,7 +20456,8 @@
             "crates/persistence/src/bin/workspace_bridge.rs",
             "crates/persistence/src/storage_acl.ps1",
             "tests/ubuntu-preview/workspace.setup.mjs",
-            "tests/ubuntu-preview/workspace.spec.mjs"
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "scripts/prepare_workspace_profile_pool.py"
           ],
           "rules": [
             {
