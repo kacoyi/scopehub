@@ -5,11 +5,16 @@ import { defineConfig } from '@playwright/test';
 const output = process.env.SCOPEHUB_RUN_DIR
   ? resolve(process.env.SCOPEHUB_RUN_DIR, 'workspace-timeframe')
   : (process.env.SCOPEHUB_UBUNTU_WORKSPACE_REPORT_DIR ??= resolve('.reports', 'ubuntu-workspace', `${Date.now()}-${randomUUID()}`));
+// Fixed-port reproductions can reuse a port in another case.
+const fixedPort = process.env.SCOPEHUB_EVIDENCE_TEST_PORT !== undefined
+  || process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT !== undefined;
 
 export default defineConfig({
   testDir: '.',
   testMatch: 'workspace.spec.mjs',
-  workers: 1,
+  globalSetup: './workspace.setup.mjs',
+  fullyParallel: !fixedPort,
+  workers: fixedPort ? 1 : 2,
   timeout: 60_000,
   outputDir: resolve(output, 'browser'),
   reporter: [['list'], ['json', { outputFile: resolve(output, 'results.json') }]],

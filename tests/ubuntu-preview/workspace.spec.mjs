@@ -33,8 +33,9 @@ const snapshot = { type: 'snapshot' };
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
+const activeCacheSlots = new Set();
 const service = `
-  const [entry, mode, port, faultEnabled, snapshotWriter] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -107,7 +108,7 @@ const service = `
     const { createServer } = await import(entry);
     if (closing) return;
     // These journeys restart the service explicitly. Leave file watching to interactive Vite.
-    server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
+    server = await createServer({ mode, plugins, cacheDir, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
     if (!closing) await server.listen();
   }
   try {
@@ -123,14 +124,6 @@ const service = `
     }
   }
 `;
-
-test.beforeAll(async ({}, testInfo) => {
-  testInfo.setTimeout(300_000);
-  await exec('cargo', [
-    'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
-    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--bin', 'scopehub-indicator-child', '--target-dir', 'target',
-  ], { cwd: root, timeout: 295_000 });
-});
 
 test('fresh browsers restore committed timeframe and eligible undo after service restarts', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
@@ -3400,12 +3393,22 @@ for (const [name, reason] of [
 }
 
 async function freePort(requestedPort = 0) {
-  const server = createServer();
-  server.listen(requestedPort, '127.0.0.1');
-  await once(server, 'listening');
-  const port = server.address().port;
-  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-  return port;
+  for (;;) {
+    const server = createServer();
+    server.listen(requestedPort, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      const port = server.address().port;
+      // Retain first allocations for the run so another case cannot claim a
+      // port between a probe and Vite's bind, or between service restarts.
+      if (!requestedPort) await mkdir(join(process.env.SCOPEHUB_WORKSPACE_TEST_RUN, 'ports', String(port)));
+      return port;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+    } finally {
+      await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
+  }
 }
 
 async function portAvailable(port) {
@@ -3419,10 +3422,15 @@ async function portAvailable(port) {
 }
 
 function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite }) {
+  // Vite publishes its dependency cache by renaming directories. Reuse warm
+  // caches across launches, but give every live server its own write path.
+  let slot = 0;
+  while (activeCacheSlots.has(slot)) slot += 1;
+  const cacheDir = join(process.env.SCOPEHUB_WORKSPACE_TEST_RUN, process.env.TEST_WORKER_INDEX, mode, String(slot));
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, entry, mode, String(port), historyFault ? '1' : '', ...(snapshotGate ? [workspaceBridge] : [])];
-  return spawn(process.execPath, args, {
+    : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir, historyFault ? '1' : '', ...(snapshotGate ? [workspaceBridge] : [])];
+  const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
       ...process.env,
@@ -3433,6 +3441,11 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
+  if (!terminalSignal) {
+    activeCacheSlots.add(slot);
+    child.once('exit', () => activeCacheSlots.delete(slot));
+  }
+  return child;
 }
 
 async function reapService(child, done) {
