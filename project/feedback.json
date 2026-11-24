@@ -4065,6 +4065,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "verification-clean-checkout-hides-local-changes",
+      "source": "Independent Astra review of 02a5176, retained in .reports/m0-087/astra-02a5176.txt, finding 1.",
+      "observation": "Git status configuration hid real untracked files from the source identity used by project:ci. The same cleanliness claim had no guard for hidden index flags or caller-configured submodule ignore settings.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-timing-telemetry-failure-isolation",
+      "source": "Independent Astra review of 02a5176, retained in .reports/m0-087/astra-02a5176.txt, findings 2 and 5.",
+      "observation": "Deep JSON erased the normal CI result regardless of its verdict, and a malformed sample suppressed valid timing observations. An incomplete intake placeholder or unreadable cache file could permanently prevent the corresponding run from being observed again.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-budget-comparable-handoff-window",
+      "source": "Independent Astra review of 02a5176, retained in .reports/m0-087/astra-02a5176.txt, findings 3 and 4.",
+      "observation": "Budget escalation combined overruns across different cache or coverage cohorts and could lose repeated warm overruns after unrelated cold runs. Two ordinary PRs observed in separate worktrees did not form one local review window. Reusing an existing corrective task hid the action to associate newly observed reports with its finding.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

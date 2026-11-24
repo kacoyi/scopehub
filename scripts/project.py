@@ -219,15 +219,60 @@ def review_operational_report_paths(root, base):
                                               f'Operational file {relative}')
 
 
-def source_identity(root=ROOT):
-    """Hash current non-ignored files without following symlinks or reading .git."""
-    env = checkout_git_environment()
+def checkout_status(root, env):
+    git = ['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false']
     result = subprocess.run(
-        ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'],
+        [*git, 'ls-files', '-v', '--stage', '--cached', '--others', '--exclude-standard', '-z'],
         cwd=root, env=env, capture_output=True, check=True,
     )
+    files, submodules = set(), set()
+    index_dirty = False
+    for entry in result.stdout.decode('utf-8').split('\0'):
+        if not entry:
+            continue
+        if entry.startswith('? '):
+            files.add(entry[2:])
+            index_dirty = True
+            continue
+        stage, separator, relative = entry.partition('\t')
+        if not separator or not relative:
+            raise ProjectError('Cannot inspect Git index entries')
+        files.add(relative)
+        index_dirty |= not stage.startswith('H ')
+        if stage[2:].startswith('160000 '):
+            submodules.add(relative)
+    status = subprocess.run(
+        [*git, 'status', '--porcelain=v2', '--branch', '--no-ahead-behind',
+         '--untracked-files=all', '--ignore-submodules=none', '-z'],
+        cwd=root, env=env, capture_output=True, check=True,
+    )
+    records = status.stdout.split(b'\0')
+    prefix = b'# branch.oid '
+    if not records[0].startswith(prefix):
+        raise ProjectError('Git status did not report the checkout HEAD')
+    head = records[0][len(prefix):]
+    dirty = index_dirty or any(record and not record.startswith(b'# ') for record in records)
+    if not dirty:
+        for relative in sorted(submodules):
+            path = root / relative
+            if path.is_symlink() or path.is_junction() or (path.exists() and not path.is_dir()):
+                dirty = True
+                break
+            if (path / '.git').exists():
+                # The parent status cannot see hidden index flags inside a populated submodule.
+                _, _, dirty = checkout_status(path, env)
+            elif path.is_dir():
+                dirty = any(path.iterdir())
+            if dirty:
+                break
+    return files, None if head == b'(initial)' else head.decode('ascii'), dirty
+
+
+def source_identity(root=ROOT):
+    """Hash current non-ignored files without following symlinks or reading .git."""
+    files, head, dirty = checkout_status(root, checkout_git_environment())
     entries = []
-    for relative in sorted(set(result.stdout.decode('utf-8').split('\0')) - {''}):
+    for relative in sorted(files):
         if any(relative == item or (item.endswith('/') and relative.startswith(item))
                for item in INPUT_EXCLUSIONS):
             continue
@@ -238,18 +283,10 @@ def source_identity(root=ROOT):
             entries.append([relative, 'file', file_digest(path)])
     if not entries:
         raise ProjectError('No execution inputs found in the Git worktree')
-    status = subprocess.run(['git', 'status', '--porcelain=v2', '--branch', '--no-ahead-behind', '-z'],
-                            cwd=root, env=env, capture_output=True, check=True)
-    records = status.stdout.split(b'\0')
-    prefix = b'# branch.oid '
-    if not records[0].startswith(prefix):
-        raise ProjectError('Git status did not report the checkout HEAD')
-    head = records[0][len(prefix):]
-    dirty = any(record and not record.startswith(b'# ') for record in records)
     return {
         'snapshot_kind': 'execution-inputs-v1',
         'sha256': digest(json.dumps(entries, separators=(',', ':')).encode('utf-8')),
-        'file_count': len(entries), 'git_head': None if head == b'(initial)' else head.decode('ascii'),
+        'file_count': len(entries), 'git_head': head,
         'working_tree_dirty': dirty, 'exclusions': INPUT_EXCLUSIONS,
     }
 

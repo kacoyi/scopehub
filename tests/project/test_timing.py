@@ -587,6 +587,12 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual([], change['removed'])
         self.assertEqual([], change['outcome_changes'])
         self.assertEqual(180, change['elapsed_change_seconds'])
+        self.assertEqual([], timing.budget_follow_up(view, [], {})['repeated_breaches'])
+
+        # Only an equivalent cache and coverage cohort can trigger recurrence.
+        samples[-1] = dict(samples[-1], checks=samples[-2]['checks'], selected=samples[-2]['selected'])
+        mixed = timing.timing_view([*samples[:-1], dict(samples[-1], cache='cold')], hosted=workflows)
+        self.assertEqual([], timing.budget_follow_up(mixed, [], {})['repeated_breaches'])
 
         later_reports = [{'run_id': row['run_id'], 'source_commit': 'a' * 40} for row in samples[-2:]]
         corrective = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the repaired Windows stage.',
@@ -625,9 +631,12 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertIsNotNone(uncovered['next_action'])
         self.assertEqual('assignment_needed', unassigned['repeated_breaches'][0]['status'])
         self.assertEqual('addressed', addressed['repeated_breaches'][0]['status'])
-        self.assertEqual([later_reports[1]], new_breach['repeated_breaches'][0]['unrecorded_reports'])
+        unrecorded = [dict(later_reports[1], hosted_run_id='16')]
+        self.assertEqual(unrecorded, new_breach['repeated_breaches'][0]['unrecorded_reports'])
         self.assertEqual('assignment_needed', new_breach['repeated_breaches'][0]['status'])
         self.assertEqual('assigned', existing_owner['repeated_breaches'][0]['status'])
+        self.assertIn('existing corrective feedback', existing_owner['next_action'])
+        self.assertEqual(unrecorded, existing_owner['repeated_breaches'][0]['unrecorded_reports'])
         self.assertFalse(durable['timing_available'])
         self.assertEqual(assigned['open_feedback'], durable['open_feedback'])
 
@@ -683,6 +692,159 @@ class TimingRegressionTests(unittest.TestCase):
 
 
 class RecentTimingTests(unittest.TestCase):
+    def budget_run(self, day, finish, *, head='a' * 40, cache='warm'):
+        repository = 'fixture/scopehub'
+        run = dict(hosted_run(run_id=day, day=day), head_sha=head)
+        jobs = [
+            hosted_job(day * 10, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50', run_id=day, day=day),
+            hosted_job(day * 10 + 1, 'windows', '00:20', finish,
+                       'Run uv run python scripts/check.py --require-windows', '00:50', '08:30',
+                       run_id=day, day=day),
+        ]
+        workflow = timing.hosted_timing(run, [dict(job, head_sha=head) for job in jobs])
+        samples = []
+        for platform in ('Linux', 'Windows'):
+            report = fast_report(day, 180)
+            report['selection']['profile'] = 'full'
+            report['environment']['system'] = platform
+            report['source']['git_head'] = head
+            report['ci'] = {'repository': repository, 'run_id': str(day), 'run_attempt': '1', 'event': 'pull_request',
+                            'head_sha': head, 'checkout_sha': head}
+            samples.append(timing.report_sample(report, cache=cache))
+        return run, samples, workflow
+
+    def write_archive(self, path, samples, clocks):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks}))
+
+    def test_malformed_timing_preserves_all_ci_verdicts_and_other_observations(self):
+        observations = [self.budget_run(day, '17:00') for day in (14, 15)]
+        samples = [sample for _, rows, _ in observations for sample in rows]
+        clocks = [clock for _, _, clock in observations]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = root / 'project'
+            records.mkdir()
+            for file, content in (('tasks', {'tasks': []}), ('feedback', {'items': []}),
+                                  ('branch-protection', {'branch': 'main'})):
+                (records / f'{file}.json').write_bytes(timing.json_bytes(content))
+            archives = root / '.reports/timing'
+            malformed = dict(samples[0], seconds={'harness': [], 'check_work': None})
+            self.write_archive(archives / 'mixed.json', [{}, malformed, *samples], [False, *clocks])
+            (archives / 'deep.json').write_bytes(b'[' * 12000 + b'0' + b']' * 12000)
+            observation = observations[-1][0]
+            source = {'git_head': observation['head_sha'], 'working_tree_dirty': False}
+            with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+                  patch.object(ci, 'source_identity', return_value=source),
+                  patch.object(ci, 'checkout_branch', return_value='topic'),
+                  patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                  patch.object(timing, 'command', side_effect=AssertionError('Unexpected timing request'))):
+                for status, row in (('passed', observation), ('failed', dict(observation, conclusion='failure')),
+                                    ('blocked', dict(observation, status='queued'))):
+                    with self.subTest(status=status), patch.object(ci, 'workflow_runs', return_value=[row]):
+                        result = ci.status(root)
+                    self.assertEqual(status, result['status'])
+                    budget = result['verification_budget']
+                    breach, = budget['repeated_breaches']
+                    self.assertEqual(['14', '15'], breach['recent_runs'])
+                    self.assertEqual('assignment_needed', breach['status'])
+                    self.assertGreaterEqual(len(budget['input_issues']), 4)
+
+    def test_recent_cold_successes_do_not_hide_warm_recurrence(self):
+        observations = [self.budget_run(day, '17:00', cache='warm') for day in (14, 15)]
+        observations.extend(self.budget_run(day, '12:00', cache='cold') for day in (16, 17, 18))
+        samples = [sample for _, rows, _ in observations for sample in rows]
+        clocks = [clock for _, _, clock in observations]
+        view = timing.timing_view(samples, hosted=clocks)
+        objective = next(row for row in view['objective_reviews'] if row['platform'] == 'Windows')
+        self.assertEqual(0, objective['recent_objective_breaches'])
+        breach, = timing.budget_follow_up(view, [], {})['repeated_breaches']
+        self.assertEqual(('warm', ['14', '15']), (breach['cache'], breach['recent_runs']))
+
+    def test_two_fresh_worktrees_share_timing_intake_and_reuse_live_assignment(self):
+        self.enterContext(isolated_git_environment())
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory).resolve()
+            repo, first, second = (base / name for name in ('main', 'topic one', 'topic two'))
+            author = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false']
+
+            def git(root, *args):
+                return subprocess.run(['git', '-C', str(root), *args], capture_output=True, check=True).stdout
+
+            repo.mkdir()
+            git(repo, 'init', '-q')
+            records = repo / 'project'
+            records.mkdir()
+            scope = {'repository': 'fixture/scopehub', 'event': 'pull_request', 'profile': 'full', 'platform': 'Windows'}
+            existing = {'id': 'earlier-budget', 'verification_budget': scope, 'status': 'open', 'task_ids': ['M0-999'],
+                        'diagnostic_reports': [{'run_id': 'earlier-run', 'source_commit': 'f' * 40}]}
+            task = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the Windows candidate.'}
+            for file, content in (('tasks', {'tasks': [task]}), ('feedback', {'items': [existing]}),
+                                  ('branch-protection', {'branch': 'main'})):
+                (records / f'{file}.json').write_bytes(timing.json_bytes(content))
+            git(repo, 'add', '.')
+            git(repo, *author, 'commit', '-qm', 'Fixture records')
+            observations = {}
+            for day, root in ((14, first), (15, second)):
+                git(repo, 'worktree', 'add', '--detach', str(root), 'HEAD')
+                git(root, *author, 'commit', '-qm', f'PR {day}', '--allow-empty')
+                head = git(root, 'rev-parse', 'HEAD').decode().strip()
+                observations[root] = self.budget_run(day, '17:00', head=head)
+
+            answers = {str(run['id']): (samples, clock) for run, samples, clock in observations.values()}
+            with (patch.object(ci, 'github_identity', return_value=scope['repository']),
+                  patch.object(ci, 'checkout_branch', return_value='topic'),
+                  patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                  patch.object(ci, 'workflow_runs', side_effect=lambda root, *_args, **_kw: [observations[root][0]]),
+                  patch.object(timing, 'download_timing', side_effect=lambda _, run_id, __: answers[run_id][0]) as download,
+                  patch.object(timing, 'inspect_jobs', side_effect=lambda run, _: answers[str(run['id'])][1]) as jobs):
+                first_view = ci.status(first)['verification_budget']
+                second_view = ci.status(second)['verification_budget']
+                self.assertEqual('retained', ci.status(first)['verification_budget']['intake'])
+                offline = timing.offline_budget_status(second, [existing], {task['id']: task})
+
+            self.assertEqual([], first_view['repeated_breaches'])
+            breach, = second_view['repeated_breaches']
+            self.assertEqual(('assigned', ['14', '15']), (breach['status'], breach['recent_runs']))
+            self.assertEqual(['earlier-budget'], [finding['feedback_id'] for finding in breach['feedback']])
+            self.assertEqual(2, len(breach['unrecorded_reports']))
+            self.assertIn('existing corrective feedback', second_view['next_action'])
+            self.assertEqual(second_view['repeated_breaches'], offline['repeated_breaches'])
+            self.assertEqual((2, 2), (download.call_count, jobs.call_count))
+            self.assertEqual(timing.shared_timing_directory(first), timing.shared_timing_directory(second))
+
+    def test_invalid_or_interrupted_capture_can_retry_and_overlapping_poll_does_not_fetch(self):
+        run, samples, clock = self.budget_run(14, '17:00')
+        repository = 'fixture/scopehub'
+        for mode in ('invalid', 'interrupted'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                path = root / '.reports/timing/ci-pull_request-14-1.json'
+                path.parent.mkdir(parents=True)
+
+                def observe():
+                    retained, clocks, _ = timing.retained_budget_inputs(root)
+                    return timing.collect_new_ci_timing(root, repository, run, retained, clocks)[0]
+
+                if mode == 'invalid':
+                    path.write_text('{', encoding='utf-8')
+                else:
+                    with patch.object(timing, 'download_timing', side_effect=KeyboardInterrupt):
+                        with self.assertRaises(KeyboardInterrupt):
+                            observe()
+                    self.assertEqual(1, timing.read_json(path)['intake_attempts'])
+
+                def download(*_args):
+                    self.assertEqual('in_progress', observe())
+                    return samples
+
+                with (patch.object(timing, 'download_timing', side_effect=download) as artifact,
+                      patch.object(timing, 'inspect_jobs', return_value=clock) as jobs):
+                    self.assertEqual('captured', observe())
+                    self.assertEqual('retained', observe())
+                artifact.assert_called_once()
+                jobs.assert_called_once()
+
     def test_ci_status_collects_one_new_attempt_and_reuses_partial_and_complete_clocks(self):
         repository = 'fixture/scopehub'
         source = {'git_head': 'a' * 40, 'working_tree_dirty': False}
@@ -712,19 +874,26 @@ class RecentTimingTests(unittest.TestCase):
                       patch.object(ci, 'checkout_branch', return_value='topic'),
                       patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
                       patch.object(ci, 'workflow_runs', return_value=[run]),
-                      patch.object(timing, 'download_timing', return_value=selection) as download,
+                      patch.object(timing, 'download_timing', side_effect=[selection, []]) as download,
                       patch.object(timing, 'inspect_jobs', return_value=workflow) as jobs):
                     first = ci.status(root)
                     repeat = ci.status(root)
+                    third = ci.status(root)
                     ordinary = timing.offline_budget_status(root, [], {})
                 self.assertEqual(('passed', 'passed'), (first['status'], repeat['status']))
                 self.assertEqual(expected, first['verification_budget']['intake'])
-                self.assertEqual('retained', repeat['verification_budget']['intake'])
+                self.assertEqual('retained' if expected == 'captured' else 'partial',
+                                 repeat['verification_budget']['intake'])
+                self.assertEqual('retained' if expected == 'captured' else 'retry_exhausted',
+                                 third['verification_budget']['intake'])
                 self.assertEqual(ordinary['elapsed_observations'], repeat['verification_budget']['elapsed_observations'])
                 self.assertEqual(len(selection), len(ordinary['elapsed_observations']))
                 self.assertTrue(all(row['sample_count'] == 1 for row in ordinary['elapsed_observations']))
                 self.assertEqual(expected == 'partial', bool(ordinary['input_issues']))
-                download.assert_called_once_with(repository, '11', '1')
+                self.assertEqual(1 if expected == 'captured' else 2, download.call_count)
+                self.assertEqual((repository, '11', '1'), download.call_args_list[0].args)
+                if expected == 'partial':
+                    self.assertEqual({'platforms': {'Linux'}}, download.call_args_list[1].kwargs)
                 jobs.assert_called_once()
 
     def test_recent_queries_are_bounded_to_completed_pr_and_main_workflow_runs(self):

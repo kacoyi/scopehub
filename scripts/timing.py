@@ -14,9 +14,11 @@ from tempfile import TemporaryDirectory
 if __package__:
     from .doctor import tool_version
     from .verification_scope import SCOPED_PROFILES, ScopeError, git
+    from .worktree import WorktreeError, exclusive_git_lock, git_path
 else:
     from doctor import tool_version
     from verification_scope import SCOPED_PROFILES, ScopeError, git
+    from worktree import WorktreeError, exclusive_git_lock, git_path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -27,6 +29,9 @@ TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
 CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
+INTAKE_ATTEMPTS = 2
+TIMING_INPUT_ERRORS = (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError)
+ATTEMPT_SECONDS = ('queue', 'setup', 'harness_step', 'tail', 'runner', 'total', 'browser_step')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
@@ -97,7 +102,7 @@ def hosted_repository(github_actions):
 
 
 def duration(value):
-    return value if type(value) in (int, float) and 0 <= value < float('inf') else None
+    return value if type(value) in (int, float) and 0 <= value <= timedelta.max.total_seconds() else None
 
 
 def timestamp(value):
@@ -377,20 +382,111 @@ def sample_core(sample):
     return {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts'}}
 
 
-def merge_samples(samples, hosted):
-    clock = {ci_key(run): run for run in hosted}
+def valid_seconds(seconds, required):
+    return isinstance(seconds, dict) and all(
+        key in seconds and (seconds[key] is None or duration(seconds[key]) is not None) for key in required
+    )
+
+
+def labels(record, keys):
+    return isinstance(record, dict) and all(
+        key in record and (record[key] is None or isinstance(record[key], str)) for key in keys
+    )
+
+
+def valid_sample(sample):
+    if not labels(sample, ('run_id', 'platform', 'profile', 'arch', 'source_commit', 'recorded_at', 'cache')):
+        return False
+    checks, selected, ci = sample['checks'], sample['selected'], sample['ci']
+    if (sample.get('kind') != SAMPLE_KIND or type(sample['coverage_complete']) is not bool
+            or (sample.get('identity_complete') is not None and type(sample['identity_complete']) is not bool)
+            or (sample.get('identity_complete') and not commit_id(sample['source_commit']))
+            or not valid_seconds(sample['seconds'], ('harness', 'check_work'))
+            or not isinstance(selected, list) or not all(isinstance(key, str) for key in selected)
+            or not isinstance(checks, list)
+            or not all(labels(check, ('id', 'status', 'reason_code'))
+                       and valid_seconds(check, ('duration_seconds',)) for check in checks)
+            or (ci is not None and not labels(ci, ('repository', 'run_id', 'run_attempt', 'event',
+                                                  'head_sha', 'checkout_sha')))):
+        return False
+    return not sample['coverage_complete'] or set(selected) <= {check['id'] for check in checks}
+
+
+def valid_clock(run):
+    if not labels(run, ('repository', 'run_id', 'run_attempt', 'event', 'head_sha', 'conclusion')):
+        return False
+    workflow, jobs = run['workflow'], run['jobs']
+    return (isinstance(workflow, dict) and type(workflow['matrix_complete']) is bool
+            and (workflow.get('identity_complete') is None or type(workflow['identity_complete']) is bool)
+            and isinstance(jobs, list) and all(
+                labels(job, ('platform', 'runner_label', 'conclusion'))
+                and all(isinstance(job['identity_issues'][key], list) for key in ('missing', 'conflicts'))
+                and valid_seconds(job['seconds'], ATTEMPT_SECONDS) for job in jobs
+            ))
+
+
+def admitted_records(records, validate, label, issues):
+    if not isinstance(records, list):
+        issues.append({'error': f'Expected a list of {label}.'})
+        return []
+    valid = []
+    for index, record in enumerate(records):
+        try:
+            if validate(record):
+                valid.append(record)
+                continue
+        except TIMING_INPUT_ERRORS:
+            pass
+        issues.append({'error': f'Invalid {label} record at position {index + 1}.'})
+    return valid
+
+
+def clock_complete(run):
+    workflow = run['workflow']
+    return (run['conclusion'] == 'success' and workflow['matrix_complete'] is True
+            and workflow.get('identity_complete') is True and len(run['jobs']) == len(PLATFORMS)
+            and {job['platform'] for job in run['jobs']} == set(PLATFORMS.values())
+            and all(job['conclusion'] == 'success' and not job['identity_issues']['missing']
+                    and not job['identity_issues']['conflicts']
+                    and job['seconds']['total'] is not None for job in run['jobs']))
+
+
+def sample_complete(sample):
+    return sample['coverage_complete'] and sample.get('identity_complete') is True
+
+
+def merge_samples(samples, hosted, issues):
+    clock = {}
+    for run in hosted:
+        key = ci_key(run)
+        previous = clock.get(key)
+        if previous is None or not clock_complete(previous):
+            clock[key] = run
+        elif clock_complete(run):
+            try:
+                if previous != run:
+                    raise TimingError('Conflicting attempt clocks; using the first complete observation.')
+            except TIMING_INPUT_ERRORS as error:
+                issues.append({'run_id': run['run_id'], 'error': str(error)})
     observations = {}
     for sample in samples:
         ci = sample['ci']
         key = (*ci_key(ci), sample['platform']) if ci else ('local', sample['run_id'], sample['platform'])
         previous = observations.get(key)
-        if previous and previous != sample:
+        if previous:
+            if sample_complete(sample) and not sample_complete(previous):
+                observations[key] = sample
+                continue
             # Compact artifacts can add observations absent from older samples and full reports.
-            previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
-            caches = {previous['cache'], sample['cache']} - {'unknown'}
-            if (sample_core(previous) != sample_core(sample) or len(caches) > 1
-                    or (previous_proof is not None and proof is not None and previous_proof != proof)):
-                raise TimingError(f'Conflicting timing observations for {sample["run_id"]}')
+            try:
+                previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
+                caches = {previous['cache'], sample['cache']} - {'unknown'}
+                if (sample_core(previous) != sample_core(sample) or len(caches) > 1
+                        or (previous_proof is not None and proof is not None and previous_proof != proof)):
+                    raise TimingError('Conflicting timing observations; using the first observation.')
+            except TIMING_INPUT_ERRORS as error:
+                issues.append({'run_id': sample['run_id'], 'error': str(error)})
+                continue
             sample = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
             if previous_proof is not None and proof is None:
                 sample['generated_contracts'] = previous_proof
@@ -400,9 +496,8 @@ def merge_samples(samples, hosted):
         run = clock.get(ci_key(ci)) if ci else None
         jobs = [job for job in run['jobs'] if job['platform'] == sample['platform']] if run else []
         job = jobs[0] if len(jobs) == 1 and not jobs[0]['identity_issues']['conflicts'] else None
-        seconds = {**sample['seconds'], **(job['seconds'] if job else {})}
-        for key in ('queue', 'setup', 'harness_step', 'tail', 'runner', 'total', 'browser_step'):
-            seconds.setdefault(key, None)
+        seconds = {key: sample['seconds'][key] for key in ('harness', 'check_work')}
+        seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         yield {**sample, 'seconds': seconds,
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
                'workflow_success': (run['conclusion'] == 'success' and run['workflow']['matrix_complete']) if run else None,
@@ -503,22 +598,25 @@ def metric_review(rows, metric, objective, *, compare_growth=True):
     return {'metric': metric, 'status': status, 'objective_seconds': objective, 'sample_count': len(values),
             'recent_runs': [run for _, run in recent], 'baseline_runs': [run for _, run in baseline],
             'recent_reports': [harness_identity(row) for row in measured[-WINDOW:]],
+            'breach_reports': [harness_identity(row) for row in measured[-WINDOW:]
+                               if objective is not None and row['seconds'][metric] > objective],
             'recent_median_seconds': current, 'baseline_median_seconds': prior, 'growth_seconds': growth,
             'recent_objective_breaches': breaches, 'material_growth': material, 'action': action,
             'missing_measurements': len(rows) - len(values)}
 
 
 def harness_identity(row):
-    return {'run_id': row['run_id'], 'source_commit': row['source_commit']}
+    identity = {'run_id': row['run_id'], 'source_commit': row['source_commit']}
+    if row['ci']:
+        identity['hosted_run_id'] = row['ci']['run_id']
+    return identity
 
 
 def objective_review(rows, metric, objective):
     result = metric_review(rows, metric, objective, compare_growth=False)
+    if result['recent_objective_breaches'] >= 2:
+        result['action'] = 'Retain the observed wall times and use comparable cohorts to decide recurrence.'
     measured = [row for row in rows if row['seconds'][metric] is not None]
-    result['breach_reports'] = [
-        harness_identity(row)
-        for row in measured[-WINDOW:] if row['seconds'][metric] > objective
-    ]
     changes = []
     for before, after in zip(measured, measured[1:]):
         old = {key: (status, reason) for key, status, reason in coverage_key(before)}
@@ -550,9 +648,12 @@ def objective_review(rows, metric, objective):
     return result
 
 
-def timing_view(samples, *, hosted=()):
-    hosted = list(hosted)
-    merged = sorted(merge_samples(samples, hosted), key=lambda sample: timestamp(sample['recorded_at'])
+def timing_view(samples, *, hosted=(), issues=None):
+    if issues is None:
+        issues = []
+    samples = admitted_records(list(samples), valid_sample, 'timing sample', issues)
+    hosted = admitted_records(list(hosted), valid_clock, 'attempt clock', issues)
+    merged = sorted(merge_samples(samples, hosted, issues), key=lambda sample: timestamp(sample['recorded_at'])
                     or datetime.min.replace(tzinfo=timezone.utc))
     cohorts = defaultdict(list)
     objective_scopes = defaultdict(list)
@@ -601,9 +702,14 @@ def timing_view(samples, *, hosted=()):
 
 
 def local_paths(root):
+    try:
+        shared = shared_timing_directory(root)
+    except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS):
+        shared = None
     return sorted({
         *root.glob('.reports/runs/*/test-report.json'), *root.glob('.reports/ci/*/*/test-report.json'),
         *root.glob('.reports/timing/*.json'), *(path for path in [root / '.reports/test-report.json'] if path.is_file()),
+        *(incremental_timing_paths([shared]) if shared else ()),
     })
 
 
@@ -634,11 +740,11 @@ def budget_follow_up(view, feedback, tasks):
         )
     def route(row, observed_reports):
         scope = {key: row[key] for key in BUDGET_SCOPE}
-        reports = {report_key(report) for report in observed_reports}
+        reports = {report_key(report): report for report in observed_reports}
         related = [(keys, entry) for candidate, keys, entry in tracked.values() if candidate == scope
-                   and (entry['feedback_status'] != 'addressed' or keys & reports)]
+                   and (entry['feedback_status'] != 'addressed' or keys & reports.keys())]
         recorded = {key for keys, _ in related for key in keys}
-        missing = sorted(reports - recorded)
+        missing = [report for key, report in reports.items() if key not in recorded]
         links = [entry for _, entry in related]
         statuses = {entry['status'] for entry in links}
         status = ('assigned' if 'assigned' in statuses else 'addressed'
@@ -648,69 +754,116 @@ def budget_follow_up(view, feedback, tasks):
                                         'metric', 'objective_seconds', 'recent_runs', 'recent_objective_breaches')},
             'status': status,
             'feedback': links,
-            'unrecorded_reports': [{'run_id': run_id, 'source_commit': commit} for run_id, commit in missing],
+            'unrecorded_reports': missing,
+            'next_action': ('Use the original verification reports with pnpm project:diagnostic identify '
+                            'to associate the unrecorded reports with the existing corrective feedback.'
+                            if status == 'assigned' and missing else None),
         }
 
-    breaches = [route(row, row['breach_reports']) for row in view['objective_reviews']
-                if row['recent_objective_breaches'] >= 2]
+    comparable = [
+        {**group, **metric} for group in view['reviews'] for metric in group['metrics']
+        if metric['objective_seconds'] is not None
+    ]
+    breaches = [{**route(row, row['breach_reports']), 'cache': row['cache'], 'coverage': row['coverage']}
+                for row in comparable if row['recent_objective_breaches'] >= 2]
     growth = [
-        {**route({**group, **metric}, metric['recent_reports']), 'cache': group['cache'],
-         'growth_seconds': metric['growth_seconds'], 'baseline_runs': metric['baseline_runs']}
-        for group in view['reviews'] for metric in group['metrics']
-        if metric['objective_seconds'] is not None and metric['material_growth']
+        {**route(row, row['recent_reports']), 'cache': row['cache'], 'coverage': row['coverage'],
+         'growth_seconds': row['growth_seconds'], 'baseline_runs': row['baseline_runs']}
+        for row in comparable if row['material_growth']
     ]
     opened = [entry for _, _, entry in tracked.values() if entry['feedback_status'] != 'addressed']
+    needs_task = any(row['status'] == 'assignment_needed' for row in [*breaches, *growth, *opened])
     return {
         'repeated_breaches': breaches,
         'sustained_growth': growth,
         'open_feedback': opened,
         'next_action': ('Link the observed reports to verification-budget feedback and assign an open corrective task.'
-                        if any(row['status'] == 'assignment_needed' for row in [*breaches, *growth, *opened]) else None),
+                        if needs_task else next((row['next_action'] for row in [*breaches, *growth]
+                                                 if row['next_action']), None)),
     }
 
 
+def shared_timing_directory(root):
+    marker = root / '.git'
+    if not marker.exists():
+        return None
+    if marker.is_dir() and not marker.is_symlink() and not (marker / 'commondir').exists():
+        common = marker.resolve()
+    else:
+        common = git_path(root, '--git-common-dir')
+    directory = common / 'scopehub-verification-timing'
+    if directory.resolve() != directory:
+        raise TimingError('Expected a plain timing directory in the shared Git metadata.')
+    return directory
+
+
+def incremental_timing_paths(directories):
+    incremental = defaultdict(lambda: defaultdict(list))
+    for directory in directories:
+        for path in directory.glob('ci-*.json'):
+            if match := CI_TIMING_NAME.fullmatch(path.name):
+                incremental[match[1]][int(match[2])].append(path)
+    return [path for entries in incremental.values() for run in sorted(entries)[-MAX_RECENT:]
+            for path in entries[run]]
+
+
+def read_bounded_timing(path):
+    limit = 2 * 1024 * 1024
+    with path.open('rb') as content:
+        raw = content.read(limit + 1)
+    if len(raw) > limit:
+        raise TimingError('Report exceeds the compact timing read limit.')
+    return json.loads(raw)
+
+
+def archive_inputs(data, label, issues):
+    samples = admitted_records(data.get('samples'), valid_sample, f'timing sample in {label}', issues)
+    hosted = admitted_records(data.get('hosted'), valid_clock, f'attempt clock in {label}', issues)
+    notes = data.get('input_issues', [])
+    issues.extend(admitted_records(notes, lambda note: labels(note, ('error',)) and isinstance(note['error'], str),
+                                   f'collection issue in {label}', issues))
+    return samples, hosted
+
+
 def retained_budget_inputs(root):
-    # Keep ordinary status bounded to the latest saved reviews and local runs.
-    # Hosted samples need the matching Actions clocks already stored in a timing archive.
+    # Read a bounded window of shared automatic observations and checkout-local reviews.
     directory = root / '.reports/timing'
     archives, issues = [], []
-    incremental = defaultdict(list)
+    try:
+        shared = shared_timing_directory(root)
+    except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+        shared = None
+        issues.append({'error': str(error)})
+    recent = incremental_timing_paths([directory, shared] if shared else [directory])
     for path in directory.glob('*.json'):
-        if match := CI_TIMING_NAME.fullmatch(path.name):
-            incremental[match[1]].append((int(match[2]), path))
+        if CI_TIMING_NAME.fullmatch(path.name):
             continue
         try:
             archives.append((path.stat().st_mtime_ns, path))
         except OSError as error:
             issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
-    recent = [path for entries in incremental.values() for _, path in sorted(entries)[-MAX_RECENT:]]
     archives = [path for _, path in sorted(archives)[-4:]]
     local = sorted(root.glob('.reports/runs/*/test-report.json'), reverse=True)[:MAX_RECENT]
     samples, hosted = [], []
     for path in [*recent, *archives, *local]:
         try:
-            with path.open('rb') as content:
-                limit = 2 * 1024 * 1024
-                raw = content.read(limit + 1)
-            if len(raw) > limit:
-                raise TimingError('Report exceeds the status size limit; inspect it with project:timing.')
-            data = json.loads(raw)
+            data = read_bounded_timing(path)
             if data.get('kind') == ARCHIVE_KIND:
-                samples.extend(data['samples'])
-                hosted.extend(data['hosted'])
-                issues.extend(data.get('input_issues', ()))
+                archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
+                samples.extend(archive_samples)
+                hosted.extend(archive_hosted)
             elif path in local and not data.get('ci') and (data.get('selection') or {}).get('profile') == 'fast':
                 samples.append(report_sample(data))
-        except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
-            issues.append({'file': path.relative_to(root).as_posix(), 'error': str(error)})
+        except (OSError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'file': path.name, 'error': str(error)})
     return samples, hosted, issues
 
 
 def budget_status(samples, hosted, issues, feedback, tasks):
     try:
-        view = timing_view(samples, hosted=hosted)
+        view = timing_view(samples, hosted=hosted, issues=issues)
         follow_up = budget_follow_up(view, feedback, tasks)
-    except (AttributeError, KeyError, TypeError, ValueError) as error:
+    except TIMING_INPUT_ERRORS as error:
         view = {'objective_reviews': [], 'reviews': []}
         follow_up = budget_follow_up(view, feedback, tasks)
         issues.append({'error': str(error)})
@@ -733,53 +886,110 @@ def offline_budget_status(root, feedback, tasks):
     return budget_status(*retained_budget_inputs(root), feedback, tasks)
 
 
-def collect_new_ci_timing(root, repository, run, samples, hosted):
-    run_id = str(run['id'])
-    if not positive_id(run_id) or run['event'] not in NORMAL_EVENTS or str(run['run_attempt']) != '1':
-        raise TimingError('Expected a completed automatic first-attempt verification run')
-    observed = {**run, 'repository': {'full_name': repository}}
-    identity = ci_key({**observed, 'repository': repository, 'run_id': run_id, 'run_attempt': '1'})
-    recorded = [row for row in samples if ci_key(row.get('ci') or {}) == identity]
-    clock = next((row for row in reversed(hosted) if ci_key(row) == identity
-                  and row['workflow']['identity_complete']), None)
-    if clock and {row['platform'] for row in recorded} == set(PLATFORMS.values()):
-        return 'retained', [], [], []
+def attempt_components(identity, samples, hosted):
+    platforms = {
+        row['platform'] for row in samples if ci_key(row.get('ci') or {}) == identity
+        and sample_complete(row)
+    }
+    clock = next((row for row in hosted if ci_key(row) == identity and clock_complete(row)), None)
+    return set(PLATFORMS.values()) - platforms, clock
 
-    path = root / '.reports/timing' / f'ci-{run["event"]}-{run_id}-1.json'
-    if not path.parent.resolve().is_relative_to(root.resolve()):
-        raise TimingError('The timing intake directory must be inside this checkout.')
-    pending = {'kind': ARCHIVE_KIND, 'samples': [], 'hosted': [],
-               'input_issues': [{'run_id': run_id, 'error': 'Incremental timing capture is unfinished.'}]}
-    path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        # Claim the run before any requests. Polling reuses even a partial capture.
-        with path.open('xb') as output:
-            output.write(json_bytes(pending))
-    except FileExistsError:
-        return 'retained', [], [], []
 
-    new_samples, new_clocks, issues = [], [], []
-    try:
-        if {row['platform'] for row in recorded} != set(PLATFORMS.values()):
-            new_samples = download_timing(repository, run_id, '1')
-    except (OSError, subprocess.SubprocessError, AttributeError, KeyError, TypeError, ValueError) as error:
-        issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
-    if {row['platform'] for row in [*recorded, *new_samples]} != set(PLATFORMS.values()):
-        issues.append({'run_id': run_id, 'error': 'Compact reports are absent for part of the required matrix.'})
-    try:
-        if not clock and (recorded or new_samples):
-            clock = inspect_jobs(observed, repository)
-            new_clocks.append(clock)
-    except (OSError, subprocess.SubprocessError, AttributeError, KeyError, TypeError, ValueError) as error:
-        issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
-    if not clock or not clock['workflow']['identity_complete'] or not clock['workflow']['matrix_complete']:
-        issues.append({'run_id': run_id, 'error': 'Complete matching attempt job clocks are unavailable.'})
-    archive = {**pending, 'samples': new_samples, 'hosted': new_clocks, 'input_issues': issues}
+def save_timing_capture(path, attempts, samples, clocks, issues):
+    archive = {'kind': ARCHIVE_KIND, 'intake_attempts': attempts, 'samples': samples,
+               'hosted': clocks, 'input_issues': issues}
     with TemporaryDirectory(dir=path.parent, prefix='.timing-') as temporary:
         staged = Path(temporary) / path.name
         staged.write_bytes(json_bytes(archive))
         staged.replace(path)
-    return ('partial' if issues else 'captured'), new_samples, new_clocks, issues
+
+
+def read_timing_capture(path, issues):
+    try:
+        data = read_bounded_timing(path)
+        if data.get('kind') != ARCHIVE_KIND:
+            raise TimingError('Expected a compact capture archive.')
+        samples, clocks = archive_inputs(data, path.name, issues)
+        attempts = data.get('intake_attempts', 1)
+        if type(attempts) is not int or not 1 <= attempts <= INTAKE_ATTEMPTS:
+            raise TimingError('Invalid timing capture attempt count.')
+        return attempts, samples, clocks
+    except FileNotFoundError:
+        return 0, [], []
+    except (OSError, *TIMING_INPUT_ERRORS) as error:
+        issues.append({'file': path.name, 'error': str(error)})
+        return 0, [], []
+
+
+def collect_new_ci_timing(root, repository, run, samples, hosted):
+    run_id, event = str(run['id']), run['event']
+    if not positive_id(run_id) or event not in NORMAL_EVENTS or str(run['run_attempt']) != '1':
+        raise TimingError('Expected a completed automatic first-attempt verification run')
+    observed = {**run, 'repository': {'full_name': repository}}
+    identity = ci_key({**observed, 'repository': repository, 'run_id': run_id, 'run_attempt': '1'})
+    missing, clock = attempt_components(identity, samples, hosted)
+    if not missing and clock:
+        return 'retained', [], [], []
+
+    local_directory = root / '.reports/timing'
+    directory = shared_timing_directory(root) or local_directory
+    if directory == local_directory and not directory.resolve().is_relative_to(root.resolve()):
+        raise TimingError('The timing intake directory must be inside this checkout.')
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f'ci-{event}-{run_id}-1.json'
+    try:
+        with exclusive_git_lock(path.with_suffix('.lock')):
+            # Re-read after locking because another worktree may have captured this attempt.
+            return update_timing_capture(path, repository, observed, identity, samples, hosted)
+    except BlockingIOError:
+        return 'in_progress', [], [], []
+
+
+def update_timing_capture(path, repository, run, identity, samples, hosted):
+    run_id = str(run['id'])
+    retained_notes = []
+    attempts, prior_samples, prior_clocks = read_timing_capture(path, retained_notes)
+    missing, clock = attempt_components(identity, [*samples, *prior_samples], [*hosted, *prior_clocks])
+    if not missing and clock:
+        return 'retained', prior_samples, prior_clocks, []
+    if attempts >= INTAKE_ATTEMPTS:
+        return 'retry_exhausted', prior_samples, prior_clocks, [{
+            'run_id': run_id, 'error': 'Incremental timing retry exhausted. Inspect this run explicitly if more timing is needed.',
+        }]
+    attempts += 1
+    save_timing_capture(path, attempts, prior_samples, prior_clocks,
+                        [{'run_id': run_id, 'error': 'Incremental timing capture is unfinished.'}])
+    new_samples, new_clocks, issues = [], [], []
+    if missing:
+        try:
+            criteria = {'platforms': missing} if missing != set(PLATFORMS.values()) else {}
+            rows = download_timing(repository, run_id, '1', **criteria)
+            new_samples = [
+                row for row in admitted_records(rows, valid_sample, 'downloaded timing sample', issues)
+                if ci_key(row['ci'] or {}) == identity and row['platform'] in missing
+            ]
+        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'run_id': run_id, 'error': f'Could not retrieve compact reports: {error}'})
+    if not clock and (set(PLATFORMS.values()) - missing or new_samples):
+        try:
+            row = inspect_jobs(run, repository)
+            if valid_clock(row) and ci_key(row) == identity:
+                new_clocks.append(row)
+        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'run_id': run_id, 'error': f'Could not retrieve attempt jobs: {error}'})
+    missing_after, clock_after = attempt_components(
+        identity, [*samples, *prior_samples, *new_samples], [*hosted, *prior_clocks, *new_clocks],
+    )
+    if missing_after:
+        issues.append({'run_id': run_id, 'error': 'Compact reports are absent for part of the required matrix.'})
+    if not clock_after:
+        issues.append({'run_id': run_id, 'error': 'Complete matching attempt job clocks are unavailable.'})
+    captured_samples = [*prior_samples, *new_samples]
+    captured_clocks = [*prior_clocks, *new_clocks]
+    save_timing_capture(path, attempts, captured_samples, captured_clocks, issues)
+    return ('partial' if missing_after or not clock_after else 'captured'), captured_samples, captured_clocks, [
+        *retained_notes, *issues,
+    ]
 
 
 def ci_budget_status(root, repository, run):
@@ -791,7 +1001,7 @@ def ci_budget_status(root, repository, run):
             samples.extend(new_samples)
             hosted.extend(new_clocks)
             issues.extend(new_issues)
-        except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
+        except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
             intake = 'unavailable'
             issues.append({'run_id': str(run['id']), 'error': str(error)})
     tasks = {task['id']: task for task in read_json(root / 'project/tasks.json')['tasks']}
@@ -799,10 +1009,11 @@ def ci_budget_status(root, repository, run):
     return {**budget_status(samples, hosted, issues, feedback, tasks), 'intake': intake}
 
 
-def download_timing(repository, run_id, attempt):
+def download_timing(repository, run_id, attempt, *, platforms=None):
     endpoint = f'repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100'
     artifacts = json.loads(command(['gh', 'api', endpoint]))['artifacts']
-    expected = {f'verification-timing-{label}' for label in PLATFORMS}
+    expected = {f'verification-timing-{label}' for label, platform in PLATFORMS.items()
+                if platforms is None or platform in platforms}
     names = sorted({item['name'] for item in artifacts if item['name'] in expected and not item['expired']}
                    - {item['name'] for item in artifacts if item['size_in_bytes'] > COMPACT_LIMIT})
     samples = []
@@ -811,12 +1022,14 @@ def download_timing(repository, run_id, attempt):
             args = [arg for name in names for arg in ('--name', name)]
             command(['gh', 'run', 'download', run_id, '--repo', repository, '--dir', temp, *args])
             for path in Path(temp).glob(f'**/{TIMING_FILE}'):
-                if path.stat().st_size > COMPACT_LIMIT:
-                    raise TimingError('Timing artifact exceeds the compact report limit')
-                sample = read_json(path)
-                ci = sample.get('ci') or {}
-                if sample.get('kind') == SAMPLE_KIND and ci_key(ci)[:3] == (repository, run_id, attempt):
-                    samples.append(sample)
+                try:
+                    if path.stat().st_size > COMPACT_LIMIT:
+                        continue
+                    sample = read_json(path)
+                    if valid_sample(sample) and ci_key(sample['ci'] or {})[:3] == (repository, run_id, attempt):
+                        samples.append(sample)
+                except (OSError, *TIMING_INPUT_ERRORS):
+                    continue
     return samples
 
 
@@ -867,7 +1080,7 @@ def inspect_recent(repository, limit, samples, workflows, issues):
             samples.extend(compact)
             if compact or has_report:
                 workflows.append(inspect_jobs(run, repository))
-        except (OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as error:
+        except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': str(error)})
     return {'collected_at': datetime.now(timezone.utc).isoformat(),
             'limit_per_event': limit, 'completed_runs_considered': len(runs),
@@ -966,19 +1179,22 @@ def main():
     try:
         for path in args.report if args.report is not None else local_paths(ROOT):
             try:
-                data = read_json(path)
+                data = read_bounded_timing(path)
                 if data.get('kind') == ARCHIVE_KIND:
-                    samples.extend(data['samples'])
-                    workflows.extend(data['hosted'])
+                    archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
+                    samples.extend(archive_samples)
+                    workflows.extend(archive_hosted)
                     recent = data.get('recent_collection') or recent
-                    issues.extend(data.get('input_issues', []))
                 else:
                     samples.append(data if data.get('kind') == SAMPLE_KIND else report_sample(data))
-            except (OSError, KeyError, AttributeError, TypeError, ValueError) as error:
+            except (OSError, *TIMING_INPUT_ERRORS) as error:
                 issues.append({'path': str(path), 'error': str(error)})
         for run_path, jobs_path in args.actions or []:
-            run, jobs = read_json(run_path), read_json(jobs_path)
-            workflows.append(hosted_timing(run, jobs if isinstance(jobs, list) else jobs['jobs']))
+            try:
+                run, jobs = read_bounded_timing(run_path), read_bounded_timing(jobs_path)
+                workflows.append(hosted_timing(run, jobs if isinstance(jobs, list) else jobs['jobs']))
+            except (OSError, *TIMING_INPUT_ERRORS) as error:
+                issues.append({'path': str(jobs_path), 'error': str(error)})
         if args.run or args.recent is not None:
             repository = hosted_repository(args.github_actions)
         if args.run:
@@ -986,8 +1202,7 @@ def main():
                 workflows.append(inspect_hosted(run, args.attempt, repository, samples))
         if args.recent is not None:
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
-        workflows = list({ci_key(run): run for run in workflows}.values())
-        view = timing_view(samples, hosted=workflows)
+        view = timing_view(samples, hosted=workflows, issues=issues)
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
         view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
@@ -1001,7 +1216,7 @@ def main():
             with args.summary.open('a', encoding='utf-8') as output:
                 output.write(review_summary(view))
         print(json.dumps(view, indent=2))
-    except (OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as error:
+    except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
         parser.exit(1, f'Timing inspection failed: {error}\n')
 
 

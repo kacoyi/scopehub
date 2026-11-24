@@ -17785,6 +17785,7 @@
           "scripts/verification_scope.py",
           "scripts/worktree.py",
           "scripts/worktree_retirement.py",
+          "tests/project/test_ci.py",
           "tests/project/test_timing.py",
           "tests/project/test_delivery.py",
           "tests/project/test_worktree_retirement.py",
@@ -17819,6 +17820,18 @@
               "python-contracts-workers",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "Git hide settings, hidden index entries or submodules allow a dirty checkout to borrow a clean hosted result.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "Malformed telemetry changes an independently observed CI result or suppresses valid data, or an incomplete capture cannot recover within a bounded retry.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "Incomparable work triggers budget recurrence, or two worktrees lose their shared window and the action to associate new evidence.",
+            "checks": ["python-contracts-workers"]
           }
         ],
         "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",

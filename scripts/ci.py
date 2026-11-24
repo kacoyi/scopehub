@@ -178,7 +178,8 @@ def status(root=ROOT, run_id=None):
                               and str(observed['run_attempt']) == '1') else None
     try:
         result['verification_budget'] = ci_budget_status(root, repository, timing_run)
-    except (OSError, AttributeError, KeyError, TypeError, ValueError) as error:
+    except (OSError, subprocess.SubprocessError, AttributeError, KeyError, TypeError, ValueError,
+            OverflowError, RecursionError) as error:
         result['verification_budget'] = {'timing_available': False, 'intake': 'unavailable', 'error': str(error)}
     return result
 
