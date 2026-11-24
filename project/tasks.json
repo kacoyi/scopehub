@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-095",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19302,7 +19302,7 @@
       "id": "M0-095",
       "title": "Preserve visible replay recovery after a real worker exit",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-093"
       ],
@@ -19335,10 +19335,15 @@
         "market-live-stream",
         "market-worker-interruption"
       ],
-      "evidence": [],
-      "next_action": "Give the registered baseline to the replay implementation owner, review the two observable replay paths and delivery mapping, and integrate the smallest verified repair into PR 82.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-095-c546ee7ee6a80c0f.json",
+          "sha256": "21e9e97e1cc678e35795646323dd9f16d1664c78d335cb9e21e9b23fcea670f4"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The reviewed combined revision 462d9550 passed all nine required local checks and the environment check in run 20261124T160740.172837Z-89646560. Both the original owned worker exit case and the real single-read recovery case passed. The stock replay controls passed and both independent Standard reviews approved. The original two-platform failure remains retained with its checked-out merge and producer identity. Local technical verification is complete. The updated protected PR 82 still needs matching Windows and Linux results, including native worker interruption. The subsequent ordinary protected main result and its Windows budget remain with M0-091 and the open governed finding.",
       "plan": {
         "outcome": "The same chart preserves intrabar price observations and displays real reconnecting and resumed states in order, and active replay change plans require the worker interruption check.",
         "change_types": [

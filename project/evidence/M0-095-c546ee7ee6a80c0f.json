@@ -1,0 +1,165 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-095",
+  "task_definition_sha256": "42930289a40c0ce61cf12ffb209112c95c22c0cec346ca6177af1fd6ef7d7a59",
+  "run_id": "20261124T160740.172837Z-89646560",
+  "recorded_at": "2026-11-24T16:11:11.209025+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "0aaf38501a37bd3f60eb27c080fb5a0339fa96a0129299a719b47e1b5eb167d1",
+    "file_count": 584,
+    "git_head": "462d9550834fd521e55ed1bb751e2fc4ff1606d9",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "c546ee7ee6a80c0f9415e7d61e77b2fd361de8c0dd6f8769c3c11396f6a55b4a",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "563e6a4c3dcda133522eea49f17e30c2a24b2017efe5ed263b39357f080da591"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "11dea51e7e0e03ca4419fc503d77231585f1f43e8b16e5ac57054c2ed3b9abdb"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "92c16c5d75f2d3f7914bdafeaae1c1cf54437af4fea12bb0c332672de83b876c"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "294147890f97251fd646d2e6e499b99c98b4d9de3970f1986b87f8850d631fb4"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/recover-main-product-paths/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8def28508c21b6b4ab403a0664d70b9035f1f0c2a9b85418d1e84ec560c9fcd9"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d3a4191eb73b30d91c4d39ca3870d96ec69a042e3f9353aaa58eb5a5655fc8a8"
+    },
+    {
+      "id": "market-live-stream",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-stream.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "982279dbda913303d50c21db3c2fcc69c6f0cc53087d1ed0671290d9c6895ab4"
+    },
+    {
+      "id": "market-worker-interruption",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/worker-interruption.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ec1bb9e36bcac7974feaf1414ea07a029ff3534a4f964eb0cc86b0b304ab45e4"
+    }
+  ],
+  "project_definition_sha256": "b01dd7bb7233c371bb9dfac0170702fbbb1fef419b866c3f33e74dd9b3267d4a",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "6c8420faf83009ae32438d948f8273c304a3cc59dba64a97e671cfc19bd61880"
+  ]
+}
