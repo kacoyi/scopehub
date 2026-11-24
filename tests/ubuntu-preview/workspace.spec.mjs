@@ -19,6 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { claimProfile } from './workspace_profile_pool.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -3610,6 +3611,11 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
 });
 
 async function makeProfile(id = 'synthetic-' + randomUUID()) {
+  if (process.platform === 'win32') {
+    const root = await claimProfile(process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL);
+    if (root) return { root, id, close: () => rm(root, { recursive: true, force: true, maxRetries: 3 }) };
+    // Large or repeated verification runs can still prepare additional profiles.
+  }
   const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
   const profile = join(directory, 'profile');
   const close = () => rm(directory, { recursive: true, force: true });

@@ -10,7 +10,7 @@ mod reviewed_import;
 mod storage;
 mod workspace_layout;
 
-use std::{fmt, path::Path, time::Duration};
+use std::{fmt, num::NonZeroU8, path::Path, time::Duration};
 
 use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Row, TransactionBehavior, config::DbConfig, params,
@@ -93,6 +93,12 @@ impl SqliteWorkspace {
     /// must already be private. New storage files must use private creation.
     pub fn prepare_profile_root(profile_root: &Path) -> Result<(), OpenWorkspaceError> {
         storage::prepare_profile_root(profile_root).map_err(|_| OpenWorkspaceError::Database)
+    }
+
+    /// Prepare disposable test profiles with the ordinary filesystem policy.
+    #[doc(hidden)]
+    pub fn prepare_profile_pool(parent: &Path, count: NonZeroU8) -> Result<(), OpenWorkspaceError> {
+        storage::prepare_profile_pool(parent, count).map_err(|_| OpenWorkspaceError::Database)
     }
 
     /// Open the database in the pre-provisioned profile directory. Both

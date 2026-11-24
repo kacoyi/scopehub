@@ -88,6 +88,96 @@ fn process_round_trip_restores_replays_undoes_and_isolates() {
 }
 
 #[test]
+fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
+    let temporary = std::env::temp_dir();
+    #[cfg(unix)]
+    let temporary = temporary.canonicalize().unwrap();
+    let outer = temporary.join(format!("scopehub-profile-pool-{}", Uuid::new_v4()));
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        fs::DirBuilder::new().mode(0o700).create(&outer).unwrap();
+    }
+    #[cfg(windows)]
+    fs::create_dir(&outer).unwrap();
+    let outer = Profile(outer);
+    let pool = outer.0.join("profiles");
+    let bridge_exe = env!("CARGO_BIN_EXE_workspace_bridge");
+    let prepare = |count| {
+        Command::new(bridge_exe)
+            .arg("--prepare-profile-pool")
+            .arg(&pool)
+            .arg(count)
+            .output()
+            .unwrap()
+    };
+
+    let started = Instant::now();
+    let prepared = prepare("2");
+    assert!(
+        prepared.status.success(),
+        "profile pool preparation failed: {}",
+        String::from_utf8_lossy(&prepared.stderr),
+    );
+    eprintln!(
+        "Prepared two explicit private profiles in {:?}",
+        started.elapsed()
+    );
+    let first = Profile(pool.join("profile-0"));
+    let second = Profile(pool.join("profile-1"));
+    for profile in [&first, &second] {
+        assert!(profile.0.is_dir());
+        assert!(!profile.0.join("workspace.sqlite3").exists());
+    }
+
+    let opened = frames(bridge(&first, PROFILE_ID, &[set(0, "5m", Uuid::new_v4())]));
+    assert_snapshot(&opened[0], 0, "1m");
+    assert_committed(&opened[1], 1, "5m");
+    assert_snapshot(&frames(bridge(&second, PROFILE_ID, &[]))[0], 0, "1m");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&second.0, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    #[cfg(windows)]
+    {
+        let icacls =
+            PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
+        let grant = Command::new(icacls)
+            .arg(&second.0)
+            .args(["/grant", "*S-1-1-0:(RX)"])
+            .output()
+            .unwrap();
+        assert!(
+            grant.status.success(),
+            "could not create the unsafe ACL fixture"
+        );
+    }
+
+    let database = second.0.join("workspace.sqlite3");
+    let before = fs::read(&database).unwrap();
+    let refused = prepare("2");
+    assert!(!refused.status.success());
+    #[cfg(windows)]
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("(prepare, shared-access)"));
+    let refused = Command::new(bridge_exe)
+        .arg(&second.0)
+        .args([PROFILE_ID, WORKSPACE_ID])
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(
+        refused.stdout.is_empty(),
+        "the refused profile produced a handshake"
+    );
+    #[cfg(windows)]
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("(open, shared-access)"));
+    assert_eq!(fs::read(database).unwrap(), before);
+    assert_snapshot(&frames(bridge(&first, PROFILE_ID, &[]))[0], 1, "5m");
+}
+
+#[test]
 fn process_rejects_identity_fields_and_oversized_frames() {
     let profile = Profile::new();
     let mut forged = set(0, "5m", Uuid::new_v4());

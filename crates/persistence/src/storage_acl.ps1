@@ -74,6 +74,17 @@ function Confirm-StorageAcl($path, $attributes, $directory, $private) {
     }
 }
 
+function Confirm-StorageDirectory($path, $private) {
+    $attributes = Get-StorageAttributes $path
+    if ($null -eq $attributes -and $prepare) {
+        $script:failure = 32
+        [void][IO.Directory]::CreateDirectory($path, $security)
+        $attributes = Get-StorageAttributes $path
+    }
+    if ($null -eq $attributes) { Stop-Storage 33 }
+    Confirm-StorageAcl $path $attributes $true $private
+}
+
 try {
     $script:failure = 20
     $user = [Security.Principal.WindowsIdentity]::GetCurrent().User
@@ -108,6 +119,11 @@ try {
 
     if ($env:SCOPEHUB_STORAGE_ACTION -notin @('prepare', 'open')) { Stop-Storage 23 }
     $prepare = $env:SCOPEHUB_STORAGE_ACTION -eq 'prepare'
+    $profileCount = 0
+    if (![int]::TryParse($env:SCOPEHUB_STORAGE_PROFILE_COUNT, [ref]$profileCount) -or
+        $profileCount -lt 0 -or $profileCount -gt 64 -or (!$prepare -and $profileCount -ne 0)) {
+        Stop-Storage 23
+    }
     if ($prepare) {
         $script:failure = 32
         $security = [Security.AccessControl.DirectorySecurity]::new()
@@ -119,24 +135,17 @@ try {
         ))
     }
     for ($index = $ancestors.Count - 1; $index -ge 0; $index--) {
-        $ancestor = $ancestors[$index]
-        $attributes = Get-StorageAttributes $ancestor
-        if ($null -eq $attributes -and $prepare) {
-            $script:failure = 32
-            [void][IO.Directory]::CreateDirectory($ancestor, $security)
-            $attributes = Get-StorageAttributes $ancestor
+        Confirm-StorageDirectory $ancestors[$index] $false
+    }
+    Confirm-StorageDirectory $path $true
+
+    # These immediate synthetic children use the same explicit owner and DACL
+    # as an individually prepared profile. The checked parent is already private.
+    if ($prepare) {
+        for ($index = 0; $index -lt $profileCount; $index++) {
+            Confirm-StorageDirectory ([IO.Path]::Combine($path, "profile-$index")) $true
         }
-        if ($null -eq $attributes) { Stop-Storage 33 }
-        Confirm-StorageAcl $ancestor $attributes $true $false
     }
-    $attributes = Get-StorageAttributes $path
-    if ($null -eq $attributes -and $prepare) {
-        $script:failure = 32
-        [void][IO.Directory]::CreateDirectory($path, $security)
-        $attributes = Get-StorageAttributes $path
-    }
-    if ($null -eq $attributes) { Stop-Storage 33 }
-    Confirm-StorageAcl $path $attributes $true $true
 
     if (!$prepare) {
         foreach ($name in $env:SCOPEHUB_STORAGE_FILES.Split(';')) {

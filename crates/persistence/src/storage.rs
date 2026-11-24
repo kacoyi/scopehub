@@ -1,6 +1,6 @@
 //! Verify filesystem ownership and access before SQLite touches a profile.
 
-use std::{io, path::Path};
+use std::{io, num::NonZeroU8, path::Path};
 
 const FILES: [&str; 4] = [
     super::DATABASE_NAME,
@@ -14,10 +14,31 @@ fn denied() -> io::Error {
 }
 
 pub(super) fn prepare_profile_root(path: &Path) -> io::Result<()> {
+    require_profile_path(path)?;
+    platform::prepare(path)
+}
+
+fn require_profile_path(path: &Path) -> io::Result<()> {
     if !path.is_absolute() || path.file_name().is_none() {
         return Err(denied());
     }
-    platform::prepare(path)
+    Ok(())
+}
+
+pub(super) fn prepare_profile_pool(path: &Path, count: NonZeroU8) -> io::Result<()> {
+    require_profile_path(path)?;
+    #[cfg(windows)]
+    {
+        platform::prepare_pool(path, count)
+    }
+    #[cfg(not(windows))]
+    {
+        platform::prepare(path)?;
+        for index in 0..count.get() {
+            platform::prepare(&path.join(format!("profile-{index}")))?;
+        }
+        Ok(())
+    }
 }
 
 pub(super) use platform::open_path;
@@ -220,7 +241,7 @@ mod platform {
         eprintln!("Workspace storage ACL check refused ({action}, {stage}).");
     }
 
-    fn check_acl(path: &Path, action: &str) -> io::Result<()> {
+    fn check_acl(path: &Path, action: &str, children: u8) -> io::Result<()> {
         let system = env::var_os("SystemRoot").map(PathBuf::from);
         let Some(system) = system.filter(|path| path.is_absolute()) else {
             report_refusal(action, "powershell-location");
@@ -238,6 +259,7 @@ mod platform {
             .env("SCOPEHUB_STORAGE_PATH", path)
             .env("SCOPEHUB_STORAGE_ACTION", action)
             .env("SCOPEHUB_STORAGE_FILES", FILES.join(";"))
+            .env("SCOPEHUB_STORAGE_PROFILE_COUNT", children.to_string())
             .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -270,11 +292,15 @@ mod platform {
     }
 
     pub(super) fn prepare(path: &Path) -> io::Result<()> {
-        check_acl(path, "prepare")
+        check_acl(path, "prepare", 0)
+    }
+
+    pub(super) fn prepare_pool(path: &Path, count: NonZeroU8) -> io::Result<()> {
+        check_acl(path, "prepare", count.get())
     }
 
     pub(in super::super) fn open_path(root: &Path) -> io::Result<(PathBuf, bool)> {
-        check_acl(root, "open")?;
+        check_acl(root, "open", 0)?;
         let path = root.join(FILES[0]);
         let exists = path.try_exists()?;
         Ok((path, exists))
