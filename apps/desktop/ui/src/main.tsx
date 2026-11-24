@@ -3,22 +3,25 @@ import { createRoot } from 'react-dom/client';
 import { message, t, useLocale } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { WorkbenchPrototype } from './workbench-prototype';
-import { ChartWorkspace } from './chart-workspace';
+import { ChartWorkspace, type RevealModelChartBar } from './chart-workspace';
 import { LocalImportEditor, type LocalFolderCatalog } from './local-import-editor';
 import { cancelLocalPreview, chooseLocalCsvFolder, hasLocalCsvPicker, localImportErrorMessage, previewLocalImport, renderLocalImportMessage, type LocalImportMessage } from './local-import-transport';
 import { LocalPreviewChart } from './local-preview-chart';
 import { OpenLocalRevisionDialog } from './local-revision-dialog';
-import { ModelChat, type ModelChatView } from './model-chat';
-import type { ModelChartSelection } from './model-chat-transport';
+import { ModelChat, type ModelChartAnchor, type ModelChatView } from './model-chat';
+import { matchesModelChartSelection, type ModelChartSelection } from './model-chat-transport';
 import { usePublishedRevisionAccess } from './published-revision-access';
 import { readSampleView, saveSampleView } from './sample-view';
-import { nativeTextWorkspaceId, useLocalWorkspace } from './use-local-workspace';
+import { nativeTextWorkspaceId, readWorkspaceSnapshot, useLocalWorkspace, type LocalWorkspace } from './use-local-workspace';
 import { useRestoredWorkspaceSource } from './workspace-source';
 
 function initialSource(): boolean {
   if (window.location.hash) return window.location.hash === '#demo';
   return readSampleView() !== undefined;
 }
+
+type EvidenceNavigation = { anchor: ModelChartAnchor; restore: () => void }
+  | { anchor: ModelChartAnchor; unavailable: boolean; returned: boolean };
 
 function App() {
   useLocale();
@@ -32,8 +35,14 @@ function App() {
   const [choosing, setChoosing] = useState(false);
   const [pickerError, setPickerError] = useState<LocalImportMessage>();
   const [openingRevision, setOpeningRevision] = useState(false);
-  const [modelChatView, setModelChatView] = useState<ModelChatView>();
+  const [modelChatView, setModelChatViewState] = useState<ModelChatView>();
   const [modelSelection, setModelSelection] = useState<ModelChartSelection>();
+  const [observedSelectionSnapshot, setObservedSelectionSnapshot] = useState<LocalWorkspace['snapshot']>();
+  const revealModelChartBar = useRef<RevealModelChartBar>(null);
+  const evidenceCheck = useRef<AbortController | undefined>(undefined);
+  const [checkingEvidence, setCheckingEvidence] = useState(false);
+  const [evidenceNavigation, setEvidenceNavigation] = useState<EvidenceNavigation>();
+  const modelAnchor = evidenceNavigation && 'restore' in evidenceNavigation ? evidenceNavigation.anchor : undefined;
   const localWorkspace = useLocalWorkspace();
   const revisionAccess = usePublishedRevisionAccess(localWorkspace);
   const snapshot = localWorkspace?.snapshot;
@@ -47,8 +56,52 @@ function App() {
   const displaySnapshot = useMemo(() => snapshot && targetRevoked
     ? { ...snapshot, chart_evidence: { unavailable: true as const } } : snapshot, [snapshot, targetRevoked]);
   const workspace = localWorkspace && { ...localWorkspace, snapshot: displaySnapshot };
-  const currentModelSelection = !local && !targetRevoked && modelSelection?.selectionRevision === snapshot?.selection_revision
+  const modelSelectionOutdated = modelSelection && observedSelectionSnapshot?.workspace.id === modelSelection.workspaceId
+    && observedSelectionSnapshot.selection_revision >= modelSelection.selectionRevision
+    && !matchesModelChartSelection(observedSelectionSnapshot, modelSelection);
+  const currentModelSelection = !local && !targetRevoked && !modelSelectionOutdated
+    && modelSelection?.selectionRevision === snapshot?.selection_revision
     ? modelSelection : undefined;
+  const returnToAnswer = useCallback((unavailable = false) => {
+    if (!evidenceNavigation || !('restore' in evidenceNavigation)) return;
+    evidenceNavigation.restore();
+    setEvidenceNavigation({ anchor: evidenceNavigation.anchor, unavailable, returned: true });
+    setModelChatViewState('question');
+  }, [evidenceNavigation]);
+  const setModelChatView = (view: ModelChatView | undefined) => {
+    evidenceCheck.current?.abort();
+    evidenceCheck.current = undefined;
+    setCheckingEvidence(false);
+    if (evidenceNavigation && 'restore' in evidenceNavigation) evidenceNavigation.restore();
+    setEvidenceNavigation(undefined);
+    setModelChatViewState(view);
+  };
+  const revealChartBar = async (anchor: ModelChartAnchor) => {
+    if (evidenceCheck.current) return;
+    const controller = new AbortController();
+    evidenceCheck.current = controller;
+    setCheckingEvidence(true);
+    try {
+      // Recheck the local authority without reloading the chart or rereading any rows.
+      const confirmed = await readWorkspaceSnapshot(AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]));
+      controller.signal.throwIfAborted();
+      setObservedSelectionSnapshot(previous => previous?.workspace.id === confirmed.workspace.id
+        && previous.selection_revision > confirmed.selection_revision ? previous : confirmed);
+      const restore = revealModelChartBar.current?.(anchor, confirmed);
+      if (restore) {
+        setEvidenceNavigation({ anchor, restore });
+        setModelChatViewState(undefined);
+      } else setEvidenceNavigation({ anchor, unavailable: true, returned: false });
+    } catch {
+      if (!controller.signal.aborted) setEvidenceNavigation({ anchor, unavailable: true, returned: false });
+    } finally {
+      if (evidenceCheck.current === controller) {
+        evidenceCheck.current = undefined;
+        setCheckingEvidence(false);
+      }
+    }
+  };
+  useEffect(() => () => evidenceCheck.current?.abort(), []);
   useLayoutEffect(() => {
     if (local) backToChart.current?.focus();
     else {
@@ -133,9 +186,13 @@ function App() {
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
     <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample} active={!local}
       leaveSample={leaveSample} localActions={localActions} workspace={workspace} revisionAccess={revisionAccess}
+      revealModelChartBar={revealModelChartBar} modelAnchor={modelAnchor} returnToAnswer={returnToAnswer}
       modelDialogOpen={Boolean(modelChatView)} openModelChat={selection => {
-        setModelSelection(selection);
-        setModelChatView('question');
+        if (modelAnchor) returnToAnswer();
+        else {
+          setModelSelection(selection);
+          setModelChatView('question');
+        }
       }}
       openModelSettings={() => {
         setModelSelection(undefined);
@@ -176,6 +233,8 @@ function App() {
     </div>}
     <ModelChat key={modelWorkspaceId} workspaceId={modelWorkspaceId} theme={snapshot?.layouts?.active.definition.theme}
       view={modelChatView} show={setModelChatView} chartSelection={currentModelSelection}
+      evidenceFeedback={evidenceNavigation && 'returned' in evidenceNavigation ? evidenceNavigation : undefined}
+      checkingEvidence={checkingEvidence} revealChartBar={revealChartBar} clearEvidenceFeedback={() => setEvidenceNavigation(undefined)}
       invalidChartSelectionRevision={!local && currentModelSelection === undefined ? modelSelection?.selectionRevision : undefined}
       discardChartSelection={() => setModelSelection(undefined)} />
     {openingRevision && <OpenLocalRevisionDialog onClose={() => setOpeningRevision(false)} revisionAccess={revisionAccess}

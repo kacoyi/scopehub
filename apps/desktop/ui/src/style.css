@@ -59,6 +59,10 @@ svg { display: block; width: 19px; height: 19px; flex: none; }
 .currency-tag { border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
 .bar-detail { display: flex; gap: 4px 12px; flex-wrap: wrap; margin-top: 5px; font-variant-numeric: tabular-nums; }
 .bar-detail b { color: #c7d2e2; font-weight: 500; }
+.chart-evidence-anchor { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-top: 5px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.chart-evidence-anchor strong { color: #ffd166; }
+[data-layout-theme="light"] .chart-evidence-anchor strong { color: #805900; }
+.chart-evidence-anchor .secondary-button { margin: 0; }
 .partial { color: #ebbd6b; }
 .chart { width: 100%; flex: 1; min-height: 0; overflow: hidden; }
 .chart-notice { padding: 8px 12px; }

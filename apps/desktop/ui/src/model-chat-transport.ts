@@ -1,18 +1,36 @@
 import type {
   AiTextChartEvidence, AiTextConnectionCommand11, AiTextConnectionInput, AiTextConnectionOutput, AiTextConnectionReply11, VisibleRange,
 } from '../../../../contracts/generated/protocol';
-import { exchangeOpenAiCredential, exchangeWorkspace, nativeTextWorkspaceId } from './use-local-workspace';
+import { exchangeOpenAiCredential, exchangeWorkspace, nativeTextWorkspaceId, type LocalWorkspace } from './use-local-workspace';
 
 export type ModelResult<Action extends AiTextConnectionInput['action']> =
   Extract<AiTextConnectionOutput, { action: Action }>;
 export type ModelConnection = NonNullable<ModelResult<'status'>['connection']>;
 export type ModelRoute = ModelConnection['route'];
 export type ModelChartSelection = {
+  workspaceId: string;
   selectionRevision: number;
   sourceReference: string;
   datasetRevision: string;
+  snapshotHash: string;
+  instrumentId: string;
+  timeframe: string;
   range: VisibleRange;
 };
+
+export function matchesModelChartSelection(state: LocalWorkspace['snapshot'], selection: ModelChartSelection) {
+  const source = state?.source;
+  const shared = state?.chart_evidence;
+  if (state?.workspace.id !== selection.workspaceId || state.selection_revision !== selection.selectionRevision
+    || !shared || !('revision_id' in shared) || shared.revision_id !== selection.sourceReference
+    || shared.range.from_ms !== selection.range.from_ms || shared.range.to_ms !== selection.range.to_ms) return false;
+  if (source?.kind === 'sample') {
+    return (source.instrument_id === null || source.instrument_id === selection.instrumentId)
+      && shared.snapshot_hash === selection.snapshotHash;
+  }
+  return source?.kind === 'frozen' && source.status === 'available' && source.revision_id === selection.sourceReference;
+}
+
 export type OpenAiCredential = {
   configured: boolean;
   lifetime: 'session' | 'windows_credential_manager';

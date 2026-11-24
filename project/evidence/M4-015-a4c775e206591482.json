@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M4-015",
+  "task_definition_sha256": "3c1d421126efbd2ea71be78c76a39475a99bef26875b135ceeea21dfd35bd180",
+  "run_id": "20261124T110504.484857Z-999403d8",
+  "recorded_at": "2026-11-24T11:07:08.539717+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "27a204eb7c8281f88891f07f606716dbe71b68c014cc450b8067f9659ec8ff40",
+    "file_count": 578,
+    "git_head": "15093feb63dc8fa61c3401b69be1faadb4d3ef0f",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a4c775e206591482295880c2a1118e3e06908fe93edd77552c14f9f42e4fa092",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/answer-chart-anchor/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/answer-chart-anchor/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c4287cd66271d135c1270fdf43a3d44cefeebf07119e3776a348418b2732589a"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a14261a79387c02625f6051731234fb818953bf3d3a8685106f5bda39260f3ad"
+    },
+    {
+      "id": "model-connection-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/ai-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a25b5ca98ab73d8d21ba6a4dc2b5478b4bfd1ceccb5e0c67c56ba18b511b86e4"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "71670dfa4dc95f2a7506ef93048fed03a5a542cf52dc8ecb8cf2834ad8c1e1db"
+    }
+  ],
+  "project_definition_sha256": "43769618be530b234cbc0654e66217cc169ea342dab528a4ad7e69086956b83c",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

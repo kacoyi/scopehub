@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
 import type { LayoutPanel11 } from '../../../../contracts/generated/protocol';
 import type { ChartCursorMode, ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { ChartSettings } from './chart-settings';
@@ -10,9 +10,10 @@ import { instrumentName, symbol } from './instrument-display';
 import { IndicatorPreview } from './indicator-preview';
 import { LanguageSettings } from './language-settings';
 import type { PublishedRevisionAccess } from './published-revision-access';
-import { isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
+import { demoProvider, isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartHistory, type Instrument, type SampleRevision } from './market';
 import { ReplayGapDetails, replayGapReason } from './market-quality';
-import type { ModelChartSelection } from './model-chat-transport';
+import type { ModelChartAnchor } from './model-chat';
+import { matchesModelChartSelection, type ModelChartSelection } from './model-chat-transport';
 import { PriceChart } from './price-chart';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
@@ -74,7 +75,9 @@ export type RestoredChartSource = {
   label?: string;
 };
 
-export function ChartWorkspace({ sample, active, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings }: {
+export type RevealModelChartBar = (anchor: ModelChartAnchor, confirmed: LocalWorkspace['snapshot']) => (() => void) | undefined;
+
+export function ChartWorkspace({ sample, active, leaveSample, localActions, workspace, openPublished, restoredSource, restoredSampleInstrument, chooseSampleInstrument, onOpenSample, openPrototype, retryRestoredSource, revisionAccess, modelDialogOpen, openModelChat, openModelSettings, revealModelChartBar, modelAnchor, returnToAnswer }: {
   active: boolean;
   sample: boolean; leaveSample: () => void; localActions: LocalSourceActions | undefined;
   workspace: LocalWorkspace | undefined;
@@ -89,6 +92,9 @@ export function ChartWorkspace({ sample, active, leaveSample, localActions, work
   modelDialogOpen: boolean;
   openModelChat: (selection: ModelChartSelection | undefined) => void;
   openModelSettings: () => void;
+  revealModelChartBar: Ref<RevealModelChartBar>;
+  modelAnchor: ModelChartAnchor | undefined;
+  returnToAnswer: (unavailable?: boolean) => void;
 }) {
   const locale = useLocale();
   const [saved] = useState(() => sample ? readSampleView() : undefined);
@@ -164,6 +170,17 @@ export function ChartWorkspace({ sample, active, leaveSample, localActions, work
   const selectedBarTime = !definition?.link_selection ? undefined : localSelection
     ? (sampleBar?.snapshot === history?.snapshot.content_hash ? sampleBar?.time : undefined) : sharedBar;
   const selectionBlocked = Boolean((frozen || integratedSample) && workspaceBlocked);
+  const state = workspace?.snapshot;
+  const modelChartSelection: ModelChartSelection | undefined = state && boundSelection && history && !selectionBlocked ? {
+    workspaceId: state.workspace.id,
+    selectionRevision: state.selection_revision,
+    sourceReference: history.snapshot.dataset_id,
+    datasetRevision: history.snapshot.dataset_revision,
+    instrumentId: history.dataset.instrument_id,
+    timeframe: history.dataset.timeframe,
+    snapshotHash: history.snapshot.content_hash,
+    range: boundSelection.range,
+  } : undefined;
   const selectBar = definition?.link_selection && history ? (bar: Bar) => {
     if (localSelection) {
       setSampleBar({ snapshot: history.snapshot.content_hash, time: bar.time_ms });
@@ -192,6 +209,28 @@ export function ChartWorkspace({ sample, active, leaveSample, localActions, work
   const replayFailure = replay?.state === 'failed' ? replay.failure : undefined;
   const replayGap = replay?.gap;
   const repairedBars = replay?.repairedBars;
+  const matchesModelAnchor = ({ selection, row }: ModelChartAnchor) => {
+    if (!integratedSample || selectionBlocked || workspace?.sourceRecovery || !history || !matchesModelChartSelection(state, selection)
+      || history.dataset.mode !== 'simulated' || history.dataset.provider_id !== demoProvider
+      || selected?.id !== selection.instrumentId || history.dataset.instrument_id !== selection.instrumentId
+      || timeframe !== selection.timeframe || history.dataset.timeframe !== selection.timeframe
+      || history.snapshot.dataset_id !== selection.sourceReference || history.snapshot.dataset_revision !== selection.datasetRevision
+      || history.snapshot.content_hash !== selection.snapshotHash) return false;
+    const bar = replay?.bar?.time_ms === row.time_ms ? replay.bar
+      : (repairedBars ?? history.bars).find(bar => bar.time_ms === row.time_ms);
+    return bar?.is_closed === true && bar.close === row.close;
+  };
+  useImperativeHandle(revealModelChartBar, () => (anchor, confirmed) => {
+    const handle = chart.current;
+    if (!active || !handle || confirmed?.source?.kind !== 'sample' || !matchesModelChartSelection(confirmed, anchor.selection)
+      || !matchesModelAnchor(anchor)) return;
+    const restore = handle.revealEvidenceBar(anchor.row);
+    if (restore) return () => { if (chart.current === handle) restore(); };
+  });
+  const visibleModelAnchor = modelAnchor && matchesModelAnchor(modelAnchor) ? modelAnchor : undefined;
+  useLayoutEffect(() => {
+    if (active && modelAnchor && !visibleModelAnchor) returnToAnswer(true);
+  }, [active, modelAnchor, visibleModelAnchor, returnToAnswer]);
   const replayStatus = replay && replay.state !== 'failed' ? replayLabels[replay.state] : null;
   const replayLabel = replayFailure ? t('Replay failed. {reason}', { reason: t(replayFailure.message) })
     : repairedBars ? t('Closed-bar gap repaired in chart') : replayStatus && t(replayStatus);
@@ -337,6 +376,7 @@ export function ChartWorkspace({ sample, active, leaveSample, localActions, work
     plot = <PriceChart key={frozen ? restoredSource?.revision_id : selected.id + ':' + timeframe} instrument={chartInstrument ?? selected}
       history={history} style={style} cursor={cursor} handle={chart} replayBar={sample ? replay?.bar : undefined}
       repairedBars={sample ? repairedBars : undefined} selectedBarTime={selectedBarTime} activateBar={selectBar}
+      evidenceRow={visibleModelAnchor?.row} returnToAnswer={returnToAnswer}
       indicatorPreview={acceptingIndicators && previewLayer?.source === indicatorSource ? previewLayer?.result : undefined}
       acceptedIndicators={acceptingIndicators && acceptedLayers?.source === indicatorSource ? acceptedLayers?.results : undefined}
       {...appearance && { appearance }} />;
@@ -383,15 +423,8 @@ export function ChartWorkspace({ sample, active, leaveSample, localActions, work
         <button type="button" className="period notes-trigger" aria-haspopup="dialog"
           disabled={workspaceBlocked} onClick={() => setRecordsOpen(true)}>{t('Private records')}</button></div>}
       <button type="button" className="period notes-trigger" aria-haspopup="dialog"
-        disabled={Boolean(workspace?.pending === 'evidence' || workspace?.pending === 'source')} onClick={() => {
-          const state = workspace?.snapshot;
-          openModelChat(state && boundSelection && history && !selectionBlocked ? {
-            selectionRevision: state.selection_revision,
-            sourceReference: history.snapshot.dataset_id,
-            datasetRevision: history.snapshot.dataset_revision,
-            range: boundSelection.range,
-          } : undefined);
-        }}>{t('Ask AI')}</button>
+        disabled={Boolean(workspace?.pending === 'evidence' || workspace?.pending === 'source')}
+        onClick={() => openModelChat(modelChartSelection)}>{t('Ask AI')}</button>
       <span className={'connection' + (sample ? ' sample' : '')} role="status"><i aria-hidden="true" />{sample
         ? <><span>{t('Offline sample')}</span><b>{t('Simulated')}</b></> : restoredSource ? frozen ? restoredSource.label ?? t('Published CSV')
           : restoredSource.status === 'revoked' ? t('Access revoked') : restoredSource.status === 'loading' ? t('Restoring CSV') : t('Source unavailable')
