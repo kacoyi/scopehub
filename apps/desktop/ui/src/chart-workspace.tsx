@@ -13,6 +13,7 @@ import { isClosedBarGapRevision, sampleRevisionInstrument, type Bar, type ChartH
 import { ReplayGapDetails, replayGapReason } from './market-quality';
 import type { ModelChartSelection } from './model-chat-transport';
 import { PriceChart } from './price-chart';
+import { chartDrawingSource } from './chart-drawing';
 import { narrowScreen, readSampleView, saveSampleView } from './sample-view';
 import { SymbolSearch } from './symbol-search';
 import type { LocalWorkspace } from './use-local-workspace';
@@ -335,6 +336,7 @@ export function ChartWorkspace({ sample, leaveSample, localActions, workspace, o
   } else {
     plot = <PriceChart key={frozen ? restoredSource?.revision_id : selected.id + ':' + timeframe} instrument={chartInstrument ?? selected}
       history={history} style={style} cursor={cursor} handle={chart} replayBar={sample ? replay?.bar : undefined}
+      chartDrawing={sample && !repairedBars && new URLSearchParams(location.search).get('chart-drawing') === '1' ? chartDrawingSource(history) : undefined}
       repairedBars={sample ? repairedBars : undefined} selectedBarTime={selectedBarTime} activateBar={selectBar}
       indicatorPreview={acceptingIndicators && previewLayer?.source === indicatorSource ? previewLayer?.result : undefined}
       acceptedIndicators={acceptingIndicators && acceptedLayers?.source === indicatorSource ? acceptedLayers?.results : undefined}

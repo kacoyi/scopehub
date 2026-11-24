@@ -10,12 +10,12 @@ import type { FrozenSnapshot } from '../../../../contracts/generated/protocol';
 import type { PublishedRevisionAccess } from './published-revision-access';
 import { SeriesIdentity, useAcceptedDrawingSeries, type BoundSeries } from './accepted-drawing-series';
 import { evaluateDrawing } from './drawing-evaluation';
+import { DrawingMarks } from './drawing-marks';
 import './drawing-workbench.css';
 
 type Origin = 'sample' | 'model' | 'editor';
 type Scene = { program: Drawing; marks: Mark[]; targets: Target[]; controls: Controls; origin: Origin; bounds: ViewBounds; expanded: boolean };
 type Status = 'idle' | 'running' | 'rejected' | 'timeout';
-const inks = ['#60d4bf', '#e8af72', '#a8a4fc', '#e68ca8'];
 
 function DrawingSurface({ scene, weight, select, series }: { series: BoundSeries | undefined; scene: Scene; weight: number; select: (index: number) => void }) {
   const { program, marks } = scene;
@@ -36,15 +36,7 @@ function DrawingSurface({ scene, weight, select, series }: { series: BoundSeries
           textAnchor="middle">{time(ms)}</text>)}
         <polyline points={source.bars.map(b => scale.xTime(b.time_ms) + ',' + scale.yValue(b.close)).join(' ')} />
       </g>}
-      <g aria-label={t('Program geometry')} strokeWidth={weight}>
-        {marks.map((mark, i) => {
-          const [kind, x, y, a, b] = mark;
-          const stroke = inks[mark.at(-1) as number];
-          if (kind === 'circle') return <circle key={i} cx={x} cy={y} r={a} stroke={stroke} fill="none" />;
-          if (kind === 'rect') return <rect key={i} x={x} y={y} width={a} height={b} stroke={stroke} fill="none" />;
-          return <line key={i} x1={x} y1={y} x2={a} y2={b} stroke={stroke} />;
-        })}
-      </g>
+      <DrawingMarks marks={marks} weight={weight} />
       {scene.targets.map(([index, x, y, radius]) =>
         <circle key={index} className="drawing-target" cx={x} cy={y} r={radius} fill="transparent"
           tabIndex={0} role="button" aria-pressed={scene.controls.selected === index}

@@ -1,6 +1,6 @@
 import {
   CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, LineSeries, createChart, createSeriesMarkers,
-  type ISeriesApi, type LineWidth, type SeriesMarker, type Time, type UTCTimestamp,
+  type IPanePrimitive, type ISeriesApi, type LineWidth, type SeriesMarker, type Time, type UTCTimestamp,
 } from 'lightweight-charts';
 import type { Bar, DatasetDescriptor, FrozenSnapshot, IndicatorResult, Instrument, VisibleRange } from '../../../../../contracts/generated/protocol';
 import { clipIndicatorRegions, indicatorBarIntervals, mountIndicatorRegions } from './indicator-regions';
@@ -35,7 +35,21 @@ const defaultChartLocalization: HistoryChartLocalization = {
   regionLabels: { preview: 'Preview', accepted: 'Accepted' },
 };
 
+export type PricePaneProjection = {
+  times: [timeMs: number, x: number][];
+  price: number;
+  y: number;
+  yPerPrice: number;
+};
+export type PricePaneFrame = {
+  width: number;
+  height: number;
+  projection: PricePaneProjection;
+  crosshair: number | undefined;
+};
+
 export interface HistoryChartHandle {
+  observePricePane(times: readonly number[], update: (frame: PricePaneFrame) => void): () => void;
   dispose(): void;
   fit(): void;
   zoomIn(): void;
@@ -216,10 +230,20 @@ export function mountHistoryChart(
       return (time === undefined ? undefined : lookup.get(time / 1000)) ?? bars.at(-1);
     };
     const originalCursor = element.style.cursor;
+    let paneCrosshair: number | undefined;
+    let refreshPane: (() => void) | undefined;
+    let disposed = false;
+    const inspectPane = (time: number | undefined) => {
+      if (paneCrosshair !== time) {
+        paneCrosshair = time;
+        refreshPane?.();
+      }
+    };
     chart.subscribeCrosshairMove(event => {
       if (cursor === 'pan') return;
       const bar = lookup.get(Number(event.time));
       inspectedTime = bar?.time_ms;
+      inspectPane(event.point && event.paneIndex === 0 ? bar?.time_ms : undefined);
       const selected = displayedBar();
       if (selected) select(selected);
     });
@@ -229,7 +253,50 @@ export function mountHistoryChart(
     });
     element.style.cursor = 'crosshair';
     return {
+      observePricePane(times, update) {
+        const pane = priceSeries.getPane();
+        let pending: number | undefined;
+        let previous = '';
+        const paint = () => {
+          pending = undefined;
+          if (disposed) return;
+          const { width, height } = chart.paneSize(pane.paneIndex());
+          const price = bars[0]?.close;
+          if (!width || !height || price === undefined) return;
+          // The existing chart uses a normal, linear price scale. Read it through
+          // the current price series, including after a style or viewport change.
+          const y = priceSeries.priceToCoordinate(price);
+          const upper = priceSeries.priceToCoordinate(price + 1);
+          if (y === null || upper === null || !Number.isFinite(upper - y) || y === upper) return;
+          const positions: PricePaneProjection['times'] = [];
+          for (const time of times) {
+            const x = timeScale.timeToCoordinate((time / 1000) as UTCTimestamp);
+            if (x !== null && Number.isFinite(x) && lookup.has(time / 1000)) positions.push([time, x]);
+          }
+          const hoveredX = positions.find(([time]) => time === paneCrosshair)?.[1];
+          if (hoveredX === undefined || hoveredX < 0 || hoveredX >= width) paneCrosshair = undefined;
+          const frame = { width, height, crosshair: paneCrosshair,
+            projection: { times: positions, price, y, yPerPrice: upper - y } };
+          const signature = JSON.stringify(frame);
+          if (signature !== previous) {
+            previous = signature;
+            update(frame);
+          }
+        };
+        const schedule = () => { pending ??= requestAnimationFrame(paint); };
+        const primitive: IPanePrimitive<Time> = { updateAllViews: schedule };
+        paneCrosshair = undefined;
+        refreshPane = schedule;
+        pane.attachPrimitive(primitive);
+        schedule();
+        return () => {
+          if (refreshPane === schedule) refreshPane = undefined;
+          if (pending !== undefined) cancelAnimationFrame(pending);
+          if (!disposed) pane.detachPrimitive(primitive);
+        };
+      },
       dispose() {
+        disposed = true;
         element.style.cursor = originalCursor;
         regionsOverlay.setBands([]);
         markerPlugin.detach();
@@ -250,6 +317,7 @@ export function mountHistoryChart(
         chart.applyOptions({ crosshair: { mode: pan ? CrosshairMode.Hidden : CrosshairMode.Magnet } });
         if (pan) {
           chart.clearCrosshairPosition();
+          inspectPane(undefined);
           inspectedTime = undefined;
           const selected = displayedBar();
           if (selected) select(selected);
@@ -287,6 +355,7 @@ export function mountHistoryChart(
       setSelectedBar(time) {
         if (selectedTime === time) return;
         selectedTime = time;
+        inspectPane(undefined);
         inspectedTime = undefined;
         const bar = time === undefined ? undefined : lookup.get(time / 1_000);
         if (!bar) chart.clearCrosshairPosition();
