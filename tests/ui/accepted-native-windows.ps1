@@ -40,11 +40,23 @@ function Contains-UIElement($ancestor,$node) {
 function Select-SeriesChoice([string]$label,[string]$wanted) {
     $exactName=[Windows.Automation.PropertyCondition]::new($ui::NameProperty,$wanted)
     $expandPattern=[Windows.Automation.ExpandCollapsePattern]::Pattern
+    $combo=Wait-ForProbe "$label visible in the owned studio" { Named-Control $label $type::ComboBox }
+    $combo.SetFocus()
+    Start-Sleep -Milliseconds 450
+    $c=Wait-ForProbe "$label after any focus recheck" { Named-Control $label $type::ComboBox }
+    $r=$c.Current.BoundingRectangle
+    $x=[int]($r.Left+$r.Width/2); $y=[int]($r.Top+$r.Height/2)
+    $at=$ui::FromPoint([Windows.Point]::new($x,$y))
+    if (!(Contains-UIElement $c $at)) { throw "$label is not at its native screen position." }
+    [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
+    Start-Sleep -Milliseconds 350
+    $currentFocus=$ui::FocusedElement
+    Write-Host "$label popup focus=$($currentFocus.Current.Name) type=$($currentFocus.Current.ControlType.ProgrammaticName) before requesting $wanted."
     $null=Wait-ForProbe "$label opened with exact selectable item $wanted in the studio" {
         $studio=Find-Control 'Drawing studio' $null
         $combo=Named-Control $label $type::ComboBox
         if (!$combo -or !$studio) { return $false }
-        $item=$combo.FindAll($scope,$exactName) | Where-Object { $_.Current.IsEnabled -and !$_.Current.IsOffscreen } | Select-Object -First 1
+        $item=$combo.FindAll($scope,$exactName) | Where-Object { $_.Current.IsEnabled } | Select-Object -First 1
         if (!$item) {
             $item=$window.FindAll($scope,$exactName) | Where-Object {
                 $_.Current.IsEnabled -and !$_.Current.IsOffscreen -and $_.Current.ControlType -in @($type::ListItem,$type::MenuItem)
@@ -60,7 +72,7 @@ function Select-SeriesChoice([string]$label,[string]$wanted) {
                     $x=[int]($r.X+$r.Width/2); $y=[int]($r.Y+$r.Height/2)
                     $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
                     if (Contains-UIElement $combo $hit) {
-                        [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                        [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
                         Start-Sleep -Milliseconds 300
                     }
                 }
@@ -71,6 +83,8 @@ function Select-SeriesChoice([string]$label,[string]$wanted) {
         $focusedOnChoice=(Contains-UIElement $combo $active) -or (Contains-UIElement $item $active)
         if (!$focusedOnChoice) {
             if (([string]$active.Current.Name) -eq $wanted -and (Contains-UIElement $window $active)) { $focusedOnChoice=$true }
+            $parent=[Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($item)
+            if ($parent -and (Contains-UIElement $parent $active) -and $parent.Current.ControlType -in @($type::List,$type::Menu) -and (Contains-UIElement $window $parent)) { $focusedOnChoice=$true }
         }
         if (!$focusedOnChoice) {
             $combo.SetFocus()
@@ -82,7 +96,7 @@ function Select-SeriesChoice([string]$label,[string]$wanted) {
             $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
             $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
             if ((Contains-UIElement $item $hit) -or (([string]$hit.Current.Name) -eq $wanted -and (Contains-UIElement $window $hit))) {
-                [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
                 return $true
             }
         }
@@ -144,14 +158,16 @@ function Try-Activate($control) {
     $x=[int]($bounds.X+$bounds.Width/2); $y=[int]($bounds.Y+$bounds.Height/2)
     $atPoint=[Windows.Automation.AutomationElement]::FromPoint([Windows.Point]::new($x,$y))
     if (!$atPoint -or ([string]$atPoint.Current.Name) -ne ([string]$control.Current.Name)) { return $false }
-    [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+    [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
     return $true
 }
 function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
     $resolve={ if ($Indicator) { Indicator-Control $label } else { Named-Control $label $type::Button } }
     $button=Wait-ForProbe "enabled $label" { $b=& $resolve; if ($b -and $b.Current.IsEnabled) { $b } }
+    $scroller=$null
+    if ($button.TryGetCurrentPattern([Windows.Automation.ScrollItemPattern]::Pattern,[ref]$scroller)) { $scroller.ScrollIntoView() }
     $button.SetFocus()
-    $null=Wait-ForProbe "pointer over the owned $label button" {
+    $null=Wait-ForProbe "visible or keyboard-focused owned $label button" {
         $b=& $resolve
         if (!$b -or !$b.Current.IsEnabled) { return $false }
         $r=$b.Current.BoundingRectangle
@@ -161,11 +177,17 @@ function Click-WorkspaceControl([string]$label,[switch]$Indicator) {
         $walker=[Windows.Automation.TreeWalker]::ControlViewWalker
         for ($i=0; $i -lt 8 -and $hit; $i++) {
             if ([Windows.Automation.Automation]::Compare($b,$hit)) {
-                [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+                [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
                 Write-Host "Verified owned pointer activation of $label at ($x,$y)."
                 return $true
             }
             $hit=$walker.GetParent($hit)
+        }
+        $focused=$ui::FocusedElement
+        if ($focused -and [Windows.Automation.Automation]::Compare($focused,$b) -and $b.Current.HasKeyboardFocus) {
+            [Windows.Forms.SendKeys]::SendWait(' ')
+            Write-Host "Activated the verified focused $label button with Space."
+            return $true
         }
         return $false
     }
@@ -175,7 +197,7 @@ function Review-Step([string]$label) {
     $null=Wait-ForProbe $label { Try-Activate (Named-Control $label $type::Button) }
 }
 function Archive-Stage([string]$name) {
-    $image=[DrawingWindowCapture]::OwnedClient($app.MainWindowHandle)
+    $image=[DrawingWindowCapture]::OwnedClient($ownedHandle)
     try { $image.Save((Join-Path $OutputDirectory "$name.png"),[Drawing.Imaging.ImageFormat]::Png) }
     finally { $image.Dispose() }
 }
@@ -192,7 +214,7 @@ function Enter-NativeFolder([string]$folder) {
         Find-Control 'Choose local CSV folder' $type::Window
     }
     $pickerHandle=[IntPtr]$dlg.Current.NativeWindowHandle
-    [DrawingWindowCapture]::VerifyPicker($app.MainWindowHandle,$pickerHandle,$app.Id)
+    [DrawingWindowCapture]::VerifyPicker($ownedHandle,$pickerHandle,$app.Id)
     Write-Output "Confirmed ScopeHub picker: HWND=$pickerHandle class=$($dlg.Current.ClassName) appPID=$($app.Id)"
     # Prefer the common dialog's filename edit. The shell exposes some children as UIA Pane controls.
     if ([DrawingWindowCapture]::SetPickerFolder($pickerHandle,$folder)) {
@@ -238,7 +260,7 @@ function Run-IndicatorPreview {
         $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
         $target=$ui::FromPoint([Windows.Point]::new($x,$y))
         if (([string]$target.Current.Name) -ne 'Run preview') { return $false }
-        [DrawingWindowCapture]::ClickOwned($app.MainWindowHandle,$x,$y)
+        [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
         return $true
     }
     $transition=Wait-ForProbe 'indicator computation started or its result displayed' {
@@ -274,7 +296,7 @@ function Native-Plot {
         }
     }
     $b=$svg.Current.BoundingRectangle
-    return [DrawingWindowCapture]::Plot($app.MainWindowHandle,$b.Left,$b.Top,$b.Width,$b.Height)
+    return [DrawingWindowCapture]::Plot($ownedHandle,$b.Left,$b.Top,$b.Width,$b.Height)
 }
 function Save-SeriesPlot([string]$kind) {
     $plot=Native-Plot
@@ -337,9 +359,9 @@ function Use-SeriesProgram([string]$kind) {
 }
 function Check-OrdinaryFocus {
     Wait-Name 'Accepted view'
-    [DrawingWindowCapture]::MinimizeOwned($app.MainWindowHandle)
+    [DrawingWindowCapture]::MinimizeOwned($ownedHandle)
     Start-Sleep -Milliseconds 400
-    [DrawingWindowCapture]::RestoreOwned($app.MainWindowHandle)
+    [DrawingWindowCapture]::RestoreOwned($ownedHandle)
     Start-Sleep -Milliseconds 2500
     Wait-Name 'Accepted view'
     Save-SeriesPlot 'dots'
@@ -449,12 +471,11 @@ try {
     Add-Type -AssemblyName System.Drawing
     Add-Type -Path (Join-Path $PSScriptRoot 'DrawingWindowCapture.cs') -ReferencedAssemblies System.Drawing
     $null=[DrawingWindowCapture]::SetProcessDPIAware()
-    [DrawingWindowCapture]::Resize($app.MainWindowHandle,1120,760)
+    [DrawingWindowCapture]::Resize($ownedHandle,1120,760)
     $visibilityFailure=$null
     if ($Identity) {
         $acceptedHash=$Identity.result_hash
         Write-Output "Started real native workspace on previously confirmed version $($Identity.version_id)."
-        Wait-Name 'Open blank AI workbench'
         Archive-Stage 'native-entry'
         Open-PreparedSource
     } else {
