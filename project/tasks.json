@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-013",
+  "focus_task_id": "M2-024",
   "tasks": [
     {
       "id": "M0-001",
@@ -17690,6 +17690,123 @@
           ],
           "data_plan": "Workspace schema v11 transactionally marks the extended layout JSON format. Existing chart-only definitions need no rewrite. Older readers refuse this profile before editing. Keep the closed previous profile for rollback. Stored definitions contain no points, selections, marks or readouts.",
           "cleanup": "Retain the original frozen prototypes. No duplicate writer or temporary storage."
+        }
+      }
+    },
+    {
+      "id": "M2-024",
+      "title": "Compose and reopen a local synthetic research view through the ordinary workbench",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-003",
+        "M2-015",
+        "M2-023"
+      ],
+      "scope": [
+        "apps/desktop",
+        "contracts",
+        "crates",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0007",
+        "0008",
+        "0016",
+        "0027"
+      ],
+      "acceptance": [
+        "The ordinary blank workbench accepts editable user or model instructions over trusted synthetic records. Apply two different layouts, predicates and orders with the same host. Compare issuer and actual UTC review instant, refresh, and open only a currently authorized original.",
+        "Preview, accept, refine locally, undo and reopen a named composition through the workspace registry. Rejected drafts retain accepted work. Distinguish checked zero results, disconnected coverage and revoked access, including after reopen. A controlled model turn receives only language instructions and authored structure."
+      ],
+      "checks": [
+        "research-workbench",
+        "workbench-authored-composition",
+        "workspace-layout",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "state-migrations",
+        "desktop-localization"
+      ],
+      "evidence": [],
+      "next_action": "Exercise original creation and structural revision with a controlled local model, then replay the same saved rules against refreshed and unavailable synthetic source records.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A named chart-free composition re-evaluates editable record instructions against the current authorized synthetic research source.",
+        "change_types": [
+          "protocol",
+          "persistence",
+          "permissions",
+          "ui"
+        ],
+        "context": [
+          "contracts/workbench-v1.json",
+          "apps/desktop/ui/src/workbench-authoring.tsx",
+          "crates/application/src/workspace/layout.rs"
+        ],
+        "hypotheses": [
+          "A small record-composition language can express independent layouts and queries over a single authorized projection. The model can author it from field definitions alone."
+        ],
+        "risks": [
+          {
+            "failure": "Incorrect cutoff, reordered refresh, expired grants or stale selection can disclose or misattribute a record.",
+            "checks": [
+              "research-workbench",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "A failed draft replaces an accepted view, or saved code includes private source content.",
+            "checks": [
+              "research-workbench",
+              "workspace-layout",
+              "workbench-authored-composition"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI and registry change together; preserve the previous closed profile backup when trying the new schema.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "application",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/main.tsx",
+            "apps/desktop/ui/src/workbench-authoring.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "crates/application/src/workspace/layout.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/customization/editing"
+            }
+          ],
+          "non_goals": [
+            "Real provider qualification, private excerpts sent to a model, broadening code execution, and packaged Windows release acceptance."
+          ],
+          "open_questions": [
+            "Does the native host preserve the same rights, field semantics and keyboard interactions on a previously unseen arrangement?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Named chart layouts, existing drawing programs and valid older profiles."
+          ],
+          "change": [
+            "Add a local research source and a separately bound, editable named research composition."
+          ],
+          "data_plan": "Version persisted research bindings. Keep original bodies in the source and re-evaluate current source rights before displaying them.",
+          "cleanup": "Use disposable synthetic profiles and a local peer. Preserve M2-013 for the complete native and numeric journey."
         }
       }
     }
