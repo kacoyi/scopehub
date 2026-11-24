@@ -10,22 +10,22 @@ use std::{
         fs::{MetadataExt, OpenOptionsExt},
         io::{AsRawHandle, FromRawHandle, OwnedHandle},
     },
-    path::{Component, Path, PathBuf, Prefix},
+    path::{Component, Path, Prefix},
     ptr::{null, null_mut},
 };
 
 use windows_sys::Win32::{
     Foundation::{ERROR_ALREADY_EXISTS, ERROR_SUCCESS, GENERIC_ALL, LocalFree},
     Security::{
-        ACCESS_ALLOWED_ACE, ACE_HEADER, ACL_SIZE_INFORMATION, AclSizeInformation,
+        ACCESS_ALLOWED_ACE, ACE_HEADER, ACL, ACL_SIZE_INFORMATION, AclSizeInformation,
         Authorization::{
             ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW,
             GetSecurityInfo, SDDL_REVISION_1, SE_FILE_OBJECT,
         },
-        CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, GetAce, GetAclInformation, GetLengthSid,
-        GetTokenInformation, INHERIT_ONLY_ACE, IsValidAcl, IsValidSid, OBJECT_INHERIT_ACE,
-        OWNER_SECURITY_INFORMATION, PSID, SECURITY_ATTRIBUTES, SECURITY_MAX_SID_SIZE, TOKEN_QUERY,
-        TOKEN_USER, TokenUser,
+        CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, GetAce, GetAclInformation,
+        GetTokenInformation, INHERIT_ONLY_ACE, INHERITED_ACE, IsValidAcl, IsValidSid,
+        OBJECT_INHERIT_ACE, OWNER_SECURITY_INFORMATION, PSID, SECURITY_ATTRIBUTES,
+        SECURITY_MAX_SID_SIZE, TOKEN_QUERY, TOKEN_USER, TokenUser,
     },
     Storage::FileSystem::{
         CreateDirectoryW, DELETE, FILE_ALL_ACCESS, FILE_ATTRIBUTE_DIRECTORY,
@@ -35,9 +35,10 @@ use windows_sys::Win32::{
         WRITE_OWNER,
     },
     System::{
+        Memory::LocalSize,
         SystemServices::{
-            ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE, SYSTEM_ALARM_ACE_TYPE,
-            SYSTEM_AUDIT_ACE_TYPE,
+            ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE, SID_MAX_SUB_AUTHORITIES, SID_REVISION,
+            SYSTEM_ALARM_ACE_TYPE, SYSTEM_AUDIT_ACE_TYPE,
         },
         Threading::{GetCurrentProcess, OpenProcessToken},
         WindowsProgramming::DRIVE_FIXED,
@@ -72,7 +73,31 @@ fn wide(text: &OsStr) -> Result<Vec<u16>, u8> {
     Ok(bytes)
 }
 
-fn sid_text(sid: PSID) -> Result<String, u8> {
+fn allocation_room(base: *const c_void, length: usize, entry: *const c_void) -> usize {
+    entry
+        .addr()
+        .checked_sub(base.addr())
+        .and_then(|offset| length.checked_sub(offset))
+        .unwrap_or(0)
+}
+
+fn sid_fits(revision: u8, count: u8, available: usize) -> bool {
+    u32::from(revision) == SID_REVISION
+        && u32::from(count) <= SID_MAX_SUB_AUTHORITIES
+        && 8 + usize::from(count) * size_of::<u32>() <= available
+}
+
+/// The caller must supply the remaining extent of the live token, descriptor or ACE.
+unsafe fn sid_text(sid: PSID, available: usize) -> Result<String, u8> {
+    if available < 8 || sid.is_null() || !sid.cast::<u32>().is_aligned() {
+        return Err(26);
+    }
+    // SAFETY: the first two bytes of the SID header are inside the supplied extent.
+    let (revision, count) = unsafe { (*sid.cast::<u8>(), *sid.cast::<u8>().add(1)) };
+    // SAFETY: the fixed header and the full declared sub-authority array fit in the extent.
+    if !sid_fits(revision, count, available) || unsafe { IsValidSid(sid) } == 0 {
+        return Err(26);
+    }
     let mut text = null_mut();
     // SAFETY: callers supply a validated SID backed by a live token or descriptor.
     if unsafe { ConvertSidToStringSidW(sid, &mut text) } == 0 {
@@ -119,11 +144,21 @@ fn current_user() -> Result<String, u8> {
     {
         return Err(20);
     }
-    sid_text(data.user.User.Sid).map_err(|_| 20)
+    let sid = data.user.User.Sid;
+    let available = allocation_room(
+        (&raw const data).cast(),
+        (size as usize).min(size_of::<TokenUserBuffer>()),
+        sid,
+    );
+    // SAFETY: the token buffer is still live after GetTokenInformation.
+    unsafe { sid_text(sid, available) }.map_err(|_| 20)
 }
 
 fn check_volume(root: &Path) -> Result<(), u8> {
-    let root = wide(root.as_os_str())?;
+    let mut root = wide(root.as_os_str())?;
+    if let Some(separator) = root.get_mut(2) {
+        *separator = u16::from(b'\\');
+    }
     let mut filesystem = [0u16; 32];
     // SAFETY: root and the filesystem output buffer remain live throughout both calls.
     if unsafe { GetDriveTypeW(root.as_ptr()) } != DRIVE_FIXED
@@ -148,7 +183,11 @@ fn check_volume(root: &Path) -> Result<(), u8> {
 
 fn private_descriptor(user: &str) -> Result<Allocation, u8> {
     // Protected DACL, with owner full control on this directory and its children.
-    let sddl = wide(OsStr::new(&format!("O:{user}D:P(A;OICI;FA;;;{user})")))?;
+    security_descriptor(&format!("O:{user}D:P(A;OICI;FA;;;{user})"))
+}
+
+fn security_descriptor(sddl: &str) -> Result<Allocation, u8> {
+    let sddl = wide(OsStr::new(sddl))?;
     let mut descriptor = null_mut();
     // SAFETY: the Win32 API reads the NUL-terminated SDDL and allocates the descriptor.
     if unsafe {
@@ -184,7 +223,7 @@ fn create_directory(path: &Path, descriptor: &Allocation) -> Result<(), u8> {
 fn open_entry(path: &Path, kind: Entry) -> Result<Option<File>, u8> {
     let mut sharing = FILE_SHARE_READ | FILE_SHARE_WRITE;
     if kind == Entry::StorageFile {
-        // The directory is already pinned. Reading an ACL must not prevent
+        // Reading an ACL must not prevent
         // SQLite's other connection from retiring its transient sidecars.
         sharing |= FILE_SHARE_DELETE;
     }
@@ -215,6 +254,40 @@ fn trusted_ancestor(sid: &str, user: &str) -> bool {
     private_principal(sid, user) || sid == TRUSTED_INSTALLER
 }
 
+#[derive(Default)]
+struct UserInheritance {
+    single_full: bool,
+    explicit_count: usize,
+    explicit: [(u32, u32); 2],
+}
+
+impl UserInheritance {
+    fn record(&mut self, flags: u32, mask: u32) {
+        self.single_full |= mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS
+            && flags & CHILD_INHERITANCE == CHILD_INHERITANCE;
+        if flags & INHERITED_ACE == 0 && mask != 0 {
+            if let Some(slot) = self.explicit.get_mut(self.explicit_count) {
+                *slot = (flags, mask);
+            }
+            self.explicit_count += 1;
+        }
+    }
+
+    fn sufficient(&self, canonical: bool) -> bool {
+        if self.single_full {
+            return true;
+        }
+        // System.IO sorts canonical explicit allows by SID and compacts adjacent
+        // equal-flag rules. Two explicit rules for this SID become one adjacent pair.
+        let [(left_flags, left_mask), (right_flags, right_mask)] = self.explicit;
+        canonical
+            && self.explicit_count == 2
+            && left_flags == right_flags
+            && left_flags & CHILD_INHERITANCE == CHILD_INHERITANCE
+            && (left_mask | right_mask) & FILE_ALL_ACCESS == FILE_ALL_ACCESS
+    }
+}
+
 fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
     let attributes = file.metadata().map_err(|_| 24)?.file_attributes();
     if attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
@@ -242,12 +315,25 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
     } != ERROR_SUCCESS
         || owner.is_null()
         || dacl.is_null()
-        // SAFETY: GetSecurityInfo returned a DACL in the owned descriptor.
-        || unsafe { IsValidAcl(dacl) } == 0
     {
         return Err(26);
     }
-    let owner = sid_text(owner)?;
+    // SAFETY: GetSecurityInfo returned a LocalAlloc descriptor. Owner and DACL
+    // point within it and must stay within the reported allocation.
+    let descriptor_size = unsafe { LocalSize(descriptor.0) };
+    let acl_room = allocation_room(descriptor.0, descriptor_size, dacl.cast());
+    if acl_room < size_of::<ACL>() || !dacl.is_aligned() {
+        return Err(26);
+    }
+    // SAFETY: the aligned ACL header fits in the descriptor's allocation.
+    let acl_size = usize::from(unsafe { (*dacl).AclSize });
+    // SAFETY: the complete DACL extent is within the live descriptor.
+    if !(size_of::<ACL>()..=acl_room).contains(&acl_size) || unsafe { IsValidAcl(dacl) } == 0 {
+        return Err(26);
+    }
+    let owner_room = allocation_room(descriptor.0, descriptor_size, owner);
+    // SAFETY: the descriptor remains live and the owner SID is checked against its extent.
+    let owner = unsafe { sid_text(owner, owner_room) }?;
     if kind == Entry::Ancestor {
         if !trusted_ancestor(&owner, user) {
             return Err(28);
@@ -266,30 +352,51 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
             AclSizeInformation,
         )
     } == 0
+        || info.AclBytesInUse as usize > acl_size
     {
         return Err(26);
     }
     let mut user_applies = false;
-    let mut user_inherits = false;
+    let mut inheritance = UserInheritance::default();
+    let mut canonical = true;
+    let mut previous_rank = 0;
     for index in 0..info.AceCount {
         let mut entry = null_mut();
         // SAFETY: dacl remains live and GetAce validates the index.
         if unsafe { GetAce(dacl, index, &mut entry) } == 0 || entry.is_null() {
             return Err(27);
         }
-        // SAFETY: a successful GetAce provides an ACE containing at least its header.
-        let header = unsafe { &*entry.cast::<ACE_HEADER>() };
-        match u32::from(header.AceType) {
-            ACCESS_ALLOWED_ACE_TYPE => {}
-            ACCESS_DENIED_ACE_TYPE | SYSTEM_AUDIT_ACE_TYPE | SYSTEM_ALARM_ACE_TYPE => continue,
-            _ => return Err(27),
-        }
-        const SID_OFFSET: usize = std::mem::offset_of!(ACCESS_ALLOWED_ACE, SidStart);
-        const SID_HEADER: usize = 8;
-        if usize::from(header.AceSize) < SID_OFFSET + SID_HEADER {
+        let ace_room = allocation_room(dacl.cast(), info.AclBytesInUse as usize, entry);
+        if ace_room < size_of::<ACE_HEADER>() || !entry.cast::<ACE_HEADER>().is_aligned() {
             return Err(27);
         }
-        // SAFETY: the header identified ACCESS_ALLOWED_ACE and bounded its mask and SID header.
+        // SAFETY: GetAce returned an aligned header within the ACL's used extent.
+        let header = unsafe { &*entry.cast::<ACE_HEADER>() };
+        let ace_size = usize::from(header.AceSize);
+        const SID_OFFSET: usize = std::mem::offset_of!(ACCESS_ALLOWED_ACE, SidStart);
+        if !(SID_OFFSET + 8..=ace_room).contains(&ace_size)
+            || !entry.cast::<ACCESS_ALLOWED_ACE>().is_aligned()
+        {
+            return Err(27);
+        }
+        let flags = u32::from(header.AceFlags);
+        let ace_type = u32::from(header.AceType);
+        let rank = match ace_type {
+            ACCESS_DENIED_ACE_TYPE => 0,
+            ACCESS_ALLOWED_ACE_TYPE => 1,
+            SYSTEM_AUDIT_ACE_TYPE | SYSTEM_ALARM_ACE_TYPE => {
+                canonical = false;
+                continue;
+            }
+            _ => return Err(27),
+        };
+        let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
+        canonical &= rank >= previous_rank;
+        previous_rank = rank;
+        if ace_type != ACCESS_ALLOWED_ACE_TYPE {
+            continue;
+        }
+        // SAFETY: the aligned, bounded ACE is a non-callback ACCESS_ALLOWED_ACE.
         let (mask, sid) = unsafe {
             let ace = &*entry.cast::<ACCESS_ALLOWED_ACE>();
             (
@@ -297,14 +404,8 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
                 (&raw const ace.SidStart).cast_mut().cast::<c_void>(),
             )
         };
-        // SAFETY: GetLengthSid only reads the SID header. Check the full size before validation.
-        if unsafe { GetLengthSid(sid) } as usize + SID_OFFSET > usize::from(header.AceSize)
-            || unsafe { IsValidSid(sid) } == 0
-        {
-            return Err(27);
-        }
-        let sid = sid_text(sid).map_err(|_| 27)?;
-        let flags = u32::from(header.AceFlags);
+        // SAFETY: the ACE bounds the SID tail for the duration of this read.
+        let sid = unsafe { sid_text(sid, ace_size - SID_OFFSET) }.map_err(|_| 27)?;
         let applies_here = flags & INHERIT_ONLY_ACE == 0;
         if kind == Entry::Ancestor {
             if !trusted_ancestor(&sid, user) && applies_here && mask & REPLACE_ENTRY != 0 {
@@ -313,13 +414,14 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         } else if !private_principal(&sid, user) {
             return Err(30);
         }
-        if sid == user {
+        if sid == user && mask != 0 {
             user_applies |= applies_here;
-            user_inherits |= mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS
-                && flags & CHILD_INHERITANCE == CHILD_INHERITANCE;
+            inheritance.record(flags, mask);
         }
     }
-    if kind != Entry::Ancestor && (!user_applies || (kind == Entry::Profile && !user_inherits)) {
+    if kind != Entry::Ancestor
+        && (!user_applies || (kind == Entry::Profile && !inheritance.sufficient(canonical)))
+    {
         return Err(31);
     }
     Ok(())
@@ -332,6 +434,65 @@ pub(super) fn tick_ms() -> u64 {
     unsafe { GetTickCount64() }
 }
 
+fn ordinary_directory_name(name: &[u16]) -> bool {
+    if name
+        .last()
+        .is_none_or(|last| [u16::from(b' '), u16::from(b'.')].contains(last))
+        || name.iter().any(|&unit| {
+            u8::try_from(unit).is_ok_and(|byte| byte < b' ' || b"\"*:<>?|".contains(&byte))
+        })
+    {
+        return false;
+    }
+    // DOS device names are reserved even with an extension.
+    let base = name
+        .split(|&unit| unit == u16::from(b'.'))
+        .next()
+        .unwrap_or_default();
+    let base = String::from_utf16_lossy(base);
+    let base = base.trim_end_matches(' ').to_ascii_uppercase();
+    !matches!(
+        base.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) && !base
+        .strip_prefix("COM")
+        .or_else(|| base.strip_prefix("LPT"))
+        .is_some_and(|port| {
+            matches!(
+                port,
+                "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
+            )
+        })
+}
+
+fn profile_chain(path: &Path) -> Result<Vec<&Path>, u8> {
+    let mut components = path.components();
+    let Some(Component::Prefix(prefix)) = components.next() else {
+        return Err(21);
+    };
+    if !matches!(prefix.kind(), Prefix::Disk(_)) || components.next() != Some(Component::RootDir) {
+        return Err(21);
+    }
+    // Inspect the supplied spelling before performing any filesystem operation.
+    // Path::components would discard interior dot segments.
+    let units: Vec<_> = path.as_os_str().encode_wide().collect();
+    let remainder = units.get(3..).ok_or(21)?;
+    let mut names = remainder
+        .split(|&unit| unit == u16::from(b'\\') || unit == u16::from(b'/'))
+        .filter(|name| !name.is_empty());
+    if !names.next().is_some_and(ordinary_directory_name) || !names.all(ordinary_directory_name) {
+        return Err(21);
+    }
+    // Each entry comes from the same absolute path. No component is parsed again
+    // as an independent path, and the drive prefix alone is not an ancestor.
+    let mut chain: Vec<_> = path
+        .ancestors()
+        .take_while(|entry| entry.has_root())
+        .collect();
+    chain.reverse();
+    Ok(chain)
+}
+
 pub(super) fn validate(
     path: &Path,
     prepare: bool,
@@ -340,55 +501,42 @@ pub(super) fn validate(
     deadline_ms: u64,
     mut phase: impl FnMut(Phase) -> Result<(), u8>,
 ) -> Result<(), u8> {
+    let chain = profile_chain(path)?;
+    let (root, descendants) = chain.split_first().ok_or(21)?;
+    let (profile, ancestors) = descendants.split_last().ok_or(21)?;
     phase(Phase::Identity)?;
     let user = current_user()?;
     phase(Phase::Volume)?;
-    let path = std::path::absolute(path).map_err(|_| 21)?;
-    let mut components = path.components();
-    let Some(Component::Prefix(prefix)) = components.next() else {
-        return Err(21);
-    };
-    if !matches!(prefix.kind(), Prefix::Disk(_)) || components.next() != Some(Component::RootDir) {
-        return Err(21);
-    }
-    let mut cursor = PathBuf::from(prefix.as_os_str());
-    cursor.push(Path::new(r"\"));
-    let mut components = components.peekable();
-    if components.peek().is_none() {
-        return Err(21);
-    }
-    check_volume(&cursor)?;
+    check_volume(root)?;
 
     phase(Phase::Ancestors)?;
-    // Keep the verified chain pinned while descendants are checked and created.
-    let root = open_entry(&cursor, Entry::Ancestor)?.ok_or(33)?;
+    // Retain checked directory handles without delete sharing during validation.
+    let root = open_entry(root, Entry::Ancestor)?.ok_or(33)?;
     check_entry(&root, Entry::Ancestor, &user)?;
-    let mut pinned = vec![root];
+    let mut directories = vec![root];
     let descriptor = prepare.then(|| private_descriptor(&user)).transpose()?;
-    while let Some(component) = components.next() {
-        let Component::Normal(name) = component else {
-            return Err(21);
-        };
-        cursor.push(name);
-        let kind = if components.peek().is_some() {
-            Entry::Ancestor
-        } else {
-            phase(Phase::Profile)?;
-            Entry::Profile
-        };
-        pinned.push(check_directory(
-            &cursor,
-            kind,
+    for ancestor in ancestors {
+        directories.push(check_directory(
+            ancestor,
+            Entry::Ancestor,
             &user,
             descriptor.as_ref(),
             deadline_ms,
         )?);
     }
+    phase(Phase::Profile)?;
+    directories.push(check_directory(
+        profile,
+        Entry::Profile,
+        &user,
+        descriptor.as_ref(),
+        deadline_ms,
+    )?);
     if children != 0 {
         phase(Phase::Children)?;
         for index in 0..children {
             check_directory(
-                &cursor.join(format!("profile-{index}")),
+                &profile.join(format!("profile-{index}")),
                 Entry::Profile,
                 &user,
                 descriptor.as_ref(),
@@ -399,7 +547,7 @@ pub(super) fn validate(
     if !prepare {
         phase(Phase::Files)?;
         for name in files {
-            if let Some(file) = open_entry(&cursor.join(name), Entry::StorageFile)? {
+            if let Some(file) = open_entry(&profile.join(name), Entry::StorageFile)? {
                 check_entry(&file, Entry::StorageFile, &user)?;
             }
         }
@@ -479,3 +627,6 @@ pub(super) fn wait_for_exit(child: &impl AsRawHandle, milliseconds: u32) -> bool
     // SAFETY: the child owns the handle until this wait returns.
     unsafe { WaitForSingleObject(child.as_raw_handle(), milliseconds) == WAIT_OBJECT_0 }
 }
+
+#[cfg(test)]
+mod tests;

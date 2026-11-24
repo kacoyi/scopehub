@@ -119,6 +119,21 @@ fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
             .unwrap()
     };
 
+    #[cfg(windows)]
+    {
+        let before = outer.0.join("invalid-profile-parent");
+        let refused = Command::new(&bridge_exe)
+            .arg("--prepare-profile-root")
+            .arg(before.join("ambiguous."))
+            .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        let summary = String::from_utf8_lossy(&refused.stderr);
+        assert!(summary.contains("(prepare, local-path)"), "{summary}");
+        assert!(!before.exists());
+    }
+
     let started = Instant::now();
     let prepared = prepare("2");
     assert!(
