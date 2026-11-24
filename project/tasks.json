@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-094",
   "tasks": [
     {
       "id": "M0-001",
@@ -19443,6 +19443,163 @@
           ],
           "data_plan": "Use the existing synthetic series and retain original process, frame and visual observations without data or protocol migration.",
           "cleanup": "Keep the protected artifact index, both focused cases, delivery validation control and independent review with the repair."
+        }
+      }
+    },
+    {
+      "id": "M0-094",
+      "title": "Prepare a separate Windows market recovery producer if main remains over budget",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-092"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/check.py",
+        "scripts/ci_artifacts.py",
+        "scripts/timing.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Locally demonstrate that ordinary full Windows assigns the unchanged Python contracts and market recovery commands to independent producers, with the contracts starting after pinned Python, Git and Rust setup and each selected check still required.",
+        "Demonstrate digest-checked collection and current-attempt identity for four producers, rejection of missing or invalid evidence, failure visibility, and comparison with original three-producer clocks and cache states. Preserve scoped, Linux, native Windows and release check coverage.",
+        "Retain the projection, original local parity and limitations, and an independent Standard review. Keep this candidate local and park it if an ordinary successful M0-093 main push meets the existing budget. The M0-091 finding remains open until its authoritative recovery criteria are satisfied."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery",
+        "windows-native-build"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45407009232-1",
+          "source_commit": "5e965c24828cf5b1c2210e94eb8a913ac423099e",
+          "report_sha256": "5df4ad7b1224fc323dddfc8476912b57f71325d639c709058a2f33eff7f212c9"
+        },
+        {
+          "run_id": "windows-change-45410634661-1",
+          "source_commit": "427540bb8b6ea77bcb7887dd83421c0a18307a61",
+          "report_sha256": "d281e8caffb511130f3fb663ebf988486b173c795ecee552a0846fc48aa0348b"
+        },
+        {
+          "run_id": "windows-change-45418380941-1",
+          "source_commit": "66023a76b4ca41af10ce4cef6146d9dd47d45a4c",
+          "report_sha256": "a81e0f4231a6e676895146bd678608905fd38932b3b275d993480460b036f8d3"
+        },
+        {
+          "run_id": "windows-change-45421408601-1",
+          "source_commit": "4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab",
+          "report_sha256": "2d2aa7f3edba8ea5667e3896511f9132fc49df2f17fb8f7809bd34e997523503"
+        },
+        {
+          "run_id": "windows-change-45437657243-1",
+          "source_commit": "2396f08e4b44d9a29086c49735d2acea6ffd1d20",
+          "report_sha256": "3bff5ad63588291ae1df134e47edc89998bb16c0cfff791df8c2db448e54fbf7"
+        }
+      ],
+      "evidence": [],
+      "next_action": "Keep the fallback ready on the current main baseline. Use the next ordinary full Windows main observation under M0-091 to confirm whether to proceed. If authorized, obtain native Windows task evidence from the same ordinary full pull request and use that report for the task receipt.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Prepare a local fallback that moves browser and Cargo cache setup off the Windows Python contracts critical path.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/ci_artifacts.py",
+          "scripts/timing.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "In failed full main 45421408601, the successful Python producer spent 216 seconds in setup, including 105 seconds restoring the exact 2.738 GB Cargo cache and 37 seconds installing and probing pinned Chromium. The archived projection puts that 928-second workflow near 829 seconds with about 219 additional runner seconds. The 1192-second cache seed remains over budget. Evidence and limitations are in archives/observations/m0-094-windows-recovery-startup-study/SHA256SUMS (SHA-256 fae92b8237b6acc1f05c3edccc2bb03813758fabc1fbb50ce35d159b28820ab0).",
+          "M0-094 owns the technical fallback. M0-091 owns the comparable ordinary main timing observation under verification-main-push-feedback-budget-overrun, whose task owners remain M0-087 and M0-091. The fallback study informs that decision without changing the governed record.",
+          "The isolated Linux contracts run preserved all 700 named outcomes without Node, pnpm, Chromium, or a restored Cargo cache. The real Cargo fixture still needs pinned Rust, and Windows-specific behavior remains unmeasured.",
+          "Successful full main 45437657243 took 920 seconds with warm Cargo caches and no cache saves. The Python producer ended at second 877, followed by 43 seconds for the protected result. Replaying the measured 128 seconds of transferable setup puts Python at second 749 and Core last at second 765, projecting 808 seconds with about 213 additional Windows runner seconds. Original clock identities, algorithm, and limits are retained at archives/observations/m0-094-main-45437657243/projection.json (SHA-256 27dde8a18dc34f755ca769de7d3c4d584776f31d24eaa4afc03276cffa568e26)."
+        ],
+        "risks": [
+          {
+            "failure": "A lean producer loses a real prerequisite or scope routing omits existing Python, market recovery, or native Windows checks.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "A missing, stale, failed, or wrongly assigned fourth producer is accepted, or its recovery outputs collide or disappear.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Cache omissions appear warm, retained three-producer evidence stops comparing, or local projections are mistaken for main recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Linking the fallback as a third owner of the governed main timing finding makes ordinary delivery block on that finding and prevents the protected two-owner closure.",
+            "checks": [
+              "project-state"
+            ]
+          },
+          {
+            "failure": "The four-producer timing reader promotes a sample without producer cache provenance, discards a conflicting original during archive reload, or accepts an incomplete unmarked layout as legacy.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Park the local candidate if the ordinary product repair meets the budget, if setup independence fails, or if stronger verification no longer establishes comparable coverage and provenance. M0-091 retains its independent measurement and disposition.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/check.py",
+            "scripts/ci_artifacts.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No M0-093 product work, new hosted runs, remote publication, cache policy redesign, modified check assertions, or change to the protected job and budget objective."
+          ],
+          "open_questions": [
+            "Will the next ordinary repaired main already meet the budget, or is a later exact Windows candidate worth the additional runner work?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The check catalog, selected commands, reports, artifact paths, heap and process ownership, deadlines, historical timing and accepted check coverage."
+          ],
+          "change": [
+            "Give the original market recovery command its own Windows full producer. Identify historical and current producer layouts explicitly and retain independent cache observations."
+          ],
+          "data_plan": "Keep original run evidence and provenance. Add only backward-compatible timing metadata for the four-producer layout. If delivery proceeds, freeze the task and project definitions for the ordinary full pull request. Record the same successful Windows aggregate report for project-state, Python contracts, market recovery and native Windows build. Keep the original input and run identities when attaching the receipt.",
+          "cleanup": "Retain the local candidate and independent review without scheduling a new protected acceptance round."
         }
       }
     }

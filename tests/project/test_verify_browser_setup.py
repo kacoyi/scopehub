@@ -9,6 +9,7 @@ import unittest
 import yaml
 
 from scripts.check import ci_requires_build_setup, load_project
+from scripts.timing import WINDOWS_RECOVERY_MARKER
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,9 +34,9 @@ class VerifyBrowserSetupTests(unittest.TestCase):
 
     def test_browser_setup_is_required_without_a_successful_prerequisite_opt_out(self):
         self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && "
-                         "(matrix.lane != 'core' || steps.lane.outputs.split != 'true')",
+                         "matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')",
                          self.step['if'])
-        self.assertEqual("steps.lane.outputs.skip != 'true'", self.prerequisite['if'])
+        self.assertEqual("steps.lane.outputs.skip != 'true' && matrix.lane != 'python'", self.prerequisite['if'])
         self.assertNotIn('continue-on-error', self.step)
         self.assertEqual('bash', self.step['shell'])
 
@@ -128,7 +129,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
     def test_routine_windows_changes_use_bounded_native_lanes_and_attempt_bound_aggregation(self):
         aggregate = self.jobs['windows_change']
         self.assertEqual('windows-latest', aggregate['runs-on'])
-        lanes = ['core', 'browser', 'python']
+        lanes = ['core', 'browser', 'python', 'recovery']
         self.assertEqual([f'windows_{lane}' for lane in lanes], aggregate['needs'])
         for lane in lanes:
             producer = self.jobs[f'windows_{lane}']
@@ -142,7 +143,13 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         for step in steps:
             if step.get('run') == 'pnpm install --frozen-lockfile' or step.get('uses', '').startswith(
                     ('pnpm/action-setup@', 'actions/setup-node@')):
-                self.assertEqual("steps.lane.outputs.skip != 'true'", step['if'])
+                self.assertEqual("steps.lane.outputs.skip != 'true' && matrix.lane != 'python'", step['if'])
+        rust = next(step for step in steps if step.get('uses', '').startswith('dtolnay/rust-toolchain@'))
+        locked_python = next(step for step in steps if step.get('run') == 'uv sync --locked')
+        for step in (rust, locked_python):
+            self.assertEqual("steps.lane.outputs.skip != 'true'", step['if'])
+            self.assertNotIn('continue-on-error', step)
+        self.assertEqual('1.99.0', rust['with']['toolchain'])
         producer_stage = next(step for step in steps if step.get('id') == 'artifacts')
         self.assertEqual("uv run --no-sync python scripts/ci_artifacts.py "
                          "${{ steps.lane.outputs.split == 'true' && 'stage-windows-lane' || 'stage' }}",
@@ -163,7 +170,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         route = next(step for step in self.steps if step.get('id') == 'lane')
         self.assertEqual("${{ steps.scope.outcome == 'success' && steps.scope.outputs.decision != '' && "
                          "steps.scope.outputs.profile || 'full' }}", route['env']['SCOPEHUB_SCOPE'])
-        for lane in ('core', 'browser', 'python'):
+        for lane in ('core', 'browser', 'python', 'recovery'):
             for profile in ('full', 'localization', 'records', 'tooling'):
                 with self.subTest(lane=lane, profile=profile), tempfile.TemporaryDirectory() as directory:
                     output = Path(directory) / 'outputs.txt'
@@ -180,6 +187,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
     def test_protected_windows_job_requires_success_even_after_a_cancelled_dependency(self):
         aggregate = self.jobs['windows_change']
         guard = aggregate['steps'][-1]
+        self.assertEqual(WINDOWS_RECOVERY_MARKER, guard['name'])
         self.assertEqual('${{ always() }}', guard['if'])
         self.assertNotIn('continue-on-error', guard)
         condition = aggregate['env']['SCOPEHUB_WINDOWS_LANE_RESULT']

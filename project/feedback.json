@@ -5026,6 +5026,21 @@
         "prevention": "Retain the original worker-kill case, the adjacent real-frame control, and the same-chunk stock legend and canvas controls. The focused regressions and t9q Standard review are retained at archives/observations/m0-095-worker-recovery-b3e0aeb/index.json with SHA-256 59bdf34b4264b1b23154207d523e3776e2179d14fb5b14ba3c24d30ac278eb41. The original plan validation controls and t9x Standard review are retained at archives/observations/m0-095-delivery-mapping/index.json with SHA-256 8bb09a671063cf5853df38565402242c1c1d4f7fd147a70217df4ec00abd3471. The combined local task passed. Matching Windows and Linux results still require the updated protected PR. The subsequent ordinary main budget remains with M0-091."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-recovery-timing-provenance",
+      "source": "Independent read-only Astra Standard review of 7abe0e0, retained at archives/observations/m0-094-astra-7abe0e0/review.txt (SHA-256 165a8d6fa3ae8120dc40b43d3dfc1d5ee68d7d868d6b6296c9c6ced492c5dcc7).",
+      "observation": "The new timing reader admitted a four-producer run as warm without its producer cache map, serialized a conflicting cache observation as an invalid synthesized record that disappeared on reload, and accepted ambiguous raw jobs with the fourth producer and its aggregate marker absent as complete legacy timing. The retained workflow and protected aggregate passed the separate routing and failure review.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-094"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
