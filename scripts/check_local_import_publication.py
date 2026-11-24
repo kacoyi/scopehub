@@ -14,10 +14,11 @@ def main() -> int:
         'publication': ('local-import-publication', '@profile-local-csv'),
         'folder-refresh': ('local-folder-refresh-preview', '@profile-folder-refresh'),
         'folder-import': ('local-folder-import', '@profile-folder-import'),
+        'local-api': ('local-api-connection', '@profile-local-api'),
     }
     args = sys.argv[1:]
     if len(args) > 1 or (args and args[0] not in checks):
-        raise SystemExit('Choose publication, folder-refresh, or folder-import.')
+        raise SystemExit('Choose publication, folder-refresh, folder-import, or local-api.')
     report, tag = checks[args[0] if args else 'publication']
     env = {**os.environ, 'CARGO_BUILD_JOBS': '2'}
     env['SCOPEHUB_LOCAL_IMPORT_REPORT'] = report
@@ -35,7 +36,7 @@ def main() -> int:
     ], cwd=ROOT, env=env, check=False)
     if build.returncode:
         return build.returncode
-    print('Chromium uses the native Rust folder admission with a harness-selected path and an IPC bridge.', flush=True)
+    print('Chromium uses native Rust profile and operation admission through an IPC bridge.', flush=True)
     return subprocess.run([
         pnpm, 'exec', 'playwright', 'test', '--config', 'tests/ui/local-import.playwright.config.mjs',
         '--grep', tag,

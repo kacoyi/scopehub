@@ -1,21 +1,27 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { isTauri } from '@tauri-apps/api/core';
+import { LocalApiSettings } from './local-api-settings';
 import { t } from './i18n';
 import { WorkspaceIcon } from './workspace-icons';
 import type { LocalSourceActions } from './workspace-panels';
 
-type Page = 'settings' | 'sources' | 'personal';
+type Page = 'settings' | 'sources' | 'personal' | 'api';
 
 export function ChartSettings({ localActions }: { localActions: LocalSourceActions | undefined }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const next = useRef<HTMLButtonElement>(null);
+  const apiEntry = useRef<HTMLButtonElement>(null);
+  const returningFromApi = useRef(false);
   const closeButton = useRef<HTMLButtonElement>(null);
   const heading = useId();
   const [page, setPage] = useState<Page>('settings');
   const choosing = localActions?.choosing ?? false;
 
   function focusPage() {
-    (next.current ?? closeButton.current)?.focus();
+    const target = returningFromApi.current ? apiEntry.current : next.current;
+    returningFromApi.current = false;
+    (target ?? closeButton.current)?.focus();
   }
 
   useLayoutEffect(() => {
@@ -49,8 +55,11 @@ export function ChartSettings({ localActions }: { localActions: LocalSourceActio
       </div>
       <div className="chart-settings-body">
         {page !== 'settings' && <button type="button" className="secondary-button" disabled={choosing}
-          onClick={() => setPage(page === 'personal' ? 'sources' : 'settings')}>
-          {page === 'personal' ? t('Back to data sources') : t('Back to settings')}
+          onClick={() => {
+            returningFromApi.current = page === 'api';
+            setPage(page === 'api' ? 'personal' : page === 'personal' ? 'sources' : 'settings');
+          }}>
+          {t(page === 'api' ? 'Back to my data sources' : page === 'personal' ? 'Back to data sources' : 'Back to settings')}
         </button>}
         {page === 'settings' && <button type="button" ref={next} className="secondary-button"
           onClick={() => setPage('sources')}>{t('Data sources')}</button>}
@@ -77,7 +86,10 @@ export function ChartSettings({ localActions }: { localActions: LocalSourceActio
               {localActions.error && <p role="alert">{localActions.error}</p>}
             </div>
           </> : <p>{t('Local CSV selection is available in the desktop app.')}</p>}
+          {isTauri() && <button type="button" ref={apiEntry} className="secondary-button" disabled={choosing}
+            onClick={() => setPage('api')}>{t('Local API connection')}</button>}
         </>}
+        {page === 'api' && <LocalApiSettings />}
       </div>
     </dialog>
   </>;

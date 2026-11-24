@@ -41,11 +41,8 @@ for (const example of read('../fixtures/protocol-cases.json')) {
   });
 }
 
-const privateWorkspaceCases = [
-  ...read('../fixtures/decision-note-protocol-cases.json'),
-  ...read('../fixtures/private-record-protocol-cases.json'),
-  ...read('../fixtures/ai-text-connection-protocol-cases.json'),
-];
+const privateWorkspaceCases = read('../fixtures/private-workspace-protocol-index.json')
+  .flatMap(name => read('../fixtures/' + name));
 for (const example of privateWorkspaceCases) {
   test(`private workspace: ${example.name}`, () => {
     const projected = read(`../../contracts/schemas/operations/${example.operation}.v1.1.${example.direction}.schema.json`);

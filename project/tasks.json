@@ -12995,7 +12995,7 @@
         "operations-workflow"
       ],
       "evidence": [],
-      "next_action": "Extend the settings entry delivered in M1-036 with saved connection details and a form for a directly obtained API. Verify save, reopen and a bounded test against a controlled connector on a fresh local profile.",
+      "next_action": "M1-039 verified saving and reopening one named unauthenticated numeric loopback HTTP connection and making one explicit trial. Deliver the remaining user-owned API presets, authentication and replaceable connections, including refresh and disconnect, under the original acceptance requirements.",
       "blocker": null,
       "closure_reason": null
     },
@@ -19443,6 +19443,268 @@
           ],
           "data_plan": "Use the existing synthetic series and retain original process, frame and visual observations without data or protocol migration.",
           "cleanup": "Keep the protected artifact index, both focused cases, delivery validation control and independent review with the repair."
+        }
+      }
+    },
+    {
+      "id": "M1-039",
+      "title": "Save and trial one local API connection in My data sources",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-036"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "crates/worker-host",
+        "contracts",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0011",
+        "0023"
+      ],
+      "acceptance": [
+        "From the ordinary desktop Settings > Data sources > My data sources entry, review and save one named, unauthenticated loopback API connection and reopen it after desktop state restarts.",
+        "An explicit trial makes one bounded GET to the reviewed numeric loopback origin and fixed sample path. Display the actual returned instrument, timestamp, value and unit without publishing, and surface refused or invalid replies.",
+        "Opening, saving and reopening do not contact the provider. Reject non-loopback origins, credentials and redirects; leave temporary CSV directory selection and unconfigured market startup independent."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "generated-contracts",
+        "typescript-contracts",
+        "rust-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "operations-workflow",
+        "state-migrations",
+        "local-api-connection"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-039-06db35154f25de91.json",
+          "sha256": "0f22fe38ace60c86918a60ec0d7510136417306f58612d72740d11a75aff00bd"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The corrected source c78a1c6 passed all ten required checks and the environment check in run 20261124T162207.832051Z-49b63a63. From My data sources, the user saved and reopened one named unauthenticated numeric loopback HTTP connection and explicitly tried one bounded GET. The task-cadence Chromium check used the real Rust registry and SQLite with a synthetic loopback endpoint and verified FUT-TEST at 47.25 USD, stale-result suppression and exact number rendering. Independent Standard reviews approved the product and the shared protocol fixtures. The task evidence is a local Linux observation. Ordinary Windows compilation, packaged or physical Windows use, and a Windows run of the dedicated task-cadence check require their own observations.",
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "The named connection persists locally and a deliberate trial shows one actual bounded sample through the ordinary desktop settings UI.",
+        "change_types": [
+          "tooling",
+          "protocol",
+          "ui",
+          "permissions",
+          "persistence"
+        ],
+        "context": [
+          "M1-030 in project/tasks.json",
+          "contracts/market-data-v1.json",
+          "apps/desktop/ui/src/chart-settings.tsx",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs"
+        ],
+        "hypotheses": [
+          "The existing settings and portable Tauri bridge can exercise the normal desktop entry against a real local fixture without a development workspace opt-in.",
+          "No reusable market API settings or read operation was found. Reuse the profile-bound registry, single writer, approved loopback transport pattern and bundled native HTTP client."
+        ],
+        "risks": [
+          {
+            "failure": "Opening or saving makes a request, a redirect reaches another endpoint, stale settings can contact a different recipient, or a superseded trial can display an old sample.",
+            "checks": [
+              "local-api-connection"
+            ]
+          },
+          {
+            "failure": "Saving creates a credential or CSV directory grant, a profile loses data on upgrade, a sample is rounded in transit, or transient status contention leaves the form unusable.",
+            "checks": [
+              "local-api-connection",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "The language runners drift to different private workspace vector corpora or skip a generated input or output round trip.",
+            "checks": [
+              "rust-contracts-workers",
+              "typescript-contracts",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep and back up profiles using the current storage format. Closed older readers refuse the new version. Revert behavior through a compatible corrective migration or restore a reviewed pre-upgrade backup.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop",
+            "application",
+            "persistence",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/chart-settings.tsx",
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "crates/application/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/external_api"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Other M1-030 connection forms and lifecycles, credentials, public or LAN endpoints, automated reads, publication, provider qualification and installing desktop builds."
+          ],
+          "open_questions": [
+            "Physical Windows UI validation is separate from the portable native bridge journey."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "No default configured source, existing folder session grants and the chart source preference."
+          ],
+          "change": [
+            "Use one explicit fixed-profile rule for a named local HTTP sample. Save reviewed rule identity and origin in profile storage and use the same identity on trial.",
+            "Display a validated sample in memory after a successful bounded read."
+          ],
+          "data_plan": "Migrate a new transactional settings table in the private profile database. Store no sample bytes or credential values.",
+          "cleanup": "Keep other source forms and provider-specific configuration in M1-030 and M1-009."
+        }
+      }
+    },
+    {
+      "id": "M0-096",
+      "title": "Catch desktop catalog regressions in the ordinary UI build",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-039"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/localization",
+        "tests/ui/local-api-connection.spec.mjs",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "The ordinary desktop UI build runs the same static catalog assertions as desktop-localization without a browser, a preview server, or a new browser check for other UI tasks.",
+        "The confirmed numeric loopback example remains usable in English and Simplified Chinese. Admit only the exact invariant example and continue rejecting unrelated untranslated copy or URL literals.",
+        "Retain the existing catalog test name and runtime localization cases. The normal API settings path still saves, reopens and explicitly reads the actual bounded synthetic sample."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "desktop-localization",
+        "local-api-connection"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-096-a654c596bda24615.json",
+          "sha256": "aef0984c57f485636c08bfc29da24e3e924a601b7f9dd74222bc9acb1f4b8b51"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T163312.142553Z-d12e96b3",
+          "source_commit": "f34ceb2c1ffa41ce72c9ccb6679bc41089334207",
+          "report_sha256": "cab793628fe9db7b3cb2bdb68d1811515aa441b00e80148fc6474a70582d077e"
+        },
+        {
+          "run_id": "windows-change-45438134397-1",
+          "source_commit": "f34ceb2c1ffa41ce72c9ccb6679bc41089334207",
+          "report_sha256": "87a7c9ebd9b0e48f081891e2e8fb0a1ae297887192696c72267b92a418afba56"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independently approved a4d1c3a source passed all six task checks and the environment check in local Linux run 20261124T165838.067701Z-34195dc0. The ordinary UI build now runs the same static assertions as the named desktop catalog test without a server. The original build passed the missing classification. With the build hook it failed before bundling, and the corrected build still refused an unrelated loopback URL and untranslated copy. On verified Node 24.0.0, the corrected build rejected the same invalid fixture and accepted the correct catalog. All 16 localization cases passed. The existing native-bridge Chromium case verified the exact example and a successful synthetic trial in English and Simplified Chinese. Both protected failure reports remain retained. The protected rerun and physical Windows acceptance remain pending.",
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "An ordinary build rejects an untranslated desktop label before bundling, and the accepted loopback settings remain usable in both maintained languages.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/localization/catalogs.spec.mjs",
+          "apps/desktop/ui/package.json",
+          "apps/desktop/ui/src/local-api-settings.tsx",
+          "tests/ui/local-api-connection.spec.mjs",
+          "PR 83 run 45438134397"
+        ],
+        "hypotheses": [
+          "The only hosted localization violation was the exact example URL in the new placeholder.",
+          "The existing AST and catalog assertions do not need a browser or a running preview server."
+        ],
+        "risks": [
+          {
+            "failure": "An ordinary UI build can ship untranslated labels when its catalog check is omitted or silently skipped on a supported Node 24 version.",
+            "checks": [
+              "ui-build",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A broad exception accepts unrelated URLs or the example disappears in one locale, and an existing native API trial or localization journey regresses.",
+            "checks": [
+              "ui-build",
+              "desktop-localization",
+              "local-api-connection"
+            ]
+          }
+        ],
+        "rollback": "Keep the original Playwright catalog case and stable browser scope. Revert the build integration and exact invariant together if either entry regresses, retain the observed failure and correct the shared checker.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/package.json",
+            "tests/localization/catalogs.spec.mjs",
+            "tests/ui/local-api-connection.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Broader URL exceptions, new default browser journeys, provider access or changes to the closed M1-039 and PR 82 records."
+          ],
+          "open_questions": [
+            "Verify that all ordinary UI build callers resolve the same local static checker with the pinned Node runtime."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The catalog test name, catalog schema and assertion scope, runtime localization cases, and exact example URL and API workflow."
+          ],
+          "change": [
+            "Use one browser-free static catalog checker in the common UI build and in the existing Playwright catalog test. Classify the exact numeric loopback example alongside existing invariant examples."
+          ],
+          "data_plan": "Exercise only synthetic loopback data and isolated profiles. Retain original failing report digests and both direct build outcomes.",
+          "cleanup": "Remove temporary rejected-copy and URL fixtures after the build proofs and leave no preview service running."
         }
       }
     }

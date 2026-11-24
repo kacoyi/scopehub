@@ -410,6 +410,28 @@
       "schema_requirement": "Protocol 1.1 only. Available only when explicitly requested by a local human after preview. The Rust registry binds caller and profile to the live native folder selection, requires the reviewed complete-file SHA-256 and derives the source header association. The profile-bound Rust SQLite writer commits one versioned mapping. The payload carries no path, grant or profile."
     },
     {
+      "name": "market.localApiConnection",
+      "effect": "draft",
+      "transport": "private_workspace",
+      "confirmation": false,
+      "undoable": false,
+      "actors": [
+        "user"
+      ],
+      "input": "LocalApiConnectionInput",
+      "output": "LocalApiConnectionOutput",
+      "implementation": "implemented",
+      "implementation_scope": "Native local profile settings and explicit fixed-rule trial of one unauthenticated numeric loopback API.",
+      "wire_since": "1.1",
+      "wire_bindings": {
+        "1.1": {
+          "input": "LocalApiConnectionRequest",
+          "output": "LocalApiConnectionReply11"
+        }
+      },
+      "schema_requirement": "Local human only. Require a reviewed versioned loopback GET rule, a current connection ID at admission and result delivery, no credentials, and a bounded typed result. Preserve the provider's JSON number token as text in the trial result."
+    },
+    {
       "name": "market.loadLocalImportMapping",
       "effect": "read",
       "confirmation": false,

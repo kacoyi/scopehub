@@ -19,6 +19,8 @@ use crate::{
     Actor, Operation, OperationRegistry, authorized_operation, failure, operation, validator,
 };
 
+mod local_api;
+pub use local_api::{LOCAL_API_CONNECTION, LocalApiAdmission, LocalApiConnection, LocalApiTrial};
 mod backup;
 mod evidence;
 mod indicators;
@@ -230,6 +232,12 @@ pub struct WorkspaceChange<'a> {
 
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
+    fn local_api_connection(&self) -> Result<Option<LocalApiConnection>, Error> {
+        Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY))
+    }
+    fn save_local_api_connection(&mut self, _connection: &LocalApiConnection) -> Result<(), Error> {
+        Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY))
+    }
     fn state(&self) -> Result<WorkspaceState, Error>;
     fn set_source_preference(&mut self, source: &WorkspaceSourcePreference) -> Result<(), Error>;
     fn layouts(&self) -> Result<WorkspaceLayoutState, Error>;
