@@ -78,11 +78,18 @@
       "index": "visibility-index.json in the ubuntu_binding directory",
       "plot_rgb_sha256": "6e0b9b157e7d79908b7269fae7a2eb891e297d1e2edc498c369271376baf10b5",
       "observation": "The 598-byte guest painted the expected rectangle in the real Tauri debug application on Ubuntu with WebKitGTK 2.52.6. All 19 named interfaces were undefined. The accepted, timed-out and restored plot crops were 861 by 323 with identical RGB bytes. The source was restored and the host returned to the chart. The 419 ms upper bound includes polling and screenshot acquisition. This exercise observed public names and confined recovery."
+    },
+    "windows_native": {
+      "workflow_run": 45317944953,
+      "run_id": "20261124T031639.600588Z-ad54b852",
+      "test_head": "875518367e627aecc8964f58b4ee416b1c576847",
+      "report_sha256": "5d269c2405f3948ff57d9d16f42161ebff765e6b119e93a334eb8fee51501215",
+      "scope": "The ef0a1e1 UI on WebView2 157.0.4341.46 admitted the public-name guest and retained its accepted mark during timeout. Source restoration and return to chart succeeded. The accepted and restored captures matched at 743x280, and the aligned 743x278 interior matched the timeout capture. Input to visible timeout took 384 ms including UI Automation polling. The three Chromium workspace handoff cases passed. The native CSV workflow subsequently stopped at a null UI Automation name while inspecting raw rows, before publication, indicator confirmation, studio binding or revocation."
     }
   },
   "open": [
-    "The ef0a1e1 accepted-series and visibility workloads have verified Ubuntu observations. Windows run 45316222536 passed the three repaired Chromium handoffs. Its native timeout capture had a one-row crop discrepancy. Full accepted and restored RGB matched at 743x280, and all 278 aligned interior rows matched the timeout capture. Review the original report and artifacts of Windows retry 45317944953 before assigning a native outcome.",
-    "Review the matched Windows chart report from 45318214792 for the combined candidate. Keep the engineering disposition open pending that review and the separate accepted-series review. Persisted workbench defaults and representative end-user feedback remain open. Installer, physical release and live external-client qualification have separate gates."
+    "The ef0a1e1 accepted-series lifecycle has native Ubuntu evidence. Public-name visibility and stalled-draft recovery were observed on both native engines. The Windows native accepted-series lifecycle remains open after the CSV test stopped before publication in run 45317944953.",
+    "The combined candidate has native Ubuntu chart endpoint evidence and an open hover continuity regression. Native Windows chart coverage remains open after run 45318214792. Hold the engineering disposition pending matched native evidence. Persisted workbench defaults, representative end-user feedback, physical release and live external-client qualification retain their own gates."
   ],
   "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",
   "verification": [
@@ -101,6 +108,10 @@
     "ubuntu": "Ubuntu 26.04.1, Tauri development host 6aee5586, WebKitGTK 2.52.6. A native GTK file selection loaded the frozen program on the synthetic one-minute futures chart. The two rings tracked candle pixels at 1380x920, 1040x805 and 1300x940. The crosshair and selected bar agreed on 13:00 UTC at 3499.2 CNY and 13:01 UTC at 3499.8 CNY. Moving to the price axis cleared the readout. Zoom clipped both rings and Fit restored them. Switching to 5m cleared the program binding.",
     "review": "Verified the 53 indexed originals, Git tree and guest bytes. In the centered 5 by 5 patches the earlier and later candle colors occupied 21 and 13 pixels, 17 and 17 pixels, and 21 and 17 pixels at the three sizes. These are observed native chart pixels on Xvfb.",
     "hover_continuity": "The coordinator observed six alternating hovers on the two chart candles at this freeze. On each hover all accepted overlay marks disappeared for about 83 ms (five measured animation frames) before repainting. The final anchor and readout were correct. The native evidence above measures endpoints. Continuous crosshair redraw has an open regression owned by the chart-coordinate follow-up.",
-    "windows_run": 45318214792
+    "windows_run": 45318214792,
+    "windows_test_head": "507bc0c0a7363d39dfba327705db7a77ee0a568c",
+    "windows_run_id": "20261124T031808.381854Z-26d46421",
+    "windows_report_sha256": "b0c6e9887e331976ae101a66e29779e52016856ccf7116a27730a84b5f37b211",
+    "windows": "The debug executable launched with WebView2 157.0.4341.46. The native automation requested an unsupported InvokePattern before retaining any chart-alignment capture. Native Windows chart anchors, clipping and crosshair still await observation."
   }
 }
