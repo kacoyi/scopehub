@@ -65,10 +65,16 @@
     "guest": "tests/fixtures/workbench/guest-public-surface.js",
     "sha256": "4cc37306be26e5f30ec2bcfb7c3eb65b91f8735e4483d297c17c937f88311dc4",
     "purpose": "A benign guest inspects the public presence of the 19 named browser, storage, network, native and confirmation interfaces. Successful admission produces the known 120-unit volume rectangle. Separately submit a stalled draft, observe host interaction, interruption and restoration. This establishes ordinary public visibility and bounded execution on the observed build.",
-    "ephemeral_webkit": "On ef0a1e1 production assets with their CSP and no native bridge, WebKitGTK 2.52.6 painted the 120-unit mark. While the stalled draft was outstanding, host stroke changed after 24 ms, timeout appeared at 167 ms and the restored reference anchor was x=202. One automation observation, not a frame or service bound."
+    "ephemeral_webkit": "On ef0a1e1 production assets with their CSP and no native bridge, WebKitGTK 2.52.6 painted the 120-unit mark. While the stalled draft was outstanding, host stroke changed after 24 ms, timeout appeared at 167 ms and the restored reference anchor was x=202. One automation observation, not a frame or service bound.",
+    "ubuntu_native": {
+      "index_sha256": "6762ffb449bc876f8849fa873141531382ad81fd7537096e007ec02828e1a7ee",
+      "index": "visibility-index.json in the ubuntu_binding directory",
+      "plot_rgb_sha256": "6e0b9b157e7d79908b7269fae7a2eb891e297d1e2edc498c369271376baf10b5",
+      "observation": "The 598-byte guest painted the expected rectangle in the real Tauri debug application on Ubuntu with WebKitGTK 2.52.6. All 19 named interfaces were undefined. The accepted, timed-out and restored plot crops were 861 by 323 with identical RGB bytes. The source was restored and the host returned to the chart. The 419 ms upper bound includes polling and screenshot acquisition. This exercise observed public names and confined recovery."
+    }
   },
   "open": [
-    "Matching two-platform accepted-series evidence and effective guest capability limits for the executable candidate. The Ubuntu accepted-series evidence is verified. Windows matching and the two native public-visibility observations are in progress. Source-level capability inspection has a distinct scope from effective native denial.",
+    "Windows matching is pending for the accepted-series and public visibility/recovery workloads. Hosted run 45314545439 failed during test setup in the Chromium private handoff and the native folder chooser. The original report and logs are retained. Hosted retry 45316222536 includes the test-only aef3d48 profile-binding fix and the independent native chooser fix. The matching Ubuntu accepted-series and public visibility observations are verified.",
     "Main chart viewport and crosshair linkage, persisted workbench binding/default migration and representative end-user feedback remain open under the recorded tasks. Installer, physical release and live external-client qualification remain separate."
   ],
   "revisit": "Reconsider the renderer if the matched native candidate cannot maintain a data grant boundary, return a usable host after a stalled guest, preserve a selected time key through resizing, or provide the requested independent geometry without a new domain primitive. Re-evaluate persistence and the hybrid text/graphics boundary when the first saved user composition migrates. Consider another WebView implementation only for a reproduced platform limitation.",

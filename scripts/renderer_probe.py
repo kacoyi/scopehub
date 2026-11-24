@@ -32,9 +32,39 @@ def png_size(data):
     return struct.unpack('>II', data[16:24])
 
 
+def verify_ubuntu_visibility(folder, review):
+    surface = review['public_surface']
+    ref = surface['ubuntu_native']
+    files = json.loads(verified(folder / 'visibility-index.json', ref['index_sha256']))['files']
+
+    def original(name):
+        return verified(folder / name, files[name])
+
+    guest = verified(ROOT / surface['guest'], surface['sha256'])
+    report = json.loads(original('visibility/ubuntu.json'))
+    require(report['candidate'] == review['candidate'] and report['fingerprint'] == review['fingerprint']
+            and original('visibility/visibility.js') == guest, 'Ubuntu visibility runtime or guest differs')
+    for state in ['05-accepted', '07-timeout', '09-restored']:
+        name = 'ef0a1e1-visibility-01/' + state
+        width, height = png_size(original(name + '.png'))
+        pixels = report['actual_pixels'][state]
+        left, top, right, bottom = pixels['crop']
+        require(0 <= left < right <= width and 0 <= top < bottom <= height
+                and (right - left, bottom - top) == (861, 323)
+                and pixels['raw_rgb_sha256'] == ref['plot_rgb_sha256'], 'Ubuntu plot observation differs')
+        nodes = json.loads(original(name + '.json'))
+        if state == '07-timeout':
+            require(any(n.get('text') == 'The drawing exceeded its time limit.' for n in nodes),
+                    'Ubuntu timeout notification missing')
+        else:
+            require(any(n['role'] == 'entry' and n.get('text') == guest.decode().strip() for n in nodes),
+                    'Ubuntu accepted or restored source differs')
+
+
 def verify_ubuntu_binding(root, review):
     reference = review['ubuntu_binding']
     folder = root / reference['directory']
+    verify_ubuntu_visibility(folder, review)
     index = json.loads(verified(folder / 'ubuntu-index.json', reference['index_sha256']))
     require(index['files'][index['report']] == reference['report_sha256'], 'Ubuntu report identity differs')
 
