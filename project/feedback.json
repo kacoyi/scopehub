@@ -4225,34 +4225,46 @@
     },
     {
       "id": "verification-clean-checkout-hides-local-changes",
-      "source": "Independent Astra review of 02a5176, retained in .reports/m0-087/astra-02a5176.txt, finding 1.",
+      "source": "Independent Astra review of 02a5176, retained in archives/observations/m0-087-verification-review/astra-02a5176.txt, finding 1.",
       "observation": "Git status configuration hid real untracked files from the source identity used by project:ci. The same cleanliness claim had no guard for hidden index flags or caller-configured submodule ignore settings.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "verification-timing-telemetry-failure-isolation",
-      "source": "Independent Astra reviews of 02a5176, 1e03799 and fc0fa8f retained in .reports/m0-087/astra-02a5176.txt, .reports/m0-087/astra-1e03799.txt and .reports/m0-087/astra-fc0fa8f.txt. The retained Windows reports were replayed against the earlier control and candidate in .reports/m0-087/timing-review-replay.json. The new regressions reproduced the three fc0fa8f findings in .reports/m0-087/shared-eligibility-red.log.",
+      "source": "Independent Astra reviews of 02a5176, 1e03799 and fc0fa8f retained in archives/observations/m0-087-verification-review/astra-02a5176.txt, archives/observations/m0-087-verification-review/astra-1e03799.txt and archives/observations/m0-087-verification-review/astra-fc0fa8f.txt. The retained Windows reports were replayed against the earlier control and candidate in archives/observations/m0-087-verification-review/timing-review-replay.json. The new regressions reproduced the three fc0fa8f findings in archives/observations/m0-087-verification-review/shared-eligibility-red.log.",
       "observation": "Deep JSON erased the normal CI result regardless of its verdict, and a malformed sample suppressed valid timing observations. An incomplete intake placeholder or unreadable cache file could permanently prevent the corresponding run from being observed again. Follow-up review found that a missing check exit code still suppressed unrelated overruns and that incomplete or conflicting clocks and stale retry warnings could misstate the current observation. The fc0fa8f review reproduced a report with no harness run ID suppressing a Windows artifact retry and a retained split clock qualifying after removal of a required producer.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "verification-budget-comparable-handoff-window",
-      "source": "Independent Astra reviews of 02a5176, 1e03799 and fc0fa8f retained in .reports/m0-087/astra-02a5176.txt, .reports/m0-087/astra-1e03799.txt and .reports/m0-087/astra-fc0fa8f.txt.",
+      "source": "Independent Astra reviews of 02a5176, 1e03799 and fc0fa8f retained in archives/observations/m0-087-verification-review/astra-02a5176.txt, archives/observations/m0-087-verification-review/astra-1e03799.txt and archives/observations/m0-087-verification-review/astra-fc0fa8f.txt.",
       "observation": "Budget escalation combined overruns across different cache or coverage cohorts and could lose repeated warm overruns after unrelated cold runs. Two ordinary PRs observed in separate worktrees did not form one local review window. Reusing an existing corrective task hid the action to associate newly observed reports with its finding. Follow-up review found that complete pre-existing local observations and compatible partial local and shared observations were not consolidated into the shared window. The fc0fa8f review reproduced incompatible complete samples selecting the first arrival and losing the conflict at the next worktree handoff.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
@@ -4280,12 +4292,16 @@
     },
     {
       "id": "windows-python-lane-suppresses-nested-scope-artifacts",
-      "source": "Authenticated PR 77 Windows Python producer on run 45384002726, retained at .reports/ci/45384002726/producer-python/test-report.json with its original check log.",
+      "source": "Authenticated PR 77 Windows Python producer on run 45384002726, retained at archives/runs/windows-change-45384002726-1/test-report.json with its original check log.",
       "observation": "The Python check failed after 528.907 seconds. Two of 665 cases errored when reading verification-scope.json from nested public staging. The enclosing producer exports SCOPEHUB_WINDOWS_LANE=python, which can select private lane staging inside those ordinary public staging calls and suppress the typed scope file.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45384002726-1",
@@ -4367,23 +4383,31 @@
     },
     {
       "id": "workspace-history-trace-requires-browser-replay",
-      "source": "Independent Astra review of 2b4835f, retained at .reports/workspace-history-retry/astra-2b4835f.txt (SHA-256 5af56f834295b89aa7de1c6af3e6f5b558b459f8286bb4e7cb2ffd6480cdf226).",
+      "source": "Independent Astra review of 2b4835f, retained at archives/observations/m0-087-browser-request-attempts/astra-2b4835f.txt (SHA-256 5af56f834295b89aa7de1c6af3e6f5b558b459f8286bb4e7cb2ffd6480cdf226).",
       "observation": "The ordinary browser fixture withheld a real close until the same logical fetch was admitted again. The review reproduced the false timeout when Chromium makes one complete HTTP attempt. The generic observation also accepted two finished events for the same physical request on successful HTTP 200 and complete HTTP 403 paths because it only checked the first and last stages.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["workspace-timeframe"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "workspace-browser-local-concurrent-timeouts",
-      "source": "Original 46-of-48 local run at .reports/workspace-history-retry/full/workspace-timeframe/results.json (SHA-256 92e10d2ac059435c03afee7266f2efe4e7ffa89a79252d9a3ecc5ba637ad4cab) and .reports/workspace-history-retry/full/playwright.log (SHA-256 76aa6bfa79f1d431c47414dc211dd0d8f4ae7db73586f2a6984681d4bd431458). See the derived timeline at .reports/workspace-history-retry/full-attribution.json.",
+      "source": "Original 46-of-48 local run at archives/observations/m0-087-browser-pilot-investigation/full/workspace-timeframe/results.json (SHA-256 92e10d2ac059435c03afee7266f2efe4e7ffa89a79252d9a3ecc5ba637ad4cab) and archives/observations/m0-087-browser-pilot-investigation/full/playwright.log (SHA-256 76aa6bfa79f1d431c47414dc211dd0d8f4ae7db73586f2a6984681d4bd431458). See the derived timeline at archives/observations/m0-087-browser-request-attempts/full-attribution.json.",
       "observation": "The two failed workers recorded the same end time, 12:08:41.514 UTC. The reopened sample browser observer reached its 18-second deadline after the 5.509-second delayed disconnect and a second host admission, while the fetch was still pending. The fixture budget can expire before the second request's 15-second watchdog. The concurrent parent-IPC case stopped at the Vite readiness gate with an empty child log and never exercised the IPC disconnect. The retained observations establish both failure boundaries and leave the underlying causes unresolved.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["workspace-timeframe"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
@@ -4444,12 +4468,16 @@
     },
     {
       "id": "workspace-cli-readiness-mixes-output-streams",
-      "source": "Independent Astra re-review of b372142, transcript .reports/workspace-service-readiness/astra-b372142.txt (SHA-256 969fa72837fde8c64aa3800d4e8b07ec76ea6fec1617ac22ddfc08c4b4b12b90).",
+      "source": "Independent Astra re-review of b372142, transcript archives/observations/m0-087-workspace-readiness-d28f749/astra-b372142.txt (SHA-256 969fa72837fde8c64aa3800d4e8b07ec76ea6fec1617ac22ddfc08c4b4b12b90).",
       "observation": "The POSIX Vite CLI listener observer reads a combined stdout and stderr tail during stdout callbacks. A Local notice on stderr followed by unrelated stdout produces a false listening event. Stderr between two chunks of a valid stdout notice prevents that event. The real signal-path run passed and the original local stalls remain unattributed.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["workspace-timeframe"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
@@ -4500,34 +4528,46 @@
     },
     {
       "id": "verification-budget-disposition-hides-unmeasured-recovery",
-      "source": "Coordinator's ordinary handoff probe in the verification-cost checkout at df99e89, .reports/m0-087/unmeasured-disposition-probe.json, SHA-256 90338eddc483c7f1a2be4df0d695af8d5ba6d11c589ed1dd6d623a858630ea3d.",
+      "source": "Coordinator's ordinary handoff probe in the verification-cost checkout at df99e89, archives/observations/m0-087-budget-recovery-proof-74e3ec3/unmeasured-disposition-probe.json, SHA-256 90338eddc483c7f1a2be4df0d695af8d5ba6d11c589ed1dd6d623a858630ea3d.",
       "observation": "Four genuine comparable warm Windows pull requests took 1702, 1736, 1966 and 2088 seconds. With no successful repaired elapsed observation, changing only the issue disposition to addressed made handoff report the timing finding as addressed with no next action. A successful corrective check or historical issue disposition does not establish that a comparable ordinary PR or main push recovered the budget.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "verification-budget-recovery-order-and-provenance",
-      "source": "Independent Standard Astra review of 74e3ec3724fb528195aba44bfb301eb053f40fbe in the verification-cost checkout, .reports/m0-087/astra-74e3ec3.pending.txt lines 3–15, SHA-256 2ce1e3de9f98c08de421f3e510ac333112b39486f60100b1ff459eb5b78b1c5a.",
+      "source": "Independent Standard Astra review of 74e3ec3724fb528195aba44bfb301eb053f40fbe in the verification-cost checkout, archives/observations/m0-087-budget-recovery-proof-74e3ec3/astra-74e3ec3.pending.txt lines 3–15, SHA-256 2ce1e3de9f98c08de421f3e510ac333112b39486f60100b1ff459eb5b78b1c5a.",
       "observation": "Ordinary handoff accepted run 16 as recovery after the retained timing for linked overrun 18 disappeared. It accepted a single-parent descendant as a PR preview and rejected a genuine two-parent preview containing the repair through its first parent. It could not measure recovery from a within-budget median increase. After a measured recovery it dropped the still-active owner for two new overruns and mixed old runs into a false new sustained-growth window.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": null,
       "deferral_reason": null
     },
     {
       "id": "verification-failed-workflow-telemetry-retries-complete-inputs",
-      "source": "Independent Astra review of actual ordinary PR 45393623602. The original compact samples and Actions jobs are retained in .reports/timing/m0-087-actual-45393623602.json in the verification-cost checkout, SHA-256 593318f3ee6eedffc331ebd2ac3b2be57c46778714170d9c6b6ff7453936bd59.",
+      "source": "Independent Astra review of actual ordinary PR 45393623602. The original compact samples and Actions jobs are retained in archives/observations/m0-087-hosted-45393623602/timing.json in the verification-cost checkout, SHA-256 593318f3ee6eedffc331ebd2ac3b2be57c46778714170d9c6b6ff7453936bd59.",
       "observation": "The Ubuntu harness failed and the Windows verification path completed in 933 seconds. The overall Actions workflow failed. The exact attempt contains both compact samples and a completed bound matrix clock. Handoff reported missing artifacts and incomplete clocks and attempted to retrieve the available data again.",
       "severity": "major",
       "status": "open",
-      "task_ids": ["M0-087"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-087"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T122836.056903Z-08468273",
