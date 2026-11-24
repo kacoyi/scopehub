@@ -308,7 +308,7 @@ def stage_artifacts(root, destination, env):
             if image is not None:
                 copy_file(image, destination / relative)
     if 'workbench-drawing-runtime' in executed:
-        for filename in ('native-entry.png', 'selected-series.png', 'dots.png', 'strips.png', 'switched.png', 'before-revoke.png', 'revoked.png', 'failure.png', 'metadata-observation.png', 'workspace-initial.png', 'published-source.png', 'workspace-bound.png', 'binding-interrupted.png', 'workspace-after-binding.png', 'workspace-reopened.png', 'painted-dots.png', 'painted-strips.png',
+        for filename in ('native-entry.png', 'live-before.png', 'live-after.png', 'live-cleared-area.png', 'selected-series.png', 'dots.png', 'strips.png', 'switched.png', 'before-revoke.png', 'revoked.png', 'failure.png', 'metadata-observation.png', 'workspace-initial.png', 'published-source.png', 'workspace-bound.png', 'binding-interrupted.png', 'workspace-after-binding.png', 'workspace-reopened.png', 'painted-dots.png', 'painted-strips.png',
                          'selected-dots.png', 'selected-strips.png', 'diagnostic-dots.png', 'diagnostic-strips.png'):
             relative = f'{run}/accepted-series-prepared/{filename}'
             image = optional_path(reports, relative)

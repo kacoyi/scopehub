@@ -33,7 +33,7 @@ async function withImport(appData, fixture, use) {
   try { return await use(bridge, market); } finally { await bridge.close(); }
 }
 
-export const revoke = (root, revision_id) => withImport(join(root, 'app'), join(root, 'fixture'), (_bridge, market) =>
+export const revoke = (root, revision_id, appData = join(root, 'app')) => withImport(appData, join(root, 'fixture'), (_bridge, market) =>
   market('revokeLocalImportRevision', { version: 1, revision_id }));
 
 export async function prepareSeries(browser, root, period = 2, { appData = join(root, 'app') } = {}) {

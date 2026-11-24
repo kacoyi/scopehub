@@ -38,7 +38,7 @@ function Select-SeriesChoice([string]$label,[string]$wanted) {
         Write-Host "$label initial selection: $(@($before.Current.GetSelection() | ForEach-Object {$_.Current.Name}) -join ', ')"
     }
     [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
-    $item=& {
+    $item=Wait-ForProbe "enabled exact $wanted option in $label" {
         $c=Named-Control $label $type::ComboBox
         if (!$c) { return }
         foreach ($i in $c.FindAll($scope,$any)) {
@@ -59,6 +59,11 @@ function Select-SeriesChoice([string]$label,[string]$wanted) {
         return
     }
     # Use the verified item's type-ahead name in the open native select.
+    $live=Named-Control $label $type::ComboBox
+    $focus=$ui::FocusedElement
+    if (!$live -or !$item.Current.IsEnabled -or !$focus -or
+        (!([Windows.Automation.Automation]::Compare($live,$focus)) -and ([string]$focus.Current.Name) -ne $exact -and
+         !$live.Current.HasKeyboardFocus)) { throw "Focus left $label before selecting $exact." }
     [Windows.Forms.SendKeys]::SendWait($exact.Substring(0,[Math]::Min(8,$exact.Length))+'{ENTER}')
     $null=Wait-ForProbe "$label shows $exact as the current selection" {
         $c=Named-Control $label $type::ComboBox
@@ -508,35 +513,45 @@ try {
         if ($sourcePanel.TryGetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand) -and
             $expand.Current.ExpandCollapseState -eq [Windows.Automation.ExpandCollapseState]::Expanded) { $expand.Collapse() }
     }
-    foreach ($encoding in @('dots','strips')) {
-        try { Use-SeriesProgram $encoding } catch {
-            $observations+="$encoding observation: $($_.Exception.Message)"
-            Write-Output $observations[-1]
-            Archive-Stage ("diagnostic-"+$encoding)
+    if ($observations.Count -or !$Identity) { throw 'The live test requires a proven native version and output hash.' }
+    Use-SeriesProgram 'dots'
+    Wait-Name 'Undo accepted edit'
+    $null=Wait-Text '2026-02-04T00:00:00.000Z'
+    $originalHwnd=$app.MainWindowHandle
+    Archive-Stage 'live-before'
+    $plot=Wait-ForProbe 'visible native drawing before revocation' {
+        foreach ($n in $window.FindAll($scope,$any)) {
+            $r=$n.Current.BoundingRectangle
+            if ($n.Current.Name -eq 'Axis-free drawing' -and $r.Width -gt 300 -and [Math]::Abs($r.Height-$r.Width*240/640) -le 3) { return $n }
         }
     }
-    (Named-Control 'Numeric series' $type::ComboBox).SetFocus()
-    [Windows.Forms.SendKeys]::SendWait('{END}')
-    Wait-Name 'Open a drawing program for the selected series.'
-    if ((Find-Control 'Accepted observation' $null) -or (Find-Control 'Undo accepted edit' $null) -or
-        (Find-Control 'Inspect observation at 2026-02-03T00:00:00.000Z' $null)) { throw 'Previous state survived the series change.' }
-    Archive-Stage 'switched'
-    Review-Step 'Back to chart'
-    Review-Step 'Data sources'
-    Review-Step 'Open published CSV'
-    Click-WorkspaceControl 'Open series.csv'
-    Wait-Name 'Use as workspace source'
-    Archive-Stage 'before-revoke'
-    Click-WorkspaceControl 'Remove frozen chart access'
-    Click-WorkspaceControl 'Remove access'
-    $null=Wait-Text 'Access removed for this published revision.'
-    Archive-Stage 'revoked'
-    if (!$observations.Count) { Write-Output "Windows renderer verified: result $acceptedHash; UTC missing point, both authored shapes, source switch and native revocation." }
-    Write-Output 'The private source was removed through the native published-revision library.'
-    Review-Step 'Close'
-    if (!$Identity) { Inspect-SampleControls }
-    if ($visibilityFailure) { throw $visibilityFailure }
-    if ($observations.Count) { throw ($observations -join ' / ') }
+    $bounds=$plot.Current.BoundingRectangle
+    $clock=[Diagnostics.Stopwatch]::StartNew()
+    $reply=& node (Join-Path $PSScriptRoot 'prepare-native-series-profile.mjs') $temp $appData '--revoke' $Identity.revision
+    if ($LASTEXITCODE -or !$reply) { throw 'Registered revocation client did not complete.' }
+    $proof=$reply | ConvertFrom-Json
+    if ($proof.version -ne 1 -or $proof.revision_id -ne $Identity.revision) { throw 'Wrong revoked revision.' }
+    Write-Host "Same-profile registered market.revokeLocalImportRevision replied in $($clock.ElapsedMilliseconds) ms: $reply"
+    Wait-Name 'Accepted series unavailable.'
+    $app.Refresh()
+    if ($app.HasExited -or $app.MainWindowHandle -ne $originalHwnd -or !(Find-Control 'Back to chart' $type::Button)) { throw 'The observed studio did not remain open in its original native window.' }
+    foreach ($label in @('Program geometry','Axis-free drawing','Accepted observation','Accepted series source','Undo accepted edit','Inspect observation at 2026-02-04T00:00:00.000Z',$Identity.version_id,$Identity.result_hash)) {
+        if (Find-Control $label $null) { throw "Revoked studio still exposed: $label." }
+    }
+    Show-NativeState 'live-after'
+    $after=[DrawingWindowCapture]::Plot($originalHwnd,$bounds.Left,$bounds.Top,$bounds.Width,$bounds.Height)
+    try {
+        $after.Save((Join-Path $OutputDirectory 'live-cleared-area.png'),[Drawing.Imaging.ImageFormat]::Png)
+        $ink=0
+        for ($y=0;$y -lt $after.Height;$y++) {
+            for ($x=0;$x -lt $after.Width;$x++) {
+                if (($after.GetPixel($x,$y).ToArgb() -band 0xffffff) -eq 0x60d4bf) { $ink++ }
+            }
+        }
+        if ($ink) { throw "$ink authored teal pixels survived in the original plot bounds." }
+    } finally { $after.Dispose() }
+    Write-Host "Live revocation verified in unchanged HWND=$originalHwnd PID=$($app.Id): registered revision $($Identity.revision), previous accepted output $($Identity.result_hash), elapsed $($clock.ElapsedMilliseconds) ms including polling and screenshot processing. No remaining marks, readout, identity or undo."
+
 } catch {
     # The common dialog can briefly overlay the app. Only capture product content after it has closed.
     if (!(Find-Control 'Choose local CSV folder' $type::Window)) {
