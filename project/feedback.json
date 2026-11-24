@@ -4440,6 +4440,17 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "verification-timing-failure-authority-expires-before-retained-success",
+      "source": "Independent Standard Astra read-only re-review of 2a8a02ee45a698fc15b6fd9b79adcb4f93bcd2d7, .reports/m0-087-budget-proof/anchored-rereview/astra-2a8a02e.txt, SHA-256 31d0af075dbc36b06ff48fbc865b2f38be4662726af1e6f6312e609bb0c67dfb.",
+      "observation": "The authenticated workflow failure was written independently and the live status stayed pending. With twelve newer ordinary runs, the first offline reread aged that failure record out of the recent window even though an auxiliary archive still supplied the conflicting older 720-second success. Busy capture and unavailable capture both reproduced the false recovery.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

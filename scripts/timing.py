@@ -1233,6 +1233,27 @@ def archive_inputs(data, label, issues, *, collection_issues=True):
     return samples, hosted
 
 
+def retained_failures_for_clocks(directories, hosted, already_read, issues):
+    # An older success can survive in a retained review after its ordinary capture ages out.
+    # Read failure authority for those exact attempts without opening unrelated older captures.
+    attempts = {ci_key(clock) for clock in hosted if clock['event'] in NORMAL_EVENTS
+                and clock['run_attempt'] == '1' and positive_id(clock['run_id']) and clock['conclusion'] == 'success'}
+    paths = {path for directory in directories for _, run_id, _, event, _ in attempts
+             for path in directory.glob(f'ci-{event}-{run_id}-1-failure-*.json')
+             if CI_TIMING_NAME.fullmatch(path.name)}
+    for path in sorted(paths - set(already_read)):
+        try:
+            data = read_bounded_timing(path)
+            if data.get('kind') != ARCHIVE_KIND:
+                raise TimingError('Expected an authenticated failure timing archive.')
+            _, clocks = archive_inputs(data, path.name, issues, collection_issues=False)
+            for clock in clocks:
+                if clock.get('authenticated_failure') and ci_key(clock) in attempts:
+                    yield clock
+        except (OSError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'file': path.name, 'error': str(error)})
+
+
 def retained_budget_inputs(root):
     # Read a bounded window of shared automatic observations and checkout-local reviews.
     directory = root / '.reports/timing'
@@ -1242,7 +1263,8 @@ def retained_budget_inputs(root):
     except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
         shared = None
         issues.append({'error': str(error)})
-    recent = incremental_timing_paths([directory, shared] if shared else [directory])
+    directories = (directory, shared) if shared else (directory,)
+    recent = incremental_timing_paths(directories)
     for path in directory.glob('*.json'):
         if CI_TIMING_NAME.fullmatch(path.name):
             continue
@@ -1264,6 +1286,7 @@ def retained_budget_inputs(root):
                 samples.append(report_sample(data))
         except (OSError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'error': str(error)})
+    hosted.extend(retained_failures_for_clocks(directories, hosted, recent, issues))
     return samples, hosted, issues
 
 

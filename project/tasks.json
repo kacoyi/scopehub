@@ -18180,7 +18180,7 @@
             "checks": ["python-contracts-workers"]
           },
           {
-            "failure": "A busy or unavailable capture prevents the authenticated failure from reaching the next offline reader, or a missing recorded trend baseline is replaced by older timing.",
+            "failure": "A busy or unavailable capture or a newer-run retention window prevents the authenticated failure from reaching an offline reader that still admits its stale success, or a missing recorded trend baseline is replaced by older timing.",
             "checks": ["python-contracts-workers"]
           },
           {
