@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-018",
+  "task_definition_sha256": "e928e392e1275470614a7be2669e0cba7b7824ff9799f6ce0e6ef6d6096b4fd0",
+  "run_id": "20261124T033116.377381Z-7b1a8144",
+  "recorded_at": "2026-11-24T03:32:16.555894+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "8f41ac91f1feca67212f3bf884cf8408044e7b461dd595b8031afbcb03eae2e5",
+    "file_count": 612,
+    "git_head": "452236f1511fdef13c4bf0b4340613bc0f69eef9",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "ed19677bb60c5f5a874d66a17011c9df577e11ddc7293c4d62c2dd4e856a26e8",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/chart-crosshair-continuity/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/chart-crosshair-continuity/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d76751401560d79ff91f1f165e3144dcaadde6bd223ed272dcdf335e2a4c428d"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cd1222e97f4229f01c6ecc490f0a75989559151e9c68f61662b699093827b063"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62c64f25044a76393a891ee4db3660eaf67f752a29e66d4f62cd4fe0b9de6300"
+    },
+    {
+      "id": "chart-coordinate-prototype",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/chart-coordinate.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4e0bfa1794cd4e84e89cdd98a35fed26e5311cc441926500511d5cb8caef32a0"
+    }
+  ],
+  "project_definition_sha256": "e9acaf1e792ce35f9f99609b1047a23abc628c189535364a056bbe564f80b6c0",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "a7f8859ebffe511244d899434996dd9099a6e9613688d2ee4b2ce54ebd10beeb"
+  ]
+}

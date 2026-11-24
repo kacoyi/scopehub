@@ -131,3 +131,173 @@ test('local author geometry uses the financial chart coordinates and crosshair',
       'valid draft restored and accepted', 'timeframe change removed the bound scene'] };
   await writeFile(info.outputPath('chart-coordinates.json'), JSON.stringify(observed, null, 2) + '\n');
 });
+
+async function startChartObservation(page) {
+  await page.evaluate(() => {
+    const frames = [];
+    const start = performance.now();
+    let sampling;
+    function observe() {
+      const svg = document.querySelector('.chart-drawing-overlay');
+      const readout = document.querySelector('output[aria-label="Drawing crosshair observation"]');
+      frames.push({
+        elapsedMs: performance.now() - start,
+        radii: Array.from(svg?.querySelectorAll('circle') ?? [], circle => Number(circle.getAttribute('r'))),
+        time: readout?.querySelector('time')?.dateTime ?? null,
+      });
+      sampling = requestAnimationFrame(observe);
+    }
+    sampling = requestAnimationFrame(observe);
+    window.stopChartObservation = () => { cancelAnimationFrame(sampling); return frames; };
+  });
+}
+
+async function stopChartObservation(page) {
+  return page.evaluate(async () => {
+    await new Promise(requestAnimationFrame);
+    return window.stopChartObservation();
+  });
+}
+
+test('accepted geometry stays visible on every sampled frame of real crosshair motion', async ({ page }, info) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+  const overlay = page.getByRole('img', { name: 'Projected chart drawing' });
+  const circles = overlay.locator('circle');
+  const readout = page.getByLabel('Drawing crosshair observation');
+  await page.getByLabel('Open chart drawing program').setInputFiles(program);
+  await page.getByRole('button', { name: 'Accept chart drawing', exact: true }).click();
+  await expect(circles).toHaveCount(2);
+  const anchors = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+  const observations = [];
+
+  for (const index of [0, 1, 0, 1, 0, 1]) {
+    await startChartObservation(page);
+    const target = anchors[index];
+    await page.mouse.move(target.left + target.x, target.top + target.y);
+    const time = index ? second : first;
+    await expect(readout).toContainText(time);
+    await expect(page.getByLabel('Selected bar')).toContainText(index ? 'C 3499.8' : 'C 3499.2');
+    await expect(circles.nth(index)).toHaveAttribute('r', '8');
+    await expect(circles.nth(1 - index)).toHaveAttribute('r', '5');
+    const frames = await stopChartObservation(page);
+    const blanks = frames.filter(frame => frame.radii.length === 0);
+    observations.push({
+      time, frames, blankFrames: blanks.length,
+      mismatchedFrames: frames.filter(frame => frame.radii.length && frame.radii.join(',') !== '5,5'
+        && frame.radii.join(',') !== (frame.time === first ? '8,5' : frame.time === second ? '5,8' : '')).length,
+      sampledBlankMs: blanks.length ? frames[frames.lastIndexOf(blanks.at(-1)) + 1].elapsedMs - blanks[0].elapsedMs : 0,
+    });
+  }
+  await writeFile(info.outputPath('crosshair-continuity.json'), JSON.stringify({
+    method: '1440x900 Chromium; six alternating real mouse moves, one DOM sample per rAF through settled highlight. Blank duration is the first empty sample to the first following visible sample.',
+    observations,
+  }, null, 2) + '\n');
+  expect(observations.map(move => move.blankFrames)).toEqual([0, 0, 0, 0, 0, 0]);
+  expect(observations.map(move => move.mismatchedFrames)).toEqual([0, 0, 0, 0, 0, 0]);
+});
+
+test('superseded guest work cannot change the current selection or restore obsolete geometry', async ({ page }) => {
+  await page.addInitScript(() => {
+    const workers = new WeakMap();
+    const { postMessage, terminate } = Worker.prototype;
+    const gate = window.chartGuestGate = { selection: null, held: [] };
+    Worker.prototype.postMessage = function (request, ...args) {
+      if (request?.bounds?.times && (gate.selection === 'all' || gate.selection === request.controls.selected)) {
+        const record = { selected: request.controls.selected, terminated: false };
+        gate.held.push(record);
+        workers.set(this, record);
+        return;
+      }
+      return postMessage.call(this, request, ...args);
+    };
+    Worker.prototype.terminate = function () {
+      const record = workers.get(this);
+      if (record) record.terminated = true;
+      return terminate.call(this);
+    };
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+  const overlay = page.getByRole('img', { name: 'Projected chart drawing' });
+  const circles = overlay.locator('circle');
+  const readout = page.getByLabel('Drawing crosshair observation');
+  await page.getByLabel('Open chart drawing program').setInputFiles(program);
+  await page.getByRole('button', { name: 'Accept chart drawing', exact: true }).click();
+  const anchors = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+  const move = index => page.mouse.move(anchors[index].left + anchors[index].x, anchors[index].top + anchors[index].y);
+  const setGate = selection => page.evaluate(value => { window.chartGuestGate.selection = value; }, selection);
+  const held = () => page.evaluate(() => window.chartGuestGate.held);
+
+  await setGate(0);
+  await move(0);
+  await expect(readout).toContainText(first);
+  await expect.poll(held).toEqual([{ selected: 0, terminated: false }]);
+  await expect(circles).toHaveCount(2);
+  await expect(circles.first()).toHaveAttribute('r', '5');
+  await expect(circles.last()).toHaveAttribute('r', '5');
+
+  await move(1);
+  await expect.poll(held).toEqual([{ selected: 0, terminated: true }]);
+  await expect(readout).toContainText(second);
+  await expect(circles.first()).toHaveAttribute('r', '5');
+  await expect(circles.last()).toHaveAttribute('r', '8');
+
+  await setGate('all');
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect.poll(async () => (await held()).filter(request => !request.terminated)).toEqual([{ selected: -1, terminated: false }]);
+  await expect(overlay).toHaveCount(0);
+  await expect(readout).toHaveCount(0);
+
+  await page.getByRole('button', { name: '5m', exact: true }).click();
+  await expect.poll(async () => (await held()).every(request => request.terminated)).toBe(true);
+  await expect(overlay).toHaveCount(0);
+  await expect(readout).toHaveCount(0);
+
+  await setGate(null);
+  await page.getByRole('button', { name: '1m', exact: true }).click();
+  await expect(page.getByLabel('Open chart drawing program')).toBeVisible();
+  await expect(overlay).toHaveCount(0);
+});
+
+test('a guest that rejects the current candle leaves the unselected drawing visible', async ({ page }, info) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openDefaultSample(page, { trigger: () => page.goto('/?chart-drawing=1#demo') });
+  const original = await readFile(program, 'utf8');
+  const overlay = page.getByRole('img', { name: 'Projected chart drawing' });
+  const circles = overlay.locator('circle');
+  const readout = page.getByLabel('Drawing crosshair observation');
+  await page.getByLabel('Open chart drawing program').setInputFiles({
+    name: 'reject-second-candle.js',
+    mimeType: 'text/javascript',
+    buffer: Buffer.from(original + '\nif (selected === 1) throw new Error("second candle rejected");\n'),
+  });
+  await page.getByRole('button', { name: 'Accept chart drawing', exact: true }).click();
+  const anchors = await Promise.all([anchor(circles.first()), anchor(circles.last())]);
+  const move = index => page.mouse.move(anchors[index].left + anchors[index].x, anchors[index].top + anchors[index].y);
+  await move(0);
+  await expect(readout).toContainText(first);
+  await expect(circles.first()).toHaveAttribute('r', '8');
+  await expect(overlay.locator('line')).toHaveCount(1);
+
+  await startChartObservation(page);
+  await move(1);
+  await expect(readout).toContainText(second);
+  await expect(page.getByRole('alert')).toContainText('This chart drawing could not be displayed.');
+  await expect(circles).toHaveCount(2);
+  await expect(circles.first()).toHaveAttribute('r', '5');
+  await expect(circles.last()).toHaveAttribute('r', '5');
+  await expect(overlay.locator('line')).toHaveCount(0);
+  expect(await anchor(circles.last())).toEqual(anchors[1]);
+  const rejectedFrames = await stopChartObservation(page);
+  await writeFile(info.outputPath('rejected-selection-frames.json'), JSON.stringify(rejectedFrames, null, 2) + '\n');
+  expect(rejectedFrames.every(frame => frame.radii.length === 2)).toBe(true);
+  const rejectedTime = rejectedFrames.filter(frame => frame.time === second);
+  expect(rejectedTime.length).toBeGreaterThan(0);
+  expect(rejectedTime.every(frame => frame.radii.join(',') === '5,5')).toBe(true);
+
+  await move(0);
+  await expect(readout).toContainText(first);
+  await expect(circles.first()).toHaveAttribute('r', '8');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});

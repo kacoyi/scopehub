@@ -15,4 +15,15 @@
 }
 .chart-drawing-controls label { display: flex; align-items: center; gap: 8px; }
 .chart-drawing-controls input { max-width: 15rem; }
-.chart-drawing-controls output { font-variant-numeric: tabular-nums; }
+.chart-drawing-controls output { position: relative; font-variant-numeric: tabular-nums; }
+.chart-drawing-selection-error {
+  position: absolute;
+  inset: 100% 0 auto auto;
+  z-index: 3;
+  width: max-content;
+  max-width: min(18rem, 45vw);
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  pointer-events: none;
+}

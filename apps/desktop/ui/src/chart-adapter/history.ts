@@ -41,15 +41,18 @@ export type PricePaneProjection = {
   y: number;
   yPerPrice: number;
 };
-export type PricePaneFrame = {
+export type PricePaneViewport = {
   width: number;
   height: number;
   projection: PricePaneProjection;
+};
+export type PricePaneFrame = {
+  viewport: PricePaneViewport;
   crosshair: number | undefined;
 };
 
 export interface HistoryChartHandle {
-  observePricePane(times: readonly number[], update: (frame: PricePaneFrame) => void): () => void;
+  observePricePane(times: readonly number[], update: (frame: PricePaneFrame | undefined) => void): () => void;
   dispose(): void;
   fit(): void;
   zoomIn(): void;
@@ -256,18 +259,24 @@ export function mountHistoryChart(
       observePricePane(times, update) {
         const pane = priceSeries.getPane();
         let pending: number | undefined;
-        let previous = '';
+        let previous: PricePaneFrame | undefined;
+        let viewportSignature = '';
+        const clear = () => {
+          if (!previous) return;
+          previous = undefined;
+          update(undefined);
+        };
         const paint = () => {
           pending = undefined;
           if (disposed) return;
           const { width, height } = chart.paneSize(pane.paneIndex());
           const price = bars[0]?.close;
-          if (!width || !height || price === undefined) return;
+          if (!width || !height || price === undefined) return clear();
           // The existing chart uses a normal, linear price scale. Read it through
           // the current price series, including after a style or viewport change.
           const y = priceSeries.priceToCoordinate(price);
           const upper = priceSeries.priceToCoordinate(price + 1);
-          if (y === null || upper === null || !Number.isFinite(upper - y) || y === upper) return;
+          if (y === null || upper === null || !Number.isFinite(upper - y) || y === upper) return clear();
           const positions: PricePaneProjection['times'] = [];
           for (const time of times) {
             const x = timeScale.timeToCoordinate((time / 1000) as UTCTimestamp);
@@ -275,13 +284,14 @@ export function mountHistoryChart(
           }
           const hoveredX = positions.find(([time]) => time === paneCrosshair)?.[1];
           if (hoveredX === undefined || hoveredX < 0 || hoveredX >= width) paneCrosshair = undefined;
-          const frame = { width, height, crosshair: paneCrosshair,
-            projection: { times: positions, price, y, yPerPrice: upper - y } };
-          const signature = JSON.stringify(frame);
-          if (signature !== previous) {
-            previous = signature;
-            update(frame);
-          }
+          const geometry = { width, height, projection: { times: positions, price, y, yPerPrice: upper - y } };
+          const signature = JSON.stringify(geometry);
+          // Keep identity only across consecutive observations of the same mapping.
+          const viewport = (signature === viewportSignature && previous?.viewport) || geometry;
+          if (previous && viewport === previous.viewport && paneCrosshair === previous.crosshair) return;
+          viewportSignature = signature;
+          previous = { viewport, crosshair: paneCrosshair };
+          update(previous);
         };
         const schedule = () => { pending ??= requestAnimationFrame(paint); };
         const primitive: IPanePrimitive<Time> = { updateAllViews: schedule };

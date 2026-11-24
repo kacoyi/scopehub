@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import type { HistoryChartHandle, PricePaneFrame } from './chart-adapter/history';
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import type { HistoryChartHandle, PricePaneFrame, PricePaneViewport } from './chart-adapter/history';
 import { DrawingMarks } from './drawing-marks';
 import { evaluateDrawing } from './drawing-evaluation';
 import { programLimit, readProgram, type Drawing, type Mark } from './drawing-program';
@@ -9,6 +9,19 @@ import { sources } from './workbench-composition';
 import './chart-drawing.css';
 
 type Source = keyof typeof sources;
+type DrawingBase = { viewport: PricePaneViewport; program: Drawing; marks: Mark[] | undefined };
+type DrawingSelection = { frame: PricePaneFrame; program: Drawing; marks: Mark[] | undefined };
+
+function scheduleDrawing(program: Drawing, viewport: PricePaneViewport, selected: number, update: (marks: Mark[] | undefined) => void) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(async () => {
+    const params = Object.fromEntries(program.scalars.map(scalar => [scalar.name, scalar.initial]));
+    const result = await evaluateDrawing(program, viewport.projection, { selected, params }, controller.signal);
+    if (!controller.signal.aborted) update(result.status === 'ready' ? result.marks : undefined);
+  }, 32);
+  return () => { window.clearTimeout(timer); controller.abort(); };
+}
+
 export function chartDrawingSource(history: ChartHistory): Source | undefined {
   if (history.snapshot.series.provider_id !== 'scopehub.synthetic') return;
   return (Object.keys(sources) as Source[]).find(id => {
@@ -27,7 +40,8 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
   const [accepted, setAccepted] = useState<Drawing>();
   const [candidate, setCandidate] = useState<Drawing>();
   const [frame, setFrame] = useState<PricePaneFrame>();
-  const [results, setResults] = useState<{ frame: PricePaneFrame; program: Drawing; marks?: Mark[] }[]>([]);
+  const [bases, setBases] = useState<DrawingBase[]>([]);
+  const [selection, setSelection] = useState<DrawingSelection>();
   const [invalidFile, setInvalidFile] = useState(false);
   const fileEpoch = useRef(0);
   const data = source && sources[source];
@@ -38,32 +52,39 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
     setCandidate(undefined);
     setAccepted(undefined);
     setInvalidFile(false);
-    setResults([]);
+    setBases([]);
+    setSelection(undefined);
     setFrame(undefined);
   }, [source, history]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setFrame(undefined);
     if (observing && data) return handle.current?.observePricePane(data.bars.map(bar => bar.time_ms), setFrame);
   }, [handle, history, data, observing]);
 
-  useEffect(() => {
-    if (!data || !frame || !observing) return;
-    const controller = new AbortController();
-    // Coalesce viewport motion. Never draw a previous frame on the new axes.
-    const timer = window.setTimeout(async () => {
-      const selected = data.bars.findIndex(bar => bar.time_ms === frame.crosshair);
-      for (const program of [accepted, candidate]) {
-        if (!program || controller.signal.aborted) continue;
-        const params = Object.fromEntries(program.scalars.map(scalar => [scalar.name, scalar.initial]));
-        const next = await evaluateDrawing(program, frame.projection, { selected, params }, controller.signal);
-        if (controller.signal.aborted) return;
-        setResults(previous => [...previous.filter(r => r.frame === frame && r.program !== program),
-          next.status === 'ready' ? { frame, program, marks: next.marks } : { frame, program }]);
-      }
-    }, 32);
-    return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [accepted, candidate, data, frame, observing]);
+  const viewport = frame?.viewport;
+  const acceptedBase = bases.find(base => base.viewport === viewport && base.program === accepted);
+  const candidateBase = bases.find(base => base.viewport === viewport && base.program === candidate);
+  const pendingBase = (acceptedBase ? undefined : accepted) ?? (candidateBase ? undefined : candidate);
+  // The unselected geometry belongs to the viewport, independently of pointer movement.
+  useLayoutEffect(() => {
+    if (!viewport || !pendingBase) return;
+    return scheduleDrawing(pendingBase, viewport, -1, marks => {
+      setBases(previous => [...previous.filter(base => base.viewport === viewport
+        && base.program !== pendingBase && (base.program === accepted || base.program === candidate)),
+      { viewport, program: pendingBase, marks }]);
+    });
+  }, [viewport, pendingBase, accepted, candidate]);
+
+  const visibleBase = candidateBase?.marks ? candidateBase : acceptedBase;
+  const selectedProgram = visibleBase?.marks ? visibleBase.program : undefined;
+  const selectedIndex = data?.bars.findIndex(bar => bar.time_ms === frame?.crosshair) ?? -1;
+  useLayoutEffect(() => {
+    if (!frame || selectedIndex < 0 || !selectedProgram) return;
+    return scheduleDrawing(selectedProgram, frame.viewport, selectedIndex, marks => {
+      setSelection({ frame, program: selectedProgram, marks });
+    });
+  }, [frame, selectedIndex, selectedProgram]);
 
   async function open(file: File) {
     const epoch = ++fileEpoch.current;
@@ -80,10 +101,11 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
     }
   }
 
-  const acceptedResult = results.find(result => result.frame === frame && result.program === accepted);
-  const candidateResult = results.find(result => result.frame === frame && result.program === candidate);
-  const marks = candidateResult?.marks ?? acceptedResult?.marks;
-  const crosshair = observing && data && data.bars.find(bar => bar.time_ms === frame?.crosshair);
+  // Selected geometry is a whole guest result. It can only accompany its own
+  // trusted crosshair observation; otherwise render the verified neutral base.
+  const currentSelection = selection && selection.frame === frame && selection.program === selectedProgram ? selection : undefined;
+  const marks = currentSelection?.marks ?? visibleBase?.marks;
+  const crosshair = observing && data && data.bars[selectedIndex];
   const restore = () => {
     ++fileEpoch.current;
     setCandidate(undefined);
@@ -95,7 +117,7 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
       event.currentTarget.value = '';
       if (file) void open(file);
     }} /></label>
-    {candidate && candidateResult?.marks && <button type="button" className="secondary-button" onClick={() => {
+    {candidate && candidateBase?.marks && <button type="button" className="secondary-button" onClick={() => {
       setAccepted(candidate);
       restore();
     }}>{t('Accept chart drawing')}</button>}
@@ -104,16 +126,20 @@ export function useChartDrawing(handle: RefObject<HistoryChartHandle | null>, hi
     {accepted && <button type="button" className="secondary-button" onClick={() => {
       restore();
       setAccepted(undefined);
-      setResults([]);
+      setBases([]);
+      setSelection(undefined);
     }}>{t('Remove chart drawing')}</button>}
     {crosshair && <output aria-label={t('Drawing crosshair observation')}>
       <time dateTime={new Date(crosshair.time_ms).toISOString()}>{new Date(crosshair.time_ms).toISOString()}</time>
       {' · '}{formatNumber(crosshair.close, { useGrouping: false, maximumSignificantDigits: 21 })} {data?.currency}
+      {currentSelection && !currentSelection.marks && <span role="alert" className="chart-drawing-selection-error">
+        {t('This chart drawing could not be displayed.')}
+      </span>}
     </output>}
-    {(invalidFile || candidate && results.some(result => result.program === candidate && !result.marks) || accepted && results.some(result => result.program === accepted && !result.marks)) &&
+    {(invalidFile || candidateBase && !candidateBase.marks || acceptedBase && !acceptedBase.marks) &&
       <p role="alert">{t('This chart drawing could not be displayed.')}</p>}
   </div>;
-  const overlay = data && frame && marks && <svg className="chart-drawing-overlay" style={{ width: frame.width, height: frame.height }}
+  const overlay = data && viewport && marks && <svg className="chart-drawing-overlay" style={{ width: viewport.width, height: viewport.height }}
     aria-label={t('Projected chart drawing')} role="img">
     <DrawingMarks marks={marks} weight={2} />
   </svg>;

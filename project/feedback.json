@@ -3889,6 +3889,32 @@
           "report_sha256": "7897be7ccfa223749c34a583e4ae6898eb85363e34fe4ab412cda0ed1f229e9f"
         }
       ]
+    },
+    {
+      "id": "chart-crosshair-overlay-flicker",
+      "source": "t96 independent Chinese interaction with frozen 602260e on the local 1462 trial.",
+      "observation": "After accepting chart-price-anchors.js on a stationary 1440 by 900 chart, six alternating real pointer moves between the two candle anchors showed zero circles for five requestAnimationFrame samples on each move (about 83 ms). The authored overlay returned in about 100 ms. The same source, authority and viewport remained. The M2-017 test previously waited only for settled geometry. The first repair (4fd7b14) kept circles visible but paired the new trusted timestamp with the old guest rim for five frames on each of moves two through six. Retained red and continuity samples document both failures.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-018"
+      ],
+      "regression_checks": [
+        "chart-coordinate-prototype"
+      ],
+      "resolution": {
+        "cause": "The renderer first keyed all marks to the combined viewport and pointer observation. The first repair reused selected marks on the same viewport and let the old emphasis accompany the new trusted readout.",
+        "correction": "Verify unselected geometry for each bound viewport and program. Render selected marks only for their exact current observation and use the neutral geometry while the selected evaluation is pending or rejected. Cancel superseded work and invalidate the viewport and source independently.",
+        "prevention": "Sample real pointer moves for both blank frames and stale rims, hold a pending worker to verify cancellation, and run an authored program that rejects one candle while preserving its neutral scene. Retain all three frame series and the rejection evidence in archives/observations/m2-018-crosshair-consistency-452236f/manifest.json."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T032251.155684Z-a5f4f16f",
+          "source_commit": "fc4dc7c00d65c613dd302a43a43488c04fda61c3",
+          "report_sha256": "eb59f51ad54978494e319e50dca97a3bc265d23bf4c12eea5be1a087b0a7fbea"
+        }
+      ]
     }
   ]
 }
