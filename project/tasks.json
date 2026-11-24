@@ -20754,7 +20754,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "With the offline cost analysis, compare the exact three baseline and three degraded Linux PR clocks, check work and named outcomes. Separate host variation, new check work and plausible reusable savings before proposing a correction.",
+      "next_action": "Retain the next three naturally occurring successful full warm Linux PR observations with the same selected coverage, runner metadata, restore and compile clocks, and named test durations. The archived median increase is concentrated in harness time across many tests, with no proven removable duplicate. If the matched-host window repeats, isolate Rust rebuild contention and workspace fixture cost first using their existing stage timings. Keep the finding open and leave current accepted delivery independent.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
