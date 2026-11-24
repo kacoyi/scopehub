@@ -218,3 +218,55 @@ test('replay the independently requested diamonds and a source-only selection ed
     expect(peer.traffic).toHaveLength(2);
   })));
 });
+
+test('an external client authors pennants and changes only the later tip on the shared viewport', async ({ browser }) => {
+  await withProfile(profile => withWorkspace(browser, profile, async page => {
+    await button(page, 'Open blank AI workbench').click();
+    await button(page, 'Drawing studio').click();
+    const studio = page.getByRole('dialog', { name: 'Drawing studio' });
+    const editor = studio.getByRole('textbox', { name: 'Program source' });
+    const geometry = studio.getByLabel('Program geometry');
+    const marks = () => geometry.locator('line').evaluateAll(lines => lines.map(l =>
+      ['x1','y1','x2','y2'].map(k => Number(l.getAttribute(k)))));
+    async function apply(file) {
+      await editor.fill(await readFile(new URL('../fixtures/workbench/' + file + '.js', import.meta.url), 'utf8'));
+      await button(studio, 'Preview draft').click();
+      await button(studio, 'Accept view').click();
+    }
+    function verify(lines, anchors) {
+      expect(lines).toHaveLength(8);
+      for (const [i, [x, expectedY, length]] of anchors.entries()) {
+        const [pole, top, bottom, back] = lines.slice(4 * i, 4 * i + 4);
+        const y = pole[1];
+        expect(y).toBeCloseTo(expectedY, 4);
+        expect(pole).toEqual([x, y, x, y + length]);
+        expect(top).toEqual([x, y, x - 12, y + 4]);
+        expect(bottom).toEqual([x - 12, y + 4, x, y + 8]);
+        expect(back).toEqual([x, y + 8, x, y]);
+      }
+    }
+    await apply('volume-pennants');
+    const initial = await marks();
+    verify(initial, [[64,146.666667,24],[616,85.333333,16]]);
+    await studio.getByRole('slider').focus();
+    await studio.getByRole('slider').press('ArrowRight');
+    await expect(geometry).toHaveAttribute('stroke-width', '4');
+    await button(studio, 'Expand viewport').click();
+    await expect(geometry.locator('line').first()).toHaveAttribute('x1', '202');
+    verify(await marks(), [[202,131.333333,24],[478,100.666667,16]]);
+    await button(studio, 'Fit frozen bars').click();
+    await expect(geometry.locator('line').first()).toHaveAttribute('x1', '64');
+    expect(await marks()).toEqual(initial);
+    await apply('volume-pennants-revised');
+    expect(await marks()).toEqual(initial);
+    const circle = geometry.locator('circle');
+    await expect(circle).toHaveCount(1);
+    await expect(circle).toHaveAttribute('fill', 'none');
+    await expect(circle).toHaveAttribute('cx', '604');
+    await expect(circle).toHaveAttribute('cy', String(initial[4][1] + 4));
+    await expect(geometry).toHaveAttribute('stroke-width', '4');
+    await button(studio, 'Expand viewport').click();
+    await expect(circle).toHaveAttribute('cx', '466');
+    verify(await marks(), [[202,131.333333,24],[478,100.666667,16]]);
+  }));
+});
