@@ -103,3 +103,61 @@ test('an unconfigured workspace can inspect raw observations and reports unavail
     }
   }));
 });
+
+test('the externally authored targets keep selection across resize and replace only the selected rim', async ({ browser }) => {
+  await withProfile(profile => withWorkspace(browser, profile, async page => {
+    const operations = [];
+    page.on('request', request => {
+      if (request.method() === 'POST') operations.push(request.postDataJSON()?.intent?.operation);
+    });
+    await page.setViewportSize({ width: 900, height: 650 });
+    await button(page, 'Open blank AI workbench').click();
+    await button(page, 'Drawing studio').click();
+    const studio = page.getByRole('dialog', { name: 'Drawing studio' });
+    const open = studio.getByLabel('Open local drawing program');
+    const geo = studio.getByLabel('Program geometry');
+    const rim = studio.getByRole('slider', { name: 'rimSize' });
+    const left = button(studio, 'Inspect observation at 21:00');
+    const right = button(studio, 'Inspect observation at 21:01');
+    const detail = studio.getByRole('region', { name: 'Selected frozen evidence' });
+    const crosses = () => geo.locator('line').evaluateAll(lines => lines.map(l => l.outerHTML));
+    await open.setInputFiles(file('adjustable-targets'));
+    await button(studio, 'Accept view').click();
+    await expect(rim).toHaveValue('6');
+    await expect(geo.locator('circle')).toHaveCount(2);
+    await expect(geo.locator('circle').first()).toHaveAttribute('r', '6');
+    const lines = await crosses();
+    expect(lines).toHaveLength(4);
+    await left.click();
+    await expect(detail).toContainText('3,499.2 CNY');
+    await right.click();
+    await expect(detail).toContainText('3,499.8 CNY');
+    const narrow = await studio.locator('figure svg').boundingBox();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const wide = await studio.locator('figure svg').boundingBox();
+    expect(wide.width - narrow.width).toBeGreaterThan(250);
+    await expect(right).toHaveAttribute('aria-pressed', 'true');
+    await expect(detail).toContainText('3,499.8 CNY');
+    await rim.focus(); await rim.press('ArrowRight');
+    await expect(geo.locator('circle').last()).toHaveAttribute('r', '7');
+    const unselected = await geo.locator('circle').first().evaluate(c => c.outerHTML);
+    await open.setInputFiles(file('adjustable-targets-revised'));
+    await button(studio, 'Accept view').click();
+    expect(await crosses()).toEqual(lines);
+    await expect(right).toHaveAttribute('aria-pressed', 'true');
+    expect(await geo.locator('circle').evaluate(c => c.outerHTML)).toBe(unselected);
+    const square = geo.locator('rect');
+    await expect(square).toHaveAttribute('x', '609');
+    await expect(square).toHaveAttribute('width', '14');
+    await expect(square).toHaveAttribute('height', '14');
+    await expect(square).toHaveAttribute('fill', 'none');
+    await left.click();
+    await expect(square).toHaveAttribute('x', '57');
+    await expect(geo.locator('circle')).toHaveAttribute('cx', '616');
+    await rim.focus(); await rim.press('ArrowLeft');
+    await expect(square).toHaveAttribute('width', '12');
+    await expect(geo.locator('circle')).toHaveAttribute('r', '6');
+    await expect(detail).toContainText('3,499.2 CNY');
+    expect(operations.filter(Boolean)).toEqual([]);
+  }));
+});

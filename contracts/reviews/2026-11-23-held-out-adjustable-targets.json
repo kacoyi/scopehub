@@ -1,0 +1,17 @@
+{
+  "task": "M2-003",
+  "result": "passed for physical viewport resizing, selection, local size adjustment and the scoped source revision",
+  "brief_sha256": "0d4e2587708f1b9a0b6089e4f0166170737fa4429d77f3d19616eebbd86062ce",
+  "runtime": "a5da029f0fd96be9b33956a690ac196a1c2d5613",
+  "runtime_sha256": "1257d9a6eca5b5dc9b9d006735f18787b451fb76a53739e6e704c1b9a01390ee",
+  "dataset": "836cb0d6-61d3-5d80-8e4d-37da5b308cf1",
+  "source_snapshot_hash": "3a1b0032b57711c9563131caf34c8cfda9d91bbf5ef5e9dbc7a4f0f48ab390d1",
+  "external_author": "The implementing Codex client received the independent request after the reviewer reproduced the runtime fingerprint, then authored the exact files consumed by Open local drawing program.",
+  "programs": [
+    ["tests/fixtures/workbench/adjustable-targets.js", "5afa130a2b24ed42148b321f3897b70a9a97f220357d1bf824f4ea544c6d256f"],
+    ["tests/fixtures/workbench/adjustable-targets-revised.js", "ffe9620c44620a6117a2d7959e0c335f7d92e2be448ccbd766a949473356568f"]
+  ],
+  "observed": "Two empty circular rims start at radius six at the frozen minute/close anchors. Normal clicks identify each minute and its close. Widening the window from 900 to 1280 CSS pixels preserved the selected later observation and widened the picture by more than 250 pixels. Radius seven carried through file revision; all four cross lines and the earlier circle were byte-identical in the rendered DOM. The later rim alone became a 14 by 14 unfilled square. Clicking the earlier observation moved the square and returned the later rim to a circle. Decreasing radius to six changed both marks consistently. The workspace issued no operations during this raw-data journey.",
+  "interpretation": "This case exercises physical viewport width. Fit/expand of numeric time and price domains is exposed in overlay mode; chart-free mode uses the host mappings without that domain control.",
+  "command": "pnpm exec playwright test --config tests/ui/workbench-authoring.config.mjs drawing-series.spec.mjs --grep 'externally authored targets'"
+}
