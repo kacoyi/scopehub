@@ -7,7 +7,7 @@ const stockHash = '1cdd778056aa8e41580bb0c522d7eef112a9f02e2ebe6eac83bdda62c30e5
 const futureView = ['stack', ['title', 'Futures session closes'], ['each', 'future',
   ['row', ['value', 'time'], ['value', 'close'], ['inspect', 'Inspect this minute']]]];
 const revision = ['row',
-  ['stack', ['title', 'Futures trading activity'], ['each', 'future', ['bar', 'volume']]],
+  ['stack', ['title', 'Futures close comparison'], ['each', 'future', ['bar', 'close']]],
   ['stack', ['title', 'Stock comparison'], ['each', 'stock', ['row', ['value', 'low'], ['inspect', 'Check the low']]]]];
 const stockView = ['row', ['title', 'Stock liquidity'], ['each', 'stock',
   ['stack', ['value', 'time'], ['bar', 'volume']]]];
@@ -74,7 +74,7 @@ test.beforeAll(async ({}, testInfo) => {
 test('the ordinary model connection authors two views and structurally rewrites an accepted tree', async ({ browser }) => {
   await withPeer(peer => withProfile(profile => withWorkspace(browser, profile, async page => {
     const create = 'Show each futures minute’s close next to its time, with a way to check the underlying observation.';
-    const compare = 'Replace the closes with futures volume bars and add a separate stock low column beside them.';
+    const compare = 'Show the same futures closes as bars and place a separate column of stock lows beside them.';
     const stock = 'For the stock alone, show when each minute traded and emphasize the amount with bars.';
     const operations = [];
     page.on('request', request => {
@@ -102,21 +102,23 @@ test('the ordinary model connection authors two views and structurally rewrites 
     await button(canvas(page), 'Accept view').click();
     await button(canvas(page), 'Ask AI to revise the view').click();
     await proposal(page, peer, compare, revision, futureView);
-    const activity = canvas(page).getByRole('heading', { name: 'Futures trading activity' });
+    const closeComparison = canvas(page).getByRole('heading', { name: 'Futures close comparison' });
     const comparison = canvas(page).getByRole('heading', { name: 'Stock comparison' });
-    const [left, right] = await Promise.all([activity.boundingBox(), comparison.boundingBox()]);
+    const [left, right] = await Promise.all([closeComparison.boundingBox(), comparison.boundingBox()]);
     expect(left.y).toEqual(right.y);
     expect(left.x).toBeLessThan(right.x);
     await expect(canvas(page).getByRole('meter')).toHaveCount(2);
-    await expect(canvas(page).getByText('120 contracts')).toBeVisible();
+    await expect(canvas(page).getByRole('meter').first()).toHaveAttribute('value', '3499.2');
+    await expect(canvas(page).getByRole('meter').last()).toHaveAttribute('value', '3499.8');
+    await expect(canvas(page).getByText(futureHash)).toBeVisible();
     await expect(canvas(page).getByText('11.94 CNY')).toBeVisible();
-    await expect(canvas(page).getByText('3499.2 CNY')).toHaveCount(0);
+    await expect(button(canvas(page), 'Inspect this minute')).toHaveCount(0);
     await button(canvas(page), 'Accept view').click();
     await button(canvas(page), 'Ask AI to revise the view').click();
     await proposal(page, peer, 'Try an unsupported interaction.', ['each', 'stock', ['invoke', 'workspace.undo']], revision, false);
     await expect(canvas(page).getByRole('alert')).toBeVisible();
     await expect(canvas(page).getByRole('status')).toHaveText('Accepted view');
-    await expect(activity).toBeVisible();
+    await expect(closeComparison).toBeVisible();
     await expect(comparison).toBeVisible();
     await button(canvas(page), 'Restore accepted view').click();
     await expect(canvas(page).getByRole('alert')).toHaveCount(0);
@@ -153,8 +155,8 @@ test('the ordinary model connection authors two views and structurally rewrites 
     });
     deferred.resolve({ role: 'assistant', content: JSON.stringify(revision) });
     await completion;
-    await expect(button(chat(page), 'Send')).toBeDisabled();
-    await expect(chat(page).getByRole('log')).not.toContainText('Draft ready.');
+    await expect(intent(page)).toBeEnabled();
+    await expect(chat(page).getByText('Draft ready. Close this conversation to inspect it in the workbench.')).toHaveCount(0);
     await button(chat(page), 'Close').click();
     await expect(canvas(page)).toContainText('Start with a blank canvas.');
     expect(operations.filter(Boolean)).not.toContain('workspace.undo');

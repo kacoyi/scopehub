@@ -1,0 +1,21 @@
+{
+  "kind": "owner_product_direction",
+  "recorded_at": "2026-11-23",
+  "contract": "engineering-contract-v1.json#/ui/customization",
+  "related_decision": "contracts/decisions/0027-v1-user-composed-workbench.json",
+  "feedback_id": "workbench-owner-authored-view",
+  "task_ids": ["M2-015", "M2-003", "M2-013"],
+  "owner_direction": {
+    "authoring": "From a blank view or an editable default, the embedded AI authors and structurally revises the actual view from the user's intent, including its data bindings, presentation and authorized interactions. Users can request a scoped change or a whole replacement. Expressiveness includes reusing the same canonical series in a genuinely different presentation. Example indicators or appearances do not enumerate supported widget shapes.",
+    "direct_refinement": "Frequently adjusted presentation properties such as size, palette and radius are exposed locally and respond without a model turn. An indicator parameter change requests versioned core recalculation. The presentation consumes the resulting version and provenance and does not supply formulas.",
+    "recovery": "Keep AI structural drafts in isolated previews. The accepted view remains usable when a draft fails or stalls. Provide explicit accept, undo of committed changes and restoration.",
+    "drawing_and_defaults": "Evaluate reusable time and value axes, viewport and crosshair mapping while supporting views that use no axes. Evaluate readable user-owned editable default definitions, partial edits and whole replacement.",
+    "host_authority": "Keep private product code, permissions and native confirmations with the trusted host. Any future real order uses trusted risk checks and native confirmation. Trading is outside the authoring slice.",
+    "undecided": "Storage, authoring language, Qt, JavaScript, renderer selection and any fixed frame-rate target remain open. Choose using observed expressiveness, interaction and native evidence."
+  },
+  "implementation_scope": {
+    "M2-015": "Use ordinary embedded model turns with a synthetic provider to verify authoring, reuse of the same series in a structural revision, a second binding, preview validation, explicit acceptance and late or rejected draft recovery. Retain the distinction from genuine connected-model and owner experience.",
+    "M2-003": "Compare candidate renderer expressiveness, isolation, native interaction and the fit of shared drawing services and editable default definitions.",
+    "M2-013": "Exercise the product journey across AI structural edits, direct refinements, versioned indicator recalculation, undo, restoration and independent persisted bindings. Retain separate packaged release evidence."
+  }
+}

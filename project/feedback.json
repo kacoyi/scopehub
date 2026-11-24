@@ -3833,7 +3833,7 @@
     },
     {
       "id": "workbench-owner-authored-view",
-      "source": "Owner hands-on feedback after following the M2-014 prototype walkthrough on 2026-11-23.",
+      "source": "Owner hands-on feedback after following the M2-014 prototype walkthrough on 2026-11-23, with follow-up in contracts/reviews/2026-11-23-workbench-authoring-direction.json.",
       "observation": "The owner could follow the demonstrated steps but could not decide what information to see. The reviewed prototype fixes the synthetic closes and admits only threshold tiles and a value table. Its successful walkthrough demonstrates editing and recovery; it does not establish independent composition. In the follow-up on 2026-11-23 the owner clarified that the embedded product AI must author the actual original view from user intent and structurally revise bindings, presentation and permitted interactions. Manual field selection, arranging predefined widgets and routing phrases to fixed templates do not meet that requirement.",
       "severity": "major",
       "status": "open",
