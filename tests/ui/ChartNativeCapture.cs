@@ -34,6 +34,11 @@ public static class ChartNativeCapture {
         if (hit != app && !IsChild(app,hit)) throw new InvalidOperationException("Point is outside the test app.");
         if (!SetCursorPos(x,y)) throw new InvalidOperationException("Native cursor move failed.");
     }
+    public static void ClickOwnedControl(IntPtr app, int x, int y) {
+        Hover(app,x,y);
+        mouse_event(2,0,0,0,UIntPtr.Zero);
+        mouse_event(4,0,0,0,UIntPtr.Zero);
+    }
     public static void FocusPicker(IntPtr picker) {
         SetForegroundWindow(picker);
         if (GetForegroundWindow() != picker)

@@ -16,6 +16,28 @@ function Find-ChartButton([string]$prefix) {
         if ($b.Current.IsEnabled -and $b.Current.Name.StartsWith($prefix)) { return $b }
     }
 }
+function Invoke-ChartButton([string]$name) {
+    Write-Host "Activating chart control: $name"
+    $null=Wait-ForProbe "live chart button $name" {
+        $control=Find-Control $name $kind::Button
+        if (!$control -or !$control.Current.IsEnabled) { return $false }
+        try {
+            $pattern=$null
+            if ($control.TryGetCurrentPattern([Windows.Automation.InvokePattern]::Pattern,[ref]$pattern)) {
+                $pattern.Invoke()
+                return $true
+            }
+            $bounds=$control.Current.BoundingRectangle
+            if ($bounds.IsEmpty -or $bounds.Width -le 0 -or $bounds.Height -le 0) { return $false }
+            $x=[int]($bounds.X+$bounds.Width/2); $y=[int]($bounds.Y+$bounds.Height/2)
+            [ChartNativeCapture]::Hover($handle,$x,$y)
+            $atPoint=[Windows.Automation.AutomationElement]::FromPoint([Windows.Point]::new($x,$y))
+            if ($atPoint.Current.Name -ne $name) { return $false }
+            [ChartNativeCapture]::ClickOwnedControl($handle,$x,$y)
+            return $true
+        } catch [System.InvalidOperationException] { return $false }
+    }
+}
 function Open-ChartFile {
     $open=Wait-ForProbe 'chart program file button' {
         $button=Find-ChartButton 'Open chart drawing program'
@@ -51,7 +73,8 @@ function Open-ChartFile {
         }
     }
     Wait-Name 'Accept chart drawing'
-    Invoke-Button 'Accept chart drawing'
+    $null=Capture-Chart 'draft' 2
+    Invoke-ChartButton 'Accept chart drawing'
     Wait-Name 'Remove chart drawing'
 }
 function Capture-Chart([string]$label,[int]$expected) {
@@ -64,6 +87,9 @@ function Capture-Chart([string]$label,[int]$expected) {
         $image=[ChartNativeCapture]::Plot($handle,$b.Left,$b.Top,$b.Width,$b.Height)
         try {
             $rings=@([ChartNativeCapture]::Rings($image))
+            if ($watch.ElapsedMilliseconds -gt 5500) {
+                $image.Save((Join-Path $OutputDirectory 'transition.png'),[Drawing.Imaging.ImageFormat]::Png)
+            }
             if ($rings.Count -eq $expected) {
                 if ($expected -eq 2 -and (!([ChartNativeCapture]::Candle($image,$rings[0],$false)) -or
                     !([ChartNativeCapture]::Candle($image,$rings[1],$true)))) { throw 'Expected candle ink at both authored close positions.' }
@@ -105,14 +131,14 @@ try {
     if ([Math]::Abs($wide.width-$narrow.width) -lt 80) { throw 'Actual native plot width did not change.' }
     Hover-Bar $narrow 0
     [ChartNativeCapture]::Hover($handle,[int]($narrow.x+$narrow.width-12),[int]($narrow.y+28))
-    Invoke-Button 'Zoom in'
+    Invoke-ChartButton 'Zoom in'
     Start-Sleep -Milliseconds 500
     $null=Capture-Chart 'clipped' 0
-    Invoke-Button 'Fit chart'
+    Invoke-ChartButton 'Fit chart'
     Start-Sleep -Milliseconds 500
     $fit=Capture-Chart 'refit' 2
     Hover-Bar $fit 1
-    Invoke-Button '5m'
+    Invoke-ChartButton '5m'
     $null=Wait-ForProbe 'timeframe removes the chart drawing and program picker' {
         -not (Find-Control 'Remove chart drawing' $null) -and -not (Find-ChartButton 'Open chart drawing program') -and
         -not (Find-ChartButton 'Choose File')
