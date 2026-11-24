@@ -26,6 +26,7 @@
   "Calculated readout unavailable. Open the matching offline sample in a local workspace.": "计算读数不可用。请在本地工作区打开对应的离线示例。",
   "Calculating in the local workspace…": "正在本地工作区计算…",
   "Check the JSON syntax, then preview again.": "请检查 JSON 语法，然后重新预览。",
+  "Choose a new layout name or open the saved view to edit it.": "请使用新的布局名称，或打开已保存的视图继续编辑。",
   "Choose a series": "选择序列",
   "Choose an accepted version": "选择已接受的版本",
   "Close price": "收盘价",

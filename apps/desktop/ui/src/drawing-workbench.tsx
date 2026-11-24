@@ -91,11 +91,11 @@ function Observation({ scene, workspace, series }: { series: BoundSeries | undef
   </section>;
 }
 
-type StudioProps = { hasWorkspace: boolean; workspace: LocalWorkspace | undefined; ask: (turn: WorkbenchAuthoringTurn) => void; close: () => void };
+type StudioProps = { reopen: boolean; onSaved: () => void; hasWorkspace: boolean; workspace: LocalWorkspace | undefined; ask: (turn: WorkbenchAuthoringTurn) => void; close: () => void };
 
 export function DrawingWorkbench(props: StudioProps & { bindingSnapshot: FrozenSnapshot | undefined; sourceUnavailable: boolean; access: PublishedRevisionAccess }) {
   const workspaceSnapshot = props.workspace?.pending === 'open' ? undefined : props.workspace?.snapshot;
-  const saved = props.workspace?.snapshot?.layouts?.active.definition.authored_view;
+  const saved = props.reopen ? props.workspace?.snapshot?.layouts?.active.definition.authored_view : undefined;
   const { bound, picker, checking } = useAcceptedDrawingSeries(props.bindingSnapshot, props.access.canDisplay, workspaceSnapshot, saved);
   // Unmount all scene, undo, model-turn and worker state when a binding leaves scope.
   const key = JSON.stringify([bound?.revision, bound?.layer, bound?.version, bound?.id, bound?.resultHash]);
@@ -105,7 +105,7 @@ export function DrawingWorkbench(props: StudioProps & { bindingSnapshot: FrozenS
   return <Studio saved={same || !bound ? saved : undefined} key={key} {...props} series={bound} checking={checking} picker={props.sourceUnavailable ? <p role="status">{t('Accepted series unavailable.')}</p> : picker} />;
 }
 
-function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking, saved }: StudioProps & {
+function Studio({ ask, close, reopen, onSaved, hasWorkspace, workspace, series, picker, checking, saved }: StudioProps & {
   series: BoundSeries | undefined; picker: ReactNode; checking: boolean; saved: SavedSeriesDrawing11 | undefined;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -119,10 +119,12 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking,
   const [previous, setPrevious] = useState<Scene | null>();
   const [status, setStatus] = useState<Status>('idle');
   const [weight, setWeight] = useState(saved?.stroke ?? 3);
-  const [name, setName] = useState(workspace?.snapshot?.layouts?.active.name ?? '');
+  const [name, setName] = useState(reopen ? workspace?.snapshot?.layouts?.active.name ?? '' : '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const restored = useRef(false);
+  const layouts = workspace?.snapshot?.layouts;
+  const nameTaken = layouts?.saved.includes(name.trim()) && !(reopen && name.trim() === layouts.active.name);
   const visible = draft ?? accepted;
   const [file, setFile] = useState<File>();
   const matchesSaved = saved && accepted?.program.code === saved.source && source === saved.source
@@ -217,7 +219,9 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking,
     try {
       const result = await workspace.previewLayout({ action: 'save', name: name.trim(),
         definition: { ...layout.definition, authored_view: view } }, snapshot.workspace.revision);
-      if (dialog.current?.open) await workspace.applyLayout(result.command);
+      if (!dialog.current?.open) return;
+      await workspace.applyLayout(result.command);
+      onSaved();
     } catch { setSaveError(true); }
     finally { setSaving(false); }
   }
@@ -321,8 +325,9 @@ function Studio({ ask, close, hasWorkspace, workspace, series, picker, checking,
           {series && workspace?.snapshot?.layouts && <>
             <label>{t('Layout name')}<input maxLength={48} value={name} onChange={e => setName(e.target.value)} /></label>
             <button disabled={saving || !accepted || Boolean(draft) || status !== 'idle' || accepted.program.code !== source
-              || !name.trim() || (workspace.snapshot.layouts.saved.includes(name.trim()) && name.trim() !== workspace.snapshot.layouts.active.name)}
+              || !name.trim() || nameTaken}
               onClick={() => void saveView()}>{t('Save accepted view')}</button>
+            {nameTaken && <p>{t('Choose a new layout name or open the saved view to edit it.')}</p>}
             {saveError && <p role="alert">{t('The local layout could not be updated.')}</p>}
           </>}
           <div className="probe-actions">

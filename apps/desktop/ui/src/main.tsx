@@ -26,8 +26,10 @@ function initialSource(): boolean {
 function App() {
   useLocale();
   const [prototype, setPrototype] = useState(false);
-  const [authoring, setAuthoring] = useState<'tree' | 'drawing' | undefined>(() =>
+  const [authoring, setAuthoring] = useState<'tree' | 'drawing' | 'saved-drawing' | undefined>(() =>
     new URLSearchParams(location.search).get('renderer') === 'drawing' ? 'drawing' : undefined);
+  const drawingSession = useRef(0);
+  const session = drawingSession.current;
   const [authoringTurn, setAuthoringTurn] = useState<WorkbenchAuthoringTurn>();
   const [legacySample, setLegacySample] = useState(initialSource);
   const demoLinkHandled = useRef(false);
@@ -125,6 +127,7 @@ function App() {
   } : undefined;
 
   function closeWorkbench() {
+    ++drawingSession.current;
     setAuthoringTurn(undefined);
     setAuthoring(undefined);
   }
@@ -136,7 +139,10 @@ function App() {
 
   return <>
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
-    {authoring === 'drawing' && <DrawingWorkbench key={drawingScope}
+    {(authoring === 'drawing' || authoring === 'saved-drawing') && <DrawingWorkbench key={JSON.stringify([drawingScope, authoring])}
+      reopen={authoring === 'saved-drawing'} onSaved={() => {
+        if (drawingSession.current === session) setAuthoring(current => current === 'drawing' ? 'saved-drawing' : current);
+      }}
       sourceUnavailable={source?.kind === 'frozen' && !drawingSnapshot && restored?.status !== 'loading'}
       bindingSnapshot={drawingSnapshot} access={revisionAccess} workspace={localWorkspace} hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
     {authoring === 'tree' && <WorkbenchAuthoring close={closeWorkbench} ask={askWorkbench}
@@ -154,7 +160,7 @@ function App() {
       openPublished={workspace ? () => setOpeningRevision(true) : undefined}
       restoredSource={restored} restoredSampleInstrument={source?.kind === 'sample' ? source.instrument_id ?? undefined : undefined}
       retryRestoredSource={retry} onOpenSample={openSample} openPrototype={() => setPrototype(true)}
-      openAuthoring={() => setAuthoring('tree')} openSavedView={() => setAuthoring('drawing')}
+      openAuthoring={() => setAuthoring('tree')} openSavedView={() => setAuthoring('saved-drawing')}
       chooseSampleInstrument={workspace && supportsSourcePreference ? async id => {
         if (source?.kind !== 'sample' || source.instrument_id !== id) {
           await workspace.chooseSource({ kind: 'sample', instrument_id: id });

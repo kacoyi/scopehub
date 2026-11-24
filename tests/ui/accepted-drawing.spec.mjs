@@ -304,7 +304,57 @@ test('named authored view survives writer restart and loses its data after revoc
       await expect(studio.getByLabel('Program source')).toHaveValue(revised);
       await expect.poll(async () => (await dispatch({ type: 'snapshot' })).result?.layouts.active.definition.authored_view.source).toBe(revised);
     });
-    await revoke(root, data.revision);
+    await withWorkspace(browser, data.profile, async (page, dispatch) => {
+      // Open A while its persisted chart is still being restored.
+      const requested = Promise.withResolvers();
+      const release = Promise.withResolvers();
+      await page.route('**/__scopehub/workspace', async route => {
+        if (route.request().postDataJSON()?.type === 'frozen_chart') {
+          requested.resolve();
+          await release.promise;
+        }
+        await route.continue();
+      });
+      await page.reload();
+      await requested.promise;
+      const saved = await studioFor(page, true);
+      await expect(saved.getByLabel('Program source')).toHaveValue(revised);
+      await expect(saved.getByLabel('Program geometry')).toHaveCount(0);
+      release.resolve();
+      await expect(saved.getByLabel('Program geometry').locator('circle')).toHaveCount(3);
+      await button(saved, 'Back to chart').click();
+
+      const blank = await studioFor(page);
+      await expect(blank.getByLabel('Program source')).toHaveValue('');
+      await expect(blank.getByLabel('Program geometry')).toHaveCount(0);
+      await blank.getByRole('combobox', { name: 'Accepted version', exact: true }).selectOption(data.version_id);
+      await blank.getByRole('combobox', { name: 'Numeric series', exact: true }).selectOption({ label: 'mean' });
+      await expect(blank.getByText('Accepted series source', { exact: true })).toBeVisible();
+      await blank.getByLabel('Open local drawing program').setInputFiles(file('strips'));
+      await button(blank, 'Accept view').click();
+      const layoutName = blank.getByLabel('Layout name');
+      await expect(layoutName).toHaveValue('');
+      await layoutName.fill(name);
+      await expect(button(blank, 'Save accepted view')).toBeDisabled();
+      await layoutName.fill('Second view');
+      await button(blank, 'Save accepted view').click();
+      await expect(blank.getByText('Saved in workspace layout')).toBeVisible();
+      await expect(blank.getByLabel('Program geometry').locator('rect')).toHaveCount(3);
+      await button(blank, 'Back to chart').click();
+      await button(page, 'Edit layout').click();
+      const editor = page.getByRole('dialog', { name: 'Edit workspace layout' });
+      await editor.getByRole('combobox', { name: 'Saved layout' }).selectOption(name);
+      await button(editor, 'Preview saved layout').click();
+      await button(page, 'Apply layout').click();
+      const restored = await studioFor(page, true);
+      await expect(restored.getByLabel('Program source')).toHaveValue(revised);
+      await expect(restored.getByLabel('Program geometry').locator('circle').first()).toHaveAttribute('r', '7');
+      expect((await dispatch({ type: 'snapshot' })).result.layouts.saved.sort()).toEqual(['Second view', name]);
+      await revoke(root, data.revision);
+      await expect(restored.getByLabel('Program geometry')).toHaveCount(0);
+      await expect(restored.getByLabel('Program source')).toHaveValue(revised);
+      await expect(restored.getByText(data.result_hash)).toHaveCount(0);
+    });
     await withWorkspace(browser, data.profile, async page => {
       const studio = await studioFor(page, true);
       await expect(studio.getByLabel('Program source')).toHaveValue(revised);
