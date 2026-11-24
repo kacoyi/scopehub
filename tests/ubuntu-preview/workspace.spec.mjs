@@ -1,11 +1,13 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { createServer as createHttpServer } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -17,6 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
 const exec = promisify(execFile);
@@ -33,8 +36,10 @@ const snapshot = { type: 'snapshot' };
 // SQLite read when the actual producer is deliberately suspended.
 const admissionProbe = { type: 'snapshot', request_id: 1 };
 const snapshotGateModule = new URL('./workspace_snapshot_gate.mjs', import.meta.url).href;
+const activeCacheSlots = new Set();
+const firstHistoryDisconnectHoldMs = 5_500;
 const service = `
-  const [entry, mode, port, faultEnabled, snapshotWriter] = process.argv.slice(1);
+  const [entry, mode, port, cacheDir, faultEnabled, snapshotWriter, traceStartup] = process.argv.slice(1);
   const shutdown = Promise.withResolvers();
   let closing = !process.connected;
   let interrupted;
@@ -51,6 +56,7 @@ const service = `
   process.on('message', message => {
     if (message === 'close') requestClose();
     else if (message === 'cut-history') cutHistory();
+    else if (message?.type === 'history-barrier') console.info('Preview history barrier ' + message.id);
   });
   const plugins = faultEnabled ? [{
     name: 'scopehub-test-history-response-interruption',
@@ -82,7 +88,7 @@ const service = `
                 id: request.headers['${traceHeader}'], stage: 'held-disconnect', elapsed_ms: Math.round(performance.now() - start),
               }));
               response.destroy();
-            }, 5500);
+            }, ${firstHistoryDisconnectHoldMs});
             response.once('close', () => clearTimeout(timer));
             return response;
           }
@@ -102,13 +108,24 @@ const service = `
     : undefined;
   if (snapshotGate) plugins.push(snapshotGate.plugin);
   let server;
+  function reportStartup(phase, code) {
+    if (traceStartup && process.connected) process.send({ type: '${startupMessage}', phase, code }, () => {});
+  }
   async function start() {
     if (closing) return;
+    reportStartup('importing');
     const { createServer } = await import(entry);
     if (closing) return;
+    reportStartup('configuring');
     // These journeys restart the service explicitly. Leave file watching to interactive Vite.
-    server = await createServer({ mode, plugins, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
-    if (!closing) await server.listen();
+    server = await createServer({ mode, plugins, cacheDir, server: { host: '127.0.0.1', port: Number(port), strictPort: true, watch: null } });
+    if (closing) return;
+    if (traceStartup) {
+      server.httpServer.once('listening', () => reportStartup('listening'));
+      server.httpServer.once('error', error => reportStartup('bind-error', error.code));
+    }
+    reportStartup('binding');
+    await server.listen();
   }
   try {
     await start();
@@ -123,14 +140,6 @@ const service = `
     }
   }
 `;
-
-test.beforeAll(async ({}, testInfo) => {
-  testInfo.setTimeout(300_000);
-  await exec('cargo', [
-    'build', '--locked', '-p', 'scopehub-persistence', '--bin', 'workspace_bridge',
-    '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--bin', 'scopehub-indicator-child', '--target-dir', 'target',
-  ], { cwd: root, timeout: 295_000 });
-});
 
 test('fresh browsers restore committed timeframe and eligible undo after service restarts', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
@@ -2406,9 +2415,43 @@ async function expectedLayerRead(historyRequest) {
   };
 }
 
+function historyWireAttempts(stages = []) {
+  const attempts = new Map();
+  for (const { attempt, ...event } of stages) {
+    if (event.stage === 'held-disconnect' || event.stage === 'held-success') continue;
+    expect(attempt, 'Each HTTP history trace has an attempt ID').toEqual(expect.any(String));
+    if (!attempts.has(attempt)) attempts.set(attempt, []);
+    attempts.get(attempt).push(event);
+  }
+  return [...attempts.values()];
+}
+
+function historyAttemptsComplete(stages) {
+  const attempts = historyWireAttempts(stages);
+  let complete = attempts.length > 0;
+  for (const events of attempts) {
+    expect(events[0].stage, 'An HTTP history attempt starts with receipt').toBe('received');
+    const terminals = events.filter(event => event.stage === 'finished' || event.stage === 'closed');
+    expect(terminals.length, 'One terminal per HTTP history attempt').toBeLessThanOrEqual(1);
+    if (terminals.length === 0) complete = false;
+    else expect(events.at(-1), 'The terminal ends the HTTP history attempt').toBe(terminals[0]);
+  }
+  return complete;
+}
+
+function expectDisconnectedHistory(stages) {
+  const attempts = historyWireAttempts(stages);
+  expect(attempts.length).toBeGreaterThan(0);
+  for (const events of attempts) {
+    expect(events).toEqual([
+      { stage: 'received' }, { stage: 'admitted' }, { stage: 'closed', status: 200 },
+    ]);
+  }
+}
+
 async function sampleStep(page, server, testInfo, label, trigger, {
   timeframe = '1m', catalog = true, error, retryable = false, historyCall = sampleHistoryCall(timeframe),
-  bars = futureHistory[timeframe],
+  bars = futureHistory[timeframe], fixtureHoldMs = 0,
 } = {}) {
   const observer = observeSampleRequests(page, { marketOnly: true });
   const selection = { id: future, timeframe };
@@ -2419,12 +2462,22 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     await expect(page.locator('.connection')).toHaveText('Offline sampleSimulated');
     await expect(control(page, timeframe)).toHaveAttribute('aria-pressed', 'true');
     if (catalog) await observer.read(sampleCatalogCall.operation);
-    await observer.read('market.readHistoryPage', { allowFailure: Boolean(error) });
+    await observer.read('market.readHistoryPage', { allowFailure: Boolean(error), fixtureHoldMs });
     terminal = await waitForSelectedHistoryTerminal(page, history.locator('canvas').first(), selection);
     expect(terminal, label).toEqual(error ? { state: 'error', message: error } : { state: 'chart' });
     await expect(retryHistory(page)).toHaveCount(retryable ? 1 : 0);
     if (error) await expect(page.locator('.history')).toHaveCount(0);
     else await expect(history).toHaveAttribute('data-bars', String(bars));
+
+    const terminalRequest = [...observer.attempts.keys()].at(-1);
+    const allHistoryAttemptsComplete = () => [...observer.attempts.keys()]
+      .map(request => historyAttemptsComplete(server.historyStages.get(request.headers()[traceHeader])))
+      .every(Boolean);
+    // The browser terminal can precede the arrival of already emitted stdout.
+    // Drain those receipts, then wait for each observed response to terminate.
+    await server.flushHistoryTrace();
+    await expect.poll(allHistoryAttemptsComplete,
+      { message: `Waiting for all HTTP history attempts to close or finish: ${label}` }).toBe(true);
 
     const expected = [...(catalog ? [sampleCatalogCall] : []), historyCall];
     let phase = 0;
@@ -2459,10 +2512,8 @@ async function sampleStep(page, server, testInfo, label, trigger, {
       }
     }
     expect(phase, label).toBe(expected.length);
-    const terminalRequest = [...observer.attempts.keys()].at(-1);
-    // The service's stdout and the browser events arrive independently.
-    await expect.poll(() => server.historyStages.get(terminalRequest.headers()[traceHeader])?.at(-1)?.stage)
-      .toMatch(/^(finished|closed)$/);
+    await server.flushHistoryTrace();
+    expect(allHistoryAttemptsComplete()).toBe(true);
     return terminalRequest;
   } finally {
     observer.stop();
@@ -2473,6 +2524,60 @@ async function sampleStep(page, server, testInfo, label, trigger, {
     }));
     await testInfo.attach(label, { contentType: 'application/json', body: JSON.stringify({ selection, terminal, attempts }) });
   }
+}
+
+for (const finishes of [true, false]) {
+  const outcome = finishes ? 'observes a late retry terminal' : 'rejects a missing retry terminal';
+  test(`reopened history observer ${outcome}`, async ({}, testInfo) => {
+    const page = new EventEmitter();
+    const request = {
+      method: () => 'POST', url: () => `http://127.0.0.1${operationPath}`, postDataJSON: () => sampleHistoryCall(),
+      failure: () => ({ errorText: 'net::ERR_EMPTY_RESPONSE' }), isNavigationRequest: () => false,
+    };
+    const response = { request: () => request, status: () => 200 };
+    const holdMs = 5_500;
+    const lateMs = holdMs + 15_000 - 1;
+    const clock = { probes_ms: [] };
+    const poll = (read, { timeout, message }) => ({
+      async toBe(expected) {
+        clock.deadline_ms = timeout;
+        for (const at of new Set([0, holdMs, 18_000, lateMs, timeout].filter(at => at <= timeout))) {
+          if (at === 0) page.emit('request', request);
+          // The physical retry is hidden from the browser's logical request observer.
+          if (at === lateMs) {
+            if (finishes) page.emit('requestfailed', request);
+            else page.emit('response', response);
+          }
+          clock.probes_ms.push(at);
+          if (await read() === expected) return;
+        }
+        throw new Error(message);
+      },
+    });
+    const observer = observeSampleRequests(page, { marketOnly: true, poll });
+    try {
+      const settled = observer.read('market.readHistoryPage', { allowFailure: true, fixtureHoldMs: holdMs });
+      if (finishes) {
+        await settled;
+        expect(observer.attempts.get(request).failure).toBe('net::ERR_EMPTY_RESPONSE');
+        expect(clock.probes_ms.at(-1)).toBe(lateMs);
+      } else {
+        await expect(settled).rejects.toThrow('to settle during sample startup');
+        expect(observer.attempts.get(request)).toMatchObject({ response });
+        expect(observer.attempts.get(request).finished).toBeUndefined();
+        expect(observer.attempts.get(request).failure).toBeUndefined();
+        expect(clock.probes_ms.at(-1)).toBe(23_500);
+      }
+      expect(observer.attempts.size).toBe(1);
+      expect(clock.deadline_ms).toBe(23_500);
+    } finally {
+      observer.stop();
+      await testInfo.attach('reopened-history-observer-clock', {
+        body: JSON.stringify({ ...clock, hold_ms: holdMs, retry_event_ms: lateMs, terminal_supplied: finishes }),
+        contentType: 'application/json',
+      });
+    }
+  });
 }
 
 test('the offline sample keeps its own timeframe without replacing the private undo', async ({ browser }, testInfo) => {
@@ -2637,6 +2742,31 @@ test('the offline sample keeps its own timeframe without replacing the private u
 
 test('the reopened sample recovers its history without consuming the private undo', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
+  await test.step('correlate history terminals across a controlled socket retry interleaving', () => {
+    const first = [
+      { attempt: 'first', stage: 'received' }, { attempt: 'first', stage: 'admitted' },
+      { stage: 'held-disconnect', elapsed_ms: 5507 }, { attempt: 'first', stage: 'closed', status: 200 },
+    ];
+    const second = [
+      { attempt: 'second', stage: 'received' }, { attempt: 'second', stage: 'admitted' },
+      { attempt: 'second', stage: 'closed', status: 200 },
+    ];
+    // PR 77's Windows trace admitted the second request before recording the first close.
+    const interleaved = [...first.slice(0, -1), ...second.slice(0, -1), first.at(-1), second.at(-1)];
+    for (const trace of [first, interleaved]) {
+      expect(historyAttemptsComplete(trace)).toBe(true);
+      expectDisconnectedHistory(trace);
+    }
+    expect(historyAttemptsComplete(first.slice(0, -1))).toBe(false);
+    expect(historyAttemptsComplete(interleaved.slice(0, -1))).toBe(false);
+    expect(() => historyAttemptsComplete([...interleaved, first.at(-1)])).toThrow('One terminal per HTTP history attempt');
+    for (const [status, prior] of [[200, { stage: 'admitted' }], [403, { stage: 'failed', code: 'PERMISSION_DENIED' }]]) {
+      const finished = { attempt: 'first', stage: 'finished', status };
+      const trace = [first[0], { attempt: 'first', ...prior }, finished];
+      expect(historyAttemptsComplete(trace)).toBe(true);
+      expect(() => historyAttemptsComplete([...trace, finished])).toThrow('One terminal per HTTP history attempt');
+    }
+  });
   const profile = await makeProfile();
   const port = await freePort();
   const disconnected = 'Disconnected from the local preview. Retry when the connection is restored.';
@@ -2689,11 +2819,14 @@ test('the reopened sample recovers its history without consuming the private und
         };
 
         const initial = await step('healthy open before interruption', open);
-        const initialHistory = (await initial.existingResponse().json()).result.snapshot;
+        const initialHistory = (await initial.existingResponse().json()).result;
         await leaveSample(page);
         await expect(undo).toBeEnabled();
         await inject('before-headers', undefined, async () => {
-          const failed = await step('reopen with lost history response', open, { error: disconnected, retryable: true });
+          // The deliberate hold precedes any physical retry and its own preview watchdog.
+          const failed = await step('reopen with lost history response', open, {
+            error: disconnected, retryable: true, fixtureHoldMs: firstHistoryDisconnectHoldMs,
+          });
           const stillLost = await step('retry while still disconnected', retry, { catalog: false, error: disconnected, retryable: true });
           for (const request of [failed, stillLost]) {
             const [attempt] = await readMarketAttemptStages(page, [request]);
@@ -2705,15 +2838,8 @@ test('the reopened sample recovers its history without consuming the private und
             const stages = server.historyStages.get(attempt.trace);
             const holds = stages.filter(stage => stage.stage === 'held-disconnect');
             expect(holds).toHaveLength(request === failed ? 1 : 0);
-            if (holds.length) expect(holds[0].elapsed_ms).toBeGreaterThan(5000);
-            const host = stages.filter(stage => stage.stage !== 'held-disconnect');
-            expect(host.length).toBeGreaterThanOrEqual(3);
-            // Chromium can resend the same HTTP request when a reused socket closes before headers.
-            for (let i = 0; i < host.length; i += 3) {
-              expect(host.slice(i, i + 3)).toEqual([
-                { stage: 'received' }, { stage: 'admitted' }, { stage: 'closed', status: 200 },
-              ]);
-            }
+            if (request === failed) expect(holds[0].elapsed_ms).toBeGreaterThan(5000);
+            expectDisconnectedHistory(stages);
           }
           expect(failed.headers()[traceHeader]).not.toBe(stillLost.headers()[traceHeader]);
           expect(await privateState(3, 'sample')).toEqual(before);
@@ -2729,7 +2855,7 @@ test('the reopened sample recovers its history without consuming the private und
         });
         const restored = await step('explicit history retry after transport is restored', retry, { catalog: false });
         expect(restored.postDataJSON()).toEqual(selectedCall);
-        expect((await restored.existingResponse().json()).result.snapshot).toEqual(initialHistory);
+        expect((await restored.existingResponse().json()).result).toEqual(initialHistory);
         await expect(undo).toHaveCount(0);
         await assertSampleStorage(page, '1m');
         await leaveSample(page);
@@ -2751,9 +2877,9 @@ test('the reopened sample recovers its history without consuming the private und
           expect(attempt).toMatchObject({
             status: 403, client: { stage: 'body-rejected', status: 403, error: 'TypeError', selectionAborted: false },
           });
-          expect(server.historyStages.get(attempt.trace)).toEqual([
+          expect(historyWireAttempts(server.historyStages.get(attempt.trace))).toEqual([[
             { stage: 'received' }, { stage: 'failed', code: 'PERMISSION_DENIED' }, { stage: 'closed', status: 403 },
-          ]);
+          ]]);
         });
         await leaveSample(page);
         await inject(null, payload => { payload.expected_revision = 'scopehub-synthetic-v1:20241013:missing'; }, async () => {
@@ -2976,6 +3102,150 @@ test('losing parent IPC releases the listener and writer with a history response
     await testInfo.attach('workspace-parent-disconnect', { body: JSON.stringify(observation), contentType: 'application/json' });
   }
 });
+
+test('workspace readiness rejects the previous listener response and probes the replacement', async () => {
+  const child = Object.assign(new EventEmitter(), { pid: process.pid, exitCode: null, signalCode: null });
+  const oldProbe = Promise.withResolvers();
+  const previous = createHttpServer((_request, response) => oldProbe.resolve(response));
+  const replacementSockets = [];
+  const replacement = createHttpServer((request, response) => {
+    replacementSockets.push(request.socket.remotePort);
+    response.writeHead(200, { Connection: 'close' }).end('Current listener');
+  });
+  const port = await freePort();
+  let previousClosed;
+  try {
+    await once(previous.listen(port, '127.0.0.1'), 'listening');
+    const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port });
+    const readiness = startup.wait(`http://127.0.0.1:${port}`);
+    const oldResponse = await oldProbe.promise;
+    const previousSocket = oldResponse.socket.remotePort;
+    previousClosed = once(previous.close(), 'close');
+    await once(replacement.listen(port, '127.0.0.1'), 'listening');
+    child.emit('message', { type: startupMessage, phase: 'listening' });
+    oldResponse.writeHead(200, { Connection: 'keep-alive' }).end('Previous listener');
+
+    expect(await readiness).toBeUndefined();
+    expect(replacementSockets).toHaveLength(1);
+    expect(replacementSockets[0]).not.toBe(previousSocket);
+  } finally {
+    if (previous.listening) previousClosed = once(previous.close(), 'close');
+    previous.closeAllConnections();
+    await previousClosed;
+    if (replacement.listening) await once(replacement.close(), 'close');
+  }
+});
+
+test('workspace readiness omits capability fragments at the drained output boundary', () => {
+  const child = new EventEmitter();
+  const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port: 1455 });
+  const suffix = '4e2c5a7b8d0f19';
+  const chunks = ['#workspace=' + 'a'.repeat(50), suffix, 'x'.repeat(6000 - suffix.length)];
+  const tail = chunks.reduce((recent, chunk) => (recent + chunk).slice(-6000), '');
+  expect(tail.startsWith(suffix)).toBe(true);
+  const failure = startup.failure({ reason: 'readiness-timeout' }, {}, tail);
+  expect(failure.message.includes(suffix)).toBe(false);
+  expect(JSON.stringify(failure.startup).includes(suffix)).toBe(false);
+});
+
+for (const [title, chunks, expected] of [
+  ['ignores a stderr notice followed by unrelated stdout', [
+    ['stderr', '  ➜  Local:   http://127.0.0.1:1455/\n'], ['stdout', 'Unrelated startup output\n'],
+  ], []],
+  ['accepts split stdout with an intervening stderr warning', [
+    ['stdout', '  ➜  \x1b[1mLocal\x1b[22m:   http://127.0.'],
+    ['stderr', 'Unrelated warning\n'], ['stdout', '0.1:1455/\n'],
+  ], ['listening']],
+]) {
+  test(`workspace CLI readiness ${title}`, () => {
+    const child = Object.assign(new EventEmitter(), { stdout: new PassThrough(), stderr: new PassThrough() });
+    const startup = observeServiceStartup(child, { startedAt: performance.now(), mode: 'ubuntu-workspace', port: 1455 });
+    const output = captureServiceOutput(child, startup.observeCliStdout);
+    for (const [stream, chunk] of chunks) child[stream].write(chunk);
+    child.stdout.end();
+    child.stderr.end();
+    const { phases, output: notices } = startup.failure({ reason: 'test-observation' }, {}, output.recent()).startup;
+    expect(phases.map(({ phase }) => phase)).toEqual(expected);
+    expect(notices).toBe('');
+  });
+}
+
+for (const occupied of [true, false]) {
+  const cause = occupied ? 'a claimed port' : 'a live child held before listening';
+  test(`workspace service readiness distinguishes ${cause}`, async ({}, testInfo) => {
+    const profile = await makeProfile();
+    const port = await freePort();
+    // Keep the deliberately held fixture short and leave the ordinary deadline in place.
+    const holdTimeoutMs = occupied ? undefined : 500;
+    const blocker = occupied ? createHttpServer((_request, response) => {
+      response.writeHead(200, { Connection: 'close' }).end('Another loopback server');
+    }) : undefined;
+    const entry = occupied ? undefined : 'data:text/javascript,' + encodeURIComponent(`
+      import { createServer as configure } from ${JSON.stringify(vite)};
+      import { setTimeout as delay } from 'node:timers/promises';
+      export async function createServer(options) {
+        await delay(700);
+        const server = await configure(options);
+        server.listen = async () => {
+          await new Promise(resolve => {
+            process.on('message', message => { if (message === 'close') resolve(); });
+            process.once('disconnect', resolve);
+            process.send({ type: ${JSON.stringify(startupMessage)}, phase: 'held-before-listen' });
+          });
+          console.error('x'.repeat(6200));
+          console.error('Fixture released its unbound listener during cleanup.');
+          console.error('#workspace=' + 'a'.repeat(64));
+          return server;
+        };
+        return server;
+      }
+    `);
+    try {
+      if (blocker) await once(blocker.listen(port, '127.0.0.1'), 'listening');
+      const failure = await inService(port, profile, 'ubuntu-workspace', () => {
+        throw new Error('The test service must not report readiness');
+      }, { entry, holdTimeoutMs }).catch(error => error);
+      const startup = failure?.startup;
+      await testInfo.attach('workspace-service-startup', {
+        body: JSON.stringify(startup ?? { message: failure?.message }), contentType: 'application/json',
+      });
+      expect(startup).toMatchObject({
+        requested_port: port, pid: expect.any(Number),
+        reason: occupied ? 'child-exited' : 'readiness-timeout',
+        alive_at_failure: !occupied,
+        close: { code: occupied ? 1 : 0, signal: null, elapsed_ms: expect.any(Number) },
+        forced_kill_requested_ms: null,
+      });
+      expect(startup.phases.map(({ phase }) => phase)).not.toContain('listening');
+      expect(startup.cleanup_started_ms).toBeGreaterThanOrEqual(startup.failure_ms);
+      expect(startup.close.elapsed_ms).toBeGreaterThanOrEqual(startup.exit.elapsed_ms);
+      if (occupied) {
+        expect(startup.exit.elapsed_ms).toBeLessThanOrEqual(startup.failure_ms);
+        expect(startup.phases).toContainEqual(expect.objectContaining({ phase: 'bind-error', code: 'EADDRINUSE' }));
+        expect(startup.output).toContain(`Port ${port} is already in use`);
+      } else {
+        const hold = startup.phases.find(({ phase }) => phase === 'held-before-listen');
+        expect(hold).toBeDefined();
+        expect(hold.elapsed_ms).toBeGreaterThan(holdTimeoutMs);
+        expect(startup.failure_ms - hold.elapsed_ms).toBeGreaterThanOrEqual(holdTimeoutMs);
+        expect(startup.exit.elapsed_ms).toBeGreaterThanOrEqual(startup.cleanup_started_ms);
+        expect(startup.phases).toContainEqual(expect.objectContaining({ phase: 'binding' }));
+        expect(startup.probe.outcomes.ECONNREFUSED).toBeGreaterThan(0);
+        expect(startup.output).toContain('Fixture released its unbound listener during cleanup.');
+        expect(startup.output.includes('#workspace=')).toBe(false);
+        expect(failure.message).not.toContain('a'.repeat(64));
+        expect(startup.output.length).toBeLessThanOrEqual(6000);
+      }
+      expect(alive(startup.pid)).toBe(false);
+      await expect(stat(join(profile.root, 'workspace.sqlite3'))).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(stat(join(profile.root, `workspace-access-${port}.html`))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      if (blocker?.listening) await once(blocker.close(), 'close');
+      await profile.close();
+    }
+    expect(await portAvailable(port)).toBe(true);
+  });
+}
 
 for (const phase of ['before configuration', 'during configuration', 'after duplicate close messages']) {
   test(`losing parent IPC ${phase} exits without starting the workspace writer`, async () => {
@@ -3400,12 +3670,22 @@ for (const [name, reason] of [
 }
 
 async function freePort(requestedPort = 0) {
-  const server = createServer();
-  server.listen(requestedPort, '127.0.0.1');
-  await once(server, 'listening');
-  const port = server.address().port;
-  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-  return port;
+  for (;;) {
+    const server = createServer();
+    server.listen(requestedPort, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      const port = server.address().port;
+      // Retain first allocations for the run so another case cannot claim a
+      // port between a probe and Vite's bind, or between service restarts.
+      if (!requestedPort) await mkdir(join(process.env.SCOPEHUB_WORKSPACE_TEST_RUN, 'ports', String(port)));
+      return port;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+    } finally {
+      await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
+  }
 }
 
 async function portAvailable(port) {
@@ -3418,11 +3698,17 @@ async function portAvailable(port) {
   }
 }
 
-function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite }) {
+function spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry = vite, traceStartup }) {
+  // Vite publishes its dependency cache by renaming directories. Reuse warm
+  // caches across launches, but give every live server its own write path.
+  let slot = 0;
+  while (activeCacheSlots.has(slot)) slot += 1;
+  const cacheDir = join(process.env.SCOPEHUB_WORKSPACE_TEST_RUN, process.env.TEST_WORKER_INDEX, mode, String(slot));
   const args = terminalSignal
     ? [viteCli, '--mode', mode, '--host', '127.0.0.1', '--port', String(port), '--strictPort']
-    : ['--input-type=module', '--eval', service, entry, mode, String(port), historyFault ? '1' : '', ...(snapshotGate ? [workspaceBridge] : [])];
-  return spawn(process.execPath, args, {
+    : ['--input-type=module', '--eval', service, entry, mode, String(port), cacheDir,
+      historyFault ? '1' : '', snapshotGate ? workspaceBridge : '', traceStartup ? '1' : ''];
+  const child = spawn(process.execPath, args, {
     cwd: ui,
     env: {
       ...process.env,
@@ -3433,37 +3719,45 @@ function spawnService(port, profile, mode, { terminalSignal, historyTrace, histo
     },
     stdio: terminalSignal ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe', 'ipc'],
   });
+  if (!terminalSignal) {
+    activeCacheSlots.add(slot);
+    child.once('exit', () => activeCacheSlots.delete(slot));
+  }
+  return child;
 }
 
-async function reapService(child, done) {
-  const grace = setTimeout(() => child.kill('SIGKILL'), 7_000);
+async function reapService(child, done, onForcedKill) {
+  const grace = setTimeout(() => {
+    onForcedKill?.();
+    child.kill('SIGKILL');
+  }, 7_000);
   try { return await done; }
   finally { clearTimeout(grace); }
 }
 
-async function inService(port, profile, mode, use, { expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false } = {}) {
+async function inService(port, profile, mode, use, {
+  expectHandoff = true, terminalSignal, historyTrace = false, historyFault = false, snapshotGate = false, entry, holdTimeoutMs,
+} = {}) {
   const url = 'http://127.0.0.1:' + port;
-  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate });
-  const closed = once(child, 'close');
+  const startedAt = performance.now();
+  const child = spawnService(port, profile, mode, { terminalSignal, historyTrace, historyFault, snapshotGate, entry, traceStartup: true });
+  const startup = observeServiceStartup(child, { startedAt, mode, port });
+  const output = captureServiceOutput(child, terminalSignal ? startup.observeCliStdout : undefined);
+  let startupFailure;
   let disconnectedExit;
   let disconnectedWriter;
-  let output = '';
-  let handoffRejected = false;
   const historyStages = new Map();
-  for (const stream of [child.stdout, child.stderr]) {
-    stream.setEncoding('utf8');
-    stream.on('data', chunk => {
-      const recent = output + chunk;
-      handoffRejected ||= recent.includes('The private workspace handoff could not be issued.');
-      output = recent.slice(-6000);
-    });
-  }
+  const historyBarriers = new EventEmitter();
   if (historyTrace) {
     let pending = '';
     child.stdout.on('data', chunk => {
       const lines = (pending + chunk).split('\n');
       pending = lines.pop();
       for (const line of lines) {
+        if (line.startsWith('Preview history barrier ')) {
+          historyBarriers.emit(line.slice('Preview history barrier '.length));
+          continue;
+        }
         if (!line.startsWith('Preview history ')) continue;
         const { id, ...stage } = JSON.parse(line.slice('Preview history '.length));
         if (!historyStages.has(id)) historyStages.set(id, []);
@@ -3471,15 +3765,23 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
       }
     });
   }
+  const send = message => new Promise((resolve, reject) => {
+    child.send(message, error => error ? reject(error) : resolve());
+  });
   const server = {
     url, pid: child.pid,
     handoff: join(profile.root, 'workspace-access-' + port + '.html'),
-    handoffRejected: () => handoffRejected,
+    handoffRejected: output.handoffRejected,
     historyStages,
+    flushHistoryTrace: async () => {
+      const id = randomUUID();
+      await Promise.all([
+        once(historyBarriers, id, { signal: AbortSignal.timeout(5_000) }),
+        send({ type: 'history-barrier', id }),
+      ]);
+    },
     ...(snapshotGate && { tagSnapshot: observeSnapshotGate(child) }),
-    cutHistoryResponse: () => new Promise((resolve, reject) => {
-      child.send('cut-history', error => error ? reject(error) : resolve());
-    }),
+    cutHistoryResponse: () => send('cut-history'),
     disconnectOwner: writer => {
       expect(child.connected).toBe(true);
       disconnectedWriter = writer;
@@ -3490,20 +3792,8 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
     },
   };
   try {
-    const deadline = Date.now() + 10_000;
-    for (;;) {
-      if (child.exitCode !== null || child.signalCode !== null || Date.now() > deadline) {
-        throw new Error(`Vite failed to start in ${mode}: ${output}`);
-      }
-      const response = await fetch(url, { signal: AbortSignal.timeout(500) }).catch(() => null);
-      if (response?.ok) {
-        await response.body.cancel();
-        break;
-      }
-      await response?.body?.cancel();
-      await delay(30);
-    }
-    if (mode === 'ubuntu-workspace' && expectHandoff) {
+    startupFailure = await startup.wait(url, holdTimeoutMs);
+    if (!startupFailure && mode === 'ubuntu-workspace' && expectHandoff) {
       await expect.poll(async () => {
         const content = await readFile(server.handoff, 'utf8').catch(error => {
           if (error.code === 'ENOENT') return '';
@@ -3516,8 +3806,9 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
         return true;
       }, { message: 'The launcher issued a private access document', timeout: 12_000 }).toBe(true);
     }
-    await use(server);
+    if (!startupFailure) await use(server);
   } finally {
+    const cleanupStarted = startup.elapsed();
     try {
       if (terminalSignal) child.kill(terminalSignal);
       else if (child.connected) child.send('close', () => {});
@@ -3529,9 +3820,18 @@ async function inService(port, profile, mode, use, { expectHandoff = true, termi
         }
       }
     } finally {
-      const [, signal] = await reapService(child, disconnectedExit ?? closed);
+      let forcedKillRequested = null;
+      const [, signal] = await reapService(child, disconnectedExit ?? startup.closed, () => {
+        forcedKillRequested = startup.elapsed();
+      });
+      const recentOutput = output.recent();
+      if (server.capability) expect(!recentOutput.includes(server.capability)).toBe(true);
+      if (startupFailure) {
+        throw startup.failure(startupFailure, {
+          cleanup_started_ms: cleanupStarted, forced_kill_requested_ms: forcedKillRequested,
+        }, recentOutput);
+      }
       expect(signal).not.toBe('SIGKILL');
-      if (server.capability) expect(!output.includes(server.capability)).toBe(true);
     }
   }
 }

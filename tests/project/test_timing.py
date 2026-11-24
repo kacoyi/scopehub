@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from scripts import ci_artifacts, timing
+from scripts import ci, ci_artifacts, timing
 from tests.project.fixtures import isolated_git_environment
 
 
@@ -175,6 +175,101 @@ class ReportTimingTests(unittest.TestCase):
 
 
 class HostedTimingTests(unittest.TestCase):
+    def split_windows_jobs(self, *, scoped=False):
+        full = 'Run uv run python scripts/check.py --require-windows'
+        core = hosted_job(32, 'windows', '00:20', '02:00' if scoped else '09:00',
+                          'Verify records changes' if scoped else 'Verify the Windows core lane',
+                          '01:10', '01:50' if scoped else '08:40')
+        browser = hosted_job(33, 'windows', '00:40', '00:54' if scoped else '12:00',
+                             'Select the Windows lane work' if scoped else 'Verify the Windows browser lane',
+                             '00:41' if scoped else '02:00', '00:48' if scoped else '11:25')
+        python = hosted_job(34, 'windows', '00:30', '00:58' if scoped else '08:00',
+                            'Select the Windows lane work' if scoped else 'Verify the Windows python lane',
+                            '00:35' if scoped else '01:00', '00:50' if scoped else '07:50')
+        aggregate = hosted_job(35, 'windows', '02:08' if scoped else '12:08', '02:45' if scoped else '12:45',
+                               'Verify records changes' if scoped else full,
+                               '02:25' if scoped else '12:27', '02:35' if scoped else '12:35')
+        for name, row in zip(('core', 'browser', 'python'), (core, browser, python), strict=True):
+            row['name'] = f'Windows change checks ({name})'
+        if not scoped:
+            browser['steps'].append(hosted_job(33, 'windows', '00:40', '12:00',
+                                               'Install and start the pinned chart-test browser',
+                                               '01:05', '01:35')['steps'][0])
+        aggregate['steps'].append({'name': 'Require successful Windows lane jobs', 'conclusion': 'skipped'})
+        linux = hosted_job(31, 'ubuntu', '00:10', '08:30', 'Run pnpm check', '00:50', '08:10')
+        return linux, core, browser, python, aggregate
+
+    def test_split_windows_distinguishes_actual_runner_work_from_the_protected_wall(self):
+        linux, core, browser, python, aggregate = self.split_windows_jobs()
+        setup = hosted_job(36, 'ubuntu', '00:05', '00:17', 'Select scope', '00:06', '00:16')
+        setup.update(name='Verification scope')
+        skipped = dict(setup, id=37, name='Unused job', conclusion='skipped')
+        result = timing.hosted_timing(hosted_run(), [linux, core, browser, python, aggregate, setup, skipped])
+        self.assertTrue(timing.clock_complete(result))
+        self.assertEqual(765, result['workflow']['total_elapsed_seconds'])
+        self.assertEqual(2199, result['workflow']['runner_work_seconds'])
+        windows, = (row for row in result['jobs'] if row['platform'] == 'Windows')
+        self.assertEqual({'queue': 8, 'initial_queue': 20, 'setup': 40, 'aggregate_setup': 19,
+                          'harness_step': 695, 'tail': 10, 'runner': 1687, 'total': 765, 'browser_step': 30},
+                         windows['seconds'])
+        self.assertCountEqual(['Windows change checks (core)', 'Windows change checks (browser)',
+                               'Windows change checks (python)', 'Verification scope'],
+                              [row['name'] for row in result['sibling_jobs']])
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+        for cache in ('warm', 'unknown'):
+            with self.subTest(cache=cache):
+                review, = timing.timing_view([timing.report_sample(report, cache=cache)], hosted=[result])['reviews']
+                self.assertEqual(cache, review['cache'])
+                self.assertEqual({'total': 765, 'queue': 8, 'aggregate_setup': 19, 'harness_step': 695},
+                                 {row['metric']: row['recent_median_seconds'] for row in review['metrics']
+                                  if row['metric'] in {'total', 'queue', 'aggregate_setup', 'harness_step'}})
+
+    def test_scoped_windows_counts_launched_setup_siblings_and_uses_only_the_core_harness(self):
+        run = dict(hosted_run(), event='push')
+        result = timing.hosted_timing(run, self.split_windows_jobs(scoped=True))
+        self.assertTrue(timing.clock_complete(result))
+        self.assertEqual(510, result['workflow']['total_elapsed_seconds'])
+        self.assertEqual(679, result['workflow']['runner_work_seconds'])
+        windows, = (row for row in result['jobs'] if row['platform'] == 'Windows')
+        self.assertEqual((8, 85, 179, 165, None),
+                         tuple(windows['seconds'][key] for key in ('queue', 'harness_step', 'runner', 'total', 'browser_step')))
+
+    def test_split_windows_leaves_missing_job_identity_and_clock_explicit(self):
+        linux, core, browser, python, aggregate = self.split_windows_jobs()
+        for jobs in ([linux, aggregate], [linux, core, browser, aggregate],
+                     [linux, core, dict(browser, run_attempt=2), python, aggregate]):
+            with self.subTest(job_count=len(jobs), jobs=[row['name'] for row in jobs]):
+                result = timing.hosted_timing(hosted_run(), jobs)
+                self.assertFalse(result['workflow']['identity_complete'])
+                self.assertIsNone(result['workflow']['total_elapsed_seconds'])
+                self.assertIsNone(result['workflow']['runner_work_seconds'])
+                self.assertFalse(timing.clock_complete(result))
+
+        result = timing.hosted_timing(hosted_run(), [linux, core, dict(browser, completed_at=None), python, aggregate])
+        windows, = (row for row in result['jobs'] if row['platform'] == 'Windows')
+        self.assertTrue(result['workflow']['identity_complete'])
+        self.assertEqual(765, result['workflow']['total_elapsed_seconds'])
+        self.assertIsNone(result['workflow']['runner_work_seconds'])
+        self.assertIsNone(windows['seconds']['queue'])
+        self.assertIsNone(windows['seconds']['harness_step'])
+        self.assertFalse(timing.clock_complete(result))
+
+    def test_retained_split_clocks_require_each_named_producer_once(self):
+        for scoped in (False, True):
+            valid = timing.hosted_timing(hosted_run(), self.split_windows_jobs(scoped=scoped))
+            self.assertTrue(timing.clock_complete(valid))
+            core, browser, python = valid['sibling_jobs']
+            for case, siblings in (('missing', [core, browser]),
+                                   ('duplicate', [core, browser, python, dict(python, job_id='36')]),
+                                   ('renamed', [core, browser, dict(python, name='Other Windows job')])):
+                with self.subTest(scoped=scoped, case=case):
+                    retained = json.loads(timing.json_bytes({**valid, 'sibling_jobs': siblings}))
+                    self.assertFalse(timing.clock_complete(retained))
+
     def test_jobs_use_wall_boundaries_for_queue_setup_harness_tail_and_total(self):
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
         windows = hosted_job(32, 'windows', '00:20', '06:00',
@@ -363,6 +458,16 @@ class PRMainComparisonTests(unittest.TestCase):
                      'pr_seconds': 3, 'main_seconds': 5, 'main_minus_pr_seconds': 2},
                     comparison,
                 )
+        broken_main = {**main[0], 'ci': {**main[0]['ci'], 'run_id': '13'},
+                       'checks': [dict(row) for row in main[0]['checks']]}
+        generator = next(row for row in broken_main['checks'] if row['id'] == 'generated-contracts')
+        del generator['exit_code']
+        issues = []
+        view = timing.timing_view([pr[0], broken_main, main[0]],
+                                  hosted=[pr[1], {**main[1], 'run_id': '13'}, main[1]], issues=issues)
+        comparison, = view['pr_main_comparisons']
+        self.assertEqual('comparable', comparison['status'])
+        self.assertEqual(1, len(issues))
 
     def test_missing_or_changed_proof_keeps_comparison_unknown(self):
         different_tree = self.git('mktree', contents=f'040000 tree {self.tree}\tother\n')
@@ -406,7 +511,8 @@ class TimingRegressionTests(unittest.TestCase):
         return timing.timing_view([timing.report_sample(report) for report in reports])
 
     def test_repeated_growth_below_objective_triggers_corrective_action(self):
-        review, = self.fast_view(110, 115, 120, 175, 180, 185)['reviews']
+        view = self.fast_view(110, 115, 120, 175, 180, 185)
+        review, = view['reviews']
         metric, = review['metrics']
         self.assertEqual(('fast', 'Linux'), (review['profile'], review['platform']))
         self.assertEqual('harness', metric['metric'])
@@ -416,6 +522,12 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual(65, metric['growth_seconds'])
         self.assertTrue(metric['material_growth'])
         self.assertIn('corrective work', metric['action'])
+        follow_up = timing.budget_follow_up(view, [], {})
+        growth, = follow_up['sustained_growth']
+        self.assertEqual([], follow_up['repeated_breaches'])
+        self.assertEqual('assignment_needed', growth['status'])
+        self.assertEqual(65, growth['growth_seconds'])
+        self.assertIsNotNone(follow_up['next_action'])
 
     def test_cumulative_scope_growth_is_visible_below_the_fast_objective(self):
         additions = ('architecture', 'generated-contracts', 'python-types', 'rust-format', 'typescript-contracts')
@@ -474,6 +586,38 @@ class TimingRegressionTests(unittest.TestCase):
                 metric, = review['metrics']
                 self.assertEqual(status, metric['status'])
                 self.assertEqual(breaches, metric['recent_objective_breaches'])
+
+    def test_offline_status_routes_comparable_hosted_growth_below_budget(self):
+        samples, workflows = [], []
+        for day, finish in enumerate(('08:50', '09:00', '09:10', '11:00', '11:10', '11:20'), start=14):
+            run = hosted_run(run_id=day, day=day)
+            linux = hosted_job(day * 10, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50',
+                               run_id=day, day=day)
+            step = 'Run uv run python scripts/check.py --require-windows'
+            windows = hosted_job(day * 10 + 1, 'windows', '00:20', finish, step, '00:50', '08:30',
+                                 run_id=day, day=day)
+            workflows.append(timing.hosted_timing(run, [linux, windows]))
+            report = fast_report(day, 460)
+            report['selection']['profile'] = 'full'
+            report['environment']['system'] = 'Windows'
+            report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
+                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+            samples.append(timing.report_sample(report, cache='warm'))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / '.reports/timing/weekly.json'
+            archive.parent.mkdir(parents=True)
+            archive.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples,
+                                                  'hosted': workflows}))
+            with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
+                found = timing.offline_budget_status(root, [], {})
+
+        self.assertEqual([], found['repeated_breaches'])
+        growth, = found['sustained_growth']
+        self.assertEqual(('Windows', 'total', 900, 130), (growth['platform'], growth['metric'],
+                                                        growth['objective_seconds'], growth['growth_seconds']))
+        self.assertEqual('assignment_needed', growth['status'])
+        self.assertIsNotNone(found['next_action'])
 
     def test_scoped_jobs_keep_their_own_baselines_and_measure_the_executed_harness(self):
         samples, workflows = [], []
@@ -548,6 +692,60 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual([], change['removed'])
         self.assertEqual([], change['outcome_changes'])
         self.assertEqual(180, change['elapsed_change_seconds'])
+        self.assertEqual([], timing.budget_follow_up(view, [], {})['repeated_breaches'])
+
+        # Only an equivalent cache and coverage cohort can trigger recurrence.
+        samples[-1] = dict(samples[-1], checks=samples[-2]['checks'], selected=samples[-2]['selected'])
+        mixed = timing.timing_view([*samples[:-1], dict(samples[-1], cache='cold')], hosted=workflows)
+        self.assertEqual([], timing.budget_follow_up(mixed, [], {})['repeated_breaches'])
+
+        later_reports = [{'run_id': row['run_id'], 'source_commit': 'a' * 40} for row in samples[-2:]]
+        corrective = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the repaired Windows stage.',
+                      'blocker': None}
+        scope = {'repository': 'fixture/scopehub', 'event': 'push', 'profile': 'full', 'platform': 'Windows'}
+        finding = {'id': 'windows-budget', 'verification_budget': scope, 'status': 'open',
+                   'task_ids': [corrective['id']], 'diagnostic_reports': later_reports}
+        tasks = {corrective['id']: corrective}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / '.reports/timing/weekly.json'
+            archive.parent.mkdir(parents=True)
+            archive.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples,
+                                                  'hosted': workflows}))
+            with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
+                assigned = timing.offline_budget_status(root, [finding], tasks)
+                uncovered = timing.offline_budget_status(root, [], tasks)
+                wrong_commit = dict(later_reports[1], source_commit='b' * 40)
+                finished = {corrective['id']: dict(corrective, status='done')}
+                unassigned = timing.offline_budget_status(root, [finding], finished)
+                addressed = timing.offline_budget_status(root, [dict(finding, status='addressed')], finished)
+                new_breach = timing.offline_budget_status(
+                    root, [dict(finding, status='addressed', diagnostic_reports=[later_reports[0], wrong_commit])],
+                    finished,
+                )
+                existing_owner = timing.offline_budget_status(
+                    root, [dict(finding, diagnostic_reports=[later_reports[0], wrong_commit])], tasks,
+                )
+                archive.unlink()
+                durable = timing.offline_budget_status(root, [finding], tasks)
+
+        breach, = assigned['repeated_breaches']
+        self.assertEqual(('Windows', 'assigned'), (breach['platform'], breach['status']))
+        self.assertEqual([corrective], breach['feedback'][0]['corrective_tasks'])
+        self.assertEqual('assignment_needed', uncovered['repeated_breaches'][0]['status'])
+        self.assertIsNotNone(uncovered['next_action'])
+        self.assertEqual('assignment_needed', unassigned['repeated_breaches'][0]['status'])
+        self.assertEqual('recovery_pending', addressed['repeated_breaches'][0]['status'])
+        self.assertEqual('addressed', addressed['budget_recovery'][0]['feedback_status'])
+        self.assertIn('Record the corrective commit', addressed['next_action'])
+        unrecorded = [dict(later_reports[1], hosted_run_id='16')]
+        self.assertEqual(unrecorded, new_breach['repeated_breaches'][0]['unrecorded_reports'])
+        self.assertEqual('assignment_needed', new_breach['repeated_breaches'][0]['status'])
+        self.assertEqual('assigned', existing_owner['repeated_breaches'][0]['status'])
+        self.assertIn('existing corrective feedback', existing_owner['next_action'])
+        self.assertEqual(unrecorded, existing_owner['repeated_breaches'][0]['unrecorded_reports'])
+        self.assertFalse(durable['timing_available'])
+        self.assertEqual(assigned['open_feedback'], durable['open_feedback'])
 
     def test_changed_coverage_failed_and_missing_samples_do_not_inflate_the_baseline(self):
         reports = [fast_report(day, 120) for day in (14, 15, 16)]
@@ -601,6 +799,724 @@ class TimingRegressionTests(unittest.TestCase):
 
 
 class RecentTimingTests(unittest.TestCase):
+    def budget_run(self, day, finish, *, head='a' * 40, cache='warm', event='pull_request',
+                   checkout=None, outcome='success', extra_check=False):
+        repository = 'fixture/scopehub'
+        checkout = checkout or head
+        run = dict(hosted_run(run_id=day, day=day), head_sha=head, event=event, conclusion=outcome,
+                   head_branch='main' if event == 'push' else 'repair')
+        jobs = [
+            hosted_job(day * 10, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50', run_id=day, day=day),
+            hosted_job(day * 10 + 1, 'windows', '00:20', finish,
+                       'Run uv run python scripts/check.py --require-windows', '00:50', '08:30',
+                       run_id=day, day=day),
+        ]
+        jobs[-1]['conclusion'] = outcome
+        workflow = timing.hosted_timing(run, [dict(job, head_sha=head) for job in jobs])
+        samples = []
+        for platform in ('Linux', 'Windows'):
+            report = fast_report(day, 180)
+            report['selection']['profile'] = 'full'
+            report['environment']['system'] = platform
+            report['source'].update(git_head=checkout, sha256='c' * 64, working_tree_dirty=False)
+            report['ci'] = {'repository': repository, 'run_id': str(day), 'run_attempt': '1', 'event': event,
+                            'head_sha': head, 'checkout_sha': checkout}
+            if extra_check:
+                report['selection']['checks'].append('extra-check')
+                report['checks'].append(dict(report['checks'][0], id='extra-check'))
+            if outcome == 'failure' and platform == 'Windows':
+                report['status'] = 'failed'
+                report['checks'][0].update(status='failed', exit_code=1)
+            samples.append(timing.report_sample(report, cache=cache))
+        return run, samples, workflow
+
+    def write_archive(self, path, samples, clocks):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks}))
+
+    def recovery_fixture(self):
+        self.enterContext(isolated_git_environment())
+        root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+        self.fixture_git(root, 'init', '-q')
+        commits = []
+        for subject in ('Before repair', 'Repair Windows verification', 'Follow-up on repaired verification'):
+            self.fixture_git(root, 'commit', '-qm', subject, '--allow-empty')
+            commits.append(self.fixture_git(root, 'rev-parse', 'HEAD'))
+        return root, commits
+
+    def fixture_git(self, root, *args):
+        return subprocess.run(['git', '-C', str(root), '-c', 'user.name=Fixture',
+                               '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', *args],
+                              capture_output=True, check=True, text=True).stdout.strip()
+
+    def preview_checkout(self, root, base, head):
+        tree = self.fixture_git(root, 'rev-parse', f'{base}^{{tree}}')
+        preview = self.fixture_git(root, 'commit-tree', tree, '-p', base, '-p', head, '-m', 'Test PR merge')
+        self.fixture_git(root, 'update-ref', f'refs/tags/fixture-{preview[:10]}', preview)
+        return preview
+
+    def budget_finding(self, event, repair, *observations, growth_baseline=()):
+        finding = {'id': f'budget-{event}', 'verification_budget': {
+            'repository': 'fixture/scopehub', 'event': event, 'profile': 'full', 'platform': 'Windows',
+            'repair_commit': repair,
+        }, 'status': 'addressed', 'task_ids': ['M0-999'], 'diagnostic_reports': [
+            timing.harness_identity(samples[-1]) for _, samples, _ in observations
+        ]}
+        if growth_baseline:
+            finding['verification_budget']['growth_baseline'] = [
+                timing.harness_identity(samples[-1]) for _, samples, _ in growth_baseline
+            ]
+        return finding
+
+    def offline_observations(self, root, finding, *observations, tasks=None):
+        self.write_archive(root / '.reports/timing/offline.json',
+                           [sample for _, samples, _ in observations for sample in samples],
+                           [clock for _, _, clock in observations])
+        with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
+            return timing.offline_budget_status(root, [finding], tasks or {})
+
+    def test_missing_linked_observation_cannot_make_an_earlier_run_the_recovery(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        checkout = self.preview_checkout(root, before, after)
+        early, late = (self.budget_run(day, '20:00', head=before) for day in (11, 18))
+        success = self.budget_run(16, '12:00', head=after, checkout=checkout)
+        finding = self.budget_finding('pull_request', repair, early, late)
+        full = self.offline_observations(root, finding, early, late, success)
+        self.assertEqual('pending', full['budget_recovery'][0]['recovery']['status'])
+        incomplete = self.offline_observations(root, finding, early, success)
+        recovery = incomplete['budget_recovery'][0]['recovery']
+        self.assertEqual('pending', recovery['status'])
+        self.assertEqual([timing.harness_identity(late[1][-1])['run_id']],
+                         [row['run_id'] for row in recovery['unavailable_reports']])
+        self.assertIn('linked', incomplete['next_action'])
+        final = self.budget_run(19, '12:15', head=after, checkout=checkout)
+        recovered = self.offline_observations(root, finding, early, late, success, final)
+        self.assertEqual('19', recovered['budget_recovery'][0]['recovery']['comparisons'][0]['recovered']['hosted_run_id'])
+
+    def test_pr_recovery_proves_the_tested_merge_and_can_find_repair_on_either_parent(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        older = self.budget_run(10, '20:00', head=before)
+        baseline = self.budget_run(11, '20:00', head=before)
+        finding = self.budget_finding('pull_request', repair, older, baseline)
+        descendant = self.budget_run(16, '14:55', head=repair, checkout=after)
+        rejected = self.offline_observations(root, finding, older, baseline, descendant)
+        self.assertEqual('pending', rejected['budget_recovery'][0]['recovery']['status'])
+
+        tree = self.fixture_git(root, 'rev-parse', f'{before}^{{tree}}')
+        topic = self.fixture_git(root, 'commit-tree', tree, '-p', before, '-m', 'Independent PR topic')
+        checkout = self.preview_checkout(root, repair, topic)
+        authentic = self.budget_run(17, '14:40', head=topic, checkout=checkout)
+        result = self.offline_observations(root, finding, older, baseline, authentic)
+        self.assertEqual('recovered', result['budget_recovery'][0]['recovery']['status'])
+        wrong_parent = self.budget_run(17, '14:40', head=repair, checkout=checkout)
+        self.assertEqual('pending', self.offline_observations(root, finding, older, baseline, wrong_parent)
+                         ['budget_recovery'][0]['recovery']['status'])
+
+        unavailable = 'f' * 40
+        historical = self.budget_run(18, '14:40', head=topic, checkout=unavailable)
+        for observation in (older, baseline, historical):
+            for sample in observation[1]:
+                sample['selected'].append(timing.GENERATED_CHECK)
+                sample['selected'].sort()
+                sample['checks'].append(dict(sample['checks'][0], id=timing.GENERATED_CHECK))
+        proof = {'checkout': unavailable, 'tree': tree, 'parents': [repair, topic], 'comparison_base': repair,
+                 'ref': 'refs/pull/77/merge', 'command': timing.GENERATED_COMMAND,
+                 'tools': {'python': '3.12.0', 'rustfmt': 'rustfmt 1.8.0 (abcdef 2026-01-01)'}}
+        historical[1][-1]['generated_contracts'] = proof
+        retained = self.offline_observations(root, finding, older, baseline, historical)
+        self.assertEqual('recovered', retained['budget_recovery'][0]['recovery']['status'])
+        proof['parents'] = [topic, repair]
+        mismatched = self.offline_observations(root, finding, older, baseline, historical)
+        self.assertEqual('pending', mismatched['budget_recovery'][0]['recovery']['status'])
+
+    def test_within_budget_growth_recovery_requires_a_restored_three_run_window(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        base = [self.budget_run(day, '10:00', head=before, event='push') for day in (11, 12, 13)]
+        degraded = [self.budget_run(day, '12:10', head=before, event='push') for day in (14, 15, 16)]
+        corrected = [self.budget_run(day, '10:00', head=after, event='push') for day in (17, 18, 19)]
+        finding = self.budget_finding('push', repair, *degraded, growth_baseline=base)
+        old = self.offline_observations(root, finding, *base, *degraded)
+        self.assertEqual(130, old['sustained_growth'][0]['growth_seconds'])
+        pending = self.offline_observations(root, finding, *base, *degraded, *corrected[:2])
+        self.assertEqual('pending', pending['budget_recovery'][0]['recovery']['status'])
+        green = self.offline_observations(root, finding, *base, *degraded, *corrected)
+        comparison, = green['budget_recovery'][0]['recovery']['comparisons']
+        self.assertEqual(('19', 600), (comparison['recovered']['hosted_run_id'], comparison['control_median_seconds']))
+        self.assertEqual([], green['sustained_growth'])
+        self.assertIsNone(green['next_action'])
+
+    def test_growth_recovery_keeps_the_original_trigger_despite_an_isolated_overrun(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        for original, degraded in ((('10:00', '10:00', '10:00'), ('12:10', '12:10', '15:30')),
+                                   (('10:00', '10:00', '15:30'), ('12:10', '12:10', '12:10'))):
+            with self.subTest(original=original, degraded=degraded):
+                base = [self.budget_run(day, finish, head=before, event='push')
+                        for day, finish in enumerate(original, 11)]
+                slow = [self.budget_run(day, finish, head=before, event='push')
+                        for day, finish in enumerate(degraded, 14)]
+                improved = [self.budget_run(day, finish, head=after, event='push')
+                            for day, finish in enumerate(('12:10', '10:00', '10:00'), 17)]
+                finding = self.budget_finding('push', repair, *slow, growth_baseline=base)
+                triggered = self.offline_observations(root, finding, *base, *slow)
+                self.assertEqual([], triggered['repeated_breaches'])
+                self.assertEqual(130, triggered['sustained_growth'][0]['growth_seconds'])
+                pending = self.offline_observations(root, finding, *base, *slow, improved[0])
+                self.assertEqual('pending', pending['budget_recovery'][0]['recovery']['status'])
+                self.assertEqual([], pending['budget_recovery'][0]['recovery']['comparisons'][0]['recovery_window'])
+                recovered = self.offline_observations(root, finding, *base, *slow, *improved)
+                proof, = recovered['budget_recovery'][0]['recovery']['comparisons']
+                self.assertEqual(['17', '18', '19'], [row['hosted_run_id'] for row in proof['recovery_window']])
+                missing = self.offline_observations(root, finding, *base[1:], *slow, *improved)
+                self.assertEqual('pending', missing['budget_recovery'][0]['recovery']['status'])
+                self.assertIn('linked observations', missing['next_action'])
+
+        over = [self.budget_run(day, '20:00', head=before, event='push') for day in (21, 22)]
+        corrected = self.budget_run(23, '14:55', head=after, event='push')
+        budget = self.budget_finding('push', repair, *over)
+        recovery = self.offline_observations(root, budget, *over, corrected)['budget_recovery'][0]['recovery']
+        self.assertEqual('recovered', recovery['status'])
+        self.assertEqual(['23'], [row['hosted_run_id'] for row in recovery['comparisons'][0]['recovery_window']])
+
+    def test_missing_original_growth_baseline_cannot_be_replaced_by_an_older_sample(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        older = self.budget_run(10, '10:30', head=before, event='push')
+        baseline = [self.budget_run(day, finish, head=before, event='push')
+                    for day, finish in enumerate(('10:00', '10:00', '15:30'), 11)]
+        degraded = [self.budget_run(day, '12:10', head=before, event='push') for day in (14, 15, 16)]
+        improved = [self.budget_run(day, '11:40', head=after, event='push') for day in (17, 18, 19)]
+        finding = self.budget_finding('push', repair, *degraded, growth_baseline=baseline)
+        full = self.offline_observations(root, finding, older, *baseline, *degraded, *improved)
+        comparison, = full['budget_recovery'][0]['recovery']['comparisons']
+        self.assertEqual(600, comparison['control_median_seconds'])
+        self.assertEqual(['11', '12', '13'], [row['hosted_run_id'] for row in comparison['controls']])
+        self.assertEqual('pending', full['budget_recovery'][0]['recovery']['status'])
+        missing = self.offline_observations(root, finding, older, *baseline[1:], *degraded, *improved)
+        recovery = missing['budget_recovery'][0]['recovery']
+        self.assertEqual('pending', recovery['status'])
+        self.assertEqual([baseline[0][1][-1]['run_id']], [row['run_id'] for row in recovery['unavailable_reports']])
+        self.assertIn('linked observations', missing['next_action'])
+        corrected = [self.budget_run(day, '10:00', head=after, event='push') for day in (17, 18, 19)]
+        complete = self.offline_observations(root, finding, older, *baseline, *degraded, *corrected)
+        self.assertEqual('recovered', complete['budget_recovery'][0]['recovery']['status'])
+
+    def test_authenticated_failure_blocks_the_stale_success_clock_live_and_offline(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        checkout = self.preview_checkout(root, before, after)
+        baseline = [self.budget_run(day, '20:00', head=before) for day in (11, 12)]
+        run, stale_samples, stale_clock = self.budget_run(16, '12:00', head=after, checkout=checkout)
+        finding = self.budget_finding('pull_request', repair, *baseline)
+        records = root / 'project'
+        records.mkdir()
+        for filename, data in [('tasks', {'tasks': []}), ('feedback', {'items': [finding]}),
+                               ('branch-protection', {'branch': 'main'})]:
+            (records / f'{filename}.json').write_bytes(timing.json_bytes(data))
+        self.write_archive(root / '.reports/timing/stale.json',
+                           [*baseline[0][1], *baseline[1][1], *stale_samples],
+                           [baseline[0][2], baseline[1][2], stale_clock])
+        prior = timing.offline_budget_status(root, [finding], {})
+        self.assertEqual('recovered', prior['budget_recovery'][0]['recovery']['status'])
+        self.retain_newer_cold_attempts(root, 'pull_request', after, checkout=checkout)
+        with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+              patch.object(ci, 'source_identity', return_value={'git_head': after, 'working_tree_dirty': False}),
+              patch.object(ci, 'checkout_branch', return_value=run['head_branch']),
+              patch.object(ci, 'workflow_runs', return_value=[dict(run, conclusion='failure')]),
+              patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+              patch.object(timing, 'download_timing', return_value=[]),
+              patch.object(timing, 'inspect_jobs', side_effect=OSError('Job endpoint unavailable')) as jobs):
+            with patch.object(timing, 'collect_new_ci_timing', side_effect=OSError('Capture is unavailable')):
+                uncaptured = ci.status(root)
+            immediate = timing.offline_budget_status(root, [finding], {})
+            live = ci.status(root)
+        self.assertEqual('failed', live['status'])
+        jobs.assert_called_once()
+        with patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted inspection')):
+            offline = timing.offline_budget_status(root, [finding], {})
+        for budget in (uncaptured['verification_budget'], immediate, live['verification_budget'], offline):
+            recovery = budget['budget_recovery'][0]['recovery']
+            self.assertEqual('pending', recovery['status'])
+            self.assertIsNone(recovery['comparisons'][0]['recovered'])
+            self.assertIsNotNone(budget['next_action'])
+            self.assertTrue(any(note.get('run_id') == '16' and note.get('authenticated_conclusions') == ['failure']
+                                for note in budget['input_issues']))
+        samples, clocks, issues = timing.retained_budget_inputs(root)
+        merged = timing.timing_view(samples, hosted=clocks, issues=issues)
+        observed, = [sample for sample in merged['samples']
+                     if sample['platform'] == 'Windows' and sample['ci']['run_id'] == '16']
+        self.assertEqual(('failure', None), (observed['workflow_conclusion'], observed['seconds']['total']))
+        _, distinct_samples, distinct_clock = self.budget_run(29, '14:55', head=after, checkout=checkout)
+        self.write_archive(root / '.reports/timing/distinct-success.json', distinct_samples, [distinct_clock])
+        unrelated = timing.offline_budget_status(root, [finding], {})
+        distinct = unrelated['budget_recovery'][0]['recovery']['comparisons'][0]['recovered']
+        self.assertEqual(('29', 895.0), (distinct['hosted_run_id'], distinct['elapsed_seconds']))
+
+    def test_busy_timing_writer_cannot_block_ordinary_offline_failure_retention(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        baseline = [self.budget_run(day, '20:00', head=before, event='push') for day in (11, 12)]
+        run, samples, clock = self.budget_run(16, '12:00', head=after, event='push')
+        finding = self.budget_finding('push', repair, *baseline)
+        records = root / 'project'
+        records.mkdir()
+        (records / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+        (records / 'feedback.json').write_bytes(timing.json_bytes({'items': [finding]}))
+        initial = self.offline_observations(root, finding, *baseline, (run, samples, clock))
+        self.assertEqual('recovered', initial['budget_recovery'][0]['recovery']['status'])
+        shared = self.retain_newer_cold_attempts(root, 'push', after)
+        with (timing.exclusive_git_lock(shared / 'ci-push-16-1.lock'),
+              patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request'))):
+            live = timing.ci_budget_status(root, run['repository']['full_name'], dict(run, conclusion='failure'))
+            offline = timing.offline_budget_status(root, [finding], {})
+        self.assertEqual('in_progress', live['intake'])
+        for observation in (live, offline):
+            self.assertEqual('pending', observation['budget_recovery'][0]['recovery']['status'])
+            self.assertTrue(any(note.get('authenticated_conclusions') == ['failure'] for note in observation['input_issues']))
+
+    def retain_newer_cold_attempts(self, root, event, head, *, checkout=None):
+        shared = timing.shared_timing_directory(root)
+        for day in range(17, 17 + timing.MAX_RECENT):
+            _, rows, clock = self.budget_run(day, '10:00', head=head, checkout=checkout, event=event, cache='cold')
+            self.write_archive(shared / f'ci-{event}-{day}-1.json', rows, [clock])
+        return shared
+
+    def test_post_recovery_uses_fresh_trend_windows_and_keeps_an_active_owner(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        base = [self.budget_run(day, '10:00', head=before, event='push') for day in (11, 12, 13)]
+        overruns = [self.budget_run(day, '20:00', head=before, event='push') for day in (14, 15)]
+        green = self.budget_run(16, '14:59', head=after, event='push')
+        fine = self.budget_run(17, '10:00', head=after, event='push')
+        task = {'id': 'M0-999', 'status': 'active', 'next_action': 'Continue the timing correction.'}
+        finding = dict(self.budget_finding('push', repair, *overruns), status='open')
+        clean = self.offline_observations(root, finding, *base, *overruns, green, fine, tasks={task['id']: task})
+        self.assertEqual([], clean['sustained_growth'])
+        self.assertIsNone(clean['next_action'])
+        slow = [self.budget_run(day, '20:00', head=after, event='push') for day in (18, 19)]
+        recurrence = self.offline_observations(root, finding, *base, *overruns, green, fine, *slow, tasks={task['id']: task})
+        breach, = recurrence['repeated_breaches']
+        self.assertEqual(('assigned', 'M0-999'), (breach['status'], breach['feedback'][0]['corrective_tasks'][0]['id']))
+        self.assertEqual(['18', '19'], [report['hosted_run_id'] for report in breach['unrecorded_reports']])
+
+    def test_offline_handoff_requires_comparable_recovery_and_routes_a_later_recurrence(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        checkout = self.preview_checkout(root, before, after)
+        pr = [self.budget_run(day, '28:22', head=before) for day in (11, 12, 13, 14)]
+        older_push = self.budget_run(9, '28:40', head=before, event='push')
+        push = self.budget_run(15, '28:40', head=before, event='push')
+        finding = self.budget_finding('pull_request', repair, *pr)
+        main = dict(self.budget_finding('push', repair, older_push, push), status='open')
+        task = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the main push.'}
+        path = root / '.reports/timing/offline-budget.json'
+
+        def offline(*observations, items=(finding, main), checkout=root):
+            observations = (older_push, *observations)
+            self.write_archive(checkout / path.relative_to(root),
+                               [sample for _, samples, _ in observations for sample in samples],
+                               [clock for _, _, clock in observations])
+            with patch.object(timing, 'command', side_effect=AssertionError('Offline verification used a remote command')):
+                return timing.offline_budget_status(checkout, items, {task['id']: task})
+
+        post = [self.budget_run(10, '12:00', head=after, checkout=checkout), # An out-of-order earlier run.
+                self.budget_run(16, '12:00', head=before),                 # Earlier code, later clock.
+                self.budget_run(17, '12:00', head=after, checkout=checkout, cache='cold'),
+                self.budget_run(18, '12:00', head=after, checkout=checkout, extra_check=True),
+                self.budget_run(19, '12:00', head=after, event='workflow_dispatch'),
+                self.budget_run(20, '18:00', head=after, checkout=checkout), # Faster but still over budget.
+                self.budget_run(21, '12:00', head=after, checkout=checkout, outcome='failure')]
+        local_pass = timing.report_sample(fast_report(22, 60))
+        self.write_archive(root / '.reports/timing/local-fast.json', [local_pass], [])
+        improved = offline(*pr, push, *post[:-1])['budget_recovery'][0]
+        improved_attempt = improved['recovery']['comparisons'][0]['latest_attempt']
+        self.assertEqual(('recovery_pending', '20', 1080, -622),
+                         (improved['status'], improved_attempt['hosted_run_id'], improved_attempt['elapsed_seconds'],
+                          improved_attempt['elapsed_change_seconds']))
+        pending = offline(*pr, push, *post)
+        self.assertEqual('addressed', pending['budget_recovery'][0]['feedback_status'])
+        self.assertEqual('recovery_pending', pending['budget_recovery'][0]['status'])
+        comparison, = pending['budget_recovery'][0]['recovery']['comparisons']
+        self.assertEqual(('21', 'failure'), (comparison['latest_attempt']['hosted_run_id'],
+                                             comparison['latest_attempt']['conclusion']))
+        self.assertIsNone(comparison['recovered'])
+        self.assertIn('pull request within 900 seconds', pending['next_action'])
+
+        success = self.budget_run(22, '14:59', head=after, checkout=checkout)
+        wrong_checkout = self.budget_run(22, '14:59', head=after, checkout=before)
+        self.assertEqual('recovery_pending', offline(*pr, push, wrong_checkout)['budget_recovery'][0]['status'])
+        cleared = offline(*pr, push, *post, success)
+        pr_state, main_state = cleared['budget_recovery']
+        proof = pr_state['recovery']['comparisons'][0]['recovered']
+        self.assertEqual(('recovered', '22', 899.0, checkout),
+                         (pr_state['status'], proof['hosted_run_id'], proof['elapsed_seconds'], proof['source_commit']))
+        self.assertEqual('pending', main_state['recovery']['status'])
+        self.assertIn('main push within 900 seconds', cleared['next_action'])
+        pending_push, = cleared['repeated_breaches']
+        self.assertEqual(('push', 'assigned'), (pending_push['event'], pending_push['status']))
+        open_pr = offline(*pr, push, success, items=(dict(finding, status='open'), main))
+        self.assertEqual(('open', 'recovered'), (open_pr['budget_recovery'][0]['feedback_status'],
+                                                open_pr['budget_recovery'][0]['status']))
+        self.assertIn('main push', open_pr['next_action'])
+
+        empty = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        unknown = offline(*pr, push, success, checkout=empty)
+        self.assertIsNone(unknown['budget_recovery'][0]['recovery']['comparisons'][0]['recovered'])
+        self.assertIn('history available locally', unknown['next_action'])
+        fresh = empty / 'fresh'
+        subprocess.run(['git', 'clone', '--quiet', '--no-local', str(root), str(fresh)],
+                       capture_output=True, check=True)
+        fresh_view = offline(*pr, push, success, checkout=fresh)
+        self.assertEqual(['recovered', 'assigned'], [entry['status'] for entry in fresh_view['budget_recovery']])
+
+        push_success = self.budget_run(23, '14:50', head=after, event='push')
+        run, samples, clock = push_success
+        other_branch = (run, samples, dict(clock, head_branch='unprotected'))
+        self.assertEqual('pending', offline(*pr, push, success, other_branch)['budget_recovery'][1]['recovery']['status'])
+        both = offline(*pr, push, *post, success, push_success)
+        self.assertIsNone(both['next_action'])
+        self.assertEqual(['recovered', 'recovered'], [entry['status'] for entry in both['budget_recovery']])
+
+        slow = [self.budget_run(day, '23:30', head=after, checkout=checkout) for day in (24, 25)]
+        self.assertEqual([], offline(*pr, push, success, push_success, slow[0])['repeated_breaches'])
+        relapse = offline(*pr, push, success, push_success, *slow)
+        breach, = relapse['repeated_breaches']
+        self.assertEqual(('assignment_needed', ['24', '25']),
+                         (breach['status'], [report['hosted_run_id'] for report in breach['unrecorded_reports']]))
+        live = dict(self.budget_finding('pull_request', after, *slow), id='new-budget', status='open')
+        assigned = offline(*pr, push, success, push_success, *slow, items=(finding, main, live))
+        self.assertEqual('assigned', assigned['repeated_breaches'][0]['status'])
+        self.assertEqual('M0-999', assigned['repeated_breaches'][0]['feedback'][0]['corrective_tasks'][0]['id'])
+
+    def test_regular_ci_observes_the_matching_ordinary_success_and_failure(self):
+        for event, outcome in (('pull_request', 'success'), ('push', 'failure')):
+            with self.subTest(event=event, outcome=outcome):
+                root, (before, repair, after) = self.recovery_fixture()
+                older = self.budget_run(13, '28:22', head=before, event=event)
+                baseline = self.budget_run(14, '28:22', head=before, event=event)
+                checkout = self.preview_checkout(root, before, after) if event == 'pull_request' else after
+                run, samples, clock = self.budget_run(15, '14:55', head=after, checkout=checkout, event=event, outcome=outcome)
+                finding = self.budget_finding(event, repair, older, baseline)
+                records = root / 'project'
+                records.mkdir()
+                for filename, data in [('tasks', {'tasks': []}), ('feedback', {'items': [finding]}),
+                                       ('branch-protection', {'branch': 'main'})]:
+                    (records / f'{filename}.json').write_bytes(timing.json_bytes(data))
+                self.write_archive(root / '.reports/timing/control.json', [*older[1], *baseline[1]], [older[2], baseline[2]])
+                with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+                      patch.object(ci, 'source_identity', return_value={'git_head': after, 'working_tree_dirty': False}),
+                      patch.object(ci, 'checkout_branch', return_value=run['head_branch']),
+                      patch.object(ci, 'workflow_runs', return_value=[run]),
+                      patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                      patch.object(timing, 'download_timing', return_value=samples),
+                      patch.object(timing, 'inspect_jobs', return_value=clock) as jobs):
+                    result = ci.status(root)
+                    again = ci.status(root)
+                jobs.assert_called_once()
+                self.assertEqual('retained', again['verification_budget']['intake'])
+                self.assertEqual([], again['verification_budget']['input_issues'])
+                self.assertEqual((15, event, after), tuple(jobs.call_args.args[0][key] for key in
+                                                          ('id', 'event', 'head_sha')))
+                recovery, = result['verification_budget']['budget_recovery']
+                attempt = recovery['recovery']['comparisons'][0]['latest_attempt']
+                self.assertEqual((outcome, '15'), (attempt['conclusion'], attempt['hosted_run_id']))
+                if outcome == 'success':
+                    self.assertEqual(('passed', 'recovered'), (result['status'], recovery['status']))
+                else:
+                    self.assertEqual(('failed', 'recovery_pending'), (result['status'], recovery['status']))
+                    self.assertIn('main push', result['verification_budget']['next_action'])
+
+    def test_malformed_timing_preserves_all_ci_verdicts_and_other_observations(self):
+        observations = [self.budget_run(day, '17:00') for day in (14, 15, 16)]
+        samples = [sample for _, rows, _ in observations for sample in rows]
+        clocks = [clock for _, _, clock in observations]
+        failed, failed_samples, failed_clock = self.budget_run(17, '17:00', outcome='failure')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = root / 'project'
+            records.mkdir()
+            for file, content in (('tasks', {'tasks': []}), ('feedback', {'items': []}),
+                                  ('branch-protection', {'branch': 'main'})):
+                (records / f'{file}.json').write_bytes(timing.json_bytes(content))
+            archives = root / '.reports/timing'
+            malformed = dict(samples[0], seconds={'harness': [], 'check_work': None})
+            missing_exit = dict(samples[-1], checks=[dict(row) for row in samples[-1]['checks']])
+            del missing_exit['checks'][0]['exit_code']
+            self.write_archive(archives / 'mixed.json', [{}, malformed, *samples[:-1], missing_exit, *failed_samples],
+                               [False, *clocks, failed_clock])
+            (archives / 'deep.json').write_bytes(b'[' * 12000 + b'0' + b']' * 12000)
+            observation = observations[1][0]
+            source = {'git_head': observation['head_sha'], 'working_tree_dirty': False}
+            with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+                  patch.object(ci, 'source_identity', return_value=source),
+                  patch.object(ci, 'checkout_branch', return_value='topic'),
+                  patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                  patch.object(timing, 'command', side_effect=AssertionError('Unexpected timing request'))):
+                for status, row in (('passed', observation), ('failed', failed),
+                                    ('blocked', dict(observation, status='queued'))):
+                    with self.subTest(status=status), patch.object(ci, 'workflow_runs', return_value=[row]):
+                        result = ci.status(root)
+                    self.assertEqual(status, result['status'])
+                    budget = result['verification_budget']
+                    breach, = budget['repeated_breaches']
+                    self.assertEqual(['14', '15'], breach['recent_runs'])
+                    self.assertEqual('assignment_needed', breach['status'])
+                    self.assertGreaterEqual(len(budget['input_issues']), 5)
+
+    def test_incomplete_and_conflicting_clocks_cannot_supply_a_recurrence(self):
+        first, second, third = [self.budget_run(day, '17:00') for day in (14, 15, 16)]
+        samples = [row for _, rows, _ in (first, second, third) for row in rows]
+        a, b, c = [clock for _, _, clock in (first, second, third)]
+        self.assertEqual(1, len(timing.budget_status(samples, [a, b], [], [], {})['repeated_breaches']))
+        incomplete = dict(b, jobs=[row for row in b['jobs'] if row['platform'] == 'Windows'])
+        partial = timing.budget_status(samples, [a, incomplete], [], [], {})
+        self.assertTrue(partial['timing_available'])
+        self.assertEqual([], partial['repeated_breaches'])
+
+        conflicting_jobs = [dict(row, seconds={**row['seconds'], 'total': 840})
+                            if row['platform'] == 'Windows' else row for row in b['jobs']]
+        conflict = dict(b, jobs=conflicting_jobs, workflow={**b['workflow'], 'total_elapsed_seconds': 840})
+        for duplicates in ((b, conflict), (conflict, b)):
+            with self.subTest(duplicates=duplicates[0]['workflow']):
+                view = timing.budget_status(samples, [a, *duplicates, c], [], [], {})
+                breach, = view['repeated_breaches']
+                self.assertEqual(['14', '16'], breach['recent_runs'])
+                self.assertTrue(any('Conflicting complete attempt clocks' in issue['error'] for issue in view['input_issues']))
+
+    def test_current_capture_backfills_and_merges_local_and_shared_observations(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        linux, windows = rows
+        repository = 'fixture/scopehub'
+        existing_error = {'run_id': '14', 'error': 'Compact reports are absent for part of the required matrix.'}
+        for kind, local_rows, shared_rows, expected_downloads in (
+            ('complete local', rows, [], 0),
+            ('partial local', [linux], [], 1),
+            ('complementary archives', [windows], [linux], 0),
+            ('retry partial shared', [], [linux], 1),
+        ):
+            with self.subTest(case=kind), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                root, shared = base / 'checkout', base / 'common'
+                (root / 'project').mkdir(parents=True)
+                for name, content in (('tasks', {'tasks': []}), ('feedback', {'items': []})):
+                    (root / 'project' / f'{name}.json').write_bytes(timing.json_bytes(content))
+                if local_rows:
+                    local_clocks = [] if shared_rows else [clock]
+                    self.write_archive(root / '.reports/timing/local.json', local_rows, local_clocks)
+                path = shared / 'ci-pull_request-14-1.json'
+                if shared_rows:
+                    shared.mkdir()
+                    timing.save_timing_capture(path, 1, shared_rows, [clock], [existing_error])
+                with (patch.object(timing, 'shared_timing_directory', return_value=shared),
+                      patch.object(timing, 'download_timing', return_value=[windows]) as download,
+                      patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                    current = timing.ci_budget_status(root, repository, run)
+                    repeated = timing.ci_budget_status(root, repository, run)
+                self.assertEqual('captured' if expected_downloads else 'retained', current['intake'])
+                self.assertEqual('retained', repeated['intake'])
+                self.assertEqual([], current['input_issues'])
+                self.assertEqual([], repeated['input_issues'])
+                persisted = timing.read_json(path)
+                self.assertCountEqual(['Linux', 'Windows'], [row['platform'] for row in persisted['samples']])
+                self.assertEqual([clock], persisted['hosted'])
+                self.assertEqual([], persisted['input_issues'])
+                self.assertEqual(expected_downloads, download.call_count)
+                if expected_downloads:
+                    download.assert_called_once_with(repository, '14', '1', platforms={'Windows'})
+
+    def test_capture_retries_only_platform_without_harness_identity_or_valid_recorded_time(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        linux, windows = rows
+        for field, value in (('run_id', None), ('recorded_at', None), ('recorded_at', 'invalid timestamp'),
+                             ('recorded_at', '2026-11-14T00:01:00')):
+            with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                invalid = {**windows, field: value}
+                view = timing.timing_view([linux, invalid], hosted=[clock])
+                self.assertEqual(['Linux'], [row['platform'] for row in view['reviews']])
+                with (patch.object(timing, 'download_timing', return_value=[windows]) as download,
+                      patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                    status, captured, _, _ = timing.collect_new_ci_timing(
+                        root, 'fixture/scopehub', run, [linux, invalid], [clock],
+                    )
+                self.assertEqual('captured', status)
+                self.assertCountEqual([linux, windows], captured)
+                download.assert_called_once_with('fixture/scopehub', '14', '1', platforms={'Windows'})
+
+    def test_conflicting_complete_sample_remains_ambiguous_after_shared_handoff_in_both_orders(self):
+        run, rows, clock = self.budget_run(14, '17:00')
+        linux, warm = rows
+        cold = dict(warm, cache='cold')
+        _, control_rows, control_clock = self.budget_run(15, '17:00')
+        _, unrelated_rows, unrelated_clock = self.budget_run(16, '17:00')
+        for first, second in ((warm, cold), (cold, warm)):
+            with self.subTest(first=first['cache']), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                shared = base / 'common'
+                with (patch.object(timing, 'shared_timing_directory', return_value=shared),
+                      patch.object(timing, 'download_timing', side_effect=AssertionError('Unexpected artifact request')),
+                      patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                    self.assertEqual('retained', timing.collect_new_ci_timing(
+                        base / 'first', 'fixture/scopehub', run, [linux, first], [clock],
+                    )[0])
+                    status, _, _, _ = timing.collect_new_ci_timing(
+                        base / 'second', 'fixture/scopehub', run, [second], [],
+                    )
+                    self.assertEqual('ambiguous', status)
+                    samples, clocks, issues = timing.retained_budget_inputs(base / 'fresh')
+                    self.assertEqual('ambiguous', timing.collect_new_ci_timing(
+                        base / 'fresh', 'fixture/scopehub', run, samples, clocks,
+                    )[0])
+                self.assertCountEqual(['warm', 'cold'], [row['cache'] for row in samples if row['platform'] == 'Windows'])
+                self.assertTrue(any('Conflicting' in issue['error'] for issue in issues))
+                view = timing.budget_status([*samples, *control_rows, *unrelated_rows],
+                                            [*clocks, control_clock, unrelated_clock], issues, [], {})
+                breach, = view['repeated_breaches']
+                self.assertEqual(['15', '16'], breach['recent_runs'])
+                self.assertTrue(any('Conflicting' in issue['error'] for issue in view['input_issues']))
+                linux_review, = (row for row in view['elapsed_observations'] if row['platform'] == 'Linux')
+                self.assertEqual(3, linux_review['sample_count'])
+
+    def test_recent_cold_successes_do_not_hide_warm_recurrence(self):
+        observations = [self.budget_run(day, '17:00', cache='warm') for day in (14, 15)]
+        observations.extend(self.budget_run(day, '12:00', cache='cold') for day in (16, 17, 18))
+        samples = [sample for _, rows, _ in observations for sample in rows]
+        clocks = [clock for _, _, clock in observations]
+        view = timing.timing_view(samples, hosted=clocks)
+        objective = next(row for row in view['objective_reviews'] if row['platform'] == 'Windows')
+        self.assertEqual(0, objective['recent_objective_breaches'])
+        breach, = timing.budget_follow_up(view, [], {})['repeated_breaches']
+        self.assertEqual(('warm', ['14', '15']), (breach['cache'], breach['recent_runs']))
+
+    def test_two_fresh_worktrees_share_timing_intake_and_reuse_live_assignment(self):
+        self.enterContext(isolated_git_environment())
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory).resolve()
+            repo, first, second = (base / name for name in ('main', 'topic one', 'topic two'))
+            author = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false']
+
+            def git(root, *args):
+                return subprocess.run(['git', '-C', str(root), *args], capture_output=True, check=True).stdout
+
+            repo.mkdir()
+            git(repo, 'init', '-q')
+            records = repo / 'project'
+            records.mkdir()
+            scope = {'repository': 'fixture/scopehub', 'event': 'pull_request', 'profile': 'full', 'platform': 'Windows'}
+            existing = {'id': 'earlier-budget', 'verification_budget': scope, 'status': 'open', 'task_ids': ['M0-999'],
+                        'diagnostic_reports': [{'run_id': 'earlier-run', 'source_commit': 'f' * 40}]}
+            task = {'id': 'M0-999', 'status': 'active', 'next_action': 'Measure the Windows candidate.'}
+            for file, content in (('tasks', {'tasks': [task]}), ('feedback', {'items': [existing]}),
+                                  ('branch-protection', {'branch': 'main'})):
+                (records / f'{file}.json').write_bytes(timing.json_bytes(content))
+            git(repo, 'add', '.')
+            git(repo, *author, 'commit', '-qm', 'Fixture records')
+            observations = {}
+            for day, root in ((14, first), (15, second)):
+                git(repo, 'worktree', 'add', '--detach', str(root), 'HEAD')
+                git(root, *author, 'commit', '-qm', f'PR {day}', '--allow-empty')
+                head = git(root, 'rev-parse', 'HEAD').decode().strip()
+                observations[root] = self.budget_run(day, '17:00', head=head)
+
+            answers = {str(run['id']): (samples, clock) for run, samples, clock in observations.values()}
+            with (patch.object(ci, 'github_identity', return_value=scope['repository']),
+                  patch.object(ci, 'checkout_branch', return_value='topic'),
+                  patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                  patch.object(ci, 'workflow_runs', side_effect=lambda root, *_args, **_kw: [observations[root][0]]),
+                  patch.object(timing, 'download_timing', side_effect=lambda _, run_id, __: answers[run_id][0]) as download,
+                  patch.object(timing, 'inspect_jobs', side_effect=lambda run, _: answers[str(run['id'])][1]) as jobs):
+                first_view = ci.status(first)['verification_budget']
+                second_view = ci.status(second)['verification_budget']
+                self.assertEqual('retained', ci.status(first)['verification_budget']['intake'])
+                offline = timing.offline_budget_status(second, [existing], {task['id']: task})
+
+            self.assertEqual([], first_view['repeated_breaches'])
+            breach, = second_view['repeated_breaches']
+            self.assertEqual(('assigned', ['14', '15']), (breach['status'], breach['recent_runs']))
+            self.assertEqual(['earlier-budget'], [finding['feedback_id'] for finding in breach['feedback']])
+            self.assertEqual(2, len(breach['unrecorded_reports']))
+            self.assertIn('existing corrective feedback', second_view['next_action'])
+            self.assertEqual(second_view['repeated_breaches'], offline['repeated_breaches'])
+            self.assertEqual((2, 2), (download.call_count, jobs.call_count))
+            self.assertEqual(timing.shared_timing_directory(first), timing.shared_timing_directory(second))
+
+    def test_invalid_or_interrupted_capture_can_retry_and_overlapping_poll_does_not_fetch(self):
+        run, samples, clock = self.budget_run(14, '17:00')
+        repository = 'fixture/scopehub'
+        for mode in ('invalid', 'interrupted'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                path = root / '.reports/timing/ci-pull_request-14-1.json'
+                path.parent.mkdir(parents=True)
+
+                def observe():
+                    retained, clocks, _ = timing.retained_budget_inputs(root)
+                    return timing.collect_new_ci_timing(root, repository, run, retained, clocks)[0]
+
+                if mode == 'invalid':
+                    path.write_text('{', encoding='utf-8')
+                else:
+                    with patch.object(timing, 'download_timing', side_effect=KeyboardInterrupt):
+                        with self.assertRaises(KeyboardInterrupt):
+                            observe()
+                    self.assertEqual(1, timing.read_json(path)['intake_attempts'])
+
+                def download(*_args):
+                    self.assertEqual('in_progress', observe())
+                    return samples
+
+                with (patch.object(timing, 'download_timing', side_effect=download) as artifact,
+                      patch.object(timing, 'inspect_jobs', return_value=clock) as jobs):
+                    self.assertEqual('captured', observe())
+                    self.assertEqual('retained', observe())
+                artifact.assert_called_once()
+                jobs.assert_called_once()
+
+    def test_ci_status_collects_one_new_attempt_and_reuses_partial_and_complete_clocks(self):
+        repository = 'fixture/scopehub'
+        source = {'git_head': 'a' * 40, 'working_tree_dirty': False}
+        run = hosted_run()
+        linux = hosted_job(21, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
+        windows = hosted_job(22, 'windows', '00:20', '17:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '16:40')
+        workflow = timing.hosted_timing(run, [linux, windows])
+        samples = []
+        for platform in ('Linux', 'Windows'):
+            report = fast_report(20, 180)
+            report['selection']['profile'] = 'full'
+            report['environment']['system'] = platform
+            report['ci'] = {'repository': repository, 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
+                            'head_sha': source['git_head'], 'checkout_sha': source['git_head']}
+            samples.append(timing.report_sample(report))
+        for selection, expected in ((samples, 'captured'), (samples[1:], 'partial')):
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for name, content in [('branch-protection', {'branch': 'main'}), ('tasks', {'tasks': []}),
+                                      ('feedback', {'items': []})]:
+                    path = root / 'project' / f'{name}.json'
+                    path.parent.mkdir(exist_ok=True)
+                    path.write_bytes(timing.json_bytes(content))
+                with (patch.object(ci, 'github_identity', return_value=repository),
+                      patch.object(ci, 'source_identity', return_value=source),
+                      patch.object(ci, 'checkout_branch', return_value='topic'),
+                      patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+                      patch.object(ci, 'workflow_runs', return_value=[run]),
+                      patch.object(timing, 'download_timing', side_effect=[selection, []]) as download,
+                      patch.object(timing, 'inspect_jobs', return_value=workflow) as jobs):
+                    first = ci.status(root)
+                    repeat = ci.status(root)
+                    third = ci.status(root)
+                    ordinary = timing.offline_budget_status(root, [], {})
+                self.assertEqual(('passed', 'passed'), (first['status'], repeat['status']))
+                self.assertEqual(expected, first['verification_budget']['intake'])
+                self.assertEqual('retained' if expected == 'captured' else 'partial',
+                                 repeat['verification_budget']['intake'])
+                self.assertEqual('retained' if expected == 'captured' else 'retry_exhausted',
+                                 third['verification_budget']['intake'])
+                self.assertEqual(ordinary['elapsed_observations'], repeat['verification_budget']['elapsed_observations'])
+                self.assertEqual(len(selection), len(ordinary['elapsed_observations']))
+                self.assertTrue(all(row['sample_count'] == 1 for row in ordinary['elapsed_observations']))
+                self.assertEqual(expected == 'partial', bool(ordinary['input_issues']))
+                self.assertEqual(1 if expected == 'captured' else 2, download.call_count)
+                self.assertEqual((repository, '11', '1'), download.call_args_list[0].args)
+                if expected == 'partial':
+                    self.assertEqual({'platforms': {'Linux'}}, download.call_args_list[1].kwargs)
+                jobs.assert_called_once()
+
     def test_recent_queries_are_bounded_to_completed_pr_and_main_workflow_runs(self):
         pr = dict(hosted_run(run_id=11), conclusion='failure')
         main = dict(hosted_run(run_id=12), event='push', head_branch='main')

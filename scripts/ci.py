@@ -9,8 +9,10 @@ import subprocess
 
 if __package__:
     from .project import ProjectError, checkout_git_environment, read_json, source_identity
+    from .timing import ci_budget_status
 else:
     from project import ProjectError, checkout_git_environment, read_json, source_identity
+    from timing import ci_budget_status
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -47,7 +49,8 @@ def classify_runs(runs, head, *, dirty=False, selected=False):
     latest = max(relevant, key=lambda run: (int(run['id']), int(run.get('run_attempt', 1))), default=None)
     if latest is None:
         return {'status': 'blocked', 'reason': 'No hosted verification exists for this commit.', 'run': None}
-    observed = {key: latest.get(key) for key in ['id', 'head_sha', 'status', 'conclusion', 'run_attempt', 'html_url', 'event', 'created_at']}
+    observed = {key: latest.get(key) for key in ['id', 'head_sha', 'head_branch', 'status', 'conclusion',
+                                               'run_attempt', 'html_url', 'event', 'created_at']}
     if dirty:
         return {'status': 'blocked', 'reason': 'The worktree has uncommitted changes; CI only covers the recorded commit.', 'run': observed}
     if latest['status'] != 'completed':
@@ -171,6 +174,15 @@ def status(root=ROOT, run_id=None):
             f'gh run download {run} --repo {repository} --name verification-windows-latest --dir .reports/ci/{run}/windows',
             f'pnpm project:record <task-id> --report .reports/ci/{run}/windows/test-report.json --artifact-root .reports/ci/{run}/windows',
         ]
+    observed = result['run']
+    timing_run = observed if (run_id is None and result['status'] in {'passed', 'failed'}
+                              and observed['event'] in {'pull_request', 'push'}
+                              and str(observed['run_attempt']) == '1') else None
+    try:
+        result['verification_budget'] = ci_budget_status(root, repository, timing_run)
+    except (OSError, subprocess.SubprocessError, AttributeError, KeyError, TypeError, ValueError,
+            OverflowError, RecursionError) as error:
+        result['verification_budget'] = {'timing_available': False, 'intake': 'unavailable', 'error': str(error)}
     return result
 
 

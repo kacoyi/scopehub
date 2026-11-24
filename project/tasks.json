@@ -18067,6 +18067,277 @@
       }
     },
     {
+      "id": "M0-087",
+      "title": "Shorten Windows verification and act on repeated feedback-budget overruns",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-046",
+        "M0-047"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        "contracts/schemas/project.schema.json",
+        "project/checks.json",
+        "project/feedback.json",
+        "project/delivery.json",
+        "tests/ubuntu-preview",
+        "apps/desktop/ui/ubuntu-preview.mjs",
+        ".github/workflows/verify.yml"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "delivery": "current-contract",
+      "acceptance": [
+        "Reduce a demonstrated cost on the regular Windows verification path with the same required checks and honest failure, omission and timeout semantics. Compare the candidate with a retained, comparable control using the existing timing data and identify the effect on the actual critical path.",
+        "Retain named test coverage and independently verify representative accepted and rejected cases on the changed path. Existing task identity, historical logs, protected jobs and release gates keep their meaning.",
+        "Make the existing feedback-budget escalation actionable during a normal development handoff. Use a first usable interaction and a stable candidate to decide verification cadence. Reuse an actual applicable observation for unchanged inputs, and run a fresh check for a relevant behavioral change. Keep independent product work moving during hosted verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-087-cbef829fd21725a7.json",
+          "sha256": "53a3d02fcbadf0d88eca4f25d48970d305a75a1e8d403fac3ac25b317b3c2665"
+        },
+        {
+          "path": "project/evidence/M0-087-4d81b39b6e7c0c72.json",
+          "sha256": "1ee1f94a6041a499171f9dc4a9763447a33e11ffacd9b5825a3af228dd0ec5d3"
+        },
+        {
+          "path": "project/evidence/M0-087-1b91b79fa1d4ab4b.json",
+          "sha256": "d7f9e3ef0bcb21921b1afee29bd49306b18e48b522ab58c7ddc2dda7f779cedc"
+        },
+        {
+          "path": "project/evidence/M0-087-a53247aee1aab006.json",
+          "sha256": "a6e906e9185d3c46424c57a65ec4c66595f693720024f3bb2c6d663bdca8dddb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The ordinary full pull request reached 866 seconds with original behavior verified. The reviewed timing and feedback handoff passed its combined regressions. M0-091 owns the pending measurement of the integrated main push.",
+      "plan": {
+        "outcome": "An ordinary developer sees the product interaction during iteration and gets the same protected verification at lower cost. Repeated slow runs acquire an accountable corrective task.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/ci.py",
+          "scripts/project.py",
+          "scripts/timing.py",
+          "scripts/verification_scope.py",
+          "scripts/worktree.py",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_ci.py",
+          "tests/project/test_timing.py",
+          "tests/project/test_delivery.py",
+          "tests/project/test_worktree_retirement.py",
+          "project/delivery.json",
+          ".github/workflows/verify.yml",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/ubuntu-preview.mjs",
+          "scripts/integration.py"
+        ],
+        "hypotheses": [
+          "Recent Windows runs spent about 13.5 minutes in the Python check, dominated by temporary Git histories and repeated Git process launches. The existing Python/build overlap makes critical elapsed time more meaningful than summed check seconds.",
+          "The existing timing budget already states when to investigate. A development handoff can surface or route an overdue action without new remote polling in ordinary status.",
+          "Even excluding both Python and workspace-timeframe, the other serial checks consumed 928 and 904 seconds on the two Windows controls, before setup. Isolated execution of independent work is necessary to reach the 900-second change objective.",
+          "In pilot 45393623602, protected Windows verification passed in 933 seconds end to end. Moving the 120-second market-recovery check from core to the 374-second Python producer can leave browser on the critical path at about 835 seconds, adding roughly 90 to 100 Windows runner seconds for the extra restore and setup. The two browser builds can restore the same Cargo key, with only the existing browser producer saving it on main."
+        ],
+        "risks": [
+          {
+            "failure": "An improvement hides a failing case, changes process cleanup, drops part of the suite or publishes evidence for another input.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repeated budget breach is documented but never assigned, or a policy check forces another full suite for record-only edits.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Parallel cases or verification lanes share mutable outputs, start an unavailable dependency, lose a failure or present another checkout or run as passing.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Git hide settings, hidden index entries or submodules allow a dirty checkout to borrow a clean hosted result.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Malformed telemetry changes an independently observed CI result or suppresses valid data, or an incomplete capture cannot recover within a bounded retry.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Incomparable work triggers budget recurrence, or two worktrees lose their shared window and the action to associate new evidence.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Handoff treats a verification-budget issue disposition as elapsed recovery without a comparable successful ordinary observation containing the corrective revision, or hides a later recurrence behind historical evidence.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing linked observations admit premature recovery, PR merge inputs misattribute the repair, or restored timing and diagnostics reuse an obsolete growth window, lose a live owner or retry a complete failed attempt.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stale clock overrides a known failed attempt on live or offline handoff, or an isolated slow run changes a linked median regression into a different recovery requirement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A busy or unavailable capture or a newer-run retention window prevents the authenticated failure from reaching an offline reader that still admits its stale success, or a missing recorded trend baseline is replaced by older timing.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A scoped Windows producer claims a pass despite an omitted selected check, or a failed or cancelled producer leaves the protected aggregate skipped.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Uncertain change classification rejects full Windows coverage for a verified checkout, or permits reduced coverage without a verified comparison.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The Windows Python producer environment changes nested public artifact staging into lane staging and suppresses typed scope evidence.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The reassigned market-recovery check loses a prerequisite or its original evidence, writes the shared browser cache from a narrower producer, or publishes warm aggregate timing from a missing or mistyped producer observation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A Chromium socket retry interleaves host history traces, causing the browser check to reject a valid transport failure or accept an incomplete attempt. The selected history and private undo must remain correct after recovery.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The browser check requires an optional Chromium replay, accepts duplicate successful or rejected response terminals, or attributes an unfinished history fetch or failed readiness gate to a product outcome without supporting evidence.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The workspace readiness gate accepts a previous listener's reply, reports a fixture capability fragment, or lets slow configuration consume the controlled hold's regression deadline.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The POSIX CLI readiness observer accepts a notice from stderr or loses a valid split stdout notice when stderr arrives between chunks.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The reopened history observer spends part of a physical retry's terminal budget on the intentional first-response hold, or accepts a missing terminal when given the fixture's hold allowance.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The integration gate prevents the first real main-push measurement after a verified repair, or a handoff bypasses a linked defect, stale regression evidence, protected jobs, or unresolved pull-request timing.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repair receipt substitutes for a real main-push observation after the follow-up owner is removed, or a later verified records-only closure is held to a new full PR timing requirement.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A candidate changes or omits the feedback or task identity in the governed main-push policy, including at first introduction, and skips the actual closure check or disrupts unrelated integration.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original commands, exact control observations and recoverable history. Reverse a scheduling or fixture optimization if it changes named coverage or does not shorten the relevant path.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "scripts/ci.py",
+            "scripts/timing.py",
+            "tests/project/test_delivery.py",
+            "project/delivery.json",
+            "scripts/integration.py",
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No paid runners, external transmission, platform removal, skipped real cases, weakened protection or release acceptance change."
+          ],
+          "open_questions": [
+            "How much of the targeted Linux reduction in native Git process launches appears in the matching warm Windows Python check, harness elapsed and job elapsed?",
+            "Which overlap of independent checks reduces regular full Windows elapsed time under the existing objective with original commands, complete case outcomes, bounded resource use and reliable failure reporting?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Named test cases, actual failure signals, logs and the required protected platform coverage."
+          ],
+          "change": [
+            "Reduce repeated verification work and make the previously stated budget actionable during delivery.",
+            "Correlate browser history diagnostics for each HTTP attempt, including overlapping trace delivery after a socket retry."
+          ],
+          "data_plan": "Use synthetic fixtures and retained CI timings. Preserve prior reports and compare matching selection, runner and cache state.",
+          "cleanup": "Remove superseded work on the normal check path once the comparison is verified. Keep remaining bottlenecks visible under a named follow-up."
+        }
+      }
+    },
+    {
       "id": "M4-015",
       "title": "Reveal a cited model evidence row on its original chart",
       "milestone": "M4",
@@ -18220,6 +18491,367 @@
           "change": ["Use confirmed selection authority in the composer and keep the transcript position on a rejected citation."],
           "data_plan": "Keep observed selection authority and citation reading state in the current window. Reuse the existing workspace snapshot and keep all persisted data and historical receipts.",
           "cleanup": "Keep one check for matching an observed selection and use the existing composer reselection path."
+        }
+      }
+    },
+    {
+      "id": "M0-089",
+      "title": "Bound desktop test profile admission after Windows ACL timeouts recur",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-071"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/workspace.rs",
+        "apps/desktop/src-tauri/src/bridge_tests.rs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The native desktop test binary bounds simultaneous storage preparations across its explicit fixture path and the real application workspace open. Preserve true native ACL checks, named tests, storage refusal, helper deadlines, and process and fixture cleanup."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-089-cbef829fd21725a7.json",
+          "sha256": "8ae99847c3ab1ac964bab796dab824f7f1cccd973fe2c23a3f4ae44ede4b4023"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Windows desktop test binary passed all 29 library cases on the reviewed shared admission path, including the four earlier ACL preparation timeouts and the regression covering both entry points.",
+      "plan": {
+        "outcome": "Desktop tests run native profile admission for each case while one storage preparation or open at a time enters the ACL helper path in the Windows desktop test process.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/storage.rs",
+          "scripts/rust_workspace.py"
+        ],
+        "hypotheses": [
+          "The fixture slot excludes application workspace opens. The original timeout stage and earlier native helper overlap motivate a shared test slot, while the source of latency inside the failed processes remains unknown."
+        ],
+        "risks": [
+          {
+            "failure": "The shared slot bypasses native ACL checks, changes production admission or holds test work after a failure or unwind.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The fixture and application open switch to disconnected slots while the isolated mutex-release regression still passes.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the desktop test slot change if matching native coverage still fails or the slot interferes with the independent workspace behaviors. Preserve both occurrences and their diagnostics.",
+        "implementation": {
+          "modules": [
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge_tests.rs",
+            "apps/desktop/src-tauri/src/workspace.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to production ACL policy, helper deadlines, runner topology, or individual check selection."
+          ],
+          "open_questions": [
+            "Does serialized preparation eliminate the recorded timeouts on a comparable native Windows runner?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Native ACL policy and domain assertions, the existing Rust check command and the original diagnostics."
+          ],
+          "change": [
+            "Use the same test-only preparation slot for explicit fixtures and native application startup in the desktop unit-test process."
+          ],
+          "data_plan": "Use disposable per-test profile directories and compare the retained failure with local regression logs and later native evidence.",
+          "cleanup": "Replace the separate fixture-only slot when the shared test slot reaches both paths."
+        }
+      }
+    },
+    {
+      "id": "M1-038",
+      "title": "Verify the visible CSV review after folder selection from the chart",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-036",
+        "M1-037"
+      ],
+      "scope": [
+        "tests/ui/local-import.spec.mjs",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce the hosted visibility failure from the ordinary Data sources panel and distinguish the visible CSV review from the retained chart panel.",
+        "Verify the presented equity and futures values, the rejected settlement mapping, and cancellation before and after folder selection using the existing synthetic transport fixture. Preserve the existing folder grant, review, publication and chart behavior."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "local-import-ui"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-038-87b46858d63ac524.json",
+          "sha256": "fe87dbd09c67d91c7b4c14313441982bb9b81bffba6a4b956601864692af87f8"
+        },
+        {
+          "path": "project/evidence/M1-038-4d81b39b6e7c0c72.json",
+          "sha256": "9c5e09748473ba39f8b61076a339235fc19ef2e388e8769378aa05cf1a459dda"
+        },
+        {
+          "path": "project/evidence/M1-038-1b91b79fa1d4ab4b.json",
+          "sha256": "c75ea1f60a8a927fda917303fb2f89a173bdaca5bf91a195284d1ef83d5657cc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Astra Standard approved f230621 after checking the red traces and positive entries. The matching Linux task receipt covers the visible review, explicit equity and futures values, cancellation and rejected mapping through the synthetic transport. The originals and review are retained at archives/observations/m1-038-visible-csv/manifest.json.",
+      "plan": {
+        "outcome": "The existing picker-to-review browser check verifies the active CSV editor even while the suspended chart retains a duplicate source label.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/local-import.spec.mjs",
+          "apps/desktop/ui/src/main.tsx",
+          "apps/desktop/ui/src/workspace-panels.tsx"
+        ],
+        "hypotheses": [
+          "A page-wide text locator reaches the hidden chart heading before the visible import surface. The visible review, selected file and preview can distinguish this from a failed product transition."
+        ],
+        "risks": [
+          {
+            "failure": "The check rejects a visible review because the suspended chart has a duplicate label, or passes when the wrong source or its values are visible after a pick, cancellation or rejected mapping.",
+            "checks": [
+              "local-import-ui"
+            ]
+          }
+        ],
+        "rollback": "Revert the targeted test changes if they lose source or value verification. Retain the original diagnostic.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ui/local-import.spec.mjs",
+            "tests/ui/local-import.playwright.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Production navigation, source access or publication changes and other pilot failures."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The native picker intent, retained chart context, CSV access and the existing preview and publication rules."
+          ],
+          "change": [
+            "Verify the active editor by its visible region and independently check the data it presents."
+          ],
+          "data_plan": "Use the existing synthetic folder catalog and fixture rows. Record the hosted diagnostic and local browser evidence.",
+          "cleanup": "Replace the page-wide label assertion and retain one ordinary-entry regression."
+        }
+      }
+    },
+    {
+      "id": "M0-090",
+      "title": "Keep independent snapshot proof attributable in the native source regression",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-086"
+      ],
+      "scope": [
+        "tests/ui/desktop-workspace.spec.mjs",
+        "tests/ui/ai-workflow-fixture.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce the failed snapshot after an explicitly rejected frozen revision. Distinguish writer admission from failed authorization, unavailable evidence and a changed selection.",
+        "Show the original selection through an authorized independent read. Exercise real contention and release, the delayed native write without revision proof, and an inert late acknowledgement without changing deadlines, accepted requests or retries."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-090-86fe126b0dd64b5b.json",
+          "sha256": "d4844584641eef4f982f78459441ff26c67eaa587fffdd522d1f59e3de26ba29"
+        },
+        {
+          "path": "project/evidence/M0-090-6e1cc856166fae8c.json",
+          "sha256": "be06b0bcb42775b3e97a1fe148cf324b3e44182c52b20ef641aa6cc81eb8e72b"
+        },
+        {
+          "path": "project/evidence/M0-090-4d81b39b6e7c0c72.json",
+          "sha256": "2ac7a9bf0f5cebd4dd1f0557e3eb13d79e8731c7e1bd6db753d980954205e804"
+        },
+        {
+          "path": "project/evidence/M0-090-1b91b79fa1d4ab4b.json",
+          "sha256": "739629c4f514f8fc74267acad6abe4bb69a2cab2d9ba4a5ac3b89532cac80e26"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T122836.056903Z-08468273",
+          "source_commit": "b217c4090b61c50b3503a15e25fb6acd19449941",
+          "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The matching Linux task checks passed on 9732834. Independent review approved the snapshot fixture and diagnostic cleanup. The retained local comparison distinguishes a retryable BUSY under writer contention from an unavailable chart, proves the original selection after drain, and preserves revision 2 after a late acknowledgement. The hosted snapshot error code remains unknown.",
+      "plan": {
+        "outcome": "The fixture obtains truthful independent revision proof and keeps deliberate contention and late replies separately observable.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/desktop-workspace.spec.mjs",
+          "tests/ui/ai-workflow-fixture.mjs",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "apps/desktop/ui/src/local-revision-dialog.tsx"
+        ],
+        "hypotheses": [
+          "The instrumented baseline shows both native snapshots completing before the unused companion preview starts its private snapshot and the direct proof receives BUSY. The native regression needs the authorized Rust service without this independent browser client.",
+          "The earlier chart-open defect differed at the first observed boundary. The hosted run proves the missing revision rejection and fails a later read-only assertion."
+        ],
+        "risks": [
+          {
+            "failure": "A failed or unauthorized snapshot is treated as revision proof, or accidental fixture contention is mistaken for the deliberate holder.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "The repair relaxes revision matching, retries a permanent failure, or discards the outstanding write and late-reply assertions.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A diagnostic attachment failure leaves test barriers pending or replaces the initial scenario failure.",
+            "checks": [
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the hosted and controlled local failures. Revert only the fixture correction if it changes the independent proof or suppresses explicit BUSY.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ui/desktop-workspace.spec.mjs",
+            "tests/ui/ai-workflow-fixture.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changing native or preview deadlines, expanding source authority, changing product retry policy, or taking on M0-087 or M0-089."
+          ],
+          "open_questions": [
+            "The local trace identifies the admitted contender. The exact contender and snapshot code were unobserved in the original hosted artifacts."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The real Rust registry, private profile and HTTP authority, explicit rejections, compare-and-swap revision checks and existing late-reply deadlines."
+          ],
+          "change": [
+            "Open the preview browser only for browser workflows. Record independent proof outcomes and verify a real held status read rejects a snapshot with BUSY until its reply drains."
+          ],
+          "data_plan": "Use disposable synthetic profiles and retain the original archived report identity.",
+          "cleanup": "Retain only the targeted fixture and regression evidence."
+        }
+      }
+    },
+    {
+      "id": "M0-091",
+      "title": "Measure the first ordinary Windows main push containing the verification repair",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": ["M0-087"],
+      "scope": ["scripts/timing.py", "project/feedback.json"],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "Retain the actual protected main-push report and comparable Windows elapsed observation for the merge containing the M0-087 repair. Use the existing timing proof to assess the objective. A missing, failed, incomparable, or over-budget result keeps the finding open and requires a concrete corrective action."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "After the repair merges, retain its ordinary full Windows main-push timing and evaluate it with pnpm project:timing. Keep the finding open if the observation is missing, failed, incomparable, or over budget, and record the next corrective action.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The coordinator records a comparable ordinary main-push observation for the integrated repair and retains the actual verdict.",
+        "change_types": ["tooling"],
+        "context": ["scripts/timing.py", "project/delivery.json", "project/feedback.json"],
+        "hypotheses": ["A full main push containing the repaired inputs can show whether the pull-request improvement carries over."],
+        "risks": [
+          {
+            "failure": "A PR run, wrong merge, failed workflow, incomparable control or over-budget clock is mistaken for main-push recovery.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Keep the original finding and observations open, and record the next corrective action if recovery is unproven.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/timing.py", "project/feedback.json"],
+          "rules": [{"path": "project/delivery.json", "pointer": "/source_control/post_merge_main_push_budget"}],
+          "non_goals": ["No simulated clocks, PR timing substitution, or repair changes before the main observation."],
+          "open_questions": ["Does the first comparable full Windows main push meet the existing objective?"]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": ["The independent PR and main-push observations and the original timing evidence."],
+          "change": ["Assign the protected main-push observation after the verified repair integrates."],
+          "data_plan": "Use the ordinary main-push report and existing timing artifacts with recorded revision, coverage and cache state.",
+          "cleanup": "Keep the main-push finding open until the authoritative timing result and required evidence support closure."
         }
       }
     }

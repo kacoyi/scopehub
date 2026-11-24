@@ -9,8 +9,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from scripts import integration
-from scripts.project import ProjectError, archive_evidence, json_bytes, load_project, source_identity
+from scripts import integration, timing, verification_scope
+from scripts.project import ProjectError, archive_evidence, feedback_fingerprint, json_bytes, load_project, read_json, source_identity
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
 
@@ -19,6 +19,10 @@ UBUNTU = 'verify (ubuntu-latest)'
 WINDOWS = 'verify (windows-latest)'
 UBUNTU_FULL = 'Run pnpm check'
 WINDOWS_FULL = 'Run uv run python scripts/check.py --require-windows'
+PR_BUDGET = 'verification-overrun-without-timely-remediation'
+PUSH_BUDGET = 'verification-main-push-feedback-budget-overrun'
+REPAIR_TASK = 'M0-087'
+FOLLOW_UP_TASK = 'M0-091'
 
 
 def step(name, *, status='completed', conclusion='success'):
@@ -234,6 +238,360 @@ class IntegrationHistoryTests(ProjectFixture):
                                              'severity': severity, 'task_ids': [task]}]
             scope = integration.delivery_scope(self.root, project, base)
             self.assertEqual(blocked, bool(scope['blockers']))
+
+    def budget_handoff_fixture(self, *, records_only=False, bind_push_feedback=True, follow_up_ready=True,
+                               configure_handoff=True, policy_on_base=False):
+        delivery = self.root / 'project/delivery.json'
+        feedback = self.root / 'project/feedback.json'
+        rule = {'pull_request_feedback_id': PR_BUDGET, 'main_push_feedback_id': PUSH_BUDGET,
+                'repair_task_id': REPAIR_TASK, 'follow_up_task_id': FOLLOW_UP_TASK,
+                'next_action': 'Observe the protected main push and evaluate it with pnpm project:timing.'}
+        configured = read_json(delivery)
+        if configure_handoff:
+            configured['source_control']['post_merge_main_push_budget'] = rule
+        (self.root / 'project/branch-protection.json').write_bytes(json_bytes(observations()['policy']))
+        if records_only or policy_on_base:
+            delivery.write_bytes(json_bytes(configured))
+        ledger = self.ledger()
+        aliases = {'M0-001': REPAIR_TASK, 'M0-002': FOLLOW_UP_TASK}
+        for task in ledger['tasks']:
+            task['id'] = aliases.get(task['id'], task['id'])
+            task['depends_on'] = [aliases.get(key, key) for key in task['depends_on']]
+        ledger['focus_task_id'] = REPAIR_TASK
+        self.save_ledger(ledger)
+        base = self.commit()
+        if not records_only:
+            delivery.write_bytes(json_bytes(configured))
+            (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        ledger = self.ledger()
+        handoff = task_by_id(ledger, FOLLOW_UP_TASK)
+        handoff.update(depends_on=[REPAIR_TASK] if follow_up_ready else [REPAIR_TASK, 'M0-004'], next_action=rule['next_action'],
+                       checks=['project-state', 'rust-lints'],
+                       plan=deepcopy(task_by_id(ledger, REPAIR_TASK)['plan']))
+        self.save_ledger(ledger)
+        repair = self.commit()
+        items = []
+        for event, identifier, owners in [('pull_request', PR_BUDGET, [REPAIR_TASK]),
+                                          ('push', PUSH_BUDGET, [REPAIR_TASK, FOLLOW_UP_TASK])]:
+            items.append({
+                'id': identifier, 'source': 'Synthetic timing controls.', 'observation': f'Budget breach on {event}.',
+                'severity': 'major', 'status': 'open', 'task_ids': owners, 'regression_checks': ['rust-lints'],
+                'resolution': None, 'deferral_reason': None,
+                'verification_budget': {'repository': 'fixture/project', 'platform': 'Windows', 'profile': 'full',
+                                        'event': event, 'repair_commit': repair},
+                'diagnostic_reports': [{'run_id': identifier, 'source_commit': base, 'report_sha256': '1' * 64}],
+            })
+        feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': items}))
+        self.commit()
+        report = self.report(REPAIR_TASK)
+        report_data = read_json(report)
+        report_data['observed_feedback'] = [feedback_fingerprint(item) for item in items[:2 if bind_push_feedback else 1]]
+        report.write_bytes(json_bytes(report_data))
+        receipt = archive_evidence(self.root, REPAIR_TASK, report)
+        ledger = self.ledger()
+        task_by_id(ledger, REPAIR_TASK).update(status='done', evidence=[receipt], next_action=None)
+        ledger['focus_task_id'] = FOLLOW_UP_TASK
+        self.save_ledger(ledger)
+        items[0].update(status='addressed', resolution=dict(cause='Fixture.', correction='Fixture.', prevention='Fixture.'))
+        feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': items}))
+        self.commit()
+        return base, repair
+
+    def inspect_budget_handoff(self, base, repair, *, elapsed=899, timing_run='100', timing_status='recovered',
+                               omit_windows=False, fail_windows=False, conclusion='success', attempt=1,
+                               push_controls=True, push_attempt=None, timing_inputs=None, push_status='pending',
+                               records=False, expect_no_timing=False):
+        args = observations()
+        source = source_identity(self.root)
+        head = source['git_head']
+        pr = dict(args['pr'], baseRefOid=base, headRefOid=head)
+        tested = self.merge_observation(base, head)
+        run = {'id': 100, 'run_attempt': attempt, 'status': 'completed', 'conclusion': 'success', 'head_sha': head,
+               'head_branch': 'task', 'event': 'pull_request', 'path': integration.WORKFLOW}
+        jobs = [dict(job, id=index, head_sha=head) for index, job in enumerate(args['jobs'], 1000)]
+        if records:
+            for job in jobs:
+                job['steps'] = [CHECKOUT_STEP, step('Verify records changes')]
+        if omit_windows:
+            jobs.pop()
+        elif fail_windows:
+            jobs[1]['conclusion'] = 'failure'
+        scope = {'repository': 'fixture/project', 'event': 'pull_request', 'profile': 'full', 'platform': 'Windows'}
+        latest = {'hosted_run_id': timing_run, 'hosted_head': head, 'source_commit': tested['sha'],
+                  'job_id': 1001, 'conclusion': conclusion, 'elapsed_seconds': elapsed,
+                  'inputs_sha256': timing_inputs or source['sha256']}
+        recovery = {'feedback_id': PR_BUDGET, 'scope': scope,
+                    'recovery': {'status': timing_status, 'repair_commit': repair,
+                                 'comparisons': [{'latest_attempt': latest, 'recovered': {'hosted_run_id': '99'}}]}}
+        main_recovery = {
+            'feedback_id': PUSH_BUDGET, 'scope': dict(scope, event='push'),
+            'recovery': {'status': push_status, 'repair_commit': repair,
+                         'comparisons': [{'latest_attempt': push_attempt, 'history_missing': False}] if push_controls else []},
+        }
+        original = integration.command
+
+        def command(argv, root):
+            if argv[0] == 'git':
+                return original(argv, root)
+            if argv[:3] == ['gh', 'pr', 'view']:
+                return json.dumps(pr)
+            if 'event=pull_request' in argv:
+                return json.dumps([{'workflow_runs': [run]}])
+            if f'/runs/100/attempts/{attempt}/jobs?' in argv[-1]:
+                return json.dumps([{'jobs': jobs}])
+            if argv[-1].endswith(f'/git/commits/{tested["sha"]}'):
+                return json.dumps(tested)
+            self.assertEqual('repos/fixture/project/branches/main/protection', argv[-1])
+            return json.dumps(args['protection'])
+
+        with (patch.object(integration, 'github_identity', return_value='fixture/project'),
+              patch.object(integration, 'command', side_effect=command),
+              patch.object(integration, 'job_checkout', return_value=(1, tested['sha'])),
+              patch.object(timing, 'offline_budget_status',
+                           return_value={'budget_recovery': [recovery, main_recovery]},
+                           side_effect=AssertionError('Unrelated scope queried timing') if expect_no_timing else None)):
+            return integration.inspect(self.root, 1)
+
+    def test_verified_repair_can_handoff_only_the_open_main_push_measurement(self):
+        base, repair = self.budget_handoff_fixture()
+        result = self.inspect_budget_handoff(base, repair)
+        self.assertEqual('full', result['workflow']['expected_profile'])
+        self.assertTrue(result['technical_ready'], result['blockers'])
+        handoff = result['delivery_scope']['post_merge_main_push_budget']
+        self.assertEqual((PUSH_BUDGET, FOLLOW_UP_TASK, repair, 'pending'), tuple(
+            handoff[key] for key in ('feedback_id', 'follow_up_task_id', 'repair_commit', 'status')))
+        self.assertEqual('open', load_project(self.root)['feedback']['items'][1]['status'])
+        merged = self.merge_observation(base, result['source']['git_head'])['sha']
+        self.git('checkout', '--quiet', '--detach', merged)
+        event = self.root / '.reports/push-event.json'
+        event.write_bytes(json_bytes({'ref': 'refs/heads/main', 'before': base, 'after': merged}))
+        ordinary_push = verification_scope.preview(self.root, ci_env={
+            'GITHUB_EVENT_NAME': 'push', 'GITHUB_EVENT_PATH': str(event),
+            'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': merged,
+        })
+        self.assertEqual(('full', base, merged, 'change_requires_full'), (
+            ordinary_push['profile'], ordinary_push['base'], ordinary_push['checkout'], ordinary_push['reason_code']))
+
+    def test_budget_handoff_requires_latest_pr_timing_and_both_required_jobs(self):
+        base, repair = self.budget_handoff_fixture()
+        for change in ({'elapsed': 901}, {'timing_run': '99'}, {'timing_status': 'pending'},
+                       {'conclusion': 'failure'}, {'omit_windows': True}, {'fail_windows': True}, {'attempt': 2},
+                       {'timing_inputs': '2' * 64}, {'push_controls': False},
+                       {'push_attempt': {'conclusion': 'failure'}},
+                       {'push_attempt': {'conclusion': 'success', 'elapsed_seconds': 901}}):
+            with self.subTest(change=change):
+                result = self.inspect_budget_handoff(base, repair, **change)
+                self.assertFalse(result['technical_ready'])
+                self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
+
+    def test_budget_handoff_cannot_borrow_an_unbound_regression_receipt(self):
+        base, repair = self.budget_handoff_fixture(bind_push_feedback=False)
+        result = self.inspect_budget_handoff(base, repair)
+        self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
+
+    def prematurely_close_push_feedback(self):
+        path = self.root / 'project/feedback.json'
+        feedback = read_json(path)
+        feedback['items'][1].update(
+            task_ids=[REPAIR_TASK], status='addressed',
+            resolution=dict(cause='Fixture.', correction='Fixture.', prevention='Fixture.'),
+        )
+        path.write_bytes(json_bytes(feedback))
+        self.commit()
+
+    def test_repair_pr_cannot_close_the_main_timing_finding_with_the_repair_receipt(self):
+        base, repair = self.budget_handoff_fixture()
+        self.prematurely_close_push_feedback()
+        result = self.inspect_budget_handoff(base, repair)
+        self.assertEqual('passed', result['delivery_scope']['history']['status'])
+        self.assertFalse(result['technical_ready'], result)
+        self.assertIn(f'Main-push timing closure lacks a verified main-push observation: {PUSH_BUDGET}', result['blockers'])
+
+    def check_cannot_redirect_main_push_policy(self, *, policy_on_base):
+        base, repair = self.budget_handoff_fixture(policy_on_base=policy_on_base)
+        self.prematurely_close_push_feedback()
+        path = self.root / 'project/delivery.json'
+        original = read_json(path)
+        for target in (PUSH_BUDGET + '-typo', PR_BUDGET, None):
+            with self.subTest(target=target):
+                delivery = deepcopy(original)
+                if target is None:
+                    delivery['source_control'].pop('post_merge_main_push_budget')
+                else:
+                    delivery['source_control']['post_merge_main_push_budget']['main_push_feedback_id'] = target
+                path.write_bytes(json_bytes(delivery))
+                self.commit()
+                result = self.inspect_budget_handoff(base, repair, expect_no_timing=True)
+                self.assertEqual('passed', result['delivery_scope']['history']['status'])
+                self.assertFalse(result['technical_ready'], result['blockers'])
+                reason = ('The PR changes or removes the protected main-push budget policy.' if policy_on_base
+                          else 'The main-push budget policy must name the governed M0-087 findings and M0-091.')
+                self.assertIn(reason, result['blockers'])
+
+    def test_repair_pr_cannot_redirect_the_existing_main_push_policy(self):
+        self.check_cannot_redirect_main_push_policy(policy_on_base=True)
+
+    def test_first_policy_introduction_cannot_misspell_the_main_push_finding(self):
+        self.check_cannot_redirect_main_push_policy(policy_on_base=False)
+
+    def test_new_policy_requires_both_governed_feedback_records(self):
+        base, repair = self.budget_handoff_fixture()
+        path = self.root / 'project/feedback.json'
+        original = read_json(path)
+        for missing in (PR_BUDGET, PUSH_BUDGET):
+            with self.subTest(missing=missing):
+                feedback = {**original, 'items': [item for item in original['items'] if item['id'] != missing]}
+                path.write_bytes(json_bytes(feedback))
+                self.commit()
+                result = self.inspect_budget_handoff(base, repair, expect_no_timing=True)
+                self.assertIn(f'The main-push budget policy references unavailable records: {missing}.',
+                              result['blockers'])
+                self.assertFalse(result['technical_ready'])
+
+    def measured_main_push_fixture(self, *, evidence_event='push'):
+        base, repair = self.budget_handoff_fixture()
+        main = self.merge_observation(base, source_identity(self.root)['git_head'])['sha']
+        self.git('checkout', '--quiet', '--detach', main)
+        self.git('remote', 'add', 'origin', 'https://github.com/fixture/project.git')
+        feedback_path = self.root / 'project/feedback.json'
+        feedback = read_json(feedback_path)
+        push = feedback['items'][1]
+        report = read_json(self.report(FOLLOW_UP_TASK, system='Windows'))
+        report['ci'] = {
+            'provider': 'github-actions', 'repository': 'fixture/project', 'run_id': '101', 'run_attempt': '1',
+            'event': evidence_event, 'head_sha': main, 'checkout_sha': main,
+            'run_url': 'https://github.com/fixture/project/actions/runs/101',
+        }
+        report['observed_feedback'] = [feedback_fingerprint(push)]
+        artifact = self.root / '.reports/ci/101/windows'
+        for check in report['checks']:
+            log = artifact / check['log'].removeprefix('.reports/')
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_bytes((self.root / check['log']).read_bytes())
+        report_path = artifact / 'test-report.json'
+        report_path.write_bytes(json_bytes(report))
+        receipt = archive_evidence(self.root, FOLLOW_UP_TASK, report_path, artifact)
+
+        ledger = self.ledger()
+        ledger['focus_task_id'] = 'M0-004'
+        task_by_id(ledger, FOLLOW_UP_TASK).update(status='done', evidence=[receipt], next_action=None)
+        self.save_ledger(ledger)
+        push.update(status='addressed', resolution=dict(cause='Fixture.', correction='Fixture.', prevention='Fixture.'))
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.commit()
+        witness = {'hosted_run_id': '101', 'hosted_head': main, 'source_commit': main, 'elapsed_seconds': 899,
+                   'conclusion': 'success', 'inputs_sha256': report['source']['sha256']}
+        return main, repair, witness
+
+    def test_verified_main_timing_can_close_in_a_records_only_pull_request(self):
+        base, repair, witness = self.measured_main_push_fixture()
+        result = self.inspect_budget_handoff(base, repair, push_status='recovered', push_attempt=witness,
+                                             timing_status='pending', records=True)
+        self.assertTrue(result['technical_ready'], result['blockers'])
+        self.assertEqual('records', result['workflow']['expected_profile'])
+        self.assertEqual([FOLLOW_UP_TASK], result['delivery_scope']['completed_task_ids'])
+        self.assertNotIn('post_merge_main_push_budget', result['delivery_scope'])
+
+    def test_main_timing_closure_requires_a_current_success_on_protected_history(self):
+        base, repair, witness = self.measured_main_push_fixture()
+        future = source_identity(self.root)['git_head']
+        for status, sample in (
+            ('pending', None), ('pending', witness),
+            ('recovered', dict(witness, conclusion='failure')),
+            ('recovered', dict(witness, elapsed_seconds=901)),
+            ('recovered', dict(witness, hosted_head=future, source_commit=future)),
+            ('recovered', dict(witness, hosted_run_id='102')),
+            ('recovered', dict(witness, inputs_sha256='2' * 64)),
+        ):
+            with self.subTest(status=status, sample=sample):
+                result = self.inspect_budget_handoff(base, repair, push_status=status, push_attempt=sample, records=True)
+                self.assertFalse(result['technical_ready'])
+                self.assertIn(f'Main-push timing closure lacks a verified main-push observation: {PUSH_BUDGET}',
+                              result['blockers'])
+
+    def test_main_timing_closure_cannot_use_a_pull_request_receipt(self):
+        base, repair, witness = self.measured_main_push_fixture(evidence_event='pull_request')
+        result = self.inspect_budget_handoff(base, repair, push_status='recovered', push_attempt=witness, records=True)
+        self.assertFalse(result['technical_ready'])
+
+    def test_unrelated_product_change_does_not_recheck_existing_budget_closure(self):
+        _, repair, _ = self.measured_main_push_fixture()
+        base = source_identity(self.root)['git_head']
+        (self.root / 'implementation.py').write_text('value = 3\n', encoding='utf-8')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-004')['plan'] = deepcopy(task_by_id(ledger, REPAIR_TASK)['plan'])
+        self.save_ledger(ledger)
+        self.commit()
+        receipt = archive_evidence(self.root, 'M0-004', self.report('M0-004'))
+        ledger['focus_task_id'] = 'M0-003'
+        task_by_id(ledger, 'M0-004').update(status='done', evidence=[receipt], next_action=None)
+        self.save_ledger(ledger)
+        self.commit()
+        result = self.inspect_budget_handoff(base, repair, expect_no_timing=True)
+        self.assertTrue(result['technical_ready'], result['blockers'])
+
+    def test_budget_handoff_cannot_assign_a_follow_up_waiting_on_other_work(self):
+        base, repair = self.budget_handoff_fixture(follow_up_ready=False)
+        self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', self.inspect_budget_handoff(base, repair)['blockers'])
+
+    def test_budget_handoff_requires_an_applicable_checked_in_rule(self):
+        base, repair = self.budget_handoff_fixture(configure_handoff=False)
+        self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', self.inspect_budget_handoff(base, repair)['blockers'])
+
+    def test_budget_handoff_requires_an_open_linked_measurement_and_unmerged_repair(self):
+        base, repair = self.budget_handoff_fixture()
+        unrelated = self.git('commit-tree', f'{base}^{{tree}}', '-p', base, '-m', 'Unrelated repair')
+        feedback = self.root / 'project/feedback.json'
+        original = read_json(feedback)
+        for changes in (
+            {'repair': base}, {'repair': unrelated}, {'repair': '8' * 40}, {'event': 'pull_request'},
+            {'owners': [REPAIR_TASK]}, {'owners': [FOLLOW_UP_TASK], 'regression': ['project-state']},
+            {'status': 'deferred'}, {'severity': 'minor'}, {'pr_status': 'open'},
+        ):
+            with self.subTest(changes=changes):
+                data = deepcopy(original)
+                pr, push = data['items']
+                marker = changes.get('repair', repair)
+                for item in (pr, push):
+                    item['verification_budget']['repair_commit'] = marker
+                push['verification_budget']['event'] = changes.get('event', 'push')
+                push['task_ids'] = changes.get('owners', push['task_ids'])
+                push['regression_checks'] = changes.get('regression', push['regression_checks'])
+                push['severity'] = changes.get('severity', push['severity'])
+                if changes.get('status') == 'deferred':
+                    push.update(status='deferred', deferral_reason='Deliberate fixture deferral.')
+                if changes.get('pr_status') == 'open':
+                    pr.update(status='open', resolution=None)
+                feedback.write_bytes(json_bytes(data))
+                self.commit()
+                result = self.inspect_budget_handoff(base, marker)
+                self.assertIn(f"Unresolved {push['severity']} feedback: {PUSH_BUDGET}", result['blockers'])
+                self.assertNotIn('post_merge_main_push_budget', result['delivery_scope'])
+
+    def test_budget_handoff_cannot_override_product_feedback_or_stale_inputs(self):
+        base, repair = self.budget_handoff_fixture()
+        feedback = self.root / 'project/feedback.json'
+        data = read_json(feedback)
+        for severity, task in [('major', REPAIR_TASK), ('critical', 'M0-004')]:
+            data['items'].append(dict(id=f'product-{severity}', source='Fixture product behavior.',
+                                      observation='A product regression remains open.', severity=severity, status='open',
+                                      task_ids=[task], regression_checks=['project-state'],
+                                      resolution=None, deferral_reason=None))
+        feedback.write_bytes(json_bytes(data))
+        self.commit()
+        result = self.inspect_budget_handoff(base, repair)
+        self.assertIn('post_merge_main_push_budget', result['delivery_scope'])
+        self.assertCountEqual(['Unresolved major feedback: product-major', 'Unresolved critical feedback: product-critical'],
+                              result['blockers'])
+        (self.root / 'implementation.py').write_text('value = 3\n', encoding='utf-8')
+        self.commit()
+        self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', self.inspect_budget_handoff(base, repair)['blockers'])
+
+    def test_records_only_push_cannot_claim_the_ordinary_full_measurement(self):
+        base, repair = self.budget_handoff_fixture(records_only=True)
+        result = self.inspect_budget_handoff(base, repair)
+        self.assertEqual('records', result['workflow']['expected_profile'])
+        self.assertIn(f'Unresolved major feedback: {PUSH_BUDGET}', result['blockers'])
 
     def observe_harness(self, base, head, ubuntu_steps, windows_steps, *, tested=None):
         fixture = observations()

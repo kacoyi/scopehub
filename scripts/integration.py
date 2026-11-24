@@ -9,15 +9,21 @@ import subprocess
 import tempfile
 
 if __package__:
+    from . import timing
     from .ci import WORKFLOW, classify_runs, command, github_identity
-    from .project import ProjectError, load_project, read_json, review_history, source_identity
+    from .project import (ProjectError, compare_history, feedback_fingerprint, load_project, project_definition_hash,
+                          read_json, source_identity, task_definition_hash, windows_x64)
     from .protection import violations
-    from .verification_scope import SCOPED_PROFILES, checkout_git_environment, committed_scope
+    from .verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
+                                     exact_commit, git, require_ancestor, require_complete_history)
 else:
+    import timing
     from ci import WORKFLOW, classify_runs, command, github_identity
-    from project import ProjectError, load_project, read_json, review_history, source_identity
+    from project import (ProjectError, compare_history, feedback_fingerprint, load_project, project_definition_hash,
+                         read_json, source_identity, task_definition_hash, windows_x64)
     from protection import violations
-    from verification_scope import SCOPED_PROFILES, checkout_git_environment, committed_scope
+    from verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
+                                    exact_commit, git, require_ancestor, require_complete_history)
 
 ROOT = Path(__file__).resolve().parents[1]
 PR_FIELDS = ('number,url,state,isDraft,headRefOid,headRefName,baseRefOid,baseRefName,'
@@ -28,6 +34,15 @@ FULL_HARNESS_STEPS = {
     'verify (windows-latest)': 'Run uv run python scripts/check.py --require-windows',
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes': profile for profile in SCOPED_PROFILES}
+MAIN_PUSH_BUDGET_POLICY = 'post_merge_main_push_budget'
+# This exception belongs to one reviewed repair. The first policy PR cannot
+# use its own configuration to choose which existing observation to govern.
+MAIN_PUSH_BUDGET_BINDING = {
+    'pull_request_feedback_id': 'verification-overrun-without-timely-remediation',
+    'main_push_feedback_id': 'verification-main-push-feedback-budget-overrun',
+    'repair_task_id': 'M0-087',
+    'follow_up_task_id': 'M0-091',
+}
 
 
 def checked_pull_request(log):
@@ -166,9 +181,208 @@ def verified_pr_run(root, repository, pr, runs, dirty, contexts):
     return {'status': 'blocked', 'reason': reason, 'run': None}, []
 
 
-def delivery_scope(root, project, base):
+def required_job_succeeded(jobs, name, head):
+    matches = [job for job in jobs if job.get('name') == name]
+    return len(matches) == 1 and matches[0].get('status') == 'completed' and (
+        matches[0].get('conclusion') == 'success' and matches[0].get('head_sha') == head)
+
+
+def observed_budget_recovery(root, project, *findings):
+    observed = timing.offline_budget_status(root, findings, project['tasks'])
+    return {row['feedback_id']: row['recovery'] for row in observed.get('budget_recovery', [])}
+
+
+def successful_budget_observation(sample):
+    elapsed = sample.get('elapsed_seconds')
+    return sample.get('conclusion') == 'success' and type(elapsed) in (int, float) and 0 <= elapsed <= timing.HOSTED_BUDGET
+
+
+def budget_observations_support_handoff(root, project, pr, push, repair, source, workflow):
+    run, checkout = workflow['run'], workflow['checkout']
+    windows = next((job for job in workflow['required_checkouts'] if job['name'] == 'verify (windows-latest)'), None)
+    if run['run_attempt'] != 1 or windows is None:
+        return False
+    # Timing owns recovery, comparability and clock validation. Here the latest
+    # qualified observation must also belong to the PR attempt being integrated.
+    recovery = observed_budget_recovery(root, project, pr, push)
+    pr_recovery, push_recovery = (recovery.get(finding['id']) or {} for finding in (pr, push))
+    if (pr_recovery.get('status') != 'recovered' or push_recovery.get('status') != 'pending'
+            or pr_recovery.get('repair_commit') != repair or push_recovery.get('repair_commit') != repair):
+        return False
+    push_comparisons = push_recovery['comparisons']
+    if (not push_comparisons or push_recovery.get('unavailable_reports')
+            or any(comparison['latest_attempt'] or comparison['history_missing'] for comparison in push_comparisons)):
+        return False
+    for comparison in pr_recovery['comparisons']:
+        latest = comparison['latest_attempt'] or {}
+        if (successful_budget_observation(latest) and str(latest.get('hosted_run_id')) == str(run['id'])
+                and latest.get('hosted_head') == checkout['head']
+                and latest.get('source_commit') == checkout['commit']
+                and latest.get('inputs_sha256') == source['sha256']
+                and str(latest.get('job_id')) == str(windows['job_id'])):
+            return True
+    return False
+
+
+def budget_regression_receipts(root, task, finding):
+    observation = feedback_fingerprint(finding)
+    required = set(finding['regression_checks'])
+    definition = task_definition_hash(task)
+    for ref in task['evidence']:
+        receipt = read_json(root / ref['path'])
+        if (receipt['task_definition_sha256'] == definition and observation in receipt.get('observed_feedback', [])
+                and required.issubset(check['id'] for check in receipt['checks'])
+                and not receipt['source']['working_tree_dirty']):
+            yield ref['path'], receipt
+
+
+def budget_regression_receipt(root, project, task, finding, repair, source):
+    project_definition = project_definition_hash(project)
+    for path, receipt in budget_regression_receipts(root, task, finding):
+        observed = receipt['source']
+        if receipt['project_definition_sha256'] != project_definition or observed['sha256'] != source['sha256']:
+            continue
+        revision = (receipt.get('ci') or {}).get('head_sha', observed['git_head'])
+        try:
+            exact_commit(root, revision)
+            require_ancestor(root, repair, revision)
+            require_ancestor(root, revision, source['git_head'])
+        except ScopeError:
+            continue
+        return path
+    return None
+
+
+def main_push_budget_rule(root, project, base, completed, items, previous_feedback):
+    candidate = project['delivery']['source_control'].get(MAIN_PUSH_BUDGET_POLICY)
+    push_id = MAIN_PUSH_BUDGET_BINDING['main_push_feedback_id']
+    push, previous = items.get(push_id, {}), previous_feedback.get(push_id, {})
+    new_closure = push.get('status') == 'addressed' and previous.get('status') != 'addressed'
+    required = candidate is not None or MAIN_PUSH_BUDGET_BINDING['repair_task_id'] in completed or new_closure
+    try:
+        delivery = json.loads(git(root, 'show', f'{base}:project/delivery.json')) if base else {}
+    except ScopeError:
+        return None, 'The protected main-push budget policy could not be read.' if required else None
+    protected = delivery.get('source_control', {}).get(MAIN_PUSH_BUDGET_POLICY)
+    if protected is not None and candidate != protected:
+        return None, 'The PR changes or removes the protected main-push budget policy.'
+    if not required and protected is None:
+        return None, None
+    if candidate is None or any(candidate.get(key) != value for key, value in MAIN_PUSH_BUDGET_BINDING.items()):
+        return None, 'The main-push budget policy must name the governed M0-087 findings and M0-091.'
+    missing = [candidate[key] for key in ('pull_request_feedback_id', 'main_push_feedback_id')
+               if candidate[key] not in items]
+    missing.extend(candidate[key] for key in ('repair_task_id', 'follow_up_task_id')
+                   if candidate[key] not in project['tasks'])
+    if missing:
+        return None, f"The main-push budget policy references unavailable records: {', '.join(missing)}."
+    return candidate, None
+
+
+def main_push_budget_handoff(root, project, base, completed, items, rule, *, source, policy, workflow, jobs):
+    if not rule or not source or not policy or not workflow or source['working_tree_dirty']:
+        return None
+    if policy['branch'] != 'main' or workflow['status'] != 'passed' or workflow.get('expected_profile') != 'full':
+        return None
+    head = source['git_head']
+    checkout = workflow.get('checkout', {})
+    if checkout.get('base') != base or checkout.get('head') != head:
+        return None
+    contexts = {item['context'] for item in policy['configuration']['required_status_checks']['checks']}
+    if not FULL_HARNESS_STEPS.keys() <= contexts or not all(required_job_succeeded(jobs, name, head) for name in contexts):
+        return None
+
+    repair_task, follow_up = rule['repair_task_id'], rule['follow_up_task_id']
+    task = project['tasks'].get(follow_up, {})
+    if (repair_task not in completed or task.get('status') != 'planned' or not task.get('plan')
+            or task.get('depends_on') != [repair_task] or task.get('next_action') != rule['next_action']):
+        return None
+    push = items.get(rule['main_push_feedback_id'], {})
+    pr = items.get(rule['pull_request_feedback_id'], {})
+    if (push.get('status') != 'open' or push.get('severity') != 'major' or pr.get('status') != 'addressed'
+            or set(push['task_ids']) != {repair_task, follow_up} or repair_task not in pr['task_ids']):
+        return None
+    push_budget, pr_budget = push.get('verification_budget', {}), pr.get('verification_budget', {})
+    repair = push_budget.get('repair_commit')
+    common = {'repository': policy['repository'], 'profile': 'full', 'platform': 'Windows', 'repair_commit': repair}
+    if (not repair or push_budget != dict(common, event='push') or pr_budget != dict(common, event='pull_request')
+            or not push['regression_checks'] or not push.get('diagnostic_reports') or not pr.get('diagnostic_reports')):
+        return None
+
+    change = committed_scope(root, base, head)
+    if change['profile'] != 'full' or change['base'] != base or not change['change_count']:
+        return None
+    try:
+        committed = json.loads(git(root, 'show', f'{head}:project/delivery.json'))
+        if committed['source_control'].get(MAIN_PUSH_BUDGET_POLICY) != rule:
+            return None
+        exact_commit(root, repair)
+        require_ancestor(root, repair, head)
+        if git(root, 'merge-base', base, repair).strip().decode('ascii') == repair:
+            return None
+    except ScopeError:
+        return None
+
+    receipt = budget_regression_receipt(root, project, project['tasks'][repair_task], push, repair, source)
+    if not receipt or not budget_observations_support_handoff(root, project, pr, push, repair, source, workflow):
+        return None
+    return {'feedback_id': push['id'], 'status': 'pending', 'branch': policy['branch'],
+            'repair_task_id': repair_task, 'repair_commit': repair, 'regression_receipt': receipt,
+            'follow_up_task_id': follow_up, 'next_action': task['next_action']}
+
+
+def main_push_budget_closure(root, project, base, rule, push, previous, policy):
+    budget = push.get('verification_budget', {})
+    repair = budget.get('repair_commit')
+    if (not policy or policy['branch'] != 'main' or not repair
+            or budget != {'event': 'push', 'platform': 'Windows', 'profile': 'full',
+                          'repository': policy['repository'], 'repair_commit': repair}):
+        return False
+    owners = {rule['repair_task_id'], rule['follow_up_task_id']}
+    follow_up = project['tasks'].get(rule['follow_up_task_id'], {})
+    if (not previous or previous['status'] != 'open' or previous.get('verification_budget') != budget
+            or set(previous['task_ids']) != owners or set(push['task_ids']) != owners
+            or feedback_fingerprint(previous) != feedback_fingerprint(push)
+            or follow_up.get('status') != 'done' or follow_up.get('depends_on') != [rule['repair_task_id']]):
+        return False
+    try:
+        require_complete_history(root)
+        exact_commit(root, repair)
+        require_ancestor(root, repair, base)
+    except ScopeError:
+        return False
+
+    recovery = observed_budget_recovery(root, project, push).get(push['id']) or {}
+    if recovery.get('status') != 'recovered' or recovery.get('repair_commit') != repair:
+        return False
+    latest = [comparison['latest_attempt'] or {} for comparison in recovery['comparisons']]
+    if not latest:
+        return False
+    for sample in latest:
+        revision = sample.get('source_commit')
+        if not successful_budget_observation(sample) or sample.get('hosted_head') != revision:
+            return False
+        try:
+            exact_commit(root, revision)
+            require_ancestor(root, repair, revision)
+            require_ancestor(root, revision, base)
+        except ScopeError:
+            return False
+    for _, receipt in budget_regression_receipts(root, follow_up, push):
+        ci, source = receipt.get('ci', {}), receipt['source']
+        if (ci.get('event') != 'push' or ci['repository'] != budget['repository'] or ci['run_attempt'] != '1'
+                or not windows_x64(receipt['environment']) or ci['head_sha'] != ci['checkout_sha']
+                or ci['head_sha'] != source['git_head']):
+            continue
+        if any(ci['checkout_sha'] == sample['source_commit'] and ci['run_id'] == str(sample['hosted_run_id'])
+               and source['sha256'] == sample['inputs_sha256'] for sample in latest):
+            return True
+    return False
+
+
+def delivery_scope(root, project, base, *, source=None, policy=None, workflow=None, jobs=()):
     """Use actual base history and validated receipts, not a supplied task list."""
-    history = review_history(root, base)
+    history, previous_feedback = compare_history(root, base)
     previous_file = subprocess.run(['git', 'show', f'{base}:project/tasks.json'], cwd=root, env=checkout_git_environment(),
                                    capture_output=True, check=False)
     previous = {task['id']: task for task in json.loads(previous_file.stdout)['tasks']} if previous_file.returncode == 0 else {}
@@ -180,12 +394,34 @@ def delivery_scope(root, project, base):
         blockers.append('The PR has no completed delivery task with archived evidence.')
     blockers.extend(f'Unfinished delivery task: {key}' for key in unfinished)
     affected = {task['id'] for task in changed}
+    items = {item['id']: item for item in project['feedback']['items']}
+    rule, policy_blocker = main_push_budget_rule(root, project, history.get('base_commit'), completed,
+                                                items, previous_feedback)
+    if policy_blocker:
+        blockers.append(policy_blocker)
+    handoff = main_push_budget_handoff(root, project, base, completed, items, rule,
+                                      source=source, policy=policy, workflow=workflow, jobs=jobs)
+    reviewed_budgets = ({rule['main_push_feedback_id'], rule['pull_request_feedback_id']}
+                        if rule and rule['repair_task_id'] in affected else set())
+    handed_off = handoff['feedback_id'] if handoff else None
+    if rule:
+        push_id = rule['main_push_feedback_id']
+        push, previous = items.get(push_id), previous_feedback.get(push_id)
+        if push and push['status'] == 'addressed':
+            recorded = (previous and previous['status'] == 'addressed'
+                        and previous.get('verification_budget') == push.get('verification_budget')
+                        and set(previous['task_ids']) == set(push['task_ids'])
+                        and feedback_fingerprint(previous) == feedback_fingerprint(push))
+            if not recorded and not main_push_budget_closure(root, project, base, rule, push, previous, policy):
+                blockers.append(f'Main-push timing closure lacks a verified main-push observation: {push_id}')
     blockers.extend(f"Unresolved {item['severity']} feedback: {item['id']}"
-                    for item in project['feedback']['items'] if item['status'] != 'addressed'
-                    and (item['severity'] == 'critical' or
-                         item['severity'] == 'major' and affected.intersection(item['task_ids'])))
+                    for item in items.values() if item['status'] != 'addressed'
+                    and item['id'] != handed_off
+                    and (item['severity'] == 'critical' or item['id'] in reviewed_budgets
+                         or item['severity'] == 'major' and affected.intersection(item['task_ids'])))
     return {'completed_task_ids': completed, 'unfinished_task_ids': unfinished,
             'blockers': blockers, 'history': history,
+            **({MAIN_PUSH_BUDGET_POLICY: handoff} if handoff else {}),
             'claim_scope': 'Completed tasks and accepted history; review must still check the diff against the declared scope.'}
 
 
@@ -210,9 +446,7 @@ def assess(*, source, pr, final_pr, base_current, workflow, jobs, policy, protec
     if workflow['status'] != 'passed':
         blockers.append(workflow['reason'])
     for required in policy['configuration']['required_status_checks']['checks']:
-        matches = [job for job in jobs if job.get('name') == required['context']]
-        if len(matches) != 1 or not all(job.get('status') == 'completed' and job.get('conclusion') == 'success'
-                                        and job.get('head_sha') == pr['headRefOid'] for job in matches):
+        if not required_job_succeeded(jobs, required['context'], pr['headRefOid']):
             blockers.append(f"Required job did not succeed for this PR revision: {required['context']}")
     blockers.extend(violations(protection, policy['configuration']))
     blockers.extend(scope['blockers'])
@@ -260,8 +494,6 @@ def inspect(root=ROOT, pr_number=None):
                               cwd=root, env=checkout_git_environment(), capture_output=True, check=False)
     if ancestry.returncode not in {0, 1}:
         raise ProjectError('PR history is not available locally; fetch the reviewed head and base, then inspect again.')
-    scope = delivery_scope(root, project, base)
-
     def workflow_runs():
         pages = json.loads(command(['gh', 'api', '--paginate', '--slurp', '--method', 'GET',
                                     f'repos/{repository}/actions/workflows/verify.yml/runs',
@@ -277,6 +509,7 @@ def inspect(root=ROOT, pr_number=None):
     runs = workflow_runs()
     contexts = [check['context'] for check in policy['configuration']['required_status_checks']['checks']]
     workflow, jobs = verified_pr_run(root, repository, pr, runs, source['working_tree_dirty'], contexts)
+    scope = delivery_scope(root, project, base, source=source, policy=policy, workflow=workflow, jobs=jobs)
     protection = json.loads(command(['gh', 'api', f"repos/{repository}/branches/{policy['branch']}/protection"], root))
     stable = source_identity(root) == source and workflow_runs() == runs
     final_pr = pull_request()

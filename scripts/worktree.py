@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager, nullcontext
+from contextlib import ExitStack, contextmanager, nullcontext
 from dataclasses import dataclass
 import errno
 import json
@@ -66,6 +66,16 @@ def git(cwd, *args, allowed=(0,), lock_fd=None, input=None):
 def git_path(cwd, option):
     output = git(cwd, 'rev-parse', '--path-format=absolute', option).stdout
     return Path(os.fsdecode(output).removesuffix('\n')).resolve(strict=True)
+
+
+def checkout_paths(cwd):
+    options = ('--show-toplevel', '--git-dir', '--git-common-dir')
+    output = git(cwd, 'rev-parse', '--path-format=absolute', *options).stdout
+    paths = os.fsdecode(output).removesuffix('\n').split('\n')
+    if len(paths) != len(options):
+        # POSIX allows newlines in paths. A single result has an unambiguous boundary.
+        return tuple(git_path(cwd, option) for option in options)
+    return tuple(Path(path).resolve(strict=True) for path in paths)
 
 
 def registrations(cwd):
@@ -157,9 +167,8 @@ def verify_checkout(common, entry):
     marker = path / '.git'
     if entry.flags & {'bare', 'prunable'} or path.resolve() != path or not regular_file(marker):
         raise WorktreeError(f'Git worktree is unavailable at {entry.path}. Inspect git worktree list --porcelain.')
-    git_dir = git_path(path, '--git-dir')
-    if (git_path(path, '--show-toplevel') != path or git_path(path, '--git-common-dir') != common
-            or git_dir.parent != common / 'worktrees'):
+    top, git_dir, common_dir = checkout_paths(path)
+    if top != path or common_dir != common or git_dir.parent != common / 'worktrees':
         raise WorktreeError(f'Git worktree at {path} does not have a linked Git directory in {common}.')
     backlink = git_dir / 'gitdir'
     if not regular_file(backlink):
@@ -171,6 +180,7 @@ def verify_checkout(common, entry):
     branch = os.fsdecode(head.stdout).removesuffix('\n') if head.returncode == 0 else None
     if branch != entry.branch:
         raise WorktreeError(f'Git branch changed at {path}. Inspect git worktree list --porcelain and retry.')
+    return git_dir
 
 
 def open_windows_lock(path):
@@ -219,43 +229,50 @@ def inherit_lock(fd):
 def check_lock_file(path, info):
     if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
             or getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT):
-        raise WorktreeError(f'Unsafe worktree creation lock at {path}. Expected a single-link regular file.')
+        raise WorktreeError(f'Unsafe local lock at {path}. Expected a single-link regular file.')
+
+
+@contextmanager
+def exclusive_git_lock(path):
+    # Closing the last handle releases the OS lock, including after an interrupted process.
+    fd = None
+    try:
+        if os.name == 'nt':
+            fd = open_windows_lock(path)
+            check_lock_file(path, os.fstat(fd))
+        else:
+            import fcntl
+
+            try:
+                check_lock_file(path, path.lstat())
+            except FileNotFoundError:
+                pass
+            flags = os.O_RDWR | os.O_CREAT | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0)
+            fd = os.open(path, flags, 0o600)
+            opened = os.fstat(fd)
+            check_lock_file(path, opened)
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            current = path.lstat()
+            check_lock_file(path, current)
+            if not os.path.samestat(opened, current):
+                raise WorktreeError(f'Local lock changed at {path}. Inspect the path and retry.')
+        yield fd
+    finally:
+        if fd is not None:
+            os.close(fd)
 
 
 @contextmanager
 def creation_lock(common):
-    # All creates share one inode. Closing its last handle releases the OS lock.
     path = common / CREATION_LOCK
-    fd = None
-    try:
+    with ExitStack() as stack:
         try:
-            if os.name == 'nt':
-                fd = open_windows_lock(path)
-                check_lock_file(path, os.fstat(fd))
-            else:
-                import fcntl
-
-                try:
-                    check_lock_file(path, path.lstat())
-                except FileNotFoundError:
-                    pass
-                flags = os.O_RDWR | os.O_CREAT | os.O_NONBLOCK | getattr(os, 'O_NOFOLLOW', 0)
-                fd = os.open(path, flags, 0o600)
-                opened = os.fstat(fd)
-                check_lock_file(path, opened)
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                current = path.lstat()
-                check_lock_file(path, current)
-                if not os.path.samestat(opened, current):
-                    raise WorktreeError(f'Worktree creation lock changed at {path}. Inspect the path and retry.')
+            fd = stack.enter_context(exclusive_git_lock(path))
         except BlockingIOError as error:
             raise WorktreeError(
                 f'Worktree creation is already running. Retry when it finishes. Lock file: {path}'
             ) from error
         yield fd
-    finally:
-        if fd is not None:
-            os.close(fd)
 
 
 def add_worktree(cwd, lock_fd, path, branch, base):

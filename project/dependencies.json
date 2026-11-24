@@ -58,6 +58,14 @@
       "review": "The reviewed v6.1.0 save entrypoint runs the official Node 24 save-only bundle. A successful full job can save the existing Cargo paths under the resolved primary key after a miss or fallback. A selected task cannot publish an incomplete target under the full key."
     },
     {
+      "repository": "actions/download-artifact",
+      "sha": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+      "reviewed_ref": "v8.0.2",
+      "observed_at": "2026-11-24",
+      "source": "https://github.com/actions/download-artifact/blob/9000827ccba6bdab643e8b6fd33ac0654aef8333/action.yml",
+      "review": "The official v8.0.2 manifest declares Node 24 and fails on artifact digest mismatch by default. It reads artifacts from the current workflow run with its Actions runtime access. The protected job requests only current-attempt Windows artifacts, uses separate directories and verifies checkout, selection and raw check log digests before publishing the combined report."
+    },
+    {
       "repository": "actions/upload-artifact",
       "sha": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
       "reviewed_ref": "v7.0.2",

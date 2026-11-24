@@ -134,23 +134,49 @@ class PublisherAdvisoryTests(unittest.TestCase):
 
 
 class HostedCargoCacheTests(unittest.TestCase):
-    def test_only_successful_full_runs_can_publish_the_shared_build_key(self):
+    @classmethod
+    def setUpClass(cls):
         workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
-        steps = workflow['jobs']['verify']['steps']
-        caches = {step['uses'].split('@')[0]: step for step in steps
+        cls.steps = workflow['jobs']['verify']['steps']
+        cls.key = next(step for step in cls.steps if step.get('id') == 'cargo_keys')
+
+    def test_only_successful_full_runs_can_publish_the_shared_build_key(self):
+        caches = {step['uses'].split('@')[0]: step for step in self.steps
                   if step.get('uses', '').startswith('actions/cache')}
         self.assertEqual({'actions/cache/restore', 'actions/cache/save'}, set(caches))
         restore, save = caches['actions/cache/restore'], caches['actions/cache/save']
         self.assertEqual(restore['uses'].split('@')[1], save['uses'].split('@')[1])
         self.assertEqual(restore['with']['path'], save['with']['path'])
         self.assertEqual("${{ steps.cargo_cache.outputs['cache-primary-key'] }}", save['with']['key'])
-        self.assertEqual("steps.build_setup.outputs.skip != 'true'", restore['if'])
+        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true'", restore['if'])
+        self.assertEqual(restore['if'], self.key['if'])
         self.assertEqual(
             "success() && !inputs.task_id && steps.build_setup.outputs.profile == '' "
+            "&& (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && matrix.lane != 'python')) "
             "&& steps.cargo_cache.outputs['cache-primary-key'] != '' "
             "&& steps.cargo_cache.outputs['cache-hit'] != 'true'", save['if'],
         )
-        self.assertGreater(steps.index(save), next(i for i, step in enumerate(steps) if step.get('id') == 'artifacts'))
+        self.assertEqual("${{ steps.lane.outputs.split == 'true' && matrix.lane || '' }}", self.key['env']['SCOPEHUB_WINDOWS_LANE'])
+        self.assertEqual('${{ steps.cargo_keys.outputs.primary }}', restore['with']['key'])
+        self.assertGreater(self.steps.index(save), next(i for i, step in enumerate(self.steps) if step.get('id') == 'artifacts'))
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run the hosted cache-key script with Bash')
+    def test_browser_and_python_restore_the_same_key_with_legacy_fallback(self):
+        legacy = 'Windows-X64-cargo-toolchain-'
+        for lane, owner in (('python', 'browser'), ('browser', 'browser'), ('core', 'core'), ('', '')):
+            with self.subTest(lane=lane), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / 'outputs.txt'
+                subprocess.run(
+                    [self.key['shell'], '-c', self.key['run']], capture_output=True, check=True, timeout=10,
+                    env=dict(os.environ, SCOPEHUB_WINDOWS_LANE=lane, RUNNER_OS='Windows', RUNNER_ARCH='X64',
+                             TOOLCHAIN_HASH='toolchain', LOCK_HASH='lock', GITHUB_OUTPUT=str(output)),
+                )
+                primary = f'Windows-X64-cargo-{owner}-toolchain-' if owner else legacy
+                expected = [f'primary={primary}lock', f'legacy={legacy}lock', 'fallback<<CACHE_KEYS']
+                if owner:
+                    expected.extend((f'{legacy}lock', primary))
+                expected.extend((legacy, 'CACHE_KEYS'))
+                self.assertEqual(expected, output.read_text(encoding='utf-8').splitlines())
 
 
 class DependencyTests(unittest.TestCase):

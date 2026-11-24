@@ -14,11 +14,11 @@ import tomllib
 
 if __package__:
     from . import storage, worktree
-    from .operational_paths import OPERATIONAL_PATHS, is_operational_path
+    from .operational_paths import is_operational_path
 else:
     import storage
     import worktree
-    from operational_paths import OPERATIONAL_PATHS, is_operational_path
+    from operational_paths import is_operational_path
 
 
 INTEGRATION_REF = 'refs/remotes/origin/main'
@@ -355,7 +355,7 @@ def manifest_paths(value):
             yield from manifest_paths(item)
 
 
-def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts):
+def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts, files):
     common_directories = {consumer, consumer / 'project', consumer / 'scripts', git_dir}
     patterns = dependency_patterns(consumer, candidates, common_directories, absolute=True)
     nested_checkout = any(path.is_relative_to(consumer) for path in patterns)
@@ -397,15 +397,11 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
                 observe_path_dependency(alternates.parent.parent / value, 'Git object alternates',
                                         patterns, observed)
 
-    tracked = os.fsdecode(git(consumer, 'ls-files', '--stage', '-z').stdout).split('\0')
-    for entry in tracked:
-        if entry.startswith('160000 '):
+    for name, mode, _ in files:
+        if mode == '160000':
             raise ValueError('Nested Git submodule consumer scope needs independent observation')
-        if entry:
-            observe_symlink(consumer / entry.partition('\t')[2], patterns, observed)
-    controls = os.fsdecode(git(consumer, 'ls-files', '--cached', '--others', '--exclude-standard', '-z',
-                                '--', 'AGENTS.md', *OPERATIONAL_PATHS).stdout)
-    for name in set(controls.split('\0')) - {''}:
+        observe_symlink(consumer / name, patterns, observed)
+    for name in {name for name, _, _ in files}:
         if name != 'AGENTS.md' and not is_operational_path(name):
             continue
         path = consumer / name
@@ -422,10 +418,6 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
                     observe_path_dependency(directory / value, name, patterns, observed)
         elif worktree.regular_file(path):
             observe_text(path.read_text(encoding='utf-8', errors='surrogateescape'), name, path.parent)
-    untracked = os.fsdecode(git(consumer, 'ls-files', '--others', '--exclude-standard', '-z').stdout)
-    for name in untracked.split('\0'):
-        if name:
-            observe_symlink(consumer / name, patterns, observed)
     for path, regular in ignored_files(consumer, ignored, mounts, include_generated_links=True):
         if not regular:
             observe_symlink(path, patterns, observed)
@@ -458,6 +450,19 @@ def observe_symlink(path, candidates, observed):
     return False
 
 
+def checkout_files(checkout):
+    output = git(checkout, 'ls-files', '-v', '--stage', '--others', '--exclude-standard', '-z').stdout
+    for entry in filter(None, os.fsdecode(output).split('\0')):
+        tag, item = entry[0], entry[2:]
+        if tag == '?':
+            yield item, None, tag
+            continue
+        stage, separator, name = item.partition('\t')
+        if not separator or not name:
+            raise ValueError('Cannot read checkout index entry')
+        yield name, stage.split(' ', 1)[0], tag
+
+
 def git_status(checkout):
     config = os.fsdecode(git(checkout, 'config', '--null', '--list', '--includes').stdout)
     commands = {}
@@ -481,12 +486,12 @@ def git_status(checkout):
                  'status', '--porcelain=v1', '-z', '--untracked-files=normal',
                  '--ignored=matching', '--ignore-submodules=all').stdout
     records = [item for item in os.fsdecode(output).split('\0') if item]
-    hidden = any(item and (item[0] == 'S' or item[0].islower())
-                 for item in os.fsdecode(git(checkout, 'ls-files', '-v', '-z').stdout).split('\0'))
+    files = list(checkout_files(checkout))
+    hidden = any(tag == 'S' or tag.islower() for _, _, tag in files)
     ignored = [
         checkout / item[3:].removesuffix('/') for item in records if item.startswith('!! ')
     ]
-    return any(not item.startswith('!! ') for item in records), hidden, ignored, config, filters
+    return any(not item.startswith('!! ') for item in records), hidden, ignored, config, filters, files
 
 
 def cache_tag(path):
@@ -791,13 +796,12 @@ def checkout_limited_to_owner(path):
 
 def verify_consumer_checkout(common, entry, *, primary):
     if not primary:
-        worktree.verify_checkout(common, entry)
-        return
+        return worktree.verify_checkout(common, entry)
     path = entry.path
-    if (entry.flags & {'bare', 'prunable'} or path.resolve() != path or
-            worktree.git_path(path, '--show-toplevel') != path or worktree.git_path(path, '--git-dir') != common or
-            worktree.git_path(path, '--git-common-dir') != common):
+    if (entry.flags & {'bare', 'prunable'} or path.resolve() != path
+            or worktree.checkout_paths(path) != (path, common, common)):
         raise worktree.WorktreeError(f'Cannot verify the primary checkout at {path}.')
+    return common
 
 
 def retirement_report(cwd, common, registered, *, archive_root=None, dispositions=None):
@@ -843,7 +847,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             holds['worktree_locked'] = entry.lock_reason or True
         ignored = None
         try:
-            verify_consumer_checkout(common, entry, primary=position == 0)
+            git_dir = verify_consumer_checkout(common, entry, primary=position == 0)
         except (OSError, RuntimeError) as error:
             holds['registration_unavailable'] = str(error)
             # Git's prunable entry for a missing path has no checkout files to consume.
@@ -870,8 +874,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             if row['integration'] is None:
                 holds['not_integrated_or_disposed'] = True
 
-            git_dir = worktree.git_path(checkout, '--git-dir')
-            dirty, hidden, ignored, config, filters = git_status(checkout)
+            dirty, hidden, ignored, config, filters, files = git_status(checkout)
             if dirty:
                 holds['dirty_checkout'] = True
             if hidden:
@@ -908,7 +911,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             if ignored is None:
                 raise OSError('Cannot inspect ignored checkout paths')
             for target, locations in observe_dependencies(checkout, checkouts, common, git_dir, config,
-                                                          ignored, mounts).items():
+                                                          ignored, mounts, files).items():
                 dependencies[target].update(f'{checkout}: {location}' for location in locations)
         except (OSError, RuntimeError, ValueError) as error:
             uncertain_consumers.append(f'{checkout}: {error}')

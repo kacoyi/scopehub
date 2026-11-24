@@ -2,8 +2,10 @@
 
 from datetime import datetime, timedelta, timezone
 import json
+from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -78,6 +80,7 @@ class HostedStatusTests(unittest.TestCase):
         with (patch.object(ci, 'github_identity', return_value=repository),
               patch.object(ci, 'source_identity', return_value=source),
               patch.object(ci, 'read_json', return_value={'branch': 'main'}),
+              patch.object(ci, 'ci_budget_status', return_value={}),
               patch.object(ci, 'command', side_effect=command)):
             return ci.status(), requests
 
@@ -177,6 +180,52 @@ class HostedEvidenceTests(ProjectFixture):
                  '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Preserve synthetic inputs')
         self.git('remote', 'add', 'origin', f'https://github.com/{self.repository}.git')
         return self.git('rev-parse', 'HEAD')
+
+    def test_current_hosted_result_requires_visible_checkout_and_submodule_state(self):
+        head = self.commit_fixture()
+        run = {'id': 11, 'path': ci.WORKFLOW, 'head_sha': head, 'status': 'completed',
+               'conclusion': 'success', 'run_attempt': 1, 'event': 'pull_request'}
+
+        def observed():
+            with (patch.object(ci, 'github_identity', return_value=self.repository),
+                  patch.object(ci, 'read_json', return_value={'branch': 'main'}),
+                  patch.object(ci, 'checkout_branch', return_value='topic'),
+                  patch.object(ci, 'workflow_runs', return_value=[run]),
+                  patch.object(ci, 'ci_budget_status', return_value={})):
+                return ci.status(self.root)['status']
+
+        self.assertEqual('passed', observed())
+        self.git('config', 'status.showUntrackedFiles', 'no')
+        untracked = self.root / 'untracked fixture.txt'
+        untracked.touch()
+        self.assertEqual('blocked', observed())
+        untracked.unlink()
+        for option in ('assume-unchanged', 'skip-worktree'):
+            with self.subTest(option=option):
+                self.git('update-index', f'--{option}', '--', 'implementation.py')
+                self.assertEqual('blocked', observed())
+                self.git('update-index', f'--no-{option}', '--', 'implementation.py')
+                self.assertEqual('passed', observed())
+
+        dependency = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+        subprocess.run(['git', 'init', '-q', str(dependency)], check=True, capture_output=True)
+        (dependency / 'tracked.txt').write_text('Dependency fixture\n', encoding='utf-8')
+        subprocess.run(['git', '-C', str(dependency), 'add', '.'], check=True, capture_output=True)
+        author = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid']
+        subprocess.run(['git', '-C', str(dependency), *author, 'commit', '-qm', 'Dependency fixture'],
+                       check=True, capture_output=True)
+        self.git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(dependency), 'dependency')
+        self.git('config', 'submodule.dependency.ignore', 'all')
+        self.git(*author, 'commit', '-qm', 'Track fixture submodule')
+        run['head_sha'] = self.git('rev-parse', 'HEAD')
+        self.assertEqual('passed', observed())
+        self.git('-C', 'dependency', 'config', 'status.showUntrackedFiles', 'no')
+        nested = self.root / 'dependency' / 'nested-untracked.txt'
+        nested.touch()
+        self.assertEqual('blocked', observed())
+        nested.unlink()
+        self.git('-C', 'dependency', 'update-index', '--assume-unchanged', '--', 'tracked.txt')
+        self.assertEqual('blocked', observed())
 
     def provenance(self, head):
         return {'provider': 'github-actions', 'repository': self.repository, 'run_id': '10',

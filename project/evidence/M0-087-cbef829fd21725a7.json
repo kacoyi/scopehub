@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-087",
+  "task_definition_sha256": "1c44f8a2ab3745094073f6fd88e336425cbbb3c44bee3bb72105ee76f37f5c9a",
+  "run_id": "windows-change-45393623602-1",
+  "recorded_at": "2026-11-24T12:43:42.633906+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "fc3149d1cc8699fe2377b85f2216b0f6f638bcbe91f5bdfc8e4248eb4dc3df67",
+    "file_count": 582,
+    "git_head": "b217c4090b61c50b3503a15e25fb6acd19449941",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "cbef829fd21725a7b0c9ef6e314b7c2d3352b2a884916c75d98ba530efa59570",
+  "environment": {
+    "system": "Windows",
+    "release": "2025Server",
+    "machine": "AMD64",
+    "python": "3.12.10",
+    "python_executable": "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (6b2d39dcc 2026-11-17 x86_64-pc-windows-msvc)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f076d5bb596b0e83669d3d7ce08c28b7cfe4e4f4de4d305edce347534b19523e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "D:\\a\\scopehub\\scopehub\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e4c098b3d0a6cced993ca87b5176c7cff6c956e25e8763f59aaa822c3c48f5f5"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "84b582e8dca10702effd3ef6743b6d157ae0d2edb3393b08246637bdb27b911a"
+    }
+  ],
+  "project_definition_sha256": "224e8bd5774441e75b91a6c13e336c5d6872f69b4dbdcfed24d039bfbeb3c1f4",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "0817d5b24156062e981ccf8ae67e3e4975c8ba4fdeb2b2cdf4f9202000b90b8c",
+    "11204e17e54c17709f6054eb26ede4aa3092265c9f9e8836aa4c60f7087f891a",
+    "1825c167bd3ff205e3f15def8b7ca7588038d07094bb00aa1812a0b32f72159e",
+    "18e9454ef69743e772594725d61d08d373d445b69c6fcbf357a956dfcd90b234",
+    "319939445bbf4dd310adaf4c4d1ceed99fdd04a9a5b2748c4666d6b2b2640347",
+    "4a70553b300328fe06abab46fc057f4c5c7393a81118e6b274de7099d2fff56d",
+    "a8dce65de397df1bb17ff0ee5a870d515eb82af6983d7f4ab24ef47770c9c408",
+    "afb165fe8d0400a865125c4fdcf643ca2a0600d2663f622255ef6bcd525f743f",
+    "b4021056de2e3ad195825cf48181835a655821b5f4ccee69f21d044d9c2a3a56",
+    "b97d3c99a7274035415ae8cd29c9470898660a26a7b45852f9e00f3cf8b4b780",
+    "befd91d7a44983fd6c1903f43e79dc9eeb452663289ee09f37619ffe5c0a0f4b",
+    "e15f28818661ae61078637dee70c9f919c5c3b7cb0ca5a2e14a5ba0fa754e7d1",
+    "f3462b3c105c61f441ccd9c42dcb66d52edda0d3f389a58970b5f1eea994adf3"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45393623602",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "df99e89dd7f0c0b5f4a2cef31a9b7398b461947d",
+    "checkout_sha": "b217c4090b61c50b3503a15e25fb6acd19449941",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45393623602"
+  }
+}

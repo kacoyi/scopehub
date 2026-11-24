@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-087",
+  "task_definition_sha256": "5cec906670ef226864c5f86c03687cff45d1d166119fa71da60d17e569549f17",
+  "run_id": "20261124T132507.020021Z-8e0cb3da",
+  "recorded_at": "2026-11-24T13:27:44.245488+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "70427521747d1a819fee131c0aa62522e01eff60e3151b4fb9a0ba039cb3e244",
+    "file_count": 583,
+    "git_head": "27b70d04bdbd1bd81245c126c93f0392ce84f797",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a53247aee1aab0060a51c4de1b8eca59ec16fb6381d1bebba8ff0a7351cb2a4b",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/verification-cost/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/verification-cost/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8fcc85999199e935c9425ef63474dfa8dd8705b819e20b6abebc2f2a0eb0fe0f"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/verification-cost/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "02172230ec2a04e6c9033c057eb47e5cf8e6eb110f033f7398b262d57730ac0d"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c608d86b2dc59e07e632ea0be08c20646d7d8112c20bc6f3f50834a47d20a52b"
+    }
+  ],
+  "project_definition_sha256": "fbf6c1d7e43f05fd4f3ca4c7eb135066b296f4dd4a8dadf207c0d630b07b9017",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "073c348beaadbcc55dae33f90ad40d4b6a5f00554ca986d481f5f020ee84eb70",
+    "0817d5b24156062e981ccf8ae67e3e4975c8ba4fdeb2b2cdf4f9202000b90b8c",
+    "102f20688c60d1ab24aa6a66f77c4ab8e3390ec04ac1c0cba16a042e696a50c4",
+    "11204e17e54c17709f6054eb26ede4aa3092265c9f9e8836aa4c60f7087f891a",
+    "1150d5645602f211ef5b936ea455ac4c1f56600acc07d463c421ad82fb8bcf93",
+    "1825c167bd3ff205e3f15def8b7ca7588038d07094bb00aa1812a0b32f72159e",
+    "18e9454ef69743e772594725d61d08d373d445b69c6fcbf357a956dfcd90b234",
+    "2c30ff0da7e740560689ab8667481b226a09778db3bdadb6d58501b386164c22",
+    "2c39afb979c244c6fe966105d46665b1f5e0fa799bb544654675362633134ed3",
+    "319939445bbf4dd310adaf4c4d1ceed99fdd04a9a5b2748c4666d6b2b2640347",
+    "5267b08b660ba41b6149fa426d0accf5120090b1c70d98c13e56e13214c5e2ab",
+    "5b07faa4634fc3c987f06d4045711a7b7bb1769da69f9f629c5f20fd52238b2a",
+    "5c84e7b37189aa8e78df1fface7cf8d4f7521f23425ddcc3f21496150c1c7eef",
+    "6b85d7a1a3997fa3f9dc77965426121779eefd0f2608443b895f60213f27d75e",
+    "6dafc44b542f43d5fbe5dbfb0aebb995ff8a37fcca8d4c45743db828c72a63f0",
+    "869cecb2cb4238c63eb7b8992b2bd7b3ce51f3fb4c3a20057b5ac8ac6ce7ccb1",
+    "94e02143f21072be1f58ce4f5873e2f84b3eb79cc913fccbaaff3fda5e454ae9",
+    "9d1252c1700a9d5fcd61df91ccb371bed47286dbc1b90f8b949a4a9a084ebcc2",
+    "9e4862f66ebb672a32b1780e05611586edd40c40c9ea5342906569cb92448ba5",
+    "a8dce65de397df1bb17ff0ee5a870d515eb82af6983d7f4ab24ef47770c9c408",
+    "b0f581cc456b978cbc06037c1d306f2db7501f75dbabc198af147257b97e5131",
+    "b4021056de2e3ad195825cf48181835a655821b5f4ccee69f21d044d9c2a3a56",
+    "b97d3c99a7274035415ae8cd29c9470898660a26a7b45852f9e00f3cf8b4b780",
+    "e78a7dbc6e1eee2d31124b2bb585b22bf25513ddc2fbf4f7f8fbd86dc52405a9",
+    "f3462b3c105c61f441ccd9c42dcb66d52edda0d3f389a58970b5f1eea994adf3",
+    "fa42271b33c9b6d0ea83df80c53bd218f90a47107fee18abbc4ed45c0d4e1ee5"
+  ]
+}
