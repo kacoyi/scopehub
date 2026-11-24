@@ -1,4 +1,5 @@
 # Exercise the embedded WebView2 through its accessibility tree in an isolated synthetic profile.
+param([string]$DrawingOutput)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -125,6 +126,10 @@ try {
     Wait-ForProbe 'restored accepted definition' { (Draft-Pattern).Current.Value -ceq $accepted } | Out-Null
     Invoke-Button 'Back to chart'
     Wait-Name 'Open workbench prototype'
+
+    if ($DrawingOutput) {
+        & (Join-Path $PSScriptRoot 'drawing-webview2.ps1') -OutputDirectory $DrawingOutput
+    }
 
     $browser = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id) AND Name = 'msedgewebview2.exe'" |
         Select-Object -First 1

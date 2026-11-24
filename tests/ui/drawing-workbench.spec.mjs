@@ -1,4 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { buildPreview, persistedRows, withPeer, withProfile, withWorkspace } from './ai-workflow-fixture.mjs';
 
@@ -269,4 +273,19 @@ test('an external client authors pennants and changes only the later tip on the 
     await expect(circle).toHaveAttribute('cx', '466');
     verify(await marks(), [[202,131.333333,24],[478,100.666667,16]]);
   }));
+});
+
+
+test('observe the held-out pennants in the native Windows WebView2 window', async ({}, info) => {
+  test.skip(process.platform !== 'win32', 'Requires Windows UI Automation and WebView2.');
+  test.setTimeout(25 * 60_000);
+  const output = process.env.SCOPEHUB_RUN_DIR
+    ? resolve(process.env.SCOPEHUB_RUN_DIR, 'webview2-drawing')
+    : info.outputPath('webview2-drawing');
+  await mkdir(output, { recursive: true });
+  const script = fileURLToPath(new URL('./renderer-probe-windows.ps1', import.meta.url));
+  const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', script, '-DrawingOutput', output], { stdio: 'inherit', windowsHide: true });
+  const [code] = await once(child, 'exit');
+  expect(code, 'WebView2 window, painted pennants, recovery and disposable profile cleanup').toBe(0);
 });
