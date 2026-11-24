@@ -1,6 +1,23 @@
-import { sources } from './workbench-composition';
+import { sources, type NumericField } from './workbench-composition';
 
-export type Drawing = { source: keyof typeof sources; mode: 'free' | 'overlay'; code: string };
+export type Scalar = { name: string; min: number; max: number; step: number; initial: number };
+export type Drawing = {
+  source: keyof typeof sources; mode: 'free' | 'overlay'; code: string;
+  scalars: Scalar[]; difference?: { field: NumericField; parameter: string };
+};
+export type Controls = { params: Record<string, number>; selected: number };
+export type Target = [index: number, x: number, y: number, radius: number];
+
+export function validTarget(value: unknown, count: number): value is Target {
+  return Array.isArray(value) && value.length === 4 && value.every(Number.isFinite)
+    && Number.isInteger(value[0]) && value[0] >= 0 && value[0] < count
+    && Math.abs(value[1]) <= 4096 && Math.abs(value[2]) <= 4096 && value[3] >= 1 && value[3] <= 40;
+}
+
+export function allowedValue(scalar: Scalar, value: number) {
+  const ticks = (value - scalar.min) / scalar.step;
+  return Number.isFinite(value) && value >= scalar.min && value <= scalar.max && Math.abs(ticks - Math.round(ticks)) < 1e-7;
+}
 export type Mark =
   | ['circle', number, number, number, number]
   | ['line' | 'rect', number, number, number, number, number];
@@ -16,7 +33,27 @@ export function readProgram(text: string): Drawing | undefined {
   const code = /^\x60\x60\x60(?:javascript|js)?\s*\n([\s\S]+?)\n\x60\x60\x60$/i.exec(trimmed)?.[1]?.trim() ?? trimmed;
   const header = /^\/\/ (stock|future) (free|overlay)\r?\n/.exec(code);
   if (header && code.length <= programLimit) {
-    return { source: header[1] as Drawing['source'], mode: header[2] as Drawing['mode'], code };
+    const result: Drawing = { source: header[1] as Drawing['source'], mode: header[2] as Drawing['mode'], code, scalars: [] };
+    for (const line of code.split(/\r?\n/).slice(1)) {
+      const [comment, directive, ...args] = line.trim().split(/\s+/);
+      if (comment !== '//' || !['scalar', 'difference'].includes(directive ?? '')) continue;
+      const [name, ...numbers] = args;
+      if (directive === 'scalar') {
+        if (!name || !/^[a-z][a-zA-Z0-9]{0,19}$/.test(name) || name in Object.prototype
+          || numbers.length !== 4 || numbers.some(n => !/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(n))
+          || result.scalars.length >= 3 || result.scalars.some(s => s.name === name)) return;
+        const [min, max, step, initial] = numbers.map(Number) as [number, number, number, number];
+        const scalar = { name, min, max, step, initial };
+        if (Math.max(Math.abs(min), Math.abs(max)) > 1e9 || min >= max || step <= 0 || step > max - min
+          || (max - min) / step > 10000 || !allowedValue(scalar, initial) || !allowedValue(scalar, max)) return;
+        result.scalars.push(scalar);
+      } else {
+        if (result.difference || args.length !== 2 || !['open','high','low','close','volume'].includes(name ?? '')
+          || !result.scalars.some(s => s.name === args[1])) return;
+        result.difference = { field: name as NumericField, parameter: args[1]! };
+      }
+    }
+    return result;
   }
 }
 
@@ -26,7 +63,8 @@ export function drawingPrompt(accepted?: Drawing) {
     'rows contains two frozen 1m bars with time_ms,open,high,low,close,volume. Use for/if/Math for geometry only.',
     'Viewport 640x240. xTime(time_ms), yValue(price) map to the shared price overlay. Free mode has no axes.',
     'Draw with line(x1,y1,x2,y2,ink), circle(x,y,r,ink), rect(x,y,w,h,ink). ink=0..3. Local stroke weight is adjustable.',
-    'No imports, tools or indicators. Return source only. Accepted program:', accepted?.code ?? 'none', 'User intent:',
+    'Optional // scalar name min max step default; read params.name. hit(rowIndex,x,y,r) binds a selectable area; selected is its index or -1.',
+    '// difference field name requests a host-calculated selected field minus that scalar. No guest readout formulas. Accepted program:', accepted?.code ?? 'none', 'User intent:',
   ].join('\n') + '\n';
 }
 

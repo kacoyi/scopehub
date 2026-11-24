@@ -848,7 +848,7 @@
     {
       "id": "workbench-drawing-runtime",
       "status": "implemented",
-      "purpose": "Exercise an embedded synthetic model turn returning a drawing program, independent frozen geometry, isolated resource failures and host recovery. Browser qualification only.",
+      "purpose": "Exercise an embedded synthetic model turn returning a drawing program, independent frozen geometry, bounded host selections and scalar changes, externally authored file edits, validated core readouts, isolated resource failures and host recovery. Browser qualification only.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -857,7 +857,8 @@
         "test",
         "--config",
         "tests/ui/workbench-authoring.config.mjs",
-        "drawing-workbench.spec.mjs"
+        "drawing-workbench.spec.mjs",
+        "drawing-series.spec.mjs"
       ],
       "timeout_seconds": 1800,
       "cadence": "task"

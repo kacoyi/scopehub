@@ -132,7 +132,7 @@ function App() {
 
   return <>
     {prototype && <WorkbenchPrototype close={() => setPrototype(false)} />}
-    {authoring === 'drawing' && <DrawingWorkbench hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
+    {authoring === 'drawing' && <DrawingWorkbench workspace={localWorkspace} hasWorkspace={Boolean(modelWorkspaceId)} close={closeWorkbench} ask={askWorkbench} />}
     {authoring === 'tree' && <WorkbenchAuthoring close={closeWorkbench} ask={askWorkbench}
       openDrawing={() => { setAuthoringTurn(undefined); setAuthoring('drawing'); }} />}
     {!local && <ChartWorkspace key={sample ? 'sample' : 'unconfigured'} sample={sample}

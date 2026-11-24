@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { formatDateTime, formatNumber, t } from './i18n';
 import { LanguageSettings } from './language-settings';
 import { sources, type WorkbenchAuthoringTurn } from './workbench-composition';
+import { CalculatedReadout } from './drawing-readout';
+import type { LocalWorkspace } from './use-local-workspace';
 import drawingExample from './drawing-sample.js?raw';
-import { drawingPrompt, height, programLimit, readProgram, viewBounds, viewport, width, type Drawing, type Mark, type ViewBounds } from './drawing-program';
+import { allowedValue, drawingPrompt, height, programLimit, readProgram, viewBounds, viewport, width, type Drawing, type Mark, type ViewBounds, type Target, type Controls } from './drawing-program';
 import { evaluateDrawing } from './drawing-evaluation';
 import './drawing-workbench.css';
 
 type Origin = 'sample' | 'model' | 'editor';
-type Scene = { program: Drawing; marks: Mark[]; origin: Origin; bounds: ViewBounds; expanded: boolean };
+type Scene = { program: Drawing; marks: Mark[]; targets: Target[]; controls: Controls; origin: Origin; bounds: ViewBounds; expanded: boolean };
 type Status = 'idle' | 'running' | 'rejected' | 'timeout';
 const inks = ['#60d4bf', '#e8af72', '#a8a4fc', '#e68ca8'];
 
-function DrawingSurface({ scene, weight }: { scene: Scene; weight: number }) {
+function DrawingSurface({ scene, weight, select }: { scene: Scene; weight: number; select: (index: number) => void }) {
   const { program, marks } = scene;
   const source = sources[program.source];
   const scale = viewport(scene.bounds);
@@ -21,7 +23,7 @@ function DrawingSurface({ scene, weight }: { scene: Scene; weight: number }) {
   const time = (ms: number) => formatDateTime(ms, { hour: '2-digit', minute: '2-digit', timeZone: source.timezone, hourCycle: 'h23' });
   return <figure className="drawing-surface">
     <figcaption><strong>{label}</strong><span>{scene.origin === 'sample' ? t('Synthetic drawing sample') : scene.origin === 'model' ? t('Model reply') : t('Local edit')} · {source.instrument_id} · {source.timeframe}</span></figcaption>
-    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
+    <svg viewBox={`0 0 ${width} ${height}`} role={scene.targets.length ? "group" : "img"} aria-label={label}>
       {overlay && <g className="drawing-axis" aria-label={t('Frozen close reference')}>
         {[scene.bounds.high, scene.bounds.low].map(price =>
           <g key={price}><text x="4" y={scale.yValue(price) + 4}>{formatNumber(price)}</text>
@@ -39,6 +41,13 @@ function DrawingSurface({ scene, weight }: { scene: Scene; weight: number }) {
           return <line key={i} x1={x} y1={y} x2={a} y2={b} stroke={stroke} />;
         })}
       </g>
+      {scene.targets.map(([index, x, y, radius]) =>
+        <circle key={index} className="drawing-target" cx={x} cy={y} r={radius} fill="transparent"
+          tabIndex={0} role="button" aria-pressed={scene.controls.selected === index}
+          aria-label={t('Inspect observation at {time}', { time: time(source.bars[index]!.time_ms) })}
+          onClick={() => select(index)} onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(index); }
+          }} />)}
     </svg>
     <details className="probe-source"><summary>{t('Frozen synthetic source')}</summary>
       <dl><dt>{t('Dataset ID')}</dt><dd>{source.dataset_id}</dd>
@@ -50,10 +59,34 @@ function DrawingSurface({ scene, weight }: { scene: Scene; weight: number }) {
   </figure>;
 }
 
-export function DrawingWorkbench({ ask, close, hasWorkspace }: { hasWorkspace: boolean; ask: (turn: WorkbenchAuthoringTurn) => void; close: () => void }) {
+function Observation({ scene, workspace }: { scene: Scene; workspace: LocalWorkspace | undefined }) {
+  if (!scene.targets.some(target => target[0] === scene.controls.selected)) return null;
+  const data = sources[scene.program.source];
+  const bar = data.bars[scene.controls.selected]!;
+  const state = workspace?.snapshot;
+  const diff = scene.program.difference;
+  const available = state?.source?.kind === 'sample' && (!state.source.instrument_id || state.source.instrument_id === data.instrument_id)
+    && !workspace?.sourceRecovery && !workspace?.error;
+  const query = diff && available && state && {
+    source: scene.program.source, field: diff.field, parameter: scene.controls.params[diff.parameter]!,
+    workspaceId: state.workspace.id, revision: state.workspace.revision, selectionRevision: state.selection_revision,
+  };
+  return <section className="authored-evidence" aria-label={t('Selected frozen evidence')}>
+    <h3>{t('Selected frozen evidence')}</h3>
+    <p>{data.instrument_id} · <time dateTime={new Date(bar.time_ms).toISOString()}>{formatDateTime(bar.time_ms,
+      { timeZone: data.timezone, dateStyle: 'short', timeStyle: 'short' })}</time> · {data.timezone}</p>
+    <dl><dt>{t('Close price')}</dt><dd>{formatNumber(bar.close)} {data.currency}</dd>
+      <dt>{t('Volume')}</dt><dd>{formatNumber(bar.volume)} {data.quantity_unit === 'contracts' ? t('contracts') : t('shares')}</dd></dl>
+    {diff && (query ? <CalculatedReadout key={JSON.stringify(query)} query={query} time={bar.time_ms} />
+      : <p>{t('Calculated readout unavailable. Open the matching offline sample in a local workspace.')}</p>)}
+  </section>;
+}
+
+export function DrawingWorkbench({ ask, close, hasWorkspace, workspace }: { hasWorkspace: boolean; workspace: LocalWorkspace | undefined; ask: (turn: WorkbenchAuthoringTurn) => void; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const scope = useRef(Symbol());
   const epoch = useRef(0);
+  const pendingControls = useRef<{ code: string; controls: Controls } | undefined>(undefined);
   const job = useRef<AbortController | undefined>(undefined);
   const [source, setSource] = useState('');
   const [draft, setDraft] = useState<Scene>();
@@ -72,31 +105,65 @@ export function DrawingWorkbench({ ask, close, hasWorkspace }: { hasWorkspace: b
   function edit(code: string) {
     ++epoch.current;
     job.current?.abort();
+    pendingControls.current = undefined;
     setDraft(undefined);
     setStatus('idle');
     setSource(code);
   }
 
-  function preview(text: string, origin: Origin, expanded = false, reframeAccepted = false) {
+  function preview(text: string, origin: Origin, expanded = false, reframeAccepted = false, update?: Controls) {
     const program = readProgram(text);
     job.current?.abort();
-    setDraft(undefined);
-    setSource(program?.code ?? text.slice(0, programLimit));
+    pendingControls.current = undefined;
+    if (!update) {
+      setDraft(undefined);
+      setSource(program?.code ?? text.slice(0, programLimit));
+    }
     if (!program) { setStatus('rejected'); return false; }
     const controller = new AbortController();
     job.current = controller;
     setStatus('running');
     const bounds = viewBounds(program.source, expanded);
-    void evaluateDrawing(program, bounds, controller.signal).then(result => {
+    const base = visible?.program.source === program.source ? visible : undefined;
+    const params = Object.fromEntries(program.scalars.map(scalar => {
+      const old = base?.program.scalars.find(item => item.name === scalar.name);
+      const value = base?.controls.params[scalar.name];
+      const unchanged = old && old.min === scalar.min && old.max === scalar.max && old.step === scalar.step && old.initial === scalar.initial;
+      return [scalar.name, unchanged && value !== undefined && allowedValue(scalar, value) ? value : scalar.initial];
+    }));
+    const controls = update ?? { params, selected: base?.controls.selected ?? -1 };
+    if (update) pendingControls.current = { code: program.code, controls };
+    void evaluateDrawing(program, bounds, controls, controller.signal).then(result => {
       if (controller.signal.aborted || result.status === 'cancelled') return;
+      pendingControls.current = undefined;
       if (result.status === 'ready') {
-        const scene = { program, marks: result.marks, origin, bounds, expanded };
+        const scene = { program, marks: result.marks, targets: result.targets, controls, origin, bounds, expanded };
         if (reframeAccepted) setAccepted(scene);
         else setDraft(scene);
         setStatus('idle');
       } else setStatus(result.status);
     });
     return 'evaluating' as const;
+  }
+
+  function changeControls(update: (current: Controls) => Controls) {
+    if (!visible) return;
+    ++epoch.current;
+    const pending = pendingControls.current;
+    const current = pending?.code === visible.program.code ? pending.controls : visible.controls;
+    preview(visible.program.code, visible.origin, visible.expanded, !draft, update(current));
+  }
+
+  async function openFile(file: File) {
+    const expected = ++epoch.current;
+    job.current?.abort();
+    try {
+      if (file.size > programLimit * 4 + 32) throw new Error();
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+      if (epoch.current === expected && dialog.current?.open) preview(text, 'editor');
+    } catch {
+      if (epoch.current === expected) { setStatus('rejected'); setDraft(undefined); }
+    }
   }
 
   function author() {
@@ -126,8 +193,13 @@ export function DrawingWorkbench({ ask, close, hasWorkspace }: { hasWorkspace: b
           <button type="button" disabled={!source || status === 'running'} onClick={() => {
             ++epoch.current; preview(source, 'editor');
           }}>{t('Preview draft')}</button></div>
+        <label>{t('Open local drawing program')}<input type="file" accept=".js,.txt" onChange={event => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = '';
+          if (file) void openFile(file);
+        }} /></label>
         <details><summary>{t('Drawing API')}</summary><p>{t('Use time and price coordinates in overlay mode, or position shapes freely.')}</p>
-          <pre dir="ltr">{'// stock|future free|overlay\n640 × 240\nrows: time_ms, open, high, low, close, volume\nxTime(time_ms), yValue(price)\nline(x1,y1,x2,y2,ink)\ncircle(x,y,r,ink)\nrect(x,y,w,h,ink)\nink: 0–3'}</pre></details>
+          <pre dir="ltr">{'// stock|future free|overlay\n640 × 240\nrows: time_ms, open, high, low, close, volume\nxTime(time_ms), yValue(price)\nline(x1,y1,x2,y2,ink)\ncircle(x,y,r,ink)\nrect(x,y,w,h,ink)\nink: 0–3\n// scalar name min max step default\nparams.name, selected, hit(index,x,y,r)\n// difference field name'}</pre></details>
       </section>
       <section className="probe-canvas" aria-label={t('Workbench canvas')}>
         <div className="probe-canvas-heading"><h2>{t('Synthetic preview')}</h2>
@@ -135,16 +207,26 @@ export function DrawingWorkbench({ ask, close, hasWorkspace }: { hasWorkspace: b
             : accepted ? t('Accepted view') : t('Blank canvas')}</span></div>
         {status === 'timeout' && <p role="alert">{t('The drawing exceeded its time limit.')}</p>}
         {status === 'rejected' && <p role="alert">{t('The drawing failed validation or exceeded its limits.')}</p>}
-        {visible ? <DrawingSurface scene={visible} weight={weight} />
+        {visible ? <DrawingSurface scene={visible} weight={weight}
+          select={index => changeControls(current => ({ ...current, selected: index }))} />
           : <p className="probe-empty">{t('Ask AI to draw from frozen synthetic bars, or try the editable sample.')}</p>}
+        {visible && status !== 'running' && <Observation scene={visible} workspace={workspace} />}
         <div className="drawing-controls">
+          {visible?.program.scalars.map(scalar =>
+            <label key={scalar.name}>{scalar.name}<input type="range" min={scalar.min} max={scalar.max} step={scalar.step}
+              aria-label={scalar.name} value={visible.controls.params[scalar.name]}
+              onChange={event => {
+                const value = Number(event.target.value);
+                changeControls(current => ({ ...current, params: { ...current.params, [scalar.name]: value } }));
+              }} />
+              <output>{formatNumber(visible.controls.params[scalar.name]!)}</output></label>)}
           <label>{t('Stroke weight')} <input type="range" min="1" max="10" value={weight}
             onChange={event => setWeight(Number(event.target.value))} /><output>{weight}</output></label>
           <div className="probe-actions">
             {visible?.program.mode === 'overlay' && <button disabled={status === 'running' || source !== visible.program.code}
               onClick={() => { ++epoch.current; preview(visible.program.code, visible.origin, !visible.expanded, !draft); }}>
               {visible.expanded ? t('Fit frozen bars') : t('Expand viewport')}</button>}
-            {draft && <button onClick={() => {
+            {draft && <button disabled={status !== 'idle'} onClick={() => {
               setPrevious(accepted ?? null); setAccepted(draft); edit(draft.program.code);
             }}>{t('Accept view')}</button>}
             {(draft || status !== 'idle' || source !== (accepted?.program.code ?? '')) &&

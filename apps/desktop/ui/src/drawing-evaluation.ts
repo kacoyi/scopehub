@@ -1,11 +1,10 @@
-import { markLimit, validMark, type Mark, type Drawing, type ViewBounds } from './drawing-program';
-
+import { markLimit, validMark, validTarget, type Target, type Controls, type Mark, type Drawing, type ViewBounds } from './drawing-program';
 import { sources } from './workbench-composition';
 import type { RenderRequest } from './drawing.worker';
 
-type Result = { status: 'ready'; marks: Mark[] } | { status: 'rejected' | 'timeout' | 'cancelled' };
+type Result = { status: 'ready'; marks: Mark[]; targets: Target[] } | { status: 'rejected' | 'timeout' | 'cancelled' };
 
-export function evaluateDrawing(program: Drawing, bounds: ViewBounds, signal: AbortSignal): Promise<Result> {
+export function evaluateDrawing(program: Drawing, bounds: ViewBounds, controls: Controls, signal: AbortSignal): Promise<Result> {
   return new Promise(resolve => {
     if (signal.aborted) return resolve({ status: 'cancelled' });
     let worker: Worker;
@@ -25,11 +24,12 @@ export function evaluateDrawing(program: Drawing, bounds: ViewBounds, signal: Ab
     worker.onmessageerror = () => finish({ status: 'rejected' });
     worker.onmessage = ({ data }: MessageEvent<Partial<Result> | null>) => {
       if (data?.status === 'ready' && Array.isArray(data.marks) && data.marks.length > 0
-        && data.marks.length <= markLimit && data.marks.every(validMark)) finish({ status: 'ready', marks: data.marks });
+        && data.marks.length <= markLimit && data.marks.every(validMark) && Array.isArray(data.targets) && data.targets.length <= rows.length
+        && data.targets.every(t => validTarget(t, rows.length))) finish({ status: 'ready', marks: data.marks, targets: data.targets });
       else finish({ status: data?.status === 'timeout' ? 'timeout' : 'rejected' });
     };
     const rows = sources[program.source].bars.map(({ time_ms, open, high, low, close, volume }) =>
       ({ time_ms, open, high, low, close, volume }));
-    worker.postMessage({ code: program.code, rows, bounds } satisfies RenderRequest);
+    worker.postMessage({ code: program.code, rows, bounds, controls } satisfies RenderRequest);
   });
 }

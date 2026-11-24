@@ -10,6 +10,9 @@ export default defineConfig(({ command, mode, isPreview }) => {
   const testPreview = process.env.SCOPEHUB_TEST_PREVIEW === '1';
   return {
     plugins: [react(), ...(history ? [ubuntuPreview()] : []), ...(workspace ? [ubuntuWorkspace()] : [])],
+    // Discover the worker-only interpreter before serving the editor. Late
+    // dependency optimization reloads the page and discards the first draft.
+    optimizeDeps: { include: ['@jitl/quickjs-asmjs-mjs-release-sync', 'quickjs-emscripten-core'] },
     define: {
       'import.meta.env.SCOPEHUB_UBUNTU_PREVIEW': history,
       'import.meta.env.SCOPEHUB_UBUNTU_WORKSPACE': workspace,

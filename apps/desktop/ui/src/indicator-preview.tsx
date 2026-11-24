@@ -1,9 +1,9 @@
 import { formatNumber, message as uiMessage, plural, t, type Message } from './i18n';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type {
-  Bar, CancelTaskReply11, ConfirmationChallenge11, DeclarativeDraft11, FrozenSnapshot, IndicatorCreateDraftCommand11,
+  Bar, ConfirmationChallenge11, DeclarativeDraft11, FrozenSnapshot, IndicatorCreateDraftCommand11,
   IndicatorCreateDraftReply11, IndicatorRunPreviewCommand11, IndicatorRunPreviewReply11,
-  Metadata, MutationScope11, PreviewReady11, TaskTerminalEvent11, TrustedConfirmationDecision11,
+  Metadata, MutationScope11, TrustedConfirmationDecision11,
 } from '../../../../contracts/generated/protocol';
 import type { IndicatorChartLayer } from './chart-adapter/history';
 import { IndicatorAcceptance } from './indicator-acceptance';
@@ -11,13 +11,7 @@ import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
 import { exchangeWorkspace, type LocalWorkspace } from './use-local-workspace';
-
-type Ready = {
-  status: 'ready'; task_id: string; event: PreviewReady11; source_snapshot: FrozenSnapshot;
-  resolved_parameters: Record<string, unknown>; warmup_from_ms: number | null; calendar_hash: string | null;
-};
-type Waiting = { status: 'running'; task_id: string };
-type Terminal = { status: 'terminal'; task_id: string; event: TaskTerminalEvent11 };
+import { cancelTask, code, command, pause, submit, validHash, type Ready, type Waiting, type Terminal } from './indicator-preview-transport';
 
 type Field = 'close' | 'volume';
 const draftFor = (field: Field): DeclarativeDraft11 => ({
@@ -32,14 +26,6 @@ const draftFor = (field: Field): DeclarativeDraft11 => ({
     ],
   },
 });
-
-const validHash = (value: string) => /^[0-9a-f]{64}$/.test(value);
-const command = () => ({
-  protocol_version: '1.1', type: 'request', message_id: crypto.randomUUID(),
-  request_id: crypto.randomUUID(), timestamp_ms: Date.now(),
-} as const);
-const code = (error: unknown) => error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-const pause = () => new Promise<void>(resolve => setTimeout(resolve, 100));
 
 type PreviewAttempt = { poll: AbortController; taskId?: string };
 type PythonFile = { name: string; source: string };
@@ -62,29 +48,6 @@ function parseParameters(text: string): Metadata {
   });
   if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) throw new Error();
   return parameters as Metadata;
-}
-
-async function submit<T>(request: Parameters<typeof exchangeWorkspace>[0], signal: AbortSignal): Promise<T> {
-  for (;;) {
-    try {
-      return await exchangeWorkspace<T>(request, signal);
-    } catch (error) {
-      if (code(error) !== 'BUSY') throw error;
-      await pause();
-      signal.throwIfAborted();
-    }
-  }
-}
-
-async function cancelTask(taskId: string) {
-  const request = { ...command(), operation: 'task.cancel' as const, task_id: taskId };
-  const reply = await submit<CancelTaskReply11>(request, AbortSignal.timeout(15_000));
-  if (reply.request_id !== request.request_id) throw new Error();
-  if ('error' in reply) {
-    if (reply.error.code === 'STALE_CONTEXT') return;
-    throw reply.error;
-  }
-  if (reply.task_id !== taskId) throw new Error();
 }
 
 function describeError(error: unknown, mode: 'declarative' | 'python') {
