@@ -8,7 +8,8 @@ use scopehub_domain::{
         DecisionNoteRestoreBackupReply11, DecisionNoteSaveCommand11, DecisionNoteSaveReply11,
         Message, MutationIntent11, PrivateRecordChangeCommand11, PrivateRecordChangeReply11,
         PrivateRecordExportCommand11, PrivateRecordExportReply11, PrivateRecordReadCommand11,
-        PrivateRecordReadReply11, Request, ToolCall,
+        PrivateRecordReadReply11, Request, ResearchSampleCommand11, ResearchSampleReply11,
+        ToolCall,
     },
     wire::normalize_integers,
 };
@@ -284,6 +285,7 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
         serde_json::from_str(include_str!("../../../contracts/contract.json")).unwrap();
     let cases = [
         include_str!("../../../tests/fixtures/decision-note-protocol-cases.json"),
+        include_str!("../../../tests/fixtures/research-sample-protocol-cases.json"),
         include_str!("../../../tests/fixtures/private-record-protocol-cases.json"),
         include_str!("../../../tests/fixtures/ai-text-connection-protocol-cases.json"),
     ]
@@ -330,6 +332,8 @@ fn private_workspace_vectors_use_local_projections_and_generated_types() {
             ("ai.textConnection", "output") => roundtrip::<AiTextConnectionReply11>(message),
             ("decisionNote.save", "input") => roundtrip::<DecisionNoteSaveCommand11>(message),
             ("decisionNote.save", "output") => roundtrip::<DecisionNoteSaveReply11>(message),
+            ("research.sample", "input") => roundtrip::<ResearchSampleCommand11>(message),
+            ("research.sample", "output") => roundtrip::<ResearchSampleReply11>(message),
             ("decisionNote.read", "input") => roundtrip::<DecisionNoteReadCommand11>(message),
             ("decisionNote.read", "output") => roundtrip::<DecisionNoteReadReply11>(message),
             ("decisionNote.appendOutcome", "input") => {

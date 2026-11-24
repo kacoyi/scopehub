@@ -239,6 +239,7 @@ fn populated_v8_layout_migration_rolls_back_and_restores_all_previous_state() {
             LAYOUT_TABLES
                 .into_iter()
                 .chain(INDICATOR_TABLES)
+                .chain(["research_sample"])
                 .map(String::from),
         );
         expected_tables.sort();
@@ -444,7 +445,7 @@ fn v11_format_marker_is_atomic_and_closed_v10_backup_restores_the_named_chart_la
     let chart = WorkspaceLayoutState::default().active.definition;
     let original = serde_json::to_string(&chart).unwrap();
     let tx = store.connection.transaction().unwrap();
-    tx.execute_batch("DELETE FROM schema_migrations WHERE version = 11; PRAGMA user_version=10")
+    tx.execute_batch("DROP TABLE research_sample; DELETE FROM schema_migrations WHERE version >= 11; PRAGMA user_version=10")
         .unwrap();
     tx.execute(
         "INSERT INTO workspace_layouts VALUES ('workspace', 'Legacy', ?1)",
@@ -480,7 +481,10 @@ fn v11_format_marker_is_atomic_and_closed_v10_backup_restores_the_named_chart_la
     fs::write(restored.db(), backup).unwrap();
     for source in [&profile, &restored] {
         let current = source.open().unwrap();
-        assert_eq!(integer_pragma(&current.connection, "user_version"), 11);
+        assert_eq!(
+            integer_pragma(&current.connection, "user_version"),
+            SCHEMA_VERSION
+        );
         assert_eq!(
             workspace_layout::read(&current.connection, "workspace")
                 .unwrap()
@@ -488,4 +492,60 @@ fn v11_format_marker_is_atomic_and_closed_v10_backup_restores_the_named_chart_la
             chart
         );
     }
+}
+
+#[test]
+fn v12_research_sample_migration_rolls_back_without_rewriting_the_private_drawing() {
+    let profile = Profile::new();
+    let old = profile.open().unwrap();
+    let mut drawing =
+        serde_json::to_value(WorkspaceLayoutState::default().active.definition).unwrap();
+    drawing["authored_view"] = json!({
+        "api":"series-drawing-1","source":"// series free\ncircle(8,8,4,0);","stroke":2,"scalars":[],
+        "dataset_id":"00000000-0000-4000-8000-000000000001","dataset_revision":"frozen",
+        "layer_id":"00000000-0000-4000-8000-000000000002","version_id":"00000000-0000-4000-8000-000000000003",
+        "series_id":"close","result_hash":"a".repeat(64)
+    });
+    let original = serde_json::to_string(&drawing).unwrap();
+    old.connection.execute_batch(
+        "DROP TABLE research_sample; DELETE FROM schema_migrations WHERE version=12; PRAGMA user_version=11;
+         CREATE TRIGGER interrupt_research_upgrade BEFORE INSERT ON schema_migrations
+         WHEN NEW.version=12 BEGIN SELECT raise(ABORT,'synthetic interruption'); END;"
+    ).unwrap();
+    old.connection
+        .execute(
+            "INSERT INTO workspace_layouts VALUES ('workspace','Original drawing', ?1)",
+            [&original],
+        )
+        .unwrap();
+    drop(old);
+    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+    let old = profile.raw_connection();
+    assert_eq!(integer_pragma(&old, "user_version"), 11);
+    assert_eq!(
+        old.query_row(
+            "SELECT count(*) FROM sqlite_schema WHERE name='research_sample'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    old.execute_batch("DROP TRIGGER interrupt_research_upgrade")
+        .unwrap();
+    drop(old);
+    let current = profile.open().unwrap();
+    let saved = workspace_layout::read(&current.connection, "workspace")
+        .unwrap()
+        .saved;
+    assert_eq!(
+        serde_json::to_value(&saved["Original drawing"]).unwrap(),
+        drawing
+    );
+    assert_eq!(
+        current
+            .inspect(|tx| Ok(tx.research_sample()?.revision))
+            .unwrap(),
+        0
+    );
 }

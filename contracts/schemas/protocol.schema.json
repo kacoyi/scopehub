@@ -108,7 +108,8 @@
         "privateRecord.exportBackup",
         "workspace.previewLayout",
         "workspace.applyLayout",
-        "ai.textConnection"
+        "ai.textConnection",
+        "research.sample"
       ]
     },
     "ChartStyle": {
@@ -15610,6 +15611,9 @@
         },
         "authored_view": {
           "$ref": "#/$defs/SavedSeriesDrawing11"
+        },
+        "research_view": {
+          "$ref": "#/$defs/SavedResearchView11"
         }
       },
       "required": [
@@ -16858,6 +16862,485 @@
         "version_id",
         "series_id",
         "result_hash"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchViewParameters11": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 24
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "SavedResearchView11": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "program": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "parameters": {
+          "$ref": "#/$defs/ResearchViewParameters11"
+        },
+        "source_id": {
+          "type": "string",
+          "const": "scopehub.synthetic.research.v1"
+        },
+        "note_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "version",
+        "program",
+        "parameters",
+        "source_id",
+        "note_id"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchNote11": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reviewed_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "issuer",
+        "title",
+        "reviewed_at_ms"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchNoteOriginal11": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reviewed_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "id",
+        "issuer",
+        "title",
+        "reviewed_at_ms",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchDisclosure11": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "published_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "issuer",
+        "title",
+        "published_at_ms"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchDisclosureOriginal11": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "published_at_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "id",
+        "issuer",
+        "title",
+        "published_at_ms",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchSampleInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "status",
+            "connect",
+            "disconnect",
+            "revoke",
+            "refresh",
+            "read",
+            "original"
+          ]
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "note_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "status"
+                  ]
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "maxProperties": 1
+            },
+            {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "connect",
+                    "disconnect",
+                    "revoke",
+                    "refresh"
+                  ]
+                },
+                "expected_revision": {}
+              },
+              "required": [
+                "action",
+                "expected_revision"
+              ],
+              "maxProperties": 2
+            },
+            {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "read"
+                  ]
+                },
+                "note_id": {}
+              },
+              "required": [
+                "action",
+                "note_id"
+              ],
+              "maxProperties": 2
+            },
+            {
+              "properties": {
+                "action": {
+                  "enum": [
+                    "original"
+                  ]
+                },
+                "note_id": {},
+                "record_id": {},
+                "expected_revision": {}
+              },
+              "required": [
+                "action",
+                "note_id",
+                "record_id",
+                "expected_revision"
+              ],
+              "maxProperties": 4
+            }
+          ]
+        }
+      ]
+    },
+    "ResearchSampleOutput": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "string",
+          "enum": [
+            "unconfigured",
+            "connected",
+            "disconnected",
+            "revoked"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResearchNote11"
+          },
+          "maxItems": 2
+        },
+        "note": {
+          "$ref": "#/$defs/ResearchNoteOriginal11"
+        },
+        "disclosures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResearchDisclosure11"
+          },
+          "maxItems": 4
+        },
+        "original": {
+          "$ref": "#/$defs/ResearchDisclosureOriginal11"
+        }
+      },
+      "required": [
+        "access",
+        "revision",
+        "notes",
+        "disclosures"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "access": {
+                "enum": [
+                  "unconfigured",
+                  "revoked",
+                  "disconnected"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "notes": {
+                "type": "array",
+                "maxItems": 0
+              },
+              "disclosures": {
+                "type": "array",
+                "maxItems": 0
+              },
+              "original": false,
+              "note": false
+            }
+          }
+        }
+      ]
+    },
+    "ResearchSampleIntent11": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string",
+          "const": "research.sample"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ResearchSampleInput"
+        }
+      },
+      "required": [
+        "operation",
+        "arguments"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchSampleCommand11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "scope": {
+          "$ref": "#/$defs/DecisionNoteReadScope11"
+        },
+        "intent": {
+          "$ref": "#/$defs/ResearchSampleIntent11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "scope",
+        "intent"
+      ],
+      "additionalProperties": false,
+      "description": "Private local workspace request. The worker protocol cannot carry it."
+    },
+    "ResearchSampleCompleted11": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "const": "completed"
+        },
+        "operation": {
+          "type": "string",
+          "const": "research.sample"
+        },
+        "result": {
+          "$ref": "#/$defs/ResearchSampleOutput"
+        }
+      },
+      "required": [
+        "state",
+        "operation",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ResearchSampleOutcome11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ResearchSampleCompleted11"
+        },
+        {
+          "$ref": "#/$defs/ScopedFailure11"
+        }
+      ]
+    },
+    "ResearchSampleReply11": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "$ref": "#/$defs/ProtocolVersion11"
+        },
+        "message_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/DecisionNoteUuid11"
+        },
+        "outcome": {
+          "$ref": "#/$defs/ResearchSampleOutcome11"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "outcome"
       ],
       "additionalProperties": false
     }

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=2508b13a207b8a8b993fe9f1c8a7c8fc5e02707b39f8a732bdfacec59c923c2f. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=c7c791b789f8fd89bff36453998951863fa875a01483be93d38354f25c1a7fdf. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -213,6 +213,8 @@ pub enum OperationName {
     WorkspaceApplyLayout,
     #[serde(rename = "ai.textConnection")]
     AiTextConnection,
+    #[serde(rename = "research.sample")]
+    ResearchSample,
 }
 impl OperationName {
     pub fn as_str(&self) -> &'static str {
@@ -263,6 +265,7 @@ impl OperationName {
             Self::WorkspacePreviewLayout => "workspace.previewLayout",
             Self::WorkspaceApplyLayout => "workspace.applyLayout",
             Self::AiTextConnection => "ai.textConnection",
+            Self::ResearchSample => "research.sample",
         }
     }
 }
@@ -4961,6 +4964,8 @@ pub struct WorkspaceLayout11 {
     pub pinned_instrument: Option<OpaqueId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authored_view: Option<SavedSeriesDrawing11>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub research_view: Option<SavedResearchView11>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5343,6 +5348,117 @@ pub struct SavedSeriesDrawing11 {
     pub version_id: Uuid,
     pub series_id: OpaqueId,
     pub result_hash: Hash,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchViewParameters11 {
+    pub size: u64,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SavedResearchView11 {
+    pub version: u64,
+    pub program: String,
+    pub parameters: ResearchViewParameters11,
+    pub source_id: SavedResearchView11SourceId,
+    pub note_id: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchNote11 {
+    pub id: String,
+    pub issuer: String,
+    pub title: String,
+    pub reviewed_at_ms: Timestamp,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchNoteOriginal11 {
+    pub id: String,
+    pub issuer: String,
+    pub title: String,
+    pub reviewed_at_ms: Timestamp,
+    pub body: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchDisclosure11 {
+    pub id: String,
+    pub issuer: String,
+    pub title: String,
+    pub published_at_ms: Timestamp,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchDisclosureOriginal11 {
+    pub id: String,
+    pub issuer: String,
+    pub title: String,
+    pub published_at_ms: Timestamp,
+    pub body: String,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchSampleInput {
+    pub action: ResearchSampleInputAction,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_revision: Option<Revision>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_id: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchSampleOutput {
+    pub access: ResearchSampleOutputAccess,
+    pub revision: Revision,
+    pub notes: Vec<ResearchNote11>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<ResearchNoteOriginal11>,
+    pub disclosures: Vec<ResearchDisclosure11>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original: Option<ResearchDisclosureOriginal11>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchSampleIntent11 {
+    pub operation: ResearchSampleIntent11Operation,
+    pub arguments: ResearchSampleInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchSampleCommand11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ResearchSampleCommand11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub scope: DecisionNoteReadScope11,
+    pub intent: ResearchSampleIntent11,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchSampleCompleted11 {
+    pub state: ResearchSampleCompleted11State,
+    pub operation: ResearchSampleCompleted11Operation,
+    pub result: ResearchSampleOutput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ResearchSampleOutcome11 {
+    ResearchSampleCompleted11(Box<ResearchSampleCompleted11>),
+    ScopedFailure11(Box<ScopedFailure11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResearchSampleReply11 {
+    pub protocol_version: ProtocolVersion11,
+    pub message_id: DecisionNoteUuid11,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ResearchSampleReply11Type,
+    pub request_id: DecisionNoteUuid11,
+    pub outcome: ResearchSampleOutcome11,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldExpressionOp {
@@ -11545,6 +11661,129 @@ impl SavedSeriesDrawing11Api {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "series-drawing-1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum SavedResearchView11SourceId {
+    #[serde(rename = "scopehub.synthetic.research.v1")]
+    Value,
+}
+impl SavedResearchView11SourceId {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "scopehub.synthetic.research.v1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleInputAction {
+    #[serde(rename = "status")]
+    Status,
+    #[serde(rename = "connect")]
+    Connect,
+    #[serde(rename = "disconnect")]
+    Disconnect,
+    #[serde(rename = "revoke")]
+    Revoke,
+    #[serde(rename = "refresh")]
+    Refresh,
+    #[serde(rename = "read")]
+    Read,
+    #[serde(rename = "original")]
+    Original,
+}
+impl ResearchSampleInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Status => "status",
+            Self::Connect => "connect",
+            Self::Disconnect => "disconnect",
+            Self::Revoke => "revoke",
+            Self::Refresh => "refresh",
+            Self::Read => "read",
+            Self::Original => "original",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleOutputAccess {
+    #[serde(rename = "unconfigured")]
+    Unconfigured,
+    #[serde(rename = "connected")]
+    Connected,
+    #[serde(rename = "disconnected")]
+    Disconnected,
+    #[serde(rename = "revoked")]
+    Revoked,
+}
+impl ResearchSampleOutputAccess {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unconfigured => "unconfigured",
+            Self::Connected => "connected",
+            Self::Disconnected => "disconnected",
+            Self::Revoked => "revoked",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleIntent11Operation {
+    #[serde(rename = "research.sample")]
+    Value,
+}
+impl ResearchSampleIntent11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "research.sample",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleCommand11Type {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ResearchSampleCommand11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleCompleted11State {
+    #[serde(rename = "completed")]
+    Value,
+}
+impl ResearchSampleCompleted11State {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "completed",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleCompleted11Operation {
+    #[serde(rename = "research.sample")]
+    Value,
+}
+impl ResearchSampleCompleted11Operation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "research.sample",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ResearchSampleReply11Type {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ResearchSampleReply11Type {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
         }
     }
 }

@@ -41,6 +41,7 @@ const changePrivateRecords = 'privateRecord.change';
 const exportPrivateRecords = 'privateRecord.exportBackup';
 const privateRecordOperations = [readPrivateRecords, changePrivateRecords, exportPrivateRecords];
 const textConnection = 'ai.textConnection';
+const researchSample = 'research.sample';
 const maxNoteRequestBytes = 32 * 1024;
 // Up to 256 layer/version UUID pairs and availability flags, plus the undo hint.
 const maxAcceptedLayersResponseBytes = 32 * 1024;
@@ -179,7 +180,7 @@ function requestFrame(command, workspaceId) {
   const control = [cancelIndicator, indicatorConfirmation].includes(command?.operation);
   const name = evidence || control ? command.operation : command?.intent?.operation;
   if (!evidence && !control && !indicatorOperations.includes(name) && !mutations.includes(name) && !noteOperations.includes(name)
-      && !privateRecordOperations.includes(name) && name !== textConnection) throw new PreviewFailure(403, 'PERMISSION_DENIED');
+      && !privateRecordOperations.includes(name) && name !== textConnection && name !== researchSample) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (!control && (evidence ? command.workspace_id : command?.scope?.workspace_id) !== workspaceId) throw new PreviewFailure(403, 'PERMISSION_DENIED');
   if (command.protocol_version !== '1.1' || command.type !== 'request'
       || !uuid(command.request_id) || !uuid(command.message_id)) {
@@ -477,6 +478,11 @@ function startWriter(root, { path, profileId, workspaceId }) {
         if (!validNoteOutcome(outcome, job, workspaceId)) throw invalidReply();
       } else if (privateRecordOperations.includes(job.operation)) {
         if (!validPrivateRecordOutcome(outcome, job, workspaceId)) throw invalidReply();
+      } else if (job.operation === researchSample) {
+        const result = outcome?.result;
+        if (outcome?.state !== 'completed' || outcome.operation !== researchSample
+          || !['unconfigured', 'connected', 'disconnected', 'revoked'].includes(result?.access)
+          || !revision(result.revision) || !Array.isArray(result.notes) || !Array.isArray(result.disclosures)) throw invalidReply();
       } else if (job.operation === textConnection) {
         if (outcome?.state !== 'completed' || outcome.operation !== textConnection
           || outcome.result?.action !== job.modelAction) throw invalidReply();

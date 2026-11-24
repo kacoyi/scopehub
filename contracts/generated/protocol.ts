@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=2508b13a207b8a8b993fe9f1c8a7c8fc5e02707b39f8a732bdfacec59c923c2f. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=c7c791b789f8fd89bff36453998951863fa875a01483be93d38354f25c1a7fdf. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -8,7 +8,7 @@ export type Metadata = Record<string, JsonValue>;
 export type WorkerRole = "market" | "ai" | "indicator";
 export type ProtocolVersion = "1.0";
 export type ErrorCode = "INVALID_ARGUMENT" | "UNSUPPORTED_CAPABILITY" | "PERMISSION_DENIED" | "CONFIRMATION_REQUIRED" | "CANCELLED" | "TIMEOUT" | "WORKER_EXITED" | "PROTOCOL_MISMATCH" | "DATA_UNAVAILABLE" | "STALE_CONTEXT" | "RESOURCE_LIMIT" | "OUTPUT_INVALID" | "PROVIDER_NOT_CONFIGURED" | "INTERNAL_ERROR" | "BUSY" | "SNAPSHOT_UNAVAILABLE";
-export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout" | "ai.textConnection";
+export type OperationName = "instrument.search" | "market.getBars" | "workspace.openInstrument" | "chart.setTimeframe" | "chart.setStyle" | "chart.addAnnotation" | "chart.removeLayer" | "indicator.createDraft" | "indicator.runPreview" | "indicator.acceptVersion" | "indicator.remove" | "workspace.undo" | "task.cancel" | "workspace.getContext" | "market.readHistoryPage" | "market.subscribe" | "market.previewLocalImport" | "market.saveLocalImportMapping" | "market.loadLocalImportMapping" | "market.listLocalImportRevisions" | "market.readLocalImportRevision" | "market.readLocalImportSourceRow" | "market.previewLocalFolderRefresh" | "market.prepareLocalFolderPublication" | "market.publishLocalFolderRefresh" | "market.listLocalFolderRevisions" | "market.readLocalFolderRevision" | "market.readLocalFolderSourceRow" | "market.revokeLocalFolderRevision" | "market.revokeLocalImportRevision" | "market.publishLocalImport" | "workspace.readChartProjection" | "workspace.selectEvidence" | "decisionNote.save" | "decisionNote.read" | "decisionNote.appendOutcome" | "decisionNote.delete" | "decisionNote.exportBackup" | "decisionNote.previewRestore" | "decisionNote.restoreBackup" | "privateRecord.read" | "privateRecord.change" | "privateRecord.exportBackup" | "workspace.previewLayout" | "workspace.applyLayout" | "ai.textConnection" | "research.sample";
 export type ChartStyle = "candlestick" | "line";
 export type TaskStatus = "queued" | "running" | "awaiting_confirmation" | "completed" | "failed" | "cancelled";
 export type Tradability = "non_tradable" | "unknown";
@@ -3013,6 +3013,7 @@ export type WorkspaceLayout11 = {
   link_selection: boolean;
   pinned_instrument: (OpaqueId | null);
   authored_view?: SavedSeriesDrawing11;
+  research_view?: SavedResearchView11;
 };
 export type NamedWorkspaceLayout11 = {
   name: (string | null);
@@ -3247,4 +3248,81 @@ export type SavedSeriesDrawing11 = {
   version_id: Uuid;
   series_id: OpaqueId;
   result_hash: Hash;
+};
+export type ResearchViewParameters11 = {
+  size: number;
+};
+export type SavedResearchView11 = {
+  version: number;
+  program: string;
+  parameters: ResearchViewParameters11;
+  source_id: "scopehub.synthetic.research.v1";
+  note_id: string;
+};
+export type ResearchNote11 = {
+  id: string;
+  issuer: string;
+  title: string;
+  reviewed_at_ms: Timestamp;
+};
+export type ResearchNoteOriginal11 = {
+  id: string;
+  issuer: string;
+  title: string;
+  reviewed_at_ms: Timestamp;
+  body: string;
+};
+export type ResearchDisclosure11 = {
+  id: string;
+  issuer: string;
+  title: string;
+  published_at_ms: Timestamp;
+};
+export type ResearchDisclosureOriginal11 = {
+  id: string;
+  issuer: string;
+  title: string;
+  published_at_ms: Timestamp;
+  body: string;
+};
+export type ResearchSampleInput = {
+  action: "status" | "connect" | "disconnect" | "revoke" | "refresh" | "read" | "original";
+  expected_revision?: Revision;
+  note_id?: string;
+  record_id?: string;
+};
+export type ResearchSampleOutput = {
+  access: "unconfigured" | "connected" | "disconnected" | "revoked";
+  revision: Revision;
+  notes: Array<ResearchNote11>;
+  note?: ResearchNoteOriginal11;
+  disclosures: Array<ResearchDisclosure11>;
+  original?: ResearchDisclosureOriginal11;
+};
+export type ResearchSampleIntent11 = {
+  operation: "research.sample";
+  arguments: ResearchSampleInput;
+};
+export type ResearchSampleCommand11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "request";
+  request_id: DecisionNoteUuid11;
+  scope: DecisionNoteReadScope11;
+  intent: ResearchSampleIntent11;
+};
+export type ResearchSampleCompleted11 = {
+  state: "completed";
+  operation: "research.sample";
+  result: ResearchSampleOutput;
+};
+export type ResearchSampleOutcome11 = ResearchSampleCompleted11 | ScopedFailure11;
+export type ResearchSampleReply11 = {
+  protocol_version: ProtocolVersion11;
+  message_id: DecisionNoteUuid11;
+  timestamp_ms: Timestamp;
+  type: "response";
+  request_id: DecisionNoteUuid11;
+  outcome: ResearchSampleOutcome11;
 };

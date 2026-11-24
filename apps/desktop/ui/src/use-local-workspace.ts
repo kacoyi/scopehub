@@ -3,7 +3,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { abortableDelay } from './abortable-delay';
 import { message, t } from './i18n';
 import type {
-  AiTextConnectionCommand11,
+  AiTextConnectionCommand11, ResearchSampleCommand11,
   IndicatorAcceptVersionCommand11, IndicatorCreateDraftCommand11, IndicatorRemoveCommand11,
   IndicatorRunPreviewCommand11, TaskCancelRequest11, TrustedConfirmationDecision11,
   ChartSetTimeframeCommand11, ChartSetTimeframeReply11, OperationReceipt11, Workspace,
@@ -35,7 +35,7 @@ type AdmissionRead = SnapshotRequest | { type: 'frozen_chart'; request_id: strin
   | { type: 'indicator_accepted_layers'; request_id: string; revision_id: string }
   | { type: 'indicator_accepted_output'; request_id: string; layer_id: string };
 type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
-  | AiTextConnectionCommand11
+  | AiTextConnectionCommand11 | ResearchSampleCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
   | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11 | PrivateRecordReadCommand11

@@ -12,7 +12,8 @@
     "tasks",
     "operation_log",
     "idempotency_records",
-    "settings"
+    "settings",
+    "research_sample"
   ],
   "sqlite": "WAL; foreign keys enabled; transactional writes; versioned and tested migrations",
   "local_import_publication": "Schema v5 stores immutable single-file revisions and originally selected file bytes once per SHA-256 in the active profile. Each revision references a reviewed mapping and the ordered source locators contributing to each native bar. A fresh authorized review with the same full mapping and ordered header reuses the current saved revision. During the trusted desktop session, an exact committed v5 mutation request under its original live native selection recovers its original receipt before new-work checks. A publication receipt still requires current display rights. An explicit display-right revocation denies later reads and receipt replay for that revision. Native directory grants for schema v5 single-file and v7 reviewed folder publication remain session-scoped. Entitled profiles can still open frozen data by revision ID after restart. A saved source under /product/data_onboarding/saved_sources requires independent authorization and does not renew a native grant.",

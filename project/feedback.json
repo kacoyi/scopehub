@@ -3950,6 +3950,21 @@
         "prevention": "The normal-entry regression saved B, reopened the edited A and checked its controls. Holding and releasing the frozen-chart read restored A while already open. Independent fresh zh-CN sessions confirmed the corrected blank and named entries on port 1470. Observation archives/observations/m2-023-authored-view-1d71972/manifest.json, SHA-256 5f0a6cab0ffd405e9c9d86e0dedeab1508b7031834695ea0171de2666bba554b."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "held-research-entitlement-read",
+      "source": "M2-024 normal-entry Chromium run b862c3a6-6c49-4fd2-85c8-f356168f0400, retained results.json and browser failure screenshot in this task checkout; test research-workbench.spec.mjs, held entitlement.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The local research source committed revocation through a second authenticated request while the browser held an earlier successful entitlement reply. Six seconds later the previously opened synthetic disclosure body was still visible and the periodic recheck had not resumed.",
+      "task_ids": [
+        "M2-024"
+      ],
+      "regression_checks": [
+        "research-workbench"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

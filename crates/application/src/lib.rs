@@ -59,13 +59,14 @@ pub use workspace::{
     MAX_ACTIVE_INDICATOR_LAYERS, OPENAI_RESPONSES_DESTINATION, PREVIEW_LAYOUT,
     PRIVATE_RECORD_CHANGE, PRIVATE_RECORD_EXPORT, PRIVATE_RECORD_OPERATIONS, PRIVATE_RECORD_READ,
     PrivateRecordPlan, READ_CHART_PROJECTION, READ_INDICATOR_SAMPLE_HISTORY,
-    READ_SAMPLE_EVIDENCE_HISTORY, REMOVE_INDICATOR_LAYER, RUN_INDICATOR_PREVIEW, SELECT_EVIDENCE,
-    SET_TIMEFRAME, StoredWorkspaceView, TextModelProvider, TextModelWork, Timeframe, UNDO,
-    WorkspaceAccess, WorkspaceBinding, WorkspaceChange, WorkspaceLayoutChange,
-    WorkspaceLayoutSnapshot, WorkspaceLayoutState, WorkspaceReceipt, WorkspaceReplay,
-    WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceSourcePreference, WorkspaceSourceView,
-    WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess, WorkspaceUndoTarget,
-    evidence_operation_name, is_sample_evidence_selection, is_sample_indicator_preview,
+    READ_SAMPLE_EVIDENCE_HISTORY, REMOVE_INDICATOR_LAYER, RESEARCH_SAMPLE, RUN_INDICATOR_PREVIEW,
+    ResearchSampleState, SELECT_EVIDENCE, SET_TIMEFRAME, StoredWorkspaceView, TextModelProvider,
+    TextModelWork, Timeframe, UNDO, WorkspaceAccess, WorkspaceBinding, WorkspaceChange,
+    WorkspaceLayoutChange, WorkspaceLayoutSnapshot, WorkspaceLayoutState, WorkspaceReceipt,
+    WorkspaceReplay, WorkspaceReplayKey, WorkspaceSnapshot, WorkspaceSourcePreference,
+    WorkspaceSourceView, WorkspaceState, WorkspaceStore, WorkspaceTransaction, WorkspaceUndoAccess,
+    WorkspaceUndoTarget, evidence_operation_name, is_sample_evidence_selection,
+    is_sample_indicator_preview,
 };
 
 use std::{

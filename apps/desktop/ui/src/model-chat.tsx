@@ -1,3 +1,4 @@
+import { modelQuestionLimit } from './model-question-limit';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { AiTextChartEvidence, AiTextRouteChoice, VisibleRange } from '../../../../contracts/generated/protocol';
 import { message, t, useLocale, type Message } from './i18n';
@@ -160,7 +161,7 @@ export function ModelChat({ workspaceId, theme, view, show, chartSelection, inva
     && (selection === undefined || selection.selectionRevision === staleSelectionRevision);
   const mustReselect = !authoring && Boolean(connection) && (invalidSelectionRevision !== undefined || staleChartDraft);
   const needsAuthoringModel = Boolean(authoring && connection?.route.kind === 'offline_mock');
-  const questionLimit = 2000 - (authoring?.prompt.length ?? 0);
+  const questionLimit = modelQuestionLimit - (authoring?.prompt.length ?? 0);
 
   useEffect(() => {
     setQuestion('');

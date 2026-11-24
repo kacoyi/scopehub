@@ -866,10 +866,10 @@
     },
     {
       "id": "research-workbench",
-      "status": "planned",
+      "status": "implemented",
       "purpose": "Exercise a user-authored named research view through the real workspace registry with a controlled local model and opted-in synthetic records.",
       "platforms": "all",
-      "command": null,
+      "command": ["pnpm", "exec", "playwright", "test", "--config", "tests/ui/workbench-authoring.config.mjs", "research-workbench.spec.mjs"],
       "timeout_seconds": 1800,
       "cadence": "task"
     }

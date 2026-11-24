@@ -25,6 +25,8 @@ mod indicators;
 mod layout;
 mod notes;
 mod private_records;
+mod research;
+pub use research::{RESEARCH_SAMPLE, ResearchSampleState};
 mod source;
 pub use source::{FrozenWorkspaceSourceStatus, WorkspaceSourcePreference, WorkspaceSourceView};
 mod text_connection;
@@ -73,6 +75,7 @@ pub use notes::{
 pub const SET_TIMEFRAME: &str = "chart.setTimeframe";
 pub const UNDO: &str = "workspace.undo";
 pub const LOCAL_WORKSPACE_OPERATIONS: &[&str] = &[
+    RESEARCH_SAMPLE,
     AI_TEXT_CONNECTION,
     SET_TIMEFRAME,
     UNDO,
@@ -230,6 +233,8 @@ pub struct WorkspaceChange<'a> {
 
 /// A transaction over the single workspace owned by this store.
 pub trait WorkspaceTransaction {
+    fn research_sample(&self) -> Result<ResearchSampleState, Error>;
+    fn write_research_sample(&mut self, state: &ResearchSampleState) -> Result<(), Error>;
     fn state(&self) -> Result<WorkspaceState, Error>;
     fn set_source_preference(&mut self, source: &WorkspaceSourcePreference) -> Result<(), Error>;
     fn layouts(&self) -> Result<WorkspaceLayoutState, Error>;
@@ -555,6 +560,9 @@ impl<S: WorkspaceStore> OperationRegistry<S> {
                 return self.execute_indicator(access, RUN_INDICATOR_PREVIEW, request, None);
             }
             _ => {}
+        }
+        if name == RESEARCH_SAMPLE {
+            return self.execute_research_sample(access, request);
         }
         if DECISION_NOTE_OPERATIONS.contains(&name) {
             let result = self.execute_decision_note(access, operation(name)?, request)?;

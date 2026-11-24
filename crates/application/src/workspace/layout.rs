@@ -64,6 +64,7 @@ fn default_layout() -> NamedWorkspaceLayout11 {
         definition: WorkspaceLayout11 {
             version: 1,
             authored_view: None,
+            research_view: None,
             panels: [
                 LayoutPanel11Panel::Watchlist,
                 LayoutPanel11Panel::Inspection,
@@ -95,6 +96,14 @@ pub(super) fn resolve_edit(
             let name = edit.name;
             let definition = edit.definition;
             if name.trim() != name || name.chars().any(char::is_control) {
+                return Err(failure(ErrorCode::INVALIDARGUMENT));
+            }
+            if let Some(view) = &definition.research_view
+                && (definition.authored_view.is_some()
+                    || view.program.len() > 4096
+                    || !serde_json::from_str::<Value>(&view.program)
+                        .is_ok_and(|value| value.is_array()))
+            {
                 return Err(failure(ErrorCode::INVALIDARGUMENT));
             }
             let [first, second] = definition.panels.as_slice() else {
@@ -153,6 +162,7 @@ pub(super) fn resolve_edit(
 pub(super) fn project_layout(layout: &mut NamedWorkspaceLayout11, access: &WorkspaceAccess<'_>) {
     if !super::evidence::local_display(access) {
         layout.definition.authored_view = None;
+        layout.definition.research_view = None;
     }
 }
 
@@ -164,9 +174,13 @@ fn resolve_scoped(
     if !super::evidence::local_display(access)
         && let WorkspaceLayoutEdit11::SaveWorkspaceLayout11(save) = &mut edit
     {
-        if save.definition.authored_view.is_some() {
+        if save.definition.authored_view.is_some() || save.definition.research_view.is_some() {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
+        save.definition.research_view = state
+            .saved
+            .get(&save.name)
+            .and_then(|layout| layout.research_view.clone());
         save.definition.authored_view = state
             .saved
             .get(&save.name)
