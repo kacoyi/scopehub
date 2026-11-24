@@ -37,74 +37,30 @@ function Ancestor-Is($ancestor,$element) {
     return $false
 }
 function Select-SeriesChoice([string]$label,[string]$wanted) {
-    $next=if ($label -eq 'Accepted version') { 'Numeric series' } else { 'Accepted series source' }
-    $name=[Windows.Automation.PropertyCondition]::new($ui::NameProperty,$wanted)
-    $state=@{opened=-4000; acted=-4000; direct=0}
+    $next=switch ($label) {
+        'Accepted version' { 'Numeric series' }
+        'Numeric series' { 'Accepted series source' }
+        'Timestamp convention' { 'Preview mapping' }
+        default { throw "Unknown native selector: $label" }
+    }
     $timer=[Diagnostics.Stopwatch]::StartNew()
-    $null=Wait-ForProbe "native $label selection of $wanted to expose $next" {
-        if ($state.direct -and (Find-Control $next $null)) { return $true }
-        $c=Named-Control $label $type::ComboBox
-        if (!$c) { return $false }
-        $item=$c.FindAll($scope,$name) | Where-Object { $_.Current.IsEnabled } | Select-Object -First 1
-        if (!$item) {
-            $item=$window.FindAll($scope,$name) | Where-Object {
-                $_.Current.IsEnabled -and $_.Current.ControlType -in @($type::ListItem,$type::MenuItem)
-            } | Select-Object -First 1
-        }
-        if (!$item) {
-            if ($timer.ElapsedMilliseconds-$state.opened -lt 2000) { return $false }
-            $state.opened=$timer.ElapsedMilliseconds
-            $c.SetFocus()
-            $focused=$ui::FocusedElement
-            if ((Ancestor-Is $c $focused) -or $c.Current.HasKeyboardFocus) {
-                [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
-            } else {
-                $rect=$c.Current.BoundingRectangle
-                $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
-                if (!$rect.IsEmpty -and (Ancestor-Is $c ($ui::FromPoint([Windows.Point]::new($x,$y))))) {
-                    [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
-                }
-            }
-            return $false
-        }
-        if ($timer.ElapsedMilliseconds-$state.acted -lt 1500) { return $false }
-        $state.acted=$timer.ElapsedMilliseconds
-        Write-Host "Owned $label item '$($item.Current.Name)' with type $($item.Current.ControlType.ProgrammaticName); current focus '$($ui::FocusedElement.Current.Name)'."
-        $pattern=$null
-        if (!$state.direct -and $item.TryGetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern,[ref]$pattern)) {
-            $pattern.Select()
-            $state.direct++
-            Write-Host "Addressed SelectionItem.Select on $wanted."
-            return $false
-        }
-        $rect=$item.Current.BoundingRectangle
-        if (!$rect.IsEmpty -and !$item.Current.IsOffscreen) {
-            $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
-            $hit=$ui::FromPoint([Windows.Point]::new($x,$y))
-            if ((Ancestor-Is $item $hit) -or (([string]$hit.Current.Name) -eq $wanted -and (Ancestor-Is $window $hit))) {
-                [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
-                $state.direct++
-                Write-Host "Clicked the exact named $wanted option."
-                return $false
-            }
-        }
-        $pattern=$null
-        if ($item.TryGetCurrentPattern($invoke,[ref]$pattern)) {
-            $pattern.Invoke()
-            $state.direct++
-            return $false
-        }
-        $focus=$ui::FocusedElement
-        $list=[Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($item)
-        $inList=$list -and $list.Current.ControlType -in @($type::List,$type::Menu,$type::ComboBox) -and
-            (Ancestor-Is $list $focus) -and (Ancestor-Is $window $list)
-        if ((Ancestor-Is $c $focus) -or (Ancestor-Is $item $focus) -or $inList -or $c.Current.HasKeyboardFocus) {
-            [Windows.Forms.SendKeys]::SendWait($wanted.Substring(0,[Math]::Min(8,$wanted.Length))+'{ENTER}')
-            $state.direct++
-        }
+    $state=@{sent=-3000}
+    $null=Wait-ForProbe "closed $label selecting $wanted" {
+        if ($state.sent -ge 0 -and (Find-Control $next $null)) { return $true }
+        if ($timer.ElapsedMilliseconds-$state.sent -lt 2000) { return $false }
+        $combo=Named-Control $label $type::ComboBox
+        if (!$combo -or $combo.Current.IsOffscreen) { return $false }
+        $combo.SetFocus()
+        $focused=$ui::FocusedElement
+        if (!$combo.Current.HasKeyboardFocus -and (!$focused -or ![Windows.Automation.Automation]::Compare($combo,$focused))) { return $false }
+        # Type-ahead on a closed HTML select commits the highlighted option.
+        # No popup or Enter is needed. The studio disclosure verifies the complete identity.
+        $state.sent=$timer.ElapsedMilliseconds
+        [Windows.Forms.SendKeys]::SendWait($wanted.Substring(0,[Math]::Min(8,$wanted.Length)))
+        Write-Host "Addressed the focused, owned $label combo for $wanted."
         return $false
     }
-    Write-Host "Native $label advanced to $next. The confirmed version and result hash are verified in the disclosure."
+    Write-Host "Native $label advanced to $next."
 }
 function Open-PreparedSource {
     $null=Wait-ForProbe 'completed first workspace source restoration' {
@@ -331,8 +287,16 @@ function Use-SeriesProgram([string]$kind) {
     $day=if ($kind -eq 'dots') { '04' } else { '03' }
     $target="Inspect observation at 2026-02-${day}T00:00:00.000Z"
     $inspect=Wait-ForProbe $target { Find-Control $target $null }
-    $inspect.SetFocus()
-    [Windows.Forms.SendKeys]::SendWait('{ENTER}')
+    $rect=$inspect.Current.BoundingRectangle
+    if ($kind -eq 'dots' -and !$rect.IsEmpty -and !$inspect.Current.IsOffscreen) {
+        $x=[int]($rect.X+$rect.Width/2); $y=[int]($rect.Y+$rect.Height/2)
+        [DrawingWindowCapture]::ClickOwned($ownedHandle,$x,$y)
+        Write-Host "Clicked the actual $day UTC point at ($x,$y)."
+    } else {
+        $inspect.SetFocus()
+        if (!(Ancestor-Is $inspect $ui::FocusedElement)) { throw "Point $day did not receive focus." }
+        [Windows.Forms.SendKeys]::SendWait('{ENTER}')
+    }
     $expected=if ($kind -eq 'dots') { '115' } else { 'Unavailable' }
     $null=Wait-ForProbe "chosen $day UTC point and $expected" {
         $readout=Find-Control 'Accepted observation' $null
@@ -504,16 +468,14 @@ try {
     try { Open-SeriesStudio } catch {
         $bindingError=$_.Exception.Message
         Show-NativeState 'binding-interrupted'
-        if (!(Named-Control 'Back to chart' $type::Button)) { throw }
-        Review-Step 'Back to chart'
-        Show-NativeState 'workspace-after-binding'
-        if (Named-Control 'Reload workspace state' $type::Button) { Review-Step 'Reload workspace state' }
-        elseif (Named-Control 'Retry source' $type::Button) { Review-Step 'Retry source' }
-        if ($Identity) { Open-PreparedSource }
-        Wait-Name 'Candlestick and volume chart for FIX'
-        Show-NativeState 'workspace-reopened'
-        Write-Host "Retrying native selection after reopening the frozen chart: $bindingError"
-        Open-SeriesStudio
+        # A transient unavailable view may restore the picker while this same studio stays open.
+        # Wait here so a late transition cannot send input to a replacement dialog.
+        Write-Host "Retrying selection inside the existing owned studio after: $bindingError"
+        $null=Wait-ForProbe 'restored native accepted version in this studio' {
+            if (Find-Control 'Drawing studio' $type::Window) { Named-Control 'Accepted version' $type::ComboBox }
+        }
+        Select-SeriesChoice 'Accepted version' $Identity.version_id
+        Select-SeriesChoice 'Numeric series' 'mean'
     }
     $observations=@()
     try {
