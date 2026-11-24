@@ -5408,6 +5408,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "profile-pool-supervisor-startup-lacks-caller-deadline",
+      "source": "Independent Astra Standard review of 5b63275741b06ce1d42294446aeba2a1ccae9a7e. Retained at archives/observations/m0-102-profile-pool/astra-5b63275.txt.",
+      "observation": "Moving the preparation timeout into the owned Python supervisor fixed the descendant cleanup race. The caller now waits without a startup bound before the interpreter can enforce the supplied deadline. A stalled startup has no prompt reply or verified handoff.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

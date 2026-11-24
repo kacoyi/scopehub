@@ -20444,6 +20444,13 @@
               "python-contracts-workers",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "The caller waits past the original deadline if the process interpreter stalls before the supervisor can enforce it. A late interpreter could launch work after the caller has rejected startup.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Keep both official runs and any focused native diagnostics. Revert only the preparation correction if it cannot retain the original refusal and cleanup contract.",
