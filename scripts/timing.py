@@ -41,8 +41,10 @@ SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
-WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in ('core', 'browser', 'python')}
+LEGACY_WINDOWS_LANES = ('core', 'browser', 'python')
+WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in (*LEGACY_WINDOWS_LANES, 'recovery')}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
+WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes' for profile in SCOPED_PROFILES}
 HARNESS_STEPS = {
     'Run pnpm check',
@@ -347,12 +349,22 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     return row, (start, end, harness_start, harness_end)
 
 
-def split_windows_seconds(aggregate, producers, requested):
+def windows_aggregate_cache(caches):
+    if (not isinstance(caches, dict) or caches.keys() != WINDOWS_PRODUCERS.keys()
+            or not all(isinstance(state, str) and state in CACHE_STATES | {'unknown'} for state in caches.values())):
+        raise ValueError('Expected one cache state per Windows producer.')
+    required = {state for lane, state in caches.items() if lane != 'python'}
+    if caches['python'] == 'not_requested' and len(required) == 1 and 'not_requested' not in required:
+        return next(iter(required))
+    return 'unknown'
+
+
+def split_windows_seconds(aggregate, producers, requested, expected):
     windows, (start, end, aggregate_harness_start, aggregate_harness_end), raw = aggregate
     seconds = windows['seconds']
     seconds.update(initial_queue=None, aggregate_setup=seconds['setup'], queue=None,
                    setup=None, harness_step=None, runner=None, browser_step=None)
-    if set(producers) != WINDOWS_PRODUCERS.keys():
+    if producers.keys() != set(expected):
         return
     scoped = any(step.get('name') in SCOPED_HARNESS_STEPS and step.get('conclusion') != 'skipped'
                  and step.get('status') not in {'queued', 'pending', 'waiting'} for step in raw.get('steps', []))
@@ -376,10 +388,10 @@ def split_windows_seconds(aggregate, producers, requested):
     seconds['browser_step'] = producers['browser'][0]['seconds']['browser_step']
 
 
-def has_windows_producers(siblings):
-    expected = WINDOWS_PRODUCERS.values()
-    named = [job for job in siblings if job.get('name') in expected]
-    return (sorted(job['name'] for job in named) == sorted(expected)
+def has_windows_producers(siblings, expected):
+    labels = [WINDOWS_PRODUCERS[lane] for lane in expected]
+    named = [job for job in siblings if job.get('name') in WINDOWS_PRODUCERS.values()]
+    return (sorted(job['name'] for job in named) == sorted(labels)
             and all(job['platform'] == 'Windows' and job['runner_label'] == 'windows-latest' for job in named))
 
 
@@ -396,11 +408,14 @@ def hosted_timing(run, jobs):
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
     identity = (run_id, attempt, run.get('head_sha'), repository)
     jobs = list(jobs)
-    split = run.get('event') in NORMAL_EVENTS and any(
-        job.get('name') in WINDOWS_PRODUCERS.values() or (
-            job.get('name') == 'verify (windows-latest)'
-            and any(step.get('name') == WINDOWS_AGGREGATE_MARKER for step in job.get('steps', []))
-        ) for job in jobs
+    aggregate_markers = {step.get('name') for job in jobs if job.get('name') == 'verify (windows-latest)'
+                         for step in job.get('steps', [])}
+    recovery_layout = (WINDOWS_RECOVERY_MARKER in aggregate_markers
+                       or any(job.get('name') == WINDOWS_PRODUCERS['recovery'] for job in jobs))
+    expected = WINDOWS_PRODUCERS if recovery_layout else LEGACY_WINDOWS_LANES
+    split = run.get('event') in NORMAL_EVENTS and (
+        recovery_layout or WINDOWS_AGGREGATE_MARKER in aggregate_markers
+        or any(job.get('name') in WINDOWS_PRODUCERS.values() for job in jobs)
     )
     rows, siblings, producers = [], [], {}
     aggregate = None
@@ -432,14 +447,14 @@ def hosted_timing(run, jobs):
     actual = [*rows, *siblings]
     runners = [row['seconds']['runner'] for row in actual]
     if split and aggregate:
-        split_windows_seconds(aggregate, producers, requested)
+        split_windows_seconds(aggregate, producers, requested, expected)
     ids = [row['job_id'] for row in actual if row['job_id'] is not None]
     if len(set(ids)) != len(ids):
         for row in actual:
             if ids.count(row['job_id']) > 1:
                 row['identity_issues']['conflicts'].append('duplicate_job_id')
     bound_matrix = (len(rows) == len(PLATFORMS) and {row['platform'] for row in rows} == set(PLATFORMS.values())
-                    and (not split or has_windows_producers(siblings))
+                    and (not split or has_windows_producers(siblings, expected))
                     and all(not row['identity_issues']['conflicts'] for row in actual))
     complete = (bound_matrix and run.get('status') == 'completed'
                 and all(row['status'] == 'completed' for row in actual))
@@ -462,6 +477,8 @@ def hosted_timing(run, jobs):
     if split:
         result['sibling_jobs'] = siblings
         result['workflow']['windows_split'] = True
+        if recovery_layout:
+            result['workflow']['windows_recovery_producer'] = True
     return result
 
 
@@ -483,7 +500,7 @@ def authenticated_failure(run, identity):
 
 
 def sample_core(sample):
-    return {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts'}}
+    return {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts', 'windows_caches'}}
 
 
 def valid_seconds(seconds, required):
@@ -514,6 +531,10 @@ def valid_sample(sample):
             or (ci is not None and not labels(ci, ('repository', 'run_id', 'run_attempt', 'event',
                                                   'head_sha', 'checkout_sha')))):
         return False
+    if 'windows_caches' in sample and (
+            sample['platform'] != 'Windows' or sample['profile'] != 'full'
+            or windows_aggregate_cache(sample['windows_caches']) != sample['cache']):
+        return False
     return not sample['coverage_complete'] or (
         set(selected) <= {check['id'] for check in checks}
         and all(check['status'] != 'passed' or check['exit_code'] == 0 for check in checks)
@@ -536,6 +557,8 @@ def valid_clock(run):
     return (isinstance(workflow, dict) and type(workflow['matrix_complete']) is bool
             and (workflow.get('identity_complete') is None or type(workflow['identity_complete']) is bool)
             and (workflow.get('windows_split') is None or type(workflow['windows_split']) is bool)
+            and ('windows_recovery_producer' not in workflow
+                 or (workflow.get('windows_split') is True and workflow['windows_recovery_producer'] is True))
             and isinstance(jobs, list) and isinstance(siblings, list) and all(
                 labels(job, ('job_id', 'platform', 'runner_label', 'status', 'conclusion'))
                 and all(isinstance(job['identity_issues'][key], list) for key in ('missing', 'conflicts'))
@@ -563,6 +586,7 @@ def clock_capture_complete(run):
     workflow = run['workflow']
     siblings = run.get('sibling_jobs', [])
     split = workflow.get('windows_split') or 'sibling_jobs' in run
+    expected = WINDOWS_PRODUCERS if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
     actual = [*run['jobs'], *siblings]
     ids = {job['job_id'] for job in actual if positive_id(job['job_id'])}
     return (run.get('status') == 'completed' and bool(run['conclusion']) and workflow['matrix_complete'] is True
@@ -574,7 +598,7 @@ def clock_capture_complete(run):
                     and not job['identity_issues']['conflicts']
                     and job['seconds']['total'] is not None and job['seconds']['runner'] is not None for job in actual)
             and (not split or (
-                has_windows_producers(siblings) and all(job['conclusion'] != 'success'
+                has_windows_producers(siblings, expected) and all(job['conclusion'] != 'success'
                                                        or job['seconds']['harness_step'] is not None for job in run['jobs'])
             )))
 
@@ -661,14 +685,21 @@ def coalesce_samples(samples, issues):
         # Compact artifacts can add observations absent from older samples and full reports.
         try:
             previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
+            previously_observed, observed = (row.get('windows_caches') for row in (previous, sample))
             caches = {previous['cache'], sample['cache']} - {'unknown'}
             if (sample_core(previous) != sample_core(sample) or len(caches) > 1
-                    or (previous_proof is not None and proof is not None and previous_proof != proof)):
+                    or (previous_proof is not None and proof is not None and previous_proof != proof)
+                    or (previously_observed is not None and observed is not None and previously_observed != observed)):
                 group.append(sample)
                 issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
                                'error': 'Conflicting complete timing samples for this run and platform.'})
                 continue
             sample = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
+            if 'windows_caches' in sample and windows_aggregate_cache(sample['windows_caches']) != sample['cache']:
+                group.append(sample)
+                issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
+                               'error': 'Conflicting Windows producer and aggregate cache observations.'})
+                continue
             if previous_proof is not None and proof is None:
                 sample['generated_contracts'] = previous_proof
         except TIMING_INPUT_ERRORS:
