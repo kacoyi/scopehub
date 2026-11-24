@@ -18101,7 +18101,7 @@
         "workspace-timeframe"
       ],
       "evidence": [],
-      "next_action": "Measure the regular full Windows critical path against the two warm controls. Exercise the actual browser workflows and evaluate independent execution for the remaining serial checks while preserving protected coverage and exact provenance.",
+      "next_action": "Compare a successful full Windows pull request candidate with the warm pull request controls while preserving named outcomes and exact provenance. After integration, measure the same split on a successful comparable full main push before reporting a new main time.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

@@ -4161,6 +4161,40 @@
       "deferral_reason": null
     },
     {
+      "id": "verification-main-push-feedback-budget-overrun",
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "push",
+        "profile": "full",
+        "platform": "Windows"
+      },
+      "source": "Authenticated successful main pushes 45371103989, 45376798249 and 45383842961. Their original Windows reports are retained at archives/runs/20261124T100820.639261Z-a7e0e867/test-report.json, archives/runs/20261124T104146.622275Z-4b9b7b0a/test-report.json and archives/runs/20261124T112647.907584Z-badcfd8a/test-report.json.",
+      "observation": "Three comparable warm full main pushes took 1720, 1940 and 1970 seconds on the Windows path against the 900-second objective. The current workflow uses the same Windows core, browser and Python split for pull requests and main pushes. A successful full post-merge main push with comparable coverage and recorded cache state is required before reporting a new main time.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-087"],
+      "regression_checks": ["python-contracts-workers"],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T100820.639261Z-a7e0e867",
+          "source_commit": "b3475fa7581a959c0d4c3a53f722d532683f333e",
+          "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
+        },
+        {
+          "run_id": "20261124T104146.622275Z-4b9b7b0a",
+          "source_commit": "00eb698b03890d7d160382f28a9ebd17b1bff824",
+          "report_sha256": "4fe4ac4345cc5724127e0b77f0a5ce6d09d3f3f4425c383ea74fe69d33f3570d"
+        },
+        {
+          "run_id": "20261124T112647.907584Z-badcfd8a",
+          "source_commit": "6a4bbd6b7270b82a62565305ac3a25190c20af83",
+          "report_sha256": "e6c6cfcc59f501854b50556fd04b2e898bf92e5c6ef879e90856893227a8d5c1"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "verification-clean-checkout-hides-local-changes",
       "source": "Independent Astra review of 02a5176, retained in .reports/m0-087/astra-02a5176.txt, finding 1.",
       "observation": "Git status configuration hid real untracked files from the source identity used by project:ci. The same cleanliness claim had no guard for hidden index flags or caller-configured submodule ignore settings.",
