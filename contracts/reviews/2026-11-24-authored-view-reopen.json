@@ -1,0 +1,12 @@
+{
+  "task": "M2-023",
+  "tested_commit": "1d71972ba26bdb8cb4929ce7f138d823852248da",
+  "run_id": "20261124T052811.533219Z-9baabf8f",
+  "report_sha256": "eb5ed2b7050bc957a3f817045717c49cbf1607c4c728828059ee39e0ea9fcba9",
+  "observation_manifest": "archives/observations/m2-023-authored-view-1d71972/manifest.json",
+  "manifest_sha256": "5f0a6cab0ffd405e9c9d86e0dedeab1508b7031834695ea0171de2666bba554b",
+  "product_entry": "Save the accepted series program in Drawing studio. On reopen, use the named chart-header button. Use Edit layout to select another saved layout. Blank AI workbench opens an independent studio.",
+  "storage": "The optional series-drawing-1 attachment is stored in the existing layout save, history and undo transaction. Scalar values are in source declaration order. Exact observations, selection, derived drawing output and rejected drafts are session-only.",
+  "recovery": "The v11 marker and ledger update are atomic. The old writer refuses this format. Reopen a closed pre-upgrade v10 backup with the old reader or keep the upgraded profile with the current reader. No table or legacy JSON rewrite is necessary.",
+  "scope": "Linux Chromium, current Rust writer, confirmed synthetic CSV. This slice does not qualify a physical package or the M2-013 authored text and disclosure journey."
+}
