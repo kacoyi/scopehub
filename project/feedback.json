@@ -4349,6 +4349,28 @@
       "regression_checks": ["workspace-timeframe"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-source-proof-snapshot-refused",
+      "source": "Third PR 77 Linux pilot, archives/runs/20261124T122836.056903Z-08468273/test-report.json, transport log, screenshot and native-frozen-chart-admission attachment.",
+      "observation": "The desktop transport test correctly displayed the unavailable revision and recorded one SNAPSHOT_UNAVAILABLE read with no source writes. The independent snapshot at line 218 returned ok:false before the published read gate or delayed native write. The hosted artifact omits the failed snapshot's code. In a local 22-run comparison, one run reproduced the same assertion and recorded two successful native snapshots, then the unused companion preview's startup snapshot, then the independent proof refused with BUSY. Passing runs also showed the inverse ordering, with the companion refused at HTTP 429 when the independent proof won admission.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-090"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T122836.056903Z-08468273",
+          "source_commit": "b217c4090b61c50b3503a15e25fb6acd19449941",
+          "report_sha256": "fde7fff1fc38db65e351ed1207337fc937c1401ad5b48271132da1aeabb226ce"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

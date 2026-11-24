@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspace } from './ai-workflow-fixture.mjs';
+import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
 import { control, leaveSample } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
@@ -153,13 +153,21 @@ test('opted-in desktop uses a distinct bootstrap and commits and undoes through 
 test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }, testInfo) => {
   test.setTimeout(180_000);
   await buildPreview();
+  const contextCount = browser.contexts().length;
   await withProfile(async profile => {
     const revision = randomUUID();
     await seedDisplayOnlyChart(profile, revision, {
       time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
       volume: 13, is_closed: true,
     });
-    await withWorkspace(browser, profile, async (_preview, dispatch, _credentials, holdRevisionRead) => {
+    await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
+      const snapshots = [];
+      const snapshot = async stage => {
+        const reply = await dispatch({ type: 'snapshot' });
+        snapshots.push({ stage, ok: reply.ok, code: reply.error?.code, selection_revision: reply.result?.selection_revision });
+        return reply;
+      };
+      const busy = { ok: false, error: { code: 'BUSY', retryable: true } };
       const missingRevision = randomUUID();
       const reads = [];
       const deliverPublishedReply = Promise.withResolvers();
@@ -173,6 +181,7 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         }
         if (payload.type === 'frozen_chart_status') return { result: { available: true } };
         expect(operation).toBeNull();
+        if (payload.type === 'snapshot') return snapshot('native');
         if (payload.type === 'workspace_source') {
           entered.resolve();
           await allowWrite.promise;
@@ -194,7 +203,6 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         return dispatch(payload);
       });
       const network = observeWorkspaceNetwork(page, baseURL);
-      const snapshot = () => dispatch({ type: 'snapshot' });
       const original = { ok: true, result: { selection_revision: 0, source: null } };
       const sourceWrites = () => calls.filter(({ args }) => args.payload.type === 'workspace_source');
       const snapshotReads = () => calls.filter(({ args }) => args.payload.type === 'snapshot').length;
@@ -215,18 +223,22 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         await expect(openFrozen).toBeEnabled();
         expect(reads.map(read => read.outcome)).toEqual(['SNAPSHOT_UNAVAILABLE']);
         expect(sourceWrites()).toHaveLength(0);
-        expect(await snapshot()).toMatchObject(original);
+        // This invoke substitute owns the real writer, but never mounts a second workspace UI.
+        expect(browser.contexts()).toHaveLength(contextCount);
+        expect(await snapshot('after-unavailable')).toMatchObject(original);
 
         await revisionInput.fill(revision);
         const held = await holdRevisionRead(() => revisionStatus(dispatch, revision));
         try {
           await openFrozen.click();
           await expect.poll(() => reads[1]?.payload.revision_id).toBe(revision);
-          expect(await reads[1].reply).toEqual({ ok: false, error: { code: 'BUSY', retryable: true } });
+          expect(await reads[1].reply).toEqual(busy);
           await expect(useSource).toHaveCount(0);
           expect(sourceWrites()).toHaveLength(0);
+          expect(await snapshot('status-read-held')).toEqual(busy);
           held.release();
           expect(await held.reply).toEqual({ ok: true, result: { available: true } });
+          expect(await snapshot('status-read-drained')).toMatchObject(original);
         } finally {
           held.release();
           deliverPublishedReply.resolve();
@@ -234,7 +246,7 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         await expect(useSource, 'The published chart opens after the held reader releases admission').toBeEnabled();
         expect(reads.map(read => read.outcome)).toEqual(['SNAPSHOT_UNAVAILABLE', 'BUSY', 'opened']);
         expect(reads[2].payload).toEqual(reads[1].payload);
-        expect(await snapshot()).toMatchObject(original);
+        expect(await snapshot('chart-opened')).toMatchObject(original);
         await page.evaluate(() => {
           const ipc = window.__TAURI_INTERNALS__;
           const invoke = ipc.invoke;
@@ -256,7 +268,7 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         await expect.poll(snapshotReads).toBe(firstRead + 1);
         await expect(reload).toBeEnabled();
         await expect(useSource).toBeDisabled();
-        expect(await snapshot()).toMatchObject(original);
+        expect(await snapshot('source-write-pending')).toMatchObject(original);
 
         allowWrite.resolve();
         expect(await committed.promise).toMatchObject({ ok: true, result: { selection_revision: 1 } });
@@ -280,9 +292,10 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         expect(sourceWrites()[0].args.payload).toMatchObject({
           expected_selection_revision: 0, source: { kind: 'frozen', revision_id: revision },
         });
-        expect(await snapshot()).toMatchObject({ ok: true, result: { selection_revision: 2, source } });
+        expect(await snapshot('late-reply-delivered')).toMatchObject({ ok: true, result: { selection_revision: 2, source } });
         expect(network).toEqual([]);
       } finally {
+        await testInfo.attach('native-snapshot-admission', { body: JSON.stringify(snapshots), contentType: 'application/json' });
         deliverPublishedReply.resolve();
         allowWrite.resolve();
         allowReply.resolve();
@@ -293,14 +306,14 @@ test('an outstanding native source invoke needs revision proof and a late reply 
           contentType: 'application/json',
         });
       }
-    }, [], true);
+    }, { gateStatus: true });
   });
 });
 
-test('a revision gate preserves rejected and thrown errors before admission', async ({ browser }) => {
+test('a revision gate preserves rejected and thrown errors before admission', async () => {
   test.setTimeout(180_000);
   await buildPreview();
-  await withProfile(profile => withWorkspace(browser, profile, async (_page, dispatch, _credentials, holdRevisionRead) => {
+  await withProfile(profile => withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
     await test.step('propagates the original code promptly', async () => {
       await expect(holdRevisionRead(() => revisionStatus(dispatch, 'invalid'))).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
     }, { timeout: 3000 });
@@ -311,7 +324,7 @@ test('a revision gate preserves rejected and thrown errors before admission', as
     const held = await holdRevisionRead(() => revisionStatus(dispatch, randomUUID()));
     held.release();
     expect(await held.reply).toEqual({ ok: true, result: { available: false } });
-  }, [], true));
+  }, { gateStatus: true }));
 });
 
 test('opted-in desktop keeps sample timeframe controls separate from durable IPC', async ({ page, baseURL }) => {
