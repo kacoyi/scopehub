@@ -1,12 +1,17 @@
 import json
 import os
 from pathlib import Path
+from queue import Queue
 import subprocess
 import sys
+from threading import Thread
+from time import monotonic, sleep
 import unittest
 
 from worker_runtime.protocol import MAX_MESSAGE_BYTES, decode_line
 from providers.history_pages import execute_page
+from providers.replay import plan_replay
+from providers.simulated import GapObservation
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = {'protocol_version': '1.0', 'message_id': '00000000-0000-4000-8000-000000000001', 'timestamp_ms': 1700000000000}
@@ -17,12 +22,15 @@ def frame(**payload):
     return (json.dumps({**BASE, **payload}) + '\n').encode()
 
 
-def worker(data, role='market', extra_args=(), *, python_args=()):
+def worker(data, role='market', extra_args=(), *, python_args=(), interleave_replay=False):
     env = {key: value for key, value in os.environ.items() if key.upper() in {'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP'}}
     env['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(ROOT / 'python')])
     env['PYTHONIOENCODING'] = 'utf-8'
     with subprocess.Popen([sys.executable, *python_args, '-m', 'worker_runtime', '--role', role, *extra_args], cwd=ROOT,
                           env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+        if interleave_replay:
+            replies = interleave_then_cancel(process, data)
+            return process.returncode, replies, process.stderr.read()
         try:
             stdout, stderr = process.communicate(data, timeout=10)
         except BaseException:
@@ -30,6 +38,62 @@ def worker(data, role='market', extra_args=(), *, python_args=()):
             process.communicate()
             raise
         return process.returncode, [decode_line(line) for line in stdout.splitlines()], stderr
+
+
+def interleave_then_cancel(process, data):
+    """Wait for one real publication, then cancel its subscription."""
+    incoming = Queue()
+    replies = []
+    deadline = monotonic() + 10
+    requests = data.splitlines(keepends=True)
+    prefix, cancel, legacy = requests[:-2], requests[-2], requests[-1]
+    request_id = json.loads(cancel)['request_id']
+
+    def read_stdout():
+        for line in process.stdout:
+            incoming.put(line)
+        incoming.put(None)
+
+    def send(*lines):
+        process.stdin.write(b''.join(lines))
+        process.stdin.flush()
+
+    def receive():
+        line = incoming.get(timeout=max(0, deadline - monotonic()))
+        if line is None:
+            return None
+        frame = decode_line(line.rstrip(b'\r\n'))
+        replies.append(frame)
+        return frame
+
+    def until(predicate):
+        while (frame := receive()) is not None:
+            if predicate(frame):
+                return
+        raise AssertionError('Worker exited before the expected replay milestone')
+
+    reader = Thread(target=read_stdout, daemon=True)
+    reader.start()
+    try:
+        send(*prefix)
+        until(lambda frame: frame.get('request_id') == request_id
+              and (frame.get('result') or {}).get('status') == 'accepted')
+        until(lambda frame: frame['type'] == 'event')
+        send(cancel)
+        until(lambda frame: frame.get('request_id') == request_id)
+        # Leave the transport open through another publication interval.
+        sleep(0.7)
+        send(legacy)
+        process.stdin.close()
+        while receive() is not None:
+            pass
+        process.wait(timeout=max(0, deadline - monotonic()))
+        return replies
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=10)
+        reader.join(timeout=10)
 
 
 class WorkerTests(unittest.TestCase):
@@ -104,6 +168,53 @@ class WorkerTests(unittest.TestCase):
         self.assertTrue(all(reply['operation'] == 'market.subscribe' for reply in replies[1:]))
         self.assertEqual([reply['error']['code'] for reply in replies[2:]], ['PERMISSION_DENIED', 'CANCELLED'])
 
+    def owned_replay_replies(self, messages, frames, payload):
+        replies = []
+        accepted = set()
+        active = None
+        observation = 0
+        _, updates = plan_replay(payload)
+        after = payload['after']
+        for frame in frames:
+            if frame['type'] == 'event':
+                self.assertIsNotNone(active, 'Event outside an active replay subscription')
+                self.assertLess(observation, len(updates))
+                self.assertEqual((frame['stream_id'], frame['epoch']), (after['stream_id'], after['epoch']))
+                update = updates[observation]
+                if isinstance(update, GapObservation):
+                    self.assertEqual((frame['event'], frame['sequence']), ('market.stream_gap', update.sequence))
+                    self.assertEqual(frame['payload'], {
+                        'series': payload['series'], 'reason': 'sequence_gap', 'affected': update.affected,
+                        'expected_sequence': update.expected_sequence, 'lost_count': update.lost_count,
+                    })
+                else:
+                    self.assertEqual((frame['event'], frame['sequence']),
+                                     ('market.bar_update', after['sequence'] + observation + 1))
+                    self.assertEqual(frame['payload'], {
+                        'series': payload['series'], 'dataset_revision': payload['snapshot']['dataset_revision'],
+                        **update,
+                    })
+                observation += 1
+                if observation == len(updates):
+                    active = None
+                continue
+            self.assertEqual(frame['type'], 'response')
+            self.assertLess(len(replies), len(messages))
+            request = messages[len(replies)]
+            identity = request['request_id']
+            self.assertEqual(frame['request_id'], identity)
+            replies.append(frame)
+            if (frame.get('result') or {}).get('status') == 'accepted' and identity not in accepted:
+                self.assertEqual(request['operation'], 'market.subscribe')
+                self.assertEqual(frame['result']['from_position'], after)
+                self.assertIsNone(active, 'An accepted replay displaced an active subscription')
+                accepted.add(identity)
+                active, observation = identity, 0
+            if active == identity and request['type'] == 'cancel' and (frame.get('error') or {}).get('code') == 'CANCELLED':
+                active = None
+        self.assertEqual(len(replies), len(messages))
+        return replies
+
     def test_read_and_replay_share_request_ownership_and_terminal_retries(self):
         examples = {case['name']: json.loads(case['wire']) for case in json.loads(
             (ROOT / 'tests/fixtures/protocol-cases.json').read_text()) if case['valid']}
@@ -135,10 +246,10 @@ class WorkerTests(unittest.TestCase):
             dict(cancel, request_id=next_id), dict(legacy, request_id=legacy_id),
         ]
         code, replies, stderr = worker(b''.join(frame(**message) for message in messages),
-                                       extra_args=('--wire-version', '1.1', '--demo'))
+                                       extra_args=('--wire-version', '1.1', '--demo'), interleave_replay=True)
         self.assertEqual((code, stderr), (0, b''))
-        outputs = replies[1:]
-        self.assertEqual(len(outputs), len(messages))
+        self.assertEqual(replies[0]['type'], 'hello')
+        outputs = self.owned_replay_replies(messages, replies[1:], replay['payload'])
         self.assertEqual([item['error']['code'] if not item['ok'] else None for item in outputs], [
             None, 'PERMISSION_DENIED', None, None, None, 'PERMISSION_DENIED',
             'INVALID_ARGUMENT', 'PERMISSION_DENIED', 'PERMISSION_DENIED', 'BUSY',
@@ -152,6 +263,20 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(outputs[15]['result']['status'], 'accepted')
         self.assertEqual(len(outputs[-1]['result']['bars']), 40)
         self.assertEqual(outputs[-1]['protocol_version'], '1.0')
+
+        # The staged final subscription publishes before its cancellation. Keep
+        # a negative check for a wrong eligible-stream frame or a late delivery.
+        frames = replies[1:]
+        accepted_at = frames.index(outputs[15])
+        cancelled_at = frames.index(outputs[16])
+        event_at = next(i for i in range(accepted_at + 1, cancelled_at) if frames[i]['type'] == 'event')
+        event = frames[event_at]
+        for wrong in (dict(event, event='market.unexpected'), dict(event, epoch=identity(42))):
+            with self.assertRaises(AssertionError):
+                self.owned_replay_replies(messages, [*frames[:event_at], wrong, *frames[event_at + 1:]], replay['payload'])
+        with self.assertRaisesRegex(AssertionError, 'outside an active replay'):
+            self.owned_replay_replies(messages, [*frames[:cancelled_at + 1], event, *frames[cancelled_at + 1:]], replay['payload'])
+
 
     def test_heartbeat(self):
         code, messages, _ = worker(frame(type='heartbeat'))

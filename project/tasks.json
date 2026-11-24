@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-085",
   "tasks": [
     {
       "id": "M0-001",
@@ -17082,6 +17082,89 @@
           ],
           "data_plan": "Use a frozen synthetic series and transient draft and accepted values owned by the host. No profile migration.",
           "cleanup": "Remove or replace the experimental controls when the renderer selection is resolved and the product workbench takes over."
+        }
+      }
+    },
+    {
+      "id": "M0-085",
+      "title": "Verify replies and asynchronous observations in the worker ownership test",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-084"
+      ],
+      "scope": [
+        "tests/integration/test_worker.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0005"
+      ],
+      "acceptance": [
+        "The real synthetic worker can interleave an active replay event among its 18 ownership replies. The verification keeps the existing request order, duplicate, ownership, BUSY and cancellation assertions.",
+        "Every additional observation is checked against an accepted active replay and its frozen stream, snapshot and sequence. Unknown, misattributed and post-cancellation frames fail verification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Capture a controlled legal interleave and distinguish it from reply and cancellation regressions.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "The protected verification observes and classifies protocol replies and asynchronous events through the normal worker.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/integration/test_worker.py",
+          "python/worker_runtime/replay.py",
+          "contracts/schemas/protocol.schema.json"
+        ],
+        "hypotheses": [
+          "A legal publication during the finite synthetic replay explains a reproducible nineteen-versus-eighteen assertion. The original Windows log contains no frame body."
+        ],
+        "risks": [
+          {
+            "failure": "The assertion discards an unexpected event, weakens reply ordering or misses publication after successful cancellation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original diagnostic, file a protocol issue if the staged trace contains an invalid frame, and revert only the harness correction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/integration/test_worker.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Worker timing changes, schema changes, weakened required CI, and changes to #67 or runtime branches."
+          ],
+          "open_questions": [
+            "Does the observed extra frame occur before the terminal cancellation reply and belong to the accepted subscription?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing 18 per-request outcomes and equality assertions, worker state and public wire behavior."
+          ],
+          "change": [
+            "Classify reply and event frames, explicitly exercise their interleaving and reject events outside the active stream sequence."
+          ],
+          "data_plan": "Synthetic fixture only; no data or runtime access changes.",
+          "cleanup": "Retain the original Windows failure and staged observation so #67 can resume on a verified base."
         }
       }
     }
