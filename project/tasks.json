@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-030",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -17738,7 +17738,7 @@
       "id": "M2-030",
       "title": "Show an editable chart-free state view of the same synthetic result",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-029"
       ],
@@ -17765,10 +17765,23 @@
         "market-workflow",
         "renderer-prototype-interaction"
       ],
-      "evidence": [],
-      "next_action": "Review the repaired state-view candidate, run the coordinated task checks including scoped WebView2 attribution, then archive evidence for the three open findings.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-030-63a8e5f735924921.json",
+          "sha256": "6fe0eb92dddde19827b112cff257c014f06702dc0bb7259b075bda91bcb6d3e6"
+        },
+        {
+          "path": "project/evidence/M2-030-2ee09ad9dd03c78e.json",
+          "sha256": "0527d9efe0d026205a2d9636481149ae718ec67a0790071a16003659d12c9f7d"
+        },
+        {
+          "path": "project/evidence/M2-030-55ed9077f6d896f7.json",
+          "sha256": "bdf88b06118665859d5873c70da47e6346d0daf3ed15451c96221c0b3133b1a7"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The normal editor changes the same frozen result from candles to labelled state lights. Selected results retain their source, timeframe and revisions across accepted edits, appends and rejected drafts. The archived Linux and Windows task runs cover the browser interactions and Windows WebView2 selection.",
       "plan": {
         "outcome": "A researcher can read and inspect the same conditional result as lights on a chart-free canvas and change how the values are presented.",
         "change_types": [
