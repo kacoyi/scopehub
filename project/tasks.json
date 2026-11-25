@@ -20013,9 +20013,13 @@
         {
           "path": "project/evidence/M0-111-5eb5051e64c1978c.json",
           "sha256": "64cc2a4a7fab89f0798b4e07822b952ea30b1ce1c4bbbd0c274a465cbde09d8e"
+        },
+        {
+          "path": "project/evidence/M0-111-cf178d6905ff9298.json",
+          "sha256": "3096c005cc95c29f62384616712be9ff68d274cc5ce19207d6027a3d8160a32c"
         }
       ],
-      "next_action": "Qualify the supplemental archive admission, legacy diagnostic and summary alias regressions. Retain the original platform receipts under their previous task definition.",
+      "next_action": "Review the supplemental candidate and matching Linux receipt. Preserve the previous Windows and Linux observations at their original scope and obtain protected Windows evidence for all three supplemental findings.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
