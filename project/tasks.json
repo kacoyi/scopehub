@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-154",
   "tasks": [
     {
       "id": "M0-001",
@@ -25711,6 +25711,112 @@
           "report_sha256": "c0b1d706b34133d55bfa16ea9e1adec57e461cf0e732e2673096957112b1aba5"
         }
       ]
+    },
+    {
+      "id": "M0-154",
+      "title": "Qualify cold sample document readiness in the Windows closed-bar repair journey",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M1-022",
+        "M1-023"
+      ],
+      "scope": [
+        "tests/ui/sample-startup.mjs",
+        "tests/ubuntu-preview",
+        "apps/desktop/ui",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed protected producer, same-tree native passing control and aggregate diagnostic when available. Identify the last observed startup stage before the chart repair assertion.",
+        "Use the public sample entry to distinguish an absent or failed document, a delivered document with pending required code, and a mounted sample with verified catalog and history. Preserve the original deadline, rejection of a genuine stall and chart expectations.",
+        "Demonstrate the correction or diagnostic on real controlled navigation and in the ordinary native Windows check, with original unsuccessful and successful controls retained. Keep historical cause and Windows acceptance explicit until observed."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery"
+      ],
+      "evidence": [],
+      "next_action": "Measure the public sample startup on a cold preview. Retain the document and module lifecycle evidence in a valid and a controlled delayed case before choosing a fix. Attach the original aggregate diagnostic when published.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A cold closed-bar repair journey reaches its verified initial sample or explains the last observed stage at the existing navigation deadline.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ui/sample-startup.mjs",
+          "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+          "tests/ubuntu-preview/market-preview-config.mjs",
+          "apps/desktop/ui/index.html",
+          "archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json"
+        ],
+        "hypotheses": [
+          "The screenshot confirms that the startup panel rendered. A missing or slow deferred module, an unobserved document transition and host delay remain distinguishable hypotheses until there is request and lifecycle evidence."
+        ],
+        "risks": [
+          {
+            "failure": "A document-only success could release chart assertions before the mounted sample, its correct catalog and history.",
+            "checks": [
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "An added retry, excessive logging or inflated deadline hides a genuine terminal or crosses a privacy boundary.",
+            "checks": [
+              "market-recovery",
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Keep the existing valid sample and cutoff; revert a change that hides a deliberate stall or changes the expected bars.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ui/sample-startup.mjs",
+            "tests/ubuntu-preview/market-closed-bar-repair.spec.mjs",
+            "apps/desktop/ui/index.html"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing market data, relaxing chart integrity checks, automatic UI reloads or raising the navigation deadline."
+          ],
+          "open_questions": [
+            "What document, required script and workspace-mount events are observable at the failed boundary without reproducing assumptions about the native host?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The explicit synthetic sample, real chart repair path, source ownership, verified bars and manual reload behavior."
+          ],
+          "change": [
+            "Add only the distinction or removable startup cost that measurements through the ordinary entry support."
+          ],
+          "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
+          "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."
+        }
+      }
     }
   ]
 }

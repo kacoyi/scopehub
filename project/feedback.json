@@ -7346,6 +7346,21 @@
           "report_sha256": "c0b1d706b34133d55bfa16ea9e1adec57e461cf0e732e2673096957112b1aba5"
         }
       ]
+    },
+    {
+      "id": "windows-closed-bar-repair-sample-document-deadline",
+      "status": "open",
+      "severity": "major",
+      "source": "Protected Windows main run 45709117560, first attempt, and the same-tree first ordinary PR 129 run 45705520154. The authenticated recovery producer, original chart screenshot and both test reporters are indexed in archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json (SHA-256 73542c6956547a0746dad8eba3bed2f2b2b599f6b38d4c78ae379b00b0957736).",
+      "observation": "The first closed-bar repair browser case stopped at the ten-second DOMContentLoaded deadline. Its retained screenshot shows the static Opening ScopeHub panel and the manual reload control. Eleven other recovery cases passed. The same-tree ordinary Windows PR passed all twelve cases, including the original case in 5.549 seconds. The failed trace does not identify the document response stage or timing of individual module loads. It contains no failing chart repair assertion.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
