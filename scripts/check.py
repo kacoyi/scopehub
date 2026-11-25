@@ -204,14 +204,15 @@ def select_checks(project, *, profile=None, task_id=None):
         if task_id not in project['tasks']:
             raise ProjectError(f'Unknown task: {task_id}')
         return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
-    if profile:
-        if profile == 'release':
-            return release_checks(project)
-        if profile not in project['catalog'].get('profiles', {}):
-            raise ProjectError(f'Unknown check profile: {profile}')
-        return set(project['catalog']['profiles'][profile])
-    return {key for key, check in project['checks'].items()
-            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
+    if profile == 'release':
+        return release_checks(project)
+    if profile and profile not in project['catalog'].get('profiles', {}):
+        raise ProjectError(f'Unknown check profile: {profile}')
+    if __package__:
+        from .verification_scope import hosted_check_selection
+    else:
+        from verification_scope import hosted_check_selection
+    return hosted_check_selection(project['catalog'], profile)
 
 
 TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {

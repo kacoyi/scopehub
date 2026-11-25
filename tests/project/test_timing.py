@@ -1,6 +1,7 @@
 """Exercise timing distinctions and regression decisions with synthetic observations."""
 
 from contextlib import redirect_stderr, redirect_stdout
+from datetime import timedelta
 from io import StringIO
 import json
 import os
@@ -92,8 +93,17 @@ def fast_report(day, elapsed):
     return report
 
 
-def split_harness_report(elapsed):
+def split_harness_report(elapsed, *, profile='full'):
     report = fast_report(20, elapsed)
+    checks = {
+        'full': ('windows-native-build', 'workspace-timeframe', 'python-contracts-workers', 'market-recovery'),
+        'records': ('generated-contracts', 'dependency-review'),
+        'ci-windows-core': (),
+    }
+    for key in checks[profile]:
+        report['selection']['checks'].append(key)
+        report['checks'].append({'id': key, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12})
+    report['selection']['profile'] = profile
     report['run_id'] = 'windows-change-11-1'
     report['environment'].update(system='Windows', machine='AMD64')
     return report
@@ -314,6 +324,50 @@ class HostedTimingTests(unittest.TestCase):
                 capture = timing.capture_observations(timing.ci_key(full), [linux_sample, windows_sample], clocks, [])
                 self.assertIs(complete, capture.complete_clock)
 
+    def test_only_bound_producer_endpoints_can_complete_split_intervals(self):
+        from copy import deepcopy
+
+        jobs = self.split_windows_jobs()
+        run = hosted_run()
+        official = timing.hosted_timing(run, jobs)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(official))), 'checkout_sha': 'a' * 40}
+        windows = timing.report_sample(report)
+        linux = dict(windows, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        observations = [linux, windows]
+
+        def change_member(lane, *, foreign=False, missing_step=False):
+            changed = deepcopy(jobs)
+            job = next(row for row in changed if row['name'] == timing.WINDOWS_PRODUCERS[lane])
+            if foreign:
+                job.update(head_sha='c' * 40, started_at='2026-11-20T00:00:27Z')
+            elif missing_step:
+                step = next(row for row in job['steps'] if row['name'] == f'Verify the Windows {lane} lane')
+                step['started_at'] = None
+            else:
+                job['started_at'] = None
+            return timing.hosted_timing(run, changed)
+
+        foreign = change_member('core', foreign=True)
+        missing = change_member('core')
+        browser = change_member('browser', missing_step=True)
+        python = change_member('python', missing_step=True)
+        raw_foreign = dict(next(job for job in jobs if job['name'] == timing.WINDOWS_PRODUCERS['core']),
+                           head_sha='c' * 40, started_at='2026-11-20T00:00:27Z')
+        co_listed = timing.hosted_timing(run, [*jobs, raw_foreign, jobs[0]])
+        for pair, values, ready in (([official, foreign], (1687, 40, 695), True),
+                                    ([co_listed, co_listed], (1687, 40, 695), True),
+                                    ([missing, foreign], (None, None, None), False),
+                                    ([browser, python], (1687, 40, 695), True)):
+            for clocks in ([*pair, pair[0]], [*reversed(pair), pair[1]]):
+                view = timing.timing_view(observations, hosted=clocks)
+                sample = next(row for row in view['samples'] if row['platform'] == 'Windows')
+                self.assertEqual(765, sample['seconds']['total'])
+                self.assertEqual(values, tuple(sample['seconds'][field]
+                                               for field in ('runner', 'setup', 'harness_step')))
+                captured = timing.capture_observations(timing.ci_key(official), observations, clocks, [])
+                self.assertIs(ready, captured.complete_clock)
+
     def test_four_producer_clocks_keep_each_current_job_and_read_legacy_three_producer_history(self):
         for scoped in (False, True):
             legacy_jobs = self.split_windows_jobs(scoped=scoped)
@@ -428,7 +482,9 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual([], issues)
 
         clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs(scoped=True))
-        scoped = {**full, 'profile': 'records'}
+        scoped_report = split_harness_report(675, profile='records')
+        scoped_report['ci'] = report['ci']
+        scoped = timing.report_sample(scoped_report)
         view = timing.timing_view([scoped, scoped], hosted=[clock])
         observed, = view['samples']
         self.assertEqual('35', observed['job']['job_id'])
@@ -687,9 +743,6 @@ class HostedTimingTests(unittest.TestCase):
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
-        report['selection']['checks'].append('workspace-timeframe')
-        report['checks'].append({'id': 'workspace-timeframe', 'status': 'passed',
-                                 'exit_code': 0, 'duration_seconds': 12})
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         caches = dict(core='partial', browser='unknown', python='not_requested', recovery='partial')
         full = dict(timing.report_sample(report), windows_caches=caches)
@@ -720,9 +773,6 @@ class HostedTimingTests(unittest.TestCase):
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
-        report['selection']['checks'].extend(['workspace-timeframe', 'market-recovery'])
-        report['checks'].extend({'id': name, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12}
-                                for name in ('workspace-timeframe', 'market-recovery'))
         full = timing.report_sample(report)
         wrong_lane = dict(lane_sample(full, 'recovery'), profile='ci-windows-browser', cache='warm')
         browser = dict(lane_sample(full, 'browser'), cache='warm')
@@ -740,15 +790,35 @@ class HostedTimingTests(unittest.TestCase):
             self.assertEqual((675, None), (sample['seconds']['harness'], sample['seconds']['total']))
             self.assertFalse(view['objective_reviews'])
 
+    def test_native_child_selection_cannot_displace_the_parent_report(self):
+        clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        full = timing.report_sample(report)
+        linux = dict(full, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        for claim in ('full', 'records'):
+            producer = dict(lane_sample(full, 'recovery'), profile=claim, cache='partial')
+            for samples in ([linux, full, producer], [producer, full, linux, producer]):
+                view = timing.timing_view(samples, hosted=[clock])
+                windows = [row for row in view['samples'] if row['platform'] == 'Windows']
+                expected = {('full', len(full['selected']), 765, 'unknown'), (claim, 1, None, 'unknown')}
+                measured = {(row['profile'], len(row['selected']), row['seconds']['total'], row['cache'])
+                            for row in windows}
+                self.assertEqual(expected, measured)
+                indexable = timing.indexable_capture_samples(Path('ci-pull_request-11-1.json'), samples, [clock], [])
+                self.assertCountEqual([linux, full], indexable)
+        invalid = [dict(lane_sample(full, 'recovery'), profile=claim) for claim in ('full', 'records')]
+        observations = timing.capture_observations(timing.ci_key(clock), [linux, *invalid, full], [clock], [])
+        self.assertEqual(set(), observations.missing)
+        self.assertTrue(observations.complete_clock)
+        self.assertFalse(observations.ambiguous)
+
     def test_producer_cache_dispute_preserves_wall_objective_without_cache_cohort(self):
         *siblings, aggregate = self.split_windows_jobs()
         clock = timing.hosted_timing(hosted_run(), [*siblings, aggregate])
         report = split_harness_report(675)
         report['selection']['profile'] = 'full'
         report['source']['sha256'] = 'c' * 64
-        report['selection']['checks'].append('workspace-timeframe')
-        report['checks'].append({'id': 'workspace-timeframe', 'status': 'passed',
-                                 'exit_code': 0, 'duration_seconds': 12})
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report, cache='warm')
         browser = dict(lane_sample(full, 'browser'), cache='partial')
@@ -1384,12 +1454,11 @@ class TimingRegressionTests(unittest.TestCase):
             self.assertFalse(bad_archive.exists())
 
     def test_cli_scope_validation_and_matching_compact_siblings(self):
-        report = split_harness_report(500)
+        report = split_harness_report(500, profile='ci-windows-core')
         report['ci'] = {
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
             'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40,
         }
-        report['selection']['profile'] = 'ci-windows-core'
         report['selection']['checks'].append('future-check')
         report['checks'].append({'id': 'future-check', 'status': 'blocked', 'reason_code': 'not_implemented'})
         sample = timing.report_sample(report, cache='partial')
@@ -2173,8 +2242,12 @@ class RecentTimingTests(unittest.TestCase):
         self.assertTrue(partial['timing_available'])
         self.assertEqual([], partial['repeated_breaches'])
 
-        conflicting_jobs = [dict(row, seconds={**row['seconds'], 'total': 840})
-                            if row['platform'] == 'Windows' else row for row in b['jobs']]
+        conflicting_jobs = []
+        for row in b['jobs']:
+            if row['platform'] == 'Windows':
+                finish = timing.timestamp(row['endpoints']['requested']) + timedelta(seconds=840)
+                row = dict(row, endpoints={**row['endpoints'], 'end': finish.isoformat()})
+            conflicting_jobs.append(row)
         conflict = dict(b, jobs=conflicting_jobs, workflow={**b['workflow'], 'total_elapsed_seconds': 840})
         for duplicates in ((b, conflict), (conflict, b)):
             with self.subTest(duplicates=duplicates[0]['workflow']):

@@ -48,6 +48,22 @@ def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES):
 
 
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
+def hosted_check_selection(catalog, profile):
+    if profile:
+        return set(catalog.get('profiles', {}).get(profile, ()))
+    return {check['id'] for check in catalog['checks']
+            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
+
+
+def windows_published_scope(selected, profile, lanes, catalog):
+    if profile in SCOPED_PROFILES:
+        return selected == hosted_check_selection(catalog, profile)
+    # The full catalogue has grown across layouts. A historical aggregate
+    # still has the native core gates and a selection for every producer.
+    return (profile == 'full' and {'environment', 'project-state', 'windows-native-build'} <= selected
+            and all(windows_lane_checks(selected, lane, lanes) for lane in lanes))
+
+
 SCOPE_REASONS = {
     'records': 'Only reviewed record paths or approved narrative fields changed.',
     'tooling': 'Only isolated Herdr tooling and eligible records changed.',
