@@ -58,15 +58,15 @@ class DeliveryTests(ProjectFixture):
 
     def timing_review(self, clock):
         scopes = []
-        run_ids = []
+        samples = []
         for platform in ('Linux', 'Windows'):
             for event in ('pull_request', 'push'):
-                runs = [str(45556251399 + len(run_ids) + i) for i in range(3)]
+                runs = [str(45556251399 + len(samples) + i) for i in range(3)]
                 scopes.append({'repository': 'kacoyi/scopehub', 'event': event, 'profile': 'full',
                                'platform': platform, 'sample_count': 3, 'recent_runs': runs,
                                'recent_objective_breaches': 0})
-                run_ids.extend(runs)
-        return {'recent_collection': {'collected_at': clock, 'collected_run_ids': run_ids}, 'objective_reviews': scopes,
+                samples.extend({'run_id': run, 'platform': platform, 'event': event} for run in runs)
+        return {'recent_collection': {'collected_at': clock, 'collected_samples': samples}, 'objective_reviews': scopes,
                 'input_issues': [], 'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
 
     def add_periodic_record(self, item, raw, *findings):
@@ -343,8 +343,10 @@ class DeliveryTests(ProjectFixture):
         self.assertIn('complete worktree, process and checkout observations', pending)
         self.assertIn('project-owned staging outside registered worktrees', pending)
         raw_timing = self.timing_review('2026-11-25T09:00:00Z')
-        raw_timing['objective_reviews'] = raw_timing['objective_reviews'][:1]
-        raw_timing['recent_collection']['collected_run_ids'] = []
+        scopes = raw_timing['objective_reviews']
+        scopes[2]['recent_runs'] = scopes[0]['recent_runs']
+        raw_timing['recent_collection']['collected_samples'] = [
+            sample for sample in raw_timing['recent_collection']['collected_samples'] if sample['platform'] == 'Linux']
         timing = self.add_periodic_record(delivery['scaffold_maintenance']['periodic_reviews'][1], raw_timing)
         self.assertIn('Windows pull_request', read_json(timing)['evidence']['pending'])
         path.write_bytes(json_bytes(delivery))

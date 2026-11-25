@@ -123,7 +123,8 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None):
         facts.update(scopes=[{name: item[name] for name in fields} for item in data['objective_reviews']
                              if item['event'] in {'pull_request', 'push'} and item['profile'] == 'full'
                              and item['sample_count'] >= 3],
-                     captured_runs=data['recent_collection'].get('collected_run_ids', []),
+                     captured_samples=[{name: row[name] for name in ('run_id', 'platform', 'event')}
+                                       for row in data['recent_collection'].get('collected_samples', [])],
                      input_complete=not data['input_issues'],
                      adverse=bool(data['budget_follow_up']['repeated_breaches'] or data['budget_follow_up']['sustained_growth']))
     elif key == 'branches-and-pull-requests':
@@ -161,7 +162,7 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None):
 def project_facts(key, facts, policy, protection_violations):
     fields = {
         'weekly-regression-continuity': {'repository', 'status', 'run'},
-        'verification-timing': {'scopes', 'captured_runs', 'input_complete', 'adverse'},
+        'verification-timing': {'scopes', 'captured_samples', 'input_complete', 'adverse'},
         'branches-and-pull-requests': {'repository', 'branch', 'branch_statuses', 'pull_statuses', 'protected',
                                        'delete_branch_on_merge', 'inventory_complete', 'protection'},
         'worktrees-and-evidence': {'integration_ref', 'row_states', 'holds', 'archive_configured',
@@ -202,9 +203,12 @@ def project_facts(key, facts, policy, protection_violations):
         evidence = {'weekly_regression': {'status': status, 'run': run}}
     elif key == 'verification-timing':
         scopes = facts['scopes']
-        captured = facts['captured_runs']
-        if (len(scopes) > 32 or len(captured) > 64 or not all(positive_id(run) for run in captured)):
+        captured = facts['captured_samples']
+        if (len(scopes) > 32 or len(captured) > 192 or any(
+                not positive_id(row['run_id']) or row['platform'] not in {'Linux', 'Windows'}
+                or row['event'] not in {'pull_request', 'push'} for row in captured)):
             raise ValueError('Expected a bounded timing collection.')
+        collected = {(str(row['run_id']), row['platform'], row['event']) for row in captured}
         refreshed = set()
         for item in scopes:
             runs = item['recent_runs']
@@ -212,8 +216,9 @@ def project_facts(key, facts, policy, protection_violations):
                     item['platform'] not in {'Linux', 'Windows'} or item['event'] not in {'pull_request', 'push'}
                     or len(runs) != 3 or len(set(runs)) != 3 or not all(positive_id(run) for run in runs)):
                 raise ValueError('Timing scope does not match ordinary protected repository verification.')
-            if set(map(str, runs)).intersection(map(str, captured)):
-                refreshed.add((item['platform'], item['event']))
+            scope = item['platform'], item['event']
+            if any((str(run), *scope) in collected for run in runs):
+                refreshed.add(scope)
         pending = [f'{platform} {event}' for platform in ('Linux', 'Windows') for event in ('pull_request', 'push')
                    if (platform, event) not in refreshed]
         if not facts['input_complete']:
