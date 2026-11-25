@@ -25591,6 +25591,126 @@
           "cleanup": "Release observers, remove test profiles after retaining evidence and discard canceled or superseded reads."
         }
       }
+    },
+    {
+      "id": "M0-152",
+      "title": "Verify the Windows local import interpreter through both ownership checks",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-008"
+      ],
+      "scope": [
+        "crates/worker-host/src/local_import.rs",
+        "crates/worker-host/src/local_import_windows.rs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0013"
+      ],
+      "acceptance": [
+        "The native Windows check distinguishes the historical launcher and its leaf from the directly owned interpreter. It verifies the respective parent identities, locked runtime and package facts, and final cleanup on the matched candidate.",
+        "A failed or incomplete test-owned launch exposes the bounded phase and terminal condition through the ordinary Rust entry. A missing or incorrect witness cannot qualify a replacement. Preserve the original Windows failure and the matching passing controls."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-152-9d3b2f1bceefc7b9.json",
+          "sha256": "ee543efd306a022074b213ae009f11e2e6da1e53434e3aa9c86ef27010ef2bf0"
+        },
+        {
+          "path": "project/evidence/M0-152-21831016e8d4d3d9.json",
+          "sha256": "65f0d8049e83ffccac942602153f0a3cb235c20d911eb473b4bce2d7cf295498"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Windows test identifies both callers, bounds each observation and checks the existing cleanup and runtime contract. The non-elevated Windows run records the legacy launcher releasing its child and the directly owned interpreter being reaped. Both reported 15 paths, identical package versions and Asia/Shanghai. The native observation is retained at archives/observations/repo-hygiene-20261125/m0-152-native-calibration-45702948191/observation.json (SHA-256 c32b341401a324e43e6195c32895b46f5acee5561f8bc1f7b5e7afa6c44baf7b). The original timeout did not identify the failing caller or phase.",
+      "plan": {
+        "outcome": "A native check can identify which launch and witness failed while verifying positive ownership and the existing reaping contract in both branches.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/src/local_import_windows.rs",
+          "contracts/decisions/0013-own-the-local-csv-interpreter-directly.json",
+          "archives/observations/repo-hygiene-20261125/m0-152-windows-interpreter-45692536863/observations.json"
+        ],
+        "hypotheses": [
+          "The shared wait reports the same error before either launch has delivered a complete witness. Child startup, process exit, metadata preparation, a pending write and content validation are distinct observations. The original report alone cannot select one.",
+          "Test-owned pinned interpreter controls reproduce the same old elapsed result for an exited child, a live silent child and an incomplete record. They do not identify the historical Windows failure."
+        ],
+        "risks": [
+          {
+            "failure": "A missing, malformed or incorrect runtime witness could be treated as a verified child, or a previous invocation could satisfy the current assertion.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A failed fixture could leave an owned interpreter alive or permit the next preview without the required reaping proof.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Restore the reviewed fixture or isolate the unqualified change when ownership or bounded cleanup cannot be established. Retain native failures and original control observations.",
+        "implementation": {
+          "modules": [
+            "worker-host",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_import.rs",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/decisions/0013-own-the-local-csv-interpreter-directly.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "Changing CSV data, field mappings, publication, user authorization or the accepted recovery deadlines."
+          ],
+          "open_questions": [
+            "Use the matching Windows host to observe legacy launch, module entry, ownership, locked runtime, teardown and equivalence at the ordinary Rust entry."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Old launcher and directly owned interpreter identity, locked environment agreement, bounded cleanup and the existing one-recovery policy."
+          ],
+          "change": [
+            "Retain separate ordinary test evidence for each interpreter and its witness when the native assertion stops."
+          ],
+          "data_plan": "Use test-owned synthetic files and the locked project environment. Store only the bounded test observations and original native report in the development archive.",
+          "cleanup": "Release fixture-owned processes and temporary files on successful and failed observations."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45692536863-1",
+          "source_commit": "98d5f8e19edc8eef7a7155a77bfa8e2223283ca2",
+          "report_sha256": "c0b1d706b34133d55bfa16ea9e1adec57e461cf0e732e2673096957112b1aba5"
+        }
+      ]
     }
   ]
 }
