@@ -50,6 +50,15 @@
       },
       "supersedes": "ae68dac1ede08fc747c8c141f486ef9d1f84fdedb54ed5e37cc2ab50eb069323",
       "evidence_sha256": "e50e3aef638e54758ab82cf157a46f270a7f8d0968fb34bcfc6a5b57add259ea"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "scope": "Recheck all four rejected raw log, legitimate skip, producer drift and shutdown output boundaries after the integrated fixes. Verify the ordinary Windows pull request and parent warm push paths, serial and split per-case equivalence, and retained source-bound evidence for the 900-second ordinary pull request objective.",
+      "supersedes": "0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4",
+      "requested_at": "2026-11-25T23:01:43.189356+00:00",
+      "request_id": "64ae20e8b0ab7bfbc6c4510215c2f36c12768097dc648aa5bac8683c505bfb0e",
+      "evidence_sha256": "8c0c2274f1bb9528634b9696a46368a9253ae407f8df1d5a4560b99bf15aefa7"
     }
   ]
 }

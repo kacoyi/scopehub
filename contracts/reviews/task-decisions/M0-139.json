@@ -50,6 +50,15 @@
       },
       "supersedes": "d343328b2db124a0a60b2252e74061733a50bf771240c217f02fd08e0e2e530e",
       "evidence_sha256": "035f3455277228d5d61b9d47856958f48fc1cd106c56d8759c0455b87095d409"
+    },
+    {
+      "kind": "request",
+      "source_commit": "3f74a1e9b149464a35c4b31657bc624ae1f47b47",
+      "scope": "Requalify protected warm push scheduling on the combined interruption and Python evidence changes. Verify the ordinary versus PR split, the full selected inventory, recovery lane inclusion, independent failure preservation and the first real protected timing still assigned to M0-141.",
+      "supersedes": "3f1f94a8b21bbe3e163d0be2fd947b2cb7b7e8fb414c8083c81bff347b119575",
+      "requested_at": "2026-11-25T23:01:41.460874+00:00",
+      "request_id": "15c13b67de8e01814ec8b70e4bd42119c40b665b01cae299ec09492b0ac7d5b5",
+      "evidence_sha256": "aaab147e5e132fbd8bccfbf9c7c3fbea715a2b95fcc077c67e414d25cdd3bfc2"
     }
   ]
 }
