@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-040",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25250,7 +25250,7 @@
       "id": "M2-040",
       "title": "Return the observing note window to its list after a busy fallback read",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-038"
       ],
@@ -25281,7 +25281,16 @@
         "market-workflow",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-040-d7542845daf1b9ab.json",
+          "sha256": "ecaaea7d0c385e02b5da0b335a537e4180f8ce82a2cd8d2ebd1931a39c9d2bc4"
+        },
+        {
+          "path": "project/evidence/M2-040-fb6b0fd7f8dfce72.json",
+          "sha256": "4324766cb86587ccd5a471b9af24f8412a7655452482959d7519372f80e22956"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261125T181716.486623Z-e13b2103",
@@ -25294,9 +25303,9 @@
           "report_sha256": "51c9da332b22091f780d8da2bf7ca63194ca6696a7e30ef4dd31d7d940e2d109"
         }
       ],
-      "next_action": "Review the exact red and green paired-window snapshot contention, terminal denial and loss, and shared deadline evidence. Verify guarded Windows on the clean corrected candidate, including the ordinary paired-window journey.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The two-window checks recover the observing drawer when its snapshot or its list first receives a writer refusal. Both fallback reads share the existing five-second deadline. The Linux and Windows evidence records one deletion at revision 5 and the same list request changing from HTTP 429 to 200. The earlier failed reports and the prior M2-038 receipts are retained.",
       "plan": {
         "outcome": "After its peer deletes a note, the observing window shows the verified current list or an actionable terminal read result and keeps the deleted title hidden.",
         "change_types": [
