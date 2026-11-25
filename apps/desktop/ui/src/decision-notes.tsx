@@ -212,13 +212,15 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     });
   }, []);
 
-  const load = useCallback(async (noteId: string | null, offset: number, signal: AbortSignal, atRevision?: number) => {
+  const load = useCallback(async (noteId: string | null, offset: number, signal: AbortSignal,
+    { atRevision, waitForAdmission = false }: { atRevision?: number; waitForAdmission?: boolean } = {},
+  ) => {
     if (!workspaceId) return;
     // Capture the revision first so a concurrent commit cannot label old
     // content or an old list as current.
     try {
       const revision = atRevision ?? (await readWorkspaceSnapshot(signal)).workspace.revision;
-      const data = await readNotes(workspaceId, noteId, offset, signal);
+      const data = await readNotes(workspaceId, noteId, offset, signal, { waitForAdmission });
       if (!signal.aborted) setPage({ noteId, offset, revision, epoch: ++pageEpoch.current, data });
     } catch (fault) {
       if (signal.aborted) return;
@@ -263,7 +265,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
           discardPage();
           // An unsubmitted draft belongs to the editor. A prepared approval belongs to its revision.
           if (!uncertain) setPrepared(undefined);
-          await load(page.noteId, page.offset, signal, snapshot.workspace.revision);
+          await load(page.noteId, page.offset, signal, { atRevision: snapshot.workspace.revision });
         });
       }, fault => {
         if (!isCurrent()) return;
@@ -343,9 +345,13 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     const clearPage = decision === 'approve' && (restoring || deleting);
     run(async signal => {
       if (clearPage) discardPage();
+      let deletionRevision: number | undefined;
       try {
         if (prepared.kind === 'restore') await resolveNoteRestore(prepared.restore, decision, signal);
-        else await resolveNote(prepared.note, decision, signal);
+        else {
+          const receipt = await resolveNote(prepared.note, decision, signal);
+          if (deleting) deletionRevision = receipt?.committed_workspace_revision;
+        }
       } catch (fault) {
         const code = noteErrorCode(fault);
         if (!(decision === 'decline' && code === 'CONFIRMATION_REQUIRED')) {
@@ -376,7 +382,10 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       setNotice(operation ? actions[operation].done : message('Decision-note backup restored.'));
       discardPage();
       try {
-        await load(deleting ? null : noteId, 0, signal);
+        // The verified delete receipt already supplies a safe lower bound for the list.
+        await load(deleting ? null : noteId, 0, signal, deletionRevision === undefined ? undefined : {
+          atRevision: deletionRevision, waitForAdmission: true,
+        });
       } catch (fault) {
         if (!deleting) throw fault;
         signal.throwIfAborted();

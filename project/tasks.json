@@ -24801,6 +24801,111 @@
       }
     },
     {
+      "id": "M2-038",
+      "title": "Recover the deleting decision-note window after a verified peer workflow",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-037"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "apps/desktop/ui/src/decision-note-transport.ts",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Exercise the original ordinary two-window draft and peer-timeframe journey. After a matched committed deletion, correlate the initiating document, its list read, the saved note and the peer window. Retain the case within the original assertion deadline.",
+        "Demonstrate the specific cause with independent observable outcomes, preserve the original Linux failure, and verify the supported UX under normal and delayed reads. Refusal and uncommitted operations preserve the existing row."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-038-51fcd3bb4e68e255.json",
+          "sha256": "199eb6758140227b660727a026ceabc40938d0c036d3ce4d73ddd0d23119fcc3"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T160307.507960Z-afd0f7cf",
+          "source_commit": "e6f2c917bccd4506e0227bf1d966eabadc538154",
+          "report_sha256": "30cd3108ea869b8d055739e809cc55dc517c13d15cc4286fa3cb26379135fecf"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 9958a93f218d592ade27a005626d19fc29fe7c0c. The combined five-check run passed all 75 workspace cases. Both Chromium windows returned to the list after the committed deletion and the retryable refusal, using the original read request ID. SQLite retained one matching deletion at revision five. Cancellation and rejected writes preserved the original note and outcome. The original hosted screenshot does not identify the window or the cause of that occurrence.",
+      "plan": {
+        "outcome": "A confirmed deletion in the actual paired-window workflow returns the initiating window to its list and removes the original row and stale peer draft, with exact diagnostic coverage of the failed stage.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The hosted case observed deletion confirmation and matched its committed receipt before the initiating list button timed out. A stale detail read, handoff or post-commit list transition may explain which window retained its detail view. The retained screenshot does not identify that window.",
+          "A controlled observer snapshot owned the shared writer after an actual commit. Its concurrent deleting-window snapshot was refused with HTTP 429; no initiating list read followed. Use the verified commit revision and bounded read-only admission handling. The unlabelled hosted screenshot does not establish this timing occurred in CI."
+        ],
+        "risks": [
+          {
+            "failure": "A test-only retry, proactive reset, shared screenshot or previous deletion-notice fix hides the actual missing list transition. Match each page, operation, receipt, list timing and independently observed stored values; verify both valid and rejected transitions.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original raw source, native screenshot and logs. Revert the identified UI or fixture correction independently if it alters existing confirmed, refused or delayed paths.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing delete authorization, persistence formats, user data, production instrumentation or assertion deadlines."
+          ],
+          "open_questions": [
+            "Which document and response order account for the missing list button after the verified receipt?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing note dates, draft handling, consent and deletion markers; actual two-window behavior and both accepted prior repairs."
+          ],
+          "change": [
+            "Correct the identified transition and retain an independent two-window regression."
+          ],
+          "data_plan": "Use synthetic temporary per-run profiles and retain only business-independent diagnostic timings, states and hashes.",
+          "cleanup": "Terminate private workers and windows and retain original traces before disposing the synthetic profiles."
+        }
+      }
+    },
+    {
       "id": "M0-143",
       "title": "Reduce repeated Git reads in periodic maintenance verification",
       "milestone": "M0",
