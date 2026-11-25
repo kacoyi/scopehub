@@ -20825,7 +20825,8 @@
         "scripts/check_architecture.py",
         "scripts/prepare_workspace_profile_pool.py",
         "contracts/decisions/0029-supervised-native-windows-workspace-acl.json",
-        "Cargo.lock"
+        "Cargo.lock",
+        "project/dependency-inventory.json"
       ],
       "decision_refs": [
         "0004",
@@ -20840,6 +20841,7 @@
       ],
       "checks": [
         "project-state",
+        "dependency-review",
         "python-contracts-workers",
         "architecture",
         "operations-workflow",
@@ -20856,9 +20858,14 @@
           "run_id": "windows-change-45489014243-1",
           "source_commit": "2d31fe9338a8c8ca5dc051412870fe4f8c459783",
           "report_sha256": "66bc75a2551c438b4158b8e395695a3a30035e4aa1137eee8c64ac9ea96d8b46"
+        },
+        {
+          "run_id": "windows-change-45543157570-1",
+          "source_commit": "d339b4d155932af6cc196cee9ab4479280c1dd85",
+          "report_sha256": "f8b5cc2f1913d5252a732a8c33796dec03e02d348a1438545950a1fc1e8e2329"
         }
       ],
-      "next_action": "Review the corrected absolute chain, bounded ACE parsing and managed ACL comparison on the exact candidate. Use the coordinator-owned ordinary protected #84 run to observe real Windows admission and all selected refusals.",
+      "next_action": "Run coordinator-owned PR #84 protected Linux and Windows checks and the M0-105 task on the exact integration candidate. Observe ordinary fixture admission, legacy managed ACL parity, refusal and teardown on Windows before attaching matching receipts. Retain packaged and physical Windows acceptance in the release gate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20883,6 +20890,13 @@
           "A shared precompiled worker or native policy may remove the interpreter dependency while preserving an OS process that can be terminated and waited. Compare cost and ability to run the normal desktop, development bridge and test entry without portable or packaging surprises."
         ],
         "risks": [
+          {
+            "failure": "The Windows platform binding change and lock resolve while the governed dependency inventory still describes the prior lock bytes.",
+            "checks": [
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          },
           {
             "failure": "The replacement relaxes a Windows ACL refusal, local volume or ancestor guard, or opens any SQLite sidecar before verifying a trusted profile.",
             "checks": [
@@ -20938,7 +20952,7 @@
             ]
           },
           {
-            "failure": "A previously supported private workspace with equivalent same-user inheritance grants becomes unreadable, or a replacement incorrectly grants access across different scopes.",
+            "failure": "A previously supported private workspace with equivalent same-user inheritance grants becomes unreadable, or a replacement grants access across different scopes. The differential must use the original managed export exactly once and cover already-complete inherited grants, ordered adjacent compaction and a refused three-way combination.",
             "checks": [
               "rust-contracts-workers"
             ]

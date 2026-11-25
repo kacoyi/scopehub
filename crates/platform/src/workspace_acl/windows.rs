@@ -2,6 +2,7 @@
 #![allow(unsafe_code)]
 
 use std::{
+    cmp::Ordering,
     ffi::{OsStr, c_void},
     fs::{File, OpenOptions},
     io,
@@ -22,10 +23,11 @@ use windows_sys::Win32::{
             ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW,
             GetSecurityInfo, SDDL_REVISION_1, SE_FILE_OBJECT,
         },
-        CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, GetAce, GetAclInformation,
-        GetTokenInformation, INHERIT_ONLY_ACE, INHERITED_ACE, IsValidAcl, IsValidSid,
-        NO_PROPAGATE_INHERIT_ACE, OBJECT_INHERIT_ACE, OWNER_SECURITY_INFORMATION, PSID,
-        SECURITY_ATTRIBUTES, SECURITY_MAX_SID_SIZE, TOKEN_QUERY, TOKEN_USER, TokenUser,
+        CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, FAILED_ACCESS_ACE_FLAG, GetAce,
+        GetAclInformation, GetTokenInformation, INHERIT_ONLY_ACE, INHERITED_ACE, IsValidAcl,
+        IsValidSid, NO_PROPAGATE_INHERIT_ACE, OBJECT_INHERIT_ACE, OWNER_SECURITY_INFORMATION, PSID,
+        SECURITY_ATTRIBUTES, SECURITY_MAX_SID_SIZE, SUCCESSFUL_ACCESS_ACE_FLAG, TOKEN_QUERY,
+        TOKEN_USER, TokenUser,
     },
     Storage::FileSystem::{
         CreateDirectoryW, DELETE, FILE_ALL_ACCESS, FILE_ATTRIBUTE_DIRECTORY,
@@ -254,36 +256,150 @@ fn trusted_ancestor(sid: &str, user: &str) -> bool {
     private_principal(sid, user) || sid == TRUSTED_INSTALLER
 }
 
-#[derive(Default)]
+const SYSTEM_ORDER: u8 = 1;
+const ADMINISTRATORS_ORDER: u8 = 3;
+
+fn user_order(user: &str) -> Option<u8> {
+    if user == SYSTEM {
+        return Some(SYSTEM_ORDER);
+    }
+    if user == ADMINISTRATORS {
+        return Some(ADMINISTRATORS_ORDER);
+    }
+    let mut parts = user.strip_prefix("S-1-")?.split('-');
+    let authority = parts.next()?;
+    let authority = match authority
+        .strip_prefix("0x")
+        .or_else(|| authority.strip_prefix("0X"))
+    {
+        Some(hex) => u64::from_str_radix(hex, 16).ok()?,
+        None => authority.parse::<u64>().ok()?,
+    };
+    let parts: Vec<u32> = parts.map(str::parse).collect::<Result<_, _>>().ok()?;
+    let compare = |other: &[u32]| {
+        authority
+            .cmp(&5)
+            .then_with(|| parts.len().cmp(&other.len()))
+            .then_with(|| {
+                parts
+                    .iter()
+                    .zip(other)
+                    .map(|(&left, &right)| (left.wrapping_sub(right) as i32).cmp(&0))
+                    .find(|&order| order != Ordering::Equal)
+                    .unwrap_or(Ordering::Equal)
+            })
+    };
+    Some(if compare(&[18]).is_lt() {
+        0
+    } else if compare(&[32, 544]).is_lt() {
+        2
+    } else {
+        4
+    })
+}
+
+#[derive(Clone, Copy)]
+struct Grant {
+    principal: u8,
+    flags: u32,
+    mask: u32,
+}
+
 struct UserInheritance {
-    explicit: Vec<(u32, u32)>,
+    user: u8,
+    full: bool,
+    explicit: Vec<Grant>,
 }
 
 impl UserInheritance {
-    fn record(&mut self, flags: u32, mask: u32) {
-        if flags & INHERITED_ACE == 0 && mask != 0 {
-            self.explicit.push((flags, mask));
+    fn new(user: u8) -> Self {
+        Self {
+            user,
+            full: false,
+            explicit: Vec::new(),
         }
     }
 
-    fn sufficient(&self, canonical: bool) -> bool {
+    fn record(&mut self, principal: u8, flags: u32, mask: u32) {
+        self.full |= principal == self.user && inherits_full(flags, mask);
+        if flags & INHERITED_ACE == 0 {
+            self.explicit.push(Grant {
+                principal,
+                flags,
+                mask,
+            });
+        }
+    }
+
+    fn sufficient(mut self, canonical: bool) -> bool {
+        if self.full {
+            return true;
+        }
         if !canonical {
             return false;
         }
-        let mut compacted = Vec::with_capacity(self.explicit.len());
-        for &grant in &self.explicit {
-            if let Some(previous) = compacted.last_mut()
-                && let Some(merged) = compact_grants(*previous, grant)
+        sort_managed(&mut self.explicit);
+        let mut grants = self
+            .explicit
+            .into_iter()
+            .filter(|grant| grant.principal == self.user)
+            .peekable();
+        while let Some(Grant {
+            mut flags,
+            mut mask,
+            ..
+        }) = grants.next()
+        {
+            if let Some(next) = grants.peek()
+                && let Some(merged) = compact_grants((flags, mask), (next.flags, next.mask))
             {
-                *previous = merged;
-                continue;
+                (flags, mask) = merged;
+                // The managed export removes the next ACE and advances. It
+                // never tries to merge the result with a third ACE in this pass.
+                grants.next();
             }
-            compacted.push(grant);
+            if inherits_full(flags, mask) {
+                return true;
+            }
         }
-        compacted.iter().any(|&(flags, mask)| {
-            mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS
-                && flags & CHILD_INHERITANCE == CHILD_INHERITANCE
-        })
+        false
+    }
+}
+
+fn inherits_full(flags: u32, mask: u32) -> bool {
+    mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS && flags & CHILD_INHERITANCE == CHILD_INHERITANCE
+}
+
+fn sort_managed(grants: &mut [Grant]) {
+    // Reproduce the managed first-pivot partition within the explicit allow
+    // group. Interleaved SIDs can change the order among equal-SID ACEs.
+    let mut pending = vec![grants];
+    while let Some(grants) = pending.pop() {
+        if grants.is_sorted_by_key(|grant| grant.principal) {
+            continue;
+        }
+        let pivot = grants[0];
+        let mut left = 0;
+        let mut right = grants.len() - 1;
+        while left < right {
+            while left < right && grants[right].principal >= pivot.principal {
+                right -= 1;
+            }
+            if left != right {
+                grants[left] = grants[right];
+                left += 1;
+            }
+            while left < right && grants[left].principal <= pivot.principal {
+                left += 1;
+            }
+            if left != right {
+                grants[right] = grants[left];
+                right -= 1;
+            }
+        }
+        grants[left] = pivot;
+        let (before, rest) = grants.split_at_mut(left);
+        pending.extend([before, &mut rest[1..]]);
     }
 }
 
@@ -294,24 +410,30 @@ fn compact_grants(
     if left_flags == right_flags {
         return Some((left_flags, left_mask | right_mask));
     }
-    if left_mask != right_mask || left_mask & FILE_ALL_ACCESS != FILE_ALL_ACCESS {
+    if left_mask != right_mask {
         return None;
     }
     // Equal masks can share one ACE only when a single Windows scope can
     // represent the union exactly. A single no-propagate flag applies to both
     // the child-object and child-container permissions.
-    let (left_children, left_descendants) = inheritance_scope(left_flags)?;
-    let (right_children, right_descendants) = inheritance_scope(right_flags)?;
+    let (left_here, left_children, left_descendants) = inheritance_scope(left_flags)?;
+    let (right_here, right_children, right_descendants) = inheritance_scope(right_flags)?;
     let children = left_children | right_children;
     let descendants = left_descendants | right_descendants;
-    if children == CHILD_INHERITANCE && (descendants == 0 || descendants == children) {
-        Some((CHILD_INHERITANCE, left_mask))
-    } else {
-        None
+    if descendants != 0 && descendants != children {
+        return None;
     }
+    let mut flags = children;
+    if !left_here && !right_here {
+        flags |= INHERIT_ONLY_ACE;
+    }
+    if children != 0 && descendants == 0 {
+        flags |= NO_PROPAGATE_INHERIT_ACE;
+    }
+    Some((flags, left_mask))
 }
 
-fn inheritance_scope(flags: u32) -> Option<(u32, u32)> {
+fn inheritance_scope(flags: u32) -> Option<(bool, u32, u32)> {
     let children = flags & CHILD_INHERITANCE;
     let other = INHERIT_ONLY_ACE | NO_PROPAGATE_INHERIT_ACE;
     if flags & !(CHILD_INHERITANCE | other) != 0 || (children == 0 && flags & other != 0) {
@@ -322,7 +444,7 @@ fn inheritance_scope(flags: u32) -> Option<(u32, u32)> {
     } else {
         0
     };
-    Some((children, descendants))
+    Some((flags & INHERIT_ONLY_ACE == 0, children, descendants))
 }
 
 fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
@@ -394,7 +516,9 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         return Err(26);
     }
     let mut user_applies = false;
-    let mut inheritance = UserInheritance::default();
+    let mut inheritance = (kind == Entry::Profile)
+        .then(|| user_order(user).map(UserInheritance::new).ok_or(26))
+        .transpose()?;
     let mut canonical = true;
     let mut previous_rank = 0;
     for index in 0..info.AceCount {
@@ -421,19 +545,10 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         let rank = match ace_type {
             ACCESS_DENIED_ACE_TYPE => 0,
             ACCESS_ALLOWED_ACE_TYPE => 1,
-            SYSTEM_AUDIT_ACE_TYPE | SYSTEM_ALARM_ACE_TYPE => {
-                canonical = false;
-                continue;
-            }
+            SYSTEM_AUDIT_ACE_TYPE | SYSTEM_ALARM_ACE_TYPE => continue,
             _ => return Err(27),
         };
-        let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
-        canonical &= rank >= previous_rank;
-        previous_rank = rank;
-        if ace_type != ACCESS_ALLOWED_ACE_TYPE {
-            continue;
-        }
-        // SAFETY: the aligned, bounded ACE is a non-callback ACCESS_ALLOWED_ACE.
+        // SAFETY: ordinary allow and deny ACEs share the aligned, bounded layout.
         let (mask, sid) = unsafe {
             let ace = &*entry.cast::<ACCESS_ALLOWED_ACE>();
             (
@@ -441,6 +556,16 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
                 (&raw const ace.SidStart).cast_mut().cast::<c_void>(),
             )
         };
+        let meaningful =
+            mask != 0 && (flags & INHERIT_ONLY_ACE == 0 || flags & CHILD_INHERITANCE != 0);
+        if meaningful {
+            let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
+            canonical &= rank >= previous_rank;
+            previous_rank = rank;
+        }
+        if ace_type != ACCESS_ALLOWED_ACE_TYPE {
+            continue;
+        }
         // SAFETY: the ACE bounds the SID tail for the duration of this read.
         let sid = unsafe { sid_text(sid, ace_size - SID_OFFSET) }.map_err(|_| 27)?;
         let applies_here = flags & INHERIT_ONLY_ACE == 0;
@@ -451,15 +576,26 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         } else if !private_principal(&sid, user) {
             return Err(30);
         }
-        if sid == user && mask != 0 {
-            user_applies |= applies_here;
-            if kind == Entry::Profile {
-                inheritance.record(flags, mask);
+        if meaningful {
+            user_applies |= sid == user && applies_here;
+            if let Some(inheritance) = &mut inheritance {
+                let principal = if sid == user {
+                    inheritance.user
+                } else if sid == SYSTEM {
+                    SYSTEM_ORDER
+                } else {
+                    ADMINISTRATORS_ORDER
+                };
+                let mut flags = flags & !(SUCCESSFUL_ACCESS_ACE_FLAG | FAILED_ACCESS_ACE_FLAG);
+                if flags & CHILD_INHERITANCE == 0 {
+                    flags &= !NO_PROPAGATE_INHERIT_ACE;
+                }
+                inheritance.record(principal, flags, mask);
             }
         }
     }
     if kind != Entry::Ancestor
-        && (!user_applies || (kind == Entry::Profile && !inheritance.sufficient(canonical)))
+        && (!user_applies || inheritance.is_some_and(|rules| !rules.sufficient(canonical)))
     {
         return Err(31);
     }
