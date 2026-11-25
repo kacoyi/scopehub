@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-149",
   "tasks": [
     {
       "id": "M0-001",
@@ -25243,6 +25243,123 @@
           ],
           "data_plan": "Retain exact sources, fixed fixture identities, command counts and matching verdicts with original raw results.",
           "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
+        }
+      }
+    },
+    {
+      "id": "M0-149",
+      "title": "Distinguish refused indicator status reads during delivery recovery",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-099",
+        "M0-101"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        }
+      ],
+      "acceptance": [
+        "The full, cropped and lost-delivery indicator journeys exercise the actual workspace. When a status read is explicitly refused before admission, the observable result, original admitted task, bounded delivery recovery and user-visible exhaustion remain correct.",
+        "The verification records every raw draft, preview, status and cancellation. An extra admitted status recovery, a new or repeated preview submission, a wrong-task read and an ambiguous refusal cannot satisfy the same-task recovery assertion.",
+        "Retain the original Windows admission sequence, the focused positive and rejected controls, and a passing ordinary Windows exercise of the corrected candidate."
+      ],
+      "next_action": "Replay the actual Windows status sequence, identify the admission and recovery owners, and verify the narrow correction through the built preview.",
+      "blocker": null,
+      "delivery": "current-contract",
+      "evidence": [],
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Preserve bounded same-task recovery and make the native zero-volatility observation distinguish a definite pre-admission refusal from a second accepted status recovery.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "PR 116 run 45682874140"
+        ],
+        "hypotheses": [
+          "The Windows two-loss trial received one explicit HTTP 429 BUSY and one lost HTTP 200 ready response after the original ready delivery reset. The existing raw length assertion counted both as recovery attempts.",
+          "Product polling and transport admission may allocate distinct status identifiers. Inspect actual owner behavior and distinguish definite refusal, delivery loss and admission without discarding raw attempts."
+        ],
+        "risks": [
+          {
+            "failure": "A count based only on admitted or unique task IDs hides duplicate status, draft or preview operations, or permits requests for another task.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Changing the evidence predicate admits a malformed or ambiguous refusal, misses a duplicate cancellation or alters the full and cropped results.",
+            "checks": [
+              "workspace-timeframe",
+              "ui-build",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain both native reports, their raw request journals and the historical strict replay controls. Restore the prior assertion if the admission boundary cannot be identified.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Expanding operation authority, changing the preview result or increasing the recovery allowance or deadline."
+          ],
+          "open_questions": [
+            "Which reliable response fields prove rejection before the same-task status operation is admitted, and how is its request identity related to subsequent polling?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact admitted task and artifact, finite delivery recovery, all raw outbound operations, cancellation and honest visible failure."
+          ],
+          "change": [
+            "Qualify the first demonstrated mismatch between a definite refusal and the recovery assertion at its owning entry."
+          ],
+          "data_plan": "Use the accepted synthetic frozen chart and isolated workspace. Retain response status, operation identity and synthetic results.",
+          "cleanup": "Release response controls, close owned windows and reap the portable writer on every path."
         }
       }
     }

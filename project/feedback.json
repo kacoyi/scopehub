@@ -6982,6 +6982,28 @@
         "prevention": "The paired public status fixture keeps the accepted successor and reversed ancestor, checks the full output bytes and traces the actual Git calls. The three pairs per case retained 41 to 36 and 42 to 37 total Git invocations."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-post-loss-status-busy-counted-as-admitted",
+      "source": "PR 116 ordinary native Windows run 45682874140 on 00dfb23fc59e5e73f964eb574d29edfb48c5bf5e. Original archives/runs/windows-change-45682874140-1/test-report.json and workspace-timeframe.log. The corresponding native Linux check passed.",
+      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
