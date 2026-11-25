@@ -25261,7 +25261,8 @@
         "scripts/timing.py",
         "project/feedback.json",
         "tests/project",
-        "project/tasks.json"
+        "project/tasks.json",
+        "scripts/project.py"
       ],
       "decision_refs": [
         "0004",
@@ -25276,7 +25277,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "M0-104 owns the next natural same-execution-tree control: retain a successful ordinary full warm Linux PR and a naturally available same-input run, preferably another PR or a protected push for diagnosis. Bind runner image, attempt and exact restored Cargo key, then align common Python test and named browser case clocks with the setup and harness steps. Repeat a short paired public-entry probe only for an identifiable repeat cost whose effect survives that control. Keep the accepted M0-143 reads and the independently owned Windows scheduling and deferred worker paths. Only three qualifying ordinary Linux PRs on an attributable correction can establish recovery.",
+      "next_action": "Replay the verified natural pair and distinct-source controls using the archived timings. Measure the archived evidence-read path in the ordinary project check, including a valid and rejected input, and retain a bounded correction only if the duplicate work is observed.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25295,7 +25296,8 @@
           "The median change can reflect runnable test growth and host variation. A Windows-only workflow or ACL change has no direct Linux timing effect.",
           "A faster single Linux observation can reduce the median temporarily without resolving sustained growth.",
           "The three later successful full warm Linux PRs have identical named outcomes and show Python durations of 236.728, 196.162 and 150.093 seconds. Compare queue, setup, harness, tail and test composition before attributing the elapsed median increase.",
-          "The original-to-latest median harness step grew from 513 to 638 seconds. The recurring check work combines more named Python and Rust tests and broadly slower common Python, Rust and browser cases. The three latest Linux jobs had identical exact Cargo keys and runner image versions but different hosts and source trees. Those observations establish neither an isolated runner effect nor duplicate maintenance work."
+          "The original-to-latest median harness step grew from 513 to 638 seconds. The logs show more named Python and Rust cases and broadly slower common Python and named browser cases. Rust observations are limited to check, build and suite durations and case counts. The three latest Linux jobs had identical exact Cargo keys and runner image versions but different hosts and source trees. Those observations establish neither an isolated runner effect nor duplicate maintenance work.",
+          "The natural PR 122 pair matches all 607 execution inputs, Linux selection and outcomes, exact Cargo key and VM image. With different runner instances it varied by seven elapsed seconds. Compare named Python and browser timings and the separately reported Rust builds and suites."
         ],
         "risks": [
           {
@@ -25315,6 +25317,13 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Reducing repeated receipt work weakens digest binding, accepted history or validation of a nonconforming receipt.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the finding and its original evidence open. Revert any proposed optimization that changes a named outcome or cannot be attributed in comparable ordinary timing.",
@@ -25325,7 +25334,8 @@
           "entrypoints": [
             "scripts/timing.py",
             "scripts/check.py",
-            ".github/workflows/verify.yml"
+            ".github/workflows/verify.yml",
+            "scripts/project.py"
           ],
           "rules": [
             {
@@ -25337,7 +25347,8 @@
             "No new timing gate, additional hosted dispatch, reduced coverage, synthetic timings or change to protected main or historical findings."
           ],
           "open_questions": [
-            "Does a natural same-execution-tree control with comparable runner image, selected outcomes and cache isolate a repeatable test, build or setup cost after matching the named work?"
+            "Does the ordinary project check repeat work on identical archived receipt bytes, separate from previously measured periodic-rule, schema and predecessor reads? Measure the actual normal read path and preserve rejection of mismatched or invalid evidence.",
+            "Do measurements explain a repeatable Linux cost after accounting for distinct-source ordinary PRs and the PR 122 same-input control?"
           ]
         },
         "evolution": {
@@ -25372,6 +25383,26 @@
           "run_id": "20261125T191118.567902Z-f7351273",
           "source_commit": "4a93ba81d820986aa695e5d0ad47256fb3891ec8",
           "report_sha256": "40bdbad7ecde7106881b276a26a40ce2b1b510e970497249052389fdd506e530"
+        },
+        {
+          "run_id": "20261125T193638.308991Z-35a23b3b",
+          "source_commit": "6960c4d51f07f8d72efc3ddc8d8bc4c3b7299b99",
+          "report_sha256": "6545981ede3eb8150648e8865e8e2d2e24f53c855cd719cf0325a931ccdf14e0"
+        },
+        {
+          "run_id": "20261125T195523.956055Z-413bcfb9",
+          "source_commit": "56d04472b6a1cbada182fcfd4894aa99adb13189",
+          "report_sha256": "309d02414fdda287db2ebbe793a1e05d60b02e9b36e2d96c6fd0b71cf5dae581"
+        },
+        {
+          "run_id": "20261125T201206.585649Z-9f82c259",
+          "source_commit": "8d43d2ad417577b58b003b508cc74a1974109560",
+          "report_sha256": "c1409e6c080cd4e31b181337be5d7793b134795b1d6ab5224c866b9d890081ce"
+        },
+        {
+          "run_id": "20261125T200757.887516Z-de7929e1",
+          "source_commit": "dd7880e04691686e3a8e17d8230056d569ee79bd",
+          "report_sha256": "360cc1fa7188cb571b25636c97379dfab4aaf972e84b2808137a24816cec2ad5"
         }
       ]
     }
