@@ -11,8 +11,8 @@ from typing import Literal, cast
 from uuid import uuid4
 
 from contracts.generated.protocol import (
-    CancelMemberRequest11, ErrorCode, ErrorResponse, Heartbeat, Hello, MarketHistoryPageError, MarketHistoryPageRequest,
-    MarketHistoryPageResponse, MarketSubscriptionError, MarketSubscriptionRequest,
+    CancelMemberRequest11, ErrorCode, ErrorResponse, ExtendedMessage, Heartbeat, Hello, MarketHistoryPageError,
+    MarketHistoryPageRequest, MarketHistoryPageResponse, MarketSubscriptionError, MarketSubscriptionRequest,
     MarketSubscriptionResponse, Message, Request, Response, WorkerHello11, WorkerRole,
 )
 from providers.history import HistoryError, execute
@@ -168,7 +168,7 @@ def serve(enabled: bool, version: WireVersion, replay: Replay) -> int:
     return 0
 
 
-def dispatch(message: Message, version: WireVersion, enabled: bool, replay: Replay,
+def dispatch(message: ExtendedMessage, version: WireVersion, enabled: bool, replay: Replay,
              receipts: OrderedDict[str, Receipt]) -> None:
     wire = message['protocol_version']
     request: ReadRequest | None = None

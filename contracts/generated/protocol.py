@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=64cb27d07759cb1bca011910d5223aa321e6dd2849c055fabcc8fd329b6d3692. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=55c1f64e062d166285d140b25e336e7978e687a79e1a1c54b19127a83420e154. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -781,15 +781,6 @@ class ReadLocalImportSourceRowRequest(TypedDict):
     task_id: Uuid | None
     operation: Literal['market.readLocalImportSourceRow']
     payload: ReadLocalImportSourceRowInput
-class ReadLocalImportSourceRowReviewRequest(TypedDict):
-    protocol_version: Literal['1.1']
-    message_id: Uuid
-    timestamp_ms: Timestamp
-    type: Literal['request']
-    request_id: Uuid
-    task_id: Uuid | None
-    operation: Literal['market.readLocalImportSourceRow']
-    payload: ReadLocalImportSourceRowReviewInput
 class ReadLocalImportSourceRowResponse(TypedDict):
     protocol_version: Literal['1.1']
     message_id: Uuid
@@ -799,16 +790,6 @@ class ReadLocalImportSourceRowResponse(TypedDict):
     operation: Literal['market.readLocalImportSourceRow']
     ok: Literal[True]
     result: ReadLocalImportSourceRowOutput
-    error: None
-class ReadLocalImportSourceRowReviewResponse(TypedDict):
-    protocol_version: Literal['1.1']
-    message_id: Uuid
-    timestamp_ms: Timestamp
-    type: Literal['response']
-    request_id: Uuid
-    operation: Literal['market.readLocalImportSourceRow']
-    ok: Literal[True]
-    result: ReadLocalImportSourceRowReviewOutput
     error: None
 class ReadLocalImportSourceRowError(TypedDict):
     protocol_version: Literal['1.1']
@@ -974,15 +955,6 @@ class ReadLocalFolderSourceRowRequest(TypedDict):
     task_id: Uuid | None
     operation: Literal['market.readLocalFolderSourceRow']
     payload: ReadLocalFolderSourceRowInput
-class ReadLocalFolderSourceRowReviewRequest(TypedDict):
-    protocol_version: Literal['1.1']
-    message_id: Uuid
-    timestamp_ms: Timestamp
-    type: Literal['request']
-    request_id: Uuid
-    task_id: Uuid | None
-    operation: Literal['market.readLocalFolderSourceRow']
-    payload: ReadLocalFolderSourceRowReviewInput
 class ReadLocalFolderSourceRowResponse(TypedDict):
     protocol_version: Literal['1.1']
     message_id: Uuid
@@ -992,16 +964,6 @@ class ReadLocalFolderSourceRowResponse(TypedDict):
     operation: Literal['market.readLocalFolderSourceRow']
     ok: Literal[True]
     result: ReadLocalFolderSourceRowOutput
-    error: None
-class ReadLocalFolderSourceRowReviewResponse(TypedDict):
-    protocol_version: Literal['1.1']
-    message_id: Uuid
-    timestamp_ms: Timestamp
-    type: Literal['response']
-    request_id: Uuid
-    operation: Literal['market.readLocalFolderSourceRow']
-    ok: Literal[True]
-    result: ReadLocalFolderSourceRowReviewOutput
     error: None
 class ReadLocalFolderSourceRowError(TypedDict):
     protocol_version: Literal['1.1']
@@ -1362,7 +1324,46 @@ class CancelTaskError11(TypedDict):
     operation: Literal['task.cancel']
     request_id: Uuid
     error: WorkspaceFault11
-Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowReviewRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowReviewResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowReviewRequest | ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowReviewResponse | ReadLocalFolderSourceRowError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+class ReadLocalImportSourceRowReviewRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalImportSourceRow']
+    payload: ReadLocalImportSourceRowReviewInput
+class ReadLocalImportSourceRowReviewResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalImportSourceRow']
+    ok: Literal[True]
+    result: ReadLocalImportSourceRowReviewOutput
+    error: None
+class ReadLocalFolderSourceRowReviewRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalFolderSourceRow']
+    payload: ReadLocalFolderSourceRowReviewInput
+class ReadLocalFolderSourceRowReviewResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderSourceRow']
+    ok: Literal[True]
+    result: ReadLocalFolderSourceRowReviewOutput
+    error: None
+ExtendedMessage = Message | ReadLocalImportSourceRowReviewRequest | ReadLocalImportSourceRowReviewResponse | ReadLocalFolderSourceRowReviewRequest | ReadLocalFolderSourceRowReviewResponse
 ProtocolVersion11 = Literal['1.1']
 class WorkspaceObject11(TypedDict):
     kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']

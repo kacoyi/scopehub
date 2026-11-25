@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:scopehub:protocol:1.1",
   "title": "ScopeHubProtocol",
-  "$ref": "#/$defs/Message",
+  "$ref": "#/$defs/ExtendedMessage",
   "$defs": {
     "OpaqueId": {
       "type": "string",
@@ -3780,13 +3780,7 @@
           "$ref": "#/$defs/ReadLocalImportSourceRowRequest"
         },
         {
-          "$ref": "#/$defs/ReadLocalImportSourceRowReviewRequest"
-        },
-        {
           "$ref": "#/$defs/ReadLocalImportSourceRowResponse"
-        },
-        {
-          "$ref": "#/$defs/ReadLocalImportSourceRowReviewResponse"
         },
         {
           "$ref": "#/$defs/ReadLocalImportSourceRowError"
@@ -3840,13 +3834,7 @@
           "$ref": "#/$defs/ReadLocalFolderSourceRowRequest"
         },
         {
-          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewRequest"
-        },
-        {
           "$ref": "#/$defs/ReadLocalFolderSourceRowResponse"
-        },
-        {
-          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewResponse"
         },
         {
           "$ref": "#/$defs/ReadLocalFolderSourceRowError"
@@ -3967,6 +3955,25 @@
         },
         {
           "$ref": "#/$defs/CancelTaskError11"
+        }
+      ]
+    },
+    "ExtendedMessage": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Message"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewResponse"
         }
       ]
     },

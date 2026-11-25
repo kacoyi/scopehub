@@ -5,7 +5,7 @@ from typing import cast
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from contracts.generated.protocol import Message
+from contracts.generated.protocol import ExtendedMessage
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = json.loads((ROOT / 'contracts/schemas/protocol.schema.json').read_text(encoding='utf-8'))
@@ -40,7 +40,7 @@ def normalize_integers(value: object) -> object:
     return value
 
 
-def decode_line(line: bytes, *, normalize: bool = True) -> Message:
+def decode_line(line: bytes, *, normalize: bool = True) -> ExtendedMessage:
     if len(line) > MAX_MESSAGE_BYTES:
         raise ProtocolError('RESOURCE_LIMIT')
     body = line.removesuffix(b'\n').removesuffix(b'\r')
@@ -53,10 +53,10 @@ def decode_line(line: bytes, *, normalize: bool = True) -> Message:
             raise ProtocolError('INVALID_ARGUMENT')
     except (ValueError, UnicodeError, RecursionError) as error:
         raise ProtocolError('INVALID_ARGUMENT') from error
-    return cast(Message, normalize_integers(value) if normalize else value)
+    return cast(ExtendedMessage, normalize_integers(value) if normalize else value)
 
 
-def encode_message(message: Message) -> bytes:
+def encode_message(message: ExtendedMessage) -> bytes:
     try:
         line = (json.dumps(message, allow_nan=False, separators=(',', ':')) + '\n').encode('utf-8')
     except (ValueError, TypeError, RecursionError) as error:

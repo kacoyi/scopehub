@@ -5238,6 +5238,21 @@
         "prevention": "Exercise the 64 KiB boundary and an oversized original, permission revocation between review and retry, and literal whitespace in both dialogs. Compile a separate old caller and verify positive and negative private capability paths."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-message-exhaustive-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at d9015bda42d60a40cfd4b6abf4299d658aaf3364. The failing pre-repair consumer compilation is retained in .reports/m1-046-red-exhaustive.log (SHA-256 a5e58eaf4fcf56ee1ec01e2eb2966d55de486dc73a42d848629f1af022c80887).",
+      "severity": "major",
+      "status": "open",
+      "observation": "The same source that exhaustively matches the 87 original Rust Message variants compiles on main and 638c8dd. The public decode_line return type on d9015bd exposes four additional review variants and the unchanged caller fails with E0004.",
+      "task_ids": [
+        "M1-046"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

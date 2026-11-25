@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=64cb27d07759cb1bca011910d5223aa321e6dd2849c055fabcc8fd329b6d3692. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=55c1f64e062d166285d140b25e336e7978e687a79e1a1c54b19127a83420e154. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1648,18 +1648,6 @@ pub struct ReadLocalImportSourceRowRequest {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct ReadLocalImportSourceRowReviewRequest {
-    pub protocol_version: ReadLocalImportSourceRowReviewRequestProtocolVersion,
-    pub message_id: Uuid,
-    pub timestamp_ms: Timestamp,
-    pub r#type: ReadLocalImportSourceRowReviewRequestType,
-    pub request_id: Uuid,
-    pub task_id: Option<Uuid>,
-    pub operation: ReadLocalImportSourceRowReviewRequestOperation,
-    pub payload: ReadLocalImportSourceRowReviewInput,
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct ReadLocalImportSourceRowResponse {
     pub protocol_version: ReadLocalImportSourceRowResponseProtocolVersion,
     pub message_id: Uuid,
@@ -1669,19 +1657,6 @@ pub struct ReadLocalImportSourceRowResponse {
     pub operation: ReadLocalImportSourceRowResponseOperation,
     pub ok: ConstBool<true>,
     pub result: ReadLocalImportSourceRowOutput,
-    pub error: (),
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ReadLocalImportSourceRowReviewResponse {
-    pub protocol_version: ReadLocalImportSourceRowReviewResponseProtocolVersion,
-    pub message_id: Uuid,
-    pub timestamp_ms: Timestamp,
-    pub r#type: ReadLocalImportSourceRowReviewResponseType,
-    pub request_id: Uuid,
-    pub operation: ReadLocalImportSourceRowReviewResponseOperation,
-    pub ok: ConstBool<true>,
-    pub result: ReadLocalImportSourceRowReviewOutput,
     pub error: (),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -1901,18 +1876,6 @@ pub struct ReadLocalFolderSourceRowRequest {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct ReadLocalFolderSourceRowReviewRequest {
-    pub protocol_version: ReadLocalFolderSourceRowReviewRequestProtocolVersion,
-    pub message_id: Uuid,
-    pub timestamp_ms: Timestamp,
-    pub r#type: ReadLocalFolderSourceRowReviewRequestType,
-    pub request_id: Uuid,
-    pub task_id: Option<Uuid>,
-    pub operation: ReadLocalFolderSourceRowReviewRequestOperation,
-    pub payload: ReadLocalFolderSourceRowReviewInput,
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct ReadLocalFolderSourceRowResponse {
     pub protocol_version: ReadLocalFolderSourceRowResponseProtocolVersion,
     pub message_id: Uuid,
@@ -1922,19 +1885,6 @@ pub struct ReadLocalFolderSourceRowResponse {
     pub operation: ReadLocalFolderSourceRowResponseOperation,
     pub ok: ConstBool<true>,
     pub result: ReadLocalFolderSourceRowOutput,
-    pub error: (),
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ReadLocalFolderSourceRowReviewResponse {
-    pub protocol_version: ReadLocalFolderSourceRowReviewResponseProtocolVersion,
-    pub message_id: Uuid,
-    pub timestamp_ms: Timestamp,
-    pub r#type: ReadLocalFolderSourceRowReviewResponseType,
-    pub request_id: Uuid,
-    pub operation: ReadLocalFolderSourceRowReviewResponseOperation,
-    pub ok: ConstBool<true>,
-    pub result: ReadLocalFolderSourceRowReviewOutput,
     pub error: (),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -2438,9 +2388,7 @@ pub enum Message {
     ReadLocalImportRevisionResponse(Box<ReadLocalImportRevisionResponse>),
     ReadLocalImportRevisionError(Box<ReadLocalImportRevisionError>),
     ReadLocalImportSourceRowRequest(Box<ReadLocalImportSourceRowRequest>),
-    ReadLocalImportSourceRowReviewRequest(Box<ReadLocalImportSourceRowReviewRequest>),
     ReadLocalImportSourceRowResponse(Box<ReadLocalImportSourceRowResponse>),
-    ReadLocalImportSourceRowReviewResponse(Box<ReadLocalImportSourceRowReviewResponse>),
     ReadLocalImportSourceRowError(Box<ReadLocalImportSourceRowError>),
     PreviewLocalFolderRefreshRequest(Box<PreviewLocalFolderRefreshRequest>),
     PreviewLocalFolderRefreshResponse(Box<PreviewLocalFolderRefreshResponse>),
@@ -2458,9 +2406,7 @@ pub enum Message {
     ReadLocalFolderRevisionResponse(Box<ReadLocalFolderRevisionResponse>),
     ReadLocalFolderRevisionError(Box<ReadLocalFolderRevisionError>),
     ReadLocalFolderSourceRowRequest(Box<ReadLocalFolderSourceRowRequest>),
-    ReadLocalFolderSourceRowReviewRequest(Box<ReadLocalFolderSourceRowReviewRequest>),
     ReadLocalFolderSourceRowResponse(Box<ReadLocalFolderSourceRowResponse>),
-    ReadLocalFolderSourceRowReviewResponse(Box<ReadLocalFolderSourceRowReviewResponse>),
     ReadLocalFolderSourceRowError(Box<ReadLocalFolderSourceRowError>),
     RevokeLocalFolderRevisionRequest(Box<RevokeLocalFolderRevisionRequest>),
     RevokeLocalFolderRevisionResponse(Box<RevokeLocalFolderRevisionResponse>),
@@ -2501,6 +2447,65 @@ pub enum Message {
     SharedContextError11(Box<SharedContextError11>),
     CancelTaskResponse11(Box<CancelTaskResponse11>),
     CancelTaskError11(Box<CancelTaskError11>),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportSourceRowReviewRequest {
+    pub protocol_version: ReadLocalImportSourceRowReviewRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalImportSourceRowReviewRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: ReadLocalImportSourceRowReviewRequestOperation,
+    pub payload: ReadLocalImportSourceRowReviewInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalImportSourceRowReviewResponse {
+    pub protocol_version: ReadLocalImportSourceRowReviewResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalImportSourceRowReviewResponseType,
+    pub request_id: Uuid,
+    pub operation: ReadLocalImportSourceRowReviewResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: ReadLocalImportSourceRowReviewOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderSourceRowReviewRequest {
+    pub protocol_version: ReadLocalFolderSourceRowReviewRequestProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalFolderSourceRowReviewRequestType,
+    pub request_id: Uuid,
+    pub task_id: Option<Uuid>,
+    pub operation: ReadLocalFolderSourceRowReviewRequestOperation,
+    pub payload: ReadLocalFolderSourceRowReviewInput,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReadLocalFolderSourceRowReviewResponse {
+    pub protocol_version: ReadLocalFolderSourceRowReviewResponseProtocolVersion,
+    pub message_id: Uuid,
+    pub timestamp_ms: Timestamp,
+    pub r#type: ReadLocalFolderSourceRowReviewResponseType,
+    pub request_id: Uuid,
+    pub operation: ReadLocalFolderSourceRowReviewResponseOperation,
+    pub ok: ConstBool<true>,
+    pub result: ReadLocalFolderSourceRowReviewOutput,
+    pub error: (),
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+pub enum ExtendedMessage {
+    Message(Box<Message>),
+    ReadLocalImportSourceRowReviewRequest(Box<ReadLocalImportSourceRowReviewRequest>),
+    ReadLocalImportSourceRowReviewResponse(Box<ReadLocalImportSourceRowReviewResponse>),
+    ReadLocalFolderSourceRowReviewRequest(Box<ReadLocalFolderSourceRowReviewRequest>),
+    ReadLocalFolderSourceRowReviewResponse(Box<ReadLocalFolderSourceRowReviewResponse>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ProtocolVersion11 {
@@ -7415,42 +7420,6 @@ impl ReadLocalImportSourceRowRequestOperation {
     }
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalImportSourceRowReviewRequestProtocolVersion {
-    #[serde(rename = "1.1")]
-    Value,
-}
-impl ReadLocalImportSourceRowReviewRequestProtocolVersion {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "1.1",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalImportSourceRowReviewRequestType {
-    #[serde(rename = "request")]
-    Value,
-}
-impl ReadLocalImportSourceRowReviewRequestType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "request",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalImportSourceRowReviewRequestOperation {
-    #[serde(rename = "market.readLocalImportSourceRow")]
-    Value,
-}
-impl ReadLocalImportSourceRowReviewRequestOperation {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "market.readLocalImportSourceRow",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ReadLocalImportSourceRowResponseProtocolVersion {
     #[serde(rename = "1.1")]
     Value,
@@ -7480,42 +7449,6 @@ pub enum ReadLocalImportSourceRowResponseOperation {
     Value,
 }
 impl ReadLocalImportSourceRowResponseOperation {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "market.readLocalImportSourceRow",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalImportSourceRowReviewResponseProtocolVersion {
-    #[serde(rename = "1.1")]
-    Value,
-}
-impl ReadLocalImportSourceRowReviewResponseProtocolVersion {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "1.1",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalImportSourceRowReviewResponseType {
-    #[serde(rename = "response")]
-    Value,
-}
-impl ReadLocalImportSourceRowReviewResponseType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "response",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalImportSourceRowReviewResponseOperation {
-    #[serde(rename = "market.readLocalImportSourceRow")]
-    Value,
-}
-impl ReadLocalImportSourceRowReviewResponseOperation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "market.readLocalImportSourceRow",
@@ -8135,42 +8068,6 @@ impl ReadLocalFolderSourceRowRequestOperation {
     }
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalFolderSourceRowReviewRequestProtocolVersion {
-    #[serde(rename = "1.1")]
-    Value,
-}
-impl ReadLocalFolderSourceRowReviewRequestProtocolVersion {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "1.1",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalFolderSourceRowReviewRequestType {
-    #[serde(rename = "request")]
-    Value,
-}
-impl ReadLocalFolderSourceRowReviewRequestType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "request",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalFolderSourceRowReviewRequestOperation {
-    #[serde(rename = "market.readLocalFolderSourceRow")]
-    Value,
-}
-impl ReadLocalFolderSourceRowReviewRequestOperation {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "market.readLocalFolderSourceRow",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ReadLocalFolderSourceRowResponseProtocolVersion {
     #[serde(rename = "1.1")]
     Value,
@@ -8200,42 +8097,6 @@ pub enum ReadLocalFolderSourceRowResponseOperation {
     Value,
 }
 impl ReadLocalFolderSourceRowResponseOperation {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "market.readLocalFolderSourceRow",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalFolderSourceRowReviewResponseProtocolVersion {
-    #[serde(rename = "1.1")]
-    Value,
-}
-impl ReadLocalFolderSourceRowReviewResponseProtocolVersion {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "1.1",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalFolderSourceRowReviewResponseType {
-    #[serde(rename = "response")]
-    Value,
-}
-impl ReadLocalFolderSourceRowReviewResponseType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Value => "response",
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum ReadLocalFolderSourceRowReviewResponseOperation {
-    #[serde(rename = "market.readLocalFolderSourceRow")]
-    Value,
-}
-impl ReadLocalFolderSourceRowReviewResponseOperation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "market.readLocalFolderSourceRow",
@@ -9232,6 +9093,150 @@ impl CancelTaskError11Operation {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "task.cancel",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportSourceRowReviewRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalImportSourceRowReviewRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportSourceRowReviewRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ReadLocalImportSourceRowReviewRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportSourceRowReviewRequestOperation {
+    #[serde(rename = "market.readLocalImportSourceRow")]
+    Value,
+}
+impl ReadLocalImportSourceRowReviewRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalImportSourceRow",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportSourceRowReviewResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalImportSourceRowReviewResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportSourceRowReviewResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ReadLocalImportSourceRowReviewResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalImportSourceRowReviewResponseOperation {
+    #[serde(rename = "market.readLocalImportSourceRow")]
+    Value,
+}
+impl ReadLocalImportSourceRowReviewResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalImportSourceRow",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderSourceRowReviewRequestProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalFolderSourceRowReviewRequestProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderSourceRowReviewRequestType {
+    #[serde(rename = "request")]
+    Value,
+}
+impl ReadLocalFolderSourceRowReviewRequestType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "request",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderSourceRowReviewRequestOperation {
+    #[serde(rename = "market.readLocalFolderSourceRow")]
+    Value,
+}
+impl ReadLocalFolderSourceRowReviewRequestOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalFolderSourceRow",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderSourceRowReviewResponseProtocolVersion {
+    #[serde(rename = "1.1")]
+    Value,
+}
+impl ReadLocalFolderSourceRowReviewResponseProtocolVersion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "1.1",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderSourceRowReviewResponseType {
+    #[serde(rename = "response")]
+    Value,
+}
+impl ReadLocalFolderSourceRowReviewResponseType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ReadLocalFolderSourceRowReviewResponseOperation {
+    #[serde(rename = "market.readLocalFolderSourceRow")]
+    Value,
+}
+impl ReadLocalFolderSourceRowReviewResponseOperation {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "market.readLocalFolderSourceRow",
         }
     }
 }

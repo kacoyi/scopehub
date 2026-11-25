@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-046",
   "tasks": [
     {
       "id": "M0-001",
@@ -20266,6 +20266,120 @@
           ],
           "data_plan": "Use synthetic historical publications and private worker fixtures. The existing storage format and read-only authorization path are sufficient.",
           "cleanup": "Reuse the same raw reader and shared dialog retry path for both revision kinds."
+        }
+      }
+    },
+    {
+      "id": "M1-046",
+      "title": "Preserve exhaustive Rust callers of the public wire decoder",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-045"
+      ],
+      "scope": [
+        "contracts",
+        "crates/domain",
+        "crates/worker-host",
+        "python/worker_runtime",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Compile and run an external Rust consumer that exhaustively matches all 87 original Message variants through the unchanged public decode_line signature.",
+        "Decode valid opt-in file and folder CSV review frames through a separate typed entry. Keep legacy frames, unknown frame rejection, and the newline-inclusive frame budget covered.",
+        "Keep the private worker handshake and negotiated review capability isolated from the original row reader. Compare the remaining public Rust surface against the reviewed base for exhaustive and literal callers."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "architecture",
+        "python-types-win32",
+        "local-folder-import"
+      ],
+      "evidence": [],
+      "next_action": "Compile the historical exhaustive consumer against the reviewed candidate, then split typed decoding for opt-in review frames.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An unchanged exhaustive Rust caller builds and runs while explicit opt-in callers can validate and decode typed CSV review messages.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "scripts/generate_contracts.py",
+          "crates/domain/src/wire.rs",
+          "crates/worker-host/src/local_import.rs",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "Separate generated unions can keep the original Rust enum exhaustive while reusing schema and frame validation for opt-in messages."
+        ],
+        "risks": [
+          {
+            "failure": "A previous exhaustive consumer cannot compile or a legacy frame changes meaning.",
+            "checks": [
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "The opt-in decoder accepts an unknown, malformed, oversized, or unnegotiated frame.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "typescript-contracts",
+              "python-types",
+              "python-types-win32",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Revert this correction with the earlier source-row review records and their receipts available for diagnosis.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "worker-host",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "crates/domain/src/wire.rs",
+            "crates/worker-host/src/lib.rs",
+            "crates/worker-host/src/local_import.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Message"
+            }
+          ],
+          "non_goals": [
+            "Changes to frozen snapshot identity, retained bytes, permissions, or local API observation times."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The original exhaustive Message enum and decode_line signature, original wire frames, and the worker capability handshake."
+          ],
+          "change": [
+            "Use a separate typed decoder for the existing opt-in declaration review frames."
+          ],
+          "data_plan": "Use the shared protocol vectors and the existing synthesized worker fixtures. Persistent records require no migration.",
+          "cleanup": "Share framing and validation between the Rust decoding entries."
         }
       }
     }
