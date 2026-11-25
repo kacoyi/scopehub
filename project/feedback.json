@@ -6653,6 +6653,29 @@
         "prevention": "The real public entry checks the working value, committed value, dirty checkout refusal and outside-reference rejection. Ordinary native Windows and Linux run 45627611541 passed both the original test and the new test."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "m0-132-repeated-worker-schema-reference-resolution",
+      "source": "Authenticated ordinary full warm Linux PR 45601205813, archives/observations/repo-hygiene-20261125/pr111-native-original-45601205813/manifest.json (SHA-256 de77622735162ed6d87d07bbec62e6e6de07a383b669b3fb3c9690deccdbc50a). Byte-matched private isolation at archives/observations/repo-hygiene-20261125/m0-104-shared-vector-attribution-45601205813/disposition.json (SHA-256 377c4dec0066e8913aeb52e5e27c81bc39eff4eff7c20b73f99dc198b1055f2a) with original inputs and both profiles in SHA256SUMS.",
+      "observation": "PR111 selected the same 35 outcomes in 772 seconds. Python contracts and workers passed in 193.7 seconds; the slowest shared-vector case took 21.059 seconds. On matching protocol, schema, fixture and lock inputs the private ordinary target run recorded 459,826 repeated root-local static lookups, with 5.683 profiled seconds inside resolution. Four paired fresh Python controls measured median case time 6.788 to 4.929 seconds in a private immutable preparation experiment with intact validation. This does not identify runner load or hosted critical-path recovery.",
+      "severity": "minor",
+      "status": "deferred",
+      "task_ids": [
+        "M0-132"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T110714.425148Z-4a0f894c",
+          "source_commit": "b2838310471c9c405d9fcdbaaf66d62c4f2cb4b8",
+          "report_sha256": "2ec5f0826de9610adbe4c505dde659b99220dc831e783010099e7f591b1d4215"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
     }
   ]
 }
