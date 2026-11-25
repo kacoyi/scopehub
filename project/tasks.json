@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M5-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -995,6 +995,121 @@
       "next_action": "Implement packaging and execute clean-machine, stability and release acceptance checks. Measure installed bytes, Windows cold startup, process cleanup and protection events for the exact base artifact and any chosen optional Python distribution on a clean host.",
       "blocker": null,
       "closure_reason": null
+    },
+    {
+      "id": "M5-004",
+      "title": "Restore a relocated desktop workspace under its original local account",
+      "milestone": "M5",
+      "status": "done",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/persistence",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0011",
+        "0016",
+        "0029"
+      ],
+      "acceptance": [
+        "Reopen a synthetic native workspace at its original location, close it, then relocate the complete profile and reopen it under the same local account. Keep its identity, exact frozen contents and source-row provenance, retained display rights, and withdrawal tombstones.",
+        "Reject foreign ownership and incompatible identity before workspace disclosure or persistent database changes. An unregistered legacy database must be opened once at its original location before relocation. Restart must not restore session file access or model consent.",
+        "Retain the failed pre-repair regression and passing storage and native desktop software checks. Packaged installation and actual cross-account Windows recovery remain under M5-001."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow",
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M5-004-b4c520d4350014e4.json",
+          "sha256": "64229e2ce0bf9ba6e5bd79381cc22a33c0034f7504cb0f0afe94cd125e3b665c"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T035032.174547Z-72a041bb",
+          "source_commit": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+          "report_sha256": "e8e3de65bac877cd360f1088af271f17790bc1e1293c73bafc517987766a0bb3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Linux software task passed all selected checks. The native desktop bridge reproduced the original-path reopen and relocation failure before the repair. After legacy registration at the original location, the relocated profile reopened the exact authorized chart and retained raw row, denied the withdrawn revision and refused the old session folder capability. The persistence suite also rejects a mismatched account anchor and an absent or empty database without recreating the profile. The independent review and hosted Windows coverage are pending. Actual packaged Windows same-account and cross-account recovery remain under M5-001.",
+      "plan": {
+        "outcome": "A closed desktop profile can be restored to an alternate local directory under the original account without changing its stored references or grants.",
+        "change_types": [
+          "persistence"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-23-continuity-audit.json",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "crates/persistence/src/lib.rs",
+          "crates/persistence/src/storage.rs"
+        ],
+        "hypotheses": [
+          "The absolute directory only bootstraps the legacy desktop profile ID. A private versioned anchor can verify account and identity for the full profile while keeping database-only copies subject to the original identity check."
+        ],
+        "risks": [
+          {
+            "failure": "Opening a profile under a different account exposes frozen data or alters a rejected database.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Relocation loses provenance, revives withdrawals, or restores expired session permission.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Return the closed profile to its original path and retain the original backup. The anchor has its own version and leaves the existing SQLite format intact.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "crates/persistence/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "contracts/decisions/0011-local-profiles-and-connected-model-use.json",
+              "pointer": "/consequences"
+            }
+          ],
+          "non_goals": [
+            "Cross-machine or cross-account transfer, credential migration, and packaged or physical Windows qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Profile and workspace identifiers, stored state and provenance, qualified local storage admission, and session grant lifetime."
+          ],
+          "change": [
+            "Publish an account-bound anchor after verified native startup. Use the anchor to resolve identity when the complete profile moves."
+          ],
+          "data_plan": "Keep the database identity and schema unchanged. Use isolated synthetic profiles. The pre-repair failure is retained at archives/runs/20261125T035032.174547Z-72a041bb/test-report.json.",
+          "cleanup": "Reuse current SQLite journal and storage cleanup. Leave mismatched profiles available for recovery without rewriting their binding."
+        }
+      }
     },
     {
       "id": "M0-004",

@@ -3688,10 +3688,12 @@
       "status": "open",
       "observation": "A synthetic same-user profile reopened its frozen data at the original location. Moving the complete profile made it return INTERNAL_ERROR until moved back. A supported recovery or explicit rebind must preserve the original database and access boundaries.",
       "task_ids": [
-        "M5-001"
+        "M5-001",
+        "M5-004"
       ],
       "regression_checks": [
         "state-migrations",
+        "rust-contracts-workers",
         "windows-installation"
       ],
       "resolution": null,

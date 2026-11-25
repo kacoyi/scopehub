@@ -1,13 +1,26 @@
 //! Verify filesystem ownership and access before SQLite touches a profile.
 
-use std::{io, path::Path};
+use std::{
+    fs::{self, File},
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
-const FILES: [&str; 4] = [
+pub(super) const PROFILE_ANCHOR: &str = "desktop-profile.v1";
+const FILES: [&str; 5] = [
     super::DATABASE_NAME,
     "workspace.sqlite3-wal",
     "workspace.sqlite3-shm",
     "workspace.sqlite3-journal",
+    PROFILE_ANCHOR,
 ];
+
+#[derive(Debug)]
+pub(super) struct ProfileStorage {
+    pub database: PathBuf,
+    pub exists: bool,
+    pub owner: Option<String>,
+}
 
 fn denied() -> io::Error {
     io::ErrorKind::PermissionDenied.into()
@@ -20,14 +33,40 @@ pub(super) fn prepare_profile_root(path: &Path) -> io::Result<()> {
     platform::prepare(path)
 }
 
-pub(super) use platform::open_path;
+pub(super) use platform::{create_database, open_path};
+
+pub(super) fn publish_anchor(path: &Path, content: &[u8]) -> io::Result<()> {
+    let directory = path.parent().ok_or_else(denied)?;
+    let temporary = directory.join(format!(".desktop-profile-{}", uuid::Uuid::new_v4()));
+    let mut file = platform::create_private_file(&temporary)?;
+    let written = file.write_all(content).and_then(|()| file.sync_all());
+    drop(file);
+    let installed = written.and_then(|()| fs::rename(&temporary, path));
+    if installed.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    installed?;
+    #[cfg(unix)]
+    File::open(directory)?.sync_all()?;
+    Ok(())
+}
+
+#[cfg(any(target_os = "linux", windows))]
+fn owner_digest(principal: &str) -> String {
+    use sha2::{Digest, Sha256};
+
+    let mut digest = Sha256::new();
+    digest.update(b"ScopeHub desktop profile owner v1\0");
+    digest.update(principal.as_bytes());
+    format!("{:x}", digest.finalize())
+}
 
 #[cfg(unix)]
 mod platform {
     use std::{
-        fs::{self, DirBuilder, OpenOptions},
+        fs::{DirBuilder, OpenOptions},
         os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
-        path::{Component, PathBuf},
+        path::Component,
         process::Command,
     };
 
@@ -118,34 +157,57 @@ mod platform {
         profile(path, effective_uid()?, true).map(|_| ())
     }
 
-    pub(in super::super) fn open_path(root: &Path) -> io::Result<(PathBuf, bool)> {
+    #[cfg(target_os = "linux")]
+    fn owner(uid: u32) -> Option<String> {
+        let machine = fs::read_to_string("/etc/machine-id").ok()?;
+        let machine = machine.trim();
+        (machine.len() == 32
+            && machine.bytes().all(|byte| byte.is_ascii_hexdigit())
+            && machine.bytes().any(|byte| byte != b'0'))
+        .then(|| owner_digest(&format!("linux:{machine}:{uid}")))
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn owner(_: u32) -> Option<String> {
+        None
+    }
+
+    pub(in super::super) fn open_path(root: &Path) -> io::Result<ProfileStorage> {
         let uid = effective_uid()?;
         let directory = profile(root, uid, false)?;
-        let path = directory.join(FILES[0]);
-        let exists = check_file(&path, uid)?;
-        // Refuse unsafe sidecars before SQLite can recover, truncate or unlink them.
+        let database = directory.join(FILES[0]);
+        let exists = check_file(&database, uid)?;
+        // Refuse unsafe sidecars before reading the anchor or letting SQLite recover.
         for name in &FILES[1..] {
             check_file(&directory.join(name), uid)?;
         }
-        if exists {
-            return Ok((path, true));
-        }
+        Ok(ProfileStorage {
+            database,
+            exists,
+            owner: owner(uid),
+        })
+    }
+
+    pub(in super::super) fn create_database(path: &Path) -> io::Result<bool> {
         // SQLite derives its WAL, SHM and journal file mode from the database.
-        match OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(&path)
-        {
-            Ok(_) => Ok((path, false)),
+        match create_private_file(path) {
+            Ok(_) => Ok(false),
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if !check_file(&path, uid)? {
+                if !check_file(path, effective_uid()?)? {
                     return Err(error);
                 }
-                Ok((path, true))
+                Ok(true)
             }
             Err(error) => Err(error),
         }
+    }
+
+    pub(super) fn create_private_file(path: &Path) -> io::Result<File> {
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(path)
     }
 }
 
@@ -186,8 +248,9 @@ fn powershell_script_uses_utf16le_base64() {
 mod platform {
     use std::{
         env,
+        fs::OpenOptions,
+        io::Read,
         os::windows::process::CommandExt,
-        path::PathBuf,
         process::{Command, Stdio},
         thread,
         time::{Duration, Instant},
@@ -220,7 +283,7 @@ mod platform {
         eprintln!("Workspace storage ACL check refused ({action}, {stage}).");
     }
 
-    fn check_acl(path: &Path, action: &str) -> io::Result<()> {
+    fn check_acl(path: &Path, action: &str) -> io::Result<Option<String>> {
         let system = env::var_os("SystemRoot").map(PathBuf::from);
         let Some(system) = system.filter(|path| path.is_absolute()) else {
             report_refusal(action, "powershell-location");
@@ -240,24 +303,52 @@ mod platform {
             .env("SCOPEHUB_STORAGE_FILES", FILES.join(";"))
             .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
             .stdin(Stdio::null())
-            .stdout(Stdio::null())
+            .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .inspect_err(|_| report_refusal(action, "powershell-spawn"))?;
         let deadline = Instant::now() + Duration::from_secs(10);
-        let error = loop {
+        loop {
             match child.try_wait() {
-                Ok(Some(status)) if status.success() => return Ok(()),
+                Ok(Some(status)) if status.success() => break,
                 Ok(Some(status)) => {
                     let stage = refusal_stage(status.code());
                     report_refusal(action, stage);
                     return Err(io::Error::new(io::ErrorKind::PermissionDenied, stage));
                 }
                 Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
-                Ok(None) => break io::ErrorKind::TimedOut.into(),
-                Err(error) => break error,
+                Ok(None) => return stop_probe(child, action, io::ErrorKind::TimedOut.into()),
+                Err(error) => return stop_probe(child, action, error),
             }
-        };
+        }
+        let mut sid = String::new();
+        child
+            .stdout
+            .take()
+            .ok_or_else(denied)?
+            .take(256)
+            .read_to_string(&mut sid)?;
+        let sid = sid.trim();
+        if action == "prepare" {
+            return Ok(None);
+        }
+        if sid.len() > 184
+            || !sid.strip_prefix("S-1-").is_some_and(|parts| {
+                parts
+                    .split('-')
+                    .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+            })
+        {
+            return Err(denied());
+        }
+        Ok(Some(owner_digest(&format!("windows:{sid}"))))
+    }
+
+    fn stop_probe(
+        mut child: std::process::Child,
+        action: &str,
+        error: io::Error,
+    ) -> io::Result<Option<String>> {
         let stage = if error.kind() == io::ErrorKind::TimedOut {
             "powershell-timeout"
         } else {
@@ -270,28 +361,54 @@ mod platform {
     }
 
     pub(super) fn prepare(path: &Path) -> io::Result<()> {
-        check_acl(path, "prepare")
+        check_acl(path, "prepare").map(|_| ())
     }
 
-    pub(in super::super) fn open_path(root: &Path) -> io::Result<(PathBuf, bool)> {
-        check_acl(root, "open")?;
-        let path = root.join(FILES[0]);
-        let exists = path.try_exists()?;
-        Ok((path, exists))
+    pub(in super::super) fn open_path(root: &Path) -> io::Result<ProfileStorage> {
+        let owner = check_acl(root, "open")?;
+        let database = root.join(FILES[0]);
+        let exists = database.try_exists()?;
+        Ok(ProfileStorage {
+            database,
+            exists,
+            owner,
+        })
+    }
+
+    pub(in super::super) fn create_database(path: &Path) -> io::Result<bool> {
+        // Hold the same validated directory inheritance for database creation.
+        match create_private_file(path) {
+            Ok(_) => Ok(false),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                check_acl(path.parent().ok_or_else(denied)?, "open")?;
+                Ok(true)
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    pub(super) fn create_private_file(path: &Path) -> io::Result<File> {
+        OpenOptions::new().write(true).create_new(true).open(path)
     }
 }
 
 #[cfg(not(any(unix, windows)))]
 mod platform {
-    use std::path::PathBuf;
-
     use super::*;
 
     pub(super) fn prepare(_: &Path) -> io::Result<()> {
         Err(io::ErrorKind::Unsupported.into())
     }
 
-    pub(in super::super) fn open_path(_: &Path) -> io::Result<(PathBuf, bool)> {
+    pub(in super::super) fn open_path(_: &Path) -> io::Result<ProfileStorage> {
+        Err(io::ErrorKind::Unsupported.into())
+    }
+
+    pub(in super::super) fn create_database(_: &Path) -> io::Result<bool> {
+        Err(io::ErrorKind::Unsupported.into())
+    }
+
+    pub(super) fn create_private_file(_: &Path) -> io::Result<File> {
         Err(io::ErrorKind::Unsupported.into())
     }
 }
