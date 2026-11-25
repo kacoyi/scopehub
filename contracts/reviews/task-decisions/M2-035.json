@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T21:18:10.383087+00:00",
       "request_id": "cd3060cc986174deea8ef5db432241e59438f6697a6ed79e26f89c3cbaea8fb1",
       "evidence_sha256": "20bade48a77be64adf606346e6606913bfac853443dbbda6c8ac5ef048a1ded5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "APPROVE M2-035 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "observation": "I exercised the candidate’s React code and observed close 44 when source A was confirmed, only close 106 when source B was confirmed, and one successful clear of a redacted selection after a retryable snapshot refusal.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "79a3bce9fef667a1f3afb044b29c43107efd1f2d56a42e485f4ffb3f5d35be7a",
+      "response_id": "3f045cbbaa92cf4b7e0e272532baad8d6ba7a3a3cc80b8e6d55d866d7717fafb",
+      "response_sha256": "66e30acf61040f5f0d03f73f9715c818a714cf9793bb1e2d63a395277a9598ed",
+      "legacy_response_sha256": "d3ecb71c03e6aa26baf09dbff2de5402bacc8dec49dbd8f8637edec236762253",
+      "observation_body_sha256": "e33b62c8511c6dc9c8ce0de1b96a1ff1b8441feeb8e15c2d0e2afe2ba593b010",
+      "event": {
+        "id": "msg_02395960ec1524e8016b07550130e487d093647ba202b399bc",
+        "timestamp": "2026-11-25T21:37:24.481Z"
+      },
+      "supersedes": "cd3060cc986174deea8ef5db432241e59438f6697a6ed79e26f89c3cbaea8fb1",
+      "evidence_sha256": "dfd1a8332ab24ab73f963720050145217148a024fffd1e998576ff1afe488ac1"
     }
   ]
 }

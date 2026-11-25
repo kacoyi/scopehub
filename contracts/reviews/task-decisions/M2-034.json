@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T21:18:08.388435+00:00",
       "request_id": "d633f91c6d5e4c6e238ed2953a5cb0f2badc9835b52f1df92858df8c380acce1",
       "evidence_sha256": "3da245ffad9be59ba35d484f8b15eefed660c887983360d951245a9b1392fb7d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "APPROVE M2-034 29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "observation": "Two refresh requests queued behind a held layout produced one snapshot request, and its late reply could not replace the revoked state returned by manual reload.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "d940e668d3aca573d31fa1c8bc135dc6ccc06f454aee1a1f785fffbc6748472e",
+      "response_id": "f5f91dd9ad854a8aac505d367cd1f1c8a6abad12908907ffea6a4ec30bf8658b",
+      "response_sha256": "2f0ca80de53ca1f2698991eb4f3499ef9f19c0559be6415ed3ec305b53b95c8c",
+      "legacy_response_sha256": "043132f3b3b742bff8f480f061e355c65e217d97db77ab903a053356f4ffe46b",
+      "observation_body_sha256": "5d3fbc66ece471171e868d44be953b34f9e935b6295e28c9c4f0f4c69d191325",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0751f56e1c87d08cceac4d437db580",
+        "timestamp": "2026-11-25T21:24:15.008Z"
+      },
+      "supersedes": "d633f91c6d5e4c6e238ed2953a5cb0f2badc9835b52f1df92858df8c380acce1",
+      "evidence_sha256": "d8f2b6439142f595014154dccc7f38434a3ca68ca3c10be6f695819709b84421"
     }
   ]
 }
