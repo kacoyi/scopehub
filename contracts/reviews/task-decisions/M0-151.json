@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-151",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "793c179994333b3c6f4fab6771fa6f4c31901940",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-151 793c179994333b3c6f4fab6771fa6f4c31901940",
+      "scope": "CHANGES_REQUESTED M0-151 793c179994333b3c6f4fab6771fa6f4c31901940",
+      "observation": "With two live, UUID-matched Linux workers, I observed the selector reject the stable pair but return one worker after I inserted a single expired child entry into the second bridge’s process listing.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "916b2c73ab7db14c964200b0d4832668cb457c2374e5a01872dad6553176d03d",
+      "response_id": "536205346579327a5fe5507d9f086f58a06ceb1a0c76a1df10814d713625ba84",
+      "response_sha256": "00f32ff55d3d22dc76a0e1dddbe91a4dcfcec25b94fc29a2f4c42c63b81968ca",
+      "legacy_response_sha256": "b0053d10f6b05afc5f6b308a72b537a5da2e5f801da7bbe203f725bb6797c8f5",
+      "observation_body_sha256": "3f4e8ac6783e75fc80cd79d602bbc7a3f047932418cc2d210b38c2929a2a94da",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b074af0b91487d08b365f78fb358a63",
+        "timestamp": "2026-11-25T20:54:22.616Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "70dbea56a84effbcd4a6944761e333f6919d24605bdba9e5e0635dd47e194cb2"
+    }
+  ]
+}
