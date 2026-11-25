@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-132",
   "tasks": [
     {
       "id": "M0-001",
@@ -24027,6 +24027,101 @@
           ],
           "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified.",
           "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
+        }
+      }
+    },
+    {
+      "id": "M0-132",
+      "title": "Investigate Python worker schema reference lookup cost",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M1-047"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence/",
+        "contracts/reviews/2026-11-25-worker-schema-lookup.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the authenticated Linux observation, local static lookup profile and rejected experiment to their original source and evidence digests.",
+        "Compare protected and experimental sources on the fixed shared vectors, typed codec outcomes, frame boundaries and actual one-shot and reused worker paths.",
+        "Retain the protected runtime, public exports, dependencies, checks and lock bytes. Record the independent disposition, user-workload reopening trigger and separate M0-104 hosted qualification."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "next_action": "Run the ordinary required checks against the unchanged protected worker inputs before recording the investigation receipt.",
+      "blocker": null,
+      "evidence": [],
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Complete a source-bound investigation and retain the protected validator after measuring end-to-end worker costs.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+          "python/worker_runtime/protocol.py",
+          "crates/worker-host/src/local_import.rs"
+        ],
+        "hypotheses": [
+          "One-time schema preparation can reduce repeated static lookup work. Ordinary short-lived and reused worker paths determine whether that benefit outweighs process startup cost."
+        ],
+        "risks": [
+          {
+            "failure": "The investigation handoff accidentally carries experimental runtime, dependencies or changed protocol coverage.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Local timing or pre-withdrawal evidence is presented as baseline acceptance or hosted recovery.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Use the exact protected execution inputs and retain the reviewed Git bundle and raw evidence privately.",
+        "implementation": {
+          "modules": [
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/worker_runtime/protocol.py",
+            "python/worker_runtime/local_import.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/worker-runtime-v1.json",
+              "pointer": "/protocol"
+            }
+          ],
+          "non_goals": [
+            "Product or dependency changes, new external observations, and M0-104 hosted recovery qualification."
+          ],
+          "open_questions": [
+            "Do real reused worker sessions spend meaningful user-visible time in protocol reference resolution?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Protected runtime, schema, tests, dependencies and accepted milestone history."
+          ],
+          "change": [
+            "Add the investigation disposition and a receipt for the baseline checks."
+          ],
+          "data_plan": "Use the existing privately retained raw observations and rejected source by digest.",
+          "cleanup": "Keep experimental code and experimental verification evidence only in private recovery history."
         }
       }
     }
