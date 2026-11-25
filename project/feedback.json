@@ -7019,6 +7019,28 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "peer-decision-note-observer-busy-fallback-snapshot",
+      "source": "Guarded Windows task 45686354121 at 11a3ed67e9c5b95a98652c69731c13b35016b23c. Original report archives/runs/20261125T193505.526706Z-27a6ee5c/test-report.json and workspace reporter SHA-256 1678fc2e5ca32ddb399dfc0e67c275be749e1d484c0757db1438067c4489e40a. The unchanged extracted observation is archives/observations/repo-hygiene-20261125/m2-040-windows-first-11a3ed67/original-observation.json (SHA-256 ee8c20dc513b80df9e3c3d70321835b49023f7179b954704b7acf9b3c776d869).",
+      "severity": "major",
+      "status": "open",
+      "observation": "The ordinary paired-window contention case failed at 16.153 seconds. The initiating window committed one deletion at revision 5 and its same-request list read went from 429 to 200. The observer's deleted detail returned HTTP 200 with DATA_UNAVAILABLE. Its next workspace snapshot received definite pre-admission HTTP 429 BUSY at 10598.476 milliseconds. It issued no snapshot retry or fallback note-list request and remained on Reload. This is a different read phase from the earlier list contention and held-reply findings.",
+      "task_ids": [
+        "M2-040"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T193505.526706Z-27a6ee5c",
+          "source_commit": "11a3ed67e9c5b95a98652c69731c13b35016b23c",
+          "report_sha256": "51c9da332b22091f780d8da2bf7ca63194ca6696a7e30ef4dd31d7d940e2d109"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
