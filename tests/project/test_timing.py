@@ -352,6 +352,54 @@ class HostedTimingTests(unittest.TestCase):
                     }
                     self.assertEqual(expected_diagnostics, {issue['error'] for issue in view['input_issues']})
 
+    def test_agreed_split_intervals_survive_a_missing_or_contested_step_endpoint(self):
+        jobs = list(self.split_windows_jobs())
+        run = hosted_run()
+        before = timing.hosted_timing(run, jobs)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(before))), 'checkout_sha': 'a' * 40}
+        sample = timing.report_sample(report)
+        fields = ('aggregate_setup', 'setup', 'harness_step', 'tail', 'queue', 'runner', 'total')
+        baseline = (19, 40, 695, 10, 8, 1687, 765)
+        cases = (
+            (4, 'started_at', '12:28', 'harness_start', (None, 40, 695, 10, 8, 1687, 765)),
+            (4, 'completed_at', '12:36', 'harness_end', (19, 40, None, None, 8, 1687, 765)),
+            (3, 'started_at', '01:01', 'harness_start', (19, None, None, 10, 8, 1687, 765)),
+            (3, 'completed_at', '07:51', 'harness_end', baseline),
+        )
+        for index, key, alternate, endpoint, expected in cases:
+            changed = deepcopy(jobs)
+            changed[index]['steps'][0][key] = f'2026-11-20T00:{alternate}Z'
+            other = timing.hosted_timing(run, changed)
+            grouped = timing.hosted_timing(run, [changed[index], *reversed(jobs), changed[index]])
+            missing = deepcopy(jobs)
+            missing[index]['steps'][0][key] = None
+            incomplete = timing.hosted_timing(run, missing)
+            variants = (
+                ([before, other], expected, endpoint),
+                ([other, before, other], expected, endpoint),
+                ([grouped], expected, endpoint),
+                ([incomplete], expected, None),
+                ([incomplete, before, incomplete], baseline, None),
+            )
+            for clocks, readings, disputed_endpoint in variants:
+                with self.subTest(index=index, endpoint=key, readings=readings), tempfile.TemporaryDirectory() as temporary:
+                    path = Path(temporary) / 'capture.json'
+                    timing.save_timing_capture(path, 0, [sample], clocks, [])
+                    _, samples, retained, _ = timing.read_timing_capture(path)
+                    view = timing.timing_view(samples, hosted=retained)
+                    result, = view['samples']
+                    self.assertEqual(readings, tuple(result['seconds'][key] for key in fields))
+                    self.assertEqual({disputed_endpoint} if disputed_endpoint else set(), {
+                        item for issue in view['input_issues'] for item in issue.get('endpoints', ())
+                    })
+
+        shifted = timing.hosted_timing(dict(run, created_at='2026-11-20T00:00:01Z'), jobs)
+        view = timing.timing_view([sample], hosted=[before, shifted])
+        result, = view['samples']
+        self.assertEqual((19, 40, 695, 10, 8, 1687, None), tuple(result['seconds'][key] for key in fields))
+        self.assertIsNone(result['seconds']['initial_queue'])
+
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()
         run = hosted_run()

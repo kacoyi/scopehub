@@ -66,20 +66,20 @@ WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in WINDOWS
 WINDOWS_PRODUCER_PROFILES = {f'ci-windows-{lane}': name for lane, name in WINDOWS_PRODUCERS.items()}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
 WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
-# The compact archive retains measured aggregate intervals, not the original
-# timestamps needed to recompute them. Their producer inputs can still dispute
-# an interval. Copied metrics have a single source in either representation.
+# A split stage depends on member endpoints, or comparable interval facts in
+# older captures that predate endpoints. Copied metrics retain their source.
 WINDOWS_COPIED_STAGES = {'browser_step': ('browser', 'browser_step')}
 WINDOWS_DERIVED_STAGES = {
-    'initial_queue': (('all', 'queue'),),
-    'queue': (('all', 'total'),),
-    'setup': (('all', 'queue'), ('active', 'setup')),
-    'harness_step': (('all', 'total'), ('active', 'queue'), ('active', 'setup')),
-    'runner': (('all', 'runner'),),
+    'initial_queue': (('all', 'queue', ('start',)),),
+    'queue': (('all', 'total', ('end',)),),
+    'setup': (('all', 'queue', ('start',)), ('active', 'setup', ('start', 'harness_start'))),
+    'harness_step': (('all', 'total', ('end',)), ('active', 'queue', ('start',)),
+                     ('active', 'setup', ('start', 'harness_start'))),
+    'runner': (('all', 'runner', ('start', 'end')),),
 }
 WINDOWS_PARENT_ENDPOINTS = {
     'initial_queue': {'requested'}, 'queue': {'start'}, 'setup': set(),
-    'harness_step': {'start', 'harness_start', 'harness_end'}, 'runner': {'start', 'end'},
+    'harness_step': {'start', 'harness_end'}, 'runner': {'start', 'end'},
 }
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes' for profile in SCOPED_PROFILES}
 HARNESS_STEPS = {
@@ -371,17 +371,24 @@ def active_step(steps, names):
     return identity, points, disputed
 
 
-def job_seconds(points):
-    start, end = points.get('start'), points.get('end')
+def bounded_job_points(points):
+    lower = max(filter(None, (points.get('requested'), points.get('start'))), default=None)
+    upper = points.get('end')
     bounded = dict(points)
-    for part in ('harness', 'browser'):
-        begin, finish = points.get(part + '_start'), points.get(part + '_end')
-        if not (start and begin and start <= begin and (end is None or begin <= end)):
-            begin = None
-        if not (begin and finish and begin <= finish and (end is None or finish <= end)):
-            finish = None
-        bounded[part + '_start'] = begin
-        bounded[part + '_end'] = finish
+    for part in STEP_KINDS:
+        start, finish = f'{part}_start', f'{part}_end'
+        for field in (start, finish):
+            value = points.get(field)
+            if value is not None and ((lower is not None and value < lower) or (upper is not None and value > upper)):
+                bounded[field] = None
+        begin, end = bounded.get(start), bounded.get(finish)
+        if begin is not None and end is not None and end < begin:
+            bounded[start] = bounded[finish] = None
+    return bounded
+
+
+def job_seconds(points):
+    bounded = bounded_job_points(points)
     return {field: elapsed(bounded.get(left), bounded.get(right)) for field, (left, right) in JOB_INTERVALS.items()}
 
 
@@ -463,12 +470,12 @@ def windows_aggregate_cache(caches):
 
 
 def split_stage_seconds(parent, members, scoped):
-    points = job_points(parent)
+    points = bounded_job_points(job_points(parent))
     stages = dict.fromkeys((*WINDOWS_DERIVED_STAGES, *WINDOWS_COPIED_STAGES))
-    stages['aggregate_setup'] = job_seconds(points)['setup']
+    stages['aggregate_setup'] = elapsed(points.get('start'), points.get('harness_start'))
     if not members:
         return stages
-    sources = {lane: job_points(member) for lane, member in members.items()}
+    sources = {lane: bounded_job_points(job_points(member)) for lane, member in members.items()}
     starts = [source.get('start') for source in sources.values()]
     ends = [source.get('end') for source in sources.values()]
     start = points.get('start')
@@ -477,16 +484,15 @@ def split_stage_seconds(parent, members, scoped):
     if all(ends):
         stages['queue'] = elapsed(max(ends), start)
     active = ('core',) if scoped else sources
-    harness_starts = [sources[lane].get('harness_start')
-                      if job_seconds(sources[lane])['setup'] is not None else None for lane in active]
+    harness_starts = [sources[lane].get('harness_start') if sources[lane].get('start') else None for lane in active]
     if all(harness_starts):
         first_harness = min(harness_starts)
         stages['setup'] = elapsed(min(starts), first_harness) if all(starts) else None
-        # The protected publishing step starts after all required lanes finish.
-        if (all(ends) and start and max(ends) <= start
-                and job_seconds(points)['harness_step'] is not None):
+        # Publishing follows the required jobs. Execution ends at the
+        # publishing finish even when the publishing step's start is unknown.
+        if all(ends) and start and max(ends) <= start:
             stages['harness_step'] = elapsed(first_harness, points.get('harness_end'))
-    runners = [job_seconds(points)['runner'], *(job_seconds(source)['runner'] for source in sources.values())]
+    runners = [elapsed(source.get('start'), source.get('end')) for source in (points, *sources.values())]
     if all(value is not None for value in runners):
         stages['runner'] = sum(runners)
     for stage, (lane, metric) in WINDOWS_COPIED_STAGES.items():
@@ -1068,7 +1074,9 @@ def job_clock_observations(hosted, clocks, issues):
             continue
         projected = role == ('platform', 'Windows') and split_windows_clock(clocks[attempt])
         job, disputed, endpoint_disputes = merge_job_clock(candidates, projected=projected)
-        if disputed:
+        if endpoint_disputes:
+            issue['endpoints'] = sorted(endpoint_disputes)
+        if disputed or endpoint_disputes:
             error = ('Conflicting Windows producer job measurements.' if scope == 'producer'
                      else 'Conflicting protected job measurements.')
             timing_issue(issues, {**issue, 'fields': list(disputed), 'error': error})
@@ -1110,6 +1118,13 @@ class ClockEvidence(NamedTuple):
     producer_disputes: set
 
 
+def disputed_member_input(source, metric, endpoints):
+    return source is not None and (
+        source.job is None or not source.endpoint_disputes.isdisjoint(endpoints)
+        or (metric in source.disputed and source.endpoint_disputes.isdisjoint(JOB_INTERVALS[metric]))
+    )
+
+
 def project_windows_stages(evidence, attempt, run, fact, profile, issues):
     lanes = windows_clock_lanes(run)
     if not lanes:
@@ -1125,9 +1140,8 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
     derived = split_stage_seconds(fact.job, members, scoped)
     disputed = set()
     for stage, inputs in WINDOWS_DERIVED_STAGES.items():
-        competing_member = any(sources[lane] is not None
-                               and (sources[lane].job is None or metric in sources[lane].disputed)
-                               for group, metric in inputs for lane in groups[group])
+        competing_member = any(disputed_member_input(sources[lane], metric, endpoints)
+                               for group, metric, endpoints in inputs for lane in groups[group])
         value, competing_stage = known_value([seconds[stage], derived[stage]])
         if competing_member or competing_stage or fact.endpoint_disputes & WINDOWS_PARENT_ENDPOINTS[stage]:
             disputed.add(stage)
