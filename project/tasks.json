@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-104",
   "tasks": [
     {
       "id": "M0-001",
@@ -25591,6 +25591,167 @@
           "cleanup": "Release observers, remove test profiles after retaining evidence and discard canceled or superseded reads."
         }
       }
+    },
+    {
+      "id": "M0-104",
+      "title": "Investigate sustained full warm Linux PR verification growth",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-087",
+        "M0-097"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/check.py",
+        "scripts/timing.py",
+        "project/feedback.json",
+        "tests/project",
+        "project/tasks.json",
+        "scripts/project.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Keep the precise baseline and degraded windows and the zero-breach classification. Explain differences using actual queue, setup, harness, tail and check work with runner work kept distinct from elapsed.",
+        "Require the existing three-sample successful ordinary PR recovery window on the actual corrective revision before closing the trend. Retain pending evidence when the source, coverage, cache or host comparisons remain uncertain."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Review the independent receipt-read correction on its exact source. For hosted growth, compare a future qualified ordinary warm Linux PR and a matching same-input observation at named Python/browser and Rust build/suite boundaries. Keep the original trend open until a demonstrated causal correction has three qualifying ordinary PR observations.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The Linux full warm PR growth is explained and, if corrected, a comparable ordinary PR window demonstrates sustained recovery without dropping named outcomes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/timing.py",
+          "project/feedback.json",
+          "archives/observations/pr-timing-recurrences-f5bb2ae/observations.json"
+        ],
+        "hypotheses": [
+          "The median change can reflect runnable test growth and host variation. A Windows-only workflow or ACL change has no direct Linux timing effect.",
+          "A faster single Linux observation can reduce the median temporarily without resolving sustained growth.",
+          "The three later successful full warm Linux PRs have identical named outcomes and show Python durations of 236.728, 196.162 and 150.093 seconds. Compare queue, setup, harness, tail and test composition before attributing the elapsed median increase.",
+          "The original-to-latest median harness step grew from 513 to 638 seconds. The logs show more named Python and Rust cases and broadly slower common Python and named browser cases. Rust observations are limited to check, build and suite durations and case counts. The three latest Linux jobs had identical exact Cargo keys and runner image versions but different hosts and source trees. Those observations establish neither an isolated runner effect nor duplicate maintenance work.",
+          "The natural PR 122 pair matches all 607 execution inputs, Linux selection and outcomes, exact Cargo key and VM image. With different runner instances it varied by seven elapsed seconds. Compare named Python and browser timings and the separately reported Rust builds and suites.",
+          "The ordinary project check opened each of its 412 evidence receipt files twice. Parsing the digest-verified bytes within the same project load should remove the second open while preserving all acceptance and rejection checks."
+        ],
+        "risks": [
+          {
+            "failure": "Treating within-budget growth as a budget breach encourages optimizing the wrong signal.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Summing overlapping subprocess durations or ignoring changed named outcomes assigns cost to the wrong cause.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Counting a single faster PR or changing the baseline hides sustained growth.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Reducing repeated receipt work weakens digest binding, accepted history or validation of a nonconforming receipt.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the finding and its original evidence open. Revert any proposed optimization that changes a named outcome or cannot be attributed in comparable ordinary timing.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/check.py",
+            ".github/workflows/verify.yml",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No new timing gate, additional hosted dispatch, reduced coverage, synthetic timings or change to protected main or historical findings."
+          ],
+          "open_questions": [
+            "Which remaining stage can be shown to produce a repeatable Linux cost with the same execution inputs and equivalent named outcomes? The local receipt-open reduction does not establish a hosted timing effect."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original authenticated reports, existing full check outcomes, timing budgets and independent PR and push scopes."
+          ],
+          "change": [
+            "Remove only an attributed source of avoidable Linux verification time, then let the existing trend comparison govern recovery.",
+            "Bind normal evidence parsing to its verified bytes, and compare actual file reads and unchanged outcomes before and after."
+          ],
+          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified. The renewed cohort, authenticated job clocks, original baselines and negative control resolve through archives/observations/repo-hygiene-20261125/m0-104-linux-warm-recurrence-b2b2b28/SHA256SUMS (SHA-256 75690780378a3c01cf975f7d5ccef6c1fd3e5b8945ddf1e74502a168ad836688). The duplicate receipt-read trace is in archives/observations/repo-hygiene-20261125/m0-104-receipt-open-intake-b2b865d/SHA256SUMS (SHA-256 5aacdbae4990810efbba8329038a9e482537b4177a9a0e2972fa23b4d6314231). The matching receipt-read regression and measured full-ledger controls are in archives/observations/repo-hygiene-20261125/m0-104-receipt-read-control-d77043c/SHA256SUMS (SHA-256 0a7609ec14b60785ffe33490432efa93ae8de6d32248119dc92ab13ee755c465).",
+          "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T185739.552851Z-8328f499",
+          "source_commit": "f095e342122ebb492251575b65497c951e7718ca",
+          "report_sha256": "a7e6b8a4783347f717389b35783da261a6635886e227622650163edae2a00dbe"
+        },
+        {
+          "run_id": "20261125T184557.420584Z-d4daf9b1",
+          "source_commit": "6b897378abb3f07cbf190f86510c6b03b4d817a9",
+          "report_sha256": "2e4cb67528af5e9d590011de756ffbb98de9369636ae2cf23a49d9bd9be8623a"
+        },
+        {
+          "run_id": "20261125T182629.576844Z-52e3f873",
+          "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
+          "report_sha256": "b39c633d1fb67d56ce430c5ccaa980260af8e9a96f963a12b3dd7f9d0214fd68"
+        },
+        {
+          "run_id": "20261125T191118.567902Z-f7351273",
+          "source_commit": "4a93ba81d820986aa695e5d0ad47256fb3891ec8",
+          "report_sha256": "40bdbad7ecde7106881b276a26a40ce2b1b510e970497249052389fdd506e530"
+        },
+        {
+          "run_id": "20261125T193638.308991Z-35a23b3b",
+          "source_commit": "6960c4d51f07f8d72efc3ddc8d8bc4c3b7299b99",
+          "report_sha256": "6545981ede3eb8150648e8865e8e2d2e24f53c855cd719cf0325a931ccdf14e0"
+        },
+        {
+          "run_id": "20261125T195523.956055Z-413bcfb9",
+          "source_commit": "56d04472b6a1cbada182fcfd4894aa99adb13189",
+          "report_sha256": "309d02414fdda287db2ebbe793a1e05d60b02e9b36e2d96c6fd0b71cf5dae581"
+        },
+        {
+          "run_id": "20261125T201206.585649Z-9f82c259",
+          "source_commit": "8d43d2ad417577b58b003b508cc74a1974109560",
+          "report_sha256": "c1409e6c080cd4e31b181337be5d7793b134795b1d6ab5224c866b9d890081ce"
+        },
+        {
+          "run_id": "20261125T200757.887516Z-de7929e1",
+          "source_commit": "dd7880e04691686e3a8e17d8230056d569ee79bd",
+          "report_sha256": "360cc1fa7188cb571b25636c97379dfab4aaf972e84b2808137a24816cec2ad5"
+        }
+      ]
     }
   ]
 }

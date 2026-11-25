@@ -7320,6 +7320,117 @@
         "prevention": "On Linux and Windows the real paired-window journey first refuses the snapshot and then the list, recovers the same list request, shows both lists and verifies one deletion at revision 5. A separately admitted BUSY is terminal."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verification-pr-linux-feedback-sustained-growth-45475965426",
+      "source": "Ordinary offline status at f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb and authenticated automatic first-attempt pull requests 45444242059, 45459661035 and 45475965426. Verified originals and compact clocks are indexed in archives/observations/pr-timing-recurrences-f5bb2ae/observations.json (SHA-256 b08f606009ce0edc625fdf96cd7511d69afe4b13e7b5627f9e6db1837fc3fedc). Recurrence manifest anchors: archives/observations/repo-hygiene-20261125/pr116-native-original-45680128413/manifest.json (SHA-256 76083c17d400e3c02e1eb98038e0ee2e09303ebad8a3490239a0107258904a0a); archives/observations/repo-hygiene-20261125/pr121-native-original-45678058104/manifest.json (SHA-256 c17ba02baa2f0dcc677099c4e653c0bc23c56a8be0e2b88f31815893f24584cd); archives/observations/repo-hygiene-20261125/pr123-native-original-45674883737/manifest.json (SHA-256 2d61cba578959515d680012721a6b64a1d785d7d05f741ecdc4dce53e96789de). Independent check-by-check attribution and public timing replay: archives/observations/repo-hygiene-20261125/m0-104-linux-warm-recurrence-b2b2b28/SHA256SUMS (SHA-256 75690780378a3c01cf975f7d5ccef6c1fd3e5b8945ddf1e74502a168ad836688). Additional PR 122 pre-correction diagnostic: archives/observations/repo-hygiene-20261125/m0-104-pr122-supplement-45682436927/SHA256SUMS (SHA-256 0a7a005c32d168a159d3ebb4102336c2905a76a8e6d6e7f8dfee49483545127d). Original same-input comparison: archives/observations/repo-hygiene-20261125/m0-104-pr122-same-input-45686634903/comparison.json (SHA-256 143bf21505cdb19dfc46b36ed10ff01b1f81f9ffd319db782821c3e420dced6d). Named Python and browser comparison: archives/observations/repo-hygiene-20261125/m0-104-pr122-named-clocks-45686634903/comparison.json (SHA-256 ba7d5c6c0623285c531193925e8ff0f98a33cdf23c1da37cda06c632fd522702). Independent evidence wording review: archives/observations/repo-hygiene-20261125/independent-final-m0-104-622f010d/final-response.txt (SHA-256 a6ad5f029158810a92b20e3b7bfefb2fa632926643057442c2922ea2606e64bd). Distinct-source diagnostics: archives/observations/repo-hygiene-20261125/pr124-native-original-45689601396/manifest.json (SHA-256 aa589d5278b50212f1a58a60b9713f419860a7062cc293bea5824a17490d95b4); archives/observations/repo-hygiene-20261125/pr125-native-original-45692310354/manifest.json (SHA-256 085c9acc38fb9205cf833080a6e41638cbef6bfc0d3d3efa450e84abaa2920ef); archives/observations/repo-hygiene-20261125/pr126-native-original-45691720753/manifest.json (SHA-256 1f675506c5aab58147034b6c1b5ab2ff5cfc3955beacd26d7a672c05fdceb82d).",
+      "observation": "The three original comparable full warm Linux PR controls were 546, 706 and 625 seconds (median 625). Three new successful PRs took 731, 767 and 649 seconds (median 731), a sustained 106-second increase with zero 900-second breaches. All six selected 35 check identities with 27 passes, seven expected unimplemented omissions and one expected Windows-only omission. The six original identities define this growth window. At the 45680128413 cutoff, successful ordinary first-attempt full warm Linux PRs 45680128413, 45678058104 and 45674883737 took 859, 788 and 643 seconds with identical 35 selected and 27 passing outcomes. The median was 788 seconds, 163 above 625 and above the 93.75-second material-growth threshold. All three were within 900 seconds. Their Python check durations were 236.728, 196.162 and 150.093 seconds. A distinct corrective revision and causal attribution remain pending. From the original baseline to the latest window, phase medians for queue, setup, harness step and tail were 3 to 3, 79 to 100, 513 to 638, and 6 to 8 seconds respectively. The median Python check rose from 119.016 to 196.162 seconds, Rust contracts from 112.580 to 132.239 seconds and workspace timeframe from 79.082 to 105.416 seconds. These are overlapping check work. The Python suite median grew from 700 to 799 named cases. Comparing the fastest and slowest latest runs, 11 additional timed cases consumed 9.013 seconds and 610 of 787 shared cases were slower. The raw jobs had identical Ubuntu image versions and exact Cargo keys, with different runner instances and tested trees. The ordinary timing view compares the immediately preceding 731-second cohort and reports 57 seconds of growth; the open finding still binds the original 625-second cohort and reports recovery pending. The existing M0-143 periodic reads and the separate M0-146 work differ across the tested sources. The observed variation does not establish another independently removable Linux stage, and the prior worker preparation remains deferred. The later PR 122 first attempt 45682436927 independently matched the 35 selected and 27 passing Linux outcomes and the exact Cargo cache key, taking 817 seconds elapsed, 815 runner-seconds and 222.944 seconds for Python. This is an additional pre-correction observation alongside the retained 788-second trigger window. The pre-correction PR 122 pair 45682436927 and 45686634903 had the same 607 execution inputs, all 35 Linux outcomes, exact restored Cargo key and VM image. They took 817 and 810 seconds elapsed, 815 and 807 runner-seconds, and 222.944 and 217.522 seconds in Python. Rust retains a comparison of check, Cargo build and suite durations and case counts; individual Rust test timings were unavailable. Three later distinct-source warm Linux PR observations were 698 seconds (PR 124, 45689601396), 713 seconds (PR 125, 45692310354) and 856 seconds (PR 126, 45691720753). None supplies post-correction recovery.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-104"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "pull_request",
+        "profile": "full",
+        "platform": "Linux",
+        "growth_baseline": [
+          {
+            "run_id": "20261124T134919.840404Z-3e6ebbdd",
+            "source_commit": "52f9936d57275f0775ec7c14a7865754f7d54a9d",
+            "report_sha256": "ccf1450dcb61e5f5fe6c4458a0cef418a54268a2fb4f0bcff974d0ff3864b22a"
+          },
+          {
+            "run_id": "20261124T145029.139942Z-14f47d8d",
+            "source_commit": "66023a76b4ca41af10ce4cef6146d9dd47d45a4c",
+            "report_sha256": "8651c433437e88098450b5595253b91f6f393e23ea8d28d397f3a04570e69032"
+          },
+          {
+            "run_id": "20261124T161505.902799Z-335c1d3c",
+            "source_commit": "584bf4ad909616ff2e97a91358bcb2a5d0c64796",
+            "report_sha256": "d040abc3effa6265f1919c3525dd72b10ce5c6e6b6d0f15e40c41515934f3910"
+          }
+        ]
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T170500.853174Z-22884eac",
+          "source_commit": "389f6f21311485f00985710435087502d3c5fe72",
+          "report_sha256": "ff1f6e21038f486f207927038ca39edc590c79c317cb7afe1e6f0eaef2774746"
+        },
+        {
+          "run_id": "20261124T182809.106599Z-0dab6e16",
+          "source_commit": "cf2f91d9b20f67b64fc8f355dd3d8fc1b833dea5",
+          "report_sha256": "0e709e7d75a5ddcf3d12e7f8fd3fe9d6c6862b1f5195ee9d9f95a68d1892bda1"
+        },
+        {
+          "run_id": "20261124T200108.360528Z-5fa414e8",
+          "source_commit": "1fded991c99439038d44b6515d2e2c9488f2b3c7",
+          "report_sha256": "fe101c75fafa08f85795d424c57ced5f4e0ec8090a36cbbbd5c14ab3de158623"
+        },
+        {
+          "run_id": "20261125T185739.552851Z-8328f499",
+          "source_commit": "f095e342122ebb492251575b65497c951e7718ca",
+          "report_sha256": "a7e6b8a4783347f717389b35783da261a6635886e227622650163edae2a00dbe"
+        },
+        {
+          "run_id": "20261125T184557.420584Z-d4daf9b1",
+          "source_commit": "6b897378abb3f07cbf190f86510c6b03b4d817a9",
+          "report_sha256": "2e4cb67528af5e9d590011de756ffbb98de9369636ae2cf23a49d9bd9be8623a"
+        },
+        {
+          "run_id": "20261125T182629.576844Z-52e3f873",
+          "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
+          "report_sha256": "b39c633d1fb67d56ce430c5ccaa980260af8e9a96f963a12b3dd7f9d0214fd68"
+        },
+        {
+          "run_id": "20261125T191118.567902Z-f7351273",
+          "source_commit": "4a93ba81d820986aa695e5d0ad47256fb3891ec8",
+          "report_sha256": "40bdbad7ecde7106881b276a26a40ce2b1b510e970497249052389fdd506e530"
+        },
+        {
+          "run_id": "20261125T193638.308991Z-35a23b3b",
+          "source_commit": "6960c4d51f07f8d72efc3ddc8d8bc4c3b7299b99",
+          "report_sha256": "6545981ede3eb8150648e8865e8e2d2e24f53c855cd719cf0325a931ccdf14e0"
+        },
+        {
+          "run_id": "20261125T195523.956055Z-413bcfb9",
+          "source_commit": "56d04472b6a1cbada182fcfd4894aa99adb13189",
+          "report_sha256": "309d02414fdda287db2ebbe793a1e05d60b02e9b36e2d96c6fd0b71cf5dae581"
+        },
+        {
+          "run_id": "20261125T201206.585649Z-9f82c259",
+          "source_commit": "8d43d2ad417577b58b003b508cc74a1974109560",
+          "report_sha256": "c1409e6c080cd4e31b181337be5d7793b134795b1d6ab5224c866b9d890081ce"
+        },
+        {
+          "run_id": "20261125T200757.887516Z-de7929e1",
+          "source_commit": "dd7880e04691686e3a8e17d8230056d569ee79bd",
+          "report_sha256": "360cc1fa7188cb571b25636c97379dfab4aaf972e84b2808137a24816cec2ad5"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "project-check-reopens-verified-evidence-receipt",
+      "source": "The ordinary project check at b2b865d706a33eb1937d6be32ef942cc017a127b. Python's open audit records the exact relative paths and counts in archives/observations/repo-hygiene-20261125/m0-104-receipt-open-intake-b2b865d/SHA256SUMS (SHA-256 5aacdbae4990810efbba8329038a9e482537b4177a9a0e2972fa23b4d6314231). Same-command before/after controls and raw red and green results: archives/observations/repo-hygiene-20261125/m0-104-receipt-read-control-d77043c/SHA256SUMS (SHA-256 0a7609ec14b60785ffe33490432efa93ae8de6d32248119dc92ab13ee755c465).",
+      "severity": "major",
+      "status": "open",
+      "observation": "A passing ordinary project check opened each of 412 archived evidence receipts twice, totaling 824 opens. The reader checks the digest of its first read and parses a separate read. The duplicate work is observed; the two reads can bind different bytes across a file change. This finding does not establish the hosted Linux timing growth mechanism. The candidate parses the digest-verified bytes and reuses the admitted receipt for same-invocation history checks. Four paired ordinary checks opened all 412 receipt paths once, down from twice, with identical public output. The focused check and history passed after one open and retained digest and malformed-JSON rejection. These local observations do not establish a hosted elapsed improvement.",
+      "task_ids": [
+        "M0-104"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

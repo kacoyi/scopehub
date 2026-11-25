@@ -61,9 +61,10 @@ class ProjectError(ValueError):
     """A record is inconsistent or does not support the requested claim."""
 
 
-def read_json(path):
+def read_json(path, *, contents=None):
     try:
-        return json.loads(path.read_text(encoding='utf-8'))
+        text = path.read_text(encoding='utf-8') if contents is None else contents.decode('utf-8')
+        return json.loads(text)
     except (OSError, ValueError) as error:
         raise ProjectError(f'Cannot read JSON record {path}: {error}') from error
 
@@ -498,6 +499,7 @@ def load_project(root=ROOT):
                 raise ProjectError(f'Ambiguous decision replacement: {predecessor}')
             replacements[predecessor] = decision['id']
     validate_graph({key: item['depends_on'] for key, item in tasks.items()}, 'Task dependencies')
+    verified_receipts = {}
     for task in tasks.values():
         if task['status'] not in {'done', 'cancelled'}:
             validate_report_references(root, task, f"Task {task['id']}")
@@ -528,9 +530,10 @@ def load_project(root=ROOT):
             path = local_path(root, ref['path'])
             if not ref['path'].startswith('project/evidence/') or not path.is_file():
                 raise ProjectError(f"Missing archived task evidence: {ref['path']}")
-            if digest(path.read_bytes()) != ref['sha256']:
+            contents = path.read_bytes()
+            if digest(contents) != ref['sha256']:
                 raise ProjectError(f"Evidence digest mismatch: {ref['path']}")
-            receipt = read_json(path)
+            receipt = read_json(path, contents=contents)
             validate_model(root, 'Evidence', receipt)
             if receipt['task_id'] != task['id']:
                 raise ProjectError(f"Evidence belongs to another task: {task['id']}")
@@ -540,6 +543,7 @@ def load_project(root=ROOT):
                 if checks[check_id]['platforms'] == 'windows-x64' and not windows_x64(receipt['environment']):
                     raise ProjectError(f'Windows evidence has a non-Windows environment: {check_id}')
             receipts.append(receipt)
+            verified_receipts[ref['path']] = receipt
         if task['status'] == 'done':
             if any(tasks[key]['status'] != 'done' for key in task['depends_on']):
                 raise ProjectError(f"Done task has unfinished dependencies: {task['id']}")
@@ -564,7 +568,8 @@ def load_project(root=ROOT):
     if active and focus not in active:
         raise ProjectError('The focus must identify active work when active tasks exist')
     project = {'spec': spec, 'ledger': ledger, 'catalog': catalog, 'tasks': tasks, 'checks': checks,
-               'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements}
+               'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements,
+               'verified_receipts': verified_receipts}
     validate_delivery(root, project)
     primary = spec.get('ai', {}).get('model_connections', {}).get('primary_cloud_route')
     if primary is not None:
@@ -2018,7 +2023,7 @@ def tasks_at_feedback_checkpoint(root, commit):
         raise ProjectError(f'Invalid {path} at local feedback checkpoint {commit}: {error}') from error
 
 
-def verify_accepted_tasks(root, project, previous_tasks):
+def verify_accepted_tasks(project, previous_tasks):
     compared = []
     for task in previous_tasks:
         if task['status'] in {'done', 'cancelled'}:
@@ -2038,7 +2043,7 @@ def verify_accepted_tasks(root, project, previous_tasks):
             for ref in current_task['evidence'][len(task['evidence']):]:
                 # load_project has already checked file digest, schema, task ID,
                 # passing check status and native platform declarations.
-                receipt = read_json(local_path(root, ref['path']))
+                receipt = project['verified_receipts'][ref['path']]
                 if (receipt['task_definition_sha256'] != task_definition_hash(task)
                         or not set(task['checks']).issubset(check['id'] for check in receipt['checks'])):
                     raise ProjectError(f"Appended evidence does not validate the accepted task: {task['id']}")
@@ -2140,7 +2145,7 @@ def validate_feedback_changes(root, project, commit, old_items, items, *, inheri
         covered = set()
         for task_id in item['task_ids']:
             for ref in project['tasks'][task_id]['evidence']:
-                receipt = read_json(local_path(root, ref['path']))
+                receipt = project['verified_receipts'][ref['path']]
                 if finding in receipt.get('observed_feedback', []):
                     covered.update(check['id'] for check in receipt['checks'])
         missing = set(item['regression_checks']) - covered
@@ -2161,7 +2166,7 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
     legacy = None
     if ancestor(commit, last_legacy) and ancestor(FEEDBACK_RECEIPT_INTRODUCTION, 'HEAD'):
         legacy = feedback_at(root, last_legacy)
-        verify_accepted_tasks(root, project, tasks_at_feedback_checkpoint(root, last_legacy).values())
+        verify_accepted_tasks(project, tasks_at_feedback_checkpoint(root, last_legacy).values())
         # Compare this endpoint too: the caller's older base cannot see a deletion,
         # edit or recurrence of a finding introduced before the rules changed.
         validate_feedback_changes(root, project, last_legacy, legacy, items)
@@ -2417,7 +2422,7 @@ def compare_history(root, base, inherited=None):
                 raise ProjectError(f'Established integration gate removed without a reviewed replacement: {key}')
             replaced[key] = replacement
             pending.extend(reversed(replacement['replacement_checks']))
-    compared = verify_accepted_tasks(root, project, old_tasks.values())
+    compared = verify_accepted_tasks(project, old_tasks.values())
     paths = subprocess.run(['git', 'ls-tree', '-r', '--name-only', resolved, '--', 'contracts/decisions'],
                            cwd=root, env=env, capture_output=True, text=True, check=True).stdout.splitlines()
     for path in paths:
