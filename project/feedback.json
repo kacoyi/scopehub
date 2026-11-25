@@ -5205,6 +5205,17 @@
         "prevention": "A controlled HTTP peer drives the ordinary native settings trial with exact integers, equivalent decimal and exponent forms, rounded fractions, underflow, an out-of-range number and a quoted value."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-consumer-entry-budget",
+      "source": "2026-11-25 coordinator read-only retirement inventory, retained as .reports/audit-20261125/retirement-before-entry-limit.json. SHA-256 273a8ef78d3c137fc1eb7265c134f0832df700d2941bc1a31b78985c2aa29558.",
+      "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

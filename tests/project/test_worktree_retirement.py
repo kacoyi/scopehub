@@ -66,12 +66,19 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.git('commit', '--quiet', '-m', 'fixture change', cwd=path)
         return self.head(path)
 
-    def report(self, activity, *, archive_root=None, dispositions=None):
+    def report(self, activity, **options):
         registered = list(worktree.registrations(self.primary))
         with patch.object(worktree_retirement, 'observe_activity', return_value=activity):
             return worktree_retirement.retirement_report(
-                self.primary, self.common, registered, archive_root=archive_root, dispositions=dispositions,
+                self.primary, self.common, registered, **options,
             )
+
+    def cli(self, *options):
+        return subprocess.run(
+            [sys.executable, '-I', '-S', worktree.__file__, 'retirement', *options],
+            cwd=self.primary, capture_output=True, encoding='utf-8', timeout=30,
+            env={**os.environ, 'SCOPEHUB_STORAGE': 'off'},
+        )
 
     def row(self, activity, path=None, **kwargs):
         return next(row for row in self.report(activity, **kwargs)['worktrees']
@@ -114,18 +121,59 @@ class WorktreeRetirementTests(unittest.TestCase):
 
     def test_isolated_python_cli_reports_registered_checkouts(self):
         archive = self.directory / 'absent-archive'
-        result = subprocess.run(
-            [sys.executable, '-I', '-S', worktree.__file__, 'retirement', '--archive-root', str(archive)],
-            cwd=self.primary, capture_output=True, encoding='utf-8', timeout=30,
-            env={**os.environ, 'SCOPEHUB_STORAGE': 'off'},
-        )
+        result = self.cli('--archive-root', str(archive))
         self.assertEqual(result.returncode, 0, result.stderr)
-        rows = {Path(row['path']): row for row in json.loads(result.stdout)['worktrees']}
+        report = json.loads(result.stdout)
+        self.assertEqual(report['entry_limit'], 20_000)
+        rows = {Path(row['path']): row for row in report['worktrees']}
         self.assertEqual(set(rows), {self.primary, self.candidate})
         self.assert_held(rows[self.primary], 'primary_checkout')
         self.assertNotIn('worktree_registration_changed', rows[self.candidate]['holds'])
         self.assertTrue((self.candidate / '.git').exists())
         self.assertFalse(archive.exists())
+
+    def test_isolated_python_cli_rejects_invalid_entry_limits(self):
+        for options in (('--entry-limit',), ('--entry-limit', '0'), ('--entry-limit', '-1'),
+                        ('--entry-limit', '200001'), ('--entry-limit', '20000.5'), ('--entry-lim', '20000')):
+            with self.subTest(options=options):
+                result = self.cli(*options)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn(options[0], result.stderr)
+                self.assertEqual(result.stdout, '')
+
+    def test_isolated_python_cli_larger_budget_reaches_nested_ignored_consumer(self):
+        downstream = self.add_worktree('downstream')
+        nested = downstream / '.reports' / 'nested'
+        nested.mkdir(parents=True)
+        link = nested / 'zz-consumer'
+        try:
+            link.symlink_to(self.candidate / 'fixture.txt')
+        except (NotImplementedError, OSError) as error:
+            self.skipTest(f'The fixture cannot create a file symlink: {error}')
+        # Two directories and 19,998 ordinary files put the consumer just beyond the default.
+        for number in range(19_998):
+            (nested / f'entry-{number:05d}').write_bytes(b'')
+
+        default = self.cli()
+        self.assertEqual(default.returncode, 0, default.stderr)
+        rows = {Path(row['path']): row for row in json.loads(default.stdout)['worktrees']}
+        error = 'Ignored path inventory exceeded the observation budget'
+        self.assert_held(rows[downstream], 'checkout_observation_incomplete')
+        self.assertEqual(rows[downstream]['details']['checkout_observation_incomplete'], error)
+        self.assert_held(rows[self.candidate], 'path_consumer_observation_incomplete')
+        self.assertIn(f'{downstream}: {error}', rows[self.candidate]['details']['path_consumer_observation_incomplete'])
+        self.assertNotIn('downstream_path_consumer', rows[self.candidate]['holds'])
+
+        larger = self.cli('--entry-limit', '20001')
+        self.assertEqual(larger.returncode, 0, larger.stderr)
+        report = json.loads(larger.stdout)
+        self.assertEqual(report['entry_limit'], 20_001)
+        rows = {Path(row['path']): row for row in report['worktrees']}
+        self.assert_held(rows[downstream], 'unretained_local_evidence')
+        self.assertNotIn('checkout_observation_incomplete', rows[downstream]['holds'])
+        self.assertNotIn('path_consumer_observation_incomplete', rows[self.candidate]['holds'])
+        self.assert_held(rows[self.candidate], 'downstream_path_consumer')
+        self.assertEqual(rows[self.candidate]['details']['downstream_path_consumer'], [f'{downstream}: {link}'])
 
     def test_dirty_checkout_and_unintegrated_local_history_are_held(self):
         original = self.head(self.candidate)
@@ -516,6 +564,34 @@ class WorktreeRetirementTests(unittest.TestCase):
         row = self.row(IDLE)
         self.assert_held(row, 'downstream_path_consumer')
         self.assertEqual(row['details']['downstream_path_consumer'],
+                         [f'{downstream}: {startup.relative_to(downstream).as_posix()}'])
+
+    def test_entry_limit_also_bounds_editable_python_consumer_directories(self):
+        downstream = self.add_worktree('downstream')
+        self.commit(downstream, '.gitignore', '.venv/\n')
+        self.commit(downstream, 'uv.lock', '# fixture lock\n')
+        venv = downstream / '.venv'
+        site = venv / ('Lib/site-packages' if os.name == 'nt' else 'lib/python3.12/site-packages')
+        site.mkdir(parents=True)
+        (venv / 'CACHEDIR.TAG').write_bytes(worktree_retirement.storage.CARGO_TAG + b'\n')
+        for number in range(16):
+            (site / f'package-{number:02d}').mkdir()
+        startup = site / 'zz-editable.pth'
+        startup.write_text(f'{os.path.relpath(self.candidate, site)}\n', encoding='utf-8')
+
+        limited = self.row(IDLE, entry_limit=10)
+        self.assert_held(limited, 'path_consumer_observation_incomplete')
+        errors = limited['details']['path_consumer_observation_incomplete']
+        self.assertEqual(len(errors), 1)
+        self.assertIn(f'{downstream}:', errors[0])
+        self.assertIn('Python', errors[0])
+        self.assertIn('observation budget', errors[0])
+        self.assertNotIn('downstream_path_consumer', limited['holds'])
+
+        observed = self.row(IDLE, entry_limit=64)
+        self.assertNotIn('path_consumer_observation_incomplete', observed['holds'])
+        self.assert_held(observed, 'downstream_path_consumer')
+        self.assertEqual(observed['details']['downstream_path_consumer'],
                          [f'{downstream}: {startup.relative_to(downstream).as_posix()}'])
 
     def test_editable_python_libraries_are_enumerated_from_actual_directory_entries(self):

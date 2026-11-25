@@ -17,6 +17,8 @@ import sys
 
 ROOT_CONFIG = 'scopehub.worktreeRoot'
 CREATION_LOCK = 'scopehub-worktree-create.lock'
+DEFAULT_RETIREMENT_ENTRY_LIMIT = 20_000
+MAX_RETIREMENT_ENTRY_LIMIT = 200_000
 PORTABLE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]*')
 RESERVED_NAMES = {'AUX', 'CON', 'NUL', 'PRN', *(f'{prefix}{n}' for prefix in ('COM', 'LPT') for n in range(10))}
 
@@ -329,6 +331,11 @@ def create(cwd, common, root, registered, path, args, lock_fd):
     return 'Created'
 
 
+def validate_retirement_entry_limit(limit):
+    if type(limit) is not int or not 1 <= limit <= MAX_RETIREMENT_ENTRY_LIMIT:
+        raise ValueError(f'--entry-limit must be an integer from 1 through {MAX_RETIREMENT_ENTRY_LIMIT}')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     actions = parser.add_subparsers(dest='action', required=True)
@@ -345,9 +352,17 @@ def main():
                                     allow_abbrev=False)
     retirement.add_argument('--archive-root', type=Path, help='Absolute path to a host archive outside the checkouts.')
     retirement.add_argument('--dispositions', metavar='COMMIT:PATH', help='Committed disposition records for exact heads.')
+    retirement.add_argument('--entry-limit', type=int, metavar='COUNT', default=DEFAULT_RETIREMENT_ENTRY_LIMIT,
+                            help=f'Entries per checkout for each ignored-path inventory and the Python consumer inventory '
+                                 f'(1 through {MAX_RETIREMENT_ENTRY_LIMIT}, default: %(default)s).')
     args = parser.parse_args()
     if args.action == 'create' and (args.new_branch is None) != (args.base is None):
         create_parser.error('--new-branch and --base must be supplied together.')
+    if args.action == 'retirement':
+        try:
+            validate_retirement_entry_limit(args.entry_limit)
+        except ValueError as error:
+            retirement.error(str(error))
     try:
         cwd = git_path(Path.cwd(), '--show-toplevel')
         common = git_path(cwd, '--git-common-dir')
@@ -362,7 +377,8 @@ def main():
                     sys.path.append(str(Path(__file__).resolve().parent))
                     from worktree_retirement import retirement_report
                 print(json.dumps(retirement_report(cwd, common, registered, archive_root=args.archive_root,
-                                                   dispositions=args.dispositions), indent=2))
+                                                   dispositions=args.dispositions, entry_limit=args.entry_limit),
+                                 indent=2))
                 return
             root = managed_root(cwd, common, registered)
             if args.action == 'list':
