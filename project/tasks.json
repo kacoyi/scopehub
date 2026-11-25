@@ -25429,7 +25429,10 @@
         "project/feedback.json",
         "apps/desktop/ui/src/private-records.tsx",
         "apps/desktop/ui/src/folder-refresh-review.tsx",
-        "tests/ubuntu-preview/workspace.spec.mjs"
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "apps/desktop/ui/src/local-import-editor.tsx",
+        "apps/desktop/ui/src/local-import-transport.ts",
+        "apps/desktop/ui/src/private-record-transport.ts"
       ],
       "decision_refs": [
         "0004",
@@ -25440,7 +25443,9 @@
         "A focus reload confirming the same saved source still opens its authenticated bars. Available, revoked, unavailable and source-free states preserve their existing authorization and provenance behavior.",
         "The workspace must hold its first chart until the latest focus generation is confirmed, including focus before the first snapshot or during an earlier confirmation. One admitted read and one coalesced trailing read preserve the existing reply deadline.",
         "The workspace retains the latest focus through source writes and recovery readbacks. A committed source action settles once, while a trailing snapshot confirms what may be displayed.",
-        "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog."
+        "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog.",
+        "A staged folder review displays authenticated declarations and bar provenance after delivery. Rejection and lost delivery leave a terminal, retryable UI state within the existing native reply budget, and a late result stays inert.",
+        "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts."
       ],
       "checks": [
         "ui-build",
@@ -25457,7 +25462,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Trace the guarded Windows folder stage and the ordinary private correction and focus snapshot failures. Verify bounded stage completion and qualified snapshot and private read observations without repeating a write.",
+      "next_action": "Run the scoped task on the exact candidate, then have independent review and native qualification confirm the folder completion, private background read and focus state witnesses.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25563,7 +25568,8 @@
             "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants."
           ],
           "change": [
-            "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list."
+            "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
+            "Apply the existing reply budget to folder staging and reuse bounded pre-admission retry for private background reads. State proofs count admitted snapshots."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

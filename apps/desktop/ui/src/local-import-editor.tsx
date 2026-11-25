@@ -133,7 +133,8 @@ function importErrorCode(error: unknown) {
 }
 
 function describeImportFailure(error: unknown, fallback: string, action?: ImportAction): Failure {
-  if (!error || typeof error !== 'object') return { message: message(fallback) };
+  if (!error || typeof error !== 'object' || (action === 'refresh'
+    && error instanceof DOMException && error.name === 'TimeoutError')) return { message: message(fallback) };
   const code = importErrorCode(error);
   if ((code === 'STALE_CONTEXT' || code === 'SNAPSHOT_UNAVAILABLE') && (action === 'prepare-folder' || action === 'publish-folder')) {
     return { message: message('The folder or accepted revision changed. Stage the folder refresh again.') };
@@ -588,7 +589,13 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     await runRequest('refresh', id => previewLocalFolderRefresh({
       version: 1, folder_id: catalog.folder_id, revision_id: revisionId,
     }, id), reply => {
-      if (!revisionAccess.canDisplay(revisionId)) return;
+      if (!revisionAccess.canDisplay(revisionId)) {
+        const accessMessage = revisionAccess.revoked.has(revisionId)
+          ? message('Access removed for this published revision.')
+          : message('This frozen revision is unavailable in the current profile.');
+        setPublicationFailure({ message: accessMessage });
+        return;
+      }
       if ((reply.folder_base?.revision_id ?? reply.base?.revision_id) !== revisionId) {
         setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
         return;

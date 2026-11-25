@@ -18,6 +18,8 @@ import type {
 import type { LocalFolderCatalog } from './local-import-editor';
 import { formatNumber, getLocale, message, t } from './i18n';
 
+const localRevisionReplyDeadlineMs = 15_000;
+
 export type LocalImportMessage = ReturnType<typeof message> | string | { readonly render: () => string };
 
 // The protocol carries English diagnostics. Recognize application-owned
@@ -352,7 +354,7 @@ export async function publishLocalImport(payload: PublishLocalImportInput, reque
 
 export async function readLocalImportRevision(payload: ReadLocalImportRevisionInput, requestId: string, signal?: AbortSignal) {
   requireNative();
-  return withReplyDeadline(15_000, () => invoke<ReadLocalImportRevisionOutput>('execute_operation', {
+  return withReplyDeadline(localRevisionReplyDeadlineMs, () => invoke<ReadLocalImportRevisionOutput>('execute_operation', {
     operation: 'market.readLocalImportRevision', payload, requestId,
   }), signal);
 }
@@ -380,8 +382,13 @@ export async function revokeLocalImportRevision(payload: RevokeLocalImportRevisi
 
 export async function previewLocalFolderRefresh(payload: PreviewLocalFolderRefreshInput, requestId: string) {
   requireNative();
-  return invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
+  return withReplyDeadline(localRevisionReplyDeadlineMs, () => invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
     operation: 'market.previewLocalFolderRefresh', payload, requestId,
+  })).catch(error => {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      void cancelLocalPreview(requestId).catch(() => undefined);
+    }
+    throw error;
   });
 }
 
@@ -408,7 +415,7 @@ export async function listLocalFolderRevisions(payload: ListLocalFolderRevisions
 
 export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionInput, requestId: string, signal?: AbortSignal) {
   requireNative();
-  return withReplyDeadline(15_000, () => invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
+  return withReplyDeadline(localRevisionReplyDeadlineMs, () => invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
     operation: 'market.readLocalFolderRevision', payload, requestId,
   }), signal);
 }

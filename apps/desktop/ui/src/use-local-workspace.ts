@@ -32,13 +32,13 @@ type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
 type SnapshotRequest = { type: 'snapshot' };
-type AdmissionRead = SnapshotRequest | DecisionNoteReadCommand11
+type AdmissionRead = SnapshotRequest | DecisionNoteReadCommand11 | PrivateRecordReadCommand11
   | { type: 'frozen_chart'; request_id: string; revision_id: string };
 type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteSaveCommand11
   | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11
-  | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11 | PrivateRecordReadCommand11
+  | PrivateRecordChangeCommand11 | PrivateRecordExportCommand11
   | SharedSelectionRequest11 | ReadProjectedChart11
   | IndicatorCreateDraftCommand11 | IndicatorRunPreviewCommand11 | TaskCancelRequest11
   | IndicatorAcceptVersionCommand11 | IndicatorRemoveCommand11 | TrustedConfirmationDecision11

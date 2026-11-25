@@ -12,6 +12,17 @@ function revisionStatus(dispatch, revisionId) {
   return dispatch({ type: 'frozen_chart_status', request_id: randomUUID(), revision_id: revisionId });
 }
 
+async function readProofSnapshot(dispatch, onRefused = () => {}) {
+  let reply;
+  await expect.poll(async () => {
+    reply = await dispatch({ type: 'snapshot' });
+    if (reply.ok !== false || reply.error?.code !== 'BUSY' || reply.error.retryable !== true) return true;
+    await onRefused();
+    return false;
+  }, { timeout: 4_000, message: 'The verified state read must reach a terminal snapshot reply' }).toBe(true);
+  return reply;
+}
+
 function workspace(timeframe, revision) {
   return {
     id: workspaceId, revision, timeframe, style: 'candlestick',
@@ -938,7 +949,7 @@ for (const scenario of [
       });
       await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 44));
       await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 106));
-      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+      await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
         const selectA = await dispatch({ type: 'workspace_source', request_id: randomUUID(),
           expected_selection_revision: 0, source: { kind: 'frozen', revision_id: a } });
         expect(selectA).toMatchObject({ ok: true, result: { selection_revision: 1 } });
@@ -951,12 +962,31 @@ for (const scenario of [
           ? { result: { version: 1, revisions: [], next_after_revision_id: null } } : dispatch(payload);
         let snapshotCalls = 0;
         let chartHeld = false;
+        let focusRefused = false;
         await nativeTransport(page, { optedIn: true }, async args => {
           const { payload } = args;
           if (payload.type === 'snapshot') {
+            let reply;
+            if (!focusRefused && snapshotCalls === 1 && scenario.name === 'repeated focus during the first confirmation') {
+              focusRefused = true;
+              const holder = await holdRevisionRead(() => revisionStatus(dispatch, a));
+              try {
+                reply = await ordinary(args);
+                expect(reply).toMatchObject({ ok: false, error: { code: 'BUSY', retryable: true } });
+                trace.push({ focusSnapshotRefused: reply.error.code });
+              } finally {
+                holder.release();
+                expect(await holder.reply).toMatchObject({ ok: true, result: { available: true } });
+              }
+            } else {
+              reply = await ordinary(args);
+            }
+            if (reply.ok !== true) {
+              trace.push({ snapshotRejected: reply.error?.code });
+              return reply;
+            }
             const number = ++snapshotCalls;
-            const reply = await ordinary(args);
-            snapshots.push({ number, source: reply.result?.source, selection: reply.result?.selection_revision });
+            snapshots.push({ number, source: reply.result.source, selection: reply.result.selection_revision });
             if (number === scenario.heldNumber) await heldSnapshot.promise;
             trace.push({ deliveredSnapshot: number });
             return reply;
@@ -1006,8 +1036,8 @@ for (const scenario of [
             await control(dialog, 'Use as workspace source').click();
             await expect(dialog).toHaveCount(0);
             await expect(peerChart.getByLabel('Selected bar')).toContainText('C 106');
-            const current = await dispatch({ type: 'snapshot' });
-            expect(current.result).toMatchObject({ source: { revision_id: b }, selection_revision: 2 });
+            const current = await readProofSnapshot(dispatch);
+            expect(current).toMatchObject({ ok: true, result: { source: { revision_id: b }, selection_revision: 2 } });
             trace.push({ peerCommitted: b, close: 106, selection: 2 });
           }
           await page.evaluate(() => {
@@ -1050,7 +1080,7 @@ for (const scenario of [
           });
           await peer?.close();
         }
-      });
+      }, { gateStatus: scenario.name === 'repeated focus during the first confirmation' });
     });
   });
 }
@@ -1075,7 +1105,7 @@ for (const scenario of [
       });
       await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 44));
       await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 106));
-      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+      await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
         const originalRevision = scenario.startsWithA ? 1 : 0;
         const savedRevision = originalRevision + 1;
         const confirmedRevision = scenario.unchanged ? savedRevision : savedRevision + 1;
@@ -1098,14 +1128,16 @@ for (const scenario of [
           if (name === 'market.listLocalImportRevisions') {
             return { result: { version: 1, revisions: [], next_after_revision_id: null } };
           }
-          const number = windowName === 'first' && payload.type === 'snapshot' ? ++reads : undefined;
           const reply = await dispatch(payload);
+          const snapshot = windowName === 'first' && payload.type === 'snapshot';
+          const number = snapshot && reply.ok === true ? ++reads : undefined;
+          if (snapshot && number === undefined) trace.push({ snapshotRejected: reply.error?.code });
           if (payload.type === 'workspace_source') {
             writes.push({ window: windowName, request: payload, result: reply.result });
             if (windowName === 'first' && scenario.heldWrite) await operation.promise;
           }
           if (number !== undefined) {
-            snapshots.push({ number, selection: reply.result?.selection_revision, source: reply.result?.source });
+            snapshots.push({ number, selection: reply.result.selection_revision, source: reply.result.source });
             if (scenario.recover && number === 2) await initialReadback.promise;
             if (number === readbackNumber && !scenario.heldWrite) await operation.promise;
             if (number === readbackNumber + 1) await trailing.promise;
@@ -1174,7 +1206,21 @@ for (const scenario of [
             await expect(dialog(peer)).toHaveCount(0);
             await expect(selectedBar(peer)).toContainText('C 106');
           }
-          expect(await dispatch({ type: 'snapshot' })).toMatchObject({
+          const holder = scenario.recover ? await holdRevisionRead(() => revisionStatus(dispatch, currentId)) : undefined;
+          let proof;
+          try {
+            proof = await readProofSnapshot(dispatch, async () => {
+              trace.push({ postReadbackSnapshotRefused: 'BUSY' });
+              if (holder) {
+                holder.release();
+                expect(await holder.reply).toMatchObject({ ok: true, result: { available: true } });
+              }
+            });
+          } finally {
+            holder?.release();
+          }
+          if (holder) expect(trace).toContainEqual({ postReadbackSnapshotRefused: 'BUSY' });
+          expect(proof).toMatchObject({
             ok: true, result: { selection_revision: confirmedRevision, source: { revision_id: currentId } },
           });
 
@@ -1234,7 +1280,7 @@ for (const scenario of [
           });
           await peer?.close();
         }
-      });
+      }, { gateStatus: Boolean(scenario.recover) });
     });
   });
 }

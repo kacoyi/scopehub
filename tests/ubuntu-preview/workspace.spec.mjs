@@ -5856,12 +5856,37 @@ test('private record delete recovery hides its old title after pre-commit busy a
             });
           });
 
-          const focused = await privateReplyDuring(pageA, stages, 'origin reads the corrected revision around focus', readDetail,
-            async () => {
-              await focusPrivateRecords(pageA);
-              stages.push({ step: 'origin focus dispatched' });
-            });
-          expectCorrectedRead(focused);
+          const heldSnapshot = origin.tagSnapshot();
+          const requestPattern = `**${endpoint}`;
+          let taggedSnapshot = false;
+          const admitAfterSnapshot = async route => {
+            const body = route.request().postDataJSON();
+            if (body?.type === 'snapshot' && !taggedSnapshot) {
+              taggedSnapshot = true;
+              return route.continue({ headers: { ...await route.request().allHeaders(), ...heldSnapshot.headers } });
+            }
+            if (readDetail(body)) await heldSnapshot.wait('written');
+            return route.continue();
+          };
+          const recoveredDetail = privateDetailReply(pageA, id,
+            outcome => outcome?.state === 'completed' && outcome.result.workspace_revision === 2);
+          void recoveredDetail.catch(() => {});
+          await pageA.route(requestPattern, admitAfterSnapshot);
+          try {
+            const first = await privateReplyDuring(pageA, stages, 'focus snapshot refuses the first corrected detail read',
+              readDetail, () => focusPrivateRecords(pageA));
+            expect(first.observed).toMatchObject({ http: 429, code: 'BUSY' });
+            heldSnapshot.release();
+            expect(await heldSnapshot.wait('drained')).toMatchObject({ ok: true, revision: 2 });
+            const response = await recoveredDetail;
+            const outcome = (await response.json()).result.outcome;
+            expect(response.request().postDataJSON()).toEqual(first.payload);
+            expectCorrectedRead({ observed: { http: response.status() }, outcome });
+            stages.push({ step: 'authorized detail admitted after focus snapshot drained', http: response.status() });
+          } finally {
+            heldSnapshot.release();
+            await pageA.unroute(requestPattern, admitAfterSnapshot);
+          }
           await assertPrivateHidden(first, title, text, renamed, corrected);
           await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
 
@@ -5906,7 +5931,7 @@ test('private record delete recovery hides its old title after pre-commit busy a
           stages.push({ step: 'corrected detail displayed', revision: 2, deletions: 0 });
         } finally { writerLock.close(); }
       });
-    });
+    }, { snapshotGate: true });
   } finally {
     await testInfo.attach('private-deletion-peer-recovery', { body: JSON.stringify(stages), contentType: 'application/json' });
     await profile.close();
