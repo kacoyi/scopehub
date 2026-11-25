@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T20:57:48.190845+00:00",
       "request_id": "170d6b5c2f30a32d9fe35fa485f2d85db919a7bee9ad40bf72a3d0ac5d3ab2b9",
       "evidence_sha256": "e17fc2f57647d38fdb90246f50661ebabcc3f85266457c88dd059e75289050af"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5617cc17147e3583528d2f2e4a056e70b9924fa6",
+      "verdict": "approved",
+      "decision": "APPROVE M0-152 5617cc17147e3583528d2f2e4a056e70b9924fa6",
+      "scope": "APPROVE M0-152 5617cc17147e3583528d2f2e4a056e70b9924fa6",
+      "observation": "In my Linux pipe replay, the child that exited with code 9 closed stdout after 20 ms, while the live silent and partial-response children reached the five-second deadline with zero and one pending bytes, respectively.",
+      "reviewer": "Independent Astra Standard (t10v)",
+      "original_sha256": "f501b34b004138990fe95f6a7604404d74ea037c8523903c275f4da502104e3d",
+      "response_id": "db730dbcf9ca782f6f9001356b6fc08b49b55d13b987f04060c3e590d758bfc1",
+      "response_sha256": "ffa5487c1b4b6a6dd1f893313d9237ca2a5cd5fa0cbdb09cc58afb32af54b95b",
+      "legacy_response_sha256": "6ec4df957cd96cdeec6b47dc0991206a6c4cc177e6ac9c26716cba931b3b6af0",
+      "observation_body_sha256": "495871fd8c0cc61ea8648fe65e7e13395a260405a1bbf49901bb9f544fc0dd2b",
+      "event": {
+        "id": "msg_09a82ffb2622b907016b074c96605487d09ebfe05c5f8dfe38",
+        "timestamp": "2026-11-25T21:01:26.784Z"
+      },
+      "supersedes": "170d6b5c2f30a32d9fe35fa485f2d85db919a7bee9ad40bf72a3d0ac5d3ab2b9",
+      "evidence_sha256": "1629dbfbc306f8882be02e1659bff5957c65205ec2c4918d3a3cb74ef940817a"
     }
   ]
 }
