@@ -20010,8 +20010,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Validate the opt-in command with real Git fixture history, a local GitHub CLI dispatch spy, and the archived M1-040 source pair. Obtain independent review before any publication.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-106-9210b74877b6f317.json",
+          "sha256": "4fd621d811f7c24da327c03e4614160fb66e1f955c63ab6de2e5fbda78847138"
+        }
+      ],
+      "next_action": "Review the exact candidate on independent main. Linux task checks and the archived M1-040 wrong and right source replay passed. The coordinator owns publication and a controlled authenticated dispatch, including checking the resulting run head.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
