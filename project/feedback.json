@@ -5267,7 +5267,7 @@
       "id": "desktop-origin-account-and-initial-recovery-review",
       "source": "Independent Astra Standard at d99800f and retained Windows host diagnostic.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "A database-only restore at the original path can claim a new-format identity from another account. An interrupted first commit can leave a hot rollback journal that fails every read-only preflight.",
       "task_ids": [
         "M5-006"
@@ -5283,7 +5283,11 @@
           "report_sha256": "561d938ea4d932d383aa6fc645ef7b1cb3efae8a1dde33a40dbf3acebe9ea7dc"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The initial transaction wrote the definitive main file before journal cleanup. An unanchored new identity proved only the original path.",
+        "correction": "Finish initial migration in a private same-directory file, synchronize its publication, and require matching origin account and path when replacing a fresh anchor.",
+        "prevention": "A bundled SQLite child leaves an actual hot journal. The recovery test compares retained bytes for staged and historical files, and the attribution controls exercise same-account success and foreign and unproven refusals."
+      },
       "deferral_reason": null
     }
   ]
