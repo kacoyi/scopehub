@@ -25300,7 +25300,7 @@
         }
       },
       "closure_reason": null,
-      "next_action": "Verify both two-writer readiness orders and the corrected console ownership on the ordinary task, then return for independent review.",
+      "next_action": "Obtain independent Astra review of Linux parallel pipe ownership, then retain the coordinator's ordinary native Windows verification.",
       "blocker": null,
       "evidence": [
         {
@@ -25318,6 +25318,10 @@
         {
           "path": "project/evidence/M0-138-a346aa3e0b83920d.json",
           "sha256": "cca1a1a7b31b975d41968fa60384d4312f2cfe95b3d04a98a07bce90c7315197"
+        },
+        {
+          "path": "project/evidence/M0-138-79bf4c14fb6811e8.json",
+          "sha256": "0082bc9b2ac1648006d6bd70dda129dbffa9ede503100f7df34619a222815830"
         }
       ]
     }
