@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T22:06:07.063189+00:00",
       "request_id": "8736c746405e929cc31724c252fbad21c09fc37039a6ecf2249dd8e19eed81ea",
       "evidence_sha256": "881ceca1b1d582455db728b30d83742e0d8666c87ab591371ed4b4ef9475b84f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "verdict": "approved",
+      "decision": "APPROVE M0-153 8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "scope": "APPROVE M0-153 8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "observation": "Across eight Linux runs of the same six cases, median combined setup time fell from 0.1623 to 0.0698 seconds and median total time rose from 2.6747 to 2.8515 seconds.",
+      "reviewer": "Independent Astra Standard (t10g)",
+      "original_sha256": "bcf9e0a03922b19ff1d79ba05f0a962ce4e568ff536fb3d5ea9250d6858fecb9",
+      "response_id": "83dd2a6f894268894178c129ece5e9ad2ee1d9eef98ac2ec359d6b8e1f73ec25",
+      "response_sha256": "0551c2930688eafdcb9fb48a3c4ae5039965e325c2c2b8e811c86db9c64af89e",
+      "legacy_response_sha256": "35331972c45073f10b9534e17e95cfdf24dbf42e5e3ef69875a79b2c6a025403",
+      "observation_body_sha256": "32811c546ad69495ea7b47284fcf8b3b8e7b384a0a1fa0f8e7d99ae0c5b52c2f",
+      "event": {
+        "id": "msg_0e41bdad099944c6016b075db0decc87d0909489ad56d9dda5",
+        "timestamp": "2026-11-25T22:14:29.710Z"
+      },
+      "supersedes": "8736c746405e929cc31724c252fbad21c09fc37039a6ecf2249dd8e19eed81ea",
+      "evidence_sha256": "71982cbbab8a378013134185969d643bc8f5b336e68967162d799f8daf6ef9d7"
     }
   ]
 }
