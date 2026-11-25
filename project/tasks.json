@@ -20116,8 +20116,13 @@
         "A retained read-only inventory using the development archive observes the three affected registrations with a sufficient explicit limit, records the report digest and distinguishes candidates, process visibility, observed activity and unresolved evidence."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "Retain the failing ignored-root intake regression, bound Git status parsing and initial sorting, run the required checks on the corrected source, and retain the read-only host inventory for coordinator review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-115-6305e120f6261f97.json",
+          "sha256": "5453c86f99f99c7f7ed06bf9133fe53f0d23c5fd9189f35ed0f1ab9912bec51e"
+        }
+      ],
+      "next_action": "Retain and classify the 200,000-entry read-only host capture initiated on 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a and hand off the separately verified correction for coordinator review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
