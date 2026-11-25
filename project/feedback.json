@@ -6984,6 +6984,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "peer-decision-note-observer-fallback-reply-deadline",
+      "source": "Independent Astra Standard changes requested on b97fb772e969b93d2ddffbfcf84d4caa5fccc6b0. Original response SHA-256 5d8d2068e5e7f17d85a290457399b336c8897d7f8acc31a1386bf66fba0c58ce. The retained review and provenance are at archives/observations/repo-hygiene-20261125/independent-final-m2-040-b97fb772.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The candidate observer received a retryable HTTP 429 and retried the same note-list request. Holding its admitted reply left the client pending at 16.136 seconds. The drawer stayed on Loading, disabled close, and offered no Reload. Releasing that reply completed the read. This controlled delivery failure is separate from the original revision-5 contention diagnostic.",
+      "task_ids": [
+        "M2-040"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

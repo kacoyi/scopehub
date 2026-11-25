@@ -25150,6 +25150,8 @@
       "scope": [
         "apps/desktop/ui/src/decision-notes.tsx",
         "apps/desktop/ui/src/decision-note-transport.ts",
+        "apps/desktop/ui/src/reply-deadline.ts",
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/research.json",
         "tests/ubuntu-preview/workspace.spec.mjs",
         "project/tasks.json",
         "project/feedback.json",
@@ -25162,7 +25164,8 @@
       "acceptance": [
         "Reproduce the observing window receiving committed revision 5, an unavailable deleted detail and a retryable busy reply for its fallback list. The initiating deletion commits exactly once.",
         "Return the observer to the current list after a recoverable read. Exercise continuing contention, nonretryable errors, cancellation and a new selection without replaying a mutation or showing the deleted content.",
-        "Preserve the initiating window\u2019s verified list retry and both windows\u2019 ability to recover. Run the actual paired-window workspace journey on Linux and Windows and retain the original failed trace."
+        "Preserve the initiating window\u2019s verified list retry and both windows\u2019 ability to recover. Run the actual paired-window workspace journey on Linux and Windows and retain the original failed trace.",
+        "Bound the observer fallback from its revision read through delivery of the list reply. A held genuine reply must release the drawer to Reload or close, and its later delivery must not replace a newer selection or a reopened drawer."
       ],
       "checks": [
         "ui-build",
@@ -25177,7 +25180,7 @@
           "report_sha256": "592eb378075891f4b7db92cfc672ca7a4d8b453e1dc05fa83171157a66e9879e"
         }
       ],
-      "next_action": "Review the verified observer-side read change independently and run the paired-window task on the native Windows candidate while retaining the original and local controls.",
+      "next_action": "Reproduce an admitted observer fallback that stays loading past its retry window, then bound its reply and retain the late delivery controls before independent review and native Windows.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25189,10 +25192,12 @@
           "apps/desktop/ui/src/decision-notes.tsx",
           "apps/desktop/ui/src/decision-note-transport.ts",
           "tests/ubuntu-preview/workspace.spec.mjs",
-          "archives/runs/20261125T181716.486623Z-e13b2103/test-report.json"
+          "archives/runs/20261125T181716.486623Z-e13b2103/test-report.json",
+          "apps/desktop/ui/src/reply-deadline.ts"
         ],
         "hypotheses": [
-          "The observer\u2019s fallback list read after an unavailable deleted detail can stop at one retryable refusal. Inspect the regular and manual recovery read owners and their deadline."
+          "The observer\u2019s fallback list read after an unavailable deleted detail can stop at one retryable refusal. Inspect the regular and manual recovery read owners and their deadline.",
+          "A retryable busy response starts the same request again, but the admission retry function only checks its budget after an exchange settles. The revision read and in-flight list response need a shared caller deadline."
         ],
         "risks": [
           {
@@ -25205,6 +25210,13 @@
           },
           {
             "failure": "A nonretryable refusal, closed drawer, newer selection or exhausted read deadline exposes old content or schedules further work.",
+            "checks": [
+              "workspace-timeframe",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A stalled admitted read holds the observer drawer open indefinitely, or a deadline or close lets an old list replace a newer decision note after the user recovers.",
             "checks": [
               "workspace-timeframe",
               "ui-build"
@@ -25235,7 +25247,8 @@
             "Changes to the committed note operation, database, authorization or shared writer admission policy."
           ],
           "open_questions": [
-            "Is the existing bounded same-request note read suitable for the observing window after the first detail returns unavailable?"
+            "Is the existing bounded same-request note read suitable for the observing window after the first detail returns unavailable?",
+            "Can the shared reviewed reply-deadline helper fence both the fallback snapshot and the same-request list without changing initiating or unrelated reads?"
           ]
         },
         "evolution": {
@@ -25244,7 +25257,8 @@
             "The initiating window\u2019s deletion receipt and single committed delete, manual reload, freshness checks, and the handling of denied access and stale confirmations."
           ],
           "change": [
-            "Restore a temporarily refused observer-side fallback list read within its existing observation deadline."
+            "Restore a temporarily refused observer-side fallback list read within its existing observation deadline.",
+            "Make the full observer fallback wait finite and allow a fresh reload or close while discarding late delivery."
           ],
           "data_plan": "Use paired synthetic note windows and per-run profiles. Preserve original reports and operation identifiers in the local diagnostic archive.",
           "cleanup": "Release observers, remove test profiles after retaining evidence and discard canceled or superseded reads."
