@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-131",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24030,7 +24030,7 @@
       "id": "M0-131",
       "title": "Bind Windows timing roles, partial clocks and cache evidence",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-130"
       ],
@@ -24055,10 +24055,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the four reviewed failures through project:timing, then apply the identity and cache corrections and replay all controls on the exact clean source.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-131-99ff011ac48bb558.json",
+          "sha256": "d8393fd5905e497642a585073bd7cacbbddfd0c60b007a459dc176bb300fcfe8"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Canonical Linux task run 20261125T112248.784943Z-299c3890 on fa4d434594e39c7725f2381440fb5400e2298e36 passed both required checks. The four public timing regressions are closed with exact red and green replay. The authenticated full sample retains 28 of 35 selected passes and 804 seconds, the producers retain their own clocks, and the records scope retains 4 of 4 and 166 seconds. The controlled clock dispute stays disputed after archive reopen, and conflicting cache evidence does not form a cache cohort. The previous M0-105 and M0-130 acceptance records and receipts are preserved.",
       "plan": {
         "outcome": "Each ordinary timing observation reflects its recorded scope, matching job identity and defensible cache evidence.",
         "change_types": [

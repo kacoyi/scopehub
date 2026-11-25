@@ -6509,14 +6509,18 @@
       "id": "timing-invalid-producer-scope-fills-protected-slot",
       "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-131"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Report projection trimmed invalid profile syntax into an unknown scope, while protected capture and the linked index inferred platform scope from the absence of a named producer.",
+        "correction": "Validate profile syntax before projection. Require one of the supported automatic profiles, a known platform and exact CI checkout identity for platform timing capture and the linked index.",
+        "prevention": "Real spaced and unknown producer reports give diagnostics while the authentic aggregate still qualifies. A legacy normalized unknown row leaves Windows capture missing and cannot enter the linked index. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
       "deferral_reason": null,
       "observation": "A trailing space on the actual browser producer profile loses the role during projection. The explicit CLI assigns the protected 804-second clock with no diagnostic. The same observation fills Windows capture with a real Linux sample, becomes indexable, and displaces the protected aggregate as a false full conflict. Unknown reserved profiles also require a diagnostic."
     },
@@ -6524,14 +6528,18 @@
       "id": "timing-producer-role-and-checkout-binding-is-ambiguous",
       "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-131"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Complete clock comparison omitted the job role. Producer binding also trusted the absence of a missing-identity flag instead of requiring a positive actual job identifier and matching checkout.",
+        "correction": "Bind by exact attempt, role and positive job ID. Compare role-bearing clock signatures for attempt selection and archive deduplication, and honor retained checkout evidence.",
+        "prevention": "The exact swapped-role replay gives the same conflict in both orders and after archive reopen. A null job ID or incompatible checkout gives no producer clock. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
       "deferral_reason": null,
       "observation": "Two complete Actions lists with intentionally swapped core and recovery roles select different recovery clocks depending on input order. The wrong result is 756 seconds instead of 321. A null compact browser job ID or an inconsistent report checkout can still deliver the 645-second browser clock."
     },
@@ -6539,14 +6547,18 @@
       "id": "timing-complementary-producer-clocks-are-order-dependent",
       "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-131"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "An incomplete attempt record replaced the previous record as a whole, losing independent producer observations.",
+        "correction": "Resolve compatible producer jobs across the retained attempt records and keep the complete protected clock decision separate.",
+        "prevention": "Either order of the complementary lists yields browser 645 seconds and recovery 321 seconds. The attempt remains unqualified for a platform timing objective. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
       "deferral_reason": null,
       "observation": "Two partial official job lists with complementary browser and recovery observations overwrite each other. The last list determines the only producer clock. Both named job observations must remain available without qualifying protected platform clocks."
     },
@@ -6554,14 +6566,18 @@
       "id": "timing-cache-provenance-is-lost-or-contradictory",
       "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-131"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Default discovery skipped compact siblings. Incomplete duplicate projections lost known cache metadata, and a platform cache vector was never checked against the authenticated producer measurements.",
+        "correction": "Require an exact harness projection for automatic compact enrichment. Merge compatible exact metadata across complete or incomplete projections, diagnose contradictory observed caches by producer role and remove disputed cache from dependent comparison cohorts.",
+        "prevention": "The official three samples retain partial in default and explicit compact intake. Both core input orders preserve partial. A warm contradiction retains the 804-second wall observation and enters no cache-dependent cohort. The authentic records control retains 4 passes and 166 seconds. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
       "deferral_reason": null,
       "observation": "Ordinary discovery leaves cache unknown despite matching compact siblings. An incomplete core raw plus compact observation changes cache with input order. A controlled warm aggregate remains in a warm cohort when authenticated browser and recovery cache observations say partial. Preserve applicable exact cache facts and label contradictions."
     }
