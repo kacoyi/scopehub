@@ -5,12 +5,15 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from tempfile import NamedTemporaryFile
 import time
 
 if __package__:
     from .process_tree import start_linux_check, stop_tree, wait_linux_check
 else:
     from process_tree import start_linux_check, stop_tree, wait_linux_check
+
+FAILED_LOG_LIMIT = 16 * 1024 * 1024
 
 WINDOWS_LAUNCHER = '''
 import subprocess, sys
@@ -116,6 +119,34 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
                 if job:
                     job.close()
     return exit_code, reason
+
+
+def seal_unconfirmed_log(path: Path) -> None:
+    """Publish a bounded snapshot on an inode unavailable to surviving writers."""
+    staged = None
+    try:
+        with path.open('rb') as capture, NamedTemporaryFile(dir=path.parent, delete=False) as snapshot:
+            staged = Path(snapshot.name)
+            size = os.fstat(capture.fileno()).st_size
+            remaining = min(size, FAILED_LOG_LIMIT)
+            omitted = size - remaining
+            if omitted:
+                capture.seek(omitted)
+                snapshot.write(f'[Log snapshot omitted {omitted} earlier bytes.]\n'.encode('ascii'))
+            while remaining:
+                chunk = capture.read(min(remaining, 256 * 1024))
+                if not chunk:
+                    snapshot.write(b'\n[Log snapshot ended before the captured extent.]\n')
+                    break
+                snapshot.write(chunk)
+                remaining -= len(chunk)
+        # Closing the staged file first confirms all bytes were written.
+        # A surviving descriptor still refers to the old, unlinked file.
+        staged.replace(path)
+        staged = None
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
 
 
 def log_tail(path, limit=6000):

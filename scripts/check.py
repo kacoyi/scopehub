@@ -2,6 +2,7 @@
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, wait
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
 import os
@@ -11,7 +12,7 @@ import shutil
 import signal
 import subprocess
 import sys
-from threading import Event, Lock
+from threading import Event, Lock, current_thread, main_thread
 import time
 from uuid import uuid4
 
@@ -26,7 +27,7 @@ else:
 try:
     if __package__:
         from .doctor import tool_version
-        from .processes import log_tail, run_logged
+        from .processes import log_tail, run_logged, seal_unconfirmed_log
         from .project import (
             ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project,
             local_feedback_history, product_progress, project_definition_hash, release_checks, source_identity,
@@ -39,7 +40,7 @@ try:
         )
     else:
         from doctor import tool_version
-        from processes import log_tail, run_logged
+        from processes import log_tail, run_logged, seal_unconfirmed_log
         from project import (
             ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project,
             local_feedback_history, product_progress, project_definition_hash, release_checks, source_identity,
@@ -96,6 +97,27 @@ def print_check(record):
         print(json.dumps(record), flush=True)
 
 
+@contextmanager
+def defer_finalization_sigint():
+    interrupted = False
+
+    def request_stop(_signum, _frame):
+        nonlocal interrupted
+        interrupted = True
+
+    # Overlapped runs already deliver signals through their cancellation
+    # callback. Preserve other callers' dispositions and worker threads.
+    own_handler = (current_thread() is main_thread()
+                   and signal.getsignal(signal.SIGINT) == signal.default_int_handler)
+    if own_handler:
+        signal.signal(signal.SIGINT, request_stop)
+    try:
+        yield lambda: interrupted
+    finally:
+        if own_handler:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+
+
 def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     started = time.monotonic()
     executable = shutil.which(argv[0])
@@ -109,21 +131,31 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     exit_code, reason = run_logged([executable, *argv[1:]], cwd=ROOT, env=env,
                                   log_path=os.devnull if private else log_path, timeout=timeout, cancel=cancel,
                                   contain_linux_tree=True)
-    if private:
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        log_path.write_bytes(redacted_check_log(exit_code))
+    with defer_finalization_sigint() as interrupted:
+        if private:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path.write_bytes(redacted_check_log(exit_code))
+        elif reason == 'cleanup_failed' and sys.platform == 'linux':
+            seal_unconfirmed_log(log_path)
+        log_sha256 = file_digest(log_path)
+        tail = log_tail(log_path) if exit_code != 0 or reason is not None or interrupted() else None
+    interrupted_finalization = interrupted() or (cancel is not None and cancel())
+    if interrupted_finalization and reason not in STOP_REASONS:
+        reason = 'interrupted'
     status = 'passed' if exit_code == 0 and reason is None else 'failed'
     if exit_code == 77 and reason is None and name in (RUN_OBSERVATION_CHECKS | FIELD_ACTIONS.keys()):
         status = 'blocked'
         reason = 'observation_unavailable'
     record = {'id': name, 'status': status, 'command': argv, 'exit_code': exit_code,
               'duration_seconds': round(time.monotonic() - started, 3), 'log': log_path.relative_to(ROOT).as_posix(),
-              'log_sha256': file_digest(log_path)}
+              'log_sha256': log_sha256}
     if reason:
         record['reason_code'] = reason
+    if interrupted_finalization:
+        record['reason'] = 'Interrupted while finalizing check diagnostics.'
     print_check(record)
-    if status == 'failed':
-        print_check({'id': name, 'log_tail': log_tail(log_path)})
+    if status == 'failed' and tail is not None:
+        print_check({'id': name, 'log_tail': tail})
     return record
 
 

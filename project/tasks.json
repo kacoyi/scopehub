@@ -24695,7 +24695,9 @@
         "Exercise the ordinary check execution entry with a detached listener and a distinct unowned listener. After normal exit, failure, cancellation and timeout, the owned listener can be rebound, the unrelated listener still replies and the original outcome is retained.",
         "Run the ordinary desktop localization check with the repository deadlines and a fresh port. Retain the original failed Linux report and the ownership and port observations.",
         "Verify the task checks and preserve the existing Linux market supervisor and Windows job behavior through the same public execution entry.",
-        "Require explicit supervisor confirmation of finished cleanup across parent SIGCHLD dispositions, and record a late interruption after bounded cleanup."
+        "Require explicit supervisor confirmation of finished cleanup across parent SIGCHLD dispositions, and record a late interruption after bounded cleanup.",
+        "Publish a bounded stable snapshot before digesting the ordinary log when Linux cleanup is unconfirmed. Keep the failed diagnosis and a verified retry independently resolvable.",
+        "Record an interrupt arriving during serial log finalization and preserve any existing cleanup failure. Retain the terminal row, durable run report and ordinary stop behavior."
       ],
       "checks": [
         "project-state",
@@ -24723,7 +24725,9 @@
         ],
         "hypotheses": [
           "Only the market recovery check requests the Linux subreaper. The ordinary localization launcher starts descendants in separate sessions, which survive process-group cleanup.",
-          "The early command result currently substitutes for cleanup evidence when the parent automatically reaps the supervisor. A late SIGINT can escape the final wait."
+          "The early command result currently substitutes for cleanup evidence when the parent automatically reaps the supervisor. A late SIGINT can escape the final wait.",
+          "A residual inherited writer can still mutate the original log inode after unconfirmed cleanup.",
+          "The serial digest and terminal result phase currently has no interrupt handling after the check runner returns."
         ],
         "risks": [
           {
@@ -24747,6 +24751,18 @@
           },
           {
             "failure": "A first interruption during teardown drops the check row or leaves owned descendants without confirming cleanup.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A live writer mutates published evidence, or continuous output, partial reads or interruption make the snapshot unbounded or misleading.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An interrupt during log finalization loses the terminal result, overwrites a cleanup failure, or allows a later selected check to start.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -24787,14 +24803,16 @@
           ],
           "change": [
             "Apply process-tree lifetime ownership at the Linux verification boundary that runs the affected commands.",
-            "Separate command readiness from final cleanup confirmation, and complete bounded teardown after a late interruption."
+            "Separate command readiness from final cleanup confirmation, and complete bounded teardown after a late interruption.",
+            "Detach the published diagnostic inode from unconfirmed Linux output writers while retaining the existing archive bindings.",
+            "Carry a serial finalization interrupt into the ordinary check result and run report."
           ],
           "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
           "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
         }
       },
       "closure_reason": null,
-      "next_action": "Obtain independent review of the cleanup confirmation and bounded interruption handling, then retain native Windows Job Object and ordinary desktop localization results.",
+      "next_action": "Reproduce each independently observed evidence failure, retain the original observations, and verify the corrected source and separate retry.",
       "blocker": null,
       "evidence": [
         {

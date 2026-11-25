@@ -6862,6 +6862,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "linux-unconfirmed-cleanup-log-remains-writable-after-report",
+      "source": "Astra Standard t10k on 771d2071eff1b9215df7808cf1f51a9897334f07. Original text: archives/observations/repo-hygiene-20261125/independent-final-m0-138-771d2071/final-response.txt (SHA-256 07417c896fa8f2810ee7644e12d106547cd766e263ae7b2b39b7f9f64ee7ead8). Original assistant response JSONL SHA-256 33a5a4a32d39546ef5af753e7fdbe86c06872bb036284f871d90cc7ee07c1378.",
+      "severity": "major",
+      "status": "open",
+      "observation": "An owned detached descendant kept an inherited stdout handle after a disposable supervisor hit EMFILE. The check correctly reported cleanup_failed. The descendant then appended 34 bytes after execute returned, invalidating the recorded SHA-256 under both tested SIGCHLD dispositions. The retry used its own log and did not restore integrity of the failed report.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "serial-check-sigint-during-log-digest-drops-terminal-report",
+      "source": "Astra Standard t10k on 771d2071eff1b9215df7808cf1f51a9897334f07. Original text: archives/observations/repo-hygiene-20261125/independent-final-m0-138-771d2071/final-response.txt (SHA-256 07417c896fa8f2810ee7644e12d106547cd766e263ae7b2b39b7f9f64ee7ead8). Original assistant response JSONL SHA-256 33a5a4a32d39546ef5af753e7fdbe86c06872bb036284f871d90cc7ee07c1378.",
+      "severity": "major",
+      "status": "open",
+      "observation": "One standard SIGINT reached the serial caller while hashing a 16 MiB check log after normal command exit and confirmed cleanup. KeyboardInterrupt escaped with only the running row. The same observation was reproduced on the reviewed protected main ae479debd911ae79ffbf74f6208b288f00710978. This occurs without a residual output writer or an unconfirmed cleanup.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

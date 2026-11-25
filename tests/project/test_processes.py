@@ -23,6 +23,9 @@ import venv
 
 from scripts import check as harness
 from scripts import doctor
+from scripts.diagnostic_archive import diagnostic_locator, resolve_diagnostic
+from scripts.project import json_bytes, read_json
+from tests.project.test_continuity import ProjectFixture
 from scripts import prepare_workspace_profile_pool, process_tree, processes
 
 
@@ -68,6 +71,23 @@ class ProcessTests(unittest.TestCase):
         self.assertIn(b'Check stopped: timeout', log)
         self.assertEqual(result['log_sha256'], hashlib.sha256(log).hexdigest())
         path.unlink()
+
+    @unittest.skipUnless(sys.platform == 'linux', 'requires replacement of an open log inode')
+    def test_unconfirmed_log_caps_output_and_marks_a_short_snapshot(self):
+        path = self.root / 'check.log'
+        with path.open('w+b', buffering=0) as writer:
+            writer.write(b'early output ' + b'z' * 16)
+            with patch.object(processes, 'FAILED_LOG_LIMIT', 16):
+                processes.seal_unconfirmed_log(path)
+            writer.write(b'late output')
+            self.assertEqual(b'[Log snapshot omitted 13 earlier bytes.]\n' + b'z' * 16, path.read_bytes())
+
+        original_stat = os.fstat
+        path.write_bytes(b'available')
+        with patch.object(processes.os, 'fstat',
+                          side_effect=lambda fd: SimpleNamespace(st_size=original_stat(fd).st_size + 5)):
+            processes.seal_unconfirmed_log(path)
+        self.assertEqual(b'available\n[Log snapshot ended before the captured extent.]\n', path.read_bytes())
 
     @unittest.skipUnless(sys.platform == 'linux', 'requires Linux sessions and child reaping')
     def test_public_browser_check_owns_detached_listener_on_every_exit(self):
@@ -235,6 +255,11 @@ with open(name + '.lock', 'w') as handle:
     Path(name + '.pid').write_text(str(os.getpid()))
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline and not Path(name + '-stop').exists():
+        if name == 'owned' and Path('write-after-return').exists() and not Path('did-write').exists():
+            os.lseek(1, 0, os.SEEK_END)
+            written = os.write(1, b'late bytes through inherited stdout')
+            Path('did-write.tmp').write_text(str(written))
+            Path('did-write.tmp').replace('did-write')
         time.sleep(.02)
 '''
         command = '''
@@ -349,6 +374,13 @@ raise SystemExit(int(sys.argv[2]))
                 cleanup.callback(finish_fixture)
                 controller = cleanup.enter_context(ThreadPoolExecutor(max_workers=1))
                 ready = controller.submit(release_reaping)
+                digest_log = harness.file_digest
+
+                def digest_with_late_sigint(path):
+                    if mode == 'failure':
+                        signal.raise_signal(signal.SIGINT)
+                    return digest_log(path)
+
                 previous_interrupt = signal.signal(signal.SIGINT, signal.default_int_handler)
                 child_disposition = signal.SIG_IGN if mode.startswith('ignored-') else signal.SIG_DFL
                 previous_child = signal.signal(signal.SIGCHLD, child_disposition)
@@ -357,6 +389,7 @@ raise SystemExit(int(sys.argv[2]))
                           patch.object(process_tree, '__file__', str(shim)),
                           patch.object(processes, 'stop_tree', stop_for_fixture),
                           patch.object(subprocess.Popen, 'kill', interrupt_fallback),
+                          patch.object(harness, 'file_digest', digest_with_late_sigint),
                           redirect_stdout(StringIO())):
                         result = harness.execute(
                             'desktop-localization', [sys.executable, '-c', command, worker,
@@ -379,6 +412,19 @@ raise SystemExit(int(sys.argv[2]))
                 if mode.endswith('failure'):
                     self.assertIn(f'[Errno {errno.EMFILE}]'.encode('ascii'), log)
                     self.assertFalse(lock_is_free(work / 'owned.lock'), 'this failure must leave cleanup unconfirmed')
+                    if mode == 'failure':
+                        self.assertEqual('Interrupted while finalizing check diagnostics.', result.get('reason'))
+                    sealed = work / result['log']
+                    (work / 'write-after-return').touch()
+                    self.assertEqual(len(b'late bytes through inherited stdout'), self.read_live_pid(work / 'did-write'))
+                    with patch.object(harness, 'ROOT', work), redirect_stdout(StringIO()):
+                        retry = harness.execute('desktop-localization', [sys.executable, '-c', 'print("verified retry")'],
+                                                dict(os.environ), work / '.reports/retry', 8)
+                    self.assertEqual('passed', retry['status'])
+                    self.assertNotEqual(result['log'], retry['log'])
+                    self.assertEqual(b'verified retry\n', (work / retry['log']).read_bytes())
+                    self.assertEqual(log, sealed.read_bytes(), 'an inherited writer changed the finished log')
+                    self.assertEqual(result['log_sha256'], hashlib.sha256(sealed.read_bytes()).hexdigest())
                 else:
                     if mode == 'partial-confirmation':
                         self.assertIn(b'did not confirm cleanup', log)
@@ -769,3 +815,96 @@ time.sleep(30)
         self.assertEqual('failed', result['status'])
         self.assertTrue(any(error.startswith('uv: expected ') and error.endswith(', observed uv 0.12.24')
                             for error in result['errors']))
+
+
+class LogFinalizationTests(ProjectFixture):
+    @unittest.skipUnless(sys.platform == 'linux', 'requires standard serial POSIX SIGINT delivery')
+    def test_serial_sigint_while_digesting_keeps_terminal_report_and_retry(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        by_id = {row['id']: row for row in catalog['checks']}
+        by_id['project-state']['command'] = [
+            '{python}', '-c', 'import sys; sys.stdout.buffer.write(b"x" * (16 * 1024 * 1024))',
+        ]
+        by_id['rust-lints']['command'] = ['{python}', '-c', 'print("selected later check")']
+        catalog_path.write_bytes(json_bytes(catalog))
+        subprocess.run(['git', 'add', '.'], cwd=self.root, check=True, capture_output=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org',
+                        'commit', '-m', 'Disposable log finalization controls'],
+                       cwd=self.root, check=True, capture_output=True)
+        reports = self.root / '.reports'
+        interrupt_pending = True
+        sent = False
+        original_digest = harness.file_digest
+        default_handler = signal.signal(signal.SIGINT, signal.default_int_handler)
+        self.addCleanup(signal.signal, signal.SIGINT, default_handler)
+
+        def digest_with_test_signal(path):
+            if path.name != 'project-state.log' or not interrupt_pending:
+                return original_digest(path)
+
+            class LogReader:
+                def __init__(self, stream):
+                    self.stream = stream
+
+                def readable(self):
+                    return True
+
+                def readinto(self, buffer):
+                    nonlocal sent
+                    count = self.stream.readinto(buffer)
+                    if count and not sent:
+                        sent = True
+                        signal.raise_signal(signal.SIGINT)
+                    return count
+
+            self.assertEqual(16 * 1024 * 1024, path.stat().st_size)
+            with path.open('rb') as stream:
+                return hashlib.file_digest(LogReader(stream), 'sha256').hexdigest()
+
+        def run():
+            console = StringIO()
+            with (patch.object(harness, 'ROOT', self.root), patch.object(harness, 'REPORTS', reports),
+                  patch.object(harness, 'tool_version', return_value='fixture'),
+                  patch.object(harness, 'maintain_automatically'),
+                  patch.object(harness, 'file_digest', digest_with_test_signal),
+                  patch.object(sys, 'argv', ['check.py', '--task', 'M0-001']),
+                  redirect_stdout(console)):
+                try:
+                    with self.assertRaises(SystemExit) as terminal:
+                        harness.main()
+                except KeyboardInterrupt:
+                    self.fail(f'SIGINT escaped serial finalization: {console.getvalue()}')
+            return terminal.exception.code, [json.loads(line) for line in console.getvalue().splitlines()]
+
+        code, transcript = run()
+        self.assertEqual(1, code)
+        self.assertTrue(sent)
+        failed_latest = (reports / 'test-report.json').read_bytes()
+        failed_report = json.loads(failed_latest)
+        rows = {row['id']: row for row in failed_report['checks']}
+        interrupted = rows['project-state']
+        self.assertEqual(('failed', 'interrupted'), (interrupted['status'], interrupted.get('reason_code')))
+        self.assertEqual('earlier_failure', rows['rust-lints']['reason_code'])
+        self.assertEqual([interrupted], [row for row in transcript if row.get('id') == 'project-state' and 'log_sha256' in row])
+        self.assertEqual(1, sum(row.get('id') == 'project-state' and row.get('status') == 'running' for row in transcript))
+
+        failed_path = reports / 'runs' / failed_report['run_id'] / 'test-report.json'
+        self.assertEqual(failed_latest, failed_path.read_bytes())
+        interrupted_log = self.root / interrupted['log']
+        self.assertEqual(interrupted['log_sha256'], original_digest(interrupted_log))
+        interrupt_pending = False
+        retry_code, _ = run()
+        self.assertEqual(0, retry_code)
+        retry = read_json(reports / 'test-report.json')
+        self.assertNotEqual(failed_report['run_id'], retry['run_id'])
+        self.assertEqual(failed_latest, failed_path.read_bytes())
+        self.assertEqual(interrupted['log_sha256'], original_digest(interrupted_log))
+        resolved = resolve_diagnostic(diagnostic_locator(failed_path), reports)
+        self.assertEqual('failed', resolved['recorded_status'])
+        self.assertEqual('failed', resolved['selected_check_statuses']['project-state'])
+        self.assertIn('project-state', resolved['verified_logs'])
+        retry_path = reports / 'runs' / retry['run_id'] / 'test-report.json'
+        verified_retry = resolve_diagnostic(diagnostic_locator(retry_path), reports)
+        self.assertEqual('passed', verified_retry['recorded_status'])
+        self.assertEqual(resolved['source_commit'], verified_retry['source_commit'])
