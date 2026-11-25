@@ -24246,7 +24246,8 @@
         "scripts/check.py",
         "scripts/ci_artifacts.py",
         "scripts/project.py",
-        "scripts/verification_scope.py"
+        "scripts/verification_scope.py",
+        "tests/project/test_verification_scheduling.py"
       ],
       "decision_refs": [
         "0004",
@@ -24262,14 +24263,16 @@
         "Separate job identity from observed fields. Missing fields enrich from matching known values, two known disagreements affect the dependent result, and independent job and platform observations remain usable.",
         "A producer dispute does not prevent ordinary protected platform backfill and indexing. An exactly matching producer can supply one unknown component of an existing aggregate cache vector.",
         "Complete attempt evidence establishes protected membership. All grounded evidence for the same identified job participates in clock reconciliation and dependent producer, platform and budget projections, even when an unrelated job is absent.",
-        "A producer supplies cache evidence only for the matching publisher-derived harness and Windows x64 identity in addition to exact attempt, checkout, input digest and selected result measurements. Preserve independent wall duration."
+        "A producer supplies cache evidence only for the matching publisher-derived harness and Windows x64 identity in addition to exact attempt, checkout, input digest and selected result measurements. Preserve independent wall duration.",
+        "Identify measurements by attempt, authenticated job role and platform, and the interval or layout that defines the metric. A single job duration cannot fill an aggregate measurement. Reconciled member facts, including complementary complete listings, govern capture and reopen readiness.",
+        "Use native publisher lane selection for producer qualification, and bind split protected full reports to the publisher harness and Windows x64. Independent valid harness observations remain available."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reproduce both third-round findings, verify shared job facts and publisher identity across real private capture and normal timing commands, and retain an exact local report for independent review.",
+      "next_action": "Verify typed Windows measurements, complementary capture and shared publisher associations against the independent findings and the exact local harness.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24284,7 +24287,8 @@
           "archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt",
           "archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt",
           "scripts/ci_artifacts.py",
-          "scripts/verification_scope.py"
+          "scripts/verification_scope.py",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt"
         ],
         "hypotheses": [
           "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes.",
@@ -24335,6 +24339,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Job identity matches while measurement units, publishing layout, or shard selection differ. Reconcile same-unit facts and enforce publisher identity on all timing read paths. Check two, five and six-job historic shapes and scoped core-only reports, incompatible claims, complementary clocks and bounded persisted restart.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
@@ -24359,7 +24370,8 @@
             "Keep the existing archive format; reject a candidate that cannot be read within the shared limit rather than introducing a storage migration.",
             "Use the attempt and job owner for an exact known-value union; use independently matched checks and digest for cache component authority.",
             "Compare extending the aggregate reconciler with deriving producer and protected views from one set of normalized job facts. Use complete membership without discarding grounded partial fields, and preserve the current compact archive format.",
-            "Reuse the existing publisher run ID and Windows x64 functions in both publication and retrospective cache attribution."
+            "Reuse the existing publisher run ID and Windows x64 functions in both publication and retrospective cache attribution.",
+            "For v1 retained clocks, direct job end and tail facts are comparable across lists showing the same job; aggregate stages need positive layout evidence. Keep the archive format and reuse the publisher native lane selector."
           ]
         },
         "evolution": {

@@ -6795,6 +6795,66 @@
       "resolution": null,
       "deferral_reason": null,
       "observation": "Importing the Windows lane identity helper at harness startup caused the isolated malformed-ledger recovery check to report an unrelated missing module before reaching ledger validation. The helper is used only after Windows split verification is selected."
+    },
+    {
+      "id": "timing-single-job-votes-as-split-windows-measurement",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "An unmarked protected-only Windows observation contradicts valid multi-lane measurements or fills their missing runner work with the independent 46-second job runtime. The actual four-lane sum is 2467 seconds."
+    },
+    {
+      "id": "timing-complementary-clocks-exhaust-automatic-capture",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "A full pair with opposite missing harness completions reconciles to Linux 680 seconds and Windows 760 seconds but stored capture still reports partial and exhausts its retry allowance."
+    },
+    {
+      "id": "timing-producer-role-ignores-native-check-membership",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Renaming a recovery-only market-recovery artifact to the browser profile assigns the browser job clock and classifies the Windows aggregate cache through explicit, discovered and reopened reports."
+    },
+    {
+      "id": "timing-protected-split-clock-attaches-to-wrong-harness-or-arch",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "The baseline and reviewed candidate give the split-Windows x64 aggregate job 804 seconds of protected timing to reports that change their own architecture or publisher harness ID."
     }
   ]
 }
