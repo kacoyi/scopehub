@@ -7066,6 +7066,93 @@
       },
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-composed-recovery-selection",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1). Original exact-source failed report: .reports/runs/20261125T192346.344910Z-fec7c225/test-report.json.",
+      "observation": "The exact combined source ran 804 Python tests with one failure and four skips. The regression fixture still expected only market-recovery, while reviewed M0-139 also assigns market-recovery-ui to recovery. Prove that both checks execute exactly once and preserve their outcomes.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T192346.344910Z-fec7c225",
+          "source_commit": "8adbc265e010e6b8b49306ffe818838dcea543b1",
+          "report_sha256": "63fc5e16598c43b4128c5cb86c2f1388a72cbad90632b396f890f9189266b5e3"
+        }
+      ]
+    },
+    {
+      "id": "windows-python-raw-log-verdict-mismatch",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "A genuine archived unittest import failure with two tests and FAILED (errors=1) replaced an otherwise successful part log with its correct digest. Staging accepted it and emitted exit 0, Ran 801 tests and OK (skipped=4) while retaining the RuntimeError. Reconcile ordered raw outcomes, test totals, skips, and verdict before accepting either part.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-published-selection-and-summary-mismatch",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "Staging published a passing full Windows PR with the Python check absent from selection, including an empty selection. A separately reconstructed failed Python timeout row also published under a passing top-level verdict. Bind the full selected catalog, unique ordered rows and aggregate verdict to the native event.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-contradictory-process-clocks",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "The independent staging comparison kept two real unittest logs, manifests and digests that recorded 94.689 s and 20.834 s. Setting both outer process durations to zero still published Ran 801 tests in 0.000s. Validate process and runner duration bounds and source clocks before applying the shared timeout.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-discovery-boundary-without-cases",
+      "source": "Exact independent Astra Standard review of 8adbc265e010e6b8b49306ffe818838dcea543b1 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt (SHA-256 ea1f5ba88c7bd534e041ae12bec8b20858e6646e534715609a303c01bebd9af2; raw response SHA-256 12233b871b0de8a08847ad165cb2eb39beff0a2399f3a6c88cac2893c5c186e1).",
+      "observation": "Actual serial discovery retains the ImportError when tests.project cannot import and passes both adjacent tests when the boundary module supplies no cases. Both candidate parts instead failed early without recording those discovered outcomes. Partition by module position, preserving original loader IDs and allowing an empty side with complete evidence.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

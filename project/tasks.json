@@ -25502,7 +25502,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Review the local Windows Python partition and combine it with the independently reviewed M0-139 assignment. The coordinator owns a new successful ordinary full warm Windows PR with matching 35 selected outcomes and no more than 900 seconds elapsed. Keep the finding active while that observation is pending.",
+      "next_action": "Repair the five exact-source review findings and verify positive and rejected original artifacts through the full Windows publishing path. Validate the ordinary task on the combined candidate against both parents. The coordinator owns the next authentic full warm Windows PR after independent review.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -25533,6 +25533,7 @@
           "tooling"
         ],
         "context": [
+          "Exact independent review 8adbc265: archives/observations/repo-hygiene-20261125/independent-final-m0-146-8adbc265/final-response.txt.",
           "scripts/check.py",
           "scripts/project.py",
           "tests/project",
@@ -25550,6 +25551,41 @@
           "PR123 remained over budget at 975 elapsed seconds. Delivery, worktree retirement and integration consumed 232.050, 160.237 and 92.257 seconds of test durations. The measured local representative fixtures started 515, 11 and 454 direct children respectively. The worktree result includes two isolated interpreters and excludes their own child commands. Moving the contiguous 117 timed native cases from verification scope through the end of discovery accounts for 264.024 seconds of original measured work. Retain calibration and workflow evidence instead of assuming a Windows speedup."
         ],
         "risks": [
+          {
+            "failure": "The exact combined source ran 804 Python tests with one failure and four skips. The regression fixture still expected only market-recovery, while reviewed M0-139 also assigns market-recovery-ui to recovery. Prove that both checks execute exactly once and preserve their outcomes.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A genuine archived unittest import failure with two tests and FAILED (errors=1) replaced an otherwise successful part log with its correct digest. Staging accepted it and emitted exit 0, Ran 801 tests and OK (skipped=4) while retaining the RuntimeError. Reconcile ordered raw outcomes, test totals, skips, and verdict before accepting either part.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Staging published a passing full Windows PR with the Python check absent from selection, including an empty selection. A separately reconstructed failed Python timeout row also published under a passing top-level verdict. Bind the full selected catalog, unique ordered rows and aggregate verdict to the native event.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The independent staging comparison kept two real unittest logs, manifests and digests that recorded 94.689 s and 20.834 s. Setting both outer process durations to zero still published Ran 801 tests in 0.000s. Validate process and runner duration bounds and source clocks before applying the shared timeout.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Actual serial discovery retains the ImportError when tests.project cannot import and passes both adjacent tests when the boundary module supplies no cases. Both candidate parts instead failed early without recording those discovered outcomes. Partition by module position, preserving original loader IDs and allowing an empty side with complete evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
           {
             "failure": "A reduced time comes from missing, duplicated, reordered stateful, or incorrectly aggregated tests, or from changed fault, interrupt and retry behavior.",
             "checks": [
