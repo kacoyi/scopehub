@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-121",
   "tasks": [
     {
       "id": "M0-001",
@@ -21421,7 +21421,7 @@
       "id": "M0-121",
       "title": "Isolate Actions diagnostic regression from local timing history",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-111"
       ],
