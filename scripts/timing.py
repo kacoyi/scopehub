@@ -1,6 +1,7 @@
 """Review retained verification timings or explicitly inspect a GitHub Actions run."""
 
 import argparse
+from ast import literal_eval
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from functools import cache
@@ -69,6 +70,11 @@ COMPACT_LIMIT = 128 * 1024
 TIMING_READ_LIMIT = 2 * 1024 * 1024
 MANUAL_ARCHIVE_LIMIT = 16 * 1024 * 1024
 REVIEW_READ_LIMIT = 64 * 1024 * 1024
+QUOTED_FILENAME = r"""(?:'(?:[^'\\\r\n]|\\.)*'|"(?:[^"\\\r\n]|\\.)*")"""
+LEGACY_FILE_ERROR = re.compile(
+    rf'(?P<message>\[(?:Errno|WinError) \d+\] [^\r\n]+?): '
+    rf'(?P<source>{QUOTED_FILENAME})(?: -> (?P<target>{QUOTED_FILENAME}))?\Z'
+)
 GENERATED_CHECK = 'generated-contracts'
 GENERATED_COMMAND = ['{python}', 'scripts/generate_contracts.py', '--check']
 GENERATOR_VERSIONS = {
@@ -387,10 +393,14 @@ def has_windows_producers(siblings):
             and all(job['platform'] == 'Windows' and job['runner_label'] == 'windows-latest' for job in named))
 
 
-def hosted_timing(run, jobs):
-    """Derive clock intervals from an exact Actions attempt and its actual job topology."""
+def require_verification_workflow(run):
     if run.get('path', WORKFLOW) != WORKFLOW or run.get('name', 'Verify delivery') != 'Verify delivery':
         raise TimingError('Expected the ScopeHub verification workflow')
+
+
+def hosted_timing(run, jobs):
+    """Derive clock intervals from an exact Actions attempt and its actual job topology."""
+    require_verification_workflow(run)
     repository = run.get('repository', {}).get('full_name')
     if not repository:
         match = re.fullmatch(r'https://github\.com/([\w.-]+/[\w.-]+)/actions/runs/\d+', run.get('html_url', ''))
@@ -1255,25 +1265,42 @@ def input_error(error):
     return (error.strerror or type(error).__name__) if isinstance(error, OSError) else str(error)
 
 
+def timing_filename(path):
+    return path.replace('\\', '/').rsplit('/', 1)[-1]
+
+
+def sanitize_legacy_file_error(error):
+    # Old --actions diagnostics could name the jobs input but quote the run input in the exception.
+    match = LEGACY_FILE_ERROR.fullmatch(error)
+    if match is None:
+        return error
+    try:
+        names = [repr(timing_filename(literal_eval(path))) for path in (match['source'], match['target']) if path]
+    except (SyntaxError, ValueError):
+        return match['message']
+    return f"{match['message']}: {' -> '.join(names)}"
+
+
 def collection_issue(note, label):
-    issue = {**note, 'file': label}
+    issue = {**note, 'file': label, 'error': sanitize_legacy_file_error(note['error'])}
     # Older manual archives may have saved the writer's absolute input path.
     for field in ('path', 'file'):
         if isinstance(location := note.get(field), str) and location:
-            name = location.replace('\\', '/').rsplit('/', 1)[-1]
+            name = timing_filename(location)
             issue['error'] = issue['error'].replace(location, name)
             if field == 'path':
                 issue[field] = name
     return issue
 
 
-def archive_inputs(data, label, issues, *, collection_issues=True):
-    samples = admitted_records(data.get('samples'), valid_sample, f'timing sample in {label}', issues)
-    hosted = admitted_records(data.get('hosted'), valid_clock, f'attempt clock in {label}', issues)
+def archive_inputs(data, label, issues, *, collection_issues=True, validation_issues=None):
+    invalid = issues if validation_issues is None else validation_issues
+    samples = admitted_records(data.get('samples'), valid_sample, f'timing sample in {label}', invalid)
+    hosted = admitted_records(data.get('hosted'), valid_clock, f'attempt clock in {label}', invalid)
     if collection_issues:
         notes = admitted_records(data.get('input_issues', []),
                                  lambda note: labels(note, ('error',)) and isinstance(note['error'], str),
-                                 f'collection issue in {label}', issues)
+                                 f'collection issue in {label}', invalid)
         failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success' and clock_capture_complete(clock)
                   and failed_capture_is_complete(clock, samples, hosted)}
         issues.extend(collection_issue(note, label) for note in notes
@@ -1713,8 +1740,39 @@ def save_review_archive(path, archive):
                     raise TimingError('Review archive exceeds the manual timing archive limit.')
                 output.write(encoded)
             output.write(b'\n')
+        identity = staged.stat()
         # Publish a complete file with create-only semantics, even if another writer raced us.
         os.link(staged, path)
+        return identity
+
+
+def append_review_summary(path, contents, *, archive=None, archive_identity=None):
+    with path.open('a', encoding='utf-8') as output:
+        if archive_identity is not None:
+            summary_identity = os.fstat(output.fileno())
+            if (os.path.samestat(summary_identity, archive_identity)
+                    or os.path.samestat(summary_identity, archive.stat())):
+                raise TimingError('The review archive and job summary must use different files.')
+        output.write(contents)
+
+
+def validate_actions_run(run):
+    if (not isinstance(run, dict) or not positive_id(run.get('id'))
+            or not isinstance(run.get('repository', {}), dict)
+            or any(run.get(key) is not None and not isinstance(run[key], str)
+                   for key in ('event', 'head_sha', 'html_url', 'status', 'conclusion'))):
+        raise TimingError('Expected an Actions run record.')
+    require_verification_workflow(run)
+
+
+def actions_jobs(data):
+    jobs = data.get('jobs') if isinstance(data, dict) else data
+    if not isinstance(jobs, list) or not all(
+            isinstance(job, dict) and isinstance(job.get('name'), str)
+            and isinstance(job.get('steps', []), list)
+            and all(isinstance(step, dict) for step in job.get('steps', [])) for job in jobs):
+        raise TimingError('Expected a list of Actions job records.')
+    return jobs
 
 
 def main():
@@ -1756,30 +1814,50 @@ def main():
                 if data.get('kind') == ARCHIVE_KIND:
                     if not isinstance(data.get('samples'), list) or not isinstance(data.get('hosted'), list):
                         raise TimingError('Expected a timing archive with sample and clock lists.')
-                    archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
+                    if data.get('recent_collection') is not None and not isinstance(data['recent_collection'], dict):
+                        raise TimingError('Expected a timing archive collection record.')
+                    invalid = []
+                    archive_samples, archive_hosted = archive_inputs(data, path.name, issues, validation_issues=invalid)
+                    if invalid:
+                        issues.extend(invalid)
+                        explicit_input_failed |= args.report is not None
                     samples.extend(archive_samples)
                     workflows.extend(archive_hosted)
                     recent = data.get('recent_collection') or recent
+                elif data.get('kind') == SAMPLE_KIND:
+                    if not valid_sample(data):
+                        raise TimingError('Invalid timing sample.')
+                    samples.append(data)
+                elif 'kind' in data:
+                    raise TimingError('Unexpected timing input kind.')
                 else:
-                    samples.append(data if data.get('kind') == SAMPLE_KIND else report_sample(data))
+                    checks = data.get('checks')
+                    if (not short_label(data.get('run_id')) or not isinstance(checks, list)
+                            or not all(isinstance(check, dict) and short_label(check.get('id'))
+                                       and short_label(check.get('status')) for check in checks)):
+                        raise TimingError('Expected a harness report with run identity and checks.')
+                    samples.append(report_sample(data))
             except (OSError, *TIMING_INPUT_ERRORS) as error:
-                explicit_input_failed = args.report is not None
+                explicit_input_failed |= args.report is not None
                 issues.append({'file': path.name, 'error': input_error(error)})
                 if not read_budget.remaining:
                     break
         for run_path, jobs_path in args.actions or []:
+            path = run_path
             try:
                 run = read_bounded_timing(run_path, budget=read_budget)
-                jobs = read_bounded_timing(jobs_path, budget=read_budget)
-                workflows.append(hosted_timing(run, jobs if isinstance(jobs, list) else jobs['jobs']))
+                validate_actions_run(run)
+                path = jobs_path
+                jobs = actions_jobs(read_bounded_timing(jobs_path, budget=read_budget))
+                workflows.append(hosted_timing(run, jobs))
             except (OSError, *TIMING_INPUT_ERRORS) as error:
                 explicit_input_failed = True
-                issues.append({'file': jobs_path.name, 'error': input_error(error)})
+                issues.append({'file': path.name, 'error': input_error(error)})
                 if not read_budget.remaining:
                     break
         if args.save and explicit_input_failed:
             print(json.dumps({'input_issues': issues}, indent=2))
-            parser.exit(1, 'Could not save the review because an explicit timing input could not be read.\n')
+            parser.exit(1, 'Could not save the review because an explicit timing input was incomplete or invalid.\n')
         if args.run or args.recent is not None:
             repository = hosted_repository(args.github_actions)
         if args.run:
@@ -1792,12 +1870,13 @@ def main():
         feedback = read_json(ROOT / 'project/feedback.json')['items']
         view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
-        if args.summary:
-            with args.summary.open('a', encoding='utf-8') as output:
-                output.write(review_summary(view))
+        archive_identity = None
         if args.save:
-            save_review_archive(args.save, {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
-                                            'recent_collection': recent, 'input_issues': issues})
+            archive_identity = save_review_archive(
+                args.save, {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
+                            'recent_collection': recent, 'input_issues': issues})
+        if args.summary:
+            append_review_summary(args.summary, review_summary(view), archive=args.save, archive_identity=archive_identity)
         print(json.dumps(view, indent=2))
     except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
         parser.exit(1, f'Timing inspection failed: {input_error(error)}\n')

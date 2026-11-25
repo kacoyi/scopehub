@@ -20015,7 +20015,7 @@
           "sha256": "64cc2a4a7fab89f0798b4e07822b952ea30b1ce1c4bbbd0c274a465cbde09d8e"
         }
       ],
-      "next_action": "Review the independent candidate and its Linux task receipt. The original review archive round-trip and a damaged copy were verified offline. Obtain matching Windows verification of bounded reads and atomic archive creation.",
+      "next_action": "Qualify the supplemental archive admission, legacy diagnostic and summary alias regressions. Retain the original platform receipts under their previous task definition.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20040,6 +20040,24 @@
           },
           {
             "failure": "Malformed or oversized input consumes unbounded resources, exposes a local path, or leaves a partial destination.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "One invalid record in any explicitly selected input is silently dropped and a partial archive is published.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An Actions diagnostic attributes failure to its peer input or exposes the original input directory.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A summary append changes an existing or newly published archive through a hardlink, alias or destination race.",
             "checks": [
               "python-contracts-workers"
             ]

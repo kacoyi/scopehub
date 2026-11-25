@@ -5201,6 +5201,51 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "explicit-timing-save-drops-structural-errors",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "An explicit save succeeded after dropping an invalid sample or clock from the real review archive. An unknown kind below the compact cap could also be accepted as an empty harness report.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-misattributed-path-diagnostic",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "An Actions run-file read error was attributed to its jobs file. Reopening a legacy record with those different paths still exposed the actual run-file path in the error.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-summary-alias-mutates-archive",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "A job summary and an existing destination could share a file through different hardlinks. The command appended Markdown before the create-only save reported that the existing archive could not be replaced.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
