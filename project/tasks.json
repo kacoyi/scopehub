@@ -25271,11 +25271,13 @@
         "Exercise the real Windows verification entry on a valid private handoff and both established unsuitable synthetic fixtures. Preserve independent checks of inherited and effective rights and the fixed subprocess limit.",
         "When a raw leaf DACL contains zero-mask or inherit-only allow entries, accept the otherwise private handoff as the legacy managed view would. Keep the distinct refusal for a nonzero effective allow to another trustee.",
         "Validate each known raw ACE layout before applying the legacy leaf filter. Match the real regular-file matrix for allowed, denied, callback and object entries. Reject malformed entries and any surviving unsupported grant.",
+        "The selected ordinary Rust workspace check must execute the existing seven windows_handoff_probe parser tests, including malformed and oversized inert entry refusal. Retain those results separately from the 24 real Windows file comparisons selected by workspace-timeframe.",
         "Retain the existing subprocess diagnostic controls, cleanup, launch rotation and platform semantics. Verify the exact repair with native Windows and Linux reports and inspect the next protected push."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers",
+        "rust-contracts-workers",
         "workspace-timeframe"
       ],
       "evidence": [],
@@ -25286,7 +25288,7 @@
           "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
         }
       ],
-      "next_action": "Obtain independent source review, then retain exact native Windows handoff, raw leaf matrix and malformed-parser results under the existing bounds.",
+      "next_action": "Bind the exact candidate to the existing Rust test harness, retain the selection regression and actual test names, and obtain independent review and native Windows evidence for both the parser and the real file matrix.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25299,7 +25301,11 @@
           "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
           "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
           "tests/ubuntu-preview/workspace.spec.mjs",
-          "archives/runs/windows-change-45668943982-1/test-report.json"
+          "archives/runs/windows-change-45668943982-1/test-report.json",
+          "crates/platform/Cargo.toml",
+          "project/checks.json",
+          "scripts/rust_workspace.py",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/final-response.txt"
         ],
         "hypotheses": [
           "A test-owned interpreter startup shares the probe deadline with reading the descriptor. The original report identifies deadline expiry, and records no internal stage. Compare independently measured native paths before assigning the cause.",
@@ -25331,6 +25337,13 @@
               "workspace-timeframe",
               "project-state"
             ]
+          },
+          {
+            "failure": "A guarded task can pass after only building the witness example. Verify the actual task selection and task definition, reject the former four-check report as current evidence, and inspect the maintained Cargo test output for all seven cases, including malformed input rejection.",
+            "checks": [
+              "project-state",
+              "rust-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original probe and native reports recoverable, and revert a replacement that cannot demonstrate equivalent acceptance and rejection.",
@@ -25342,7 +25355,8 @@
             "crates/platform/examples/windows_handoff_probe.rs",
             "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
             "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
-            "tests/ubuntu-preview/workspace.spec.mjs"
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "scripts/rust_workspace.py"
           ],
           "rules": [
             {
@@ -25367,7 +25381,8 @@
             "The existing fixed deadline, Windows ACL expectations, positive and negative native controls, private launch rotation, diagnostic redaction and inherited-pipe outcomes."
           ],
           "change": [
-            "Repair the verification path identified by the protected Windows incident and retain its native evidence."
+            "Repair the verification path identified by the protected Windows incident and retain its native evidence.",
+            "Require the existing Rust workspace check alongside the real Windows handoff comparison. Keep the existing example test target and native harness dispatch."
           ],
           "data_plan": "Use isolated synthetic profiles and existing private diagnostic archives. Report fixed outcomes without retaining identities, file contents or process arguments.",
           "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."

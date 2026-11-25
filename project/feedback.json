@@ -7034,6 +7034,29 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-task-omits-rust-parser-execution",
+      "source": "Independent Astra Standard review of 7f12b10735fbe092a2a86cdbb58d4b31d1a797a6. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/original-assistant-response.jsonl (SHA-256 f73948ec6631ca5509b82863a5afa5b7553a9fe532881f55d08d5a0ae6fc3b9a). The retained combined run passed its four selected checks and omitted Rust execution.",
+      "observation": "The guarded M0-147 task selects environment, project state, Python and workspace checks. The Windows workspace setup builds windows_handoff_probe without running its seven portable Rust tests. The task can consequently pass without evidence for malformed entry rejection even when the example builds and native file comparisons run.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T193206.473358Z-e7816a69",
+          "source_commit": "7f12b10735fbe092a2a86cdbb58d4b31d1a797a6",
+          "report_sha256": "c6efdf03e1146e14a2a0e7193decce96e4cd3698f2363618e8ab77af6c406998"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
