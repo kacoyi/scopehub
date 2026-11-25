@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmod, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, open, readFile, rm } from 'node:fs/promises';
 import { constants } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -78,6 +78,46 @@ function assertRejectedHandoff(path, stage, launch) {
   });
 }
 
+function aclFixtureFailure(name, stage) {
+  return new Error(`Synthetic ACL fixture ${name} failed (${stage}).`);
+}
+
+async function cleanAclFixture({ name, path, restoreWrite }) {
+  let failed = false;
+  if (restoreWrite) {
+    try { await chmod(path, 0o600); }
+    catch { failed = true; }
+  }
+  try { await rm(path); }
+  catch { failed = true; }
+  if (failed) return aclFixtureFailure(name, 'fixture cleanup');
+}
+
+async function withAclFixtures(fixtures, verify) {
+  const owned = [];
+  let primary;
+  try {
+    for (const fixture of fixtures) {
+      try {
+        const file = await open(fixture.path, 'wx', 0o600);
+        // Only the successful exclusive open establishes ownership. Claim
+        // it before closing so a close error still sends it through cleanup.
+        owned.push(fixture);
+        await file.close();
+      } catch {
+        throw aclFixtureFailure(fixture.name, 'fixture creation');
+      }
+    }
+    await verify();
+  } catch (error) {
+    primary = error;
+  }
+
+  const cleanup = (await Promise.all(owned.map(cleanAclFixture))).find(Boolean);
+  if (primary && cleanup) throw new Error(`${primary.message} ${cleanup.message}`);
+  if (primary || cleanup) throw primary ?? cleanup;
+}
+
 export async function assertUnsuitableWindowsHandoffsRejected(profile) {
   const prepare = `
     $ErrorActionPreference = 'Stop'
@@ -103,28 +143,23 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
   const cases = [['broad', 58], ['explicit-only', 54]];
   for (const [fixture, stage] of cases) {
     const path = join(profile, `synthetic-acl-${fixture}.txt`);
-    await writeFile(path, '', { flag: 'wx', mode: 0o600 });
-    try {
+    await withAclFixtures([{ name: fixture, path }], async () => {
       try {
         await prepareAclFixture(prepare, path, fixture);
       } catch (error) {
         throw new Error(`Could not prepare the synthetic ${fixture} ACL fixture (${error.message}).`);
       }
       await assertRejectedHandoff(path, stage);
-    } finally {
-      await rm(path);
-    }
+    });
   }
 
   // Keep the inherited descriptor intact and make the effective write open fail.
   const readOnly = join(profile, 'synthetic-acl-read-only.txt');
-  await writeFile(readOnly, '', { flag: 'wx', mode: 0o600 });
-  try {
-    await chmod(readOnly, 0o400);
+  await withAclFixtures([{ name: 'read-only', path: readOnly, restoreWrite: true }], async () => {
+    try { await chmod(readOnly, 0o400); }
+    catch { throw aclFixtureFailure('read-only', 'fixture preparation'); }
     await assertRejectedHandoff(readOnly, 55);
-  } finally {
-    await chmod(readOnly, 0o600).finally(() => rm(readOnly));
-  }
+  });
 }
 
 const leafFailureReasons = {
@@ -164,7 +199,8 @@ function leafFailure(controls, stderr) {
 export async function assertWindowsLeafAclMatrix(profile, {
   prepareFixture = prepareAclFixture, launch = runHandoffProbe,
 } = {}) {
-  const prepare = await readFile(new URL('./workspace_test_handoff_leaf_acl.ps1', import.meta.url), 'utf8');
+  const prepare = await readFile(new URL('./workspace_test_handoff_leaf_acl.ps1', import.meta.url), 'utf8')
+    .catch(() => { throw aclFixtureFailure('leaf-matrix', 'fixture preparation'); });
   const layouts = [
     { name: 'allow', effective: 58 },
     { name: 'deny', deny: true, effective: 55 },
@@ -181,12 +217,7 @@ export async function assertWindowsLeafAclMatrix(profile, {
     path: join(profile, `synthetic-acl-${name}-${mode}.txt`),
     expectedStage: mode === 'effective' ? effective : 0,
   })));
-  const owned = [];
-  try {
-    for (const { path } of controls) {
-      await writeFile(path, '', { flag: 'wx', mode: 0o600 });
-      owned.push(path);
-    }
+  await withAclFixtures(controls, async () => {
     try {
       await prepareFixture(prepare, profile, JSON.stringify({ controls }), {
         1: 'fixture preparation', 4: stderr => leafFailure(controls, stderr),
@@ -208,7 +239,5 @@ export async function assertWindowsLeafAclMatrix(profile, {
         throw new Error(`Synthetic leaf ACL case ${name} failed. ${error.message}`);
       }
     }
-  } finally {
-    await Promise.all(owned.map(path => rm(path)));
-  }
+  });
 }

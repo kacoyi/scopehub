@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { inspect } from 'node:util';
-import { assertWindowsLeafAclMatrix, assertWindowsPrivateHandoff, runHandoffProbe } from './workspace_test_handoff_acl.mjs';
+import { assertUnsuitableWindowsHandoffsRejected, assertWindowsLeafAclMatrix, assertWindowsPrivateHandoff, runHandoffProbe } from './workspace_test_handoff_acl.mjs';
 
 const sentinel = 'synthetic-handoff-private-marker';
 const sid = 'S-1-5-21-123-456-789-1011';
@@ -95,20 +95,24 @@ async function runPrivateHandoffWitness(exit) {
   });
 }
 
+function expectedLeafStages(profile) {
+  // Expected results for these synthetic controls are independent of the
+  // script's supplied expectedStage or diagnostic strings.
+  const effective = {
+    allow: 58, deny: 55, 'callback-allow': 54, 'callback-deny': 54,
+    'object-allow': 54, 'object-deny': 54, 'object-callback-allow': 54, 'object-callback-deny': 54,
+  };
+  return new Map(Object.entries(effective).flatMap(([layout, stage]) => [
+    [join(profile, `synthetic-acl-${layout}-zero-mask.txt`), 0],
+    [join(profile, `synthetic-acl-${layout}-inherit-only.txt`), 0],
+    [join(profile, `synthetic-acl-${layout}-effective.txt`), stage],
+  ]));
+}
+
 async function verifyLeafCalibrationDiagnostics() {
   await withProbeMarker(async marker => {
     const profile = dirname(marker);
-    // Expected results for these synthetic controls are independent of the
-    // script's supplied expectedStage or diagnostic strings.
-    const effective = {
-      allow: 58, deny: 55, 'callback-allow': 54, 'callback-deny': 54,
-      'object-allow': 54, 'object-deny': 54, 'object-callback-allow': 54, 'object-callback-deny': 54,
-    };
-    const expected = new Map(Object.entries(effective).flatMap(([layout, stage]) => [
-      [join(profile, `synthetic-acl-${layout}-zero-mask.txt`), 0],
-      [join(profile, `synthetic-acl-${layout}-inherit-only.txt`), 0],
-      [join(profile, `synthetic-acl-${layout}-effective.txt`), stage],
-    ]));
+    const expected = expectedLeafStages(profile);
     const calls = [];
     const launch = (executable, args, options) => {
       const path = options.env.SCOPEHUB_TEST_HANDOFF;
@@ -153,7 +157,85 @@ async function verifyLeafCalibrationDiagnostics() {
   });
 }
 
+async function assertSafeFixtureDiagnostic(request, profile, message) {
+  const error = await request.then(() => null, failure => failure);
+  assert.ok(error instanceof Error, 'Expected a fixture error.');
+  assert.equal(error.message, message);
+  assert.equal(error.cause, undefined);
+  const exposed = inspect(error, { showHidden: true });
+  assert.ok(!exposed.includes(profile) && !exposed.includes(sentinel) && !exposed.includes(sid));
+  console.info('Synthetic handoff fixture diagnostic', JSON.stringify({ message: error.message, bytes: Buffer.byteLength(error.message) }));
+}
+
+function leafMatrixMustStop() {
+  assert.fail('A bootstrap or readback failure must stop before any further operation.');
+}
+
+async function verifyLeafBootstrapDiagnostics() {
+  await withProbeMarker(async profile => {
+    const hooks = { prepareFixture: leafMatrixMustStop, launch: leafMatrixMustStop };
+    await assertSafeFixtureDiagnostic(assertWindowsLeafAclMatrix(profile, hooks), profile,
+      'Synthetic ACL fixture allow-zero-mask failed (fixture creation).');
+
+    await assertSafeFixtureDiagnostic(assertUnsuitableWindowsHandoffsRejected(profile), profile,
+      'Synthetic ACL fixture broad failed (fixture creation).');
+
+    // The second exclusive create fails. Matrix cleanup owns only the first
+    // path and must leave the pre-existing file with its original bytes.
+    const existing = join(dirname(profile), 'synthetic-acl-allow-inherit-only.txt');
+    await writeFile(existing, sentinel);
+    await assertSafeFixtureDiagnostic(assertWindowsLeafAclMatrix(dirname(profile), hooks), dirname(profile),
+      'Synthetic ACL fixture allow-inherit-only failed (fixture creation).');
+    assert.deepEqual(await readdir(dirname(profile)), ['synthetic-acl-allow-inherit-only.txt']);
+    assert.equal(await readFile(existing, 'utf8'), sentinel);
+  });
+}
+
+async function verifyLeafCleanupDiagnostics(failReadback) {
+  await withProbeMarker(async marker => {
+    const profile = dirname(marker);
+    const first = 'synthetic-acl-allow-zero-mask.txt';
+    const firstPath = join(profile, first);
+    const expected = expectedLeafStages(profile);
+    const calls = [];
+    const obstructRemoval = async () => {
+      // An owned empty fixture replaced by an owned directory makes the
+      // ordinary nonrecursive removal fail on every supported host.
+      await rm(firstPath);
+      await mkdir(firstPath);
+    };
+    const prepareFixture = async (_check, _profile, _fixture, exitStages) => {
+      if (!failReadback) return;
+      await obstructRemoval();
+      const log = 'SCOPEHUB_ACL_FIXTURE 19 raw-revision\r\n';
+      return runHandoffProbe(process.execPath, ['-e',
+        'require("node:fs").writeSync(2, process.argv[1]); process.exitCode = 4;', log], { exitStages });
+    };
+    const launch = async (_executable, _args, options) => {
+      const path = options.env.SCOPEHUB_TEST_HANDOFF;
+      assert.ok(expected.has(path));
+      calls.push(path);
+      try {
+        await runHandoffProbe(process.execPath, ['-e', `process.exit(${expected.get(path)})`], options);
+      } finally {
+        if (calls.length === expected.size) await obstructRemoval();
+      }
+    };
+
+    const primary = failReadback
+      ? 'Could not verify the synthetic leaf ACL matrix (case object-callback-allow-inherit-only: stored ACL revision differs). '
+      : '';
+    await assertSafeFixtureDiagnostic(assertWindowsLeafAclMatrix(profile, { prepareFixture, launch }), profile,
+      primary + 'Synthetic ACL fixture allow-zero-mask failed (fixture cleanup).');
+    assert.deepEqual(calls, failReadback ? [] : [...expected.keys()]);
+    assert.deepEqual(await readdir(profile), [first], 'Every other owned fixture must be removed before rejection.');
+  });
+}
+
 export const handoffProbeCases = [
+  { name: 'bounded synthetic fixture creation and exclusive ownership', run: verifyLeafBootstrapDiagnostics },
+  { name: 'synthetic fixture cleanup after a matching matrix', run: () => verifyLeafCleanupDiagnostics(false) },
+  { name: 'first synthetic readback failure when cleanup also fails', run: () => verifyLeafCleanupDiagnostics(true) },
   { name: 'bounded synthetic leaf matrix calibration and fixture cleanup', run: verifyLeafCalibrationDiagnostics },
   { name: 'the independent private handoff witness accepts and rejects through the bounded launcher', run: async () => {
     await runPrivateHandoffWitness(0);
