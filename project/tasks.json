@@ -25078,7 +25078,7 @@
           "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
         }
       ],
-      "next_action": "Inspect the independent test-owned Windows descriptor reader and reuse suitable existing native verification support with equivalent accepted and rejected controls. Retain native observations on the repair.",
+      "next_action": "Obtain independent source review and run the exact candidate natively on Windows. Retain the valid handoff and the broad, explicit-only and effective write denial results, then inspect the next protected push.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25087,6 +25087,7 @@
           "tooling"
         ],
         "context": [
+          "crates/platform/examples/windows_handoff_probe.rs",
           "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
           "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
           "tests/ubuntu-preview/workspace.spec.mjs",
@@ -25117,7 +25118,8 @@
             "development-tooling"
           ],
           "entrypoints": [
-            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "crates/platform/examples/windows_handoff_probe.rs",
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
             "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
             "tests/ubuntu-preview/workspace.spec.mjs"
           ],
@@ -25135,7 +25137,7 @@
             "Product permission changes, expanding timeouts, suppressing failures and changes to user files."
           ],
           "open_questions": [
-            "Can the existing native facilities independently verify all observed handoff properties at their test entry and preserve the specific rejection diagnostics?"
+            "Does the exact native Windows run confirm matching handoff and rejection outcomes with the test-only descriptor reader under the existing deadline?"
           ]
         },
         "evolution": {
