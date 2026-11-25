@@ -225,28 +225,6 @@ jobs:
             target
           key: ${{ steps.cargo_keys.outputs.primary }}
           restore-keys: ${{ steps.cargo_keys.outputs.fallback }}
-      # Temporary, reviewed diagnostic for this internal PR's ordinary Windows producers.
-      - name: Observe restored Cargo cache composition
-        if: &cache_composition_pr >-
-          ${{ success() && github.event_name == 'pull_request' && github.run_attempt == 1 &&
-              github.event.pull_request.base.ref == 'main' &&
-              github.event.pull_request.head.ref == 'codex/audit-native-cache-composition' &&
-              github.event.pull_request.head.repo.full_name == github.repository &&
-              github.event.pull_request.base.repo.full_name == github.repository &&
-              runner.os == 'Windows' && (matrix.lane == 'core' || matrix.lane == 'browser') &&
-              steps.lane.outputs.split == 'true' && steps.scope.outcome == 'success' &&
-              steps.scope.outputs.profile == 'full' && steps.scope.outputs.decision != '' &&
-              steps.cargo_cache.outcome == 'success' && steps.cargo_cache.outputs['cache-matched-key'] != '' }}
-        continue-on-error: true
-        timeout-minutes: 1
-        env: &cache_composition_env
-          SCOPEHUB_CACHE_LANE: ${{ matrix.lane }}
-          SCOPEHUB_CACHE_MATCH: >-
-            ${{ steps.cargo_cache.outputs['cache-hit'] == 'true' && 'primary_exact' ||
-                steps.cargo_cache.outputs['cache-matched-key'] == steps.cargo_keys.outputs.legacy && 'legacy_equivalent' || 'prefix' }}
-          SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha }}
-          SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
-        run: uv run --no-sync python scripts/cache_composition.py restored
       - name: Install and start the pinned chart-test browser
         if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
         shell: bash
@@ -307,12 +285,6 @@ jobs:
         run: uv run --no-sync python scripts/check.py --ci-windows-lane "$SCOPEHUB_WINDOWS_LANE"
       - if: runner.os == 'Windows' && inputs.profile == 'release' && !inputs.task_id
         run: uv run python scripts/check.py --profile release --require-windows
-      - name: Observe post-check Cargo cache composition
-        if: *cache_composition_pr
-        continue-on-error: true
-        timeout-minutes: 1
-        env: *cache_composition_env
-        run: uv run --no-sync python scripts/cache_composition.py post-check
       - name: Stage current verification evidence
         id: artifacts
         if: always() && steps.reports.outcome == 'success'

@@ -24059,8 +24059,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Retain the Astra red cases, correct Windows logical size and root coverage, and independently review the exact new probe. Authenticate complete first-attempt native core/browser results before deciding whether a private experiment is warranted and clearing the one-shot probe.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-129-c8128b3975393efa.json",
+          "sha256": "c8eec6d53f0d25e7271e44bc93590580f256d31af5b75232e0c8c51edc56d75b"
+        }
+      ],
+      "next_action": "Have Astra Standard review the committed executable cleanup and retained native receipt. Record administrative disposition after the independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
