@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-122",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -22379,7 +22379,7 @@
       "id": "M0-122",
       "title": "Distinguish obsolete indicator status from workspace admission in the browser contract",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-069",
         "M0-099",
@@ -22407,7 +22407,12 @@
         "indicator-declarative-preview",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-122-cad66da4094c3ec1.json",
+          "sha256": "2a7d80021092eedef908a6059ad16597178b0dc81010b291dc4c27643b3adef8"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261125T080802.632754Z-2f17cbc5",
@@ -22415,9 +22420,9 @@
           "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
         }
       ],
-      "next_action": "Reproduce the direct obsolete status probe with the existing snapshot gate, retain the actual first refusal, then distinguish the HTTP admission reply from the already-cancelled registry state.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Canonical Linux task run 20261125T082915.991200Z-b2f075c2 at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6 passed all four task checks and all 59 workspace cases. Controlled real Chromium distinguished a retryable pre-admission HTTP 429 from the HTTP 200 STALE_CONTEXT after the matching Rust snapshot drained. Caller cancellation stopped while admission remained occupied, the old ready response stayed ineligible, obsolete acceptance was refused, and the exact saved document survived restart. The separate native indicator_lifecycle tests passed, with log SHA-256 9774aad3a4c99d653cf378d95e9ff8ff1889e2392fb8f1ea9ff67bb7e602241c. The authenticated PR 107 pair, earlier feedback and controlled red and green are retained. The original hosted BUSY stage and holder remain unknown.",
       "plan": {
         "outcome": "The ordinary obsolete-preview test verifies the real stale result and preserved output even if the read-only diagnostic probe briefly loses admission.",
         "change_types": [
