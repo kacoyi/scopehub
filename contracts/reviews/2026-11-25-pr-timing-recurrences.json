@@ -22,7 +22,7 @@
     "analysis_sha256": "c0fbdfbf5ef52ace0a8cf530eec2fc90569d79fec360c725ac7e93f91e928de3"
   },
   "windows": {
-    "status": "pending",
+    "status": "recovered",
     "protected_correction": "11c75525871bdac2b12c0785b781892a4e1f5004",
     "native_supervisor": "5c655b5801fe92eee3017f9fca0e033288443e9f",
     "acl_compatibility": "d9102de9c036fb6ae4b962a5dfa9529927110315",
@@ -139,15 +139,101 @@
     "findings": [
       "Against browser-critical 45459661035, browser workload on 45560872604 finished 61 seconds earlier from PR request. Setup fell by 37 seconds, harness by 22 and producer tail by one, with one second less initial queue. The protected result took five seconds longer after the last producer, so elapsed fell by 56 seconds. The Python-critical 917-second control uses three producers, so layout and cache differ from the corrected observations.",
       "The legacy capture of 45558654521 omits 371 seconds of recovery producer work from the Windows total. Recomputing the authenticated jobs at the review source gives 2629 Windows runner-seconds and 3384 workflow runner-seconds.",
-      "PR94 restored older prefix matches before the protected main push saved the exact core and browser keys for its lock hash. Recovery uses the browser key. None of the three corrected attempts meets the full-warm recovery predicate."
-    ]
+      "PR94 restored older prefix matches before the protected main push saved the exact core and browser keys for its lock hash. Recovery uses the browser key. All three earlier corrected attempts had partial cache restores."
+    ],
+    "qualified_warm_pr": {
+      "run": "45563183277",
+      "head": "231f97edc20244c57bc2263c791aad6ae37be245",
+      "checkout": "d77c03da26c9bde06b7d505354ac45d160f20c53",
+      "tested_parents": [
+        "54f187784ff85a1270856be73ca26b10d238e559",
+        "231f97edc20244c57bc2263c791aad6ae37be245"
+      ],
+      "tested_tree": "5e2e349edf2883da7a48e16ee1d58c458efaa35f",
+      "inputs_sha256": "013056d89b4c2a25fa3f1d3ff1b1fd999d4359e6c487253e8ba2b946f9567065",
+      "protected_job": "139037086131",
+      "elapsed_seconds": 876,
+      "windows_runner_work_seconds": 2584,
+      "workflow_runner_work_seconds": 3352,
+      "producer_caches": {
+        "browser": "warm",
+        "core": "warm",
+        "python": "not_requested",
+        "recovery": "warm"
+      },
+      "matched_selected_outcomes_in_controls": [
+        "45444242059",
+        "45459661035",
+        "45475965426"
+      ],
+      "compared_browser_critical_pr": {
+        "run": "45459661035",
+        "elapsed_seconds": [
+          910,
+          876
+        ],
+        "browser_from_request_seconds": [
+          867,
+          828
+        ],
+        "browser_setup_seconds": [
+          219,
+          163
+        ],
+        "browser_cargo_restore_seconds": [
+          108,
+          67
+        ],
+        "browser_harness_seconds": [
+          636,
+          652
+        ],
+        "after_last_producer_seconds": [
+          43,
+          48
+        ],
+        "windows_runner_work_seconds": [
+          2436,
+          2584
+        ]
+      },
+      "attribution": "Browser was the last of four producers. Its job finished 39 seconds earlier, as 56 seconds less setup outweighed 16 seconds more harness and two seconds more producer tail, with one second less initial queue. The protected result took five seconds longer after the producer, for a net gain of 34 seconds. Cargo restore accounted for 41 seconds of the setup difference. The run establishes elapsed recovery with the reviewed ACL correction in both tested parents. The single comparison cannot isolate the correction’s effect on elapsed time or explain why Cargo restored faster. The three-producer 917-second control was Python-critical.",
+      "report_sha256": {
+        "linux": "4c742a7b0694efcfdffb679e3dbeca66b7d3d2bbe347d3f02582e6ea13361a03",
+        "windows": "4c3385b1d27e4995b813bcbb050674eff316bac34645496d84e5312f294a6dea"
+      },
+      "evidence_archive": {
+        "manifest_path": "archives/observations/pr-timing-recurrences-45563183277/SHA256SUMS",
+        "manifest_sha256": "52eb7929a93dbeb6d9088d9a33e43325dd025176018a506dfcbc6915a4915dcb",
+        "qualification_sha256": "017e28459dcba0c6d9024ac14e7ed874d1d81b492babae885cbccaac7e672c82"
+      },
+      "task_checks": {
+        "receipt": {
+          "path": "project/evidence/M0-103-2f19109871b6a09a.json",
+          "sha256": "23765e0d7706634ebce020e684cc4d0cb87c9cf93c95c5957a7103be793a4dfe"
+        },
+        "tested_commit": "47bae799a154c577663f31a5859cb0cc2fb2a635",
+        "report_sha256": "2f19109871b6a09a854eb8b173b79c3a9ac5dc3472a2654f7aa5aa6a6c946caf",
+        "scope": "The PR96 tested tree does not contain M0-103. Its authenticated artifacts establish native elapsed and coverage. The local task report binds the same protected correction to the registered task and feedback."
+      }
+    }
   },
   "linux": {
     "status": "pending",
+    "comparison_cutoff_utc": "2026-11-25T06:18:00Z",
     "coverage": {
       "selected": 35,
       "passed": 27,
-      "actual_ids_and_selected_outcomes_match": true
+      "selected_ids_and_outcomes_match": true,
+      "selected_omissions": {
+        "not_implemented": 7,
+        "unsupported_platform": 1
+      },
+      "overall_catalog": {
+        "baseline": 67,
+        "comparison": 68,
+        "added_not_selected": "local-api-connection"
+      }
     },
     "original_baseline_prs": [
       {
@@ -231,7 +317,7 @@
         "elapsed_seconds": 649
       }
     ],
-    "new_warm_prs": [
+    "warm_prs_at_cutoff": [
       {
         "run": "45556251399",
         "head": "f6f5ed8ae0498c34dedec8b0710e20d40e4c9af7",
@@ -326,7 +412,7 @@
           "chart-history": 19.765
         }
       },
-      "latest": {
+      "comparison_at_cutoff": {
         "queue": 2.0,
         "setup": 77.0,
         "harness_step": 589.0,
@@ -355,10 +441,27 @@
     },
     "growth": {
       "degraded_median_seconds": 731,
-      "latest_minus_baseline_seconds": 56,
-      "latest_minus_baseline_ratio": 0.0896,
-      "latest_material_growth": false,
-      "original_and_latest_budget_breaches": 0
+      "comparison_minus_baseline_seconds": 56,
+      "comparison_minus_baseline_ratio": 0.0896,
+      "comparison_material_growth": false,
+      "original_and_comparison_budget_breaches": 0
+    },
+    "later_snapshot": {
+      "observed_at_utc": "2026-11-25T06:26:00Z",
+      "warm_pr_runs_and_seconds": {
+        "45556799720": 587,
+        "45556669680": 681,
+        "45558654521": 757
+      },
+      "median_seconds": 681,
+      "tail_median_seconds": 5,
+      "scope": "The phase and per-check attribution in this review uses the six reports available at the 06:18 UTC cutoff."
+    },
+    "run_45556669680_original": {
+      "manifest_path": "archives/observations/repo-hygiene-20261125/pr96-native-45556669680/manifest.json",
+      "report_path": "archives/observations/repo-hygiene-20261125/pr96-native-45556669680/artifacts/linux/test-report.json",
+      "manifest_sha256": "2fca2f067339dce36be94a05144932c51ccf7e9ab4e8b62e6a8bc8fdf455bea0",
+      "report_sha256": "595ccf02abcbda0d0d0ff3c0c895f90608b892b010883740ee5e4ccea3ff0dbb"
     },
     "findings": [
       "All six authenticated Linux logs show agent 20261111.635, Ubuntu 26.04 and an exact hit on the same 1594353071-byte Cargo archive. Five used image 20261116.202.1. The two baseline observations on that image span 546 to 706 seconds; the physical host and load are unobserved. The retained 625-second baseline remains the authoritative three-run window.",

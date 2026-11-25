@@ -5782,7 +5782,7 @@
       "source": "Ordinary offline status at f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb and authenticated automatic first-attempt pull requests 45444242059, 45459661035 and 45475965426. Verified originals and compact clocks are indexed in archives/observations/pr-timing-recurrences-f5bb2ae/observations.json (SHA-256 b08f606009ce0edc625fdf96cd7511d69afe4b13e7b5627f9e6db1837fc3fedc).",
       "observation": "Three successful comparable ordinary full warm Windows pull requests took 869, 910 and 917 seconds under the 900-second objective. The latter two breach the objective. Each original selected 35 check identities with 28 passes and seven expected unimplemented omissions. The observed runs include both three- and four-producer layouts. This is a new PR recurrence after the repaired PR cohort; the protected main-push finding remains independent.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-103"
       ],
@@ -5793,7 +5793,8 @@
         "repository": "kacoyi/scopehub",
         "event": "pull_request",
         "profile": "full",
-        "platform": "Windows"
+        "platform": "Windows",
+        "repair_commit": "11c75525871bdac2b12c0785b781892a4e1f5004"
       },
       "diagnostic_reports": [
         {
@@ -5812,7 +5813,11 @@
           "report_sha256": "3b220119a2b73cff913c0f7c5405dfb7af780ebdddfac0265e3b4f9d5cc69e7e"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The recurrence had two distinct critical paths. The 910-second warm PR waited for browser and the 917-second warm PR waited for Python. The new browser-critical run gained time in setup, chiefly Cargo restore. These observations do not isolate a single cause for both original breaches.",
+        "correction": "Qualify the exact protected Windows preparation correction on a natural full warm PR. PR 96 first attempt 45563183277 passed in 876 seconds with the correction in both tested parents and matching outcomes for all 35 selected checks.",
+        "prevention": "Keep the digested ordinary PR controls and require exact repair ancestry, complete producer clocks, matching outcomes and full warm cache evidence for any future disposition. The task-bound regression receipt and native provenance are indexed in contracts/reviews/2026-11-25-pr-timing-recurrences.json."
+      },
       "deferral_reason": null
     },
     {

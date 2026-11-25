@@ -21158,7 +21158,7 @@
       "id": "M0-103",
       "title": "Recover the recurrent full warm Windows PR feedback budget",
       "milestone": "M0",
-      "status": "planned",
+      "status": "done",
       "depends_on": [
         "M0-094",
         "M0-098"
@@ -21183,10 +21183,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Observe the next naturally occurring successful first-attempt full warm PR with the protected ACL correction in the exact tested parents and matching named outcomes. Run 45560872604 passed at 854 seconds with partial core, browser and recovery cache restores before main 45560649687 seeded the exact keys. Compare the critical producer, protected tail and runner work with the three retained original PRs. Retain the required receipts before closure. See contracts/reviews/2026-11-25-pr-timing-recurrences.json.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-103-2f19109871b6a09a.json",
+          "sha256": "23765e0d7706634ebce020e684cc4d0cb87c9cf93c95c5957a7103be793a4dfe"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Authenticated PR 96 first attempt 45563183277 passed at 876 seconds on Windows with all Cargo producers warm and the reviewed ACL correction in both tested merge parents. The 35 selected identities and outcomes matched all three originals. Browser setup explains the measured critical-path gain, chiefly Cargo restore. The original clocks, exact ancestry, job and runner work, and separate task-bound local receipt are recorded in contracts/reviews/2026-11-25-pr-timing-recurrences.json.",
       "plan": {
         "outcome": "A successful ordinary full warm Windows PR containing an attributable correction has feedback elapsed within 900 seconds with intact coverage.",
         "change_types": [
@@ -21283,7 +21288,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use the retained Linux attribution in contracts/reviews/2026-11-25-pr-timing-recurrences.json. The latest three full warm ordinary PRs have matching selected outcomes and a 681-second median, 56 seconds above the original 625-second baseline and below the material-growth threshold. No duplicate build or attributable corrective revision was found. If a comparable recurrence identifies a removable cost, verify the exact correction and require the normal three-run post-correction window and task receipts before closure.",
+      "next_action": "Use the retained Linux attribution through 06:18 UTC in contracts/reviews/2026-11-25-pr-timing-recurrences.json. The three full warm ordinary PRs at that cutoff have matching selected outcomes and a 681-second median, 56 seconds above the original 625-second baseline and below the material-growth threshold. The 06:26 UTC window has the same median. No duplicate build or attributable corrective revision was found. If a comparable recurrence identifies a removable cost, verify the exact correction and require the normal three-run post-correction window and task receipts before closure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
