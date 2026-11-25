@@ -1272,7 +1272,7 @@ def reconcile_timing_clocks(samples, hosted, issues):
     return ClockEvidence(clocks, complete, jobs, checkouts, producer_disputes)
 
 
-def coalesce_samples(samples, issues, *, clocks=None):
+def coalesced_sample_groups(samples, issues, *, clocks=None):
     observations, producers = defaultdict(list), defaultdict(list)
     clock_by_attempt = clocks or {}
     diagnostics = []
@@ -1291,10 +1291,15 @@ def coalesce_samples(samples, issues, *, clocks=None):
     groups = []
     for group in observations.values():
         attempt = ci_key(group[0]['ci'] or {})
-        groups.append(coalesce_sample_group(group, producers.get(attempt, ()), clock_by_attempt.get(attempt), diagnostics))
+        resolved = coalesce_sample_group(group, producers.get(attempt, ()), clock_by_attempt.get(attempt), diagnostics)
+        groups.append((group, resolved))
     for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
         timing_issue(issues, issue)
     return groups
+
+
+def coalesce_samples(samples, issues, *, clocks=None):
+    return [resolved for _, resolved in coalesced_sample_groups(samples, issues, clocks=clocks)]
 
 
 def coalesce_sample_group(group, producers, run, issues):
@@ -1512,7 +1517,7 @@ def native_report_issue(sample, run, issues):
 
 def merge_samples(samples, hosted, issues):
     evidence = reconcile_timing_clocks(samples, hosted, issues)
-    for group in coalesce_samples(samples, issues, clocks=evidence.attempts):
+    for inputs, group in coalesced_sample_groups(samples, issues, clocks=evidence.attempts):
         if len(group) > 1:
             continue
         sample = group[0]
@@ -1545,7 +1550,12 @@ def merge_samples(samples, hosted, issues):
         if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
                 and sample['profile'] == 'full' and 'windows_caches' not in sample):
             cache = 'unknown'
-        yield {**sample, 'seconds': seconds, 'cache': cache,
+        origins = {}
+        if job and sample['profile'] == 'full':
+            # Coalescing can enrich a report with compatible cache or proof metadata.
+            # Keep the identities of the original inputs in this admitted group.
+            origins['report_inputs_sha256'] = sorted({report_input_sha256(row) for row in inputs if sample_eligible(row)})
+        yield {**sample, **origins, 'seconds': seconds, 'cache': cache,
                'job': {key: value for key, value in job.items() if key not in {'seconds', 'endpoints', 'step_identities', 'endpoint_disputes', 'endpoint_choices'}} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
                'workflow_conclusion': run['conclusion'] if run else None,
@@ -2726,38 +2736,43 @@ def collection_source(root):
     return None
 
 
-def platform_report_receipt(sample):
-    """Bind a full report's identity and measurements independently of reconciled clocks and caches."""
-    if sample['profile'] != 'full' or not platform_timing_identity(sample) or not sample_eligible(sample):
-        return None
-    fields = ('run_id', 'source_commit', 'inputs_sha256', 'recorded_at', 'platform', 'arch',
-              'report_status', 'working_tree_dirty', 'task_id', 'selected', 'checks')
-    core = {key: sample.get(key) for key in fields}
-    core.update({key: sample['seconds'][key] for key in ('harness', 'check_work')})
-    content = json.dumps(core, sort_keys=True, separators=(',', ':')).encode()
+def report_input_sha256(sample):
+    """Hash the complete compact input before any projection or reconciliation."""
+    return sha256(json.dumps(sample, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def platform_report_receipt(sample, input_sha256):
     ci = sample['ci']
     return {**{key: ci[key] for key in (*ATTEMPT_IDENTITY, 'checkout_sha')},
-            'platform': sample['platform'], 'report_id': sample['run_id'],
-            'report_identity_sha256': sha256(content).hexdigest()}
+            'platform': sample['platform'], 'report_id': sample['run_id'], 'report_input_sha256': input_sha256}
+
+
+def platform_report_receipts(samples):
+    for sample in samples:
+        if (not isinstance(sample, dict) or sample.get('review_exclusion', False) is not None
+                or duration(sample.get('seconds', {}).get('total')) is None
+                or sample['profile'] != 'full' or not platform_timing_identity(sample)):
+            continue
+        for input_sha256 in sample.get('report_inputs_sha256', ()):
+            if isinstance(input_sha256, str) and re.fullmatch(r'[0-9a-f]{64}', input_sha256):
+                yield platform_report_receipt(sample, input_sha256)
 
 
 def qualified_collected_reports(samples, collection):
-    """Use only exact receipts also admitted by the ordinary timing review."""
+    """Use only exact acquired inputs still admitted by the ordinary timing review."""
     if not collection or not commit_id(collection.get('capture_source')):
         return []
     received = collection.get('collected_samples', [])
     if not isinstance(received, list) or len(received) > 192:
         raise TimingError('Expected a bounded timing collection.')
     keys = {json.dumps(row, sort_keys=True) for row in received if isinstance(row, dict)}
+    if not keys:
+        return []
     matches = {}
-    for sample in samples:
-        if (not isinstance(sample, dict) or sample.get('review_exclusion', False) is not None
-                or duration(sample.get('seconds', {}).get('total')) is None):
-            continue
-        if receipt := platform_report_receipt(sample):
-            key = json.dumps(receipt, sort_keys=True)
-            if key in keys:
-                matches[key] = receipt
+    for receipt in platform_report_receipts(samples):
+        key = json.dumps(receipt, sort_keys=True)
+        if key in keys:
+            matches[key] = receipt
     return [matches[key] for key in sorted(matches)]
 
 
@@ -2775,11 +2790,14 @@ def inspect_recent(repository, limit, samples, workflows, issues):
             has_report = any((sample.get('ci') or {}).get('run_id') == run_id for sample in samples)
             samples.extend(compact)
             if compact or has_report:
-                workflows.append(inspect_jobs(run, repository))
+                clock = inspect_jobs(run, repository)
+                workflows.append(clock)
                 identity = actions_attempt_identity(repository, run)
-                collected_samples.extend(receipt for sample in compact
-                                         if ci_key(sample['ci']) == identity
-                                         and (receipt := platform_report_receipt(sample)))
+                acquired = [sample for sample in compact if ci_key(sample['ci']) == identity]
+                if acquired:
+                    # Qualify the original acquisition using only this collection's job evidence.
+                    current = timing_view(acquired, hosted=[clock])
+                    collected_samples.extend(platform_report_receipts(current['samples']))
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': str(error)})
     return {'collected_at': datetime.now(timezone.utc).isoformat(),

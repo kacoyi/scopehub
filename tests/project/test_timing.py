@@ -505,7 +505,76 @@ class HostedTimingTests(unittest.TestCase):
                     objective, = view['objective_reviews']
                     self.assertEqual((1, 765), (objective['sample_count'], objective['recent_median_seconds']))
                     collected = view['recent_collection']['collected_samples']
-                    self.assertEqual([timing.platform_report_receipt(full)] if eligible else [], collected)
+                    receipt = timing.platform_report_receipt(full, timing.report_input_sha256(full))
+                    self.assertEqual([receipt] if eligible else [], collected)
+
+    def test_recent_collection_requires_original_layout_and_publishing_qualification(self):
+        run = hosted_run()
+        split_clock = timing.hosted_timing(run, self.split_windows_jobs())
+        linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
+        windows = hosted_job(32, 'windows', '00:20', '06:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
+        single_clock = timing.hosted_timing(run, [linux, windows])
+        ci = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(split_clock))), 'checkout_sha': 'a' * 40}
+        single_report = historical_report()
+        single_report['ci'] = ci
+        single_report['environment'].update(system='Windows', machine='AMD64')
+        single_report['checks'][3] = {'id': 'windows-native-build', 'status': 'passed', 'exit_code': 0}
+        single = timing.report_sample(single_report, cache='warm')
+        split = timing.report_sample(dict(split_harness_report(675), ci=ci))
+        with_proof = dict(split, generated_contracts={'tree': 'd' * 40})
+        with_wrong_layout = dict(single, windows_caches=dict(
+            core='warm', browser='warm', python='not_requested', recovery='warm',
+        ))
+
+        # The public replay also exercises the real published Git catalog.
+        def catalog(sample):
+            if sample['run_id'] == single['run_id']:
+                return OLD_FULL_CATALOG
+            return SPLIT_CATALOG if sample.get('generated_contracts') else None
+
+        for name, original, invalid, clock, wall in (
+            ('single job', single, with_wrong_layout, single_clock, 360),
+            ('publishing proof', with_proof, split, split_clock, 765),
+        ):
+            origin = timing.report_input_sha256(original)
+            self.assertNotEqual(origin, timing.report_input_sha256(invalid))
+            other_cache = 'unknown' if original['cache'] == 'warm' else 'warm'
+            supplemented = dict(original, cache=other_cache)
+            for label, received, historical, eligible in (
+                ('valid new', original, False, True),
+                ('invalid alone', invalid, False, False),
+                ('invalid with history', invalid, True, False),
+                ('valid with compatible history', supplemented, True, True),
+            ):
+                acquired = timing.report_input_sha256(received)
+                expected = [timing.platform_report_receipt(received, acquired)] if eligible else []
+                with self.subTest(name=name, label=label), tempfile.TemporaryDirectory() as folder:
+                    archive = Path(folder) / 'retained.json'
+                    timing.save_review_archive(archive, {'kind': timing.ARCHIVE_KIND,
+                                               'samples': [original] if historical else [], 'hosted': []})
+                    out = StringIO()
+                    argv = ['timing.py', '--report', str(archive), '--recent', '1', '--github-actions']
+                    with (patch.object(sys, 'argv', argv), redirect_stdout(out),
+                          patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
+                          patch.object(timing, 'collection_source', return_value='c' * 40),
+                          patch.object(timing, 'recent_runs', return_value=[run]),
+                          patch.object(timing, 'download_timing', return_value=[received]),
+                          patch.object(timing, 'inspect_jobs', return_value=clock),
+                          patch.object(timing, 'published_catalog', side_effect=catalog)):
+                        timing.main()
+                    view = json.loads(out.getvalue())
+                    self.assertEqual(expected, view['recent_collection']['collected_samples'])
+                    admitted = [row for row in view['samples'] if row['review_exclusion'] is None]
+                    if expected or historical:
+                        admitted, = admitted
+                        self.assertEqual(wall, admitted['seconds']['total'])
+                        inputs = ({origin} if historical else set()) | ({acquired} if eligible else set())
+                        self.assertEqual(sorted(inputs), admitted['report_inputs_sha256'])
+                    else:
+                        self.assertEqual([], admitted)
+                    if received is invalid:
+                        self.assertTrue(view['input_issues'])
 
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()

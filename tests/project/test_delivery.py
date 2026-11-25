@@ -89,11 +89,12 @@ class DeliveryTests(ProjectFixture):
                     'selection': {'profile': 'full', 'checks': ['environment']},
                     'checks': [{'id': 'environment', 'status': 'passed', 'exit_code': 0, 'duration_seconds': 1}],
                 })
+                sample['report_inputs_sha256'] = [timing_cli.report_input_sha256(sample)]
                 sample['review_exclusion'] = None
                 sample['seconds']['total'] = 42
                 samples.append(sample)
         report['samples'] = samples
-        collection['collected_samples'] = [timing_cli.platform_report_receipt(sample) for sample in samples]
+        collection['collected_samples'] = list(timing_cli.platform_report_receipts(samples))
 
     def protect_observation(self, record, *reports):
         verified = self.project_command('verify-maintenance', str(record),
@@ -855,7 +856,9 @@ class DeliveryTests(ProjectFixture):
             (dict(target, run_attempt='2'), True),
             (dict(target, checkout_sha='f' * 40), True),
             (dict(target, report_id='different-harness-report'), True),
-            (dict(target, report_identity_sha256='f' * 64), True),
+            (dict(target, report_input_sha256='f' * 64), True),
+            (dict({key: value for key, value in target.items() if key != 'report_input_sha256'},
+                  report_identity_sha256=target['report_input_sha256']), True),
             ({key: target[key] for key in ('run_id', 'event', 'platform')}, True),
         )
         for collected, pending in cases:
