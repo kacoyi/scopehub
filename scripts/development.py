@@ -8,6 +8,14 @@ from functools import cache
 import json
 from pathlib import Path
 
+if __package__:
+    from .diagnostic_archive import DiagnosticArchiveError, validate_locator
+else:
+    from diagnostic_archive import DiagnosticArchiveError, validate_locator
+
+
+HERDR_ROLE_PHASES = {'implement': 'implement', 'review': 'verify', 'coordinate': 'handoff'}
+
 
 # Budgets apply to the repository navigation view, including repeated subtrees.
 MAX_ENGINEERING_DEPTH = 64
@@ -214,6 +222,45 @@ def effective_decisions(project, task):
     return sorted(ids)
 
 
+def causal_context(task, linked_feedback):
+    context = {
+        'observation': 'Read feedback[].observation for the observed failure and impact. Preserve the first '
+                       'diagnostic with diagnostic_reports when it has a harness identity.',
+        'mechanism': 'Use task.plan.hypotheses and risks for the proposed mechanism, an alternative or '
+                     'distinguishing observation, and the earlier verification boundary. Test the first '
+                     'entry that can tell them apart. See feedback[].resolution for established dispositions.',
+    }
+    if task['status'] in {'planned', 'active', 'blocked'}:
+        context['next_observation'] = (
+            'Use task.next_action and any trigger in the open feedback to identify the next owner and '
+            'distinguishing observation. Keep unproven attribution open. A passing rerun establishes '
+            'its own outcome. Use resolution.cause, correction and prevention when supported.'
+        )
+    if linked_feedback:
+        context['original_records'] = [
+            {'feedback': item['id'], 'command': f'pnpm project:source project/feedback.json /items/{index}'}
+            for index, item in linked_feedback[:3]
+        ]
+    commands = []
+    for record in (task, *(item for _, item in linked_feedback)):
+        for locator in record.get('diagnostic_reports', []):
+            try:
+                validate_locator(locator)
+            except DiagnosticArchiveError:
+                continue  # Historical rows can predate the current locator validation.
+            command = ('pnpm project:diagnostic resolve '
+                       f'{locator["run_id"]} {locator["source_commit"]} {locator["report_sha256"]}')
+            if command not in commands:
+                commands.append(command)
+            if len(commands) == 3:
+                break
+        if len(commands) == 3:
+            break
+    if commands:
+        context['diagnostic_commands'] = commands
+    return context
+
+
 def focused_context(project, key, phase):
     task = project['tasks'][key]
     development = project.get('development', {})
@@ -236,6 +283,8 @@ def focused_context(project, key, phase):
         if decision['status'] == 'accepted' and successor is None:
             entry['revisit_when'] = decision['revisit_when']
         decisions.append(entry)
+    linked_feedback = [(index, item) for index, item in enumerate(project['feedback']['items'])
+                       if key in item['task_ids']]
     result = {
         'task': task,
         'phase': phase,
@@ -249,7 +298,7 @@ def focused_context(project, key, phase):
         'decisions': decisions,
         'checks': [project['checks'][item] for item in task['checks']],
         'scenarios': [item for item in project['delivery']['scenarios'] if key in item['task_ids']],
-        'feedback': [item for item in project['feedback']['items'] if key in item['task_ids']],
+        'feedback': [item for _, item in linked_feedback],
         'modules': modules,
         'data_ownership': [item for item in development.get('data_ownership', [])
                            if item['owner'] in navigation.get('modules', [])
@@ -267,12 +316,29 @@ def focused_context(project, key, phase):
     if herdr:
         result['development_host'] = {
             'host': herdr['host'],
+            'role_phases': HERDR_ROLE_PHASES,
             'profiles': herdr['profiles'],
             'policy': {'path': 'project/development.json', 'pointer': '/herdr'},
             'launch': f'pnpm project:herdr {key} <implement|review|coordinate> --assignment "<scope>"',
         }
         if 'reasoning_efforts' in herdr:
             result['development_host']['default_reasoning_effort'] = herdr['reasoning_efforts'][0]
+    if linked_feedback or plan.get('hypotheses') or task.get('diagnostic_reports'):
+        result['causal_investigation'] = causal_context(task, linked_feedback)
+    if phase in {'verify', 'handoff'} and herdr and task['status'] in {'planned', 'active', 'blocked'}:
+        review_launch = f'pnpm project:herdr {key} review --source <full-commit> --assignment "<scope>"'
+        result['review_handoff'] = {
+            'launch': review_launch,
+            'when': 'For a consequential caller, data or recovery change, send a clean active-task source to '
+                    'an independent reviewer before attaching completion evidence or marking the task done.',
+            'assignment': 'Name the caller or data invariant, its independent expected outcome, and a real '
+                          'control or plausible failure boundary. Include any remaining causal uncertainty and next observation.',
+            'follow_up': 'Use the reviewed source and its matching checks for closure. If substantive source '
+                         'or scope changes after review, send the changed boundary on its new clean source. '
+                         'An additive receipt can cite the same reviewed source when the reviewed behavior '
+                         'and task definition are unchanged. Keep the existing history and evidence checks.',
+        }
+        result['commands'].append(review_launch)
     if phase == 'verify':
         result['quality_review'] = development.get('quality', {}).get('review', [])
         result['commands'] += [f'pnpm project:record {key} --report <run-report>',

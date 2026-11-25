@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -342,6 +343,39 @@ class LaunchTests(WorktreeFixture):
             )
             path.chmod(0o700)
 
+    def test_names_clean_review_source_and_rejects_dirty_or_moved_checkout(self):
+        git = shutil.which('git')
+        self.assertIsNotNone(git)
+        self.env['PATH'] += os.pathsep + str(Path(git).parent)
+        (self.worktree / '.git').unlink()
+
+        def run_git(*args):
+            return subprocess.check_output([git, *args], cwd=self.worktree, text=True).strip()
+
+        run_git('init', '--quiet')
+        run_git('add', 'project')
+        run_git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test',
+                'commit', '--quiet', '-m', 'Review fixture')
+        reviewed = run_git('rev-parse', 'HEAD')
+        arguments = ('M0-025', 'review', '--source', reviewed, '--assignment', 'Check reproducible reopen')
+        result = self.cli(*arguments)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(['hc', 'codex'], [event['program'] for event in self.calls()])
+        self.assertIn(f'context M0-025 --phase verify --source {reviewed}', self.calls()[-1]['argv'][-1])
+        self.assertIn('Run this context command before inspecting', self.calls()[-1]['argv'][-1])
+
+        changed = self.worktree / 'independent-input.txt'
+        changed.write_text('Changed input.\n', encoding='utf-8')
+        for staged in (False, True):
+            with self.subTest(staged=staged):
+                if staged:
+                    run_git('add', changed.name)
+                self.assertIn('requires a clean checkout', self.cli(*arguments).stderr)
+        run_git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test',
+                'commit', '--quiet', '-m', 'Change reviewed source')
+        self.assertIn('does not match checkout HEAD', self.cli(*arguments).stderr)
+        self.assertEqual(2, len(self.calls()))
+
     def test_models_and_permissions_follow_each_role(self):
         for role, model, effort in (
             ('implement', IMPLEMENT['model'], IMPLEMENT['reasoning_effort']),
@@ -366,9 +400,10 @@ class LaunchTests(WorktreeFixture):
                 context, assignment = codex['argv'][-1].split('\n\n', 1)
                 self.assertIn(f'M0-025, role {role}', context)
                 if role == 'review':
-                    self.assertIn('.venv/bin/python -B scripts/project.py context M0-025', context)
+                    self.assertIn('.venv/bin/python -B scripts/project.py context M0-025 --phase verify', context)
                 else:
-                    self.assertIn('pnpm project:context M0-025', context)
+                    phase = 'implement' if role == 'implement' else 'handoff'
+                    self.assertIn(f'pnpm project:context M0-025 --phase {phase}', context)
                 self.assertEqual(assignment, 'Inspect one file')
         self.assertEqual([call['program'] for call in self.calls()], ['hc', 'codex'] * 3)
 

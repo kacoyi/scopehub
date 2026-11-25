@@ -19,14 +19,14 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import checkout_git_environment, git, nul_fields
+    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
     from .worktree import WorktreeError, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import checkout_git_environment, git, nul_fields
+    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
     from worktree import WorktreeError, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -270,6 +270,19 @@ def checkout_status(root, env):
             if dirty:
                 break
     return files, None if head == b'(initial)' else head.decode('ascii'), dirty
+
+
+def require_review_source(root, requested):
+    """Bind a local review to the named clean checkout, without hashing its evidence."""
+    try:
+        requested = oid(requested)
+    except ScopeError as error:
+        raise ProjectError('Pass the full commit ID for --source.') from error
+    _, head, dirty = checkout_status(root, checkout_git_environment())
+    if head != requested:
+        raise ProjectError(f'Review source {requested} does not match checkout HEAD {head}.')
+    if dirty:
+        raise ProjectError(f'Review source {requested} requires a clean checkout.')
 
 
 def is_source_input(relative, exclusions):
@@ -1575,6 +1588,7 @@ def main():
     context.add_argument('task_id', nargs='?')
     context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
     context.add_argument('--phase', choices=['implement', 'verify', 'handoff'], default='implement')
+    context.add_argument('--source', metavar='COMMIT', help='Require this clean commit in verification context')
     sub.add_parser('brief')
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
     source.add_argument('path')
@@ -1602,6 +1616,8 @@ def main():
     resolve.add_argument('report_sha256')
     resolve.add_argument('--archive-root', type=Path, help='Host archive root (defaults to SCOPEHUB_ARCHIVE_ROOT)')
     args = parser.parse_args()
+    if args.command == 'context' and args.source is not None and args.phase != 'verify':
+        context.error('--source requires --phase verify.')
     try:
         if args.command == 'check':
             project = load_project(ROOT)
@@ -1616,6 +1632,9 @@ def main():
             result = status_view(workfront(retained_detail=args.detail), detail=args.detail)
         elif args.command == 'context':
             result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
+            if args.source is not None:
+                require_review_source(ROOT, args.source)
+                result['review_source'] = args.source
         elif args.command == 'brief':
             if __package__:
                 from .development import product_brief

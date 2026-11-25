@@ -10,8 +10,10 @@ import sys
 from uuid import uuid4
 
 if __package__:
+    from .development import HERDR_ROLE_PHASES
     from .storage import maintain_automatically
 else:
+    from development import HERDR_ROLE_PHASES
     from storage import maintain_automatically
 
 
@@ -163,12 +165,25 @@ def require_local_space(root: Path, space_id: str) -> None:
     raise LaunchError(f'No existing local Herdr space has ID {space_id!r}.')
 
 
+def check_review_source(root: Path, source: str) -> None:
+    if __package__:
+        from .project import ProjectError, require_review_source
+    else:
+        from project import ProjectError, require_review_source
+    try:
+        require_review_source(root, source)
+    except ProjectError as error:
+        raise LaunchError(str(error)) from error
+
+
 def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     tasks = read_record(root / 'project/tasks.json').get('tasks')
     if not isinstance(tasks, list):
         raise LaunchError('Expected a task list in project/tasks.json.')
     if not any(isinstance(task, dict) and task.get('id') == args.task_id for task in tasks):
         raise LaunchError(f'Unknown ScopeHub task ID {args.task_id!r} in project/tasks.json.')
+    if args.source is not None:
+        check_review_source(root, args.source)
     model, effort = role_profile(root, args)
 
     # Herdr restricts names to 32 characters and requires live names to be unique.
@@ -182,16 +197,25 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
         command.extend(['--label', f'herdr.space={args.space}'])
     command.extend(['--', 'codex', '--no-daemon', '--model', model, '-c',
                     f'model_reasoning_effort={json.dumps(effort)}'])
+    phase = HERDR_ROLE_PHASES[args.role]
     if args.role == 'review':
         command.extend(['--sandbox', 'read-only', '--ask-for-approval', 'never'])
         python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
-        context = f'{python} -B scripts/project.py context {args.task_id}'
+        context = f'{python} -B scripts/project.py context {args.task_id} --phase {phase}'
+        if args.source is not None:
+            context += f' --source {args.source}'
     else:
         command.append('--approve-for-me')
-        context = f'pnpm project:context {args.task_id}'
+        context = f'pnpm project:context {args.task_id} --phase {phase}'
+    bound_review = (
+        'Run this context command before inspecting the candidate. If it rejects the source, stop and report '
+        'the mismatch. Report the source with the outcome of the independent check.\n'
+        if args.source is not None else ''
+    )
     prompt = (
         f'ScopeHub task {args.task_id}, role {args.role}.\n'
-        f'See `{context}` for task context.\n\n'
+        f'See `{context}` for task context.\n'
+        f'{bound_review}\n'
         f'{args.assignment}'
     )
     command.extend(['--', prompt])
@@ -208,6 +232,7 @@ def main() -> int:
     parser.add_argument('--effort', help='Reasoning effort for this assignment with a family-based profile.')
     parser.add_argument('--escalate-model', action='store_true',
                         help='Use the supervise model family for this implementation assignment.')
+    parser.add_argument('--source', metavar='COMMIT', help='Bind a review to this full, clean HEAD commit.')
     parser.add_argument('--dry-run', action='store_true', help='Print launch argv without running commands.')
     args = parser.parse_args()
     if not args.assignment.strip():
@@ -216,6 +241,8 @@ def main() -> int:
         parser.error('--space must be a local Herdr space ID.')
     if args.escalate_model and args.role != 'implement':
         parser.error('--escalate-model requires the implement role.')
+    if args.source is not None and args.role != 'review':
+        parser.error('--source requires the review role.')
     try:
         root = find_worktree(Path.cwd())
         command = launch_argv(root, args)
@@ -224,6 +251,8 @@ def main() -> int:
             return 0
         if args.space is not None:
             require_local_space(root, args.space)
+        if args.source is not None:
+            check_review_source(root, args.source)
         subprocess.run(command, cwd=root, check=True)
         maintain_automatically(root)
     except subprocess.CalledProcessError as error:
