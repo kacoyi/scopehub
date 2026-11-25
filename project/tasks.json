@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-117",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20258,7 +20258,7 @@
       "id": "M0-117",
       "title": "Retain dirty worktree observations across status queries",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M0-116"],
       "scope": [
         "scripts/worktree_retirement.py",
@@ -20278,9 +20278,9 @@
           "sha256": "1c4d1dd6d97a5388db3ae39753f2af4be72e6976d09417493d9b877e129f11c9"
         }
       ],
-      "next_action": "Await coordinator confirmation of Astra approval and the archived evidence for 37cb4e896e8a99f8af07eb7829d2550d84c99c19 before closing this task and its feedback.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The coordinator confirmed Astra Standard approval of exact source 37cb4e896e8a99f8af07eb7829d2550d84c99c19. Both full-entry replays held a tracked or ordinary untracked change observed on the second read. The small clean fixture remained eligible. At a limit of one the 2,048-path fixture consumed two ignored records and 4,096 bytes. All 47 retirement tests were confirmed, and the attached receipt covers both required Linux checks on the approved source.",
       "plan": {
         "outcome": "A retirement observation retains every dirty status it actually observes while keeping bounded ignored-path intake.",
         "change_types": ["tooling"],

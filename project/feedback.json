@@ -5256,10 +5256,14 @@
       "source": "Astra Standard independent review of the M0-116 retirement entry at handoff 936615e6e937cec013fa4edec2089858fc5196fd.",
       "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M0-117"],
       "regression_checks": ["project-state", "python-contracts-workers"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
+        "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
+        "prevention": "Both native Git regressions reproduced an eligible dirty checkout before the fix. The original log is retained at .reports/audit-20261125/m0-117-red.log with SHA-256 d7ebf206e12a4a0084bf3b53e456a6cbdbb6853613a3c0750a3926983803e694. The coordinator confirmed Astra Standard approval of 37cb4e896e8a99f8af07eb7829d2550d84c99c19 after both second-read replays were held, a small clean checkout stayed eligible, and ignored status remained bounded. The required regression checks are retained in the attached task receipt."
+      },
       "deferral_reason": null
     }
   ]
