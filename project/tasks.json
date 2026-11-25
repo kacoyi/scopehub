@@ -25743,8 +25743,13 @@
         "python-contracts-workers",
         "market-recovery"
       ],
-      "evidence": [],
-      "next_action": "Verify the exact stage observations in the recovery check and hand the validated source to independent review and ordinary native Windows qualification.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-154-531c8c110e824c73.json",
+          "sha256": "8fdd6d6b0d89c6804a2c4826ad9e2b304bc05575e317f02c0b4337748188eef4"
+        }
+      ],
+      "next_action": "Independently review the source-bound startup observations and run the ordinary Windows recovery check on the same verified inputs. Preserve the historical asset attribution as unknown.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
