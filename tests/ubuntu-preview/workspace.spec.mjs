@@ -2332,6 +2332,8 @@ test('private decision notes require consent and retain the dated original separ
         const lost = await dropApprovalReply(page, server, 'decisionNote.delete');
         await notes.getByRole('button', { name: 'Delete decision note' }).click();
         await expect(notes.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+        await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
+        await expect(notes.getByText('Decision note deleted.')).toHaveCount(0);
         expect(lost.outcome()).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 4 } });
         await expect(notes.getByText(thesis)).toHaveCount(0);
         await expect(notes.getByText(outcome)).toHaveCount(0);
@@ -2551,7 +2553,7 @@ test('decision-note draft keeps its text and date across peer timeframe changes'
   }
 });
 
-test('a confirmed decision-note deletion stays visible when its refreshed list response is lost', async ({ browser }, testInfo) => {
+test('a confirmed decision-note deletion survives list retries and clears when a new note starts', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
   const fixture = { date: '2026-02-03', thesis: 'Synthetic deletion feedback', choice: 'Wait',
     outcomes: [{ date: '2026-03-04', body: 'Synthetic later outcome' }] };
@@ -2617,21 +2619,50 @@ test('a confirmed decision-note deletion stays visible when its refreshed list r
             }
 
             await review.click();
+            const declined = await duringPageEvent(page, 'response', response => {
+              const payload = response.request().postDataJSON();
+              return new URL(response.url()).pathname === endpoint
+                && payload?.intent?.operation === 'decisionNote.delete' && payload.confirmation?.decision === 'decline';
+            }, () => notes.getByRole('button', { name: 'Cancel action' }).click(), 5_000);
+            observation.cancelled = (await declined.json()).result.outcome;
+            expect(observation.cancelled).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+            await expect(notes.getByRole('status').filter({ hasText: 'Action cancelled.' })).toBeVisible();
+            await expect(status).toHaveCount(0);
+            observation.afterCancellation = persisted();
+            expect(observation.afterCancellation).toEqual(observation.afterRefusal);
+
+            await review.click();
             const releaseProjection = Promise.withResolvers();
+            const approvals = [];
+            const reads = [];
+            const alerts = [];
+            Object.assign(observation, { approvals, reads, alerts });
             const holdProjection = async route => {
-              const intent = route.request().postDataJSON()?.intent;
+              const request = route.request().postDataJSON();
+              if (isDecisionNoteDeleteApproval(request)) approvals.push(request.request_id);
+              const intent = request?.intent;
               if (intent?.operation !== 'decisionNote.read' || intent.arguments.note_id !== null) return route.continue();
+              const read = { requestId: request.request_id };
+              const index = reads.push(read) - 1;
               const response = await route.fetch();
               try {
-                observation.projection = (await response.json()).result.outcome;
+                read.outcome = (await response.json()).result.outcome;
+                if (index === 0) await releaseProjection.promise;
+                if (index < 2) {
+                  await route.abort();
+                  read.delivery = 'lost';
+                } else {
+                  await route.fulfill({ response });
+                  read.delivery = 'delivered';
+                }
               } finally {
                 await response.dispose();
               }
-              await releaseProjection.promise;
-              await route.abort();
             };
             await page.route(workspaceUrl, holdProjection);
             const reload = notes.getByRole('button', { name: 'Reload decision notes' });
+            const alert = notes.getByRole('alert');
+            const listError = 'The decision-note list could not be refreshed.';
             try {
               const accepted = await onDecisionNoteDeleteApproval(page, () => confirm.click());
               const approved = accepted.request().postDataJSON();
@@ -2645,28 +2676,50 @@ test('a confirmed decision-note deletion stays visible when its refreshed list r
               observation.afterCommit = persisted();
               expect(observation.afterCommit).toEqual({ notes: [], outcomes: 0,
                 deleted: [{ note_id: noteId, revision: observation.committed.receipt.committed_workspace_revision }] });
-              await expect.poll(() => observation.projection).toMatchObject({
-                state: 'completed', result: { note: null, notes: [] },
-              });
+              const emptyList = { state: 'completed', result: { note: null, notes: [] } };
+              await expect.poll(() => reads[0]?.outcome).toMatchObject(emptyList);
               await expect(status).toBeVisible();
               await control(peer, 'Decision notes').click();
               const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
               await expect(peerNotes.getByText('No saved decision notes.')).toBeVisible();
               await expect(peerNotes.getByText('Decision note deleted.')).toHaveCount(0);
               releaseProjection.resolve();
+              await expect.poll(() => reads[0]?.delivery).toBe('lost');
               await expect(reload).toBeVisible();
-              await expect(notes.getByRole('alert')).toHaveText('The decision-note list could not be refreshed.');
-              observation.noticeAfterLostProjection = await status.count();
+              await expect(alert).toHaveText(listError);
+              alerts.push(await alert.innerText());
               await expect(status).toBeVisible();
+
+              await reload.click();
+              await expect.poll(() => reads[1]?.delivery).toBe('lost');
+              await expect(reload).toBeVisible();
+              await expect(alert).toBeVisible();
+              alerts.push(await alert.innerText());
+              expect.soft(alerts[1], 'The retry alert describes the lost list read').toBe(listError);
+              await expect(status).toBeVisible();
+
+              await reload.click();
+              await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+              await expect.poll(() => reads[2]?.delivery).toBe('delivered');
+              expect(reads.map(read => read.outcome)).toMatchObject([emptyList, emptyList, emptyList]);
+              await expect(status).toBeVisible();
+              await expect(alert).toHaveCount(0);
+              await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+
+              await notes.getByRole('button', { name: 'New decision note' }).click();
+              await expect(notes.getByLabel('Thesis')).toBeVisible();
+              observation.noticeInNewEditor = await status.count();
+              expect.soft(observation.noticeInNewEditor, 'A new editor retires the old deletion notice').toBe(0);
+              await notes.getByRole('button', { name: 'Discard draft' }).click();
+              await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+              observation.afterReadRetries = persisted();
+              expect(observation.afterReadRetries).toEqual(observation.afterCommit);
+              expect(approvals).toEqual([approved.request_id]);
+              await expect(peerNotes.getByText('No saved decision notes.')).toBeVisible();
             } finally {
               releaseProjection.resolve();
               await page.unroute(workspaceUrl, holdProjection);
             }
-            await reload.click();
-            await expect(notes.getByText('No saved decision notes.')).toBeVisible();
-            await expect(status).toBeVisible();
-            await expect(notes.getByRole('alert')).toHaveCount(0);
-            await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
           });
         });
       });
