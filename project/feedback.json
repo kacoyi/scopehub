@@ -6544,6 +6544,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "cold-review-source-origin-and-repair-admission",
+      "source": "Independent cold Astra Standard review of 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a, transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Independent ordinary-entry repair controls on protected 6cf0d0dc87b344203ab194a2cd047d36bf801f3c and the candidate.",
+      "observation": "Transient feedback substitution followed by a clean worktree made bound launch and context stamp the requested SHA over stale feedback. M0-094 gave an unrelated passing task diagnostic as the origin of its independently reviewed finding. Historical 6cad01c M4-018 already describes independent reads and A/B bytes despite its open state, yet the launch inferred pending attribution. In disposable clones an unrelated null task_ids or unreadable optional feedback blocked unbound maintenance launch on the candidate while protected main launched. The M0-119 diagnostic resolved with 11 original logs when given the private archive root, while the advertised bare command without host configuration failed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-134"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

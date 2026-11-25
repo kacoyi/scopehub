@@ -24044,7 +24044,9 @@
         "tests/project/test_herdr.py",
         "project/tasks.json",
         "project/feedback.json",
-        "project/evidence"
+        "project/evidence",
+        "scripts/review_tree.py",
+        "tests/project/test_diagnostic_references.py"
       ],
       "decision_refs": [
         "0004",
@@ -24060,7 +24062,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the public workflow regression and pilot evidence, then hand a clean active-task source with its checks to the independent reviewer before attaching completion evidence.",
+      "next_action": "Correct the cold review findings on active source. Replay transient worktree reads, the real origin and closure-state controls, optional-feedback repair and explicit archive resolution. Send the clean source and task checks for a new independent verdict before completion.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24077,7 +24079,8 @@
         "hypotheses": [
           "M0-130 and M0-131 had passing receipts before independent review found capture and reopen disagreement. Existing checks qualified their exercised cases. The routine role launch selected implementation context, which did not make the first independent reproduction and its acceptance timing explicit.",
           "A clean review source and an independent entry-point outcome can surface this class earlier. Compare launch inputs, a moved or dirty source, and the unchanged routine path. One pilot cannot establish a change in recurrence rates.",
-          "Shared stages can disagree on the same data. For a supported mechanism, compare independent observations at the boundary. A green run where runtime conditions differ can establish a successful control while leaving the original cause open."
+          "Shared stages can disagree on the same data. For a supported mechanism, compare independent observations at the boundary. A green run where runtime conditions differ can establish a successful control while leaving the original cause open.",
+          "A clean Git observation can bracket stale file reads. Use one immutable commit tree for every labeled review read and keep current-checkout admission separate. Compare bound and ordinary reads with the same transient substitutions."
         ],
         "risks": [
           {
@@ -24096,6 +24099,20 @@
           },
           {
             "failure": "The handoff creates mandatory work for routine changes, requires renewed review for additive receipts, or weakens exact hosted source and historical evidence checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Launch claims a task report as finding origin, infers mechanism from workflow status, loses an evidence caveat, or blocks maintenance on an unrelated malformed optional record.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A portable diagnostic command cannot find an explicitly configured host archive, or routine status unexpectedly reads the archive.",
             "checks": [
               "project-state",
               "python-contracts-workers"
