@@ -19847,6 +19847,111 @@
       }
     },
     {
+      "id": "M2-033",
+      "title": "Refresh access after a frozen chart is denied during reopen",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-002",
+        "M2-032"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/workspace-source.ts",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "When the startup snapshot still allows a saved CSV and the first chart read reports that it is unavailable, read the current workspace before showing the source and shared selection. A revoked source shows the existing revoked status and its shared selection becomes unavailable.",
+        "A transient worker failure retains the current source identity and the chart retry control. Neither case writes the workspace or falls back to another source."
+      ],
+      "checks": [
+        "generated-contracts",
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-033-beb0fce3a2b7e3ad.json",
+          "sha256": "a4ed4718897f33bd537d9f6d3322ef08d9213f55a26e670634316f1614120b61"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T035923.329201Z-a36ab18a",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "825d77ecf88a7a321b8062499038f752e11cce41cd8f2e327f44852dbeb9eae2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The built UI initially retained the generic unavailable status after a denial, while the transient control kept retry. The corrected desktop transport check read the latest source and shared selection after SNAPSHOT_UNAVAILABLE, displayed revocation, and retained retry for WORKER_EXITED. All ten Chromium desktop transport cases passed with the generated-contract, UI-build and market workflow checks. Native Windows and packaged acceptance remain separate.",
+      "plan": {
+        "outcome": "The user sees a current access state when a saved frozen CSV becomes unreadable between startup and the first chart read.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/workspace-source.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "tests/ui/desktop-workspace.spec.mjs"
+        ],
+        "hypotheses": [
+          "The first failed chart read precedes the periodic access watcher. Rechecking the workspace snapshot on access denial can distinguish withdrawal from an ordinary worker error."
+        ],
+        "risks": [
+          {
+            "failure": "A retained snapshot shows stale access or a transient worker failure is mistaken for a grant withdrawal.",
+            "checks": [
+              "desktop-workspace-transport",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI recheck. Source records, authority and persisted revisions need no recovery.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workspace-source.ts",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            },
+            {
+              "path": "contracts/decisions/0016-profile-layout-and-source-restore.json",
+              "pointer": "/consequences"
+            }
+          ],
+          "non_goals": [
+            "Change the Rust registry, wire schema, source selection or workbench renderer."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The saved revision and existing grant checks, source recovery ownership and retry for transient failures."
+          ],
+          "change": [
+            "Refresh authoritative source and selection state after denied initial frozen reads."
+          ],
+          "data_plan": "Use a synthetic saved revision and only local IPC substitutes. Do not write persistent state.",
+          "cleanup": "Ignore aborted chart reads and keep ordinary access verification for charts that have opened."
+        }
+      }
+    },
+    {
       "id": "M1-040",
       "title": "Disconnect the saved local API in My data sources",
       "milestone": "M1",

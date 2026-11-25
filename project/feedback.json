@@ -3682,6 +3682,32 @@
       "deferral_reason": null
     },
     {
+      "id": "frozen-reopen-stale-access-status",
+      "source": "The built desktop UI red regression at archives/runs/20261125T035923.329201Z-a36ab18a/test-report.json.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "A cold restore can receive an authorized source snapshot followed by a denied frozen chart read. The chart shows a generic retryable gap and the shared selection still comes from the old snapshot. The revocation watcher only starts after a chart opens.",
+      "task_ids": [
+        "M2-033"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T035923.329201Z-a36ab18a",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "825d77ecf88a7a321b8062499038f752e11cce41cd8f2e327f44852dbeb9eae2"
+        }
+      ],
+      "resolution": {
+        "cause": "The initial chart read failed before the periodic access watcher could start.",
+        "correction": "Refresh the authoritative workspace on an access denial, while keeping source retry for a transient transport failure.",
+        "prevention": "The built desktop transport exercises a startup snapshot followed by denial, verifies the updated source and shared selection, and checks that a transient failure still allows retry."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "same-user-profile-restore",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding relocated-local-profile",
       "severity": "minor",

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import type { RestoredChartSource } from './chart-workspace';
 import { openAuthenticatedFrozenChart, type FrozenChartResult } from './frozen-evidence';
 import type { ChartHistory, Instrument } from './market';
-import { useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
 
 function projectFrozenChart(result: FrozenChartResult): {
@@ -45,6 +45,9 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   const [loaded, setLoaded] = useState<RestoredChartSource>();
   const [attempt, setAttempt] = useState(0);
   const canDisplay = access.canDisplay;
+  const refreshAccess = useEffectEvent(() => {
+    if (!workspace?.sourceRecovery) workspace?.reload();
+  });
 
   useWatchPublishedRevision(loaded?.status === 'ready' && loaded.revision_id === openable ? openable : undefined, access.verify, workspace);
   useEffect(() => {
@@ -59,8 +62,12 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
       if (!controller.signal.aborted && canDisplay(openable)) setLoaded(chart ? {
         kind: 'frozen', revision_id: openable, status: 'ready', chart, label: result.revision.relative_path,
       } : { kind: 'frozen', revision_id: openable, status: 'unavailable' });
-    }).catch(() => {
-      if (!controller.signal.aborted) setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
+    }).catch(error => {
+      if (controller.signal.aborted) return;
+      setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
+      // The first read can lose access before the open chart's watcher starts.
+      // The current snapshot distinguishes a withdrawal from missing data.
+      if (displayAccessDenied(error)) refreshAccess();
     });
     return () => controller.abort();
   }, [openable, canDisplay, attempt]);

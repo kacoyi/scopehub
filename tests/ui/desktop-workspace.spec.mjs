@@ -150,6 +150,52 @@ test('opted-in desktop uses a distinct bootstrap and commits and undoes through 
   expect(network).toEqual([]);
 });
 
+for (const fault of [
+  { name: 'refreshes a denied source', code: 'SNAPSHOT_UNAVAILABLE', revoked: true },
+  { name: 'retries a transient worker failure', code: 'WORKER_EXITED', revoked: false },
+]) {
+  test(`restoring a saved CSV ${fault.name}`, async ({ page }) => {
+    const revisionId = randomUUID();
+    const from = Date.parse('2026-02-03T00:00:00Z');
+    const selection = { revision_id: revisionId, range: { from_ms: from, to_ms: from + 1 } };
+    let chartRead = false;
+    const calls = await nativeTransport(page, { optedIn: true }, ({ operation, payload }) => {
+      if (operation === 'market.listLocalImportRevisions') {
+        return { result: { revisions: [], next_after_revision_id: null } };
+      }
+      expect(operation).toBeNull();
+      if (payload.type === 'snapshot') {
+        const revoked = fault.revoked && chartRead;
+        return { result: {
+          ...ready('1m', 0), selection_revision: 2,
+          source: { kind: 'frozen', revision_id: revisionId, status: revoked ? 'revoked' : 'available' },
+          chart_evidence: revoked ? { unavailable: true } : selection,
+        } };
+      }
+      expect(payload).toMatchObject({ type: 'frozen_chart', revision_id: revisionId });
+      chartRead = true;
+      return { error: { code: fault.code } };
+    });
+
+    await page.goto('/');
+    const chart = page.getByRole('region', { name: 'Price chart' });
+    const retry = control(chart, 'Retry source');
+    if (fault.revoked) {
+      await expect(chart.getByText('Access to this published CSV was revoked.')).toBeVisible();
+      await expect(retry).toHaveCount(0);
+      await control(chart, 'Open published CSV').click();
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      await expect(dialog.getByText('The shared selection is unavailable.')).toBeVisible();
+      expect(calls.slice(0, 3).map(({ args }) => args.payload.type)).toEqual(['snapshot', 'frozen_chart', 'snapshot']);
+    } else {
+      await expect(chart.getByText('The published CSV is unavailable.')).toBeVisible();
+      await retry.click();
+      await expect(chart.getByText('The published CSV is unavailable.')).toBeVisible();
+      expect(calls.map(({ args }) => args.payload.type)).toEqual(['snapshot', 'frozen_chart', 'frozen_chart']);
+    }
+  });
+}
+
 test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }, testInfo) => {
   test.setTimeout(180_000);
   await buildPreview();
