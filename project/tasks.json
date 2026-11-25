@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-047",
   "tasks": [
     {
       "id": "M0-001",
@@ -20385,6 +20385,115 @@
           ],
           "data_plan": "Use the shared protocol vectors and the existing synthesized worker fixtures. Persistent records require no migration.",
           "cleanup": "Share framing and validation between the Rust decoding entries."
+        }
+      }
+    },
+    {
+      "id": "M1-047",
+      "title": "Preserve the public Python worker wire decoder",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-046"
+      ],
+      "scope": [
+        "python/worker_runtime",
+        "tests/contracts",
+        "pyproject.toml",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "The unchanged typed Python client imports and runs with the established Message result and passes strict mypy. The protocol module continues to export Message.",
+        "Legacy decode_line rejects all four CSV review envelope types. The explicit extended entry handles those envelopes and retains strict validation of unknown, malformed and over-limit frames.",
+        "Normal market, indicator, and CSV worker traffic keeps its established protocol boundaries and the CSV review capability remains separately negotiated."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-types-win32",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [],
+      "next_action": "Run the same typed client against main and the reviewed candidate before correcting the Python entry.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Old Python wire clients retain their import, typing and frame acceptance while explicit callers can use the CSV review envelopes.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "python/worker_runtime/protocol.py",
+          "python/worker_runtime/__main__.py",
+          "python/worker_runtime/indicator.py",
+          "python/worker_runtime/local_import.py",
+          "contracts/schemas/protocol.schema.json",
+          "tests/contracts/test_protocol.py"
+        ],
+        "hypotheses": [
+          "Sharing framing while selecting the exact canonical schema union at the entry point restores legacy typing and rejection without changing worker negotiation."
+        ],
+        "risks": [
+          {
+            "failure": "The old import or type annotation fails or ordinary worker traffic changes.",
+            "checks": [
+              "python-types",
+              "python-types-win32",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An extended frame bypasses validation, reaches the original decoder, or loses the newline-inclusive byte limit.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Revert the Python entry correction while retaining prior task records and the reviewed diagnostic.",
+        "implementation": {
+          "modules": [
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/worker_runtime/protocol.py",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Message"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/ExtendedMessage"
+            }
+          ],
+          "non_goals": [
+            "Rust or schema changes, worker feature negotiation changes, CSV UI changes and local API observation times."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original Python Message import, decoder and encoder signatures, original wire frames, validation behavior and byte limit."
+          ],
+          "change": [
+            "Select extended review explicitly in the shared Python codec."
+          ],
+          "data_plan": "Use the synthetic shared protocol vectors and worker tests. Persistent records require no migration.",
+          "cleanup": "Use one frame parser and serializer for both validation entries."
         }
       }
     }

@@ -5257,6 +5257,22 @@
         "prevention": "Compile and run the unchanged 87-variant public consumer. Run shared positive and negative wire vectors through both Rust entries, check typed review responses and frame limits, and retain private capability and original row constructor cases."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-python-decoder-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at b76ed015fcbdf5a9e0679d7ad56fec6b24313f29. The same consumer and four envelope comparisons before repair are retained in .reports/m1-047-before-repair.log (SHA-256 eb49fe78aeed336c26533966edafc2c517d441ca7d1a93969bce85d1f3039012).",
+      "severity": "major",
+      "status": "open",
+      "observation": "The established Python protocol module no longer exports Message, and decode_line widens its return type and admits four opt-in CSV review envelope types. Existing typed callers require the original Message and frame acceptance.",
+      "task_ids": [
+        "M1-047"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
