@@ -3682,81 +3682,6 @@
       "deferral_reason": null
     },
     {
-      "id": "profile-admission-after-relocation-review",
-      "source": "Independent Astra Standard at d89a332 and archives/runs/20261125T042136.288677Z-f883380f/test-report.json.",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "The reviewed profile opener discarded a retained synthetic WAL when the main file was empty, reused the relocated identity at the old path, and rejected a valid anchor after sampling earlier existence.",
-      "task_ids": [
-        "M5-005"
-      ],
-      "regression_checks": [
-        "state-migrations",
-        "rust-contracts-workers"
-      ],
-      "resolution": {
-        "cause": "SQLite saw the damaged main file before raw admission and startup sampled identity in separate steps. New native databases reused the path hash.",
-        "correction": "Reject damaged journal sets ahead of SQLite, serialize startup and keep a permanent new identity for a new database.",
-        "prevention": "Linux storage and desktop tests cover retained bytes, legacy recovery, relocated and recreated namespaces, original provenance and simultaneous opens."
-      },
-      "deferral_reason": null,
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T042136.288677Z-f883380f",
-          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
-          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
-        }
-      ]
-    },
-    {
-      "id": "profile-lock-inventory-stale",
-      "source": "Hosted dependency-review at archives/runs/20261125T040109.068237Z-3777721b/test-report.json and archives/runs/windows-change-45543738130-1/test-report.json.",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "Hosted run 45543738130 failed dependency-review on Linux and Windows. The reviewed Cargo.lock added a dependency edge and the retained inventory still recorded the previous lock digest.",
-      "task_ids": [
-        "M5-005"
-      ],
-      "regression_checks": [
-        "dependency-review"
-      ],
-      "resolution": {
-        "cause": "The Cargo dependency graph changed while the inventory still named the previous Cargo.lock digest.",
-        "correction": "Refresh the inventory from the exact lock and review its unchanged package and license set.",
-        "prevention": "The exact clean Linux commit passed an online dependency review with zero unresolved findings. Hosted freshness remains a separate observation."
-      },
-      "deferral_reason": null,
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T040109.068237Z-3777721b",
-          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
-          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
-        },
-        {
-          "run_id": "windows-change-45543738130-1",
-          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
-          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
-        }
-      ]
-    },
-    {
-      "id": "profile-ntfs-hard-link-admission",
-      "source": "Independent Astra Standard at d89a332, Windows workspace admission review.",
-      "severity": "major",
-      "status": "open",
-      "observation": "The reviewed NTFS admission used owner and DACL checks without checking the number of names for the same file handle. A relocated folder could share a SQLite main file or journal with the original. Run the new granted and denied handle checks on Windows, then verify the exact package under M5-001.",
-      "task_ids": [
-        "M5-005",
-        "M5-001"
-      ],
-      "regression_checks": [
-        "state-migrations",
-        "windows-installation"
-      ],
-      "resolution": null,
-      "deferral_reason": null
-    },
-    {
       "id": "same-user-profile-restore",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding relocated-local-profile",
       "severity": "minor",
@@ -5261,6 +5186,100 @@
         "correction": "Keep the accepted prototype definition and selection with the desktop window session and restore them when the dialog opens again. Draft text, preview selection and replay execution remain dialog-local.",
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-observation-time-rounding",
+      "source": "Controlled native loopback trial based on 9180963. The original local transcript .reports/m1-044-red-local-api.log has SHA-256 bebb8d80077be2a4f156dc7f992b08bb5173c2ad92493aad0f7f98fd7f5cf017. The pre-repair Playwright regression .reports/m1-044-red-api-regression.log has SHA-256 3aa64cc7763375aafaf48b9f97a5efd89942161f22453452a9615e5194559798.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The ordinary local API trial accepted 1770076800000.00001, 1e-999 and 8640000000000000.1 as valid millisecond observations. The displayed times acquired integer values through rounding or underflow before validation.",
+      "task_ids": [
+        "M1-044"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The HTTP adapter decoded the observation time through a binary JSON numeric representation before checking whole milliseconds.",
+        "correction": "Validate the original decimal token using exact integer arithmetic within the existing schema range. Keep the separate original price token intact.",
+        "prevention": "A controlled HTTP peer drives the ordinary native settings trial with exact integers, equivalent decimal and exponent forms, rounded fractions, underflow, an out-of-range number and a quoted value."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "profile-admission-after-relocation-review",
+      "source": "Independent Astra Standard at d89a332 and archives/runs/20261125T042136.288677Z-f883380f/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The reviewed profile opener discarded a retained synthetic WAL when the main file was empty, reused the relocated identity at the old path, and rejected a valid anchor after sampling earlier existence.",
+      "task_ids": [
+        "M5-005"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "SQLite saw the damaged main file before raw admission and startup sampled identity in separate steps. New native databases reused the path hash.",
+        "correction": "Reject damaged journal sets ahead of SQLite, serialize startup and keep a permanent new identity for a new database.",
+        "prevention": "Linux storage and desktop tests cover retained bytes, legacy recovery, relocated and recreated namespaces, original provenance and simultaneous opens."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T042136.288677Z-f883380f",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
+        }
+      ]
+    },
+    {
+      "id": "profile-lock-inventory-stale",
+      "source": "Hosted dependency-review at archives/runs/20261125T040109.068237Z-3777721b/test-report.json and archives/runs/windows-change-45543738130-1/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Hosted run 45543738130 failed dependency-review on Linux and Windows. The reviewed Cargo.lock added a dependency edge and the retained inventory still recorded the previous lock digest.",
+      "task_ids": [
+        "M5-005"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "resolution": {
+        "cause": "The Cargo dependency graph changed while the inventory still named the previous Cargo.lock digest.",
+        "correction": "Refresh the inventory from the exact lock and review its unchanged package and license set.",
+        "prevention": "The exact clean Linux commit passed an online dependency review with zero unresolved findings. Hosted freshness remains a separate observation."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T040109.068237Z-3777721b",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
+        },
+        {
+          "run_id": "windows-change-45543738130-1",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
+        }
+      ]
+    },
+    {
+      "id": "profile-ntfs-hard-link-admission",
+      "source": "Independent Astra Standard at d89a332, Windows workspace admission review.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The reviewed NTFS admission used owner and DACL checks without checking the number of names for the same file handle. A relocated folder could share a SQLite main file or journal with the original. Run the new granted and denied handle checks on Windows, then verify the exact package under M5-001.",
+      "task_ids": [
+        "M5-005",
+        "M5-001"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "windows-installation"
+      ],
+      "resolution": null,
       "deferral_reason": null
     },
     {

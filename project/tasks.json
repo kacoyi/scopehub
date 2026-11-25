@@ -997,139 +997,6 @@
       "closure_reason": null
     },
     {
-      "id": "M5-005",
-      "title": "Deliver and verify safe desktop profile relocation after independent review",
-      "milestone": "M5",
-      "status": "done",
-      "depends_on": [
-        "M2-001",
-        "M2-002"
-      ],
-      "scope": [
-        "apps/desktop/src-tauri",
-        "crates/persistence",
-        "project",
-        "contracts/decisions"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007",
-        "0011",
-        "0030"
-      ],
-      "acceptance": [
-        "Relocate a complete closed profile under its original local account. Preserve authorized frozen chart rows, original CSV bytes and withdrawal tombstones. Reject a missing or empty main database with retained nonempty sidecars before SQLite opens.",
-        "New desktop databases have independent stable namespaces after relocation. Original and migrated databases retain their exact identities. Concurrent initialization and interruption reach one consistent identity.",
-        "Windows admission rejects NTFS hard-linked database and sidecar handles before SQLite. Synthetic controls exercise permitted and refused files. The packaged two-account Windows test remains under M5-001.",
-        "Reproduce the independent-review defects, validate the replacement against protected main, and pass online advisory checks on the exact locked inventory. Preserve the original branch and evidence at their original SHA."
-      ],
-      "checks": [
-        "architecture",
-        "operations-workflow",
-        "rust-contracts-workers",
-        "rust-format",
-        "rust-lints",
-        "state-migrations",
-        "dependency-review"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M5-005-f9b72cd97430dc5d.json",
-          "sha256": "e30606ccb042125388cf5b6dd25cadc7f8e77fd2edfecdd66e9045ebeee2d48d"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "The clean replacement 911c3bef73f76184112f19d208955346d0bb9106 passed all selected Linux task checks including online dependency review. Rust retained unchanged synthetic WAL bytes on refusal, preserved legacy identities and assigned distinct stable namespaces on recreation, and serialized two admitted opens. The desktop verified independent synthetic credential replacement and removal. The Windows storage module type-checked for x86_64-pc-windows-gnu. Native NTFS regression execution, same-account and different-account Windows recovery, and packaged acceptance remain open.",
-      "plan": {
-        "outcome": "The reviewed profile repair passes synthetic integrity, identity and simultaneous startup controls.",
-        "change_types": [
-          "persistence"
-        ],
-        "context": [
-          "crates/persistence/src/storage.rs",
-          "crates/persistence/src/profile_anchor.rs",
-          "crates/persistence/src/lib.rs",
-          "project/dependency-inventory.json"
-        ],
-        "hypotheses": [
-          "A per-directory startup lock can serialize identity admission. A new profile identity can bind its original location for interruption recovery without sharing the old path-derived credential namespace."
-        ],
-        "risks": [
-          {
-            "failure": "SQLite touches a retained WAL or a hard-linked profile before rejection.",
-            "checks": [
-              "state-migrations",
-              "rust-contracts-workers"
-            ]
-          },
-          {
-            "failure": "Two real databases share a credential namespace or a concurrent opener loses the initial identity.",
-            "checks": [
-              "state-migrations",
-              "rust-contracts-workers"
-            ]
-          },
-          {
-            "failure": "Dependency review fails on the exact lock digest or published history loses prior evidence.",
-            "checks": [
-              "dependency-review",
-              "architecture"
-            ]
-          }
-        ],
-        "rollback": "Keep the complete original profile, including all SQLite sidecars. Legacy identities can reopen at their original path with compatible software. A fresh profile with the new identity requires a compatible reader.",
-        "implementation": {
-          "modules": [
-            "persistence",
-            "desktop"
-          ],
-          "entrypoints": [
-            "crates/persistence/src/lib.rs",
-            "apps/desktop/src-tauri/src/bridge.rs"
-          ],
-          "rules": [
-            {
-              "path": "engineering-contract-v1.json",
-              "pointer": "/persistence"
-            }
-          ],
-          "non_goals": [
-            "Live credentials, Windows package or physical device acceptance, and changing already accepted history."
-          ],
-          "open_questions": []
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "SQLite schema, existing identities, authorizations, originals and grants."
-          ],
-          "change": [
-            "Register a complete profile under its verified account. Protect the journal set before opening SQLite and allocate isolated stable identities for new databases. Serialize first initialization and anchor publication."
-          ],
-          "data_plan": "Use disposable synthetic account, filesystem and credential namespaces.",
-          "cleanup": "Release startup locks on success, refusal or process exit. Leave invalid originals and sidecars in place."
-        }
-      },
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T042136.288677Z-f883380f",
-          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
-          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
-        },
-        {
-          "run_id": "20261125T040109.068237Z-3777721b",
-          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
-          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
-        },
-        {
-          "run_id": "windows-change-45543738130-1",
-          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
-          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
-        }
-      ]
-    },
-    {
       "id": "M0-004",
       "title": "Make continuous delivery observable, failure-oriented and resumable",
       "milestone": "M0",
@@ -20114,6 +19981,252 @@
           "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
         }
       }
+    },
+    {
+      "id": "M1-044",
+      "title": "Keep local API sample observation timestamps exact",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-040"
+      ],
+      "scope": [
+        "crates/worker-host/src/local_api.rs",
+        "tests/ui/local-api-connection.spec.mjs",
+        "contracts/contract.json",
+        "project"
+      ],
+      "decision_refs": [
+        "0015",
+        "0023",
+        "0028"
+      ],
+      "acceptance": [
+        "At the explicit saved loopback API trial, accept only observation tokens whose exact mathematical value is a whole millisecond in the supported range.",
+        "Reject a fractional value that would round to an allowed date, a nonzero value that would underflow to zero, quoted dates and out-of-range times. Accept exact decimal or exponent forms when their values are valid integer milliseconds.",
+        "Preserve the exact quote-value token and the existing current-connection admission through a controlled loopback trial."
+      ],
+      "checks": [
+        "architecture",
+        "generated-contracts",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-fixtures",
+        "market-recovery",
+        "local-api-connection"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-044-e73617b8af1322b4.json",
+          "sha256": "b4d2518547a8c07e84d617b7869d197b591b5f68157069f11dc57db276a1d21e"
+        },
+        {
+          "path": "project/evidence/M1-044-c69083a05caea6de.json",
+          "sha256": "25c234bbb51c6da0b898187f8f25c818a60c2b56a8c7214a99ceb1ca3c02736e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The controlled native API trial accepted exact whole-millisecond forms and preserved the quote token. It rejected rounding, underflow, an above-limit fraction, an out-of-range integer and a quoted timestamp before exposing a sample. The attached Linux task receipt covers the delivered scope.",
+      "plan": {
+        "outcome": "The local API trial displays an observation time only when its original numeric token exactly identifies an allowed millisecond.",
+        "change_types": [
+          "market"
+        ],
+        "context": [
+          "crates/worker-host/src/local_api.rs",
+          "contracts/schemas/protocol.schema.json",
+          "tests/ui/local-api-connection.spec.mjs"
+        ],
+        "hypotheses": [
+          "The JSON parser can retain the raw observation token as it already does for price; exact decimal arithmetic can then validate the range without binary rounding."
+        ],
+        "risks": [
+          {
+            "failure": "A fractional or out-of-range observation acquires a plausible integer time through binary64 conversion.",
+            "checks": [
+              "local-api-connection",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Exact observations or quote-value spellings regress when a compatible provider uses decimal or exponent notation.",
+            "checks": [
+              "local-api-connection",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the sample validation change. The operation stores no sample records.",
+        "implementation": {
+          "modules": [
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_api.rs",
+            "tests/ui/local-api-connection.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/LocalApiSample"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/external_api"
+            }
+          ],
+          "non_goals": [
+            "New providers, timestamp inference or dated CSV evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact integer observation time forms, quote-value lexemes, saved connection settings and the loopback permission boundary."
+          ],
+          "change": [
+            "Reject observation timestamps that are fractional or unrepresentable in the declared time range before they cross the native bridge."
+          ],
+          "data_plan": "Use temporary profiles and synthetic loopback responses; the trial remains read-only.",
+          "cleanup": "Replace binary64 parsing of the provider observation token. Keep the existing wire type and schema validation."
+        }
+      }
+    },
+    {
+      "id": "M5-005",
+      "title": "Deliver and verify safe desktop profile relocation after independent review",
+      "milestone": "M5",
+      "status": "done",
+      "depends_on": [
+        "M2-001",
+        "M2-002"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/persistence",
+        "project",
+        "contracts/decisions"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0011",
+        "0030"
+      ],
+      "acceptance": [
+        "Relocate a complete closed profile under its original local account. Preserve authorized frozen chart rows, original CSV bytes and withdrawal tombstones. Reject a missing or empty main database with retained nonempty sidecars before SQLite opens.",
+        "New desktop databases have independent stable namespaces after relocation. Original and migrated databases retain their exact identities. Concurrent initialization and interruption reach one consistent identity.",
+        "Windows admission rejects NTFS hard-linked database and sidecar handles before SQLite. Synthetic controls exercise permitted and refused files. The packaged two-account Windows test remains under M5-001.",
+        "Reproduce the independent-review defects, validate the replacement against protected main, and pass online advisory checks on the exact locked inventory. Preserve the original branch and evidence at their original SHA."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "state-migrations",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M5-005-f9b72cd97430dc5d.json",
+          "sha256": "e30606ccb042125388cf5b6dd25cadc7f8e77fd2edfecdd66e9045ebeee2d48d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The clean replacement 911c3bef73f76184112f19d208955346d0bb9106 passed all selected Linux task checks including online dependency review. Rust retained unchanged synthetic WAL bytes on refusal, preserved legacy identities and assigned distinct stable namespaces on recreation, and serialized two admitted opens. The desktop verified independent synthetic credential replacement and removal. The Windows storage module type-checked for x86_64-pc-windows-gnu. Native NTFS regression execution, same-account and different-account Windows recovery, and packaged acceptance remain open.",
+      "plan": {
+        "outcome": "The reviewed profile repair passes synthetic integrity, identity and simultaneous startup controls.",
+        "change_types": [
+          "persistence"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/profile_anchor.rs",
+          "crates/persistence/src/lib.rs",
+          "project/dependency-inventory.json"
+        ],
+        "hypotheses": [
+          "A per-directory startup lock can serialize identity admission. A new profile identity can bind its original location for interruption recovery without sharing the old path-derived credential namespace."
+        ],
+        "risks": [
+          {
+            "failure": "SQLite touches a retained WAL or a hard-linked profile before rejection.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Two real databases share a credential namespace or a concurrent opener loses the initial identity.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Dependency review fails on the exact lock digest or published history loses prior evidence.",
+            "checks": [
+              "dependency-review",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the complete original profile, including all SQLite sidecars. Legacy identities can reopen at their original path with compatible software. A fresh profile with the new identity requires a compatible reader.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "desktop"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Live credentials, Windows package or physical device acceptance, and changing already accepted history."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "SQLite schema, existing identities, authorizations, originals and grants."
+          ],
+          "change": [
+            "Register a complete profile under its verified account. Protect the journal set before opening SQLite and allocate isolated stable identities for new databases. Serialize first initialization and anchor publication."
+          ],
+          "data_plan": "Use disposable synthetic account, filesystem and credential namespaces.",
+          "cleanup": "Release startup locks on success, refusal or process exit. Leave invalid originals and sidecars in place."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T042136.288677Z-f883380f",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
+        },
+        {
+          "run_id": "20261125T040109.068237Z-3777721b",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
+        },
+        {
+          "run_id": "windows-change-45543738130-1",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
+        }
+      ]
     },
     {
       "id": "M5-006",
