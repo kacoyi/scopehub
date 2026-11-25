@@ -6926,6 +6926,44 @@
       ]
     },
     {
+      "id": "recurring-main-push-handoff-blocks-next-observation",
+      "source": "Canonical offline integration scope at cb81c752f91b5c611cb258879bcf83e658b7323a against 87dd07963b5dfbc648473e8a4f021ff5b8384203. The Windows push controls are indexed by windows-warm-push-intake.json, SHA-256 d6240590f7a24af345059e69000ebe256cc0c85d5aafbd8c64aae64007c441a5.",
+      "observation": "The 886, 938 and 913 second warm full Windows main controls have the same 35 outcomes. Canonical scope blocks the repair candidate for unfinished delivery and the open major finding. The next qualifying push cannot occur before integration, and the protected rule names only the historical M0-087/M0-091 records.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-142"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The earlier protected handoff named one historical repair and successor. It had no path for the reviewed recurring Windows observation to reach the protected push that must measure it.",
+        "correction": "Adopt a distinct protected rule for the named repair, open finding and qualified successor. Preserve the earlier rule and require a later comparable protected push to close the observation.",
+        "prevention": "Public integration controls exercise independent adoption, the required successor, real PR116 native originals and the difference between the PR clock and a later protected push."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "recurring-main-push-handoff-incomplete-eligibility",
+      "source": "Independent Astra Standard changes requested on 1ca48c50a9dd42eb989b9fb0276a04edcd2cac8a. Original response SHA-256 7afbd4bf4a493b3e5d103f032989454d919fd0d58172cc903430b2972ebbc85a; extracted verdict SHA-256 482ef6fc7e0177a8ce31a74ae345ddba55d571e8c1cba5cce7683eb9efa8ebcb. Original and provenance retained privately.",
+      "observation": "Delivery accepted a completed M0-139 without its open finding or M0-141. Replacing the actual repair with its intake ancestor preserved the finding fingerprint. Native summaries with a substituted harness run ID or a Windows wall clock of 929 seconds qualified. A current incomplete receipt and an older complete receipt jointly allowed handoff, and an older valid receipt lacking an optional project digest prevented a later complete one from being considered.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-142"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The candidate did not simultaneously bind the named open finding, actual repair, per-platform report identities, Windows wall time and complete current task receipt.",
+        "correction": "Verify the repair commit and successor coverage, both native reports against their tested PR merge and jobs, the Windows budget and a single complete current receipt. Continue searching past ineligible older receipts.",
+        "prevention": "The integration regressions include absent ownership, unrelated ancestry, mismatched report or job identity, 900 and 901 second boundaries and disjoint receipt coverage. The independent reviewer rechecked each outcome."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "windows-private-handoff-verification-deadline",
       "source": "Protected main push 45668943982, attempt 1, Windows browser producer 139398629052. The aggregate report is archives/runs/windows-change-45668943982-1/test-report.json. Its workspace-timeframe log has SHA-256 79d9d51be67b34df9c44be45c536f233d9eb17ac5a4e642c6d6eddcade96a35c.",
       "severity": "major",
