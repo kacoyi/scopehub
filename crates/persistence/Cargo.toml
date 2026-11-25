@@ -12,5 +12,8 @@ rusqlite = { version = "0.43.0", default-features = false, features = ["bundled"
 serde_json.workspace = true
 uuid.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+scopehub-platform = { path = "../platform" }
+
 [lints]
 workspace = true
