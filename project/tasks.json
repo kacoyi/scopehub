@@ -23801,6 +23801,132 @@
       }
     },
     {
+      "id": "M0-125",
+      "title": "Identify Windows handoff probe subprocess failures safely",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-121"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0029"
+      ],
+      "acceptance": [
+        "Distinguish startup errors, deadline expiry, signal termination, buffer exhaustion, declared stage exits and other exit codes in the common subprocess runner.",
+        "Report only bounded and allowlisted diagnostics. Preserve the existing PowerShell probe, timing limits and native acceptance rules.",
+        "Retain the original aggregate report and reproduce missing classifications with benign controlled children before verifying the correction.",
+        "When a finished child leaves inherited output pipes open, keep its success or declared exit and bound the wait as Node execFile does. Confirm a genuinely timed-out child is gone and verify both buffer controls emit bytes."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-125-b0547bf45da97d68.json",
+          "sha256": "55bebd5496d2958908610eb5a8470653d8978f22702c0acc61f5e03b909e9569"
+        },
+        {
+          "path": "project/evidence/M0-125-ea92b5d99d5bcfa2.json",
+          "sha256": "59f4049b42b3de6117e0eaa4191674019887d2bc8c679947e52b823f8ac7341e"
+        },
+        {
+          "path": "project/evidence/M0-125-9d255cf982f84023.json",
+          "sha256": "fb58eb29c61f4440b81cb394c493ccb106ef8034632fea16f9587a45b932944b"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45579441190-1",
+          "source_commit": "c678d0e53a5546138ebf9673af8c627f64446c6c",
+          "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Guarded attempt 1 of run 45585469848 passed all M0-125 checks on 42c420f against protected base 25b4ac9. Ubuntu passed 71 workspace cases, including all eleven subprocess controls. Native Windows passed 70 workspace cases, including the private handoff ACL probe, both unsafe handoff fixtures, the profile pool ACL case, and ten subprocess controls. The POSIX child-signal control and POSIX CLI SIGINT/SIGTERM rehearsal were the two platform skips. The authentic local ae3e770 receipt remains supplementary evidence. The original c678d0e PowerShell execution failure remains unclassified. On an actual recurrence, preserve the original run, bounded diagnostic and stage before retry, then reopen the incident with the new evidence.",
+      "plan": {
+        "outcome": "A failed test-owned Windows handoff probe explains its observed subprocess disposition without exposing process inputs.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/windows-change-45579441190-1/test-report.json"
+        ],
+        "hypotheses": [
+          "A common subprocess wrapper can safely classify diagnostics previously collapsed by the caller. The failed hosted operation did not retain enough information to attribute its original cause.",
+          "Use execFile to own both its timeout and stream closure. A direct child can exit while inherited pipes remain open, so a late timeout flag alone cannot determine its outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Raw child output, process arguments, a profile path or an identity is attached to a failure.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A signal, startup error or deadline is mistaken for a declared ACL rejection, or native acceptance changes.",
+            "checks": [
+              "workspace-timeframe",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Retained descendant pipes extend a completed result beyond the deadline or replace an observed declared exit. Asynchronous fixtures may emit no bytes and fail to prove buffer classification.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the test-runner change and retain the hosted incident and controlled subprocess reproducers.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Product behavior, ACL policy, runner timeout expansion or an attribution unsupported by the original report."
+          ],
+          "open_questions": [
+            "Does exact hosted evidence identify measurable contention in the test-owned subprocess?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing positive and negative Windows ACL probes, native timing limits and product behavior.",
+            "Node execFile deadline and stream closure, including precedence for a completed child outcome."
+          ],
+          "change": [
+            "Expose the safe subprocess disposition on probe failures.",
+            "Retain a direct exit while inherited streams drain and verify actual overflow with synchronous writes."
+          ],
+          "data_plan": "Keep only fixed diagnostic labels and bounded numeric codes. Use synthetic subprocess inputs and retain archived original logs privately.",
+          "cleanup": "Keep the original report unchanged and discard raw child output and failure objects at the runner boundary."
+        }
+      }
+    },
+    {
       "id": "M0-127",
       "title": "Reduce Windows ordinary main verification cache-save cost",
       "milestone": "M0",
