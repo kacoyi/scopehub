@@ -25276,7 +25276,8 @@
         "Publish a bounded stable snapshot before digesting the ordinary log when Linux cleanup is unconfirmed. Keep the failed diagnosis and a verified retry independently resolvable.",
         "Record an interrupt arriving during serial log finalization and preserve any existing cleanup failure. Retain the terminal row, durable run report and ordinary stop behavior.",
         "A real SIGINT at a blocked console result write promptly stops output without losing its terminal row, log digest, original and latest reports or independent retry.",
-        "On the actual parallel entry, one SIGINT releases a full shared Linux pipe whether a second writer fills it before or after readiness. Preserve caller descriptor flags, terminal outcomes, original and latest reports, and a separate retry."
+        "On the actual parallel entry, one SIGINT releases a full shared Linux pipe whether a second writer fills it before or after readiness. Preserve caller descriptor flags, terminal outcomes, original and latest reports, and a separate retry.",
+        "Reach the real Windows gate identity and Job Object membership assertions with a fixture that preserves the runtime platform and both interpreter choices."
       ],
       "checks": [
         "project-state",
@@ -25308,7 +25309,8 @@
           "A residual inherited writer can still mutate the original log inode after unconfirmed cleanup.",
           "The serial digest and terminal result phase currently has no interrupt handling after the check runner returns.",
           "Console emission currently precedes admission of terminal rows and is not part of durable report publication.",
-          "Pipe readiness does not reserve capacity for a later write. A cooperative flag cannot interrupt an already blocking write."
+          "Pipe readiness does not reserve capacity for a later write. A cooperative flag cannot interrupt an already blocking write.",
+          "The Windows gate fixture dropped the runtime platform when substituting the interpreter paths. The runner branches on platform before it invokes either gate."
         ],
         "risks": [
           {
@@ -25359,6 +25361,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A stale Windows fixture prevents the redirector and normal gate controls from exercising process identity or containment.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the failed original and port observation. If the shared supervisor changes existing exit semantics, restore the previous path and retain the active finding until a bounded repair passes.",
@@ -25400,14 +25408,15 @@
             "Detach the published diagnostic inode from unconfirmed Linux output writers while retaining the existing archive bindings.",
             "Carry a serial finalization interrupt into the ordinary check result and run report.",
             "Handle blocked console interruption independently of row admission and persist the original and latest reports without relying on stdout.",
-            "Use owned nonblocking pipe output for the Linux cooperative console and retry only unwritten bytes."
+            "Use owned nonblocking pipe output for the Linux cooperative console and retry only unwritten bytes.",
+            "Preserve the native runtime attributes when overriding only the test gate interpreter paths."
           ],
           "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
           "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
         }
       },
       "closure_reason": null,
-      "next_action": "Obtain independent Astra review of Linux parallel pipe ownership, then retain the coordinator's ordinary native Windows verification.",
+      "next_action": "Reproduce the exact fixture failure locally, preserve both native originals and verify the narrow correction before independent and native reruns.",
       "blocker": null,
       "evidence": [
         {

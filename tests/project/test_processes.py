@@ -605,7 +605,9 @@ time.sleep(30)
             with self.subTest(launcher=name):
                 ready_path.unlink(missing_ok=True)
                 observed = []
-                configured = SimpleNamespace(executable=redirector, _base_executable=interpreter)
+                configured = SimpleNamespace(**(vars(sys) | {
+                    'executable': redirector, '_base_executable': interpreter,
+                }))
                 with (patch.object(processes, 'sys', configured),
                       patch.object(processes, 'WINDOWS_LAUNCHER', launcher),
                       patch.object(WindowsJob, 'assign', assign_after_gate_starts)):

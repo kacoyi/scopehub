@@ -7095,6 +7095,33 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-gate-test-replaces-native-platform-with-incomplete-sys",
+      "source": "Guarded native M0-138 run 45682823289 attempt 1 and ordinary PR 124 run 45682766074 attempt 1. Original reports and traces are retained at archives/runs/20261125T191335.690626Z-3716de15/ and archives/runs/windows-change-45682766074-1/.",
+      "observation": "Both Windows Python checks independently recorded two errors in test_windows_gated_launcher_is_the_assigned_process, in the redirector and normal gate subtests. The test replaces processes.sys with a namespace missing platform, and containment selection reads that property before either launcher starts. The logs therefore contain no native gate process identity or Job Object membership result for either subtest. Guarded Linux passed and the ordinary Linux Python check passed. Its aggregate retains its recorded blocked status.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T191335.690626Z-3716de15",
+          "source_commit": "2c212a68112df03b08978ccca40980c303815dfa",
+          "report_sha256": "1076b60e5d4b7090b1fc006fe4fccff5749228c05cd427456a0d2134a94b3341"
+        },
+        {
+          "run_id": "windows-change-45682766074-1",
+          "source_commit": "a0ec734b445989a42742870b870685c56eaf1974",
+          "report_sha256": "2d743243641b720c1fc98bd8a1267b0995bd4b10228fe9d3be5f7e94e0e237b7"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
