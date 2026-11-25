@@ -3,6 +3,7 @@
 
 use std::{
     io::{self, BufRead, Read, Write},
+    num::NonZeroU8,
     path::Path,
     process::ExitCode,
 };
@@ -411,7 +412,30 @@ fn serve(
 }
 
 fn main() -> ExitCode {
+    #[cfg(windows)]
+    if let Some(exit) = scopehub_persistence::run_workspace_acl_worker() {
+        std::process::exit(exit);
+    }
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if let [flag, root, count] = args.as_slice()
+        && flag == "--prepare-profile-pool"
+    {
+        let Some(count) = count
+            .to_str()
+            .and_then(|count| count.parse::<NonZeroU8>().ok())
+            .filter(|count| count.get() <= 64)
+        else {
+            eprintln!("A test profile pool requires between 1 and 64 profiles.");
+            return ExitCode::FAILURE;
+        };
+        return match SqliteWorkspace::prepare_profile_pool(Path::new(root), count) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        };
+    }
     if let [flag, root] = args.as_slice()
         && flag == "--prepare-profile-root"
     {
