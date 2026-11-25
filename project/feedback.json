@@ -3306,22 +3306,25 @@
     },
     {
       "id": "windows-acl-prepare-fixture-and-mapping-timeouts",
-      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout.",
-      "occurrence": 2,
+      "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout. Third occurrence: PR 84 run 45468479291, archives/observations/pr-84-45468479291/index.json (SHA-256 399e91e184e8742b868013470e7b32f53890b4bc651d4d14dec5752058392f65). Windows workspace-timeframe log SHA-256 ffe18daefd5643711fa8cc8c29da1765ca07845151d9e2cec85f157936895521. Fourth occurrence: PR 84 run 45489014243, archives/runs/windows-change-45489014243-1/test-report.json. Windows workspace-timeframe log SHA-256 3983a2e110c148f7de8f3123bf32a07742115f22b613300633cdf96b3cf9556d. Fifth occurrence: authenticated Windows pull request run 45543157570, attempt 1, https://github.com/kacoyi/scopehub/actions/runs/45543157570. The report and all bound logs were verified by the diagnostic resolver. The workspace-timeframe log SHA-256 is 116aa1c7ccb5b25ed312da8caf40f272614331063745bc9b075172d4164eee54.",
+      "occurrence": 5,
       "severity": "major",
       "status": "addressed",
-      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot.",
+      "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot. Third occurrence: four originally independent workspace-timeframe fixtures (:144, :215, :556 and :652) stopped in workspace_bridge --prepare-profile-root with (prepare, powershell-timeout), before Vite or SQLite. The fourth failed with no other workspace case running. The browser launches separate bridge processes outside the prior Tauri test-only mutex. The same four Linux cases and the three Windows indicator delivery and recovery controls passed. The failed Windows process contains no measured internal stage beyond the PowerShell timeout. Fourth occurrence: the same reviewed native Windows inputs used one 64-profile setup before both workers. The ordinary PR producer returned prepare/powershell-timeout after 10.290 seconds and started zero browser cases. The same-input task had prepared 64 roots in 735 ms. The native Rust controls passed on a different Windows host. Fifth occurrence: three ordinary workspace fixtures (workspace.spec.mjs:144, :215 and :556) stopped in workspace_bridge --prepare-profile-root at prepare/powershell-timeout. The other cases recorded 54 passes and one skip. No original log reports first script execution or exact slow ACL work.",
       "task_ids": [
         "M0-071",
-        "M0-089"
+        "M0-089",
+        "M0-102",
+        "M0-105"
       ],
       "regression_checks": [
-        "rust-contracts-workers"
+        "rust-contracts-workers",
+        "workspace-timeframe"
       ],
       "resolution": {
-        "cause": "The fixture preparation slot did not cover the real native workspace-open path. Application opens and explicit fixture preparations could overlap their PowerShell ACL helpers. The hosted recurrence did not record where latency accumulated inside PowerShell.",
-        "correction": "Make explicit fixtures and real workspace opens share one test-only admission slot before invoking the real native ACL preparation. Preserve the production policy, helper deadlines, refusal and cleanup.",
-        "prevention": "Exercise both actual paths against the same held mutex and reject a disconnected slot. Retain the first occurrence and its diagnostic, and compare the full original native desktop inventory including the four timed-out cases and the new shared-admission regression."
+        "cause": "Ordinary workspace preparation depended on a PowerShell child reaching completion under the existing timeout. The archived failures do not identify the internal stage that stalled.",
+        "correction": "Use the same supervised native Windows ACL policy for preparation and opening in the ordinary desktop and workspace bridge. Keep the existing deadlines and refusal controls.",
+        "prevention": "The hosted workspace and desktop transport checks ran the ordinary browser paths, and Rust exercised native refusal and supervised cleanup. The resolved archive reports windows-change-45554913043-1 (source 1a71e272d3abd9fabb8ce49ed3316289f264786a, SHA-256 744a0d549a2beaae9de5976e09269ce28afe31ddb9d8625ca9c9bc45eceac7c7) and windows-change-45555389370-1 (source 150a733a91a160455582c1e485b2f8db25a66f83, SHA-256 0b0814940fac485a6e3655ce94cb15c264c4d8566328bdbd737699c5d45d5736) each retain two prepare/powershell-timeout failures before chart execution. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
       },
       "deferral_reason": null,
       "diagnostic_reports": [
@@ -3334,6 +3337,26 @@
           "run_id": "windows-change-45387261521-1",
           "source_commit": "37ad45f476de9fd009379300beea264704317a7e",
           "report_sha256": "f898e43f0c624e65c57b9fff7f157fa532a7763a28dc948765fd04e8afd92855"
+        },
+        {
+          "run_id": "windows-change-45468479291-1",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "01316e545218cd9c7e6c63a1c2d33d6529bd253a0ca489ded44fc8d4cbb3c9a3"
+        },
+        {
+          "run_id": "20261124T191751.193512Z-520f9d9d",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "9f26f5107e91ef5f5420a0c7c1e5bfe2e41e6d11e0deeeb9089efa2f86a3e60e"
+        },
+        {
+          "run_id": "windows-change-45489014243-1",
+          "source_commit": "2d31fe9338a8c8ca5dc051412870fe4f8c459783",
+          "report_sha256": "66bc75a2551c438b4158b8e395695a3a30035e4aa1137eee8c64ac9ea96d8b46"
+        },
+        {
+          "run_id": "windows-change-45543157570-1",
+          "source_commit": "d339b4d155932af6cc196cee9ab4479280c1dd85",
+          "report_sha256": "f8b5cc2f1913d5252a732a8c33796dec03e02d348a1438545950a1fc1e8e2329"
         }
       ]
     },
@@ -3586,17 +3609,28 @@
     },
     {
       "id": "frozen-csv-semantic-reassessment",
-      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations. The local regression reproduced INVALID_ARGUMENT for both selected rows before the worker repair. See .reports/runs/20261125T034911.580741Z-d1bc21fc/test-report.json. The harness also recorded sandboxed loopback failures and a changed working tree at the end of the run.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T034911.580741Z-d1bc21fc",
+          "source_commit": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+          "report_sha256": "293d48960e0bb6726a92a516acf795e85284d54931df4db555f13ac0959b2fd1"
+        }
+      ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The synthetic published revision retains original raw timezone, timeframe and volume declarations that conflict with its normalized bars. Correcting admission for new data leaves older frozen revisions and any analyses pinned to them in need of an attributable review path.",
       "task_ids": [
-        "M1-029"
+        "M1-041"
       ],
       "regression_checks": [
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Frozen source-row reads used the stored encoding and locator but omitted comparison with the bound historical mapping.",
+        "correction": "An opt-in local source record review identifies each conflicting original column and the reviewed value. The worker and current import use the same comparison rules, while the readback retains the historical revision, source bytes and chart hash.",
+        "prevention": "A synthetic historical revision is reopened through the desktop operation and browser without its source folder. Checks verify all semantic fields, exact raw values, quoted multiline locators, denied and revoked reads, raw-only compatibility and stable snapshot identity."
+      },
       "deferral_reason": null
     },
     {
@@ -3670,15 +3704,19 @@
       "id": "external-client-observation-publication",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding external-client-evidence",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The current private-log and hosted observation formats cannot retain the two independent client observations required for qualification. The executable release check itself is still planned.",
       "task_ids": [
-        "M4-005"
+        "M4-017"
       ],
       "regression_checks": [
-        "configured-external-ai-clients"
+        "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The external-client check had no run-bound observation format, and private-check logs retained only exit codes.",
+        "correction": "Retain a bounded redacted pair with independent publication consents, the same synthetic workspace and exact source identity. Validate it again when staging hosted artifacts and importing receipts.",
+        "prevention": "Exercise a synthetic publish and import round trip. Reject missing observations, shared or absent consent, wrong source and workspace bindings, changed bytes and private fields. The ordinary M4-005 unsupplied check remained blocked with exit 77."
+      },
       "deferral_reason": null
     },
     {
@@ -5208,6 +5246,1439 @@
       "deferral_reason": null
     },
     {
+      "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
+      "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
+      "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-097",
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T090140.387541Z-e76e7b16",
+          "source_commit": "c065d60ec30612787a6585290710c2aec52172e2",
+          "report_sha256": "9800b5e6f9d22654353ff27d750a6b6089e822bf5a203192add8dd2af5e6403b"
+        },
+        {
+          "run_id": "20261124T093734.046540Z-27df2492",
+          "source_commit": "a6d9460d6bc5fffa533117350ceec175d8f49fec",
+          "report_sha256": "eb41a70ccdd5cd1f45eb9624218d5c92fd77ef9b612a017fc7f923daaae58714"
+        },
+        {
+          "run_id": "20261124T100820.639261Z-a7e0e867",
+          "source_commit": "b3475fa7581a959c0d4c3a53f722d532683f333e",
+          "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
+        }
+      ],
+      "resolution": {
+        "cause": "Bounded automatic and manual timing windows excluded explicitly linked historical diagnostics.",
+        "correction": "Index original canonical captures by exact report and checkout identity. Ordinary status and CI consult that shared index without widening the recent windows. The offline migration preserves original capture bytes.",
+        "prevention": "Exercise both rotation boundaries, fresh linked checkout lookup, automatic intake and retained failure authority. Replay six original PR controls and five main-push controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-hidden-by-missing-clock-or-capture",
+      "source": "Standard Astra read-only review of 77bf40bca029942544f5bfd77f1f7e0b4ee073b5, archives/observations/m0-097-linked-timing-review/astra-77bf40b.txt, SHA-256 d6ef15d14a000186a1ea9277f19638f7640754bc0fd07d2b67e86c8390e09690.",
+      "observation": "After the automatic and manual windows rotated, two indexed attempts declared the same linked original report identity. Ordinary status and regular CI reported the conflict with both clocks present, then incorrectly reported recovery when one indexed attempt lacked its clock or its original compact file.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-097",
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Conflict detection depended on both capture files and eligible clocks remaining available.",
+        "correction": "Treat persistent indexed claims for one exact report identity as ambiguous before clock eligibility, even when another claimant has lost its clock or original capture.",
+        "prevention": "Exercise both clocks present, a missing clock, and a missing capture through ordinary status and CI alongside an independently qualifying recovery."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-recovery-timing-provenance",
+      "source": "Independent read-only Astra Standard review of 7abe0e0, retained at archives/observations/m0-094-astra-7abe0e0/review.txt (SHA-256 165a8d6fa3ae8120dc40b43d3dfc1d5ee68d7d868d6b6296c9c6ced492c5dcc7).",
+      "observation": "The new timing reader admitted a four-producer run as warm without its producer cache map, serialized a conflicting cache observation as an invalid synthesized record that disappeared on reload, and accepted ambiguous raw jobs with the fourth producer and its aggregate marker absent as complete legacy timing. The retained workflow and protected aggregate passed the separate routing and failure review.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-094"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The timing reader could accept a four-producer clock without producer cache evidence, replace a conflicting original during intake, or accept ambiguous job data as an older layout.",
+        "correction": "Bind the four-producer map and layout to the record. Retain conflicting originals, show missing cache provenance as unknown, and require positive evidence of the old layout.",
+        "prevention": "Replay both conflict arrival orders through archive reload and compare four-producer results with the original three-producer controls. Retain the successful Windows regression in run 45459661035."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-linked-timing-index-path-alias",
+      "source": "Ordinary PR #84 Actions run 45450283829, archives/runs/windows-change-45450283829-1/test-report.json. The Windows Python producer log has SHA-256 3face0bc62bd4e064fb63a4d54ef5118fc491e3c523c3a527200b80627b50cc7.",
+      "observation": "The Windows Python producer ran 706 tests. All four local/shared compact capture cases reported 'Expected a plain directory for the linked timing index' during ordinary intake: complete local, partial local, complementary archives, and retry partial shared. The same-source Linux check had no failures.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-098",
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45450283829-1",
+          "source_commit": "c4e65847e8c66667da5bb3cc7696c06081f963cb",
+          "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
+        }
+      ],
+      "resolution": {
+        "cause": "Different resolved spellings of the same ordinary Windows directory could be treated as redirects.",
+        "correction": "Inspect existing directory components, allowing ordinary directory aliases and refusing redirected paths and reparse points.",
+        "prevention": "Exercise the four local and shared alternate-spelling intake cases plus index and identity junction refusal. Retain each protected Windows observation with its source task."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cropped-frozen-indicator-preview-terminal-error",
+      "source": "Authenticated PR 84 run 45453952239 attempt 1 at head ef653120ec9c74c7ed1b691426ee1e0429c48266 and checkout 4d18bb8c74344a852c4ec68f39748d1bb87ba1ab. Windows browser report SHA-256 efc30db15549978aaa4e3fed6cb1e4f3a26226ba2cbbb0775a9b685fbb758865, workspace log SHA-256 18e17dc0bb460de37eca3713d3ea78ea6d5e0ccbf4295634ca267174b37ddbfb, Playwright results SHA-256 ca2980ef7c291f9182237975b91df5ebbec32dd1598877c7026a0af05fb47444, and original screenshot SHA-256 552c7608f4ecd3724899c9889d73d87c357e36ea791d9777999d45656454b2f1. Protected aggregate reports are at archives/runs/windows-change-45453952239-1/test-report.json and archives/runs/20261124T175733.115972Z-00d136ed/test-report.json. The preserved producer evidence index is archives/observations/pr-84-45453952239/index.json, SHA-256 808ba600444f0f1e63a1f7ee565c8924150a9428130e2e379bc64e9b16ba7ab7.",
+      "observation": "The Windows frozen CSV workspace case at line 769 timed out after 60074 ms. The screenshot shows the second, cropped February 5 range with rolling period two and the generic terminal indicator alert. The test waits only for a ready status and did not report the failed exchange. The other 56 cases passed and one was skipped. Linux passed the same named case in 1.710 seconds. The original evidence has no response code, trace, or error-context body.",
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45453952239-1",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "359bb4ca0543d85f02e75e17486f39f3c2b7b11ddfb24e9f62f387c8ab74262f"
+        },
+        {
+          "run_id": "20261124T175733.115972Z-00d136ed",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "2cdd528fe3eb0e92e618eda111fd2606e152a4ee3fb3e5514e46d36f7c5dd8cb"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-099"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The original Windows timeout showed the cropped terminal alert. The triggering exchange remains unknown because the reply and trace were unavailable. A separate controlled real exchange reproduced the alert after dropping one already-ready Rust response.",
+        "correction": "Read the admitted frozen preview task once more after a status delivery loss, without replaying its submission. Stop at a second loss and preserve cancellation and explicit retry.",
+        "prevention": "Verify both original frozen-chart cases on the ordinary route, including full and cropped zero, exact warmup, one-loss recovery, and bounded two-loss cancellation. Keep the original Windows diagnostic and the successful Windows checks in run 45459661035."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-discards-ready-task-on-single-status-delivery-loss",
+      "source": "Deterministic real browser/Rust control on ef653120, archives/observations/m0-099-cropped-indicator/lost-red.log SHA-256 bc478ac3ac79787a8ffbfbfb7ee49458d973c57453a477d6d9cf1d0a9a24b440, and no-fault archives/observations/m0-099-cropped-indicator/normal.log SHA-256 b6a59a95400f0426079d3107b1d134f5672324d16bf7dcc614ce13a28736efb1.",
+      "observation": "The normal frozen CSV preview produced zero in the full and cropped windows. The controlled cropped run obtained a real ready HTTP 200 body with zero in the Rust registry, then delivered a single Chromium connection reset instead of that response. The UI showed the same generic terminal error and cancelled the admitted task. The original Windows report lacks the transport reply and does not establish that a reset occurred there.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-099"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "In the controlled real browser and Rust fixture, losing one ready status response sent the admitted frozen indicator task down the terminal error and cancellation path.",
+        "correction": "Classify status delivery loss before an HTTP response and allow one read for the same admitted frozen preview task within its existing deadline. Keep the original terminal path after a second loss.",
+        "prevention": "Use exact Rust results and request identity to verify that one loss returns the identical ready artifact and two losses stop and cancel. Retain the controlled red and the Windows checks in run 45459661035."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-replay-assertion-drops-identical-attempts",
+      "source": "Independent Standard Astra t9p review of 5adfa0004535040d654e03d1408fc623a3ad52f5. Original archives/observations/m0-099-cropped-indicator/astra-5adfa00-initial.txt SHA-256 ef8d5961990066d177f50312746aff480deb0b29c9cd79b8a382292b29d2d14b.",
+      "observation": "The no-replay assertion coalesced the observed submit requests by request ID. An exact resubmission after status delivery loss can return the same idempotent receipt, task ID and artifact and evade that assertion. Legitimate admission refusals can also reuse the original request ID before the loss.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-099"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Coalescing observed requests by request ID hid an exact repeat of the already admitted preview submission.",
+        "correction": "Inspect every outbound request after the first delivery loss. Require exactly one status read on the existing task and zero additional draft or preview submissions.",
+        "prevention": "Retain the negative control that resubmits the exact original request and is rejected by the raw outbound assertion. Keep valid pre-admission refusals and the Windows regression from run 45459661035."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cropped-indicator-draft-delivery-reset",
+      "source": "Authenticated PR 84 run 45462762808 attempt 1, source 838315fd5e56291fbccb0d2ad8c2000a594d415a. Original index archives/observations/pr-84-45462762808/index.json SHA-256 e10bfee98cfd6ec517aeddb39e0061a5d0e5d27df2ad6cad414f43c37169b5e0. Windows workspace log SHA-256 4e52cf6bb1face532031faf6b32d3373f8d2a84a0dfda3d4180c7f06c8202aa3. Aggregate reports are archives/runs/windows-change-45462762808-1/test-report.json and archives/runs/20261124T184539.601790Z-f957f8f0/test-report.json.",
+      "observation": "The full window succeeded. On the second cropped click the browser recorded net::ERR_CONNECTION_RESET at 116 ms for indicator.createDraft d257b5d7-58c9-43a0-993b-29d265950cb7. The failure preceded any observed runPreview or status and lost was empty. The historical trace does not show whether the server received the command. Same-run Linux and the prior passing Windows run show createDraft receiving 429 BUSY while an old task.cancel finishes, then admitting the same request ID. The older M0-099 Windows failure still has no known underlying reply.",
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45462762808-1",
+          "source_commit": "838315fd5e56291fbccb0d2ad8c2000a594d415a",
+          "report_sha256": "e446f1a8bfb86ca7da5651c335720aa79bff86fa7bdb161bac1c3dd8862490bd"
+        },
+        {
+          "run_id": "20261124T184539.601790Z-f957f8f0",
+          "source_commit": "838315fd5e56291fbccb0d2ad8c2000a594d415a",
+          "report_sha256": "18057b010e2a42132ad0e55993552bfdb5d706bc8a7311309e0c257d05b8983b"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-101"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": {
+        "cause": "The original browser observed a connection reset at draft delivery. The collector did not establish whether the Windows writer received or committed it. Real same-source overlap controls returned pre-admission BUSY, and an owned transport probe exposed premature shutdown on that verified branch.",
+        "correction": "Deliver the already-decided BUSY after completing bounded intake of the authorized request body. Keep explicit pre-admission retries and the existing draft identity. Avoid automatic replay of an ambiguous mutation.",
+        "prevention": "Use a real held writer and split HTTP bodies, prove usable BUSY twice, and show another snapshot can proceed while the second refusal is still draining. Keep the full and cropped zero, warmup, M0-099 status recovery, terminal case and cancellation. Review and logs are indexed at archives/observations/m0-101-draft-delivery/index.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "workspace-busy-refusal-finishes-before-request-body-is-complete",
+      "source": "Independent real Vite and Rust writer transport probe on f52ce52449124729601908b58c2e0477af26a6fe. Retained archives/observations/m0-101-draft-delivery/base.ndjson SHA-256 42d22406f4182e729ec91d3a65c6da6e6134890767742fe7596602edbf84342f and drain.ndjson SHA-256 0d43988961a79a7512a8bd79f33178c172f687c7d33eaec326b9fa75d5064e39.",
+      "observation": "With an admitted cancellation waiting for its real writer reply, the HTTP pre-admission BUSY response finished before the competing authenticated POST was complete and destroyed its request socket. This occurred on a reused socket, a fresh socket, and a split body. The bounded drain control finished only with the request complete and socket alive, with no competing bytes sent to the writer. Linux clients decoded BUSY on both paths, so the controlled defect does not prove the recorded hosted Windows connection reset mechanism.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-101"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The authorized early BUSY path generated its response before consuming the body. The shared failure response closed the connection with an incomplete request and its request-destroy callback ran in the controlled baseline.",
+        "correction": "Stream-discard the already-refused authorized body under the existing byte and time bounds. Send structured BUSY only on complete intake and leave the writer lane available.",
+        "prevention": "Reproduce premature headers and socket destruction before correction. Verify after correction that both complete refusals return 429. Witness a real committed draft, discard the caller response, explicitly resend the exact command in the test and compare its receipt. Reject different content under the same key and preserve the original receipt. The real transport controls and t9p approval are retained at archives/observations/m0-101-draft-delivery/index.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "profile-pool-external-deadline-can-outlive-bridge",
+      "source": "Independent Astra Standard review of c3e616a7c5b8f11edeea7c5f4e0fc83e64746886. Retained at archives/observations/m0-102-profile-pool/astra-c3e616a.txt.",
+      "observation": "The browser fixture external deadline terminates the directly started workspace bridge. Its ten-second PowerShell deadline starts after spawning the helper, so the outer deadline can win before bridge-driven cleanup. Setup then removes the pool even when the PowerShell descendant may still write. The existing controlled test only exercised a direct process.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The original outer timeout terminated the directly launched bridge. A PowerShell descendant could still write after the fixture removed its pool.",
+        "correction": "Use the owned process supervisor for the bridge and its descendants. Confirm the tree stopped before removing the pool and retain the pool when that cannot be confirmed.",
+        "prevention": "Keep the active grandchild timeout and unconfirmed-cleanup regressions in python-contracts-workers and the ordinary workspace-timeframe entry. The original red and corrected controls are retained in archives/observations/m0-102-profile-pool/index.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "profile-pool-supervisor-startup-lacks-caller-deadline",
+      "source": "Independent Astra Standard review of 5b63275741b06ce1d42294446aeba2a1ccae9a7e. Retained at archives/observations/m0-102-profile-pool/astra-5b63275.txt.",
+      "observation": "Moving the preparation timeout into the owned Python supervisor fixed the descendant cleanup race. The caller now waits without a startup bound before the interpreter can enforce the supplied deadline. A stalled startup has no prompt reply or verified handoff.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The first supervisor implementation could wait for interpreter startup before it began to enforce the operation deadline.",
+        "correction": "Start the twelve-second caller budget before spawning the supervisor. Require a ready signal and an explicit grant before the supervisor acquires a pool or starts the bridge, then enforce the remaining budget through the owned process tree.",
+        "prevention": "Keep the absent and expired grant regressions and the controlled pre-readiness and launched-descendant deadline observations. Their source and results are retained in archives/observations/m0-102-profile-pool/index.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-profile-pool-outer-directory-fails-ancestor-policy",
+      "source": "Windows and Linux M0-102 task verification 45478673119 attempt 1 at f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb. Original Windows log archives/runs/20261124T201729.469593Z-0c3de589/workspace-timeframe.log, SHA-256 803f5592497a6448a2ed3c412078ba26a2a820ca82d9d4d2e183d464a8c93c23. The exact CPython 3.12.10 Windows mkdir implementation is https://github.com/python/cpython/blob/v3.12.10/Modules/posixmodule.c#L5022-L5046.",
+      "observation": "The ordinary Windows browser global setup returned prepare/replaceable-ancestor after 375 ms and ran zero scenarios. Rust batch preparation, profile isolation and broad-access refusal passed there, as did the Python descendant supervision tests and the Linux task. The browser supervisor creates its exclusive outer directory using Python mode 0700; the passing Rust Windows process fixture uses default inherited creation. The tagged CPython source emits a full-access Owner Rights ACE for that special mode, which meets the current ancestor refusal predicate. The original Windows report lacks the literal rejected path component and ACE.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The browser supervisor used CPython Windows mkdir mode 0700 for its synthetic outer directory. CPython 3.12.10 creates a full-access Owner Rights ACE for that mode, which matches the existing ancestor refusal. The hosted failure did not log the specific rejected path component or ACE.",
+        "correction": "Create the exclusive Windows scratch directory with its native inherited ACL. The unchanged storage helper creates and checks the privately owned roots below it. POSIX continues to use mode 0700.",
+        "prevention": "Exercise the actual Windows temporary parent through the ordinary browser suite. Open a privately prepared root through the normal writer, refuse the CPython 0700 and Everyone DeleteChild ancestors, and verify neither refused pool remains. Run 45484754044 supplies the native result."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T201729.469593Z-0c3de589",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "659472212fa59440e3decb59239908c0dfc8d895e67bfbeb9e19f332ba3bcfe1"
+        },
+        {
+          "run_id": "20261124T201537.748700Z-a28a86bb",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "d3f533758abe4b8d7221870305611c49e267cc967115fa6f8131d35be4f6e697"
+        }
+      ]
+    },
+    {
+      "id": "profile-pool-ancestor-regression-depends-on-ordinary-capacity",
+      "source": "Independent Astra Standard review of f6625175407eb511dadca66dd83a58a0dbe7b854. Retained at archives/observations/m0-102-native-correction/astra-f662517.txt.",
+      "observation": "The native ancestor regression asserted its positive profile came from the shared pool after calling a helper that legitimately falls back to single preparation after sixty-four claims. A repeated or bigger run could fail before the real writer and negative cases.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The positive control took a slot from the ordinary browser pool and asserted that a fallback profile still belonged to that pool.",
+        "correction": "Give the control a separate one-profile pool under the same temporary parent. Require that exact slot to open with the ordinary writer.",
+        "prevention": "Keep the pool-capacity red and isolated-control green in archives/observations/m0-102-native-correction/index.json and the same-parent native browser control in workspace-timeframe."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "profile-pool-legacy-acl-control-can-escape-cleanup",
+      "source": "Independent Astra Standard review of f6625175407eb511dadca66dd83a58a0dbe7b854. Retained at archives/observations/m0-102-native-correction/astra-f662517.txt.",
+      "observation": "The original-mode control recorded the directory only after the Python child successfully returned its marker. If the directory was created and the result was lost, teardown did not own or remove it. The production scratch and protected child ACL policy have no finding in this review.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-102"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The first native control learned the synthetic 0700 directory from the Python child's success marker. Directory creation followed by a lost result could leave the directory outside teardown ownership.",
+        "correction": "Own the enclosing control directory before invoking the child and keep all of its paths beneath it. Remove the enclosing directory after confirming pending pools no longer exist.",
+        "prevention": "Keep the controlled lost-result cleanup evidence in archives/observations/m0-102-native-correction/index.json and exercise the enclosing teardown in the ordinary Windows browser control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-restore-test-processes-need-explicit-worker",
+      "source": "Independent Astra Standard early source review of M0-105 at intake 8206dd8b450da3935965b86dab25ab8cf884140e. Retained at archives/observations/m0-105-native-workspace-acl/astra-early-design-8206dd8.txt.",
+      "observation": "The Windows libtest draft registered its ACL worker only in Profile::new. The original writer and decision-note restoration interruption fixtures start fresh libtest processes and call support::store directly, so their ordinary open would use the executable worker arguments with no libtest entry selected.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Fresh libtest processes entering support::store directly missed the ACL worker registration installed by the profile fixture.",
+        "correction": "Register the test worker at the direct store entry so the fresh processes resolve the Windows ACL worker through the ordinary writer path.",
+        "prevention": "The Rust suite exercises interrupted writer and decision-note restore before commit in fresh processes. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-synchronous-launch-outside-admission-wait",
+      "source": "Independent Astra Standard early source review of M0-105 at intake 8206dd8b450da3935965b86dab25ab8cf884140e. Retained at archives/observations/m0-105-native-workspace-acl/astra-early-design-8206dd8.txt.",
+      "observation": "The native draft called Job::new and Command::spawn synchronously, and captured no entry-through-ready duration. The desktop has no Node startup fence. The caller therefore could not withdraw authorization and return by its existing admission deadline while cold launch remained in flight.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": {
+        "cause": "Synchronous Job and child startup could outlast the caller before it could withdraw authority.",
+        "correction": "Bound the caller wait through launch and worker readiness. Only a ready worker holding caller authorization can proceed, and the owned launch path cleans up an abandoned worker.",
+        "prevention": "The Rust cold-launch test exercises withdrawal before readiness and rejects a late grant. Hosted workspace and desktop transport also exercise ordinary admission. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-ancestor-chain-reparses-component",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
+      "observation": "The native draft validated a drive, then reinterpreted the validated path components as new paths while assembling each ancestor. The source allows the resolved path to leave the checked ancestor chain. No unsafe hosted access was observed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Rebuilding Windows paths could reinterpret a component outside the previously checked drive and ancestor chain.",
+        "correction": "Construct the chain only from validated ordinary components on one drive and keep the checked ancestor handles through admission.",
+        "prevention": "The Rust path-chain regression checks drive confinement and rejection of ambiguous names. Native ancestor and ordinary workspace checks exercise admission and refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-sid-length-queried-before-validation",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
+      "observation": "The native draft called GetLengthSid on an ACE SID before validating the SID and the full bounded representation. The query requires a valid SID. No malformed NTFS descriptor was observed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The draft passed an unbounded, unvalidated ACE SID to a Win32 length routine that requires a valid SID.",
+        "correction": "Bound the SID header and subauthority extent by the enclosing ACE before native validation and use.",
+        "prevention": "The Rust SID header and subauthority regression and malformed ACE tests cover rejection before normalization. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-managed-compaction-compatibility",
+      "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6). Exact-candidate Astra Standard and specialist follow-ups at 4411815c5f24f927b8f8a44dda96fbc7bf474c4e: archives/observations/m0-105-native-workspace-acl/astra-4411815.txt (SHA-256 ffb83e69eb9d48bfd3f64428f3d265eb23e1e10e7717661a065bfeb02da5579a) and archives/observations/m0-105-native-workspace-acl/specialist-4411815.txt (SHA-256 c7a10797559b88274e50bc48017c513dd032d820af07879f716c669060d163b5). Exact 537dd6ad5333ba58d54daa4f58a9092e857954e9 specialist follow-up: archives/observations/m0-105-native-workspace-acl/specialist-537dd6a.txt (SHA-256 253e3fa6221cb8114268fa037e5cf7ed897eb07364cf483d0c7b23e58a1c9408). The coordinator retained two narrow source approvals of 0d0495b8e953cb41f4cb1dcef497e220374c7b91 and the ordered-rule red and green probe artifacts in archives/observations/m0-105-native-workspace-acl/index-0d0495.json (SHA-256 543ae7cbdf91a1b19ec272e43b809483d159119f745dcf6866745c543e89dd91). The index records that the standalone approval transcripts were unavailable.",
+      "observation": "The managed ACL reader can compact ordinary equivalent explicit rules before the former inheritance predicate. The native draft applies that predicate to raw individual rules. Native compatibility for split same-user inheritance grants needs a differential check. The two-ACE limit rejects a canonical same-user group where any two of three equal-scope grants supply full control. The equal-flags requirement also rejects same-user full control split into separately representable child object and child container scopes. These are source-review findings and require the normal Windows comparison. A canonical private ACL can still pass the prior ordered adjacent compaction even when not every two rules cover full control. The four-rule review example necessarily has a full compacted pair. Preserve the actual same-principal sort and one-pass compaction across ordinary rule counts, including order-dependent refusal. The integrated source still folds a merged pair into subsequent ACEs and discards an already complete inherited grant. The two exact-source controls in .reports/m0-105-compatibility/red.log observed an incorrect admit and refusal. The historical DirectorySecurity export normalizes once, while the candidate differential applied a second normalization. Microsoft .NET Framework reference source: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1144-L1181 and https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/nativeobjectsecurity.cs#L157.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Raw ACE checks and repeated folding diverged from the managed export order and one-pass adjacent compaction, including complete inherited grants.",
+        "correction": "Preserve the managed same-principal order and apply adjacent compaction once before the private access predicate. The differential consumes the baseline managed export once.",
+        "prevention": "The Windows Rust regressions check principal order, inherited grants and both the allowed and refused managed-layout outcomes through native admission. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-timeout-test-does-not-confirm-exit-at-return",
+      "source": "Independent Astra Standard exact review of 4411815c5f24f927b8f8a44dda96fbc7bf474c4e. Original at archives/observations/m0-105-native-workspace-acl/astra-4411815.txt (SHA-256 ffb83e69eb9d48bfd3f64428f3d265eb23e1e10e7717661a065bfeb02da5579a).",
+      "observation": "The post-grant timeout test immediately checked for no late marker after releasing its worker. That observation can occur before a still-running worker polls again. Preserve the actual worker handle and require it to be signaled when the supervisor returns.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The immediate marker check could succeed before a still-running worker had another opportunity to write.",
+        "correction": "Retain the exact worker process handle and require it to be signaled when the supervisor returns after timeout.",
+        "prevention": "The Rust timed-out worker regression verifies process exit at return. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-inert-ordinary-permissions",
+      "source": "Astra Standard source review of PR 84 head d9102de9c036fb6ae4b962a5dfa9529927110315 against protected main 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Original copy .reports/m0-105-file-ace/astra-pr84-d9102de.txt (SHA-256 dc41ecc5c1c497bf50791f78d36611921e74a2f1fda5011564882655e4e199dc). Microsoft .NET Framework InspectAce: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1073.",
+      "observation": "The reviewed native path refused a foreign SID before filtering an ordinary ACE with no granted rights. It also treated inheritance flags as meaningful on a regular file. The historical managed ACL export drops zero masks and leaf inherit-only entries, while a directory inherit-only grant with object or container inheritance still comes under the private-principal policy. This is a source-confirmed compatibility defect. The passing Windows run for d9102de did not exercise these descriptors.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The first native predicate rejected foreign principals and file inheritance flags before the managed inert-entry filtering.",
+        "correction": "Validate first, then discard zero-mask entries and regular-file inherit-only entries before access evaluation. Keep applicable directory inheritance and actual file grants under the private principal rule.",
+        "prevention": "The Windows Rust differential runs same-user reopen and rejected sharing through ordinary admission and verifies byte-identical DB and WAL after refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "m0-105-linux-browser-concurrent-admission",
+      "source": "Local M0-105 task archives/runs/20261125T043455.480016Z-7345748b/test-report.json on d9102de9c036fb6ae4b962a5dfa9529927110315. The desktop Playwright admission attachment preserves the BUSY reply. Matched single-worker loopback rerun: archives/observations/m0-105-linux-browser-concurrent-admission/d9102de-matched-one-worker.log (SHA-256 55588a18fec2c72c7865a05dbbb7acbf8c532cf0457fb05d9586aeedcba7ef18). The matched follow-up on clean source ecb8477b79639fd43f06d302fd2ac4aa0ca999ab is retained under archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z. Its 52-file SHA256SUMS manifest has SHA-256 1ae1445a5a20fcdc6488a74341a8be44cba7cd91669460748783475f29e67cfc. The scoped-results.json summary has SHA-256 9f7c6e7e44743d5b7c0aa51cc7ce4552d28835a94918d0f6231e2589a5f37e49.",
+      "observation": "Two ordinary Linux workspace journeys received TIMEOUT from instrument.search. The desktop chart-opened snapshot received BUSY after the frozen-chart reply showed opened. The Linux browser paths are independent of the Windows ACL worker. All three matching cases passed sequentially on the same Linux browser and service code with isolated loopback ports, one Playwright worker and the original deadlines. This establishes a nonrecurrence in isolation. The original run did not attribute the TIMEOUT to a particular worker phase or identify the other request occupying admission when the snapshot returned BUSY. The completed follow-up used separate loopback listeners and the existing deadlines. The isolated one-worker baseline passed 2 workspace cases and 1 desktop case. Each of three ordinary sequential check pairs passed all 59 workspace cases with 2 workers and all 8 desktop cases with 1 worker. That is 204 case executions and 12 of 12 matched passes, with zero failures, skips or flaky results. The scoped attachments recorded 44 distinct instrument.search requests with zero TIMEOUT and four successful chart-opened snapshots with zero unexpected BUSY. The held-reader controls returned the eight expected scripted BUSY replies, one snapshot and one frozen-chart request per round. All eight check process trees terminated, four workspace setup directories and seven desktop profile directories were cleared, all eight owned temporary directories were removed, and no observed listener remained. The two original search failures were admitted by the preview and returned TIMEOUT in an HTTP 200 body. The original worker phase and the operation holding desktop admission remain unknown. At the next ordinary Linux recurrence in either linked check, the verification owner of that run takes M0-119 and retains the failing raw report and scoped attachments before any retry. For search TIMEOUT, correlate the preview request and Rust bridge with worker launch, hello, request send and terminal reply, recording the last completed phase and elapsed times. For an unexpected chart-opened BUSY, correlate the refused snapshot with the operation type and request identity holding admission when the refusal occurred, including whether it is the scripted held reader. Record worker count, existing deadlines and a same-source ordinary control. Retain the traces with the original failure and assign a bounded corrective task to the entry point that owns the observed stage once it is identified.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-105",
+        "M0-118",
+        "M0-119"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043455.480016Z-7345748b",
+          "source_commit": "d9102de9c036fb6ae4b962a5dfa9529927110315",
+          "report_sha256": "a2e085cebc9e68548abe2867b906740299aea157dcfb59ee5762a8c5cf44e506"
+        }
+      ]
+    },
+    {
+      "id": "native-acl-inert-common-callbacks",
+      "source": "Astra Standard exact review of PR 84 head 986168fde54c102acc38b5498f89c12e30378610 against protected main 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Original copy .reports/m0-105-callback-ace/astra-pr84-986168f.txt (SHA-256 be03f0e618a969ce484d48a0b857a90448941a61f0eab97c21714232bd100d76). Microsoft .NET Framework InspectAce: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1094.",
+      "observation": "The native DACL type dispatch refused structurally valid common callback entries before applying the object-specific normalization. The managed descriptor discarded a zero-mask callback on a directory and an inherit-only callback on a regular file before the storage policy rejected remaining callbacks. The managed comparison also skipped effective callbacks instead of refusing them. The review confirmed the difference in source. It did not observe these descriptors on a Windows run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Type dispatch rejected inert common callback layouts before the managed object-specific filtering, while the comparison skipped effective callbacks.",
+        "correction": "Decode and bound known callback layouts before inert-entry filtering and reject any unsupported callback that survives. Align the managed differential with that rejection stage.",
+        "prevention": "The Windows Rust layout and managed access regressions cover inert and effective common callbacks on files and directories, including malformed bounds. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-inert-object-and-compound-layouts",
+      "source": "Astra Standard PR 84 source review at 070818f04c41c4dccffd7b2356039199aa198035. Original copy .reports/m0-105-object-ace/astra-pr84-070818f.txt (SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1). Layout coverage is recorded in contracts/reviews/2026-11-25-windows-workspace-acl-layouts.json.",
+      "observation": "The native decoder refused ObjectAce layouts before the managed baseline would remove inert known entries. The existing negative test changed a common ACE type without adding object flags and optional GUIDs, so it represented a malformed object buffer. Reference-source review also identified the legacy CompoundAce known layout and the distinct opaque CustomAce envelope. No NTFS outcome for these added cases was observed in the source review.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The draft rejected valid object layouts before inert-entry filtering, and its type-byte mutation did not construct a valid object ACE.",
+        "correction": "Decode recognized ObjectAce, object callback and CompoundAce layouts with their own bounds before applying inert-entry rules. Keep surviving unsupported grants and unknown layouts refused.",
+        "prevention": "Windows Rust covers all four object GUID-presence combinations and malformed or unknown controls. The managed differential exercises structurally valid directory and file entries and verifies ordinary reopen and byte-stable refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-acl-managed-opaque-length-boundaries",
+      "source": "Astra Standard exact PR 84 review at f0be71a2226185114f8e738e4dd02b7c49aec991. Original copy .reports/m0-105-opaque-ace/astra-pr84-f0be71a.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819). Microsoft reference source QualifiedAce.SetOpaque and CommonAce/ObjectAce.MaxOpaqueLength.",
+      "observation": "The bounded native decoder accepted trailing data past the managed layout-specific limit and could discard such an entry as inert. In the managed path construction of the qualified ACE rejects that length before DACL normalization, even when its access mask is zero. The exact aligned maxima are 65456 bytes for CommonAce and 65420 for ObjectAce with either callback setting. This is a source-confirmed difference pending native execution.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An oversized opaque tail could pass structural decoding and disappear as inert before the historical managed limit was applied.",
+        "correction": "Enforce the layout-specific CommonAce and ObjectAce opaque-length limits before Ace normalization, for ordinary and callback shapes.",
+        "prevention": "The Windows Rust opaque-length regression tests the aligned maxima and the first aligned lengths above them. The ordinary Windows storage differential exercises private-workspace compatibility and byte-stable refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-first-query-misses-new-claimant",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "The first ordinary CI query reported recovery even though collection indexed a second claimant for a linked report and returned no matching clock. An immediate read-only query reported the same report as conflicting and recovery as pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Ordinary CI read claims before collection and did not re-evaluate report identities acquired during that call.",
+        "correction": "Re-evaluate only relevant identities after collection and treat a second clockless claimant as a conflict immediately.",
+        "prevention": "Assert the same pending verdict on the first and repeated ordinary CI queries and preserve an unambiguous valid control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-masks-independent-event",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "When every retained PR baseline identity had two claimants, the ordinary recovery comparison raised on an absent cutoff. The shared fallback discarded valid main-push recovery controls in both ordinary project status and CI.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An event with no unambiguous linked observation attempted to compare a missing chronology cutoff.",
+        "correction": "Leave only the affected event pending and continue to evaluate independent event controls.",
+        "prevention": "Exercise an entirely conflicting PR alongside valid main-push recovery through ordinary status and CI."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-timing-archive-exceeds-own-read-limit",
+      "source": "Independent Astra Standard review of PR 94 and the coordinator review archive timing-green-prs-94-91.json (SHA-256 371c07c21f89b41e4a382933a0e7ac032bbf5d0d57a9a4b50a11429dd870574a).",
+      "observation": "Protected main wrote a v1 manual review archive with 5838434 bytes, 564 samples and 56 clocks. The ordinary explicit reader rejected it at the 2 MiB compact timing limit and yielded zero samples. Removing exact duplicate rows still exceeded that limit.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The manual archive writer could exceed the compact reader limit.",
+        "correction": "Use separate bounded manual archive intake and matching atomic creation while retaining the v1 format.",
+        "prevention": "Round-trip the original 5838434-byte archive and verify all 564 samples and 56 clocks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "explicit-timing-save-drops-structural-errors",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "An explicit save succeeded after dropping an invalid sample or clock from the real review archive. An unknown kind below the compact cap could also be accepted as an empty harness report.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The explicit input gate did not distinguish new structural errors from original diagnostic notes.",
+        "correction": "Reject an explicitly selected batch with a malformed record or unknown kind before creating its destination.",
+        "prevention": "Exercise mixed valid and malformed sample, clock, collection and harness inputs and preserve original diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-misattributed-path-diagnostic",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "An Actions run-file read error was attributed to its jobs file. Reopening a legacy record with those different paths still exposed the actual run-file path in the error.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The two-file reader always labelled the jobs file and old exceptions could still quote a different full path.",
+        "correction": "Identify the failing input and sanitize quoted paths in the legacy diagnostic while retaining its reason and run identity.",
+        "prevention": "Cover missing run and malformed jobs files and legacy POSIX and Windows diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-summary-alias-mutates-archive",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "A job summary and an existing destination could share a file through different hardlinks. The command appended Markdown before the create-only save reported that the existing archive could not be replaced.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Lexical paths could differ while pointing to one inode and the summary was appended before create-only publication.",
+        "correction": "Publish the complete archive with create-only semantics and verify the opened summary identity before appending.",
+        "prevention": "Compare unchanged bytes when an existing hardlink or a concurrent alias targets the archive."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "actions-timing-save-publishes-invalid-clock",
+      "source": "Independent Astra Standard exact PR 96 review at 0e446e3d633154c7137a8df34a86ccd3591cbf25. Original copy .reports/audit-engineering-health/m0-111-final-review/astra-pr84-f0be71a-pr96-0e446e3.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819).",
+      "observation": "An explicit Actions run with an object-valued repository.full_name generated an invalid clock. The current view dropped the clock but the archive saved it. Reopening that archive as explicit input rejected the clock. Require the run repository identity and generated clock to pass the archive contract before publishing.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An ill-typed Actions repository identity produced a clock that was filtered out of the view but persisted.",
+        "correction": "Validate the Actions run repository and generated clock before admitting the explicit input.",
+        "prevention": "Reject an object-valued repository identity and verify a valid generated clock reopens."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-archive-resave-loses-resolved-collection-history",
+      "source": "Independent Astra Standard exact PR 96 review at 0e446e3d633154c7137a8df34a86ccd3591cbf25. Original copy .reports/audit-engineering-health/m0-111-final-review/astra-pr84-f0be71a-pr96-0e446e3.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819).",
+      "observation": "The original 564-sample and 56-clock archive carries complete failure observations for run 45438134397. Adding earlier missing-clock and missing-compact findings alongside an independent note showed that resaving lost the first two observations. The current view may suppress those resolved findings. The persisted archive must retain each sanitized original observation.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The writer used the current view after resolved collection warnings were filtered.",
+        "correction": "Persist the sanitized original diagnostics independently from the current display.",
+        "prevention": "Resave complete retained failure observations with original missing-clock and missing-compact notes and an independent note."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "shared-worker-process-types",
+      "source": "Local Python 3.12 mypy run during the M1-041 audit at 9180963. The reproducible failure is retained in .reports/m1-041-red-python-types.log.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "The worker type check follows the trusted indicator guard into scripts/process_tree.py and reports eight strict type errors in the shared cleanup module.",
+      "task_ids": [
+        "M1-041"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The typed indicator guard imports the shared Linux supervisor and stop helper. The supervisor expansion left their published Python signatures incomplete.",
+        "correction": "Type the shared process entry points and guard Linux-only process constants on their supported platform.",
+        "prevention": "The local worker type suite and process-supervision regressions passed. A separate mypy run under the Windows type model also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-review-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at 638c8dd29ad122e86755b2d1f7b0697e36c67f93. Local pre-repair observations are retained in .reports/m1-045-red-rust-caller.log (SHA-256 62c695e54e35def6acb3bf43bb1fe26b47389a3b44ee596e691fb4aadebd6644), .reports/m1-045-red-worker.log (SHA-256 b32dc3e2e3b4d2999d5852d63ce59da4f2acec75cb0e57a1215adbdb27693f5c), .reports/m1-045-red-browser.log (SHA-256 71a8e67b6034ab8c18c682abac5d0e138321d1ee20e39886da4c1ddbe6dc038e).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Optional review metadata makes otherwise valid frozen CSV rows exceed the response budget in both dialogs. The UI collapses meaningful mapping whitespace. The public Rust row signature and original request constructors changed, and older workers reject the unnegotiated option.",
+      "task_ids": [
+        "M1-045"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory desktop review request consumed extra space, used the original worker capability, and conflated review metadata with stable Rust types. The review list collapsed whitespace.",
+        "correction": "Negotiate the distinct worker feature, retain the original Rust types and entry point, and use a fresh, reauthorized raw read on the two recoverable review failures. Show conflicting columns in an aligned table with literal whitespace.",
+        "prevention": "Exercise the 64 KiB boundary and an oversized original, permission revocation between review and retry, and literal whitespace in both dialogs. Compile a separate old caller and verify positive and negative private capability paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-message-exhaustive-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at d9015bda42d60a40cfd4b6abf4299d658aaf3364. The failing pre-repair consumer compilation is retained in .reports/m1-046-red-exhaustive.log (SHA-256 a5e58eaf4fcf56ee1ec01e2eb2966d55de486dc73a42d848629f1af022c80887).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The same source that exhaustively matches the 87 original Rust Message variants compiles on main and 638c8dd. The public decode_line return type on d9015bd exposes four additional review variants and the unchanged caller fails with E0004.",
+      "task_ids": [
+        "M1-046"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Review request and response members were added to the exhaustive public Message enum returned by the original Rust decoder.",
+        "correction": "Restore the original canonical Message definition and public decoder signature. Route opt-in review envelopes through a separate generated union and decoder with the common framing checks. Retain capability negotiation in the CSV host.",
+        "prevention": "Compile and run the unchanged 87-variant public consumer. Run shared positive and negative wire vectors through both Rust entries, check typed review responses and frame limits, and retain private capability and original row constructor cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-python-decoder-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at b76ed015fcbdf5a9e0679d7ad56fec6b24313f29. The same consumer and four envelope comparisons before repair are retained in .reports/m1-047-before-repair.log (SHA-256 eb49fe78aeed336c26533966edafc2c517d441ca7d1a93969bce85d1f3039012).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The established Python protocol module no longer exports Message, and decode_line widens its return type and admits four opt-in CSV review envelope types. Existing typed callers require the original Message and frame acceptance.",
+      "task_ids": [
+        "M1-047"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The Python protocol module used the extended schema root as its only validator and replaced the public Message import and decoder return type with ExtendedMessage.",
+        "correction": "Explicitly re-export Message and select the original canonical schema union for the legacy codec. Expose the extended union through separate codec entries that reuse the same framing and syntax checks.",
+        "prevention": "Run the unchanged typed consumer through strict mypy and runtime tests. Check both decoder entries against all shared vectors, verify the four review envelopes and exact frame budget, and retain real normal and negotiated worker tests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-used-unrelated-unmerged-stack",
+      "source": "Authenticated manual task workflow 45488642757 and both original reports retained in archives/runs. Its independently verified sources, terminal clock and source comparison are indexed at archives/observations/m1-040-integrated-task-45488642757/index.json (SHA-256 e75ef6ffa30803404ad81b8b246dc746930973b56e92e52df5748ccc620e2c72).",
+      "observation": "M1-040 was independently reviewed at 89143f000974b8d79720878e3c19f88d17ea7cb1 on protected main c4f07b38ad8040de9ffc950b8e98de315d956958. The coordinator dispatched the task at 484d684e0ba996643f4af5899f0aa2149e0ba6f8 on the unrelated unmerged PR 84 stack. Both jobs passed for that stack, consuming 1535 seconds wall and 1987 runner-seconds. The execution and project definition fingerprints differ on the intended independent product source, so those receipts cannot validate its delivery. Existing checkout and dispatch commands did not check the reviewed task source and intended base together before submitting.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "resolution": {
+        "cause": "Dispatch did not compare the checkout to the reviewed task and intended integration.",
+        "correction": "Compare the exact reviewed tree and base before an authenticated dispatch attempt.",
+        "prevention": "Replay the historical wrong M1-040 stack and the accepted independent source. Verify the admitted head and artifact checkouts in run 45554455415."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-preflight-history-error-without-result",
+      "source": "Independent read-only Astra Standard review of fc2d22a464453a9082de7211f207de674b888bc8. Full transcript at archives/observations/m0-106-dispatch-review/astra-fc2d22a.txt (SHA-256 0ec04a979009bc1d3552f46a64d24085fe12631fcdc1e5381547a07c5cda4d54).",
+      "observation": "An unavailable named dependency or an existing dependency outside the protected ancestry caused the local task dispatch CLI to exit with a traceback and no structured result. A shallow history check also escaped the same reporting boundary. None submitted a workflow.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Missing commits and unverifiable ancestry escaped the preflight error boundary.",
+        "correction": "Report invalid or unavailable revisions and shallow history as structured local failures.",
+        "prevention": "Exercise missing dependency objects, mismatched ancestry and shallow history before any authenticated call."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-ref-moves-after-preflight",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The authenticated ref reads and GitHub's branch resolution are separate operations.",
+        "correction": "Include the expected head and base in the request. Gate the matrix on the event commit and a fresh protected base observation, then pin checkout and evidence to the expected head.",
+        "prevention": "Move the ref after the final GET in the dispatch regression. Confirm the guard and both pinned jobs passed for dispatch ID 1e59bf0010ca4bea9fca87fd92e12988 in run 45554455415."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-unbound-dependency-id",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "Membership in the task ledger did not attribute the changes in an explicit stack.",
+        "correction": "Require scoped changes and a distinct committed task definition or a legitimate declared dependency.",
+        "prevention": "Replay the mismatched M0-002 pairing and the legitimate explicit pairing at the same Git source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-lost-response-obscures-acceptance",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The CLI treated a lost POST response as ordinary failure and discarded response details.",
+        "correction": "Expose an unknown outcome and a correlation ID without retrying. Retain the returned run ID and isolate guarded dispatch concurrency.",
+        "prevention": "Drop a response after one accepted POST, verify successful response handling, and correlate run 45554455415 with its dispatch ID and reviewed source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-completed-dependency-scope-overlap",
+      "source": "Second independent Astra Standard review of PR 91 at a3111a7154d20f371e8360289ab446b3ded0ae20. Retained transcript SHA-256 9cac411231a930422335e887a982dd02fd66c556ee7c52fdcaca462160fa0d9d.",
+      "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "Shared scope and an older completed declaration could attribute unrelated changes to a stack.",
+        "correction": "Require a supplementary receipt for an already completed dependency and check that it covers the proposed source.",
+        "prevention": "Replay the M2-002 and M1-039 wrong associations and the matching single and stacked receipt cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dependency-receipt-source-identity-unverified",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "A receipt file digest authenticated its bytes without recomputing its recorded source from Git.",
+        "correction": "Recompute the execution-input digest and file count from the receipt's own commit and historical snapshot rules.",
+        "prevention": "Reject a replaced digest, altered count, incorrect exclusions or a missing commit before remote access. Preserve real M0-074, M0-082 and M0-083 controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-cancelled-dependency-accepted",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The dependency preflight treated a cancelled record as unfinished.",
+        "correction": "Reject cancelled dependencies on the protected base or the proposed base.",
+        "prevention": "Exercise the lifecycle transitions at the CLI boundary, including the cancelled cases with zero authenticated calls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-diagnostic-test-reads-retained-history",
+      "source": "The protected main fast harness failed with retained timing inputs. The original report and its Python test log are retained at archives/runs/20261125T070713.869495Z-0ac1dff5/test-report.json.",
+      "observation": "At protected main fb8497ec64d276c4c14e36e518ef242125f0a984 the fast profile failed its Python test suite with one failure among 721 cases and four skips. The Actions diagnostics regression expected jobs.json at the first position, but the checkout had already produced a diagnostic for M0-078-hosted-observations.json from retained timing files.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-121"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070713.869495Z-0ac1dff5",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "0440984abd12d6d38a8535ecd6a5625ae41d08b4838b45228411ddef14770e68"
+        }
+      ],
+      "resolution": {
+        "cause": "The test loaded developer timing history through ordinary path discovery and assumed that the explicit jobs error was first. The CLI already included the correct explicit error after retained diagnostics.",
+        "correction": "Exercise the same Actions path with an isolated temporary timing root and then with a synthetic saved diagnostic. Compare the exact diagnostic identities and errors without assuming output order.",
+        "prevention": "Retain assertions for the failing input, legacy path redaction and save refusal. The regression also requires the existing historical diagnosis. Re-run the complete fast profile against the six unchanged genuine timing files."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "decision-note-deletion-feedback-after-peer-refresh",
+      "source": "Authenticated Ubuntu main run 45565130414 at fb8497ec64d276c4c14e36e518ef242125f0a984, archives/runs/20261125T070439.970641Z-5b827275/test-report.json. The retained workspace log SHA-256 is 8dd2f2b50cdfa005464727379f6bd7db7d4240c5d6e78e7951d87fd2bbe73c59. Older Windows run 45547568595 at 33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d has a separate assertion in its workspace log (SHA-256 cabc26415102ec2b5ec73004a75d95cdc456cc48bf81bc1f3de38b85685a812f). Controlled Linux Chromium failure on the unchanged application at base 507cc7c91bebe385d77109faa5f8852985cdfa43 with the archived regression patch: archives/observations/m2-036-note-deletion-507cc7c/SHA256SUMS (SHA-256 765732f864879fd3935803953854c74ad3ceb7fe91d785e914eb0b70905cf62d). The captured receipt, read-only SQLite observation, projection and notice count are in archives/observations/m2-036-note-deletion-507cc7c/observed-deletion.json (SHA-256 850a0734be0b45f79c2da03cb64ae7534ee7b1ac4b72c6f312bea4e899dd1aa7).",
+      "observation": "One of 59 Ubuntu workspace cases failed after two peer timeframe changes and an outcome save. The deleting tab timed out waiting for the visible Decision note deleted. status after the confirmation click. The retained screenshot shows the dated note in a decision-note list. The original artifacts contain no correlated delete receipt or persisted row observation. The older Windows case reached the observer assertion for No saved decision notes. after the delete helper returned, so it establishes a different missing UI observation. The controlled two-tab Chromium run first delayed approval until a peer committed 5m. Approval returned STALE_CONTEXT, the note and outcome remained and no success appeared. A newly reviewed approval then returned a matching non-undoable receipt. SQLite contained the deletion marker at the committed revision and neither the note nor its outcome. The held list reply contained no notes and the peer displayed the empty list. The initiating tab showed success while that reply was delayed, then removed it when the list response was lost. Both existing peer scenarios passed in that run. The exact operation outcome and refresh ordering in the original hosted failure remain unknown.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-036"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "In controlled Linux Chromium, the deletion had a verified receipt, then a lost list response cleared the selection and its already-confirmed action notice together. The original hosted operation outcome and ordering were not captured.",
+        "correction": "Retain the confirmed deletion notice while refreshing or recovering the list. A failed post-commit list read reports its own error and exposes the existing reload action. A rejected or unverified approval cannot set the deletion notice.",
+        "prevention": "The two-tab Chromium control verifies peer STALE_CONTEXT refusal and intact rows, then a matching committed receipt, removal of note and outcome, a revision-bound deletion marker and a peer empty list. Dropping the initiating list response retains success through the explicit reload. The ordinary draft, consent and peer removal assertions are still checked. The positive observation is in archives/observations/m2-036-note-deletion-74103f6/observed-deletion.json (SHA-256 7b384646ae7d1e6905711fa60d776455e76c4d4dde36a81a669bb86eef7d62fe)."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070439.970641Z-5b827275",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
+        }
+      ]
+    },
+    {
+      "id": "decision-note-delete-list-retry-verification-alert",
+      "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses. Real Linux Chromium with the recorded regression patch on clean base fa15ea7dc0d606ad03d375afd6d63797a118ccdc. The retained red manifest is archives/observations/m2-037-note-notice/red-fa15ea7/SHA256SUMS (SHA-256 0906e664ac9aca84d127aaf41c9f31b5f936b506072a2ee414d29af73d37fc6e); wire, SQLite and UI observations are in archives/observations/m2-037-note-notice/red-fa15ea7/observed-deletion.json (SHA-256 7153d33c0f5d681e107d4fb54fc5347f671c778c7ffa4c1a46c0839dc6da1497).",
+      "observation": "After one confirmed deletion, the first lost list response produced the list-refresh alert and retained success. A second lost list response from Reload decision notes replaced the refresh alert with The local workspace could not verify the result. The deletion was already verified and no additional deletion request was sent. A successful list read should clear the list alert and retain the confirmed result. The real two-tab Linux control reproduced both list alerts in that order. All three reads returned an empty list from the server, the first two replies were lost, and the third reached the browser. There was one successful-phase approval request, and the deletion marker and missing rows were identical before and after retries. The peer displayed the empty list without the initiating tab notice.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-037"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Reload decision notes used the operation failure descriptor after the post-commit list refresh had already established a separate read failure.",
+        "correction": "Use the same list refresh descriptor for an explicit list retry after a verified deletion. Keep the existing note target and operation failure descriptor for detail retries and unverified outcomes.",
+        "prevention": "Real Chromium received two list-specific alerts after two lost replies. The third read cleared the list alert, the initiating success and peer empty list persisted, and only one successful-phase approval was sent with the durable rows unchanged by retries. The known cancellation and unknown-result controls passed. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "decision-note-delete-notice-at-new-editor",
+      "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses. Real Linux Chromium with the recorded regression patch on clean base fa15ea7dc0d606ad03d375afd6d63797a118ccdc. The retained red manifest is archives/observations/m2-037-note-notice/red-fa15ea7/SHA256SUMS (SHA-256 0906e664ac9aca84d127aaf41c9f31b5f936b506072a2ee414d29af73d37fc6e); wire, SQLite and UI observations are in archives/observations/m2-037-note-notice/red-fa15ea7/observed-deletion.json (SHA-256 7153d33c0f5d681e107d4fb54fc5347f671c778c7ffa4c1a46c0839dc6da1497).",
+      "observation": "After the list recovered following a confirmed deletion, opening New decision note left the old Decision note deleted. status visible in the new editor. It remained until draft review. Opening an editor starts a new action, so retire the earlier notice at that user gesture while read-only retries retain it. The real two-tab Linux control observed the old status in the new editor after the third list read had cleared the alert. The draft was then discarded. No extra approved delete was sent and the stored deletion marker remained identical.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M2-037"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The new-note button opened its editor without clearing the previous action notice.",
+        "correction": "Clear the old notice when the user starts a new note. Keep the current notice during read-only recovery.",
+        "prevention": "The real Chromium case retains success until the new-note gesture, then observes the editor without the earlier delete notice. Discarding the draft leaves the deletion marker and empty peer list intact. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-consumer-entry-budget",
+      "source": "2026-11-25 coordinator read-only retirement inventory, retained as .reports/audit-20261125/retirement-before-entry-limit.json. SHA-256 273a8ef78d3c137fc1eb7265c134f0832df700d2941bc1a31b78985c2aa29558.",
+      "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
+        "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
+        "prevention": "A native Git fixture reaches a real nested link with an explicit 20,001-entry budget and confirms the unchanged default still reports exhaustion. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-unbounded-ignored-root-intake",
+      "source": "Astra Standard independent review of 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a on 2026-11-25.",
+      "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
+        "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
+        "prevention": "A real 64-root Git fixture with a dirty tracked file measures two retained roots with a budget of one. Additional regressions measure the initial iterator and exercise a native rename whose source begins with an ignored-status prefix. The pre-fix regression log is retained at .reports/audit-20261125/retirement-root-intake-red.log with SHA-256 f4e4c66619ab3dbe3b469437d91af1923bc37af9ca5dea9e7912ba0e204f1228. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-ignored-status-drains-past-budget",
+      "source": "Second Astra Standard independent review of 95f20e913f2d4d91f347156af10d72467b4b3f74 on 2026-11-25.",
+      "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-116"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
+        "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
+        "prevention": "The measured native Git fixture reduced ignored stdout consumption from 2,048 records and 165,888 bytes to two records and 4,096 bytes. Separate regressions cover tail dirtiness, nonzero exits before and at overflow, an unreadable pipe, child cleanup and complete small trees. The original regression log is retained at .reports/audit-20261125/m0-116-red.log with SHA-256 1ac03d8cccb3442841c31fa74ed607f675e0c8b193664f88ed8b1c30906cb001."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-drops-observed-second-status-dirtiness",
+      "source": "Astra Standard independent review of the M0-116 retirement entry at handoff 936615e6e937cec013fa4edec2089858fc5196fd.",
+      "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-117"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
+        "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
+        "prevention": "Both native Git regressions reproduced an eligible dirty checkout before the fix. The original log is retained at .reports/audit-20261125/m0-117-red.log with SHA-256 d7ebf206e12a4a0084bf3b53e456a6cbdbb6853613a3c0750a3926983803e694. The coordinator confirmed Astra Standard approval of 37cb4e896e8a99f8af07eb7829d2550d84c99c19 after both second-read replays were held, a small clean checkout stayed eligible, and ignored status remained bounded. The required regression checks are retained in the attached task receipt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "run-observation-publication-inconsistent-reads",
+      "source": "Independent Astra Standard review of PR 101 at 62114cc3dc3655b017a565a33e7cc10115faa551. Retained transcript SHA-256 b56d19308977f0134e367670af9c13fac4aa653c9f60b004c91e4a933fea962c.",
+      "observation": "A synthetic interleaving at hosted session staging parsed a market observation named fixture-a, used the SHA-256 of fixture-b, and published fixture-b under a report naming fixture-a. The shared model, voice and market collector read the file separately for parsing and digest calculation, and staging read it again.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-018"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Parsing, digest calculation and hosted staging opened the same observation path independently.",
+        "correction": "Capture the observation once and derive its validated summary and digest from those bytes. Publish only that capture after comparing it with the report.",
+        "prevention": "Interleave two synthetic byte sequences through the actual stage_artifacts entry for model, voice, market and the external-client pair. Preserve duplicate-key, private-field and size rejections."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-obsolete-status-probe-admission",
+      "source": "Authenticated PR 107 attempt 1, checkout 78860de6b1786b91a73feed4c0c6bc822e6dfaa4. Original archives/runs/20261125T080802.632754Z-2f17cbc5/test-report.json. Workspace log SHA-256 f86da8ff8b42c525ba95fef3ea9a9b3d126f02402d673eedb6dfd89e91f632c5. Paired artifacts and screenshot are indexed at archives/observations/repo-hygiene-20261125/pr107-native-original-45573475685/manifest.json (SHA-256 01e0af05e881344e57d6dcf2d8f4430d5d3f7d9c59774e8bec36c091c50bc428). Controlled Linux Chromium red on unchanged application and the retained fixture patch at 048199d. See archives/observations/m0-122-obsolete-indicator-status-red-048199d/SHA256SUMS (SHA-256 f55f474695cb1c7bef0ee1411c24a7613cf1c92ef52182e595567ca7162c3fc3) and observed-status.json (SHA-256 a9644bb66d79f651302709910dd2033d09bf21eddadb946723a2a1f091742c73).",
+      "observation": "The obsolete-input browser case failed when its direct indicator_preview_status response body reported BUSY instead of STALE_CONTEXT after the cancel exchange. The probe discarded HTTP status and did not record the competing request or registry stage. Windows passed on the same preview checkout. The ordinary product already polls BUSY within its existing deadline. The failing assertion was in the one-shot test probe, and its original BUSY stage remains unknown. In the controlled Chromium red, the original held ready request settled after invalidation, with acceptance absent. A separately tagged snapshot reached the actual Rust writer. The obsolete status probe against that holder returned HTTP 429 with retryable BUSY, and the matching writer reply drained at revision 1. Treating this refusal as the semantic answer reproduced the assertion failure.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-122"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The direct test probed obsolete status once and discarded HTTP status. In Chromium a separately tagged Rust snapshot held the writer, and the probe was refused with HTTP 429 before the stale check; the original hosted holder and stage were unobserved.",
+        "correction": "Use one bounded read-only probe which retries only an explicit retryable HTTP 429 BUSY. Keep admitted replies, the expected STALE_CONTEXT, mutation and UI assertions, and exact output comparison.",
+        "prevention": "The real control observes a cancelled late browser delivery, a still-held snapshot and one refused read stopped by caller cancellation. A subsequent read receives 429, the exact snapshot drains, and the same task returns HTTP 200 STALE_CONTEXT. Stale mutations are refused and the earlier document is identical after restart. The outcome is retained at archives/observations/m0-122-obsolete-indicator-status-green-5b66ac2/observed-status.json (SHA-256 f04d68833b21c2cc1a1fd00f952018ec2613bc94d86ea162845a830afd4f9a8c)."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T080802.632754Z-2f17cbc5",
+          "source_commit": "78860de6b1786b91a73feed4c0c6bc822e6dfaa4",
+          "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
+        }
+      ]
+    },
+    {
+      "id": "obsolete-indicator-forwarding-does-not-settle-on-error",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Injected route.fulfill threw the original error and disposed the fetched response, but the awaiting test still waited for forwarded. The worker could interrupt the test before the route, service and profile followed their owning finally blocks. Forwarding and the intercepted browser request completion share a finite verification window. The local replay observed the exact injected error and disposed response with the original forwarding waiter pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Only successful forwarding settled the deferred result. A thrown route error disposed the response but left the test waiting.",
+        "correction": "Settle the captured forwarding result on success or failure and keep the original failure through disposal. Use one bound for forwarding and captured request completion. Distinguish an already cancelled Chromium request from an ordinary missing response.",
+        "prevention": "Inject the original error into a live Chromium route and an independent absent response. Verify exact error identity, removal of the owned route, release of the listener and profile removal. The ordinary workflow observes genuine cancellation. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "obsolete-indicator-port-failure-leaks-profile",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "An injected freePort rejection occurred after profile allocation and before the owning try block. The review counted one created profile and zero close calls. Reserve the port before preparing the profile and verify the real profile still closes after a later failure. The local acquisition replay counted one prepared profile and zero closes while the same injected port error propagated.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The fixture created the profile before awaiting the port outside the owning finally.",
+        "correction": "Reserve the loopback port before acquiring the profile; keep the existing owning finally for later failures.",
+        "prevention": "Injected port rejection preserves the original error and prepares zero profiles. Both later forwarding failures remove each actual profile. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-probe-timeout-loses-last-refusal",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Repeated retryable 429 BUSY responses exhausted the probe timeout with only a boolean poll assertion. Both obsolete status and shared accepted-output probes need attempted request count and the last numeric HTTP status, BUSY code and retryability without response body or capability text. The local replay observed three retryable 429 attempts and verified the old diagnostic did not identify HTTP 429 or code BUSY.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The former boolean poll assertion retained no transport fields when the admission budget expired.",
+        "correction": "Keep the original absolute deadline and retry only the supported retryable HTTP 429 BUSY envelope. At expiry report the attempted count and last validated refusal fields. Preserve caller cancellation and return every other response to the assertion.",
+        "prevention": "The shared accepted-output probe sees repeated real HTTP 429 while the Rust snapshot stays held. Its bounded failure records the attempt count, HTTP 429, BUSY and retryability. The stale and malformed requests are returned after one attempt each; cancellation and reopened output are still checked. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-observer-outlives-read-deadline",
+      "source": "Astra Standard repeat review of M0-123 source 75aca5612da59e6c4b415aee0e7b64edfff9171f, archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt (SHA-256 6924986d05b324f36249808fff84a530af3149bed1fe2616795925f10e7b21e1). Exact-base fixture regression at 2b20311687f1fabf734e5381fa48309c975e1d42: archives/observations/m0-124-indicator-observer/red-2b20311/SHA256SUMS (SHA-256 280d5864c42fd3b43e6d1173b9965d61e46c400cbfbd8164109d356c3fd414c7) and observed.json (SHA-256 bc5e9abd5415e6df7f73b964c7e53ac9cc5ee51f9cc7c7584e9949a60d9bcbfa).",
+      "observation": "The actual probe awaited its undo observer after the first retryable HTTP 429. That callback started a separate 3-second drained wait. A drain after the read deadline settled in 3.807 seconds, and withholding drain settled in 4.206 seconds with an AbortError that omitted the refusal. An explicit caller cancellation at 161 milliseconds returned only at 813 milliseconds. The controls must separate deadline with late or withheld drain from early caller cancellation, and prove that admitted and nonretryable replies and arbitrary observer errors remain intact. With a 500 ms read budget the late case took 1013 ms and completed the wait after the late notification. The missing event took 3015 ms and lost the refusal. The explicit cancellation took 3016 ms and lost the original reason. The admitted and nonretryable controls each returned after one request. An unrelated observer error with the caller reason as its cause was replaced by that reason.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-124"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The read probe started a single timeout, but the observer callback awaited an independent drained timeout. Its generic cause check could also turn an unrelated observer error into cancellation.",
+        "correction": "Pass the composed read signal into both real drain observers and the snapshot wait. Abort removes pending event subscriptions. Preserve the original reason of a caller abort and report the captured refusal on the internal deadline. Propagate other observer failures.",
+        "prevention": "The controlled loopback probe exercises late and withheld IPC, early caller cancellation, admitted and nonretryable replies, and an unrelated error sharing the caller abort as its cause. Each makes one request. In the two deadline cases the probe reports the retained HTTP 429 BUSY retryable fields. All three drain waiters clean their listeners. Exact source evidence: archives/observations/m0-124-indicator-observer/green-58191c3/observed.json (SHA-256 8f7e3598cdbb6e321334bab5e8df343775339dbce0585dc327a18a46770d4895)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-opaque-process-failure",
+      "source": "Windows browser producer job 139085466034 on protected-main push 45579441190. Canonical aggregate in archives/runs/windows-change-45579441190-1/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The first private-handoff assertion at workspace.spec.mjs:3404 failed with only PowerShell execution. The probe did not retain the stage for startup, timeout, signal, buffer limit or an undeclared nonzero exit. The archived failure does not identify which disposition occurred.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45579441190-1",
+          "source_commit": "c678d0e53a5546138ebf9673af8c627f64446c6c",
+          "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
+        }
+      ],
+      "resolution": {
+        "cause": "The earlier wrapper collapsed undeclared subprocess failures into the generic PowerShell execution label. The condition that caused the original Windows subprocess to fail remains unclassified.",
+        "correction": "Expose a bounded startup, deadline, signal, output limit or exit disposition from the test-owned runner while retaining the existing native ACL assertions and limits.",
+        "prevention": "Guarded native Windows run 45585469848 passed the private handoff ACL assertion, both unsafe fixtures and the profile pool ACL case. If the failure recurs during ordinary Windows verification, retain the exact source, raw report and bound log with the last safe stage and observed subprocess disposition before any retry. Reopen only against that new observation, keeping paths, arguments, SID and stderr out of diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-deadline-loses-completed-outcome",
+      "source": "Astra Standard review of 3b1dfe67fb91d2fa264e134e9e8b14f56206b583 and independently repeated Node 24.22.3 child-process observations.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "With a 400 ms limit and descendant-held output pipes, native execFile returned success at 403 ms and declared exit 58 at 404 ms. The candidate took about 1.35 seconds and mislabelled exit 58 as a deadline. The reviewer also observed a child live after timeout rejection and asynchronous overflow controls that emitted no bytes. Synchronous writes to each output descriptor consistently triggered the output limit.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The separate abort timer could wait on inherited output after a direct child exited and relabel its existing result. The asynchronous buffer controls did not reliably produce bytes.",
+        "correction": "Use Node execFile to bound pipe closure, preserve finished direct-child outcomes and wait for a running child to terminate. Emit overflow bytes synchronously to each descriptor in the test fixtures.",
+        "prevention": "The guarded Ubuntu suite passed all eleven subprocess controls. The guarded native Windows suite passed ten applicable controls and named the POSIX child-signal skip separately. The controls cover retained streams after success and a declared exit, reaping at a genuine deadline and both output buffer limits."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-pr-windows-feedback-budget-recurrence-45475965426",
+      "source": "Ordinary offline status at f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb and authenticated automatic first-attempt pull requests 45444242059, 45459661035 and 45475965426. Verified originals and compact clocks are indexed in archives/observations/pr-timing-recurrences-f5bb2ae/observations.json (SHA-256 b08f606009ce0edc625fdf96cd7511d69afe4b13e7b5627f9e6db1837fc3fedc).",
+      "observation": "Three successful comparable ordinary full warm Windows pull requests took 869, 910 and 917 seconds under the 900-second objective. The latter two breach the objective. Each original selected 35 check identities with 28 passes and seven expected unimplemented omissions. The observed runs include both three- and four-producer layouts. This is a new PR recurrence after the repaired PR cohort; the protected main-push finding remains independent.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-103"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "pull_request",
+        "profile": "full",
+        "platform": "Windows",
+        "repair_commit": "11c75525871bdac2b12c0785b781892a4e1f5004"
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45444242059-1",
+          "source_commit": "389f6f21311485f00985710435087502d3c5fe72",
+          "report_sha256": "b9d360a6953da285810332940f54185fcd2d48463c0f219457bc5e7decbff8e6"
+        },
+        {
+          "run_id": "windows-change-45459661035-1",
+          "source_commit": "cf2f91d9b20f67b64fc8f355dd3d8fc1b833dea5",
+          "report_sha256": "347037deddcd9d3369aca4003f7d9eb4813aca6ece7157ff6d74303d97005d95"
+        },
+        {
+          "run_id": "windows-change-45475965426-1",
+          "source_commit": "1fded991c99439038d44b6515d2e2c9488f2b3c7",
+          "report_sha256": "3b220119a2b73cff913c0f7c5405dfb7af780ebdddfac0265e3b4f9d5cc69e7e"
+        }
+      ],
+      "resolution": {
+        "cause": "The recurrence had two distinct critical paths. The 910-second warm PR waited for browser and the 917-second warm PR waited for Python. The new browser-critical run gained time in setup, chiefly Cargo restore. These observations do not isolate a single cause for both original breaches.",
+        "correction": "Qualify the exact protected Windows preparation correction on a natural full warm PR. PR 96 first attempt 45563183277 passed in 876 seconds with the correction in both tested parents and matching outcomes for all 35 selected checks.",
+        "prevention": "Keep the digested ordinary PR controls and require exact repair ancestry, complete producer clocks, matching outcomes and full warm cache evidence for any future disposition. The task-bound regression receipt and native provenance are indexed in contracts/reviews/2026-11-25-pr-timing-recurrences.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cache-probe-stale-hardlink-length",
+      "source": "Astra Standard pre-execution review of ea22af10707fbf360724cb2da2b5f88b913fed5d. Original: archives/observations/m0-129-astra-ea22af1/astra-native-cache-composition-ea22af1.txt (SHA-256 6443ddef2b0c7e1e0516aa454574488a31a1e25ee8adc3c225b452a483377e97).",
+      "observation": "Astra reproduced conflicting logical sizes of 8192 and 1 for two paths to the same resized Windows file using stale directory-entry metadata. The collector marked the sample complete. It must query current metadata without following reparse points or trusting enumeration sizes for Windows regular file paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-129"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Windows directory enumeration could retain the earlier length at another hardlink path after a resize. The original alias control wrote the content before linking and missed that stale-metadata case.",
+        "correction": "For the one-shot probe, query the current logical length through a non-following Windows metadata handle for each regular file path. Preserve alias path accounting and the scan deadline.",
+        "prevention": "The portable stale-metadata control and the resized cross-component native hardlink both verify the current 8192-byte length at each path. PR 112 run 45606747991 attempt 1 retains the native result and logs. The reviewed cleanup removes the diagnostic. Any future equivalent measurement must exercise the resized alias before treating its totals as complete."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cache-probe-ambiguous-root-coverage",
+      "source": "Astra Standard pre-execution review of ea22af10707fbf360724cb2da2b5f88b913fed5d. Original: archives/observations/m0-129-astra-ea22af1/astra-native-cache-composition-ea22af1.txt (SHA-256 6443ddef2b0c7e1e0516aa454574488a31a1e25ee8adc3c225b452a483377e97).",
+      "observation": "Astra swapped a genuinely missing git/db and a skipped target junction with a genuinely missing target and skipped git/db. Both observations reported the same complete aggregate. Fixed root labels and statuses must preserve exclusions and incomplete coverage independently of inner-entry counts.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-129"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Shared counters merged missing and excluded cache roots with skipped inner entries. Swapping a missing optional git/db and an excluded target could yield the same complete aggregate.",
+        "correction": "For the one-shot probe, record each fixed root status and entry counters separately. Require target to be observed and scanned. Permit genuinely missing optional roots and preserve errors, exclusions and budget limits.",
+        "prevention": "Retain the swapped-root and budget regressions and the passing native junction fixture from PR 112 run 45606747991 attempt 1. Each of the four accepted records scanned target and labeled only git/db as missing. Any future equivalent measurement must distinguish an excluded required root from an absent optional root before treating the sample as complete."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "consequential-review-after-timing-task-closure",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4, transcript SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341. Original local task closures ecf48f65a02b94967e0813fec4e9cbbec360ffbf and 97fedb3771bcdbcbf1030d32d4eec1c69401d656.",
+      "observation": "M0-130 and M0-131 were locally done with passing receipts before independent review found that a known timing conflict could disappear after normal capture and reopen. On the reviewed source the CLI correctly withheld the disputed browser clock on first interpretation, while saving kept only the complete listing and reopening its output recovered a 645-second clock without a conflict. Existing evidence qualified the cases actually exercised before closure. The review launch used the implementation-phase task context; whether an earlier focused independent review would have caught the missing boundary is an implementation hypothesis.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-134"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The prior passing checks qualified their exercised timing cases. The capture and reopen conflict escaped those controls, and the routine review launcher opened implementation guidance without a separate source-bound verification step.",
+        "correction": "Open verification context for the review role. For consequential work, hand off the exact clean candidate, original observation, independent expected outcome and distinguishing control before requesting task closure.",
+        "prevention": "For the next consequential change or substantive source revision, the implementer supplies the exact clean candidate and its caller or data boundary to an independent reviewer. Astra exercised this handoff on the approved M0-134 source. Timing repair and recurrence remain in their owning tasks. M0-136 owns enforcement of the administrative decision."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "cold-review-source-origin-and-repair-admission",
+      "source": "Independent cold Astra Standard review of 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a, transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Independent ordinary-entry repair controls on protected 6cf0d0dc87b344203ab194a2cd047d36bf801f3c and the candidate.",
+      "observation": "Transient feedback substitution followed by a clean worktree made bound launch and context stamp the requested SHA over stale feedback. M0-094 gave an unrelated passing task diagnostic as the origin of its independently reviewed finding. Historical 6cad01c M4-018 already describes independent reads and A/B bytes despite its open state, yet the launch inferred pending attribution. In disposable clones an unrelated null task_ids or unreadable optional feedback blocked unbound maintenance launch on the candidate while protected main launched. The M0-119 diagnostic resolved with 11 original logs when given the private archive root, while the advertised bare command without host configuration failed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-134"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Bound readers loaded live records between clean-checkout checks. Summary routing inferred finding origin from task diagnostics and attribution from open status. Ordinary launch treated optional feedback as mandatory, and bare archive resolution lacked repository-local configuration.",
+        "correction": "Read one committed tree for the bound review. Separate original from related evidence, surface the recorded mechanism or unresolved next observation, and retain ordinary repair guidance when optional feedback cannot be read. Resolve diagnostic archives using the explicit path, environment or repository-local configuration.",
+        "prevention": "Independently exercise transient working-record substitution, M0-094 original provenance, the known historical M4-018 mechanism, degraded ordinary launch and the M0-119 original report with 11 verified logs. At the next ordinary Linux recurrence, the verification owner retains the original report and correlates the last completed timeout phase or admission holder before retrying. M0-119 keeps that investigation open."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "bound-review-navigation-loses-source-and-read-only-entry",
+      "source": "Astra Standard cold rereview of 5b6c61a3cb84ae3fedb5a12a79d96f80ac06ebe6. Original transcript: archives/observations/m0-134-navigation-finding-5b6c61a/astra-cold-review-5b6c61a.txt (SHA-256 bdb799cc76324b100e62f1b70044faac42021b7bb257f9654336b363581e9cf0).",
+      "observation": "A reader following the bound context’s printed detail, repeat verification and generic source navigation can lose the reviewed SHA and read substituted worktree feedback or the linked engineering product record. Feedback links retained the SHA but used pnpm and uv. The normal read-only role could not create the uv cache lock. Explicitly bound reads and dirty or moved checkout admission controls succeeded.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-134"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Follow-up context and source commands used ordinary worktree defaults. Feedback links retained the commit but depended on a pnpm and uv wrapper that tried to write a cache lock. Explicitly typed bound commands did not exercise these advertised follow-ups.",
+        "correction": "Reuse the platform-specific read-only Python entrypoint for bound detail, repeat verification, product and feedback source queries. Preserve the candidate SHA and the original diagnostic locator separately. List current checkout operations in their own field.",
+        "prevention": "Execute the printed prompts and follow-up commands under a filesystem read-only constraint. Verify committed content after working-data substitution, reject dirty or moved bound context, and reopen historical Git facts and the configured original diagnostic. Preserve the unbound compact launch. The recorded Linux run and independent Astra review verify those boundaries."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "native-review-fixture-misses-resolved-contract-path",
+      "source": "Ordinary PR 113 attempt 1 and independent Linux path controls. Exact Windows diagnostic and original controls are indexed by archives/observations/repo-hygiene-20261125/pr113-windows-test-path-45621069041/SHA256SUMS (SHA-256 43505ed600b9b4ed00831dc0f3df7cfaa3a0f72021454f50116bd56520ac86be).",
+      "observation": "Windows Python on run 45621069041 failed the ordinary working purpose assertion at test_diagnostic_references.py:100 before bound checks ran. The test expected Stale working purpose. and received Read the exact committed purpose. The native temporary path spelling was not retained. In a separate Linux control the unmodified test passed on the physical temporary path and failed at the same assertion through a symlink to that directory. Real on-disk public commands passed their ordinary, committed and dirty-refusal controls through both checkout spellings.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-137"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45621069041-1",
+          "source_commit": "540aa72c18cf6bf0c1ba49ba965b8c26f229d1ad",
+          "report_sha256": "2dc65486c83de450a01a9eeda1bf2cd00a4607c3d07ab840ba4985e57eb2535c"
+        }
+      ],
+      "resolution": {
+        "cause": "The fixture injected a transient nested contract value using its original path spelling. The link reader opens the resolved file. An alias to the same Linux temporary directory reproduced the missed injection at the original Windows assertion.",
+        "correction": "Match the resolved fixture file and exercise actual nested source reads from ordinary and committed trees through alternate checkout paths.",
+        "prevention": "The real public entry checks the working value, committed value, dirty checkout refusal and outside-reference rejection. Ordinary native Windows and Linux run 45627611541 passed both the original test and the new test."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "m0-132-repeated-worker-schema-reference-resolution",
+      "source": "Authenticated ordinary full warm Linux PR 45601205813, archives/observations/repo-hygiene-20261125/pr111-native-original-45601205813/manifest.json (SHA-256 de77622735162ed6d87d07bbec62e6e6de07a383b669b3fb3c9690deccdbc50a). Byte-matched private isolation at archives/observations/repo-hygiene-20261125/m0-104-shared-vector-attribution-45601205813/disposition.json (SHA-256 377c4dec0066e8913aeb52e5e27c81bc39eff4eff7c20b73f99dc198b1055f2a) with original inputs and both profiles in SHA256SUMS.",
+      "observation": "PR111 selected the same 35 outcomes in 772 seconds. Python contracts and workers passed in 193.7 seconds; the slowest shared-vector case took 21.059 seconds. On matching protocol, schema, fixture and lock inputs the private ordinary target run recorded 459,826 repeated root-local static lookups, with 5.683 profiled seconds inside resolution. Four paired fresh Python controls measured median case time 6.788 to 4.929 seconds in a private immutable preparation experiment with intact validation. This does not identify runner load or hosted critical-path recovery.",
+      "severity": "minor",
+      "status": "deferred",
+      "task_ids": [
+        "M0-132"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T110714.425148Z-4a0f894c",
+          "source_commit": "b2838310471c9c405d9fcdbaaf66d62c4f2cb4b8",
+          "report_sha256": "2ec5f0826de9610adbe4c505dde659b99220dc831e783010099e7f591b1d4215"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
+    },
+    {
       "id": "profile-admission-after-relocation-review",
       "source": "Independent Astra Standard at d89a332 and archives/runs/20261125T042136.288677Z-f883380f/test-report.json.",
       "severity": "major",
@@ -5307,6 +6778,23 @@
         "correction": "Finish initial migration in a private same-directory file, synchronize its publication, and require matching origin account and path when replacing a fresh anchor.",
         "prevention": "A bundled SQLite child leaves an actual hot journal. The recovery test compares retained bytes for staged and historical files, and the attribution controls exercise same-account success and foreign and unproven refusals."
       },
+      "deferral_reason": null
+    },
+    {
+      "id": "desktop-recovery-native-admission-integration",
+      "source": "Local three-way merge of PR 95 a59dfe1 and protected main 87dd079. The storage admission, desktop native worker test entry and dependency manifests conflicted. The original conflict transcript is retained in .reports/m5-007-integration/merge-original.log. The first build retained a test reference to the removed production script and failed in .reports/m5-007-integration/merged-relocation-obsolete-fixture-red.log.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The protected native preflight returns an admission result for SQLite files, while the recovery branch additionally needs the original-account fingerprint and checks for ownership metadata. Keeping either side alone would omit one of these required behaviors.",
+      "task_ids": [
+        "M5-007"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "state-migrations",
+        "operations-workflow"
+      ],
+      "resolution": null,
       "deferral_reason": null
     }
   ]

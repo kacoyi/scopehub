@@ -29,4 +29,4 @@ python_version = "3.12"
 strict = true
 mypy_path = ["python", "."]
 explicit_package_bases = true
-files = ["python", "contracts/generated/protocol.py"]
+files = ["python", "contracts/generated/protocol.py", "tests/contracts/test_legacy_protocol_client.py"]

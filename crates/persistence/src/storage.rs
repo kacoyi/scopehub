@@ -3,6 +3,7 @@
 use std::{
     fs::{self, File},
     io::{self, Write},
+    num::NonZeroU8,
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
@@ -74,10 +75,31 @@ fn denied() -> io::Error {
 }
 
 pub(super) fn prepare_profile_root(path: &Path) -> io::Result<()> {
+    require_profile_path(path)?;
+    platform::prepare(path)
+}
+
+fn require_profile_path(path: &Path) -> io::Result<()> {
     if !path.is_absolute() || path.file_name().is_none() {
         return Err(denied());
     }
-    platform::prepare(path)
+    Ok(())
+}
+
+pub(super) fn prepare_profile_pool(path: &Path, count: NonZeroU8) -> io::Result<()> {
+    require_profile_path(path)?;
+    #[cfg(windows)]
+    {
+        platform::prepare_pool(path, count)
+    }
+    #[cfg(not(windows))]
+    {
+        platform::prepare(path)?;
+        for index in 0..count.get() {
+            platform::prepare(&path.join(format!("profile-{index}")))?;
+        }
+        Ok(())
+    }
 }
 
 pub(super) use platform::open_path;
@@ -123,7 +145,7 @@ pub(super) fn publish_anchor(path: &Path, content: &[u8]) -> io::Result<()> {
     installed
 }
 
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(target_os = "linux")]
 fn owner_digest(principal: &str) -> String {
     use sha2::{Digest, Sha256};
 
@@ -272,7 +294,7 @@ mod platform {
     }
 }
 
-#[cfg(any(windows, test))]
+#[cfg(test)]
 pub(super) fn encoded_powershell_script(script: &str) -> String {
     const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let utf16: Vec<u8> = script.encode_utf16().flat_map(u16::to_le_bytes).collect();
@@ -302,125 +324,43 @@ pub(super) fn encoded_powershell_script(script: &str) -> String {
 fn powershell_script_uses_utf16le_base64() {
     assert_eq!(encoded_powershell_script("A"), "QQA=");
     assert_eq!(encoded_powershell_script("Aé🌍"), "QQDpADzYDd8=");
-    assert!(encoded_powershell_script(include_str!("storage_acl.ps1")).len() < 30_000);
+}
+
+#[cfg(windows)]
+pub(super) fn run_acl_worker() -> Option<i32> {
+    scopehub_platform::workspace_acl::dispatch(&FILES)
+}
+
+#[cfg(windows)]
+pub(super) fn run_acl_test_worker() {
+    scopehub_platform::workspace_acl::dispatch_test(&FILES);
+}
+
+#[cfg(all(windows, test))]
+#[test]
+fn workspace_acl_worker() {
+    run_acl_test_worker();
 }
 
 #[cfg(windows)]
 mod platform {
-    use std::{
-        env,
-        fs::OpenOptions,
-        io::Read,
-        os::windows::{fs::OpenOptionsExt, process::CommandExt},
-        process::{Command, Stdio},
-    };
+    use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt};
 
     use super::*;
 
-    fn refusal_stage(exit: Option<i32>) -> &'static str {
-        match exit {
-            Some(20) => "account",
-            Some(21) => "local-path",
-            Some(22) => "local-ntfs",
-            Some(23) => "action",
-            Some(24) => "metadata",
-            Some(25) => "path-type",
-            Some(26) => "acl-read",
-            Some(27) => "acl-entry",
-            Some(28) => "ancestor-owner",
-            Some(29) => "replaceable-ancestor",
-            Some(30) => "shared-access",
-            Some(31) => "owner-or-inheritance",
-            Some(32) => "private-creation",
-            Some(33) => "missing-directory",
-            Some(34) => "profile-or-file-owner",
-            _ => "powershell-execution",
-        }
-    }
-
-    fn report_refusal(action: &str, stage: &str) {
-        eprintln!("Workspace storage ACL check refused ({action}, {stage}).");
-    }
-
-    fn check_acl(path: &Path, action: &str) -> io::Result<Option<String>> {
-        let system = env::var_os("SystemRoot").map(PathBuf::from);
-        let Some(system) = system.filter(|path| path.is_absolute()) else {
-            report_refusal(action, "powershell-location");
-            return Err(denied());
-        };
-        let powershell = system.join("System32/WindowsPowerShell/v1.0/powershell.exe");
-        let mut child = Command::new(powershell)
-            .args([
-                "-NoProfile",
-                "-NonInteractive",
-                "-NoLogo",
-                "-EncodedCommand",
-            ])
-            .arg(encoded_powershell_script(include_str!("storage_acl.ps1")))
-            .env("SCOPEHUB_STORAGE_PATH", path)
-            .env("SCOPEHUB_STORAGE_ACTION", action)
-            .env("SCOPEHUB_STORAGE_FILES", FILES.join(";"))
-            .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .inspect_err(|_| report_refusal(action, "powershell-spawn"))?;
-        let deadline = Instant::now() + Duration::from_secs(10);
-        loop {
-            match child.try_wait() {
-                Ok(Some(status)) if status.success() => break,
-                Ok(Some(status)) => {
-                    let stage = refusal_stage(status.code());
-                    report_refusal(action, stage);
-                    return Err(io::Error::new(io::ErrorKind::PermissionDenied, stage));
-                }
-                Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
-                Ok(None) => return stop_probe(child, action, io::ErrorKind::TimedOut.into()),
-                Err(error) => return stop_probe(child, action, error),
-            }
-        }
-        let mut sid = String::new();
-        child
-            .stdout
-            .take()
-            .ok_or_else(denied)?
-            .take(256)
-            .read_to_string(&mut sid)?;
-        let sid = sid.trim();
-        if action == "prepare" {
-            return Ok(None);
-        }
-        if sid.len() > 184
-            || !sid.strip_prefix("S-1-").is_some_and(|parts| {
-                parts
-                    .split('-')
-                    .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
-            })
-        {
-            return Err(denied());
-        }
-        Ok(Some(owner_digest(&format!("windows:{sid}"))))
-    }
-
-    fn stop_probe(
-        mut child: std::process::Child,
-        action: &str,
-        error: io::Error,
-    ) -> io::Result<Option<String>> {
-        let stage = if error.kind() == io::ErrorKind::TimedOut {
-            "powershell-timeout"
-        } else {
-            "powershell-wait"
-        };
-        report_refusal(action, stage);
-        let _ = child.kill();
-        let _ = child.wait();
-        Err(error)
+    fn configure_acl_test_host() {
+        #[cfg(test)]
+        scopehub_platform::workspace_acl::use_test_host("storage::workspace_acl_worker");
     }
 
     pub(super) fn prepare(path: &Path) -> io::Result<()> {
-        check_acl(path, "prepare").map(|_| ())
+        configure_acl_test_host();
+        scopehub_platform::workspace_acl::check(path, true, 0)
+    }
+
+    pub(super) fn prepare_pool(path: &Path, count: NonZeroU8) -> io::Result<()> {
+        configure_acl_test_host();
+        scopehub_platform::workspace_acl::check(path, true, count.get())
     }
 
     const OPEN_REPARSE_POINT: u32 = 0x0020_0000;
@@ -451,7 +391,8 @@ mod platform {
     }
 
     pub(in super::super) fn open_path(root: &Path) -> io::Result<ProfileStorage> {
-        let owner = check_acl(root, "open")?;
+        configure_acl_test_host();
+        let owner = scopehub_platform::workspace_acl::check_profile_owner(root)?;
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -462,7 +403,7 @@ mod platform {
             .open(root.join(STARTUP_LOCK))?;
         file_length(&file)?;
         let startup = lock_startup(file)?;
-        inspect_files(root, startup, owner, check_file)
+        inspect_files(root, startup, Some(owner), check_file)
     }
 
     pub(super) fn create_private_file(path: &Path) -> io::Result<File> {

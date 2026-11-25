@@ -3172,6 +3172,9 @@ fn relocated_and_recreated_profiles_have_independent_synthetic_credential_namesp
     use scopehub_platform::model_credentials::OpenAiCredentials;
     use std::fs;
 
+    #[cfg(windows)]
+    scopehub_persistence::use_workspace_acl_test_host("bridge::tests::workspace_acl_worker");
+
     let fixture = ImportFixture::new();
     let original = fixture.0.join("workspace");
     let relocated = fixture.0.join("relocated");
@@ -3216,4 +3219,10 @@ fn relocated_and_recreated_profiles_have_independent_synthetic_credential_namesp
         credentials.revision(&old).unwrap().as_deref(),
         Some(retained.as_str())
     );
+}
+
+#[cfg(windows)]
+#[test]
+fn workspace_acl_worker() {
+    scopehub_persistence::run_workspace_acl_test_worker();
 }

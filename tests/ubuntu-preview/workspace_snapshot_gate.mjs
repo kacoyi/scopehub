@@ -85,6 +85,12 @@ export function installSnapshotGate(endpoint, writerPath) {
         server.middlewares.use((request, response, next) => {
           const id = request.headers[snapshotTag];
           if (request.url !== endpoint || typeof id !== 'string') return next();
+          const delivery = () => ({
+            complete: request.complete, headers_sent: response.headersSent, socket_destroyed: request.socket.destroyed,
+          });
+          // Observe the middleware after its synchronous admission decision.
+          setImmediate(() => notify(id, 'handled', delivery()));
+          response.once('finish', () => notify(id, 'finished', { ...delivery(), http: response.statusCode }));
           response.once('close', () => notify(id, 'closed', {
             cancelled: !response.writableEnded, http: response.writableEnded ? response.statusCode : undefined,
           }));
@@ -116,10 +122,11 @@ export function observeSnapshotGate(child) {
     return {
       id,
       headers: { [snapshotTag]: id },
-      async wait(stage) {
+      async wait(stage, signal = AbortSignal.timeout(3_000)) {
+        signal.throwIfAborted();
         const key = `${id}:${stage}`;
         if (observed.has(key)) return observed.get(key);
-        const [event] = await once(events, key, { signal: AbortSignal.timeout(3_000) });
+        const [event] = await once(events, key, { signal });
         return event;
       },
       release() {

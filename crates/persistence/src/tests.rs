@@ -148,10 +148,22 @@ mod os_privacy {
 }
 
 #[cfg(windows)]
-#[test]
-fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
+fn change_fixture_acl(path: &Path, action: &str, grant: &str) {
     use std::os::windows::process::CommandExt;
 
+    let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
+    let output = std::process::Command::new(&icacls)
+        .arg(path)
+        .args([action, grant])
+        .creation_flags(0x0800_0000)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     let profile = Profile::new();
     // A regular file created with default Windows attributes inherits the
     // same owner ACL that a launcher bootstrap file receives.
@@ -177,29 +189,19 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
         .unwrap();
     drop(writer);
 
-    let before = fs::read(profile.db()).unwrap();
+    let database = profile.db();
+    let before = fs::read(&database).unwrap();
     let wal_bytes = fs::read(&wal).unwrap();
-    let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
-    let status = std::process::Command::new(&icacls)
-        .arg(&wal)
-        .args(["/grant", "*S-1-1-0:(R)"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .unwrap()
-        .status;
-    assert!(status.success());
-    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
-    assert_eq!(fs::read(profile.db()).unwrap(), before);
-    assert_eq!(fs::read(&wal).unwrap(), wal_bytes);
-
-    let status = std::process::Command::new(&icacls)
-        .arg(&wal)
-        .args(["/remove:g", "*S-1-1-0"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .unwrap()
-        .status;
-    assert!(status.success());
+    assert!(!wal_bytes.is_empty());
+    for shared in [&database, &wal] {
+        change_fixture_acl(shared, "/grant", "*S-1-1-0:(R)");
+        let refusal = storage::open_path(&profile.0).unwrap_err();
+        assert_eq!(refusal.to_string(), "shared-access");
+        assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+        assert_eq!(fs::read(&database).unwrap(), before);
+        assert_eq!(fs::read(&wal).unwrap(), wal_bytes);
+        change_fixture_acl(shared, "/remove:g", "*S-1-1-0");
+    }
     assert_eq!(
         profile
             .open()
@@ -212,17 +214,44 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     );
 
     let before = fs::read(profile.db()).unwrap();
-    let status = std::process::Command::new(&icacls)
-        .arg(&profile.0)
-        .args(["/grant", "*S-1-1-0:(RX)"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .unwrap()
-        .status;
-    assert!(status.success());
+    change_fixture_acl(&profile.0, "/grant", "*S-1-1-0:(RX)");
     assert!(SqliteWorkspace::prepare_profile_root(&profile.0).is_err());
     assert!(profile.open().is_err());
     assert_eq!(fs::read(profile.db()).unwrap(), before);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_desktop_reopen_checks_native_acl_on_profile_metadata() {
+    let profile = Profile::new();
+    let open = || SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding());
+    let (writer, identity) = open().unwrap();
+    writer
+        .connection
+        .execute("UPDATE workspaces SET revision = 23", [])
+        .unwrap();
+    drop(writer);
+
+    let files = [
+        profile.db(),
+        profile.0.join(storage::PROFILE_ANCHOR),
+        profile.0.join("workspace-startup.lock"),
+    ];
+    let original = files.each_ref().map(|file| fs::read(file).unwrap());
+    for metadata in &files[1..] {
+        change_fixture_acl(metadata, "/grant", "*S-1-1-0:(R)");
+        let refusal = storage::open_path(&profile.0).unwrap_err();
+        assert_eq!(refusal.to_string(), "shared-access");
+        assert!(matches!(open(), Err(OpenWorkspaceError::Database)));
+        assert_eq!(
+            files.each_ref().map(|file| fs::read(file).unwrap()),
+            original
+        );
+        change_fixture_acl(metadata, "/remove:g", "*S-1-1-0");
+    }
+    let (reopened, retained) = open().unwrap();
+    assert_eq!(retained, identity);
+    assert_eq!(reopened.snapshot(None, false).unwrap().state.revision, 23);
 }
 
 #[cfg(windows)]

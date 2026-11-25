@@ -831,6 +831,9 @@ pub(crate) fn lock_test_profile_preparation(
 
 #[cfg(test)]
 pub(crate) fn lock_native_test_profile_preparation() -> Option<std::sync::MutexGuard<'static, ()>> {
+    #[cfg(windows)]
+    scopehub_persistence::use_workspace_acl_test_host("bridge::tests::workspace_acl_worker");
+
     // Windows test paths share the helper budget before starting either ACL call.
     // The integrated regression also exercises this admission path on other hosts.
     (cfg!(windows) || PROFILE_PREPARATION_ATTEMPT.with_borrow(Option::is_some))

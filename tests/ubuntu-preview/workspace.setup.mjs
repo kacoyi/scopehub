@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { prepareProfilePool } from './workspace_profile_pool.mjs';
 
 export default async function setup() {
   const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -13,13 +16,29 @@ export default async function setup() {
   ], { cwd: root, timeout: 295_000 });
 
   const run = await mkdtemp(join(root, 'apps/desktop/ui/node_modules/.vite-workspace-'));
-  const cleanup = () => rm(run, { recursive: true, force: true, maxRetries: 3 });
+  let profilePool;
+  const remove = path => rm(path, { recursive: true, force: true, maxRetries: 3 });
+  const cleanup = async () => {
+    const removals = await Promise.allSettled([remove(run), ...(profilePool ? [remove(profilePool)] : [])]);
+    const failure = removals.find(result => result.status === 'rejected');
+    if (failure) throw failure.reason;
+  };
   try {
     await mkdir(join(run, 'ports'));
+    if (process.platform === 'win32') {
+      const pendingPool = join(tmpdir(), 'scopehub-ubuntu-profiles-' + randomUUID());
+      const bridge = join(root, 'target', 'debug', 'workspace_bridge.exe');
+      const python = join(root, '.venv', 'Scripts', 'python.exe');
+      // Only accept the directory after its supervisor has finished and reaped
+      // its children. The supervisor owns cleanup on a failed preparation.
+      await prepareProfilePool(python, bridge, pendingPool);
+      profilePool = pendingPool;
+      process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL = profilePool;
+    }
     process.env.SCOPEHUB_WORKSPACE_TEST_RUN = run;
     return cleanup;
   } catch (error) {
-    await cleanup();
+    await cleanup().catch(cleanupError => console.error('Workspace setup cleanup failed.', cleanupError));
     throw error;
   }
 }

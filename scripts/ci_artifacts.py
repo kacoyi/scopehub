@@ -13,10 +13,12 @@ if __package__:
     from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
                         windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                          project_definition_hash, task_definition_hash, validate_model, windows_x64)
-    from .timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
+                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+    from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
+                         windows_aggregate_cache)
     from .verification_evidence import (
-        FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
+        EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
+        capture_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
@@ -25,10 +27,12 @@ else:
     from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
                        windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                         project_definition_hash, task_definition_hash, validate_model, windows_x64)
-    from timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
+                         project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
+    from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
+                        windows_aggregate_cache)
     from verification_evidence import (
-        FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
+        EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
+        capture_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
@@ -175,15 +179,19 @@ def scope_provenance(report, report_sha256, env):
     return {'kind': 'scopehub-verification-scope-v1', **decision, 'report_sha256': report_sha256}
 
 
-def stage_session(reports, destination, run, result, source):
+def stage_run_observation(root, reports, destination, run, result, source):
     check = result['id']
     relative = f'{run}/{check}.observation.json'
-    expected = result['observation']
-    contents = bound_bytes(checked_path(reports, relative), expected['evidence_sha256'])
-    evidence_json(contents)
-    write_artifact(destination / relative, contents)
-    if expected != collect_session(destination / run, check, source):
+    manifest = checked_path(reports, relative)
+    if check == EXTERNAL_CLIENT_CHECK and source != source_identity(root):
+        raise PublicationError('External-client evidence does not match the current source inputs.')
+    expected = result.get('observation')
+    if expected is None:
+        raise PublicationError('A passing session check needs a reported observation.')
+    contents, observation = capture_run_observation(root, manifest, check, source)
+    if expected != observation:
         raise PublicationError('Redacted session evidence differs from the reported observation.')
+    write_artifact(destination / relative, contents)
 
 
 def stage_field_observation(root, reports, destination, result):
@@ -270,7 +278,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     for result in report['checks']:
         check = result['id']
         passed = result['status'] == 'passed'
-        if (('observation' in result and (check not in SESSION_CHECKS or not passed))
+        if (('observation' in result and (check not in RUN_OBSERVATION_CHECKS or not passed))
                 or ('field_observation' in result and (check not in FIELD_ACTIONS or not passed))):
             raise PublicationError('The check has an unexpected observation.')
         if 'log' not in result:
@@ -290,8 +298,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
             copy_file(log, destination / relative, sha256=result['log_sha256'])
         executed[check] = result['status']
         if passed:
-            if check in SESSION_CHECKS:
-                stage_session(reports, destination, run, result, report['source'])
+            if check in RUN_OBSERVATION_CHECKS:
+                stage_run_observation(root, reports, destination, run, result, report['source'])
             elif check in FIELD_ACTIONS:
                 try:
                     stage_field_observation(root, reports, destination, result)
@@ -404,7 +412,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     run_id = windows_lanes_run_id(ci)
     rows = {}
     started = []
-    caches = set()
+    caches = {}
     with tempfile.TemporaryDirectory(prefix='scopehub-windows-', dir=env.get('RUNNER_TEMP')) as directory:
         for lane in names:
             incoming = checked_path(downloads, prefix + lane, directory=True)
@@ -431,12 +439,15 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                         raise PublicationError('Windows lane evidence paths overlap.')
                     copy_file(file, reports / relative)
             timing = matching_lane_timing(incoming, report)
-            caches.add(timing.get('cache', 'unknown'))
+            caches[lane] = timing.get('cache', 'unknown')
             if lane == 'core' and (generator := timing.get('generated_contracts')):
                 write_artifact(reports / WINDOWS_GENERATOR_SAMPLE, json_bytes(generator))
     if output := env.get('GITHUB_OUTPUT'):
         with Path(output).open('a', encoding='utf-8') as stream:
-            stream.write(f"cache={next(iter(caches)) if len(caches) == 1 else 'unknown'}\n")
+            cache = caches['core'] if profile else windows_aggregate_cache(caches)
+            stream.write(f'cache={cache}\n')
+            if not profile:
+                stream.write(f'windows_caches={json.dumps(caches, sort_keys=True)}\n')
     if profile:
         return core, 0
     core['checks'] = [rows[check['id']] for check in project['catalog']['checks']]
@@ -458,6 +469,14 @@ def stage_timing(destination, env, *, has_report):
         }
     sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'))
     if has_report:
+        if raw_caches := env.get('SCOPEHUB_TIMING_WINDOWS_CACHES'):
+            try:
+                caches = json.loads(raw_caches)
+                if windows_aggregate_cache(caches) != sample['cache']:
+                    raise ValueError('Producer states differ from the aggregate cache state.')
+            except ValueError as error:
+                raise PublicationError('Invalid Windows cache observations.') from error
+            sample['windows_caches'] = caches
         if 'SCOPEHUB_WINDOWS_LANE_RESULT' in env:
             observed = optional_path(ROOT / '.reports', WINDOWS_GENERATOR_SAMPLE)
             comparison = evidence_json(observed.read_bytes()) if observed else None

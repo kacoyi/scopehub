@@ -1,4 +1,5 @@
 name: Verify delivery
+run-name: ${{ inputs.dispatch_id && format('Verify task {0} [{1}]', inputs.task_id, inputs.dispatch_id) || '' }}
 
 on:
   pull_request:
@@ -17,22 +18,73 @@ on:
         description: Optional project task ID for task-only verification
         type: string
         required: false
+      expected_head:
+        description: Reviewed commit SHA for a guarded task dispatch
+        type: string
+        required: false
+      expected_base:
+        description: Reviewed protected main SHA for a guarded task dispatch
+        type: string
+        required: false
+      dispatch_id:
+        description: Correlation ID supplied by the guarded task dispatch command
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
+  # A guarded request must never cancel another run, even if its ref moved.
   group: >-
-    ${{ github.event_name == 'schedule' && format('verify-weekly-{0}-{1}', github.workflow, github.ref) ||
+    ${{ (inputs.expected_head || inputs.expected_base || inputs.dispatch_id) && format('verify-dispatch-{0}-{1}', github.workflow, github.run_id) ||
+        github.event_name == 'schedule' && format('verify-weekly-{0}-{1}', github.workflow, github.ref) ||
         inputs.task_id && format('verify-task-{0}-{1}:{2}', github.workflow, github.ref, inputs.task_id) ||
         inputs.profile == 'release' && format('verify-release-{0}-{1}', github.workflow, github.ref) ||
         format('verify-{0}-{1}', github.workflow, github.ref) }}
   cancel-in-progress: true
 
 jobs:
+  reviewed_dispatch:
+    name: Check reviewed task dispatch
+    if: github.event_name == 'workflow_dispatch' && (inputs.expected_head || inputs.expected_base || inputs.dispatch_id)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Compare the event commit and protected base
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          EXPECTED_BASE: ${{ inputs.expected_base }}
+          DISPATCH_ID: ${{ inputs.dispatch_id }}
+          TASK_ID: ${{ inputs.task_id }}
+          VERIFY_PROFILE: ${{ inputs.profile }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ || ! "$EXPECTED_BASE" =~ ^[0-9a-f]{40}$ ||
+                ! "$DISPATCH_ID" =~ ^[0-9a-f]{32}$ || ! "$TASK_ID" =~ ^M[0-9]+-[0-9]{3}$ ||
+                "$VERIFY_PROFILE" != full ]]; then
+            echo 'A guarded task dispatch requires an exact head, base, request ID and task with the full profile.' >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" != branch || "$GITHUB_SHA" != "$EXPECTED_HEAD" ]]; then
+            echo "Dispatch resolved to $GITHUB_REF at $GITHUB_SHA; reviewed head was $EXPECTED_HEAD." >&2
+            exit 1
+          fi
+          observed_base="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" \
+            --jq 'select(.ref == "refs/heads/main" and .object.type == "commit") | .object.sha')"
+          if [[ "$observed_base" != "$EXPECTED_BASE" ]]; then
+            echo "Protected main is at $observed_base; reviewed base was $EXPECTED_BASE." >&2
+            exit 1
+          fi
+
   verify:
     name: ${{ inputs.task_id && 'verify task' || 'verify' }} (${{ matrix.os }})
-    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
+    needs: reviewed_dispatch
+    if: >-
+      ${{ !cancelled() && (github.event_name != 'schedule' || github.ref == 'refs/heads/main') &&
+          ((inputs.expected_head || inputs.expected_base || inputs.dispatch_id) && needs.reviewed_dispatch.result == 'success' ||
+           !(inputs.expected_head || inputs.expected_base || inputs.dispatch_id) && needs.reviewed_dispatch.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +95,7 @@ jobs:
     # Each check retains its own deadline.
     timeout-minutes: ${{ inputs.profile == 'release' && 180 || matrix.os == 'windows-latest' && 60 || 30 }}
     env: &verify_env
-      SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      SCOPEHUB_SOURCE_HEAD: ${{ inputs.expected_head || github.event.pull_request.head.sha || github.sha }}
     steps: &verify_steps
       - name: Reject a task ID with the release profile
         if: inputs.task_id && inputs.profile == 'release'
@@ -56,8 +108,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ inputs.expected_head || '' }}
       - &verify_uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
           version-file: pyproject.toml
           checksum: ${{ runner.os == 'Windows' && 'edd61f7f5728a56cc62455386661860bdfc7bab65872f39b0c25bdcc1d8e1beb' || 'a7fbaff2b9a271d85c1bdb540941090fd1ce011797b4abeb48e4dcd39c2471d5' }}
@@ -89,9 +142,9 @@ jobs:
             echo 'split=true' >> "$GITHUB_OUTPUT"
           fi
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        if: steps.lane.outputs.skip != 'true'
+        if: &windows_web_tools steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.lane.outputs.skip != 'true'
+        if: *windows_web_tools
         with:
           node-version: '24'
           cache: pnpm
@@ -100,14 +153,14 @@ jobs:
         if: steps.lane.outputs.skip != 'true'
         with:
           toolchain: '1.99.0'
-          components: ${{ matrix.lane == 'python' && 'rustfmt' || 'rustfmt, clippy' }}
+          components: ${{ (matrix.lane == 'python' || matrix.lane == 'recovery') && 'rustfmt' || 'rustfmt, clippy' }}
       - run: uv sync --locked
         if: steps.lane.outputs.skip != 'true'
       - run: pnpm install --frozen-lockfile
-        if: steps.lane.outputs.skip != 'true'
+        if: *windows_web_tools
       - name: Check browser and build-output prerequisites
         id: build_setup
-        if: steps.lane.outputs.skip != 'true'
+        if: *windows_web_tools
         env:
           SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
           SCOPEHUB_SCOPE: ${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}
@@ -137,7 +190,7 @@ jobs:
           fi
       - name: Select the Cargo cache key
         id: cargo_keys
-        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true'
+        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
         env:
           SCOPEHUB_WINDOWS_LANE: ${{ steps.lane.outputs.split == 'true' && matrix.lane || '' }}
           TOOLCHAIN_HASH: ${{ hashFiles('rust-toolchain.toml') }}
@@ -148,7 +201,7 @@ jobs:
           legacy="$prefix$TOOLCHAIN_HASH-"
           cache_lane="$SCOPEHUB_WINDOWS_LANE"
           # Market recovery builds the same history bridge as the browser lane.
-          if [ "$cache_lane" = python ]; then
+          if [ "$cache_lane" = recovery ]; then
             cache_lane=browser
           fi
           primary="$prefix${cache_lane:+$cache_lane-}$TOOLCHAIN_HASH-"
@@ -173,7 +226,7 @@ jobs:
           key: ${{ steps.cargo_keys.outputs.primary }}
           restore-keys: ${{ steps.cargo_keys.outputs.fallback }}
       - name: Install and start the pinned chart-test browser
-        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
+        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -267,8 +320,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Save the Cargo cache for this selection
-        # Split cache owners seed their own keys on main. Python only restores the browser key.
-        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && matrix.lane != 'python')) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+        # Core and browser seed their keys on main. Recovery only restores the browser key.
+        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && (matrix.lane == 'core' || matrix.lane == 'browser'))) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -314,16 +367,28 @@ jobs:
     env: *verify_env
     steps: *verify_steps
 
+  windows_recovery:
+    name: Windows change checks (${{ matrix.lane }})
+    if: *windows_change
+    strategy:
+      matrix:
+        lane: [recovery]
+        os: *windows_runner
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env: *verify_env
+    steps: *verify_steps
+
   windows_change:
     # Schedule the protected context even when a required producer fails or is cancelled.
     name: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 'verify (windows-latest)' || 'Windows change verification (not requested)' }}
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}
-    needs: [windows_core, windows_browser, windows_python]
+    needs: [windows_core, windows_browser, windows_python, windows_recovery]
     runs-on: windows-latest
     timeout-minutes: 10
     env:
       SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
-      SCOPEHUB_WINDOWS_LANE_RESULT: ${{ needs.windows_core.result == 'success' && needs.windows_browser.result == 'success' && needs.windows_python.result == 'success' && 'success' || 'failure' }}
+      SCOPEHUB_WINDOWS_LANE_RESULT: ${{ needs.windows_core.result == 'success' && needs.windows_browser.result == 'success' && needs.windows_python.result == 'success' && needs.windows_recovery.result == 'success' && 'success' || 'failure' }}
     steps:
       - *verify_checkout
       - *verify_uv
@@ -361,6 +426,7 @@ jobs:
           SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
           SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           SCOPEHUB_TIMING_CACHE: ${{ steps.full.outputs.cache || steps.scoped.outputs.cache }}
+          SCOPEHUB_TIMING_WINDOWS_CACHES: ${{ steps.full.outputs.windows_caches }}
         run: uv run --no-sync python scripts/ci_artifacts.py stage
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -378,7 +444,7 @@ jobs:
           path: ${{ steps.artifacts.outputs.timing_path }}
           if-no-files-found: error
           retention-days: 30
-      - name: Require successful Windows lane jobs
+      - name: Require successful Windows lane jobs (four producers)
         if: ${{ always() }}
         env:
           SCOPEHUB_AGGREGATE_PASSED: ${{ job.status == 'success' && (steps.full.outcome == 'success' || steps.scoped.outcome == 'success') }}

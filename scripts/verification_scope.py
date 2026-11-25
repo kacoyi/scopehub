@@ -125,14 +125,15 @@ def checkout_git_environment():
             if key not in local and not key.startswith(('GIT_CONFIG_KEY_', 'GIT_CONFIG_VALUE_'))}
 
 
-def git(root, *args):
+def git(root, *args, input=None):
     options = ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false']
     if os.name != 'nt':
         options.extend(('-c', 'core.fileMode=true'))
     result = subprocess.run(
         ['git', '--no-replace-objects', '--no-optional-locks', *options, *args],
-        cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
-        env={**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1'},
+        cwd=root, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=30,
+        env={**checkout_git_environment(), 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1',
+             'GIT_ALLOW_PROTOCOL': ''},
     )
     if result.returncode:
         raise ScopeError('Git could not verify the comparison.')

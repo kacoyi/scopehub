@@ -1,13 +1,15 @@
 """Validate project history, show a resumable workfront and preserve check evidence."""
 
 import argparse
+import ast
 from datetime import date, datetime, timedelta, timezone
 from graphlib import CycleError, TopologicalSorter
 import hashlib
+from io import BytesIO
 import json
 import os
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -17,15 +19,17 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import checkout_git_environment
-    from .worktree import WorktreeError, has_git_metadata
+    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
+    from .review_tree import CommittedPath
+    from .worktree import WorktreeError, git as worktree_git, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import checkout_git_environment
-    from worktree import WorktreeError, has_git_metadata
+    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
+    from review_tree import CommittedPath
+    from worktree import WorktreeError, git as worktree_git, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 # These records describe work and evidence; they are not executable test inputs.
@@ -270,27 +274,113 @@ def checkout_status(root, env):
     return files, None if head == b'(initial)' else head.decode('ascii'), dirty
 
 
+def require_review_source(root, requested):
+    """Bind a local review to the named clean checkout, without hashing its evidence."""
+    try:
+        requested = oid(requested)
+    except ScopeError as error:
+        raise ProjectError('Pass the full commit ID for --source.') from error
+    _, head, dirty = checkout_status(root, checkout_git_environment())
+    if head != requested:
+        raise ProjectError(f'Review source {requested} does not match checkout HEAD {head}.')
+    if dirty:
+        raise ProjectError(f'Review source {requested} requires a clean checkout.')
+
+
+def diagnostic_archive_root(root, explicit=None):
+    if explicit is not None:
+        return explicit
+    if configured := os.environ.get('SCOPEHUB_ARCHIVE_ROOT'):
+        return configured
+    try:
+        setting = worktree_git(root, 'config', '--local', '--null', '--type=path', '--get-all',
+                               'scopehub.archiveRoot', allowed=(0, 1))
+    except WorktreeError as error:
+        raise ProjectError('Could not read the repository-local scopehub.archiveRoot setting.') from error
+    if setting.returncode == 1:
+        raise ProjectError('Set --archive-root, SCOPEHUB_ARCHIVE_ROOT, or '
+                           'git config --local scopehub.archiveRoot <absolute-path> to resolve a diagnostic.')
+    paths = os.fsdecode(setting.stdout).removesuffix('\0').split('\0')
+    if len(paths) != 1 or not Path(paths[0]).is_absolute():
+        raise ProjectError('Set exactly one absolute scopehub.archiveRoot with git config --local.')
+    return Path(paths[0])
+
+
+def is_source_input(relative, exclusions):
+    return not any(relative == item or (item.endswith('/') and relative.startswith(item)) for item in exclusions)
+
+
+def source_snapshot(entries, head, dirty, exclusions):
+    if not entries:
+        raise ProjectError('No execution inputs found')
+    return {
+        'snapshot_kind': 'execution-inputs-v1',
+        'sha256': digest(json.dumps(sorted(entries), separators=(',', ':')).encode('utf-8')),
+        'file_count': len(entries), 'git_head': head,
+        'working_tree_dirty': dirty, 'exclusions': exclusions,
+    }
+
+
 def source_identity(root=ROOT):
     """Hash current non-ignored files without following symlinks or reading .git."""
     files, head, dirty = checkout_status(root, checkout_git_environment())
     entries = []
-    for relative in sorted(files):
-        if any(relative == item or (item.endswith('/') and relative.startswith(item))
-               for item in INPUT_EXCLUSIONS):
+    for relative in files:
+        if not is_source_input(relative, INPUT_EXCLUSIONS):
             continue
         path = root / relative
         if path.is_symlink():
             entries.append([relative, 'symlink', path.readlink().as_posix()])
         elif path.is_file():
             entries.append([relative, 'file', file_digest(path)])
-    if not entries:
-        raise ProjectError('No execution inputs found in the Git worktree')
-    return {
-        'snapshot_kind': 'execution-inputs-v1',
-        'sha256': digest(json.dumps(entries, separators=(',', ':')).encode('utf-8')),
-        'file_count': len(entries), 'git_head': head,
-        'working_tree_dirty': dirty, 'exclusions': INPUT_EXCLUSIONS,
-    }
+    return source_snapshot(entries, head, dirty, INPUT_EXCLUSIONS)
+
+
+def historical_input_exclusions(root, commit):
+    # Read the historical v1 policy as data. A candidate's code never runs here.
+    try:
+        policy = ast.parse(git(root, 'show', f'{commit}:scripts/project.py'))
+        values = [statement.value for statement in policy.body if isinstance(statement, ast.Assign)
+                  for target in statement.targets if isinstance(target, ast.Name) and target.id == 'INPUT_EXCLUSIONS']
+        value, = values
+        exclusions = ast.literal_eval(value)
+    except (SyntaxError, ValueError, TypeError) as error:
+        raise ProjectError(f'Cannot resolve execution-inputs-v1 rules at {commit}') from error
+    if (not isinstance(exclusions, list) or not all(isinstance(path, str) and path for path in exclusions)
+            or len(exclusions) != len(set(exclusions))):
+        raise ProjectError(f'Invalid execution-inputs-v1 exclusions at {commit}')
+    return exclusions
+
+
+def committed_source_identity(root, commit):
+    """Reproduce a clean v1 snapshot from a verified Git commit and its own rules."""
+    exclusions = historical_input_exclusions(root, commit)
+    blobs = []
+    for field in nul_fields(git(root, 'ls-tree', '-r', '-z', '--full-tree', commit)):
+        info, path = field.split(b'\t', 1)
+        mode, kind, object_id = info.split()
+        relative = path.decode('utf-8')
+        # The worktree snapshot observes files and symlinks, not submodule directories.
+        if kind == b'blob' and is_source_input(relative, exclusions):
+            blobs.append((object_id, mode, relative))
+    requests = b''.join(object_id + b'\n' for object_id, _, _ in blobs)
+    entries = []
+    with BytesIO(git(root, 'cat-file', '--batch', input=requests)) as contents:
+        for object_id, mode, relative in blobs:
+            header = contents.readline().split()
+            if len(header) != 3 or header[:2] != [object_id, b'blob'] or not header[2].isdigit():
+                raise ProjectError(f'Cannot read execution input {relative} at {commit}')
+            size = int(header[2])
+            data = contents.read(size)
+            if len(data) != size or contents.read(1) != b'\n':
+                raise ProjectError(f'Incomplete execution input {relative} at {commit}')
+            if mode == b'120000':
+                entries.append([relative, 'symlink', PurePosixPath(os.fsdecode(data)).as_posix()])
+            else:
+                entries.append([relative, 'file', digest(data)])
+        if contents.read(1):
+            raise ProjectError(f'Unexpected execution input objects at {commit}')
+    return source_snapshot(entries, commit, False, exclusions)
 
 
 def validate_model(root, name, value):
@@ -383,7 +473,7 @@ def load_project(root=ROOT):
         require_refs(binding['checks'], checks, 'Product acceptance')
     decisions = []
     decision_paths = {}
-    for path in sorted((root / 'contracts/decisions').glob('*.json')):
+    for path in sorted((root / 'contracts/decisions').glob('*.json'), key=lambda path: path.name):
         decision = read_json(path)
         validate_model(root, 'Decision', decision)
         if not path.name.startswith(decision['id'] + '-'):
@@ -727,9 +817,13 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
 
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if __package__:
-        from .development import effective_decisions, focused_context
+        from .development import (
+            bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
+        )
     else:
-        from development import effective_decisions, focused_context
+        from development import (
+            bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
+        )
     project = load_project(root)
     key = task_id or project['ledger']['focus_task_id']
     if key not in project['tasks']:
@@ -737,10 +831,11 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     task = project['tasks'][key]
     if phase not in {'implement', 'verify', 'handoff'}:
         raise ProjectError(f'Unknown context phase: {phase}')
+    source_commit = getattr(root, 'commit', None)
     if not detail:
-        return focused_context(project, key, phase)
+        return focused_context(project, key, phase, source_commit=source_commit)
     decision_ids = effective_decisions(project, task)
-    return {
+    result = {
         'task': task,
         'development': project.get('development'),
         'context_paths': list(dict.fromkeys([*project['delivery']['context'], *task.get('plan', {}).get('context', [])])),
@@ -762,6 +857,13 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
                      'pnpm project:history --base <reviewed-commit>', f'pnpm project:record {key} --report <run-report>',
                      'pnpm project:readiness'],
     }
+    if source_commit is not None:
+        result['phase'] = phase
+        result.update(bound_review_navigation(key, source_commit, result['commands']))
+        linked_feedback = feedback_for_task(project['feedback']['items'], key)
+        if linked_feedback or task.get('plan', {}).get('hypotheses') or task.get('diagnostic_reports'):
+            result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
+    return result
 
 
 def checkpoint(root=ROOT):
@@ -877,16 +979,16 @@ def verified_candidate_files(root, project, report, results, source, report_path
     if __package__:
         from .verification_evidence import (
             release_artifacts,
-            collect_session,
+            collect_run_observation,
             integration_validation,
-            SESSION_CHECKS,
+            RUN_OBSERVATION_CHECKS,
         )
     else:
         from verification_evidence import (
             release_artifacts,
-            collect_session,
+            collect_run_observation,
             integration_validation,
-            SESSION_CHECKS,
+            RUN_OBSERVATION_CHECKS,
         )
     reports_root = (root / '.reports').resolve()
     report_path = (root / report_path).resolve()
@@ -937,7 +1039,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
             or file_digest(local_path(run_dir, key + '.log')) != result.get('log_sha256')
         ):
             raise ProjectError(f'Missing or changed release check evidence: {key}')
-        if key in SESSION_CHECKS and result.get('observation') != collect_session(run_dir, key, source):
+        if key in RUN_OBSERVATION_CHECKS and result.get('observation') != collect_run_observation(root, run_dir, key, source):
             raise ProjectError(f'Changed external-session evidence: {key}')
     verify_primary_model(project, results)
     if report.get('integration_validation') != integration_validation(results.values()):
@@ -1428,11 +1530,18 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
     if __package__:
-        from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, collect_session, field_observation
+        from .verification_evidence import (
+            EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
+            collect_run_observation, field_observation, redacted_check_log,
+        )
     else:
-        from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, collect_session, field_observation
+        from verification_evidence import (
+            EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
+            collect_run_observation, field_observation, redacted_check_log,
+        )
     selected = []
     field_records = {}
+    external_client_observation = None
     for key in task['checks']:
         result = results.get(key, {})
         if project['checks'][key]['status'] != 'implemented' or result.get('status') != 'passed' or result.get('exit_code') != 0:
@@ -1449,11 +1558,16 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
                if artifact_root is not None else local_path(root, result['log']))
         if not log.is_file():
             raise ProjectError(f'Missing verification log: {key}')
-        if key in SESSION_CHECKS:
+        if key in RUN_OBSERVATION_CHECKS:
             if result['log'] != f".reports/runs/{report['run_id']}/{key}.log":
                 raise ProjectError(f'External-session log belongs to another run: {key}')
-            if result.get('observation') != collect_session(log.parent, key, report['source']):
+            observation = collect_run_observation(root, log.parent, key, report['source'])
+            if result.get('observation') != observation:
                 raise ProjectError(f'Changed external-session evidence: {key}')
+            if key == EXTERNAL_CLIENT_CHECK:
+                if log.read_bytes() != redacted_check_log(result['exit_code']):
+                    raise ProjectError('External-client log contains more than its redacted exit status.')
+                external_client_observation = observation
         if key in FIELD_ACTIONS:
             observed = field_observation(root, key, artifact_root, hosted=artifact_root is not None)
             if result.get('field_observation') != observed:
@@ -1475,6 +1589,8 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     }
     if 'observed_feedback' in report:
         receipt['observed_feedback'] = report['observed_feedback']
+    if external_client_observation is not None:
+        receipt['external_client_observation'] = external_client_observation
     if field_records:
         receipt['field_observations'] = field_records
     if ci:
@@ -1505,10 +1621,12 @@ def main():
     context.add_argument('task_id', nargs='?')
     context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
     context.add_argument('--phase', choices=['implement', 'verify', 'handoff'], default='implement')
+    context.add_argument('--source', metavar='COMMIT', help='Require this clean commit in verification context')
     sub.add_parser('brief')
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
     source.add_argument('path')
     source.add_argument('pointer', nargs='?', default='')
+    source.add_argument('--source', metavar='COMMIT', help='Read a record from this exact local Git commit')
     ready = sub.add_parser('readiness')
     ready.add_argument('--candidate', help='Exact release candidate commit')
     ready.add_argument('--report', type=Path, help='Retained Windows release report')
@@ -1530,8 +1648,10 @@ def main():
     resolve.add_argument('run_id')
     resolve.add_argument('source_commit')
     resolve.add_argument('report_sha256')
-    resolve.add_argument('--archive-root', type=Path, help='Host archive root (defaults to SCOPEHUB_ARCHIVE_ROOT)')
+    resolve.add_argument('--archive-root', type=Path, help='Host archive root (then SCOPEHUB_ARCHIVE_ROOT, then local Git scopehub.archiveRoot)')
     args = parser.parse_args()
+    if args.command == 'context' and args.source is not None and args.phase != 'verify':
+        context.error('--source requires --phase verify.')
     try:
         if args.command == 'check':
             project = load_project(ROOT)
@@ -1545,7 +1665,14 @@ def main():
                 from development import status_view
             result = status_view(workfront(retained_detail=args.detail), detail=args.detail)
         elif args.command == 'context':
-            result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
+            records = ROOT
+            if args.source is not None:
+                require_review_source(ROOT, args.source)
+                records = CommittedPath.at(ROOT, args.source)
+            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase)
+            if args.source is not None:
+                require_review_source(ROOT, args.source)
+                result['review_source'] = records.commit
         elif args.command == 'brief':
             if __package__:
                 from .development import product_brief
@@ -1559,7 +1686,10 @@ def main():
                 from development import resolve_source
             reference = {'path': args.path, 'pointer': args.pointer}
             try:
-                result = {'source': reference, 'value': resolve_source(ROOT, reference)}
+                records = CommittedPath.at(ROOT, args.source) if args.source is not None else ROOT
+                result = {'source': reference, 'value': resolve_source(records, reference)}
+                if args.source is not None:
+                    result['source_commit'] = records.commit
             except ValueError as error:
                 raise ProjectError(str(error)) from error
         elif args.command == 'readiness':
@@ -1575,8 +1705,8 @@ def main():
                     result = diagnostic_locator(args.report)
                 else:
                     locator = {key: getattr(args, key) for key in ('run_id', 'source_commit', 'report_sha256')}
-                    archive_root = args.archive_root or os.environ.get('SCOPEHUB_ARCHIVE_ROOT')
-                    result = resolve_diagnostic(locator, archive_root)
+                    validate_locator(locator)
+                    result = resolve_diagnostic(locator, diagnostic_archive_root(ROOT, args.archive_root))
             except DiagnosticArchiveError as error:
                 raise ProjectError(str(error)) from error
         else:
@@ -1589,7 +1719,7 @@ def main():
         print(json.dumps(result, indent=2))
         if args.command == 'readiness' and not result['release_ready']:
             raise SystemExit(1)
-    except (ProjectError, subprocess.CalledProcessError, OSError, KeyError) as error:
+    except (ProjectError, ScopeError, subprocess.CalledProcessError, OSError, KeyError) as error:
         print(json.dumps({'status': 'failed', 'error': str(error)}))
         raise SystemExit(1) from error
 

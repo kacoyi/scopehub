@@ -1,11 +1,11 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { EventEmitter, once } from 'node:events';
+import { EventEmitter, getEventListeners, once } from 'node:events';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -19,6 +19,8 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
+import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -766,6 +768,94 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
   }
 });
 
+test('workspace delivers pre-admission BUSY after a complete indicator draft request', async () => {
+  const profile = await makeProfile();
+  const draft = {
+    protocol_version: '1.1', type: 'request', task_id: null, message_id: randomUUID(),
+    request_id: randomUUID(), timestamp_ms: Date.now(),
+    scope: {
+      workspace_id: workspaceId, target: { kind: 'chart', object_id: 'main-chart' },
+      expected_workspace_revision: 0, expected_selection_revision: 0, idempotency_key: randomUUID(),
+    },
+    intent: { operation: 'indicator.createDraft', arguments: { language: 'declarative', source: {
+      parameters: [], outputs: [{ kind: 'line', id: 'close', pane: 'price',
+        style: { color: '#001122', width: 2 }, value: { op: 'field', field: 'close' } }],
+    } } },
+  };
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const holder = server.tagSnapshot();
+      const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+      void snapshotReply.catch(() => {});
+      try {
+        await holder.wait('written');
+        const draftBody = JSON.stringify(draft);
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+          const tag = server.tagSnapshot();
+          const request = httpRequest(server.url + endpoint, {
+            method: 'POST', agent: false, signal: AbortSignal.timeout(4_000),
+            headers: {
+              Origin: server.url, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(draftBody),
+              Authorization: 'Bearer ' + server.capability, ...tag.headers,
+            },
+          });
+          const response = once(request, 'response').then(async ([reply]) => {
+            const chunks = [];
+            for await (const chunk of reply) chunks.push(chunk);
+            return { http: reply.statusCode, body: JSON.parse(Buffer.concat(chunks)) };
+          });
+          void response.catch(() => {});
+          try {
+            request.write(draftBody[0]);
+            const handled = await tag.wait('handled');
+            console.info('Split workspace draft admission', JSON.stringify({ attempt, handled }));
+            expect(handled).toMatchObject({ complete: false, headers_sent: false, socket_destroyed: false });
+            if (attempt === 2) {
+              holder.release();
+              expect(await responseStatus(await snapshotReply)).toBe(200);
+              // An incomplete, already-refused upload must not hold a free writer.
+              expect(await postStatus(server, snapshot)).toBe(200);
+            }
+            request.end(draftBody.slice(1));
+            const refused = await response;
+            const finished = await tag.wait('finished');
+            console.info('Workspace draft admission refusal', JSON.stringify({ attempt, refused, finished }));
+            expect(refused).toEqual({ http: 429, body: busy });
+            expect(finished).toMatchObject({ complete: true, http: 429, socket_destroyed: false });
+          } finally {
+            request.destroy();
+            await Promise.allSettled([response]);
+          }
+        }
+      } finally {
+        holder.release();
+        await Promise.allSettled([snapshotReply]);
+      }
+      expect((await snapshotReply).status).toBe(200);
+      const committed = async body => (await (await post(server, body)).json()).result;
+      const delivery = await post(server, draft);
+      // Keep a witness of the real reply while discarding the caller's copy.
+      // Only this test explicitly sends the identical command again.
+      const [witness] = await Promise.all([delivery.clone().json(), delivery.body.cancel()]);
+      const first = witness.result;
+      expect(first).toMatchObject({ request_id: draft.request_id, outcome: { state: 'committed',
+        receipt: { committed_workspace_revision: 0, undoable: false } } });
+      const duplicate = await committed(draft);
+      expect(duplicate).toMatchObject({ request_id: draft.request_id, outcome: first.outcome });
+      const conflict = structuredClone(draft);
+      conflict.intent.arguments.source.outputs[0].style.color = '#334455';
+      expect(await committed(conflict)).toMatchObject({ request_id: draft.request_id,
+        outcome: { state: 'failed', error: { code: 'INVALID_ARGUMENT' } } });
+      expect((await committed(draft)).outcome).toEqual(first.outcome);
+      console.info('Workspace draft receipt identity', JSON.stringify({
+        request_id: draft.request_id, draft_id: first.outcome.result.draft_id, operation_id: first.outcome.receipt.operation_id,
+      }));
+    }, { snapshotGate: true });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }) => {
   const profile = await makeProfile();
   const revision = randomUUID();
@@ -784,14 +874,117 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
         await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
         const panel = dialog.getByRole('region', { name: 'Indicator preview' });
         await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
-        for (const count of [3, 1]) {
-          if (count === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
-          const [reply] = await Promise.all([
-            page.waitForResponse(async r => r.url().endsWith(endpoint)
-              && r.request().postDataJSON()?.type === 'indicator_preview_status' && (await r.json()).result?.status === 'ready'),
-            panel.getByRole('button', { name: 'Run preview' }).click(),
-          ]);
-          const ready = (await reply.json()).result;
+        let losses = 0;
+        let frames = [];
+        let dropped = [];
+        let requests = [];
+        let startedAt = performance.now();
+        const previewRequest = request => {
+          if (new URL(request.url()).pathname !== endpoint) return undefined;
+          const payload = request.postDataJSON();
+          const operation = payload?.intent?.operation ?? payload?.operation ?? payload?.type;
+          return ['indicator.createDraft', 'indicator.runPreview', 'indicator_preview_status', 'task.cancel'].includes(operation)
+            ? { operation, request_id: payload.request_id, task_id: payload.task_id } : undefined;
+        };
+        page.on('request', request => {
+          const entry = previewRequest(request);
+          if (entry) requests.push(entry);
+        });
+        page.on('response', async response => {
+          const entry = previewRequest(response.request());
+          if (!entry) return;
+          const frame = { ...entry, at_ms: Math.round(performance.now() - startedAt), http: response.status() };
+          frames.push(frame);
+          try {
+            const reply = await response.json();
+            const result = reply.result;
+            frame.ok = reply.ok;
+            frame.outcome = result?.outcome?.state ?? result?.status;
+            frame.terminal = result?.event?.outcome?.status ?? result?.outcome?.status;
+            frame.code = reply.error?.code ?? result?.outcome?.error?.code ?? result?.event?.outcome?.error?.code;
+            frame.reply_task_id = result?.task_id ?? result?.outcome?.result?.task_id;
+            if (result?.status === 'ready') frame.ready = result;
+          } catch (error) {
+            frame.response_error = error.name;
+          }
+        });
+        page.on('requestfailed', request => {
+          const entry = previewRequest(request);
+          if (entry) frames.push({ ...entry, at_ms: Math.round(performance.now() - startedAt), delivery: request.failure()?.errorText });
+        });
+        await page.route(server.url + endpoint, async route => {
+          const entry = previewRequest(route.request());
+          if (dropped.length >= losses || entry?.operation !== 'indicator_preview_status') return route.continue();
+          const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
+          const result = (await response.json()).result;
+          if (result?.status !== 'ready') return route.fulfill({ response });
+          dropped.push({ ...entry, http: response.status(), result, requestsAtLoss: requests.length });
+          await route.abort('connectionreset');
+        });
+        for (const { count, cut } of [{ count: 3, cut: 0 }, { count: 1, cut: 1 }, { count: 1, cut: 2 }]) {
+          frames = [];
+          dropped = [];
+          requests = [];
+          losses = cut;
+          startedAt = performance.now();
+          if (cut === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
+          const failure = panel.getByRole('alert').or(panel.getByText('Indicator preview cancelled.', { exact: true }));
+          const run = panel.getByRole('button', { name: 'Run preview' });
+          const describe = visibleError => JSON.stringify({
+            count, cut, alert: visibleError,
+            frames: frames.map(({ ready, ...frame }) => frame),
+            ...(dropped.length && { afterLoss: requests.slice(dropped[0].requestsAtLoss) }),
+            lost: dropped.map(({ result, ...frame }) => ({
+              ...frame, status: result.status, result_hash: result.event.artifact.result_hash,
+            })),
+          });
+          try {
+            await run.click();
+            await expect(panel.getByText(/Preview layers/).or(failure)).toBeVisible({ timeout: 30_000 });
+          } catch (error) {
+            console.info('Frozen indicator preview observation', describe(null));
+            throw error;
+          }
+          const visibleError = await failure.isVisible() ? await failure.innerText() : null;
+          const observation = describe(visibleError);
+          console.info('Frozen indicator preview observation', observation);
+          expect(visibleError, observation).toBe(cut === 2 ? 'The indicator preview could not be completed.' : null);
+
+          const admitted = () => frames.find(frame => frame.operation === 'indicator.runPreview' && frame.outcome === 'committed');
+          const current = () => {
+            return frames.find(frame => frame.ready && frame.task_id === admitted()?.reply_task_id)?.ready;
+          };
+          if (cut) {
+            await expect.poll(() => admitted()?.reply_task_id).toBe(dropped[0]?.task_id);
+            expect(dropped).toHaveLength(cut);
+            for (const entry of dropped) {
+              expect(entry).toMatchObject({ http: 200, task_id: admitted()?.reply_task_id });
+              expect(frames).toContainEqual(expect.objectContaining({
+                request_id: entry.request_id, task_id: entry.task_id, delivery: 'net::ERR_CONNECTION_RESET',
+              }));
+            }
+            const afterLoss = requests.slice(dropped[0].requestsAtLoss);
+            expect(afterLoss.filter(({ operation }) =>
+              operation === 'indicator.createDraft' || operation === 'indicator.runPreview'),
+            'Actual requests after status delivery loss must not resubmit the preview').toEqual([]);
+            expect(afterLoss.filter(({ operation }) => operation === 'indicator_preview_status'))
+              .toMatchObject([{ operation: 'indicator_preview_status', task_id: dropped[0].task_id }]);
+          }
+          if (cut === 2) {
+            await expect(run).toBeEnabled();
+            expect(current()).toBeUndefined();
+            await expect.poll(() => frames.some(frame => frame.operation === 'task.cancel'
+              && frame.task_id === dropped[0].task_id && frame.http === 200)).toBe(true);
+            expect(frames.filter(frame => frame.operation === 'indicator_preview_status'
+              && frame.task_id === dropped[0].task_id && frame.code !== 'BUSY' && frame.outcome !== 'running')).toHaveLength(2);
+            continue;
+          }
+          await expect.poll(current, { message: 'Observe the ready status for the admitted preview task' }).toBeDefined();
+          const ready = current();
+          if (cut) {
+            expect(ready).toEqual(dropped[0].result);
+            expect(frames.some(frame => frame.operation === 'task.cancel' && frame.task_id === ready.task_id)).toBe(false);
+          }
           const values = ready.event.artifact.result.series[1].points;
           expect(values).toHaveLength(count);
           expect(values.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
@@ -839,22 +1032,6 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
   let savedLayer;
   let savedOutput;
   const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
-  const outputFrame = async (server, request, signal) => {
-    const response = await post(server, request, {}, signal);
-    return { request, http: response.status, body: await response.json() };
-  };
-  const readOutputAfterAdmission = async (server, request, { timeout = 10_000, observe = () => {} } = {}) => {
-    const signal = AbortSignal.timeout(timeout);
-    let frame;
-    await expect.poll(async () => {
-      frame = await outputFrame(server, request, signal);
-      await observe(frame);
-      // Only this read's explicit pre-admission refusal is safe to retry.
-      return frame.http === 429 && frame.body.ok === false
-        && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
-    }, { timeout, message: 'The accepted indicator output read obtains admission' }).toBe(false);
-    return frame;
-  };
   const requireSavedOutput = frame => {
     expect(frame).toMatchObject({ http: 200, body: { ok: true, result: {
       layer_id: savedLayer.layer_id, version_id: savedLayer.version_id,
@@ -995,7 +1172,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await expect(preview.getByText(/Preview layers/)).toHaveCount(0);
         workspaceRevision = 1;
 
-        savedOutput = requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()));
+        savedOutput = requireSavedOutput(await readIndicatorAfterAdmission(server, outputRequest()));
         expect(savedOutput.document.artifact).toEqual(warmed.event.artifact);
         expect(savedOutput.document.snapshot).toEqual(warmed.event.snapshot);
         expect(savedOutput.document.resolved_parameters).toEqual({ period: 3 });
@@ -1011,7 +1188,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const nextFailureId = nextFailure.outcome.result.task_id;
         await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
         expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
-        expect(requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
+        expect(requireSavedOutput(await readIndicatorAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
         await expect(plot).toBeVisible();
 
         const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
@@ -1053,7 +1230,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           const body = await response.json().catch(() => undefined);
           return body?.ok === true && matches(body.result, response.request());
         }, { timeout: 8_000 });
-        const readOutput = () => outputFrame(server, outputRequest(), AbortSignal.timeout(3_000));
+        const readOutput = () => indicatorReadFrame(server, outputRequest(), AbortSignal.timeout(3_000));
         const readSnapshot = async (tag, signal = AbortSignal.timeout(5_000)) => {
           const response = await post(server, snapshot, tag.headers, signal);
           return { http: response.status, body: await response.json() };
@@ -1275,14 +1452,14 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
             }, { timeout: 3_000, message: 'The workspace rejected the malformed probe after admission became idle' }).toBe(400);
             let output;
             const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async ({ tag }) => {
-              output = await readOutputAfterAdmission(server, outputRequest(), {
+              output = await readIndicatorAfterAdmission(server, outputRequest(), {
                 timeout: 3_000,
-                async observe(attempt) {
+                async observe(attempt, signal) {
                   if (undoStages.busy_output) return;
                   undoStages.busy_output = attempt;
                   expect(attempt).toMatchObject({ http: 429, body: busy });
                   tag.release();
-                  await tag.wait('drained');
+                  await tag.wait('drained', signal);
                 },
               });
             });
@@ -1359,7 +1536,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await expect(accepted.getByText('mean · 3')).toBeVisible();
         expect(reruns).toBe(0);
         const restore = outputRequest();
-        expect(requireSavedOutput(await readOutputAfterAdmission(server, restore))).toEqual(savedOutput);
+        expect(requireSavedOutput(await readIndicatorAfterAdmission(server, restore))).toEqual(savedOutput);
         await dialog.getByRole('button', { name: 'Use as workspace source' }).click();
         const mainChart = page.getByRole('region', { name: 'Price chart' });
         await mainChart.getByText('Indicators', { exact: true }).click();
@@ -1374,7 +1551,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         } finally {
           database.close();
         }
-        const denied = await readOutputAfterAdmission(server, restore);
+        const denied = await readIndicatorAfterAdmission(server, restore);
         expect(denied).toMatchObject({ http: 200, body: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } });
         const withheld = denied.body;
         expect(withheld.result).toBeUndefined();
@@ -1391,8 +1568,14 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
 });
 
 test('indicator-preview rejects obsolete inputs and open confirmations without replacing accepted output', async ({ browser }, testInfo) => {
-  const profile = await makeProfile();
-  const port = await freePort();
+  await exerciseObsoleteIndicator(browser, testInfo);
+});
+
+async function exerciseObsoleteIndicator(browser, testInfo, {
+  reservePort = freePort, prepareProfile = makeProfile, forwardReady, observation = {},
+} = {}) {
+  const port = await reservePort();
+  const profile = await prepareProfile();
   const id = randomUUID();
   const other = randomUUID();
   const a = Date.parse('2026-02-04T00:00:00Z');
@@ -1410,7 +1593,6 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
   });
   const respond = challenge_id => ({ ...command(), operation: 'confirmation.respond', decision: 'approve', challenge_id });
   const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
-  const observation = {};
   let saved;
   let readSaved;
   try {
@@ -1456,34 +1638,119 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         saved = (await confirmed.json()).result.outcome.result;
         await expect(editor.getByText(saved.version_id)).toBeVisible();
         const request = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: saved.layer_id };
-        readSaved = (await send(request)).result;
+        const original = await readIndicatorAfterAdmission(server, request);
+        expect(original).toMatchObject({ http: 200, body: { ok: true, result: {
+          layer_id: saved.layer_id, version_id: saved.version_id, document: expect.any(Object),
+        } } });
+        readSaved = original.body.result;
 
         const held = Promise.withResolvers();
         const release = Promise.withResolvers();
+        const forwarded = Promise.withResolvers();
         const routeStatus = async route => {
-          if (route.request().postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
-          const response = await route.fetch();
-          const body = await response.json();
-          if (body.result?.status === 'ready') {
-            held.resolve(body.result);
-            await release.promise;
+          const request = route.request();
+          if (request.postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
+          let response;
+          let ready;
+          let failure;
+          try {
+            response = await route.fetch({ timeout: 8_000, maxRetries: 0 });
+            const body = await response.json();
+            ready = body.result?.status === 'ready' ? body.result : undefined;
+            if (ready) {
+              held.resolve({ ready, request });
+              await release.promise;
+            }
+            if (request.failure()?.errorText === 'net::ERR_ABORTED') {
+              await route.abort('aborted').catch(() => {});
+            } else if (ready && forwardReady) {
+              await forwardReady(route, response);
+            } else {
+              await route.fulfill({ response });
+            }
+          } catch (error) {
+            failure = { error };
+          } finally {
+            try {
+              await response?.dispose();
+            } catch (error) {
+              failure ??= { error };
+            }
           }
-          await route.fulfill({ response }).catch(() => {});
+          if (failure) {
+            held.resolve(failure);
+            forwarded.resolve(failure);
+            void route.abort().catch(() => {});
+          } else if (ready) {
+            forwarded.resolve({});
+          }
         };
         await page.route('**' + endpoint, routeStatus);
         try {
           await editor.getByRole('button', { name: 'Run preview' }).click();
-          const waiting = await Promise.race([held.promise, delay(8_000).then(() => { throw new Error('Ready reply was not intercepted'); })]);
+          const captured = await indicatorReplyWithin(held.promise, 'Ready reply was not intercepted');
+          if ('error' in captured) throw captured.error;
+          const { ready: waiting, request: lateRequest } = captured;
           expect(waiting.resolved_parameters).toEqual({ period: 2 });
           expect(waiting.event.snapshot.from_ms).toBe(a);
-          await waitInvalidation(waiting.task_id, async () => {
-            await editor.getByLabel('Rolling period').fill('3');
-            await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
-          });
+          // Fault injection uses a live request so it tests forwarding independently of cancellation.
+          if (!forwardReady) {
+            await waitInvalidation(waiting.task_id, async () => {
+              await editor.getByLabel('Rolling period').fill('3');
+              await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
+            });
+          }
           release.resolve();
-          await expect(editor.getByRole('button', { name: 'Accept preview' })).toHaveCount(0);
-          const withheld = await send(status(waiting.task_id));
-          expect(withheld).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          observation.lateStatusDelivery = await indicatorReplyWithin(
+            finishIndicatorReply(forwarded.promise, lateRequest),
+            'Forwarded indicator status did not finish',
+          );
+          const accept = editor.getByRole('button', { name: 'Accept preview' });
+          await expect(accept).toHaveCount(0);
+
+          const holder = server.tagSnapshot();
+          const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+          void snapshotReply.catch(() => {});
+          const cancelledRead = new AbortController();
+          const obsolete = status(waiting.task_id);
+          observation.cancelledStatus = [];
+          observation.statusProbes = [];
+          let terminal;
+          try {
+            observation.snapshotWritten = await Promise.race([holder.wait('written'), snapshotReply.then(response => {
+              throw new Error(`The tagged snapshot settled before it owned the writer (HTTP ${response.status}).`);
+            })]);
+            await expect(readIndicatorAfterAdmission(server, obsolete, {
+              signal: cancelledRead.signal,
+              observe(frame) {
+                observation.cancelledStatus.push(frame);
+                cancelledRead.abort();
+              },
+            })).rejects.toMatchObject({ name: 'AbortError' });
+            expect(observation.cancelledStatus).toMatchObject([{ http: 429, body: busy }]);
+
+            terminal = await readIndicatorAfterAdmission(server, obsolete, {
+              async observe(frame, signal) {
+                observation.statusProbes.push(frame);
+                if (observation.statusProbes.length !== 1) return;
+                expect(frame).toMatchObject({ http: 429, body: busy });
+                holder.release();
+                observation.snapshotDrained = await holder.wait('drained', signal);
+                expect(observation.snapshotDrained).toMatchObject({
+                  request_id: observation.snapshotWritten.request_id, ok: true, revision: 1,
+                });
+              },
+            });
+          } finally {
+            holder.release();
+            await Promise.allSettled([snapshotReply.then(responseStatus)]);
+          }
+          expect(terminal).toMatchObject({ http: 200, body: { ok: false, error: {
+            code: 'STALE_CONTEXT', retryable: false,
+          } } });
+          expect(observation.statusProbes.every(probe => probe.request === obsolete)).toBe(true);
+          const withheld = terminal.body;
+          await expect(accept).toHaveCount(0);
           const rejected = await send({
             ...command(), task_id: null, scope: {
               workspace_id: workspaceId, expected_workspace_revision: 1, expected_selection_revision: 0,
@@ -1500,6 +1767,7 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         } finally {
           release.resolve();
           await page.unroute('**' + endpoint, routeStatus);
+          observation.routeRemoved = true;
         }
 
         await run();
@@ -1522,9 +1790,11 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         const rejectedSource = (await send(respond(oldSource.challenge_id))).result.outcome;
         expect(rejectedSource).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
         observation.sourceChange = rejectedSource;
-        expect((await send(request)).result).toEqual(readSaved);
+        const current = await readIndicatorAfterAdmission(server, request);
+        expect(current).toMatchObject({ http: 200, body: { ok: true } });
+        expect(current.body.result).toEqual(readSaved);
       });
-    });
+    }, { snapshotGate: true });
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const list = await (await post(server, {
         type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id,
@@ -1536,9 +1806,239 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
       expect(restored.result).toEqual(readSaved);
       observation.restarted = { version: saved.version_id, input: restored.result.document.snapshot };
     });
-    await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
+  } finally {
+    try {
+      await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
+    } finally {
+      await profile.close();
+    }
+  }
+}
+
+async function indicatorReplyWithin(operation, description) {
+  const timer = new AbortController();
+  try {
+    return await Promise.race([operation, delay(8_000, undefined, { signal: timer.signal }).then(() => {
+      throw new Error(description);
+    })]);
+  } finally {
+    timer.abort();
+  }
+}
+
+async function finishIndicatorReply(forwarding, request) {
+  const result = await forwarding;
+  if ('error' in result) throw result.error;
+  const response = await request.response();
+  if (!response) {
+    const failure = request.failure()?.errorText;
+    if (failure === 'net::ERR_ABORTED') return failure;
+    throw new Error('The captured indicator status request had no response.');
+  }
+  const failure = await response.finished();
+  if (failure) throw failure;
+  return response.status();
+}
+
+test('indicator-preview fixture cleans up after route and port failures', async ({ browser }, testInfo) => {
+  const portFault = new Error('Injected workspace port error');
+  let misplacedProfile;
+  try {
+    await expect(exerciseObsoleteIndicator(browser, testInfo, {
+      reservePort: async () => { throw portFault; },
+      prepareProfile: async () => { misplacedProfile = await makeProfile(); return misplacedProfile; },
+    })).rejects.toBe(portFault);
+    expect(misplacedProfile).toBeUndefined();
+  } finally {
+    await misplacedProfile?.close();
+  }
+
+  const forwardFault = new Error('Injected indicator route fulfill error');
+  const outcomes = [];
+  for (const [label, forwardReady, fault] of [
+    ['original forward error', async () => { throw forwardFault; }, forwardFault],
+    ['absent browser response', route => route.abort('failed'), /captured indicator status request had no response/],
+  ]) {
+    const port = await freePort();
+    const profile = await makeProfile();
+    const observation = {};
+    try {
+      const result = exerciseObsoleteIndicator(browser, testInfo, {
+        reservePort: async () => port, prepareProfile: async () => profile, forwardReady, observation,
+      });
+      if (fault instanceof Error) await expect(result).rejects.toBe(fault);
+      else await expect(result).rejects.toThrow(fault);
+      expect(observation.routeRemoved).toBe(true);
+      expect(await portAvailable(port)).toBe(true);
+      await expect(stat(profile.root)).rejects.toMatchObject({ code: 'ENOENT' });
+      outcomes.push({ label, routeRemoved: true, listenerReleased: true, profileRemoved: true });
+    } finally {
+      await profile.close();
+    }
+  }
+  await testInfo.attach('indicator-fixture-cleanup', {
+    contentType: 'application/json', body: JSON.stringify({ portPreparedProfiles: 0, outcomes }),
+  });
+});
+
+test('indicator-preview probe explains persistent admission refusal without retrying other responses', async ({}, testInfo) => {
+  const port = await freePort();
+  const profile = await makeProfile();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const holder = server.tagSnapshot();
+      const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+      void snapshotReply.catch(() => {});
+      const output = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: randomUUID() };
+      const refused = [];
+      let diagnostic;
+      try {
+        const written = await Promise.race([holder.wait('written'), snapshotReply.then(response => {
+          throw new Error(`The tagged snapshot settled before it owned the writer (HTTP ${response.status}).`);
+        })]);
+        expect(written.request_id).toEqual(expect.any(Number));
+        await expect(readIndicatorAfterAdmission(server, output, {
+          timeout: 1_000, observe(frame) { refused.push(frame.http); },
+        }).catch(error => {
+          diagnostic = error.message;
+          throw error;
+        })).rejects.toThrow(/after [0-9]+ attempts.*last HTTP 429, code BUSY, retryable true/);
+        expect(refused.length).toBeGreaterThan(1);
+        expect(refused.every(http => http === 429)).toBe(true);
+        holder.release();
+        await holder.wait('drained');
+        expect((await snapshotReply).status).toBe(200);
+      } finally {
+        holder.release();
+        await Promise.allSettled([snapshotReply.then(responseStatus)]);
+      }
+      const seen = [];
+      const missing = await readIndicatorAfterAdmission(server, {
+        type: 'indicator_preview_status', request_id: randomUUID(), task_id: randomUUID(),
+      }, { observe(frame) { seen.push({ http: frame.http, error: frame.body.error?.code }); } });
+      expect(missing).toMatchObject({ http: 200, body: { ok: false, error: {
+        code: 'STALE_CONTEXT', retryable: false,
+      } } });
+      const invalid = await readIndicatorAfterAdmission(server, {
+        type: 'indicator_preview_status', request_id: 'not-a-uuid', task_id: randomUUID(),
+      }, { observe(frame) { seen.push({ http: frame.http, error: frame.body.error?.code }); } });
+      expect(invalid).toMatchObject({ http: 400, body: { ok: false, error: { code: 'INVALID_ARGUMENT' } } });
+      expect(seen).toEqual([{ http: 200, error: 'STALE_CONTEXT' }, { http: 400, error: 'INVALID_ARGUMENT' }]);
+      await testInfo.attach('indicator-persistent-admission', { contentType: 'application/json',
+        body: JSON.stringify({ refusals: refused.length, diagnostic, admitted: seen }),
+      });
+    }, { snapshotGate: true });
   } finally {
     await profile.close();
+  }
+});
+
+test('indicator-preview probe bounds a pending snapshot observer', async ({}, testInfo) => {
+  const refused = { http: 429, body: busy };
+  const admitted = { http: 200, body: { ok: true, result: { version: 'kept' } } };
+  const denied = { http: 429, body: { ok: false, error: { code: 'BUSY', retryable: false } } };
+  const replies = new Map([
+    ['late', refused], ['withheld', refused], ['cancelled', refused],
+    ['admitted', admitted], ['denied', denied], ['exception', refused],
+  ]);
+  const reads = new Map();
+  const listener = createHttpServer((request, response) => {
+    const scenario = request.url.split('/')[1];
+    reads.set(scenario, (reads.get(scenario) ?? 0) + 1);
+    const frame = replies.get(scenario);
+    request.resume();
+    response.writeHead(frame.http, { 'content-type': 'application/json' }).end(JSON.stringify(frame.body));
+  });
+  const witness = {};
+  try {
+    await once(listener.listen(0, '127.0.0.1'), 'listening');
+    const server = scenario => ({ url: `http://127.0.0.1:${listener.address().port}/${scenario}` });
+    const request = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: randomUUID() });
+    const timeout = 500;
+    const diagnostic = 'Indicator read did not obtain workspace admission after 1 attempts: last HTTP 429, code BUSY, retryable true.';
+    const pendingDrain = async scenario => {
+      const child = new EventEmitter();
+      const tag = observeSnapshotGate(child)();
+      const caller = new AbortController();
+      const reason = new Error('caller cancelled the pending drain');
+      const result = { reads: 0, observed: [], reachedDrain: false };
+      const started = performance.now();
+      let late;
+      try {
+        await readIndicatorAfterAdmission(server(scenario), request(), {
+          timeout, signal: caller.signal,
+          async observe(frame, signal) {
+            result.observed.push(frame.http);
+            const before = signal ? getEventListeners(signal, 'abort') : [];
+            const wait = tag.wait('drained', signal);
+            const added = signal ? getEventListeners(signal, 'abort').filter(callback => !before.includes(callback)) : [];
+            result.waitListeners = added.length;
+            if (scenario === 'late') {
+              late = delay(2 * timeout).then(() => {
+                result.drainDelivered = true;
+                child.emit('message', { snapshotGate: { id: tag.id, stage: 'drained' } });
+              });
+            }
+            if (scenario === 'cancelled') queueMicrotask(() => caller.abort(reason));
+            try {
+              await wait;
+              result.reachedDrain = true;
+            } finally {
+              result.observerFinished = true;
+              result.remainingWaitListeners = signal
+                ? getEventListeners(signal, 'abort').filter(callback => added.includes(callback)).length
+                : null;
+            }
+          },
+        });
+      } catch (error) {
+        result.error = { name: error.name, message: error.message, originalCallerReason: error === reason };
+      } finally {
+        result.elapsedMs = Math.round(performance.now() - started);
+        result.settledBeforeDrain = !result.drainDelivered;
+        await late;
+      }
+      result.reads = reads.get(scenario);
+      return result;
+    };
+    const [late, withheld, cancelled] = await Promise.all(['late', 'withheld', 'cancelled'].map(pendingDrain));
+    Object.assign(witness, { late, withheld, cancelled });
+    for (const scenario of ['admitted', 'denied']) {
+      const frame = await readIndicatorAfterAdmission(server(scenario), request(), { timeout });
+      witness[scenario] = { http: frame.http, body: frame.body, reads: reads.get(scenario) };
+    }
+    const caller = new AbortController();
+    const reason = new Error('observer control cancellation');
+    const unexpected = new Error('observer assertion failed', { cause: reason });
+    try {
+      await readIndicatorAfterAdmission(server('exception'), request(), {
+        timeout, signal: caller.signal,
+        observe() {
+          caller.abort(reason);
+          throw unexpected;
+        },
+      });
+    } catch (error) {
+      witness.exception = { original: error === unexpected, message: error.message, reads: reads.get('exception') };
+    }
+    for (const result of [late, withheld, cancelled]) {
+      expect(result).toMatchObject({
+        reads: 1, observed: [429], reachedDrain: false, observerFinished: true,
+        settledBeforeDrain: true, waitListeners: 1, remainingWaitListeners: 0,
+      });
+    }
+    expect(late.drainDelivered).toBe(true);
+    expect(late.error.message).toBe(diagnostic);
+    expect(withheld.error.message).toBe(diagnostic);
+    expect(cancelled.error.originalCallerReason).toBe(true);
+    expect(witness.admitted).toEqual({ ...admitted, reads: 1 });
+    expect(witness.denied).toEqual({ ...denied, reads: 1 });
+    expect(witness.exception).toEqual({ original: true, message: unexpected.message, reads: 1 });
+  } finally {
+    await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
+    await testInfo.attach('indicator-observer-deadline', {
+      contentType: 'application/json', body: JSON.stringify(witness),
+    });
   }
 });
 
@@ -2140,6 +2640,8 @@ test('private decision notes require consent and retain the dated original separ
         const lost = await dropApprovalReply(page, server, 'decisionNote.delete');
         await notes.getByRole('button', { name: 'Delete decision note' }).click();
         await expect(notes.getByRole('button', { name: 'Retry confirmation' })).toBeEnabled();
+        await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
+        await expect(notes.getByText('Decision note deleted.')).toHaveCount(0);
         expect(lost.outcome()).toMatchObject({ state: 'committed', receipt: { committed_workspace_revision: 4 } });
         await expect(notes.getByText(thesis)).toHaveCount(0);
         await expect(notes.getByText(outcome)).toHaveCount(0);
@@ -2345,7 +2847,7 @@ test('decision-note draft keeps its text and date across peer timeframe changes'
         await outcome.fill(deletedDraft);
         await inFreshBrowser(browser, server, async peer => {
           await control(peer, 'Decision notes').click();
-          await deleteBackupTestNote(peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
+          await deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
           await observer.bringToFront();
           await expect(outcome).toHaveCount(0);
           await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
@@ -2355,6 +2857,185 @@ test('decision-note draft keeps its text and date across peer timeframe changes'
       });
     });
   } finally {
+    await profile.close();
+  }
+});
+
+test('a confirmed decision-note deletion survives list retries and clears when a new note starts', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const fixture = { date: '2026-02-03', thesis: 'Synthetic deletion feedback', choice: 'Wait',
+    outcomes: [{ date: '2026-03-04', body: 'Synthetic later outcome' }] };
+  const observation = {};
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const status = notes.getByRole('status').filter({ hasText: 'Decision note deleted.' });
+        const confirm = notes.getByRole('button', { name: 'Delete decision note' });
+        const review = notes.getByRole('button', { name: 'Review deletion' });
+        await saveBackupTestNote(notes, fixture);
+        await assertBackupTestNote(notes, fixture);
+        const persisted = () => {
+          const db = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+          try {
+            return {
+              notes: db.prepare('SELECT note_id FROM decision_notes').all().map(row => row.note_id),
+              outcomes: db.prepare('SELECT count(*) AS count FROM decision_note_outcomes').get().count,
+              deleted: db.prepare('SELECT note_id, revision FROM decision_note_deletions').all()
+                .map(row => ({ note_id: row.note_id, revision: row.revision })),
+            };
+          } finally {
+            db.close();
+          }
+        };
+        const [noteId] = persisted().notes;
+        expect(persisted()).toEqual({ notes: [expect.any(String)], outcomes: 1, deleted: [] });
+        // Hold one tab's request while its peer uses the same profile through an independent listener.
+        await inService(await freePort(), profile, 'ubuntu-workspace', async peerServer => {
+          await inFreshBrowser(browser, peerServer, async peer => {
+            await review.click();
+            const allowApproval = Promise.withResolvers();
+            let approvalHeld = false;
+            const holdApproval = async route => {
+              if (isDecisionNoteDeleteApproval(route.request().postDataJSON())) {
+                approvalHeld = true;
+                await allowApproval.promise;
+              }
+              await route.continue();
+            };
+            const workspaceUrl = server.url + endpoint;
+            await page.route(workspaceUrl, holdApproval);
+            try {
+              const rejected = await onDecisionNoteDeleteApproval(page, async () => {
+                await confirm.click();
+                await expect.poll(() => approvalHeld).toBe(true);
+                await expect(status).toHaveCount(0);
+                expect(persisted()).toEqual({ notes: [noteId], outcomes: 1, deleted: [] });
+                expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+                allowApproval.resolve();
+              });
+              observation.refused = (await rejected.json()).result.outcome;
+              expect(observation.refused).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+              await expect(notes.getByRole('alert')).toHaveText('The workspace changed. Reload its current state and review again.');
+              await expect(status).toHaveCount(0);
+              observation.afterRefusal = persisted();
+              expect(observation.afterRefusal).toEqual({ notes: [noteId], outcomes: 1, deleted: [] });
+            } finally {
+              allowApproval.resolve();
+              await page.unroute(workspaceUrl, holdApproval);
+            }
+
+            await review.click();
+            const declined = await duringPageEvent(page, 'response', response => {
+              const payload = response.request().postDataJSON();
+              return new URL(response.url()).pathname === endpoint
+                && payload?.intent?.operation === 'decisionNote.delete' && payload.confirmation?.decision === 'decline';
+            }, () => notes.getByRole('button', { name: 'Cancel action' }).click(), 5_000);
+            observation.cancelled = (await declined.json()).result.outcome;
+            expect(observation.cancelled).toMatchObject({ state: 'failed', error: { code: 'CANCELLED' } });
+            await expect(notes.getByRole('status').filter({ hasText: 'Action cancelled.' })).toBeVisible();
+            await expect(status).toHaveCount(0);
+            observation.afterCancellation = persisted();
+            expect(observation.afterCancellation).toEqual(observation.afterRefusal);
+
+            await review.click();
+            const releaseProjection = Promise.withResolvers();
+            const approvals = [];
+            const reads = [];
+            const alerts = [];
+            Object.assign(observation, { approvals, reads, alerts });
+            const holdProjection = async route => {
+              const request = route.request().postDataJSON();
+              if (isDecisionNoteDeleteApproval(request)) approvals.push(request.request_id);
+              const intent = request?.intent;
+              if (intent?.operation !== 'decisionNote.read' || intent.arguments.note_id !== null) return route.continue();
+              const read = { requestId: request.request_id };
+              const index = reads.push(read) - 1;
+              const response = await route.fetch();
+              try {
+                read.outcome = (await response.json()).result.outcome;
+                if (index === 0) await releaseProjection.promise;
+                if (index < 2) {
+                  await route.abort();
+                  read.delivery = 'lost';
+                } else {
+                  await route.fulfill({ response });
+                  read.delivery = 'delivered';
+                }
+              } finally {
+                await response.dispose();
+              }
+            };
+            await page.route(workspaceUrl, holdProjection);
+            const reload = notes.getByRole('button', { name: 'Reload decision notes' });
+            const alert = notes.getByRole('alert');
+            const listError = 'The decision-note list could not be refreshed.';
+            try {
+              const accepted = await onDecisionNoteDeleteApproval(page, () => confirm.click());
+              const approved = accepted.request().postDataJSON();
+              const frame = await accepted.json();
+              expect(frame.result.request_id).toBe(approved.request_id);
+              observation.committed = frame.result.outcome;
+              expect(observation.committed).toMatchObject({ state: 'committed', receipt: {
+                undoable: false, target: { kind: 'decision_note', object_id: noteId },
+                committed_workspace_revision: approved.scope.expected_workspace_revision + 1,
+              } });
+              observation.afterCommit = persisted();
+              expect(observation.afterCommit).toEqual({ notes: [], outcomes: 0,
+                deleted: [{ note_id: noteId, revision: observation.committed.receipt.committed_workspace_revision }] });
+              const emptyList = { state: 'completed', result: { note: null, notes: [] } };
+              await expect.poll(() => reads[0]?.outcome).toMatchObject(emptyList);
+              await expect(status).toBeVisible();
+              await control(peer, 'Decision notes').click();
+              const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
+              await expect(peerNotes.getByText('No saved decision notes.')).toBeVisible();
+              await expect(peerNotes.getByText('Decision note deleted.')).toHaveCount(0);
+              releaseProjection.resolve();
+              await expect.poll(() => reads[0]?.delivery).toBe('lost');
+              await expect(reload).toBeVisible();
+              await expect(alert).toHaveText(listError);
+              alerts.push(await alert.innerText());
+              await expect(status).toBeVisible();
+
+              await reload.click();
+              await expect.poll(() => reads[1]?.delivery).toBe('lost');
+              await expect(reload).toBeVisible();
+              await expect(alert).toBeVisible();
+              alerts.push(await alert.innerText());
+              expect.soft(alerts[1], 'The retry alert describes the lost list read').toBe(listError);
+              await expect(status).toBeVisible();
+
+              await reload.click();
+              await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+              await expect.poll(() => reads[2]?.delivery).toBe('delivered');
+              expect(reads.map(read => read.outcome)).toMatchObject([emptyList, emptyList, emptyList]);
+              await expect(status).toBeVisible();
+              await expect(alert).toHaveCount(0);
+              await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+
+              await notes.getByRole('button', { name: 'New decision note' }).click();
+              await expect(notes.getByLabel('Thesis')).toBeVisible();
+              observation.noticeInNewEditor = await status.count();
+              expect.soft(observation.noticeInNewEditor, 'A new editor retires the old deletion notice').toBe(0);
+              await notes.getByRole('button', { name: 'Discard draft' }).click();
+              await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+              observation.afterReadRetries = persisted();
+              expect(observation.afterReadRetries).toEqual(observation.afterCommit);
+              expect(approvals).toEqual([approved.request_id]);
+              await expect(peerNotes.getByText('No saved decision notes.')).toBeVisible();
+            } finally {
+              releaseProjection.resolve();
+              await page.unroute(workspaceUrl, holdProjection);
+            }
+          });
+        });
+      });
+    });
+  } finally {
+    await testInfo.attach('decision-note-deletion-observation', {
+      contentType: 'application/json', body: JSON.stringify(observation),
+    });
     await profile.close();
   }
 });
@@ -2384,7 +3065,7 @@ test('decision-note list removes peer deletions after focus and a rejected detai
             expect(await writerPid(peerServer)).not.toBe(await writerPid(server));
             await control(peer, 'Decision notes').click();
             const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
-            await deleteBackupTestNote(peerNotes, first.date);
+            await deleteBackupTestNote(peer, peerNotes, first.date);
             await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
             await expect(firstRow).toHaveCount(0);
             await expect(secondRow).toBeVisible();
@@ -2402,7 +3083,7 @@ test('decision-note list removes peer deletions after focus and a rejected detai
             try {
               await secondRow.click();
               await expect.poll(() => intercepted, { message: 'The observer detail read was held before peer deletion.' }).toBe(true);
-              await deleteBackupTestNote(peerNotes, second.date);
+              await deleteBackupTestNote(peer, peerNotes, second.date);
             } finally {
               resume.resolve();
               await observer.unrouteAll({ behavior: 'wait' });
@@ -3019,6 +3700,13 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
   }
 });
 
+for (const { name, unixOnly, run } of handoffProbeCases) {
+  test(`handoff subprocess diagnostics distinguish ${name}`, async () => {
+    test.skip(Boolean(unixOnly && process.platform === 'win32'), 'This signal control requires POSIX child exit semantics.');
+    await run();
+  });
+}
+
 test('the private launcher handoff is required and a previous launch cannot authorize a request', async ({ browser }) => {
   const profile = await makeProfile();
   const port = await freePort();
@@ -3419,6 +4107,11 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
 });
 
 async function makeProfile(id = 'synthetic-' + randomUUID()) {
+  if (process.platform === 'win32') {
+    const root = await claimProfile(process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL);
+    if (root) return { root, id, close: () => rm(root, { recursive: true, force: true, maxRetries: 3 }) };
+    // Large or repeated verification runs can still prepare additional profiles.
+  }
   const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
   const profile = join(directory, 'profile');
   const close = () => rm(directory, { recursive: true, force: true });
@@ -3429,6 +4122,58 @@ async function makeProfile(id = 'synthetic-' + randomUUID()) {
     await close();
     throw error;
   }
+}
+
+if (process.platform === 'win32') {
+  test('the Windows workspace pool opens a claimed profile and refuses unsafe outer ACLs', async () => {
+    const runPool = process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL;
+    expect(runPool).toBeTruthy();
+    await withProfilePoolAclControl(dirname(runPool), async (control, prepare) => {
+      // Use a separate one-profile pool so this remains a real claim and open
+      // even if a larger or repeated suite has consumed the ordinary pool.
+      const pool = join(control, 'positive');
+      await prepare(python, workspaceBridge, pool);
+      const profile = await claimProfile(pool, 1);
+      expect(profile).toBe(join(pool, 'profiles', 'profile-0'));
+      const database = join(profile, 'workspace.sqlite3');
+      await expect(stat(database)).rejects.toMatchObject({ code: 'ENOENT' });
+      const writer = exec(workspaceBridge, [profile, 'synthetic-' + randomUUID(), workspaceId], { timeout: 12_000 });
+      writer.child.stdin.end();
+      const { stdout } = await writer;
+      expect(JSON.parse(stdout.trim())).toMatchObject({
+        ok: true, private_profile: true, result: { workspace: { id: workspaceId, revision: 0 } },
+      });
+      expect((await stat(database)).isFile()).toBe(true);
+
+      // The enclosing control already owns cleanup even if the Python command
+      // creates the directory and exits before delivering its result.
+      const legacy = join(control, 'python-owner-rights');
+      const legacyControl = `
+from pathlib import Path
+import sys
+if sys.implementation.name == 'cpython' and sys.version_info >= (3, 12, 4):
+    Path(sys.argv[1]).mkdir(mode=0o700)
+    print('created')
+`;
+      const legacyResult = await exec(python, ['-B', '-c', legacyControl, legacy], {
+        timeout: 12_000, windowsHide: true,
+      });
+
+      const replaceable = join(control, 'replaceable');
+      await mkdir(replaceable);
+      const icacls = join(process.env.SystemRoot, 'System32', 'icacls.exe');
+      await exec(icacls, [replaceable, '/grant', '*S-1-1-0:(DC)'], { timeout: 12_000, windowsHide: true });
+
+      const ancestors = legacyResult.stdout.trim() === 'created' ? [legacy, replaceable] : [replaceable];
+      for (const ancestor of ancestors) {
+        const refused = join(ancestor, 'pool');
+        await expect(prepare(python, workspaceBridge, refused)).rejects.toMatchObject({
+          code: 1, stderr: expect.stringContaining('(prepare, replaceable-ancestor)'),
+        });
+        await expect(stat(refused)).rejects.toMatchObject({ code: 'ENOENT' });
+      }
+    });
+  });
 }
 
 async function assertPrivateHandoff(handoff) {
@@ -3913,6 +4658,43 @@ function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) 
   });
 }
 
+async function indicatorReadFrame(server, request, signal) {
+  const response = await post(server, request, {}, signal);
+  return { request, http: response.status, body: await response.json() };
+}
+
+async function readIndicatorAfterAdmission(server, request, { timeout = 10_000, signal, observe } = {}) {
+  const deadline = AbortSignal.timeout(timeout);
+  const reading = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  const intervals = [100, 250, 500, 1_000];
+  let attempts = 0;
+  let lastRefusal;
+  try {
+    for (;;) {
+      reading.throwIfAborted();
+      attempts++;
+      const frame = await indicatorReadFrame(server, request, reading);
+      // An admitted registry answer is evidence, even when its body reports BUSY.
+      const refused = frame.http === 429 && frame.body?.ok === false
+        && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
+      if (refused) lastRefusal = 'last HTTP 429, code BUSY, retryable true';
+      await observe?.(frame, reading);
+      reading.throwIfAborted();
+      if (!refused) return frame;
+      await delay(intervals[Math.min(attempts - 1, intervals.length - 1)], undefined, { signal: reading });
+    }
+  } catch (error) {
+    const reason = reading.reason;
+    // Node's event and timer waits wrap the signal reason in an AbortError.
+    const aborted = reading.aborted && (Object.is(error, reason)
+      || (error?.code === 'ABORT_ERR' && Object.is(error.cause, reason)));
+    if (!aborted) throw error;
+    if (!deadline.aborted || !Object.is(reason, deadline.reason)) throw reason;
+    throw new Error(`Indicator read did not obtain workspace admission after ${attempts} attempts: ${lastRefusal ?? 'no refusal received'}.`,
+      { cause: error });
+  }
+}
+
 async function responseStatus(response) {
   await response.body?.cancel();
   return response.status;
@@ -4074,11 +4856,29 @@ async function saveBackupTestNote(notes, fixture) {
   await notes.getByRole('button', { name: 'All decision notes' }).click();
 }
 
-async function deleteBackupTestNote(notes, date) {
+function isDecisionNoteDeleteApproval(payload) {
+  return payload?.intent?.operation === 'decisionNote.delete' && payload.confirmation?.decision === 'approve';
+}
+
+function onDecisionNoteDeleteApproval(page, action) {
+  return duringPageEvent(page, 'response', response => new URL(response.url()).pathname === endpoint
+    && isDecisionNoteDeleteApproval(response.request().postDataJSON()), action, 5_000);
+}
+
+async function deleteBackupTestNote(page, notes, date) {
   await notes.getByRole('button', { name: new RegExp(date) }).click();
   await notes.getByRole('button', { name: 'Review deletion' }).click();
-  await notes.getByRole('button', { name: 'Delete decision note' }).click();
-  await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+  const reply = await onDecisionNoteDeleteApproval(page, async () => {
+    await notes.getByRole('button', { name: 'Delete decision note' }).click();
+    await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+  });
+  const request = reply.request().postDataJSON();
+  const frame = await reply.json();
+  expect(frame).toMatchObject({ ok: true, result: { request_id: request.request_id, outcome: {
+    state: 'committed', receipt: { target: request.scope.target, undoable: false },
+  } } });
+  await expect(notes.getByRole('button', { name: 'New decision note' })).toBeVisible();
+  await expect(notes.getByRole('button', { name: new RegExp(date) })).toHaveCount(0);
 }
 
 async function assertBackupTestNote(notes, fixture) {

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "id": "0029",
+  "title": "Supervise native Windows workspace ACL admission in the same host executable",
+  "status": "accepted",
+  "recorded_at": "2026-11-24",
+  "context": "Protected Windows verification 45489014243 stopped at its first profile pool with the existing PowerShell timeout after 10.290 seconds. A Windows task with identical execution inputs prepared the same 64 profiles in 735 ms. The historical failure lacks a script-entry or ACL phase observation. Runtime interpreter startup remains a dependency after fixture batching. The current standalone desktop distribution and bridge commands carry no ACL sidecar.",
+  "decision": "Place the native Win32 filesystem and process operations in platform. Persistence keeps the physical workspace file inventory and delegates all Windows prepare and open requests to the same admission rule. The desktop and bridge executables dispatch a restricted child mode before normal initialization. A per-request Job owns the child before permission to start filesystem work is sent. The caller can withdraw the ungranted launch while Windows is still starting the process. Child and parent share a monotonic cutoff, and only confirmed completion admits SQLite. Both the normal installed executable and the test hosts run the same native policy. The existing ten-second admission and twelve-second browser caller budgets remain in effect.",
+  "authority": "Technical implementation under ADR 0007 and M0-105. The location changes how the existing filesystem protection is implemented, within existing user authorization.",
+  "alternatives": [
+    {
+      "option": "Use the existing PowerShell script with fewer launches or another timeout.",
+      "reason": "The first single invocation already failed at matched inputs. Batching retains the interpreter dependency, and increasing its timeout cannot identify the delayed phase."
+    },
+    {
+      "option": "Precompile the policy with the Windows .NET Framework compiler.",
+      "reason": "This preserves the previous managed API vocabulary but introduces a compiler dependency and a deployed, version-bound helper. A usable compiler and dirty-free relocation path could not be exercised on the implementation host."
+    },
+    {
+      "option": "Run direct Win32 admission on the application thread.",
+      "reason": "A hard-to-stop native filesystem call would lose the process lifetime boundary that prevents ACL writes after preparation is refused."
+    }
+  ],
+  "consequences": [
+    "The runtime needs no additional installer file, interpreter, PATH lookup, or user-profile executable extraction. Relocation uses the exact current host path.",
+    "Platform owns the narrow Win32 FFI. Persistence retains its workspace unsafe-code policy. GUI and console hosts and test entrypoints exercise the same admission rule.",
+    "Workers report only phase names and elapsed time in synthetic verification. Existing checks cover real owner, sidecar and profile refusal before SQLite. An uncertain process cleanup continues to be recorded and preserved through the existing browser job supervisor.",
+    "Cross compile evidence does not certify native filesystem outcomes or an installed Windows release. Ordinary native verification and the existing release observation gates retain their own claims."
+  ],
+  "supersedes": [],
+  "related_decisions": [
+    "0004",
+    "0007",
+    "0008",
+    "0026"
+  ],
+  "revisit_when": "An ordinary native run cannot reproduce the previous ACL outcomes, the same-image worker cannot be started on a supported installation, or the process lifetime proof no longer bounds preparation.",
+  "references": [
+    "project/tasks.json",
+    "crates/platform/src/workspace_acl.rs",
+    "crates/persistence/src/storage.rs"
+  ]
+}
