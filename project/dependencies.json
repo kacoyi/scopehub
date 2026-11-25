@@ -19,11 +19,11 @@
     },
     {
       "repository": "astral-sh/setup-uv",
-      "sha": "1c37ad07a6a961277cf70c0d37d6f313000f5884",
-      "reviewed_ref": "v10.3.0",
-      "observed_at": "2026-11-21",
-      "source": "https://github.com/astral-sh/setup-uv/tree/1c37ad07a6a961277cf70c0d37d6f313000f5884",
-      "review": "Verified official tag and action.yml. Node 24 is supported on both hosted runners. The Action reads the exact uv constraint from pyproject.toml and checks the reviewed SHA-256 for each download. It accepts the existing Python 3.12 and cache inputs. The removed server-url and old custom manifest are unused. Explicit pruning preserves the previous cache behavior and disabling the new mirror keeps binary downloads on GitHub Releases. The verification token retains contents:read."
+      "sha": "1db35dd8eee11c5894872e0b383ae6c406cf738d",
+      "reviewed_ref": "v10.4.0",
+      "observed_at": "2026-11-25",
+      "source": "https://github.com/astral-sh/setup-uv/tree/1db35dd8eee11c5894872e0b383ae6c406cf738d",
+      "review": "The immutable release runs Node 24 on hosted Ubuntu and Windows. The setup and successful post bundles retain the exact uv version-file, Python 3.12, supplied Linux and Windows archive checksums, GitHub Releases download and existing cache settings. Requiring checksums also includes the expected checksum in the tool-cache identity. The optional Windows Python junction repair is for cache-python; this workflow leaves that input disabled. Workflow permissions remain contents:read."
     },
     {
       "repository": "pnpm/action-setup",
@@ -360,6 +360,29 @@
         "revisit": "Review a patched uv toolchain at or above 0.13.4 before the 2026-11-28 maintenance deadline or immediately if the existing download trust cannot be established. Verify the exact uv release checksum, lock compatibility, Python 3.12 setup and Linux/Windows verification before changing the separate tool pin.",
         "superseded_by": "M0-041"
       }
+    },
+    "setup_uv_proposal_review": {
+      "task_id": "M0-112",
+      "reviewed_against": "1a71e272d3abd9fabb8ce49ed3316289f264786a",
+      "observed_on": "2026-11-25",
+      "pr": "https://github.com/kacoyi/scopehub/pull/88",
+      "head": "eaf831d06a936659c215df89b12adb7c9fd3ec3d",
+      "original_parent": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+      "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519231958",
+      "failed_log_zip_sha256": "cd929f2abcee625b263d390a926343844157deeb0ba931511ebdc13a142974c5",
+      "original_local_report_sha256": "d98425e72dae608541931358face83f94a789f9c1b4d1b3acabb5d746065fa3f",
+      "failure": "The original patch changed only the workflow pin. Ubuntu and Windows set up uv and synchronized the locked project, then the unchanged dependency gate rejected the unreviewed immutable action pin.",
+      "release": "https://github.com/astral-sh/setup-uv/releases/tag/v10.4.0",
+      "commit": "1db35dd8eee11c5894872e0b383ae6c406cf738d",
+      "source_archive_sha256": "0509dc016dc6996e148ad742221fb76bc6dca3b943a45bb8f2a73970e4871ca6",
+      "files_sha256": {
+        "action.yml": "19a6a5262318d8cb18cc75c53f319a53c54101e9ff77639fb60de4f466be6c12",
+        "dist/setup/index.cjs": "6ba356c9e5dcace8477725a82836ac1da760a7081cfd3ef6d973d366d2f6ed24",
+        "dist/save-cache/index.cjs": "98d649f728898fa38cea89485995acb8b56d821d1608e2bae2b606be1ac8bce8",
+        "LICENSE": "933c6b13611b145de8fc8016281b2733e4a38c66f431de5bf48ed89b42af164b"
+      },
+      "license": "MIT",
+      "disposition": "Use the reviewed v10.4.0 commit with checksum enforcement and the existing explicit platform digests. Require matching hosted Ubuntu and Windows verification before integration."
     },
     "uv_toolchain_review": {
       "task_id": "M0-041",
