@@ -32,8 +32,9 @@ class DeliveryTests(ProjectFixture):
         class ReviewClock(datetime):
             @classmethod
             def now(cls, tz=None):
-                return cls(2026, 11, 25, 10, tzinfo=tz)
+                return cls(2026, 11, 25, self.review_hour, tzinfo=tz)
 
+        self.review_hour = 10
         self.enterContext(patch.object(project_cli, 'datetime', ReviewClock))
         path = self.root / 'project/delivery.json'
         delivery = read_json(path)
@@ -54,7 +55,7 @@ class DeliveryTests(ProjectFixture):
         return json.loads(out.getvalue())
 
     def timing_review(self, clock):
-        return {'observed_at': clock, 'objective_reviews': [
+        return {'recent_collection': {'collected_at': clock}, 'objective_reviews': [
             {'event': 'pull_request', 'profile': 'full', 'platform': 'Linux', 'sample_count': 3,
              'recent_runs': ['45556251399', '45556799720', '45556669680'], 'recent_objective_breaches': 0}],
             'input_issues': [], 'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
@@ -169,6 +170,77 @@ class DeliveryTests(ProjectFixture):
         entry.update(status='open', deferral_reason=None, occurrence=2)
         feedback_path.write_bytes(json_bytes(feedback))
         self.assertEqual('recheck_needed', self.project_command('status', '--overview')['next']['state'])
+
+    def test_compatibility_intake_distinguishes_unchanged_changed_and_unavailable(self):
+        delivery_path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        historical = self.root / project_cli.maintenance.COMPATIBILITY_BASELINE
+        historical.parent.mkdir(exist_ok=True)
+        historical.write_bytes(json_bytes({'baseline': {'main': base}}))
+        untouched = self.commit_fixture()
+        key = 'compatibility-and-recovery'
+        args = ('observe-maintenance', key)
+        quiet = self.project_command(*args)
+        self.assertEqual(key, quiet['review_id'])
+        self.assertEqual([], quiet['evidence']['observations'])
+        self.assertEqual({}, quiet['evidence']['unverified_boundaries'])
+        item = delivery['scaffold_maintenance']['periodic_reviews'][-1]
+        item.update(reviewed_on=quiet['observed_at'][:10], review_record='contracts/reviews/compatibility.json')
+        record = self.root / item['review_record']
+        record.write_bytes(json_bytes(quiet))
+        delivery_path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', untouched)['status'])
+        baseline = self.commit_fixture()
+        consumer = self.root / 'crates/persistence/src/lib.rs'
+        consumer.parent.mkdir(parents=True)
+        consumer.write_text('pub const VERSION: u8 = 9;\n')
+        self.commit_fixture()
+        changed = self.project_command(*args)
+        self.assertEqual({'workspace-migrations': ['state-migrations']}, changed['changed_boundaries'])
+        delivery = read_json(delivery_path)
+        item = delivery['scaffold_maintenance']['periodic_reviews'][-1]
+        del item['review_record']
+        delivery_path.write_bytes(json_bytes(delivery))
+        historical.write_bytes(json_bytes({'baseline': {'main': 'a' * 40}}))
+        self.assertIn('comparable accepted', self.project_command(*args)['error'])
+        self.assertIn(key, self.project_command('history', '--base', baseline)['error'])
+
+    def test_quiet_reobservation_after_verified_repair_and_later_recurrence(self):
+        path, delivery = self.periodic_fixture()
+        self.commit_fixture()
+        feedback_path = self.root / 'project/feedback.json'
+        feedback = read_json(feedback_path)
+        row = {'id': 'timing-regression-repaired', 'source': 'Retained timing observation.',
+               'observation': 'A retained timing window exceeded the objective.', 'severity': 'minor',
+               'status': 'open', 'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+               'resolution': None, 'deferral_reason': None}
+        feedback['items'].append(row)
+        feedback_path.write_bytes(json_bytes(feedback))
+        report = self.report()
+        report_data = read_json(report)
+        report_data['observed_feedback'] = [project_cli.feedback_fingerprint(row)]
+        report.write_bytes(json_bytes(report_data))
+        receipt = archive_evidence(self.root, 'M0-001', report)
+        self.finish_first(receipt)
+        row.update(status='addressed', resolution={'cause': 'Repeated work.', 'correction': 'Reused work.',
+                                                  'prevention': 'Verify the selected check.'})
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.review_hour = 13
+        item = delivery['scaffold_maintenance']['periodic_reviews'][1]
+        self.add_periodic_record(item, self.timing_review('2026-11-25T11:00:00Z'), row['id'])
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('repair_observed', self.project_command('status')['periodic_reviews'][1]['state'])
+        adverse = self.timing_review('2026-11-25T12:00:00Z')
+        adverse['objective_reviews'][0]['recent_objective_breaches'] = 2
+        again = self.root / '.reports/adverse.json'
+        again.write_bytes(json_bytes(adverse))
+        row['source'] += ' New comparable observation ' + digest(again.read_bytes())
+        feedback_path.write_bytes(json_bytes(feedback))
+        args = ('observe-maintenance', item['id'], '--report', str(again), '--finding', row['id'])
+        self.assertIn('Reopen', self.project_command(*args)['error'])
+        row.update(status='open', occurrence=2, resolution=None)
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.assertEqual(item['id'], self.project_command(*args)['review_id'])
 
     def test_chart_and_prototype_passes_cannot_satisfy_the_v1_workbench_gate(self):
         project = load_project(project_cli.ROOT)

@@ -1,6 +1,6 @@
 """Bound periodic review on the observations available to ordinary project commands."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 import re
 
 REVIEW_KIND = 'scopehub-periodic-review-v1'
@@ -9,10 +9,30 @@ REVIEW_SOURCES = {
     'verification-timing': ('2026-11-21', 'pnpm project:timing --recent 12'),
     'branches-and-pull-requests': ('2026-11-21', 'pnpm project:branches'),
     'worktrees-and-evidence': ('2026-11-21', 'pnpm project:worktree retirement'),
-    'compatibility-and-recovery': ('2026-11-21', 'pnpm check --task M0-111'),
+    'compatibility-and-recovery': ('2026-11-21', 'uv run python scripts/project.py observe-maintenance compatibility-and-recovery'),
 }
-COMPATIBILITY_PATHS = {'scripts/timing.py', 'scripts/recovery.py', 'scripts/diagnostic_archive.py',
-                       'contracts/schemas/protocol.schema.json'}
+COMPATIBILITY_BASELINE = 'contracts/reviews/2026-11-21-repository-maintenance.json'
+COMPATIBILITY_BOUNDARIES = {
+    'published-protocol': (('contracts/schemas/protocol.schema.json', 'contracts/generated'),
+                           ('generated-contracts', 'typescript-contracts',
+                            'rust-contracts-workers', 'python-contracts-workers')),
+    'rust-wire-consumer': (('crates/domain/src/wire.rs', 'crates/worker-host/src/python.rs'),
+                           ('rust-contracts-workers',)),
+    'python-wire-consumer': (('python/worker_runtime/protocol.py', 'python/worker_runtime/__main__.py'),
+                             ('python-types', 'python-contracts-workers')),
+    'workspace-migrations': (('crates/persistence',), ('state-migrations',)),
+    'verification-archive': (('scripts/timing.py', 'scripts/recovery.py', 'scripts/diagnostic_archive.py'),
+                             ('python-contracts-workers',)),
+}
+
+
+def in_scope(path, scopes):
+    return any(path == scope.rstrip('/') or path.startswith(scope.rstrip('/') + '/') for scope in scopes)
+
+
+def compatibility_coverage(paths):
+    return {key: list(checks) for key, (scopes, checks) in COMPATIBILITY_BOUNDARIES.items()
+            if any(in_scope(path, scopes) for path in paths)}
 
 
 def utc(value):
@@ -108,7 +128,9 @@ def inspect_evidence(review_id, data):
         return {'observed_at': data['observed_at'], 'integration_tip': data['integration_tip'],
                 'worktrees': rows, 'archive_error': error, 'activity_issues': []}, [data['observed_at']], error or serious
     if review_id == 'compatibility-and-recovery':
-        return {'receipt': data['receipt']}, [data['receipt']], False
+        if data['observations']:
+            return data, sorted(item['receipt'] for item in data['observations']), False
+        return data, [data['compared_from'], data['observed_at']], False
     raise ValueError('Unknown periodic review.')
 
 

@@ -716,23 +716,97 @@ def read_review_report(path, limit):
     return json.loads(data), digest(data)
 
 
+def compatibility_changes(root, before, after):
+    if not maintenance.git_commit(before) or not maintenance.git_commit(after):
+        raise ValueError('The compatibility comparison needs exact source revisions.')
+    result = feedback_git(root, 'diff', '--name-only', '-z', before, after, '--',
+                          *dict.fromkeys(path for paths, _ in maintenance.COMPATIBILITY_BOUNDARIES.values()
+                                         for path in paths))
+    if result.returncode:
+        raise ValueError('The compatibility comparison source is unavailable locally.')
+    return [os.fsdecode(path) for path in nul_fields(result.stdout)]
+
+
+def compatibility_base(root, item):
+    if item.get('review_record'):
+        record, _ = read_review_report(local_path(root, item['review_record']), 64 * 1024)
+        if record['evidence'].get('unverified_boundaries'):
+            return record['evidence']['compared_from']
+        return record['source_commit']
+    return read_json(root / maintenance.COMPATIBILITY_BASELINE)['baseline']['main']
+
+
+def compatibility_claim(root, project, receipts, before, through, observed_at):
+    if (not maintenance.git_commit(before) or not maintenance.git_commit(through)
+            or feedback_git(root, 'merge-base', '--is-ancestor', before, through).returncode):
+        raise ValueError('No comparable accepted compatibility history is available.')
+    if not isinstance(receipts, list) or len(receipts) > 16 or len(set(receipts)) != len(receipts):
+        raise ValueError('Use up to sixteen distinct scoped task receipts.')
+    pending = maintenance.compatibility_coverage(compatibility_changes(root, before, through))
+    clocks = []
+    originals = []
+    observations = []
+    for receipt in receipts:
+        clock, sha, tested, checks = compatibility_observation(root, project, receipt)
+        if feedback_git(root, 'merge-base', '--is-ancestor', before, tested).returncode:
+            raise ValueError('The consumer receipt predates the compatibility comparison.')
+        changed_since_check = maintenance.compatibility_coverage(compatibility_changes(root, tested, through))
+        for key in checks.keys() - changed_since_check.keys():
+            pending.pop(key, None)
+        clocks.append(clock)
+        originals.append(sha)
+        observations.append({'receipt': receipt, 'tested_source': tested, 'verified_boundaries': checks})
+    evidence = {'compared_from': before, 'observations': observations, 'unverified_boundaries': pending}
+    if not receipts:
+        if pending:
+            return evidence, None, None
+        evidence['observed_at'] = observed_at
+        return evidence, maintenance.utc(observed_at), digest(json_bytes([before, through, observed_at]))
+    return evidence, max(clocks), originals[0] if len(originals) == 1 else digest(json_bytes(originals))
+
+
 def compatibility_observation(root, project, relative):
-    for task in project['tasks'].values():
-        reference = next((entry for entry in task['evidence'] if entry['path'] == relative), None)
-        if not reference or not maintenance.COMPATIBILITY_PATHS.intersection(task['scope']):
-            continue
-        receipt, sha = read_review_report(local_path(root, relative), 64 * 1024)
-        passed = {item['id'] for item in receipt['checks'] if item['status'] == 'passed'}
-        source = receipt['source']
-        run = re.fullmatch(r'(\d{8}T\d{6}\.\d{6}Z)-[a-f0-9]{8}', receipt['run_id'])
-        if (sha != reference['sha256'] or receipt['task_definition_sha256'] != task_definition_hash(task)
-                or not {'project-state', 'python-contracts-workers'}.issubset(passed)
-                or source['working_tree_dirty'] or not run or not maintenance.git_commit(source['git_head'])
-                or feedback_git(root, 'merge-base', '--is-ancestor', source['git_head'], 'HEAD').returncode):
-            raise ValueError('The scoped compatibility task receipt does not match its source and checks.')
-        observed = datetime.strptime(run[1], '%Y%m%dT%H%M%S.%fZ').replace(tzinfo=timezone.utc)
-        return observed, sha
-    raise ValueError('Expected an existing receipt from a task covering a compatibility or recovery entrypoint.')
+    if not re.fullmatch(r'project/evidence/[a-zA-Z0-9_-]+\.json', relative):
+        raise ValueError('Use an existing task receipt from project/evidence.')
+    receipt, sha = read_review_report(local_path(root, relative), 64 * 1024)
+    task = project['tasks'].get(receipt['task_id'])
+    if (not task or {'path': relative, 'sha256': sha} not in task['evidence']
+            or receipt['task_definition_sha256'] != task_definition_hash(task)):
+        raise ValueError('The receipt does not match the scoped accepted task.')
+    passed = {item['id'] for item in receipt['checks'] if item['status'] == 'passed' and item['exit_code'] == 0}
+    tested = receipt['source']
+    source = tested['git_head']
+    ci = receipt.get('ci')
+    if ci and feedback_git(root, 'merge-base', '--is-ancestor', source, 'HEAD').returncode:
+        # The archived Actions checkout can disappear; the accepted source ref
+        # identifies the candidate whose consumer checks the receipt binds.
+        source = ci['head_sha']
+    if (tested['working_tree_dirty'] or not maintenance.git_commit(source)
+            or feedback_git(root, 'merge-base', '--is-ancestor', source, 'HEAD').returncode):
+        raise ValueError('The receipt needs a clean, locally comparable accepted source.')
+    parents = feedback_git(root, 'show', '-s', '--format=%P', source).stdout.decode('ascii').split()
+    if not parents:
+        raise ValueError('The receipt source has no comparable parent.')
+    changes = sorted({path for parent in parents for path in compatibility_changes(root, parent, source)
+                      if maintenance.in_scope(path, task['scope'])})
+    scopes = maintenance.compatibility_coverage(changes)
+    supported = {key: checks for key, checks in scopes.items() if set(checks).issubset(passed)}
+    if not supported:
+        raise ValueError('The receipt has no verified consumer check for a changed boundary in the task scope.')
+    candidates = [receipt]
+    if ci:
+        for ref in task['evidence']:
+            candidate = read_json(local_path(root, ref['path']))
+            if candidate.get('ci') == ci and candidate['task_definition_sha256'] == receipt['task_definition_sha256']:
+                candidates.append(candidate)
+    observed = []
+    for candidate in candidates:
+        run = re.fullmatch(r'(\d{8}T\d{6}\.\d{6}Z)-[a-f0-9]{8}', candidate['run_id'])
+        if run:
+            observed.append(datetime.strptime(run[1], '%Y%m%dT%H%M%S.%fZ').replace(tzinfo=timezone.utc))
+    if not observed:
+        raise ValueError('No dated harness observation was retained for this receipt.')
+    return min(observed), sha, source, supported
 
 
 def review_record(root, project, item):
@@ -764,10 +838,11 @@ def review_record(root, project, item):
         if source != record['source_commit']:
             raise ValueError('The inventory source does not match its protected revision.')
     if key == 'compatibility-and-recovery':
-        clock, sha = compatibility_observation(root, project, evidence['receipt'])
-        if (clock != observed or sha != record['report_sha256'] or
-                read_json(local_path(root, evidence['receipt']))['source']['git_head'] != record['source_commit']):
-            raise ValueError('The compatibility receipt does not match the review observation.')
+        receipts = [entry['receipt'] for entry in evidence['observations']]
+        scoped, clock, sha = compatibility_claim(root, project, receipts, evidence['compared_from'],
+                                                  record['source_commit'], record['observed_at'])
+        if evidence != scoped or clock != observed or sha != record['report_sha256']:
+            raise ValueError('The compatibility observation does not match the compared history and scoped receipts.')
     links = record['findings']
     if not isinstance(links, list) or len(links) > 32 or (adverse and not links):
         raise ValueError('An adverse observation requires linked feedback.')
@@ -778,12 +853,12 @@ def review_record(root, project, item):
         if (not entry or link['id'] in found or not re.fullmatch('[a-f0-9]{64}', link['fingerprint'])):
             raise ValueError('Expected unique existing feedback occurrences.')
         found[link['id']] = entry
-    if adverse and not any(observation_linked(record['report_sha256'], entry) for entry in found.values()):
-        raise ValueError('Bind the adverse observation digest to its canonical feedback.')
+    if adverse:
+        require_adverse_follow_through(root, project, record['report_sha256'], record['observed_at'], links, found)
     return record, identity, adverse, found
 
 
-REVIEW_ERRORS = (OSError, ValueError, KeyError, TypeError, OverflowError, AttributeError, ProjectError)
+REVIEW_ERRORS = (OSError, ValueError, KeyError, TypeError, OverflowError, AttributeError, RecursionError, ProjectError)
 
 
 def require_periodic_transition(root, project, base, only=None):
@@ -821,6 +896,15 @@ def require_periodic_transition(root, project, base, only=None):
                         raise ValueError('Follow through on the previously observed findings.')
                 elif candidate.get('review_record') != previous_path:
                     raise ValueError('The accepted observation must remain attached.')
+            if date_advanced and key == 'compatibility-and-recovery':
+                record, _, _, _ = review_record(root, project, candidate)
+                from_source = record['evidence']['compared_from']
+                accepted_source = ((old_record['evidence']['compared_from']
+                                    if old_record['evidence']['unverified_boundaries'] else old_record['source_commit'])
+                                   if previous_path else
+                                   read_json(root / maintenance.COMPATIBILITY_BASELINE)['baseline']['main'])
+                if from_source != accepted_source:
+                    raise ValueError('Compare compatibility from the last fully reviewed source.')
             if not date_advanced and not old.get('retired_reason'):
                 previous_due = date.fromisoformat(old['reviewed_on']) + timedelta(days=old['interval_days'])
                 postpones = candidate['interval_days'] > old['interval_days'] or candidate.get('retired_reason')
@@ -828,7 +912,8 @@ def require_periodic_transition(root, project, base, only=None):
                     raise ValueError('A policy change cannot postpone an overdue or unresolved review.')
             if candidate.get('retired_reason') and not old.get('retired_reason'):
                 result = review_record(root, project, candidate)
-                if result and (result[2] or any(entry['status'] != 'addressed' for entry in result[3].values())):
+                if result and (result[2] or result[0]['evidence'].get('unverified_boundaries')
+                               or any(entry['status'] != 'addressed' for entry in result[3].values())):
                     raise ValueError('Resolve the recorded follow-through before retiring this review.')
         except REVIEW_ERRORS as error:
             raise ProjectError(f'Periodic review {key}: {error}') from error
@@ -863,6 +948,10 @@ def observed_periodic_reviews(root, project, *, compare=False):
         record, _, adverse, found = result
         item.update(observed_at=record['observed_at'], report_sha256=record['report_sha256'],
                     state='due' if item['review_due'] else 'observed')
+        if pending := record['evidence'].get('unverified_boundaries'):
+            item.update(state='checks_needed', review_due=True, next_review_by=None,
+                        problem='Unverified changed boundaries: ' + ', '.join(pending))
+            continue
         for link in record['findings']:
             entry = found[link['id']]
             active = next((task_id for task_id in entry['task_ids'] if project['tasks'][task_id]['status'] in
@@ -895,6 +984,15 @@ def observation_linked(sha, entry):
     return sha in entry['source'] or any(row['report_sha256'] == sha for row in entry.get('diagnostic_reports', []))
 
 
+def require_adverse_follow_through(root, project, sha, observed_at, links, feedback):
+    attached = [link for link in links if observation_linked(sha, feedback[link['id']])]
+    if not attached:
+        raise ValueError('Bind the adverse observation digest to its canonical feedback.')
+    if all(repair_precedes_observation(root, project, feedback[link['id']], link['fingerprint'], observed_at)
+           for link in attached):
+        raise ValueError('Reopen the finding for the new adverse observation after its verified repair.')
+
+
 def repair_precedes_observation(root, project, entry, fingerprint, observed_at):
     if entry['status'] != 'addressed':
         return False
@@ -903,26 +1001,35 @@ def repair_precedes_observation(root, project, entry, fingerprint, observed_at):
     for task_id in entry['task_ids']:
         for ref in project['tasks'][task_id]['evidence']:
             receipt = read_json(local_path(root, ref['path']))
-            if (maintenance.utc(receipt['recorded_at']) <= observed
+            if (maintenance.utc(receipt['recorded_at']) < observed
                     and fingerprint in receipt.get('observed_feedback', [])):
                 covered.update(check['id'] for check in receipt['checks'] if check['status'] == 'passed')
     return set(entry['regression_checks']).issubset(covered)
 
 
-def observe_maintenance(root, project, key, path, finding_ids):
+def observe_maintenance(root, project, key, reports, finding_ids):
     try:
         if key not in maintenance.REVIEW_SOURCES:
             raise ValueError('Unknown periodic review.')
         source = feedback_commit(root, 'HEAD')
         if not source:
             raise ValueError('A review needs a local source checkpoint.')
-        data, sha = read_review_report(path, 16 * 1024 * 1024)
         if key == 'compatibility-and-recovery':
-            relative = path.resolve().relative_to(root.resolve()).as_posix()
-            observed, sha = compatibility_observation(root, project, relative)
-            source = data['source']['git_head']
-            data = {'receipt': relative}
+            item = maintenance.periodic_records(project['delivery'])[key]
+            before = compatibility_base(root, item)
+            receipts = [path.resolve().relative_to(root.resolve()).as_posix() for path in reports]
+            data, observed, sha = compatibility_claim(root, project, receipts, before, source,
+                                                       datetime.now(timezone.utc).isoformat())
+            if observed is None:
+                return {'status': 'checks_needed', 'compared_sources': [before, source],
+                        'changed_boundaries': data['unverified_boundaries'],
+                        'next_action': 'Run the checks for changed consumers under the responsible task and use --report with its receipt.'}
         else:
+            if len(reports) != 1:
+                raise ValueError('Supply a single existing command observation using --report.')
+            data, sha = read_review_report(reports[0], 16 * 1024 * 1024)
+            if key == 'verification-timing':
+                data['observed_at'] = data['recent_collection']['collected_at']
             observed = maintenance.utc(data['observed_at'])
             if key == 'branches-and-pull-requests':
                 source = data['default_branch']['sha']
@@ -942,8 +1049,8 @@ def observe_maintenance(root, project, key, path, finding_ids):
         if len(set(finding_ids)) != len(finding_ids) or len(finding_ids) > 32:
             raise ValueError('Use up to 32 distinct feedback IDs.')
         findings = [{'id': key, 'fingerprint': feedback_fingerprint(feedback[key])} for key in finding_ids]
-        if adverse and not any(observation_linked(sha, feedback[finding]) for finding in finding_ids):
-            raise ValueError('Bind the adverse observation digest to its canonical feedback first.')
+        if adverse:
+            require_adverse_follow_through(root, project, sha, observed.isoformat(), findings, feedback)
         return {'kind': maintenance.REVIEW_KIND, 'review_id': key, 'observed_at': observed.isoformat(),
                 'source_commit': source, 'report_sha256': sha, 'evidence': evidence, 'findings': findings}
     except REVIEW_ERRORS as error:
@@ -1826,7 +1933,8 @@ def main():
     status_format.add_argument('--overview', action='store_true', help='Show a bounded project outlook and next follow-through')
     observe = sub.add_parser('observe-maintenance', help='Project an existing review into a compact record')
     observe.add_argument('review')
-    observe.add_argument('--report', type=Path, required=True)
+    observe.add_argument('--report', type=Path, action='append', default=[],
+                         help='Existing command observation or scoped compatibility task receipt (repeatable)')
     observe.add_argument('--finding', action='append', default=[])
     context = sub.add_parser('context')
     context.add_argument('task_id', nargs='?')

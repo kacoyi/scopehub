@@ -966,7 +966,7 @@
         "actions": [
           "For a compatibility path touched since the previous review, identify the supported consumer, contract version, data migration or original evidence reader and exercise the relevant regression. Track temporary aliases or bridges with a removal condition and responsible task.",
           "Remove a duplicate or expired path after confirming its callers, retained data and rollback story. Keep the shared implementation and an independent expected behavior test. Review dependencies on the separate schedule in project/dependencies.json.",
-          "Use an existing same-day project-state and Python regression receipt from a task that owns the touched compatibility or recovery entrypoint."
+          "Run uv run python scripts/project.py observe-maintenance compatibility-and-recovery to compare the accepted source and see changed boundaries and relevant checks. Use --report with each scoped existing task receipt. Reconcile the outstanding boundary list before considering the review complete. An unchanged comparison needs no task check. Missing history and unobserved boundaries remain explicit."
         ]
       }
     ]

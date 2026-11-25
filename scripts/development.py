@@ -333,7 +333,7 @@ def project_overview(state):
     retained = state.get('retained_failures', {})
     retained_count = retained.get('matching_inputs', {}).get('count')
     reviews = [review for review in state['periodic_reviews'] if review.get('state')]
-    attention = ['evidence_missing', 'evidence_invalid', 'recheck_needed', 'owned_action', 'due']
+    attention = ['evidence_missing', 'evidence_invalid', 'recheck_needed', 'owned_action', 'checks_needed', 'due']
     first = next((review for status in attention for review in reviews if review['state'] == status), None)
     if first is None:
         first = next((review for review in reviews if review['review_due']), None)

@@ -2094,8 +2094,7 @@ def main():
         view = timing_view(samples, hosted=workflows, issues=list(issues))
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
-        view.update(observed_at=datetime.now(timezone.utc).isoformat(),
-                    weekly_review=weekly_review(), recent_collection=recent,
+        view.update(weekly_review=weekly_review(), recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
         archive_identity = None
         if args.save:
