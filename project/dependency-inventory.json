@@ -3,7 +3,7 @@
   "observed_at": "2026-11-25T05:44:07.660947+00:00",
   "lock_sha256": {
     "Cargo.lock": "7ce260e0f34c5fbbf725831316d5219a188fc13a72d43d7bad3a058d2567c777",
-    "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
+    "uv.lock": "c64faf3fc1912c0a52d3c088b35b491875063972a67fc7113d1224a57978240c",
     "pnpm-lock.yaml": "93ce172ebd5dbdddc6e00334d8aa79f9913545cf2bf52a49770d4eedff16c1f3"
   },
   "packages": [
@@ -34,6 +34,13 @@
       "version": "0.16.0",
       "license": "MIT",
       "metadata_url": "https://pypi.org/pypi/librt/0.16.0/json"
+    },
+    {
+      "ecosystem": "PyPI",
+      "name": "marko",
+      "version": "2.2.5",
+      "license": "MIT",
+      "metadata_url": "https://pypi.org/pypi/marko/2.2.5/json"
     },
     {
       "ecosystem": "PyPI",

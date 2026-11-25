@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M2-040",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "91a7b078ddeba92109eab843032f8b4c9ea1cb7c",
+      "verdict": "approved",
+      "decision": "APPROVE M2-040 91a7b078ddeba92109eab843032f8b4c9ea1cb7c",
+      "scope": "APPROVE M2-040 91a7b078ddeba92109eab843032f8b4c9ea1cb7c",
+      "observation": "In my replay, the observer recovered after both reads received HTTP 429, reused the identical list request, and stopped after one snapshot when the admitted producer returned BUSY over HTTP 200.",
+      "reviewer": "Independent Astra Standard (t10v)",
+      "original_sha256": "0aa91483858599143c436a888280ec38c9dc3e95531ac5661b6d036b177a96c9",
+      "response_id": "74125e6a2ae70269f5d2e5816555e483bc0905321070a1f0ec371e7edfffb8d6",
+      "response_sha256": "dc2f849e2c5e846ab990ff85ff0c0484b1b72b5562691b3f2fd6a815d5bb7e17",
+      "legacy_response_sha256": "e67fda06be691e7721c66e1a247f1abf43dbddd68c1422a3639f374f2e57ecdc",
+      "observation_body_sha256": "f2232d99d6cf28f607ee07462f4c632be6293d456e562d7ff953dc49179184ad",
+      "event": {
+        "id": "msg_09a82ffb2622b907016b0740271ae887d0a5ab492c78f113be",
+        "timestamp": "2026-11-25T20:08:24.236Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "b6a75ab48b96df6387ed9c398e4a8274abe9ca82fcea1f3a185f6d10ed2440fd"
+    }
+  ]
+}
