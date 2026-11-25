@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-153",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "8b37d7e9b75e4275f3b5dedd08007a64c6af0703",
+      "scope": "Review per-case filesystem, Git object and configuration isolation, retry after initialization failure, honestly separated setup and suite timings, and both original native serial deadline failures with their same-tree ordinary controls.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:06:07.063189+00:00",
+      "request_id": "8736c746405e929cc31724c252fbad21c09fc37039a6ecf2249dd8e19eed81ea",
+      "evidence_sha256": "881ceca1b1d582455db728b30d83742e0d8666c87ab591371ed4b4ef9475b84f"
+    }
+  ]
+}
