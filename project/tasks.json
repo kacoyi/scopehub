@@ -25313,7 +25313,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Reproduce the independently observed source-save ordering, then verify that focus stays pending through the write and recovery lane without repeating a source change.",
+      "next_action": "Request exact-source independent review of the source-save and recovery focus ordering alongside the preserved startup, folder and protected peer-note behavior.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
