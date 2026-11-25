@@ -6684,7 +6684,8 @@
       "severity": "major",
       "status": "open",
       "task_ids": [
-        "M0-139"
+        "M0-139",
+        "M0-141"
       ],
       "regression_checks": [
         "python-contracts-workers"
