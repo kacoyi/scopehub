@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-140",
+  "task_definition_sha256": "3cb420fe90296a9e099caff3a07ad323e080379d60a21d5833daf82da1e5b197",
+  "run_id": "20261125T171957.354811Z-06adad59",
+  "recorded_at": "2026-11-25T17:29:30.612739+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c2a7112ecbce891dd233841e929b05d8270df3c71dc81bd1f20d47e81a51b5ac",
+    "file_count": 607,
+    "git_head": "9d13f946b101d4978599106e7b2333d5fd5b1403",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "5b59f130567ac0ac55a34c1088fe8e23175532918f4808d35e80cab75863a87e",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/worker-latency-observation/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/worker-latency-observation/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "069e0d591d79cd517fe60e52645a1f373f0aaf42ddbf2e4c9fa8d39630198223"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/worker-latency-observation/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2d6b2fd3da664bcd3c10a511fd2cb9bf5f7517722cb0753d911d03540bfa3cbf"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/worker-latency-observation/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "006b782d993a6afc441ba6831d18bd1f31849323559a3b7d7d73beff257f95ab"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1f433bbc5c3459f075246d80a47e6ae279f1ca26e614733b1f1e9ee4fd71529c"
+    }
+  ],
+  "project_definition_sha256": "c84f9e96f05ba02ca32cddb8ac5c6b770dbbf36ae74e26a8e814d48237f7d447",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}
