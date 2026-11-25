@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-104",
   "tasks": [
     {
       "id": "M0-001",
@@ -25250,7 +25250,7 @@
       "id": "M0-104",
       "title": "Investigate sustained full warm Linux PR verification growth",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-087",
         "M0-097"
@@ -25276,7 +25276,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use the retained Linux attribution through 06:18 UTC in contracts/reviews/2026-11-25-pr-timing-recurrences.json. The three full warm ordinary PRs at that cutoff have matching selected outcomes and a 681-second median, 56 seconds above the original 625-second baseline and below the material-growth threshold. The 06:26 UTC window has the same median. No duplicate build or attributable corrective revision was found. If a comparable recurrence identifies a removable cost, verify the exact correction and require the normal three-run post-correction window and task receipts before closure.",
+      "next_action": "Decompose the original and renewed cohorts using original job and check clocks and exact source, then use the ordinary offline timing and affected maintenance entries to distinguish eligible growth, runner variation and any controllable work.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25293,7 +25293,8 @@
         ],
         "hypotheses": [
           "The median change can reflect runnable test growth and host variation. A Windows-only workflow or ACL change has no direct Linux timing effect.",
-          "A faster single Linux observation can reduce the median temporarily without resolving sustained growth."
+          "A faster single Linux observation can reduce the median temporarily without resolving sustained growth.",
+          "The three later successful full warm Linux PRs have identical named outcomes and show Python durations of 236.728, 196.162 and 150.093 seconds. Compare queue, setup, harness, tail and test composition before attributing the elapsed median increase."
         ],
         "risks": [
           {
@@ -25335,7 +25336,9 @@
             "No new timing gate, additional hosted dispatch, reduced coverage, synthetic timings or change to protected main or historical findings."
           ],
           "open_questions": [
-            "Which changed setup or named check contributes repeatable extra wall time on comparable runners?"
+            "Which changed setup or named check contributes repeatable extra wall time on comparable runners?",
+            "How much of the renewed median difference is explained by runnable Python work, other named checks and runner variation across exact inputs?",
+            "Did any sample exercise M0-143's read reduction or M0-146's Windows-only scheduling work, and is a distinct Linux correction still attributable?"
           ]
         },
         "evolution": {
@@ -25349,7 +25352,24 @@
           "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified.",
           "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
         }
-      }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T185739.552851Z-8328f499",
+          "source_commit": "f095e342122ebb492251575b65497c951e7718ca",
+          "report_sha256": "a7e6b8a4783347f717389b35783da261a6635886e227622650163edae2a00dbe"
+        },
+        {
+          "run_id": "20261125T184557.420584Z-d4daf9b1",
+          "source_commit": "6b897378abb3f07cbf190f86510c6b03b4d817a9",
+          "report_sha256": "2e4cb67528af5e9d590011de756ffbb98de9369636ae2cf23a49d9bd9be8623a"
+        },
+        {
+          "run_id": "20261125T182629.576844Z-52e3f873",
+          "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
+          "report_sha256": "b39c633d1fb67d56ce430c5ccaa980260af8e9a96f963a12b3dd7f9d0214fd68"
+        }
+      ]
     }
   ]
 }
