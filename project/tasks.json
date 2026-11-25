@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-143",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24804,7 +24804,7 @@
       "id": "M0-143",
       "title": "Reduce repeated Git reads in periodic maintenance verification",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-135"
       ],
@@ -24828,10 +24828,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Review the local candidate and matched measurement independently. The coordinator can then compare ordinary authenticated Windows candidate timing as a separate observation.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-143-78af6ad100d64fa6.json",
+          "sha256": "dd816fbb34934cf10f8e3ab41d2a94643cc24119768a8049a7aa259258105e4d"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review approved 0ead2ee1c7fd7d14c987c52390bcfc4af56061ce. Six paired public status observations kept byte-identical output while reducing reads of the same committed delivery policy from six to one per invocation. Positive and rejected ancestry cases both used five fewer Git processes. Native candidate wall time remains a separate measurement.",
       "plan": {
         "outcome": "Ordinary maintenance verification produces the same decisions with fewer Git children for identical immutable input.",
         "change_types": [
