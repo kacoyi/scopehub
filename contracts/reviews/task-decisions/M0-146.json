@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T22:01:21.594204+00:00",
       "request_id": "ae68dac1ede08fc747c8c141f486ef9d1f84fdedb54ed5e37cc2ab50eb069323",
       "evidence_sha256": "bbab3bab48776cdb9754d8a06a7e55b6243214cafb3a633aeb9479219c623d3f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a3d2030997def2937ac28e961a243809fe0b40fb",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 a3d2030997def2937ac28e961a243809fe0b40fb",
+      "scope": "CHANGES_REQUESTED M0-146 a3d2030997def2937ac28e961a243809fe0b40fb",
+      "observation": "I reproduced a version 2.1 task receipt with all four original Python part files missing and a publication failure for a unittest suite that passed with one package-level skip.",
+      "reviewer": "Independent Astra Standard (t10d)",
+      "original_sha256": "3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2",
+      "response_id": "0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4",
+      "response_sha256": "a388519842e6ec16e1c1119efdd20368dec7e5c5beaaa528c626dd97249a6115",
+      "legacy_response_sha256": "b1e7068c20e19cc0c0c11a5b84280f80ddbe464059435a2cf581d88953786007",
+      "observation_body_sha256": "783d40857108c61dfccf7f83adcd648869257098da93abc496eddfe7269f4f80",
+      "event": {
+        "id": "msg_0009ccfe113b430d016b075e02179487d0835b901ca973c576",
+        "timestamp": "2026-11-25T22:16:02.279Z"
+      },
+      "supersedes": "ae68dac1ede08fc747c8c141f486ef9d1f84fdedb54ed5e37cc2ab50eb069323",
+      "evidence_sha256": "e50e3aef638e54758ab82cf157a46f270a7f8d0968fb34bcfc6a5b57add259ea"
     }
   ]
 }
