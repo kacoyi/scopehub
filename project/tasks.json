@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-131",
   "tasks": [
     {
       "id": "M0-001",
@@ -24023,6 +24023,101 @@
           ],
           "data_plan": "Use digest-checked public artifacts and bounded synthetic controls in ignored directories, with independent private manifests.",
           "cleanup": "Leave historical source files in place and preserve the isolated test artifacts without altering the primary checkout."
+        }
+      }
+    },
+    {
+      "id": "M0-131",
+      "title": "Bind Windows timing roles, partial clocks and cache evidence",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-130"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The public CLI diagnoses invalid Windows producer profiles before report normalization. Only supported platform profiles with matching CI and checkout identities can satisfy protected capture or the linked index.",
+        "Conflicting producer role and job identities have the same diagnostic in either input order. Invalid IDs and mismatched checkout cannot borrow a producer clock. Complementary valid producer job observations retain their own timings in either order, without completing a platform clock.",
+        "Discover matching compact siblings automatically. Preserve known cache evidence when identical raw or compact observations omit it. Contradictory producer or aggregate cache evidence remains visible and cannot drive a cache-dependent timing cohort.",
+        "Replay the original PR 84 full, browser and recovery reports, the historical records scope, a genuine complete conflict and malformed JSON. Preserve the accepted M0-130 and M0-105 records and receipts. Run the canonical task and archive exact evidence."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the four reviewed failures through project:timing, then apply the identity and cache corrections and replay all controls on the exact clean source.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Each ordinary timing observation reflects its recorded scope, matching job identity and defensible cache evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/ci_artifacts.py",
+          "archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt"
+        ],
+        "hypotheses": [
+          "Normalization removes malformed scope information. Attempt selection and cache enrichment conflate exact job facts, incomplete observations and platform qualification."
+        ],
+        "risks": [
+          {
+            "failure": "A malformed scope or incomplete job silently fills protected coverage. Verify early diagnostics, real attempt and checkout identity, positive job IDs, exact capture and index qualification, and both input orders.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Merging partial clocks invents aggregate coverage or conflicting cache evidence enters a budget cohort. Check complementary and disputed role evidence, sibling provenance, known plus unknown, contradictions, scoped core republication and real full conflicts.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve exact original evidence and M0-130 acceptance. Revert a correction that weakens protected eligibility or changes legitimate historical scoped treatment.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Workflow, job execution, failure history rewrites, and unrelated checkout input hygiene."
+          ],
+          "open_questions": [
+            "Actions job head identifies the requested commit. The artifact checkout and retained checkout evidence identify the PR merge checkout where the API has no checkout field."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original absorbed inputs and receipts, true full-sample conflicts, malformed input diagnostics, ordinary scoped profiles and full platform authority."
+          ],
+          "change": [
+            "Validate recognized scope and consistent identity, match coherent named producer clocks and combine observed compatible cache facts."
+          ],
+          "data_plan": "Replay retained public first-attempt reports and official clocks, with controlled counterexamples copied into ignored paths.",
+          "cleanup": "Keep red and green artifacts independently, leave sourced reports untouched, and retain only the matching canonical receipt in Git."
         }
       }
     }

@@ -6504,6 +6504,66 @@
         "prevention": "The original authenticated browser and recovery reports retain their 11 and 1 checks and their 645 and 321 second clocks. With both present, the protected aggregate retains 28 passes and 804 seconds. The authenticated scoped core and republication retain one records sample. Ordinary discovery, explicit raw and compact reads, archive reopen, malformed input and conflicting full samples all have controls. The replay is retained in archives/observations/m0-130-timing-producer-inputs/green-3ac0da8/SHA256SUMS (SHA-256 13e57a3c5f5d864190273b85794df7d7b2f28bd5bd122296be7c0e0c0b6de45c)."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-invalid-producer-scope-fills-protected-slot",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "A trailing space on the actual browser producer profile loses the role during projection. The explicit CLI assigns the protected 804-second clock with no diagnostic. The same observation fills Windows capture with a real Linux sample, becomes indexable, and displaces the protected aggregate as a false full conflict. Unknown reserved profiles also require a diagnostic."
+    },
+    {
+      "id": "timing-producer-role-and-checkout-binding-is-ambiguous",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Two complete Actions lists with intentionally swapped core and recovery roles select different recovery clocks depending on input order. The wrong result is 756 seconds instead of 321. A null compact browser job ID or an inconsistent report checkout can still deliver the 645-second browser clock."
+    },
+    {
+      "id": "timing-complementary-producer-clocks-are-order-dependent",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Two partial official job lists with complementary browser and recovery observations overwrite each other. The last list determines the only producer clock. Both named job observations must remain available without qualifying protected platform clocks."
+    },
+    {
+      "id": "timing-cache-provenance-is-lost-or-contradictory",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Ordinary discovery leaves cache unknown despite matching compact siblings. An incomplete core raw plus compact observation changes cache with input order. A controlled warm aggregate remains in a warm cohort when authenticated browser and recovery cache observations say partial. Preserve applicable exact cache facts and label contradictions."
     }
   ]
 }
