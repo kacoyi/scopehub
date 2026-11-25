@@ -115,7 +115,7 @@ def material(path):
             and not TASK_REVIEW_FILE.fullmatch(path))
 
 
-def source_matches(root, reviewed, head, bases):
+def source_matches(root, reviewed, head, protected):
     require_ancestor(root, reviewed, head)
     untracked = inspect_index(root, include_untracked=True)
     if any(material(path) for path in untracked):
@@ -127,22 +127,18 @@ def source_matches(root, reviewed, head, bases):
     difference = delta(reviewed) | delta('--cached', reviewed)
     if not difference:
         return True
-    for base in bases:
-        try:
-            require_ancestor(root, base, head)
-            common = git(root, 'merge-base', '--all', base, reviewed).decode('ascii').splitlines()
-        except ScopeError:
-            continue
-        if len(common) != 1:
-            continue
-        reviewed_paths = delta(common[0], reviewed)
-        protected_only = delta(common[0], base) - reviewed_paths
-        if difference <= protected_only and not difference & (delta(base) | delta('--cached', base)):
-            return True
-    return False
+    if not protected or protected == head:
+        return False
+    require_ancestor(root, protected, head)
+    common = git(root, 'merge-base', '--all', protected, reviewed).decode('ascii').splitlines()
+    if len(common) != 1:
+        return False
+    reviewed_paths = delta(common[0], reviewed)
+    protected_only = delta(common[0], protected) - reviewed_paths
+    return difference <= protected_only and not difference & (delta(protected) | delta('--cached', protected))
 
 
-def disposition(root, task, feedback, decision, head, bases):
+def disposition(root, task, feedback, decision, head, protected):
     key = task['id']
     if not decision:
         return 'pending'
@@ -156,12 +152,12 @@ def disposition(root, task, feedback, decision, head, bases):
         observed = read_at(root, reviewed, 'project/feedback.json')['items']
         if feedback is not None and qualifying_items(observed, key, observed) != feedback:
             return 'stale'
-        return decision['verdict'] if source_matches(root, reviewed, head, bases) else 'stale'
+        return decision['verdict'] if source_matches(root, reviewed, head, protected) else 'stale'
     except (ScopeError, OSError, ValueError, KeyError, TypeError):
         return 'unavailable'
 
 
-def assess(root, project, records, head, bases, *, enforce):
+def assess(root, project, records, head, bases, *, accepted, protected, enforce):
     """Check only new acceptances and expose pending work through the same rules."""
     baselines = []
     for base, tasks, feedback in bases:
@@ -182,13 +178,19 @@ def assess(root, project, records, head, bases, *, enforce):
     )
     items = project['feedback']['items']
     states = {}
-    material_bases = [base for base, _, _ in baselines if base != head]
     for key, task in project['tasks'].items():
         if task['status'] == 'cancelled':
             continue
         previous = [(tasks.get(key, {}), feedback) for _, tasks, feedback in baselines]
-        if task['status'] == 'done' and previous and all(old.get('status') == 'done' for old, _ in previous):
-            continue
+        if task['status'] == 'done':
+            original = accepted.get(key)
+            if original and original['status'] == 'done':
+                same = dict(task, evidence=original['evidence']) == original
+                prefix = task['evidence'][:len(original['evidence'])] == original['evidence']
+                if same and prefix:
+                    continue
+            if previous and all(old.get('status') == 'done' for old, _ in previous):
+                continue
         finding = qualifying_items(items, key, (row for _, feedback in previous for row in feedback)) if automatic else {}
         selected = (task.get('plan', {}).get('independent_review', False)
                     or any(old.get('plan', {}).get('independent_review', False) for old, _ in previous))
@@ -196,7 +198,7 @@ def assess(root, project, records, head, bases, *, enforce):
             continue
         decisions = records.get(key, [])
         decision = decisions[-1] if decisions else None
-        state = disposition(root, task, finding if automatic else None, decision, head, material_bases)
+        state = disposition(root, task, finding if automatic else None, decision, head, protected)
         states[key] = {'status': state, 'feedback_ids': sorted(finding),
                        'reviewed_source': decision['source_commit'] if decision else None}
         if decision:

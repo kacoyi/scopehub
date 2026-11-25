@@ -1352,17 +1352,22 @@ def task_review_status(root, project, *, base=None, local=False, enforce=False):
         return {}
     try:
         head = feedback_commit(root, 'HEAD')
-        revisions = [base]
-        if local:
-            explicit = os.environ.get('SCOPEHUB_REVIEW_BASE')
-            protected = protected_feedback_base(root, head).get('commit')
-            revisions.extend([protected, feedback_commit(root, explicit), head])
+        explicit = feedback_commit(root, os.environ.get('SCOPEHUB_REVIEW_BASE'))
+        protected = protected_feedback_base(root, head).get('commit')
+        # A hosted push can make the tracking ref equal the head being verified.
+        # Its previous protected revision, supplied by the workflow, remains the boundary.
+        if protected == head and (base or explicit):
+            protected = None
+        revisions = [base, protected, *(entry for entry in (explicit, head) if local)]
         snapshots = [(sha, tasks_at_feedback_checkpoint(root, sha), list(feedback_at(root, sha).values()))
                      for sha in dict.fromkeys(revisions) if sha]
+        accepted = next((tasks for sha, tasks, _ in snapshots if sha == protected), {})
+        protected_source = protected or (explicit if os.environ.get('GITHUB_ACTIONS') == 'true' else None)
         records = load_task_reviews(root)
         if unknown := records.keys() - project['tasks'].keys():
             raise ProjectError(f'Independent decisions refer to unknown tasks: {sorted(unknown)}')
-        return review_acceptance.assess(root, project, records, head, snapshots, enforce=enforce)
+        return review_acceptance.assess(root, project, records, head, snapshots, accepted=accepted,
+                                        protected=protected_source, enforce=enforce)
     except (review_acceptance.ReviewError, ScopeError) as error:
         raise ProjectError(str(error)) from error
 

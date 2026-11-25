@@ -144,6 +144,23 @@ class TaskReviewTests(ProjectFixture):
         self.command('history', '--base', protected, error='is stale')
         self.assertNotEqual(source, plan_source)
 
+    def test_long_comparison_preserves_legacy_acceptance_observed_on_protected_history(self):
+        base, _ = self.open_review()
+        self.finish()
+        already_accepted = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/main', already_accepted)
+        (self.root / 'implementation.py').write_bytes(b'new_unrelated_work = True\n')
+        self.commit()
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+
+    def test_an_arbitrary_checkpoint_cannot_license_changed_material(self):
+        _, source = self.open_review()
+        self.review(source)
+        (self.root / 'new_behavior.py').write_bytes(b'outside_review = True\n')
+        unreviewed = self.commit()
+        self.finish()
+        self.command('history', '--base', unreviewed, error='is stale')
+
     def test_withdrawal_and_ordinary_receipts_keep_their_original_rules(self):
         base, _ = self.open_review()
         ledger = self.ledger()
