@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-110",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19986,7 +19986,7 @@
       "id": "M0-110",
       "title": "Restore linked verification timing on protected main",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-087"
       ],
@@ -20014,11 +20014,19 @@
         {
           "path": "project/evidence/M0-110-ec3b4d3958738058.json",
           "sha256": "632ad9aa482a999884d308c307bf66dc9b07f6c238ed10088444a3c18500a0e1"
+        },
+        {
+          "path": "project/evidence/M0-110-86b207d642064200.json",
+          "sha256": "8fbbaa7ef90cf8c9cbcb8266a67d08ddae403922797352fc1a183e137a51296d"
+        },
+        {
+          "path": "project/evidence/M0-110-504d5450ea9462d0.json",
+          "sha256": "18d5058ca59e5a6a4167381ed60299a5b65f0c33daca5ec54eca30230b8bfd91"
         }
       ],
-      "next_action": "Coordinator review and publication can proceed on the exact candidate. Retain matching hosted Windows evidence for the amended definition. Keep ordinary elapsed-budget follow-up on its independent observations.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra Standard review approved 34b4627. Protected Linux and Windows run 45550215575 verified the amended definition and all linked timing regressions. Historical recovery observations retain their own scope. Current Windows PR elapsed remains independently governed.",
       "plan": {
         "outcome": "The ordinary budget verdict can use its exact linked PR and push controls after history rotates, from a fresh checkout on protected main.",
         "change_types": [

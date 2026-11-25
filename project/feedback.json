@@ -5192,7 +5192,7 @@
       "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
       "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-110"
       ],
@@ -5216,7 +5216,11 @@
           "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The bounded recent windows also excluded explicitly linked diagnostic identities.",
+        "correction": "Index exact linked identities against their original capture bytes and consult the shared index beyond the recent windows.",
+        "prevention": "Verify rotated history in a fresh linked worktree and replay six original PR controls and five main-push controls."
+      },
       "deferral_reason": null
     },
     {
@@ -5224,14 +5228,18 @@
       "source": "Standard Astra read-only review of 77bf40bca029942544f5bfd77f1f7e0b4ee073b5, archives/observations/m0-097-linked-timing-review/astra-77bf40b.txt, SHA-256 d6ef15d14a000186a1ea9277f19638f7640754bc0fd07d2b67e86c8390e09690.",
       "observation": "After the automatic and manual windows rotated, two indexed attempts declared the same linked original report identity. Ordinary status and regular CI reported the conflict with both clocks present, then incorrectly reported recovery when one indexed attempt lacked its clock or its original compact file.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Conflict detection depended on the continued availability of the original capture and clock.",
+        "correction": "Retain indexed claims and require an unambiguous exact identity before accepting recovery.",
+        "prevention": "Exercise duplicate indexed claimants with both clocks present, a missing clock and a missing capture."
+      },
       "deferral_reason": null
     },
     {
@@ -5239,7 +5247,7 @@
       "source": "Ordinary PR #84 Actions run 45450283829, archives/runs/windows-change-45450283829-1/test-report.json. The Windows Python producer log has SHA-256 3face0bc62bd4e064fb63a4d54ef5118fc491e3c523c3a527200b80627b50cc7.",
       "observation": "The Windows Python producer ran 706 tests. All four local/shared compact capture cases reported 'Expected a plain directory for the linked timing index' during ordinary intake: complete local, partial local, complementary archives, and retry partial shared. The same-source Linux check had no failures.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-110"
       ],
@@ -5253,7 +5261,11 @@
           "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Comparing resolved path spellings rejected an ordinary directory alias.",
+        "correction": "Verify existing directory components and reject redirected paths while allowing ordinary Windows aliases.",
+        "prevention": "Run alias and junction refusal cases in the protected Windows producer."
+      },
       "deferral_reason": null
     },
     {
@@ -5261,14 +5273,18 @@
       "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
       "observation": "The first ordinary CI query reported recovery even though collection indexed a second claimant for a linked report and returned no matching clock. An immediate read-only query reported the same report as conflicting and recovery as pending.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Ordinary CI read claims before collection and did not re-evaluate report identities acquired during that call.",
+        "correction": "Re-evaluate only relevant identities after collection and treat a second clockless claimant as a conflict immediately.",
+        "prevention": "Assert the same pending verdict on the first and repeated ordinary CI queries and preserve an unambiguous valid control."
+      },
       "deferral_reason": null
     },
     {
@@ -5276,14 +5292,18 @@
       "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
       "observation": "When every retained PR baseline identity had two claimants, the ordinary recovery comparison raised on an absent cutoff. The shared fallback discarded valid main-push recovery controls in both ordinary project status and CI.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "An event with no unambiguous linked observation attempted to compare a missing chronology cutoff.",
+        "correction": "Leave only the affected event pending and continue to evaluate independent event controls.",
+        "prevention": "Exercise an entirely conflicting PR alongside valid main-push recovery through ordinary status and CI."
+      },
       "deferral_reason": null
     }
   ]
