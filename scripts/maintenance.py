@@ -1,5 +1,6 @@
-"""Bound periodic review on the observations available to ordinary project commands."""
+"""Project periodic observations onto the facets they can actually establish."""
 
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 import re
 
@@ -11,18 +12,14 @@ REVIEW_SOURCES = {
     'worktrees-and-evidence': ('2026-11-21', 'pnpm project:worktree retirement'),
     'compatibility-and-recovery': ('2026-11-21', 'uv run python scripts/project.py observe-maintenance compatibility-and-recovery'),
 }
+POLICY_COMMAND = 'pnpm project:source project/delivery.json /scaffold_maintenance/periodic_reviews'
 COMPATIBILITY_BASELINE = 'contracts/reviews/2026-11-21-repository-maintenance.json'
-COMPATIBILITY_BOUNDARIES = {
-    'published-protocol': (('contracts/schemas/protocol.schema.json', 'contracts/generated'),
-                           ('generated-contracts', 'typescript-contracts',
-                            'rust-contracts-workers', 'python-contracts-workers')),
-    'rust-wire-consumer': (('crates/domain/src/wire.rs', 'crates/worker-host/src/python.rs'),
-                           ('rust-contracts-workers',)),
-    'python-wire-consumer': (('python/worker_runtime/protocol.py', 'python/worker_runtime/__main__.py'),
-                             ('python-types', 'python-contracts-workers')),
-    'workspace-migrations': (('crates/persistence',), ('state-migrations',)),
-    'verification-archive': (('scripts/timing.py', 'scripts/recovery.py', 'scripts/diagnostic_archive.py'),
-                             ('python-contracts-workers',)),
+CONSUMER_MODULES = {
+    'domain': ('rust-wire-consumer', ('rust-contracts-workers',)),
+    'worker-host': ('rust-wire-consumer', ('rust-contracts-workers',)),
+    'worker-runtime': ('python-wire-consumer', ('python-types', 'python-contracts-workers')),
+    'persistence': ('workspace-migrations', ('state-migrations',)),
+    'development-tooling': ('verification-archive', ('project-state', 'python-contracts-workers')),
 }
 
 
@@ -30,9 +27,36 @@ def in_scope(path, scopes):
     return any(path == scope.rstrip('/') or path.startswith(scope.rstrip('/') + '/') for scope in scopes)
 
 
-def compatibility_coverage(paths):
-    return {key: list(checks) for key, (scopes, checks) in COMPATIBILITY_BOUNDARIES.items()
-            if any(in_scope(path, scopes) for path in paths)}
+def compatibility_boundaries(paths, development, delivery):
+    """Account for actual changed sources under existing module and contract owners."""
+    named_data_owners = {row['owner'] for row in development.get('data_ownership', [])
+                         if row['owner'] not in {'ui', 'chart-adapter'}}
+    modules = [row for row in development.get('modules', [])
+               if row['id'] in CONSUMER_MODULES or row['id'] in named_data_owners]
+    protocol = next((row['checks'] for row in delivery['change_types'] if row['id'] == 'protocol'), [])
+    boundaries = {}
+    for path in paths:
+        if not path.endswith(('.rs', '.py', '.ts', '.js', '.mjs', '.json', '.sql', '.toml')):
+            continue
+        if {'tests', 'fixtures', 'examples', 'evidence'}.intersection(path.split('/')[:-1]):
+            continue
+        if in_scope(path, ('contracts/schemas', 'contracts/generated')) and protocol:
+            boundaries[path] = ('published-protocol', tuple(protocol))
+            continue
+        for module in modules:
+            if in_scope(path, module['paths']):
+                key = module['id']
+                boundaries[path] = CONSUMER_MODULES.get(key, (f'needs-classification:{key}', ()))
+                break
+    return boundaries
+
+
+def boundary_summary(boundaries):
+    results = {}
+    for path, (identity, checks) in sorted(boundaries.items()):
+        item = results.setdefault(identity, {'paths': [], 'checks': sorted(checks)})
+        item['paths'].append(path)
+    return results
 
 
 def utc(value):
@@ -52,86 +76,195 @@ def positive_id(value):
     return type(value) in {int, str} and re.fullmatch('[1-9][0-9]*', str(value)) is not None
 
 
-def inspect_evidence(review_id, data):
-    """Return the bounded projection of an existing command result and its observed outcome."""
-    if review_id == 'weekly-regression-continuity':
+def sha256(value):
+    return isinstance(value, str) and re.fullmatch('[a-f0-9]{64}', value) is not None
+
+
+def protective_settings(actual):
+    """Keep the inputs used by protection.violations, without actor names or URLs."""
+    checks = actual.get('required_status_checks') or {}
+    review = actual.get('required_pull_request_reviews')
+    if isinstance(review, dict):
+        review = {
+            'dismiss_stale_reviews': review.get('dismiss_stale_reviews') is True,
+            'required_approving_review_count': int(review['required_approving_review_count']),
+            'bypass_pull_request_allowances': {'configured': any((review.get('bypass_pull_request_allowances') or {}).values())},
+        }
+    else:
+        review = None
+    def enabled(key):
+        value = (actual.get(key) or {}).get('enabled')
+        return value if type(value) is bool else None
+
+    return {
+        'required_status_checks': {
+            'strict': checks.get('strict') is True,
+            'checks': [{'context': item['context'], 'app_id': item['app_id']} for item in checks.get('checks', [])],
+        },
+        'required_pull_request_reviews': review,
+        **{key: {'enabled': enabled(key)}
+           for key in ('enforce_admins', 'allow_force_pushes', 'allow_deletions', 'required_conversation_resolution')},
+    }
+
+
+def prepare_facts(key, data, source, input_digests, policy, protection=None):
+    """Retain only the source observations needed to independently derive the public claim."""
+    clock = data['recent_collection']['collected_at'] if key == 'verification-timing' else data['observed_at']
+    facts = {'observed_at': utc(clock).isoformat(), 'source_commit': source, 'input_sha256': input_digests}
+    if key == 'weekly-regression-continuity':
         weekly = data['weekly_regression']
-        status, run = weekly['status'], weekly['run']
-        if status not in {'passed', 'failed', 'missing', 'blocked'}:
-            raise ValueError('Expected an observed scheduled verification status.')
-        if not run and status != 'missing':
-            raise ValueError('Expected the exact scheduled workflow run.')
+        run = weekly['run']
+        facts.update(repository=data['repository'], status=weekly['status'], run={
+            name: run[name] for name in ('id', 'run_attempt', 'event', 'head_sha', 'head_branch', 'created_at',
+                                        'status', 'conclusion')
+        } if run else None)
+    elif key == 'verification-timing':
+        fields = ('repository', 'event', 'profile', 'platform', 'sample_count', 'recent_runs', 'recent_objective_breaches')
+        facts.update(scopes=[{name: item[name] for name in fields} for item in data['objective_reviews']
+                             if item['event'] in {'pull_request', 'push'} and item['profile'] == 'full'
+                             and item['sample_count'] >= 3],
+                     captured_runs=data['recent_collection'].get('collected_run_ids', []),
+                     input_complete=not data['input_issues'],
+                     adverse=bool(data['budget_follow_up']['repeated_breaches'] or data['budget_follow_up']['sustained_growth']))
+    elif key == 'branches-and-pull-requests':
+        branches = data['branches']
+        pulls = data['open_pull_requests']
+        live = next((branch for branch in branches if branch['status'] == 'default'), {})
+        if live.get('sha') != source or live.get('name') != data['default_branch']['name']:
+            raise ValueError('Branch inventory is missing the observed default branch row.')
+        observed = None
+        if protection:
+            observed = {name: protection[name] for name in ('repository', 'branch', 'observed_at')}
+            observed.update(branch_sha=protection.get('branch_sha'),
+                            settings=protective_settings(protection['observed']))
+            # A required context comes from the policy. Extra private labels do not leave the input.
+            expected_contexts = {check['context'] for check in policy['configuration']['required_status_checks']['checks']}
+            checks = observed['settings']['required_status_checks']
+            checks['checks'] = [check for check in checks['checks'] if check['context'] in expected_contexts]
+        facts.update(repository=data['repository'], branch=data['default_branch']['name'],
+                     branch_statuses=sorted(row['status'] for row in branches),
+                     pull_statuses=sorted(row['status'] for row in pulls), protected=live.get('protected'),
+                     delete_branch_on_merge=data['delete_branch_on_merge'],
+                     inventory_complete=not data['errors'], protection=observed)
+    elif key == 'worktrees-and-evidence':
+        rows = data['worktrees']
+        facts.update(integration_ref=data['integration_ref'],
+                     row_states=sorted(row['state'] for row in rows),
+                     holds=sorted({hold for row in rows for hold in row['holds']}),
+                     archive_configured=bool(data['archive_root']), archive_error=bool(data['archive_error']),
+                     activity_complete=not data['activity_issues'])
+    else:
+        raise ValueError('Unknown periodic review.')
+    return facts
+
+
+def project_facts(key, facts, policy, protection_violations):
+    fields = {
+        'weekly-regression-continuity': {'repository', 'status', 'run'},
+        'verification-timing': {'scopes', 'captured_runs', 'input_complete', 'adverse'},
+        'branches-and-pull-requests': {'repository', 'branch', 'branch_statuses', 'pull_statuses', 'protected',
+                                       'delete_branch_on_merge', 'inventory_complete', 'protection'},
+        'worktrees-and-evidence': {'integration_ref', 'row_states', 'holds', 'archive_configured',
+                                   'archive_error', 'activity_complete'},
+    }
+    if set(facts) != fields[key] | {'observed_at', 'source_commit', 'input_sha256'}:
+        raise ValueError('Expected the canonical public observation fields.')
+    observed = utc(facts['observed_at'])
+    source = facts['source_commit']
+    digests = facts['input_sha256']
+    if not git_commit(source) or len(digests) not in {1, 2} or not all(sha256(value) for value in digests):
+        raise ValueError('Expected bounded observation identity and input digests.')
+    pending = []
+    adverse = False
+    identity = [facts['observed_at']]
+    if key == 'weekly-regression-continuity':
+        run = facts['run']
+        if facts['repository'] != policy['repository'] or (run and run['head_branch'] != policy['branch']):
+            raise ValueError('Weekly verification belongs to another repository or branch.')
+        status = facts['status']
+        if status not in {'passed', 'failed', 'blocked', 'missing'}:
+            raise ValueError('Scheduled verification is unavailable.')
         if run:
-            if (not positive_id(run['id']) or not positive_id(run['run_attempt'])
-                    or run['event'] != 'schedule' or not git_commit(run['head_sha'])):
-                raise ValueError('Expected an exact scheduled workflow identity.')
-            run = {key: run[key] for key in
-                   ('id', 'run_attempt', 'head_sha', 'event', 'created_at', 'status', 'conclusion')}
-            if status == 'passed' and (run['status'], run['conclusion']) != ('completed', 'success'):
-                raise ValueError('A passed scheduled review needs a successful run.')
-        timestamp = utc(data['observed_at'])
-        age = timestamp - utc(run['created_at']) if run else None
-        if age is not None and age < timedelta(0):
-            raise ValueError('A scheduled run cannot occur after its observation.')
-        attention = status != 'passed' or age > timedelta(days=8)
-        identity = [run['id'], run['run_attempt']] if run else ['missing', data['observed_at']]
-        return {'observed_at': data['observed_at'], 'weekly_regression': {'status': status, 'run': run}}, identity, attention
-    if review_id == 'verification-timing':
-        # A timed window, unlike an empty or unusable collection, can support a disposition.
-        scopes = []
-        for item in data['objective_reviews']:
-            if item['event'] not in {'pull_request', 'push'} or item['profile'] != 'full' or item['sample_count'] < 3:
-                continue
+            if (not positive_id(run['id']) or not positive_id(run['run_attempt']) or run['head_sha'] != source
+                    or run['event'] != 'schedule'):
+                raise ValueError('Expected the exact scheduled protected run.')
+            actual = ('blocked' if run['status'] != 'completed' else
+                      'passed' if run['conclusion'] == 'success' else 'failed')
+            age = observed - utc(run['created_at'])
+            if actual != status or age < timedelta(0):
+                raise ValueError('Weekly status and clock must match the scheduled run.')
+            adverse = status != 'passed' or age > timedelta(days=8)
+            identity = [run['id'], run['run_attempt']]
+        else:
+            if status != 'missing':
+                raise ValueError('Expected the exact scheduled run.')
+            adverse = True
+        evidence = {'weekly_regression': {'status': status, 'run': run}}
+    elif key == 'verification-timing':
+        scopes = facts['scopes']
+        captured = facts['captured_runs']
+        if (len(scopes) > 32 or len(captured) > 64 or not all(positive_id(run) for run in captured)):
+            raise ValueError('Expected a bounded timing collection.')
+        refreshed = set()
+        for item in scopes:
             runs = item['recent_runs']
-            if (len(runs) != 3 or len(set(runs)) != 3 or not all(positive_id(run) for run in runs)
-                    or item['platform'] not in {'Linux', 'Windows'}):
-                raise ValueError('Expected three distinct ordinary hosted run identities.')
-            scopes.append({key: item[key] for key in
-                           ('event', 'profile', 'platform', 'sample_count', 'recent_runs', 'recent_objective_breaches')})
-        if not scopes or len(scopes) > 8 or data['input_issues']:
-            raise ValueError('A timing review requires usable comparable observations.')
-        budget = data['budget_follow_up']
-        attention = bool(budget['repeated_breaches'] or budget['sustained_growth']
-                         or any(scope['recent_objective_breaches'] >= 2 for scope in scopes))
-        # Compact scope findings are retained as flags. Run identities remain exact.
-        return {'observed_at': data['observed_at'], 'objective_reviews': scopes, 'input_issues': [],
-                'budget_follow_up': {key: bool(budget[key]) for key in ('repeated_breaches', 'sustained_growth')},
-                }, sorted({str(run) for item in scopes for run in item['recent_runs']}), attention
-    if review_id == 'branches-and-pull-requests':
-        default = data['default_branch']
-        summary = data['summary']
-        if (not git_commit(default['sha']) or not summary['branches']
-                or not isinstance(summary['open_pull_requests'], dict)
-                or data['status'] not in {'passed', 'failed'}
-                or data['delete_branch_on_merge'] not in {True, False}):
-            raise ValueError('Expected an observed branch and pull-request inventory.')
-        for counts in summary.values():
-            if not isinstance(counts, dict) or any(type(n) is not int or n < 0 for n in counts.values()):
-                raise ValueError('Invalid branch inventory counts.')
-        attention = data['status'] != 'passed' or not data['delete_branch_on_merge']
-        return {key: data[key] for key in ('observed_at', 'status', 'default_branch', 'summary',
-                                          'delete_branch_on_merge')}, [data['observed_at']], attention
-    if review_id == 'worktrees-and-evidence':
-        if not git_commit(data['integration_tip']) or not isinstance(data['worktrees'], list) or not data['worktrees']:
-            raise ValueError('Expected a registered worktree and evidence inventory.')
-        if len(data['worktrees']) > 1024:
-            raise ValueError('Too many worktree rows in a review.')
-        rows = []
-        serious = False
-        for row in data['worktrees']:
-            if row['state'] not in {'held', 'candidate'} or not isinstance(row['holds'], list):
-                raise ValueError('Invalid worktree disposition.')
-            holds = row['holds']
-            serious |= any('evidence' in hold or 'archive' in hold for hold in holds)
-            rows.append({'state': row['state'], 'holds': holds})
-        error = bool(data['archive_error'] or data['activity_issues'])
-        return {'observed_at': data['observed_at'], 'integration_tip': data['integration_tip'],
-                'worktrees': rows, 'archive_error': error, 'activity_issues': []}, [data['observed_at']], error or serious
-    if review_id == 'compatibility-and-recovery':
-        if data['observations']:
-            return data, sorted(item['receipt'] for item in data['observations']), False
-        return data, [data['compared_from'], data['observed_at']], False
-    raise ValueError('Unknown periodic review.')
+            if (item['repository'] != policy['repository'] or item['profile'] != 'full' or
+                    item['platform'] not in {'Linux', 'Windows'} or item['event'] not in {'pull_request', 'push'}
+                    or len(runs) != 3 or len(set(runs)) != 3 or not all(positive_id(run) for run in runs)):
+                raise ValueError('Timing scope does not match ordinary protected repository verification.')
+            if set(map(str, runs)).intersection(map(str, captured)):
+                refreshed.add((item['platform'], item['event']))
+        pending = [f'{platform} {event}' for platform in ('Linux', 'Windows') for event in ('pull_request', 'push')
+                   if (platform, event) not in refreshed]
+        if not facts['input_complete']:
+            pending.append('complete timing inputs')
+        adverse = facts['adverse'] or any(item['recent_objective_breaches'] >= 2 for item in scopes)
+        identity = sorted({str(run) for item in scopes for run in item['recent_runs']})
+        evidence = {'objective_reviews': scopes}
+    elif key == 'branches-and-pull-requests':
+        if facts['repository'] != policy['repository'] or facts['branch'] != policy['branch']:
+            raise ValueError('Branch inventory belongs to another repository or branch.')
+        branches, pulls = facts['branch_statuses'], facts['pull_statuses']
+        if (len(branches) + len(pulls) > 2048 or branches.count('default') != 1 or
+                any(value not in {'default', 'protected', 'in_use', 'reachable_unreferenced', 'unique_history', 'uncertain'}
+                    for value in branches) or
+                any(value not in {'fork_head', 'already_integrated', 'outside_default_history', 'uncertain'}
+                    for value in pulls)):
+            raise ValueError('Expected bounded canonical inventory classifications.')
+        if (not facts['inventory_complete'] or 'uncertain' in branches or 'uncertain' in pulls
+                or facts['protected'] is None or facts['delete_branch_on_merge'] is None):
+            pending.append('complete branch and pull-request inventory')
+        protection = facts['protection']
+        if protection and (protection['repository'], protection['branch']) != (policy['repository'], policy['branch']):
+            raise ValueError('Protection observation belongs to another repository or branch.')
+        protection_bound = bool(protection and protection['branch_sha'] == source and
+                                abs(utc(protection['observed_at']) - observed) <= timedelta(days=1))
+        if not protection_bound:
+            pending.append('effective protection at the inventoried revision')
+        adverse = bool(facts['protected'] is False or facts['delete_branch_on_merge'] is False or
+                       (protection_bound and protection_violations(protection['settings'], policy['configuration'])))
+        evidence = {'default_branch': {'name': facts['branch'], 'sha': source},
+                    'summary': {'branches': dict(Counter(branches)), 'open_pull_requests': dict(Counter(pulls))},
+                    'protection_observed': protection_bound, 'delete_branch_on_merge': facts['delete_branch_on_merge']}
+    elif key == 'worktrees-and-evidence':
+        if facts['integration_ref'] != 'refs/remotes/origin/' + policy['branch']:
+            raise ValueError('Worktree inventory belongs to another integration ref.')
+        states, holds = facts['row_states'], facts['holds']
+        if (not states or len(states) > 1024 or set(states) - {'held', 'candidate'} or len(holds) > 64
+                or any(not re.fullmatch('[a-z_]{1,64}', hold) for hold in holds)):
+            raise ValueError('Expected bounded worktree dispositions.')
+        if not facts['activity_complete'] or any(re.search(r'(incomplete|unavailable|unverified|changed)$', hold)
+                                                for hold in holds):
+            pending.append('complete worktree, process and checkout observations')
+        if not facts['archive_configured'] or facts['archive_error']:
+            pending.append('available evidence archive')
+        # Retirement observes registered worktrees, not the independently owned staging scope.
+        pending.append('project-owned staging outside registered worktrees')
+        adverse = 'unretained_local_evidence' in holds
+        evidence = {'integration_tip': source, 'dispositions': dict(Counter(states)), 'holds': holds}
+    else:
+        raise ValueError('Unknown periodic review.')
+    return {**evidence, 'pending': pending}, identity, adverse
 
 
 def periodic_records(delivery):

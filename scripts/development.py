@@ -333,7 +333,8 @@ def project_overview(state):
     retained = state.get('retained_failures', {})
     retained_count = retained.get('matching_inputs', {}).get('count')
     reviews = [review for review in state['periodic_reviews'] if review.get('state')]
-    attention = ['evidence_missing', 'evidence_invalid', 'recheck_needed', 'owned_action', 'checks_needed', 'due']
+    attention = ['evidence_missing', 'evidence_invalid', 'recheck_needed', 'owned_action', 'checks_needed',
+                 'policy_needed', 'due']
     first = next((review for status in attention for review in reviews if review['state'] == status), None)
     if first is None:
         first = next((review for review in reviews if review['review_due']), None)
@@ -344,28 +345,42 @@ def project_overview(state):
                  'problem', 'report_sha256') if key in review}
 
     context = f'pnpm project:context {focus["id"]}' if focus else 'pnpm project:brief'
-    actionable_tasks = set(state['active_task_ids'])
-    owned = next(((finding, task) for severity in ('critical', 'major')
-                  for finding in state['unresolved_feedback']
-                  if finding['severity'] == severity and finding['status'] == 'open'
-                  for task in finding['task_ids'] if task in actionable_tasks), None)
-    if first and first['state'] in {'evidence_missing', 'evidence_invalid'}:
-        next_action = action(first)
-    elif owned:
-        finding, task = owned
-        next_action = {'id': finding['id'], 'state': 'owned_action', 'owner': 'development AI',
-                       'trigger': 'Open assigned ' + finding['severity'] + ' feedback',
-                       'command': f'pnpm project:context {task} --phase verify'}
-    elif first:
-        next_action = action(first)
-    elif retained_count:
-        next_action = {'owner': 'development AI', 'trigger': 'Retained failure on matching inputs',
-                       'command': 'pnpm project:status'}
-    elif state['feedback_needing_assignment']:
-        next_action = {'id': state['feedback_needing_assignment'][0], 'owner': 'development AI',
-                       'trigger': 'Unassigned feedback', 'command': 'pnpm project:status'}
-    else:
-        next_action = {'owner': 'development AI', 'command': context}
+    active = set(state['active_task_ids'])
+    ready = set(state['ready_task_ids'])
+    completed = set(state['completed_task_ids'])
+    unassigned = set(state['feedback_needing_assignment'])
+
+    def finding_action(finding):
+        identity = finding['id']
+        candidates = [task for task in finding['task_ids'] if task not in completed]
+        task = next((task for task in candidates if task in active or task in ready), None)
+        status = 'owned_action' if task else 'planned_follow_through'
+        if identity in unassigned or not candidates:
+            status = 'assignment_needed'
+            command = 'pnpm project:source project/feedback.json /items'
+        else:
+            phase = ' --phase verify' if task else ''
+            command = f'pnpm project:context {task or candidates[0]}{phase}'
+        return {'id': identity, 'state': status, 'owner': 'development AI',
+                'trigger': 'Open ' + finding['severity'] + ' feedback', 'command': command}
+
+    opened = [finding for finding in state['unresolved_feedback'] if finding['status'] == 'open']
+    critical = next((finding_action(finding) for finding in opened if finding['severity'] == 'critical'), None)
+    owned = next((finding_action(finding) for finding in opened if finding['severity'] == 'major'
+                  and active.intersection(finding['task_ids'])), None)
+    failure = None
+    if retained_count:
+        original = next(iter(retained['matching_inputs'].get('items', [])), {})
+        failure = {'owner': 'development AI', 'state': 'retained_failure',
+                   'trigger': 'Retained failure on matching inputs', 'command': 'pnpm project:status --detail'}
+        if report := original.get('report'):
+            failure.update(id=original['check_id'], command='pnpm project:diagnostic identify ' + report)
+    missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid'} else None
+    needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
+    next_action = (critical or failure or missing or owned or (action(first) if first else None)
+                   or needs_assignment or {'owner': 'development AI', 'command': context})
+    other_urgent = next((candidate for candidate in (critical, failure, missing, owned)
+                         if candidate and candidate != next_action), None)
     calendar = next((review for review in reviews if review['review_due']
                      and review['state'] not in {'evidence_missing', 'evidence_invalid'}), None)
     maintenance_action = first if first and first['id'] != next_action.get('id') else calendar
@@ -395,8 +410,10 @@ def project_overview(state):
                         'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due'),
                         'follow_through': additional},
         'next': next_action,
+        'also_urgent': other_urgent,
         'details': {'delivery': 'pnpm project:brief', 'focused_work': context,
-                    'status': 'pnpm project:status', 'receipts': 'pnpm project:status --detail'},
+                    'status': 'pnpm project:status', 'receipts': 'pnpm project:status --detail',
+                    'modules': 'pnpm project:source project/development.json /modules'},
     }
 
 

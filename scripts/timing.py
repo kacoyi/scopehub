@@ -1855,6 +1855,7 @@ def inspect_recent(repository, limit, samples, workflows, issues):
     return {'collected_at': datetime.now(timezone.utc).isoformat(),
             'limit_per_event': limit, 'completed_runs_considered': len(runs),
             'runs_with_compact': len(with_compact), 'runs_without_compact': len(without_compact),
+            'collected_run_ids': with_compact,
             'missing_compact_run_ids': without_compact,
             'unsuccessful_runs': sum(run.get('conclusion') != 'success' for run in runs),
             'cold_bootstrap': not with_compact and len(issues) == starting_issues}

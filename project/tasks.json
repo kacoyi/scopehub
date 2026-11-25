@@ -24046,6 +24046,8 @@
         "project/tasks.json",
         "project/feedback.json",
         "scripts/maintenance.py",
+        "scripts/protection.py",
+        "tests/project/test_protection.py",
         ".github/workflows/verify.yml",
         "scripts/ci.py",
         "scripts/timing.py",
