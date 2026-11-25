@@ -23842,7 +23842,12 @@
           "report_sha256": "87d66e0a3b5a30873da2f85541b3f85dccffa894d95a7dbcb63e4899f0f327e3"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-127-f5bec212cb487829.json",
+          "sha256": "b6e8a4a9ec259b3348477ef030404e616668a1a7139c9fac38c2e2eaf4c72ca2"
+        }
+      ],
       "next_action": "Retained save-cost and restore replays in archives/observations/repo-hygiene-20261125/m0-127-cache-cost-20261125.2UlyKy/SHA256SUMS (SHA-256 c6d9716349abec57146c10bd7e3d1e8a72aae42b05bff4d031d5af8dc10bcead). The larger controlled replay did not support faster compression and hosted verification disables incremental compilation. At the next natural Windows ordinary full partial-cache main push, inspect which producer is critical and collect read-only cache payload composition when available. Require native restore and warm-build evidence before changing the retained payload. Keep the 900-second hosted recovery pending.",
       "blocker": null,
       "closure_reason": null,
@@ -23964,7 +23969,12 @@
           "report_sha256": "f461303d4fb42a167ed82133cd844274579c2009bdd7514330c1f35fc200960e"
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-128-c1945bbdb6bada30.json",
+          "sha256": "6e221c667e45cbd571e79895ca1f90a18b474fcc149bcbb804f5c5e857cbce4d"
+        }
+      ],
       "next_action": "At ordinary PR verification intake, compare the next naturally occurring first-attempt full partial-cache Windows PR, preferably from a different Cargo key transition, and exact-hit controls under the same coverage. Assign a correction only if a repeatable controllable stage is identified.",
       "blocker": null,
       "closure_reason": null,
