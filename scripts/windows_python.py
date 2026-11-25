@@ -1,10 +1,11 @@
 """Run and combine the two ordered parts of ordinary Windows PR Python discovery."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import math
 import os
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -17,6 +18,16 @@ PROGRESS_END = b'=== ScopeHub Python part: unittest diagnostics ==='
 DIAGNOSTICS_END = b'=== ScopeHub Python part: unittest summary ==='
 COUNTS = ('failures', 'errors', 'skipped', 'expectedFailures', 'unexpectedSuccesses')
 FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
+# The two clocks and the unittest total are rendered independently to milliseconds.
+CLOCK_ROUNDING = .002
+SEPARATOR = b'-' * 70
+DISPLAY = re.compile(rb'^([^\s()]+ \([^\s()]+\))(?= \.\.\. |\r?\n[^\r\n]* \.\.\. )', re.M)
+SUBTEST = re.compile(rb'^[ \t]+[^ \t].* \.\.\. (FAIL|ERROR|skipped .+)$')
+SUMMARY = re.compile(rb'Ran (0|[1-9][0-9]*) test(s?) in ([0-9]+\.[0-9]{3})s')
+RESULT_COUNTS = {b'FAIL': 'failures', b'ERROR': 'errors', b'expected failure': 'expectedFailures',
+                 b'unexpected success': 'unexpectedSuccesses'}
+COUNT_NAMES = {'expectedFailures': 'expected failures', 'unexpectedSuccesses': 'unexpected successes'}
+FIXTURE_EVENTS = (b'setUpClass (', b'setUpModule (', b'tearDownClass (', b'tearDownModule (')
 
 
 def enabled(project, ci, selected):
@@ -33,7 +44,7 @@ def command(python, lane):
 
 
 def partition(inventory):
-    if (not isinstance(inventory, list) or not all(isinstance(case, str) and len(case) > 2 for case in inventory)
+    if (not isinstance(inventory, list) or not inventory or not all(isinstance(case, str) and len(case) > 2 for case in inventory)
             or len(inventory) != len(set(inventory))):
         raise ValueError('Python discovery has invalid or duplicate test IDs.')
     # Unittest represents discovery errors and module skips as test cases of its own.
@@ -46,11 +57,8 @@ def partition(inventory):
                 break
         else:
             modules.append(case.rsplit('.', 2)[0])
-    boundary = next((i for i, module in enumerate(modules) if module == CUTOFF), 0)
-    if not boundary:
-        raise ValueError('Windows Python discovery is missing its partition boundary.')
-    if any(module >= CUTOFF for module in modules[:boundary]) or any(
-            module < CUTOFF for module in modules[boundary:]):
+    boundary = next((i for i, module in enumerate(modules) if module >= CUTOFF), len(modules))
+    if any(module < CUTOFF for module in modules[boundary:]):
         raise ValueError('Windows Python discovery is not ordered by module at the partition boundary.')
     return dict(zip(LANES, (inventory[:boundary], inventory[boundary:]), strict=True))
 
@@ -133,6 +141,8 @@ def verify_manifest(manifest, lane, passed):
                 or not all(isinstance(value, str) for value in case[:2])
                 or type(case[3]) is not bool or case[4] is not True):
             raise ValueError('Incomplete Windows Python case outcome.')
+        if not case[1].endswith(f' ({case[0]})'):
+            raise ValueError('Windows Python unittest display differs from its discovered test ID.')
         elapsed = case[2]
         if elapsed is None and not case[3] or elapsed is not None and (
                 type(elapsed) not in (int, float) or not math.isfinite(elapsed) or elapsed < 0):
@@ -166,25 +176,125 @@ def log_sections(raw):
     second = [index for index, line in enumerate(lines) if line.rstrip(b'\r\n') == DIAGNOSTICS_END]
     if len(first) != 1 or len(second) != 1 or first[0] >= second[0]:
         raise ValueError('Windows Python part has incomplete or ambiguous unittest output.')
-    return b''.join(lines[:first[0]]), b''.join(lines[first[0] + 1:second[0]])
+    return (b''.join(lines[:first[0]]), b''.join(lines[first[0] + 1:second[0]]),
+            lines[second[0] + 1:])
+
+
+def unittest_verdict(counts, tests_run):
+    status = b'FAILED' if any(counts[key] for key in FAILURES) else b'OK'
+    if status == b'OK' and not tests_run and not counts['skipped']:
+        status = b'NO TESTS RAN'
+    detail = ', '.join(f'{COUNT_NAMES.get(key, key)}={counts[key]}' for key in COUNTS if counts[key])
+    return status + (f' ({detail})'.encode('ascii') if detail else b'')
+
+
+def verify_progress(progress, manifest):
+    """Bind the raw verbose test results, including synthetic unittest fixture events."""
+    rows = list(DISPLAY.finditer(progress))
+    cases, fixture_skips = [], []
+    counts = dict.fromkeys(COUNTS, 0)
+    for i, row in enumerate(rows):
+        label = row[1]
+        stop = rows[i + 1].start() if i + 1 < len(rows) else len(progress)
+        _, _, output = progress[row.end():stop].partition(b' ... ')
+        lines = output.splitlines()
+        main = [line for line in lines if line == b'ok' or line in RESULT_COUNTS or line.startswith(b'skipped ')]
+        subtests = [match[1] for line in lines if (match := SUBTEST.fullmatch(line))]
+        if len(main) > 1 or not (main or subtests):
+            raise ValueError('Original unittest output has an incomplete or ambiguous test outcome.')
+        skipped = bool(main and main[0].startswith(b'skipped '))
+        for outcome in main + subtests:
+            if outcome.startswith(b'skipped '):
+                counts['skipped'] += 1
+            elif outcome in RESULT_COUNTS:
+                counts[RESULT_COUNTS[outcome]] += 1
+        if label.startswith(FIXTURE_EVENTS):
+            if skipped and label.startswith(FIXTURE_EVENTS[:2]):
+                fixture_skips.append(label)
+        else:
+            cases.append((label, skipped))
+    reported = [(display.encode('utf-8'), skipped) for _, display, _, skipped, _ in manifest['cases']]
+    reported_skips = [fixture.encode('utf-8') for fixture in manifest['fixture_skips']]
+    if cases != reported or fixture_skips != reported_skips or counts != manifest['counts']:
+        raise ValueError('Original unittest ordered outcomes or skips differ from the case manifest.')
+
+
+def case_times(manifests):
+    return sorted(((name, elapsed) for manifest in manifests
+                   for _, name, elapsed, _, _ in manifest['cases'] if elapsed is not None),
+                  key=lambda row: row[1], reverse=True)
+
+
+def duration_lines(durations):
+    if not durations:
+        return []
+    return [b'Slowest test durations', SEPARATOR,
+            *(f'{elapsed:.3f}s'.ljust(10).encode('ascii') + b' ' + name.encode('utf-8')
+              for name, elapsed in durations), b'']
+
+
+def process_interval(record):
+    clock = datetime.fromisoformat(record['started_at'])
+    duration = record['duration_seconds']
+    if (clock.utcoffset() is None or type(duration) not in (int, float) or not math.isfinite(duration)
+            or not 0 <= duration <= timedelta.max.total_seconds()):
+        raise ValueError('Invalid Windows Python process clock or duration.')
+    try:
+        return clock, clock + timedelta(seconds=duration)
+    except (OverflowError, ValueError) as error:
+        raise ValueError('Invalid Windows Python process clock interval.') from error
+
+
+def verify_original(record, raw, manifest, lane):
+    passed = record['status'] == 'passed'
+    verify_manifest(manifest, lane, passed)
+    progress, details, tail = log_sections(raw)
+    verify_progress(progress, manifest)
+    counts = manifest['counts']
+    for heading, key in ((b'FAIL: ', 'failures'), (b'ERROR: ', 'errors'),
+                         (b'UNEXPECTED SUCCESS: ', 'unexpectedSuccesses')):
+        if sum(line.startswith(heading) for line in details.splitlines()) != counts[key]:
+            raise ValueError('Original unittest failure diagnostics differ from the case manifest.')
+    durations = case_times([manifest])
+    lines = [line.rstrip(b'\r\n') for line in tail]
+    before_summary = [*duration_lines(durations), SEPARATOR]
+    offset = len(before_summary)
+    if lines[:offset] != before_summary:
+        raise ValueError('Original unittest case durations differ from the case manifest.')
+    summary = SUMMARY.fullmatch(lines[offset]) if len(lines) >= offset + 3 else None
+    count = len(manifest['cases'])
+    verdict = unittest_verdict(counts, count)
+    if (not summary or int(summary[1]) != count or bool(summary[2]) != (count != 1)
+            or lines[offset + 1:offset + 3] != [b'', verdict]):
+        raise ValueError('Original unittest run count or terminal verdict differs from the case manifest.')
+    runner_seconds = float(summary[3])
+    start, end = process_interval(record)
+    if (not math.isfinite(runner_seconds)
+            or runner_seconds > (end - start).total_seconds() + CLOCK_ROUNDING
+            or sum(elapsed for _, elapsed in durations) > runner_seconds + CLOCK_ROUNDING):
+        raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
+    trailer = b''.join(tail[offset + 3:])
+    if (trailer.strip() and not record.get('reason_code')
+            or not record.get('reason_code') and record.get('exit_code') != int(verdict.startswith(b'FAILED'))):
+        raise ValueError('Original unittest verdict does not match the process result.')
+    return progress, details + trailer
 
 
 def elapsed_seconds(parts):
-    times = [(datetime.fromisoformat(record['started_at']).timestamp(), record['duration_seconds'])
-             for record, _, _ in parts if 'started_at' in record]
-    return round(max(start + length for start, length in times) - min(start for start, _ in times), 3) if times else 0
+    times = [process_interval(record) for record, _, _ in parts if 'started_at' in record]
+    return round((max(end for _, end in times) - min(start for start, _ in times)).total_seconds(), 3) if times else 0
 
 
 def combine(parts):
     """Build the canonical check log and verdict. Original producer logs stay separate."""
-    completed = []
+    completed, outputs = [], []
     result = 'passed'
     for lane, (record, raw, manifest) in zip(LANES, parts, strict=True):
         passed = record['status'] == 'passed'
         if not passed:
             result = 'failed'
         if manifest is not None:
-            verify_manifest(manifest, lane, passed)
+            outputs.append(verify_original(record, raw, manifest, lane))
             completed.append(manifest)
         elif passed:
             raise ValueError('Successful Windows Python part has no case manifest.')
@@ -195,26 +305,19 @@ def combine(parts):
                        for lane, (_, raw, _) in zip(LANES, parts, strict=True))
         return result, log
 
-    outputs = [log_sections(raw) for _, raw, _ in parts]
     progress = b''.join(lines for lines, _ in outputs)
     details = b''.join(lines for _, lines in outputs)
-    durations = sorted(((name, elapsed) for manifest in completed
-                        for _, name, elapsed, _, _ in manifest['cases'] if elapsed is not None),
-                       key=lambda row: row[1], reverse=True)
-    summary = []
-    if durations:
-        summary.append('Slowest test durations\n----------------------------------------------------------------------\n')
-        summary.extend(f'{elapsed:.3f}s'.ljust(10) + f' {name}\n' for name, elapsed in durations)
-        summary.append('\n')
     count = sum(len(manifest['cases']) for manifest in completed)
     elapsed = elapsed_seconds(parts)
-    summary.append(f'\n----------------------------------------------------------------------\nRan {count} tests in {elapsed:.3f}s\n\n')
-    totals = [(key, sum(manifest['counts'][key] for manifest in completed)) for key in COUNTS]
-    names = {'expectedFailures': 'expected failures', 'unexpectedSuccesses': 'unexpected successes'}
-    annotations = ', '.join(f'{names.get(key, key)}={value}' for key, value in totals if value)
-    outcome = 'OK' if result == 'passed' else 'FAILED'
-    summary.append(outcome + (f' ({annotations})' if annotations else '') + '\n')
-    return result, progress + details + ''.join(summary).encode('utf-8')
+    totals = {key: sum(manifest['counts'][key] for manifest in completed) for key in COUNTS}
+    verdict = unittest_verdict(totals, count)
+    if result == 'failed' and verdict.startswith(b'OK'):
+        verdict = b'FAILED (part process did not complete successfully)'
+    times = duration_lines(case_times(completed))
+    summary = [*times, b'', SEPARATOR,
+               f'Ran {count} test{"s" if count != 1 else ""} in {elapsed:.3f}s'.encode('ascii'), b'', verdict]
+    return result, progress + details + b'\n'.join(summary) + b'\n'
+
 
 
 if __name__ == '__main__':

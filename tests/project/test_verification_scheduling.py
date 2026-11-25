@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, redirect_stdout
+from copy import deepcopy
 from io import StringIO
 import json
 import os
@@ -512,7 +513,7 @@ class WindowsLaneTests(ProjectFixture):
             shutil.rmtree(self.reports)
         return reports
 
-    def partition_fixture(self):
+    def partition_fixture(self, discovery=None):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)['command'] = windows_python.COMMAND
@@ -530,13 +531,24 @@ class WindowsLaneTests(ProjectFixture):
             '    @unittest.skip("intentional fixture skip")\n'
             '    def test_skipped(self): pass\n', encoding='utf-8')
         (self.root / 'tests/project/test_verification_scope.py').write_text(
-            'import os, unittest\n'
+            'import os, time, unittest\n'
             'if "SCOPEHUB_BROKEN_PYTHON_IMPORT" in os.environ:\n'
             '    raise RuntimeError("rejected actual suffix import")\n'
             'class Second(unittest.TestCase):\n'
             '    def test_suffix(self):\n'
+            '        time.sleep(0.015)\n'
             '        self.assertNotIn("SCOPEHUB_BAD_PYTHON", os.environ, "rejected actual suffix fixture")\n',
             encoding='utf-8')
+
+        if discovery == 'empty_boundary':
+            (self.root / 'tests/project/test_verification_scope.py').write_bytes(b'')
+            (self.root / 'tests/project/test_worktree.py').write_text(
+                'import unittest\n'
+                'class After(unittest.TestCase):\n'
+                '    def test_after_boundary(self): self.assertTrue(True)\n', encoding='utf-8')
+        elif discovery == 'package_error':
+            (self.root / 'tests/project/__init__.py').write_text(
+                'raise RuntimeError("rejected package import")\n', encoding='utf-8')
 
         def git(*args):
             return subprocess.check_output(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org',
@@ -554,9 +566,13 @@ class WindowsLaneTests(ProjectFixture):
 
     def test_partitioned_python_keeps_catalog_and_publishes_ordered_raw_evidence(self):
         self.partition_fixture()
-        lanes = self.produce()
+        with patch.object(harness, 'execute', wraps=harness.execute) as execute:
+            lanes = self.produce()
         self.assertEqual([], lanes['python']['selection']['checks'])
-        self.assertEqual(['market-recovery'], lanes['recovery']['selection']['checks'])
+        recovery_checks = ['market-recovery', 'market-recovery-ui']
+        self.assertEqual(recovery_checks, lanes['recovery']['selection']['checks'])
+        self.assertEqual(recovery_checks, [call.args[0] for call in execute.call_args_list
+                                           if call.args[0] in recovery_checks])
         code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         self.assertEqual(0, code)
         self.assertEqual([row['id'] for row in lanes['core']['checks']], [row['id'] for row in report['checks']])
@@ -662,6 +678,116 @@ class WindowsLaneTests(ProjectFixture):
             target.write_bytes(json_bytes(producer))
         with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected Windows Python parts'):
             self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+
+    def test_partitioned_python_rejects_contradictory_publication(self):
+        self.partition_fixture()
+        with patch.dict(os.environ, {'SCOPEHUB_BROKEN_PYTHON_IMPORT': '1'}):
+            code, failing = self.run_harness('--ci-windows-lane', 'recovery')
+        self.assertEqual(1, code)
+        failed_raw = (self.root / failing['windows_python']['recovery']['log']).read_bytes()
+        self.assertIn(b'FAILED (errors=1)', failed_raw)
+        shutil.rmtree(self.reports)
+
+        self.produce()
+        rc, original = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, rc)
+        run = self.reports / 'runs' / original['run_id']
+        recovery_log = run / 'windows-python-recovery.log'
+        primary_log = run / 'windows-python-python.log'
+        raw = {path: path.read_bytes() for path in (recovery_log, primary_log)}
+        latest = self.reports / 'test-report.json'
+        final = run / 'test-report.json'
+        destination = self.downloads / 'publication'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ))
+        shutil.rmtree(destination)
+
+        def publish(changed):
+            for target in (latest, final):
+                target.write_bytes(json_bytes(changed))
+            return ci_artifacts.stage_artifacts(self.root, destination, os.environ)
+
+        ordered = raw[primary_log].splitlines(keepends=True)
+        ordered[:2] = reversed(ordered[:2])
+        for label, path, lane, replacement in (
+            ('genuine failure with newly bound digest', recovery_log, 'recovery', failed_raw),
+            ('case order', primary_log, 'python', b''.join(ordered)),
+            ('test total', primary_log, 'python', raw[primary_log].replace(b'Ran 2 tests', b'Ran 8 tests', 1)),
+            ('skip total', primary_log, 'python', raw[primary_log].replace(b'OK (skipped=1)', b'OK', 1)),
+        ):
+            with self.subTest(label=label):
+                self.assertNotEqual(raw[path], replacement)
+                path.write_bytes(replacement)
+                altered = deepcopy(original)
+                altered['windows_python'][lane]['log_sha256'] = harness.file_digest(path)
+                try:
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, 'unittest'):
+                        publish(altered)
+                finally:
+                    path.write_bytes(raw[path])
+                    shutil.rmtree(destination, ignore_errors=True)
+
+        for checks in ([], [key for key in original['selection']['checks'] if key != windows_python.CHECK]):
+            with self.subTest(checks=checks):
+                altered = deepcopy(original)
+                altered['selection']['checks'] = checks
+                try:
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, 'selection'):
+                        publish(altered)
+                finally:
+                    shutil.rmtree(destination, ignore_errors=True)
+
+        altered = deepcopy(original)
+        altered['windows_python']['recovery']['duration_seconds'] = 0
+        self.assertIn(b'Ran 1 test in ', raw[recovery_log])
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'duration'):
+            publish(altered)
+        shutil.rmtree(destination, ignore_errors=True)
+
+        altered = deepcopy(original)
+        altered['windows_python']['python']['started_at'] = '2000-01-01T00:00:00+00:00'
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'clock'):
+            publish(altered)
+        shutil.rmtree(destination, ignore_errors=True)
+
+        # A real timeout row must make the aggregate fail, even when both parts passed.
+        altered = deepcopy(original)
+        altered['windows_python']['python']['started_at'] = '2000-01-01T00:00:00+00:00'
+        altered['timing']['elapsed_seconds'] = 2_000_000_000
+        parts = ci_artifacts.python_parts(self.reports, altered, windows_python.LANES)
+        late, late_log = ci_artifacts.combined_python(harness.load_project(self.root), altered, parts)
+        self.assertEqual('timeout', late['reason_code'])
+        (self.root / late['log']).write_bytes(late_log)
+        altered['checks'] = [late if row['id'] == windows_python.CHECK else row for row in altered['checks']]
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'verdict'):
+            publish(altered)
+
+    def test_partitioned_python_discovery_preserves_missing_boundary_outcomes(self):
+        # Each actual suite runs in an independent nested repository with both entrypoints.
+        for scenario in ('empty_boundary', 'package_error'):
+            with self.subTest(scenario=scenario):
+                fixture = WindowsLaneTests('runTest')
+                with ExitStack() as stack:
+                    stack.callback(fixture.doCleanups)
+                    fixture.setUp()
+                    fixture.partition_fixture(scenario)
+                    serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=fixture.root,
+                                            capture_output=True, text=True, encoding='utf-8')
+                    expected = 1 if scenario == 'package_error' else 0
+                    self.assertEqual(expected, serial.returncode)
+                    captured = []
+                    for lane in windows_python.LANES:
+                        code, report = fixture.run_harness('--ci-windows-lane', lane)
+                        self.assertEqual(expected if lane == 'python' else 0, code)
+                        part = report['windows_python'][lane]
+                        self.assertTrue(ci_artifacts.stage_artifacts(
+                            fixture.root, fixture.downloads / lane, os.environ, lane=True))
+                        captured.append((fixture.root / part['log']).read_text(encoding='utf-8'))
+                        shutil.rmtree(fixture.reports)
+                    original_events = [line for line in serial.stderr.splitlines() if ' ... ' in line]
+                    partition_events = [line for log in captured for line in log.splitlines() if ' ... ' in line]
+                    self.assertEqual(original_events, partition_events)
+                    if expected:
+                        self.assertIn('RuntimeError: rejected package import', captured[0])
 
     def test_full_windows_producers_own_disjoint_commands_without_same_runner_overlap(self):
         expected = {
