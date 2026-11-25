@@ -69,7 +69,20 @@
         "experiment": 446.8
       }
     },
-    "worker_scope": "Real worker launch through exit with synthetic input and verified replies. Independent medians exclude a warmup per arm and use four measurements per arm. Raw independent samples and results are in the retained review. The one-shot source-row path starts a new worker and pays preparation at the handshake.",
+    "worker_scope": "These Linux worker timings run from launch through exit with synthetic input and verified replies. The product replay in real-worker-route.json retains two CSV source-row timings per arm behind its 80.304 and 94.641 ms medians. The original independent-review.txt reports four measurements per arm after warmup and retains only the 85.8 and 101.8 ms CSV medians. Its retained per-run timings cover one-page and 32-page history requests. The one-shot source-row path starts a new worker and pays preparation at the handshake.",
+    "independent_csv_replay": {
+      "baseline_head": "ff0d278f081e2a63c9386f6bf6c8ea538e24c29d",
+      "experiment_head": "412881a7a949989d9eddab7a5f2e3c2b79edb391",
+      "source": "archives/observations/repo-hygiene-20261125/independent-final-m0-132-ff0d278f/final-response.txt",
+      "source_sha256": "0b87cda50a4c454ed99a96de7b1d04e0a62e5f092747a81a69a2fc98c47492ac",
+      "warmups_per_arm": 1,
+      "timed_runs_per_arm": 4,
+      "worker_ms_median": {
+        "baseline": 91.284,
+        "experiment": 103.575
+      },
+      "scope": "Separate interleaved CSV source-row replay using the same loader. Reply bytes matched. The review reports launch-to-exit medians."
+    },
     "boundary_scope": "Both codecs matched public values, bytes and errors. The actual source-row worker accepted 65,535 and 65,536 byte replies and returned RESOURCE_LIMIT one byte above the cap."
   },
   "decision": "Retain the protected validator. The original 274-vector test saves 0.514 seconds locally. The added startup cost repeats on ordinary fresh CSV source-row and folder-refresh workers. Reusing one market worker across 32 pages showed a benefit, while the actual user workload mix and its end-to-end gain remain unmeasured.",
