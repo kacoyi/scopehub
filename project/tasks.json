@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-135",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24525,7 +24525,7 @@
       "id": "M0-135",
       "title": "Verify follow-through for the five periodic reviews",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "scripts/project.py",
@@ -24559,10 +24559,19 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Replay hosted observations across admitted history and same-day branch dispositions across verified default-branch revisions, then return the exact candidate for Astra Standard review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-135-fb9039bcd3db6012.json",
+          "sha256": "98c8f6c7bd30f9628c2dc34d8a1c7f00578bfd9c4269ba265c136ab44f4cc56e"
+        },
+        {
+          "path": "project/evidence/M0-135-cc8cfc95f5bc5b07.json",
+          "sha256": "87e8076cad4ea6028a7a3967cb1b74857a6a391b637cc6edfa1d4156d98700be"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra Standard approved ddb5f6e44cb7fc2fa3a7520332bde0da1fbddfd2. The attached clean local Linux task and successful Windows PR 115 report cover the required project and worker checks, including seven observed maintenance defects. The weekly-summary write failure control executed on Linux. The next scheduled verification supplies its own dated result.",
       "plan": {
         "outcome": "A single evidence-bound invariant protects all five periodic reviews at startup and in protected history. The existing weekly Linux run retains the startup attention without changing product-result semantics.",
         "change_types": [
