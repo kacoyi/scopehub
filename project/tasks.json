@@ -23938,7 +23938,8 @@
         ".github/workflows/verify.yml",
         "scripts/cache_composition.py",
         "tests/project/test_cache_composition.py",
-        "project/evidence"
+        "project/evidence",
+        "project/feedback.json"
       ],
       "decision_refs": [
         "0004",
@@ -23946,8 +23947,8 @@
       ],
       "acceptance": [
         "Use the existing ordinary full Windows core and browser producers on the designated reviewed internal pull request first attempt. Preserve check coverage, protected results, cache use and action pins.",
-        "Emit only bounded aggregate counts with exact run, source, lane, match and collection phase provenance. Keep logical file-path bytes, exclusions and incomplete observations explicit.",
-        "Independently verify a real complete native composition observation from each producer against official job, selection and cache evidence. Evaluate whether a specific payload merits a private native A/B. Keep hosted timing recovery separate.",
+        "Emit only bounded aggregate counts with exact run, source, producer job, lane, match and phase. Use current non-following Windows metadata for each regular file path and report the labeled coverage and inner-entry counts of each fixed root.",
+        "Verify both complete native snapshots for each producer against the same official run, job, selection, checkout and matched cache key. Treat restored and post-check records as runner directory observations, including any preexisting files. Producer and aggregate elapsed times include probe overhead. Assess whether a private native A/B is justified without claiming hosted timing recovery.",
         "Preserve the exact probed Git revision and authenticated raw native results. Remove the temporary workflow steps and any now-unused helper and tests before final integration unless native findings support a separately reviewed lasting use."
       ],
       "checks": [
@@ -23955,7 +23956,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Review the bounded read-only collector and its controls. Collect and independently authenticate first-attempt native core and browser observations on the designated ordinary internal PR. Preserve the probed revision and results, decide whether a reusable-output experiment is warranted, then remove the one-shot probe from the final candidate.",
+      "next_action": "Retain the Astra red cases, correct Windows logical size and root coverage, and independently review the exact new probe. Authenticate complete first-attempt native core/browser results before deciding whether a private experiment is warranted and clearing the one-shot probe.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -23989,6 +23990,18 @@
           },
           {
             "failure": "A stopped scan or a filesystem size proxy is mistaken for complete native proof or hosted timing recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Stale Windows directory metadata gives different logical lengths for aliases of the same resized file, or obtaining fresh metadata follows a reparse point or overruns the scan budget.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Aggregated skips conceal an excluded, unobserved or failed cache root, allowing an ambiguous or incomplete observation to qualify as complete.",
             "checks": [
               "python-contracts-workers"
             ]

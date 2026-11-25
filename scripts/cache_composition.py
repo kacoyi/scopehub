@@ -1,5 +1,8 @@
 """Report bounded metadata totals for the paths used by ordinary Cargo caching."""
 
+import ctypes
+from ctypes import wintypes
+from functools import cache
 import json
 import os
 from pathlib import Path
@@ -28,12 +31,71 @@ DEBUG_COMPONENTS = {
 }
 PROBE_BRANCH = 'codex/audit-native-cache-composition'
 RECORD_PREFIX = 'SCOPEHUB_CACHE_COMPOSITION '
+SCHEMA_VERSION = 2
+_IS_WINDOWS = os.name == 'nt'
+_FILE_READ_ATTRIBUTES = 0x0080
+_FILE_SHARE_ALL = 0x0007
+_OPEN_EXISTING = 3
+_FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
 
 
 def _is_link(info):
     return stat.S_ISLNK(info.st_mode) or bool(
         getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
     )
+
+
+@cache
+def _windows_file_api():
+    class FileInformation(ctypes.Structure):
+        _fields_ = [
+            ('attributes', wintypes.DWORD),
+            ('creation_time', wintypes.FILETIME),
+            ('access_time', wintypes.FILETIME),
+            ('write_time', wintypes.FILETIME),
+            ('volume_serial', wintypes.DWORD),
+            ('size_high', wintypes.DWORD),
+            ('size_low', wintypes.DWORD),
+            ('link_count', wintypes.DWORD),
+            ('file_index_high', wintypes.DWORD),
+            ('file_index_low', wintypes.DWORD),
+        ]
+
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    create_file = kernel.CreateFileW
+    create_file.argtypes = [
+        wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+        wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+    ]
+    create_file.restype = wintypes.HANDLE
+    get_information = kernel.GetFileInformationByHandle
+    get_information.argtypes = [wintypes.HANDLE, ctypes.POINTER(FileInformation)]
+    get_information.restype = wintypes.BOOL
+    close_handle = kernel.CloseHandle
+    close_handle.argtypes = [wintypes.HANDLE]
+    close_handle.restype = wintypes.BOOL
+    return create_file, get_information, close_handle, FileInformation
+
+
+def _windows_file_metadata(path):
+    # NTFS can leave stale sizes in other directory entries after a hardlink
+    # is modified. Query the file object without reading data or opening a
+    # replacement reparse target.
+    create_file, get_information, close_handle, info_type = _windows_file_api()
+    handle = create_file(
+        os.fspath(path), _FILE_READ_ATTRIBUTES, _FILE_SHARE_ALL, None,
+        _OPEN_EXISTING, _FILE_FLAG_OPEN_REPARSE_POINT, None,
+    )
+    if handle == ctypes.c_void_p(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        info = info_type()
+        if not get_information(handle, ctypes.byref(info)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return info.attributes, (info.size_high << 32) | info.size_low
+    finally:
+        if not close_handle(handle):
+            raise ctypes.WinError(ctypes.get_last_error())
 
 
 def _check_root(root):
@@ -43,11 +105,13 @@ def _check_root(root):
         try:
             info = directory.lstat()
         except FileNotFoundError:
-            return 'missing_roots'
+            return 'missing'
+        except OSError:
+            return 'error'
         if _is_link(info):
-            return 'skipped_links'
+            return 'skipped'
         if not stat.S_ISDIR(info.st_mode):
-            return 'errors'
+            return 'error'
     return None
 
 
@@ -62,79 +126,123 @@ def measure(cargo_home, target, *, max_entries=100_000, max_seconds=10.0, clock=
     """Count regular paths and logical bytes, with each hardlink alias counted."""
     if not cargo_home.is_absolute() or not target.is_absolute():
         raise ValueError('Cache roots must be absolute.')
-    roots = [(cargo_home / path, label) for path, label in CARGO_COMPONENTS.items()]
-    roots.append((target, None))
+    root_paths = {label: cargo_home / path for path, label in CARGO_COMPONENTS.items()}
+    root_paths['target'] = target
+    counters = ('entries', 'skipped_links', 'skipped_other', 'errors')
+    roots = {label: {'status': 'not_observed', **dict.fromkeys(counters, 0)} for label in root_paths}
     labels = (*CARGO_COMPONENTS.values(), *DEBUG_COMPONENTS.values(), 'target_other')
     components = {label: {'files': 0, 'logical_bytes': 0} for label in labels}
-    result = {
-        'status': 'complete', 'limit': None, 'entries': 0, 'skipped_links': 0,
-        'skipped_other': 0, 'errors': 0, 'missing_roots': 0, 'components': components,
-    }
+    entries_seen, limit = 0, None
     start = clock()
     deadline = start + max_seconds
 
-    for root, label in roots:
+    for label, root in root_paths.items():
         if clock() >= deadline:
-            result['limit'] = 'time'
+            limit = 'time'
             break
-        try:
-            excluded = _check_root(root)
-        except OSError:
-            excluded = 'errors'
+        observation = roots[label]
+        excluded = _check_root(root)
+        if clock() >= deadline:
+            observation['status'] = 'limit'
+            limit = 'time'
+            break
         if excluded:
-            result[excluded] += 1
+            observation['status'] = excluded
             continue
+
+        observation['status'] = 'scanned'
         pending = [root]
-        while pending and result['limit'] is None:
+        while pending and limit is None:
             if clock() >= deadline:
-                result['limit'] = 'time'
+                limit = 'time'
                 break
+            directory = pending.pop()
             try:
-                with os.scandir(pending.pop()) as entries:
+                if directory != root and _is_link(directory.lstat()):
+                    observation['skipped_links'] += 1
+                    continue
+                if clock() >= deadline:
+                    limit = 'time'
+                    break
+                with os.scandir(directory) as entries:
                     for entry in entries:
                         if clock() >= deadline:
-                            result['limit'] = 'time'
+                            limit = 'time'
                             break
-                        if result['entries'] >= max_entries:
-                            result['limit'] = 'entries'
+                        if entries_seen >= max_entries:
+                            limit = 'entries'
                             break
-                        result['entries'] += 1
+                        entries_seen += 1
+                        observation['entries'] += 1
                         try:
                             info = entry.stat(follow_symlinks=False)
+                            if _is_link(info):
+                                observation['skipped_links'] += 1
+                                continue
+                            if stat.S_ISDIR(info.st_mode):
+                                pending.append(Path(entry.path))
+                                continue
+                            if not stat.S_ISREG(info.st_mode):
+                                observation['skipped_other'] += 1
+                                continue
+                            if clock() >= deadline:
+                                limit = 'time'
+                                break
+                            attributes, logical_bytes = (
+                                _windows_file_metadata(entry.path) if _IS_WINDOWS else (0, info.st_size)
+                            )
                         except OSError:
-                            result['errors'] += 1
+                            observation['errors'] += 1
                             continue
-                        if _is_link(info):
-                            result['skipped_links'] += 1
-                        elif stat.S_ISDIR(info.st_mode):
-                            pending.append(Path(entry.path))
-                        elif stat.S_ISREG(info.st_mode):
-                            bucket = label or _target_component(Path(entry.path).relative_to(target))
-                            components[bucket]['files'] += 1
-                            components[bucket]['logical_bytes'] += info.st_size
-                        else:
-                            result['skipped_other'] += 1
+                        if clock() >= deadline:
+                            limit = 'time'
+                            break
+                        if attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+                            observation['skipped_links'] += 1
+                            continue
+                        if attributes & stat.FILE_ATTRIBUTE_DIRECTORY:
+                            observation['errors'] += 1
+                            continue
+                        bucket = (
+                            _target_component(Path(entry.path).relative_to(target)) if label == 'target' else label
+                        )
+                        components[bucket]['files'] += 1
+                        components[bucket]['logical_bytes'] += logical_bytes
             except OSError:
-                result['errors'] += 1
-        if result['limit'] is not None:
-            break
+                if directory != root:
+                    observation['errors'] += 1
+                observation['status'] = 'error'
 
-    end = clock()
-    if result['limit'] is None and end >= deadline:
-        result['limit'] = 'time'
-    result['elapsed_ms'] = round((end - start) * 1000)
-    if result['limit'] is not None or result['errors']:
-        result['status'] = 'incomplete'
-    return result
+        if limit is None and clock() >= deadline:
+            limit = 'time'
+        if limit is not None:
+            observation['status'] = 'limit'
+            break
+        if observation['errors']:
+            observation['status'] = 'error'
+
+    complete = (
+        limit is None and roots['target']['status'] == 'scanned'
+        and all(root['status'] in {'scanned', 'missing'} for root in roots.values())
+    )
+    return {
+        'status': 'complete' if complete else 'incomplete', 'limit': limit,
+        'elapsed_ms': round((clock() - start) * 1000),
+        **{key: sum(root[key] for root in roots.values()) for key in counters},
+        'missing_roots': sum(root['status'] == 'missing' for root in roots.values()),
+        'roots': roots, 'components': components,
+    }
 
 
 def provenance(env, phase):
     """Accept only the expected comparable observation and bounded identity fields."""
     lane = env.get('SCOPEHUB_CACHE_LANE')
     match = env.get('SCOPEHUB_CACHE_MATCH')
+    job = env.get('GITHUB_JOB')
     if (
         phase not in {'restored', 'post-check'}
         or lane not in {'core', 'browser'}
+        or job != f'windows_{lane}'
         or match not in {'primary_exact', 'legacy_equivalent', 'prefix'}
         or env.get('RUNNER_OS') != 'Windows'
         or env.get('RUNNER_ARCH') != 'X64'
@@ -166,11 +274,12 @@ def provenance(env, phase):
         raise ValueError('Unverified ordinary full selection.')
 
     return {
-        'schema_version': 1, 'event': 'pull_request', 'profile': 'full',
-        'platform': 'Windows', 'architecture': 'X64', 'lane': lane, 'phase': phase,
+        'schema_version': SCHEMA_VERSION, 'event': 'pull_request', 'profile': 'full',
+        'platform': 'Windows', 'architecture': 'X64', 'producer_job': job, 'lane': lane, 'phase': phase,
         'run_id': run_id, 'run_attempt': 1, 'checkout_sha': checkout,
         'source_head': head, 'base_sha': base, 'cache_match': match,
         'accounting': 'regular_file_paths_logical_bytes_including_hardlink_aliases',
+        'observation_scope': 'runner_directory_state', 'elapsed_scope': 'scan_only',
     }
 
 
@@ -182,7 +291,8 @@ def main():
         record.update(measure(Path.home() / '.cargo', Path.cwd() / 'target'))
     except Exception:
         # Do not serialize exception text or traceback paths from the producer.
-        print(RECORD_PREFIX + '{"schema_version":1,"status":"unavailable"}')
+        unavailable = {'schema_version': SCHEMA_VERSION, 'status': 'unavailable'}
+        print(RECORD_PREFIX + json.dumps(unavailable, separators=(',', ':')))
         return 1
     print(RECORD_PREFIX + json.dumps(record, separators=(',', ':')))
     return 0

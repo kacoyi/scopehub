@@ -6485,6 +6485,36 @@
         "prevention": "The guarded Ubuntu suite passed all eleven subprocess controls. The guarded native Windows suite passed ten applicable controls and named the POSIX child-signal skip separately. The controls cover retained streams after success and a declared exit, reaping at a genuine deadline and both output buffer limits."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cache-probe-stale-hardlink-length",
+      "source": "Astra Standard pre-execution review of ea22af10707fbf360724cb2da2b5f88b913fed5d. Original: archives/observations/m0-129-astra-ea22af1/astra-native-cache-composition-ea22af1.txt (SHA-256 6443ddef2b0c7e1e0516aa454574488a31a1e25ee8adc3c225b452a483377e97).",
+      "observation": "Astra reproduced conflicting logical sizes of 8192 and 1 for two paths to the same resized Windows file using stale directory-entry metadata. The collector marked the sample complete. It must query current metadata without following reparse points or trusting enumeration sizes for Windows regular file paths.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-129"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cache-probe-ambiguous-root-coverage",
+      "source": "Astra Standard pre-execution review of ea22af10707fbf360724cb2da2b5f88b913fed5d. Original: archives/observations/m0-129-astra-ea22af1/astra-native-cache-composition-ea22af1.txt (SHA-256 6443ddef2b0c7e1e0516aa454574488a31a1e25ee8adc3c225b452a483377e97).",
+      "observation": "Astra swapped a genuinely missing git/db and a skipped target junction with a genuinely missing target and skipped git/db. Both observations reported the same complete aggregate. Fixed root labels and statuses must preserve exclusions and incomplete coverage independently of inner-entry counts.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-129"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

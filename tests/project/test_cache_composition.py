@@ -116,7 +116,11 @@ class CacheCompositionTests(unittest.TestCase):
         self.assertEqual(measurement['components']['cargo_registry_cache'], {'files': 0, 'logical_bytes': 0})
         self.assertEqual(measurement['components']['cargo_git_db'], {'files': 0, 'logical_bytes': 0})
         self.assertEqual(measurement['components']['target_examples'], {'files': 1, 'logical_bytes': 3})
-        self.assertGreaterEqual(measurement['skipped_links'], 5)
+        self.assertEqual(measurement['status'], 'incomplete')
+        for name in ('cargo_registry_index', 'cargo_registry_cache', 'cargo_git_db'):
+            self.assertEqual(measurement['roots'][name]['status'], 'skipped')
+        self.assertEqual(measurement['roots']['target']['skipped_links'], 3)
+        self.assertEqual(measurement['skipped_links'], 3)
         self.assertNotIn('private-file', json.dumps(measurement))
 
     def test_windows_reparse_attribute_rejects_directory_and_regular_mode(self):
@@ -202,10 +206,10 @@ class CacheCompositionTests(unittest.TestCase):
         self.assertEqual((outside / 'private-file').read_bytes(), b'not counted')
 
 
-    def test_missing_roots_are_a_complete_empty_observation(self):
+    def test_all_missing_roots_are_an_incomplete_empty_observation(self):
         measurement = self.measure()
 
-        self.assertEqual(measurement['status'], 'complete')
+        self.assertEqual(measurement['status'], 'incomplete')
         self.assertEqual(measurement['missing_roots'], 4)
         self.assertEqual(measurement['entries'], 0)
         self.assertEqual(measurement['errors'], 0)
@@ -258,6 +262,314 @@ class CacheCompositionTests(unittest.TestCase):
         self.assertEqual(measurement['components']['target_other'], {'files': 0, 'logical_bytes': 0})
 
 
+class WindowsCacheMetadataTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.cargo = self.root / 'cargo'
+        self.target = self.root / 'target'
+
+    def write(self, subtree, data):
+        path = self.target / 'debug' / subtree / 'artifact'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        return path
+
+    def test_uses_fresh_windows_sizes_for_both_paths_when_enumeration_is_stale(self):
+        first = self.write('deps', b'a')
+        second = self.write('examples', b'a' * 8192)
+        enumeration = os.scandir
+
+        class StaleEntry:
+            def __init__(self, path):
+                self.path = path
+
+            def stat(self, *, follow_symlinks):
+                if follow_symlinks:
+                    raise AssertionError('Enumeration followed a link.')
+                return SimpleNamespace(st_mode=stat.S_IFREG, st_size=1)
+
+        @contextmanager
+        def scan(path):
+            with enumeration(path) as entries:
+                yield (StaleEntry(entry.path) if Path(entry.path) == first else entry for entry in entries)
+
+        with patch.object(cache_composition.os, 'scandir', side_effect=scan), \
+                patch.object(cache_composition, '_IS_WINDOWS', True, create=True), \
+                patch.object(cache_composition, '_windows_file_metadata',
+                             return_value=(stat.FILE_ATTRIBUTE_ARCHIVE, 8192), create=True) as metadata:
+            result = cache_composition.measure(self.cargo, self.target)
+
+        self.assertEqual(result['components']['target_deps'], {'files': 1, 'logical_bytes': 8192})
+        self.assertEqual(result['components']['target_examples'], {'files': 1, 'logical_bytes': 8192})
+        self.assertCountEqual([Path(call.args[0]) for call in metadata.call_args_list], [first, second])
+        self.assertEqual(result['status'], 'complete')
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Requires a native Windows hardlink.')
+    def test_resized_native_hardlink_paths_both_count_the_current_logical_length(self):
+        original = self.write('deps', b'a')
+        alias = self.target / 'debug' / 'examples' / 'alias'
+        alias.parent.mkdir()
+        os.link(original, alias)
+        with alias.open('r+b') as stream:
+            stream.truncate(8192)
+
+        result = cache_composition.measure(self.cargo, self.target)
+
+        self.assertEqual(result['status'], 'complete')
+        for bucket in ('target_deps', 'target_examples'):
+            self.assertEqual(result['components'][bucket], {'files': 1, 'logical_bytes': 8192})
+
+    def test_fresh_reparse_and_metadata_failure_never_contribute_enumerated_bytes(self):
+        self.write('deps', b'abc')
+        for observed, skipped, errors in (
+            ((stat.FILE_ATTRIBUTE_REPARSE_POINT, 8192), 1, 0),
+            (PermissionError('private metadata failure'), 0, 1),
+        ):
+            with self.subTest(observed=type(observed).__name__), \
+                    patch.object(cache_composition, '_IS_WINDOWS', True, create=True), \
+                    patch.object(cache_composition, '_windows_file_metadata',
+                                 side_effect=[observed], create=True):
+                result = cache_composition.measure(self.cargo, self.target)
+            self.assertEqual(result['components']['target_deps'], {'files': 0, 'logical_bytes': 0})
+            self.assertEqual((result['skipped_links'], result['errors']), (skipped, errors))
+            self.assertEqual(result['status'], 'incomplete' if errors else 'complete')
+            self.assertNotIn('private metadata failure', json.dumps(result))
+
+    def test_late_metadata_does_not_contribute_a_file_to_the_timed_snapshot(self):
+        self.write('deps', b'abc')
+        now = 0.0
+
+        def metadata(_path):
+            nonlocal now
+            now = 2.0
+            return stat.FILE_ATTRIBUTE_ARCHIVE, 3
+
+        with patch.object(cache_composition, '_IS_WINDOWS', True, create=True), \
+                patch.object(cache_composition, '_windows_file_metadata', side_effect=metadata, create=True):
+            result = cache_composition.measure(self.cargo, self.target, max_seconds=1.0, clock=lambda: now)
+
+        self.assertEqual((result['status'], result['limit']), ('incomplete', 'time'))
+        self.assertEqual(result['components']['target_deps'], {'files': 0, 'logical_bytes': 0})
+        self.assertEqual(result['roots']['target']['status'], 'limit')
+
+
+class CacheCompositionRootStatusTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.cargo_home = self.root / 'cargo-home'
+        self.target = self.root / 'workspace' / 'target'
+
+    def write(self, relative_path, contents):
+        path = self.root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(contents)
+        return path
+
+    def measure(self, **options):
+        return cache_composition.measure(self.cargo_home, self.target, **options)
+
+    def assert_root(self, result, name, status, *, entries=0, skipped_links=0, skipped_other=0, errors=0):
+        expected = {
+            'status': status, 'entries': entries, 'skipped_links': skipped_links,
+            'skipped_other': skipped_other, 'errors': errors,
+        }
+        self.assertEqual({key: result['roots'][name][key] for key in expected}, expected)
+
+    def test_swapped_missing_and_excluded_roots_cannot_look_complete(self):
+        lstat = Path.lstat
+        scandir = os.scandir
+        for skipped in ('target', 'cargo_git_db'):
+            with self.subTest(skipped=skipped), tempfile.TemporaryDirectory(dir=self.root) as location:
+                fixture = Path(location)
+                cargo_home = fixture / 'cargo-home'
+                target = fixture / 'target'
+                git_db = cargo_home / 'git' / 'db'
+                index = cargo_home / 'registry' / 'index'
+                index.mkdir(parents=True)
+                (index / 'item').write_bytes(b'1234')
+                excluded = target if skipped == 'target' else git_db
+                excluded.mkdir(parents=True)
+                (excluded / 'private-entry').write_bytes(b'never count this')
+
+                def inspect(path):
+                    if path == excluded:
+                        return SimpleNamespace(
+                            st_mode=stat.S_IFDIR, st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT,
+                        )
+                    return lstat(path)
+
+                def scan(path):
+                    self.assertNotEqual(Path(path), excluded)
+                    return scandir(path)
+
+                with patch.object(Path, 'lstat', new=inspect), \
+                        patch.object(cache_composition.os, 'scandir', side_effect=scan):
+                    result = cache_composition.measure(cargo_home, target)
+
+                self.assertEqual(result['status'], 'incomplete')
+                self.assertEqual(set(result['roots']), {
+                    'cargo_registry_index', 'cargo_registry_cache', 'cargo_git_db', 'target',
+                })
+                self.assert_root(result, 'cargo_registry_index', 'scanned', entries=1)
+                self.assert_root(result, 'cargo_registry_cache', 'missing')
+                self.assert_root(result, 'cargo_git_db', 'skipped' if skipped == 'cargo_git_db' else 'missing')
+                self.assert_root(result, 'target', 'skipped' if skipped == 'target' else 'missing')
+                self.assertEqual(result['missing_roots'], 2)
+                self.assertEqual(result['entries'], 1)
+                self.assertEqual(result['skipped_links'], 0)
+                self.assertEqual(result['errors'], 0)
+                self.assertEqual(result['components']['cargo_registry_index'], {'files': 1, 'logical_bytes': 4})
+                self.assertEqual(sum(row['logical_bytes'] for row in result['components'].values()), 4)
+                for path in (str(excluded), 'private-entry'):
+                    self.assertNotIn(path, json.dumps(result))
+
+    def test_genuinely_missing_optional_roots_allow_a_scanned_empty_target(self):
+        self.target.mkdir(parents=True)
+
+        result = self.measure()
+
+        self.assertEqual(result['status'], 'complete')
+        self.assertEqual(result['missing_roots'], 3)
+        self.assert_root(result, 'cargo_registry_index', 'missing')
+        self.assert_root(result, 'cargo_registry_cache', 'missing')
+        self.assert_root(result, 'cargo_git_db', 'missing')
+        self.assert_root(result, 'target', 'scanned')
+        self.assertEqual(sum(row['logical_bytes'] for row in result['components'].values()), 0)
+
+    def test_genuinely_missing_target_is_incomplete_without_exclusions(self):
+        self.write('cargo-home/registry/index/item', b'1234')
+
+        result = self.measure()
+
+        self.assertEqual(result['status'], 'incomplete')
+        self.assertEqual(result['missing_roots'], 3)
+        self.assert_root(result, 'cargo_registry_index', 'scanned', entries=1)
+        self.assert_root(result, 'cargo_git_db', 'missing')
+        self.assert_root(result, 'target', 'missing')
+        self.assertEqual(result['skipped_links'], 0)
+        self.assertEqual(result['errors'], 0)
+
+    def test_root_access_and_wrong_type_errors_are_separate_from_entry_errors(self):
+        git_db = self.write('cargo-home/git/db/hidden', b'123').parent
+        self.write('cargo-home/registry/cache', b'wrong type for a root')
+        self.target.mkdir(parents=True)
+        lstat = Path.lstat
+        scandir = os.scandir
+
+        def inspect(path):
+            if path == git_db:
+                raise PermissionError('private root inspection detail')
+            return lstat(path)
+
+        def scan(path):
+            if Path(path) == self.target:
+                raise PermissionError('private root traversal detail')
+            return scandir(path)
+
+        with patch.object(Path, 'lstat', new=inspect), \
+                patch.object(cache_composition.os, 'scandir', side_effect=scan):
+            result = self.measure()
+
+        self.assertEqual(result['status'], 'incomplete')
+        self.assertEqual(result['missing_roots'], 1)
+        self.assert_root(result, 'cargo_registry_index', 'missing')
+        self.assert_root(result, 'cargo_registry_cache', 'error')
+        self.assert_root(result, 'cargo_git_db', 'error')
+        self.assert_root(result, 'target', 'error')
+        self.assertEqual(result['entries'], 0)
+        self.assertEqual(result['skipped_links'], 0)
+        self.assertEqual(result['errors'], 0)
+        self.assertNotIn('private root', json.dumps(result))
+
+    def test_child_skips_and_errors_count_only_against_their_own_root(self):
+        self.write('workspace/target/kept', b'123')
+        entry_link = self.write('workspace/target/linked', b'private')
+        entry_special = self.write('workspace/target/special', b'private')
+        denied = self.write('workspace/target/hidden-child/ignored', b'private').parent
+        outside_root = self.write('cargo-home/git/db/excluded-root', b'private').parent
+        lstat = Path.lstat
+        scandir = os.scandir
+
+        class SpecialEntry:
+            def __init__(self, entry, information):
+                self.entry = entry
+                self.information = information
+
+            def __getattr__(self, name):
+                return getattr(self.entry, name)
+
+            def stat(self, *, follow_symlinks):
+                if follow_symlinks:
+                    raise AssertionError('The observation followed a special entry.')
+                return self.information
+
+        reparse = SimpleNamespace(st_mode=stat.S_IFREG, st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT)
+        special = SimpleNamespace(st_mode=stat.S_IFIFO)
+
+        def inspect(path):
+            if path == outside_root:
+                return reparse
+            return lstat(path)
+
+        @contextmanager
+        def scan(path):
+            if Path(path) == denied:
+                raise PermissionError('hidden child')
+            with scandir(path) as entries:
+                by_path = {entry_link: reparse, entry_special: special}
+                yield (SpecialEntry(entry, by_path[Path(entry.path)]) if Path(entry.path) in by_path else entry
+                       for entry in entries)
+
+        with patch.object(Path, 'lstat', new=inspect), \
+                patch.object(cache_composition.os, 'scandir', side_effect=scan):
+            result = self.measure()
+
+        self.assertEqual(result['status'], 'incomplete')
+        self.assert_root(result, 'cargo_git_db', 'skipped')
+        self.assert_root(result, 'target', 'error', entries=4, skipped_links=1, skipped_other=1, errors=1)
+        self.assertEqual(result['entries'], 4)
+        self.assertEqual(result['skipped_links'], 1)
+        self.assertEqual(result['skipped_other'], 1)
+        self.assertEqual(result['errors'], 1)
+        self.assertEqual(result['components']['target_other'], {'files': 1, 'logical_bytes': 3})
+
+    def test_entry_budget_distinguishes_interrupted_root_from_unobserved_roots(self):
+        self.write('cargo-home/registry/index/first', b'1234')
+        self.write('cargo-home/registry/index/second', b'5678')
+        self.write('cargo-home/registry/cache/unobserved', b'abc')
+        self.target.mkdir(parents=True)
+
+        result = self.measure(max_entries=1)
+
+        self.assertEqual(result['status'], 'incomplete')
+        self.assertEqual(result['limit'], 'entries')
+        self.assertEqual(result['missing_roots'], 0)
+        self.assertEqual(result['entries'], 1)
+        self.assert_root(result, 'cargo_registry_index', 'limit', entries=1)
+        self.assert_root(result, 'cargo_registry_cache', 'not_observed')
+        self.assert_root(result, 'cargo_git_db', 'not_observed')
+        self.assert_root(result, 'target', 'not_observed')
+        self.assertEqual(result['components']['cargo_registry_index'], {'files': 1, 'logical_bytes': 4})
+        self.assertEqual(result['components']['cargo_registry_cache'], {'files': 0, 'logical_bytes': 0})
+
+    def test_time_budget_before_first_root_leaves_all_roots_unobserved(self):
+        self.target.mkdir(parents=True)
+        ticks = iter((0.0,))
+
+        result = self.measure(max_seconds=0.5, clock=lambda: next(ticks, 1.0))
+
+        self.assertEqual(result['status'], 'incomplete')
+        self.assertEqual(result['limit'], 'time')
+        self.assertEqual(result['missing_roots'], 0)
+        self.assertEqual(result['entries'], 0)
+        for root in ('cargo_registry_index', 'cargo_registry_cache', 'cargo_git_db', 'target'):
+            self.assert_root(result, root, 'not_observed')
+
+
 class CacheCompositionCliTests(unittest.TestCase):
     def test_invalid_phase_emits_only_the_anonymous_unavailable_record(self):
         with tempfile.TemporaryDirectory() as location:
@@ -268,7 +580,7 @@ class CacheCompositionCliTests(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(result.stdout, 'SCOPEHUB_CACHE_COMPOSITION {"schema_version":1,"status":"unavailable"}\n')
+        self.assertEqual(result.stdout, 'SCOPEHUB_CACHE_COMPOSITION {"schema_version":2,"status":"unavailable"}\n')
         self.assertEqual(result.stderr, '')
 
 
@@ -280,7 +592,7 @@ class CacheCompositionProvenanceTests(unittest.TestCase):
         }
         self.env = {
             'RUNNER_OS': 'Windows', 'RUNNER_ARCH': 'X64',
-            'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_RUN_ATTEMPT': '1',
+            'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_JOB': 'windows_core',
             'GITHUB_BASE_REF': 'main', 'GITHUB_HEAD_REF': 'codex/audit-native-cache-composition',
             'GITHUB_RUN_ID': '12345', 'GITHUB_SHA': 'c' * 40,
             'SCOPEHUB_SOURCE_HEAD': 'd' * 40, 'SCOPEHUB_SCOPE_BASE': 'b' * 40,
@@ -291,15 +603,18 @@ class CacheCompositionProvenanceTests(unittest.TestCase):
     def test_valid_record_reserves_fixed_identity_phase_and_match_fields(self):
         record = cache_composition.provenance(self.env, 'restored')
         self.assertEqual(record, {
-            'schema_version': 1, 'event': 'pull_request', 'profile': 'full',
-            'platform': 'Windows', 'architecture': 'X64', 'lane': 'core', 'phase': 'restored',
+            'schema_version': 2, 'event': 'pull_request', 'profile': 'full',
+            'platform': 'Windows', 'architecture': 'X64', 'producer_job': 'windows_core',
+            'lane': 'core', 'phase': 'restored',
             'run_id': '12345', 'run_attempt': 1, 'checkout_sha': 'c' * 40,
             'source_head': 'd' * 40, 'base_sha': 'b' * 40, 'cache_match': 'prefix',
             'accounting': 'regular_file_paths_logical_bytes_including_hardlink_aliases',
+            'observation_scope': 'runner_directory_state', 'elapsed_scope': 'scan_only',
         })
         for mode in ('primary_exact', 'legacy_equivalent'):
             with self.subTest(mode=mode):
-                env = dict(self.env, SCOPEHUB_CACHE_LANE='browser', SCOPEHUB_CACHE_MATCH=mode)
+                env = dict(self.env, GITHUB_JOB='windows_browser', SCOPEHUB_CACHE_LANE='browser',
+                           SCOPEHUB_CACHE_MATCH=mode)
                 record = cache_composition.provenance(env, 'post-check')
                 self.assertEqual((record['lane'], record['cache_match'], record['phase']),
                                  ('browser', mode, 'post-check'))
@@ -310,7 +625,7 @@ class CacheCompositionProvenanceTests(unittest.TestCase):
             ('GITHUB_HEAD_REF', 'Codex/audit-native-cache-composition'),
             ('RUNNER_OS', 'Linux'), ('RUNNER_ARCH', 'ARM64'), ('GITHUB_RUN_ATTEMPT', '2'),
             ('SCOPEHUB_CACHE_LANE', 'python'), ('SCOPEHUB_CACHE_MATCH', 'not_restored'),
-            ('GITHUB_RUN_ID', 'invalid-provenance'),
+            ('GITHUB_RUN_ID', 'invalid-provenance'), ('GITHUB_JOB', 'windows_browser'),
         ):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 cache_composition.provenance(dict(self.env, **{key: value}), 'restored')
@@ -333,7 +648,7 @@ class CacheCompositionProvenanceTests(unittest.TestCase):
                 measure.assert_not_called()
                 self.assertEqual(stderr.getvalue(), '')
                 self.assertEqual(json.loads(stdout.getvalue().split(' ', 1)[1]),
-                                 {'schema_version': 1, 'status': 'unavailable'})
+                                 {'schema_version': 2, 'status': 'unavailable'})
 
 
 class CacheCompositionWorkflowTests(unittest.TestCase):
