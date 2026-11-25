@@ -889,24 +889,310 @@ class TimingRegressionTests(unittest.TestCase):
         )
 
     def test_explicit_local_archive_round_trip_stays_offline(self):
-        def invoke(*args):
-            output = StringIO()
-            with (patch.object(sys, 'argv', ['timing.py', *args]), redirect_stdout(output),
-                  patch.object(timing, 'github_identity', side_effect=AssertionError('Unexpected hosted inspection'))):
-                timing.main()
-            return json.loads(output.getvalue())
-
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / 'test-report.json'
             archive = Path(directory) / 'timing.json'
             report.write_text(json.dumps(fast_report(19, 120)), encoding='utf-8')
-            original = invoke('--report', str(report), '--save', str(archive))
-            recovered = invoke('--report', str(archive))
+            original = self.invoke_timing('--report', report, '--save', archive)
+            recovered = self.invoke_timing('--report', archive)
 
         self.assertEqual(original['samples'], recovered['samples'])
         self.assertEqual(original['reviews'], recovered['reviews'])
         self.assertEqual(7, recovered['weekly_review']['interval_days'])
         self.assertEqual([], recovered['input_issues'])
+
+    def invoke_timing(self, *args, expected_exit=None):
+        output, errors = StringIO(), StringIO()
+        with (patch.object(sys, 'argv', ['timing.py', *map(str, args)]), redirect_stdout(output), redirect_stderr(errors),
+              patch.object(timing, 'github_identity', side_effect=AssertionError('Unexpected hosted inspection'))):
+            if expected_exit is None:
+                timing.main()
+            else:
+                with self.assertRaises(SystemExit) as raised:
+                    timing.main()
+                self.assertEqual(expected_exit, raised.exception.code)
+        return json.loads(output.getvalue()) if output.getvalue() else errors.getvalue()
+
+    def test_large_v1_manual_archive_preserves_observations_and_redacts_legacy_paths(self):
+        sample = timing.report_sample(fast_report(19, 120))
+        samples = [sample] * 2400
+        run = hosted_run()
+        clock = timing.hosted_timing(run, [])
+        clocks = [clock]
+        private = '/private/review/missing-timing.json'
+        data = {'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks,
+                'input_issues': [{'run_id': '42', 'path': private, 'error': f'Missing original {private}.'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / 'old-review.json'
+            archive = root / 'new-review.json'
+            report.write_bytes(timing.json_bytes(data))
+            self.assertGreater(report.stat().st_size, 2 * 1024 * 1024)
+            with self.assertRaisesRegex(timing.TimingError, 'compact timing read limit'):
+                timing.read_bounded_timing(report)
+            original = self.invoke_timing('--report', report, '--save', archive)
+            reopened = self.invoke_timing('--report', archive)
+            stored = json.loads(archive.read_bytes())
+        self.assertEqual(samples, stored['samples'])
+        self.assertEqual(clocks, stored['hosted'])
+        self.assertEqual(original['samples'], reopened['samples'])
+        self.assertEqual(original['hosted'], reopened['hosted'])
+        first_issue, = reopened['input_issues']
+        self.assertEqual(('42', 'missing-timing.json', 'Missing original missing-timing.json.'),
+                         (first_issue['run_id'], first_issue['path'], first_issue['error']))
+        self.assertNotIn(private, json.dumps(stored))
+
+    def test_bad_explicit_input_cannot_publish_an_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / 'input.json'
+            archive = root / 'output.json'
+            with report.open('wb') as stream:
+                stream.truncate(timing.MANUAL_ARCHIVE_LIMIT + 1)
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertEqual([{'file': report.name, 'error': 'Report exceeds the manual timing archive limit.'}],
+                             description['input_issues'])
+            self.assertFalse(archive.exists())
+            report.write_bytes(b'{"kind":')
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertNotIn(str(root), json.dumps(description))
+            self.assertFalse(archive.exists())
+            report.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': {}, 'hosted': []}))
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertIn('sample and clock lists', description['input_issues'][0]['error'])
+            self.assertFalse(archive.exists())
+            report.write_bytes(timing.json_bytes(fast_report(19, 120)))
+            with patch.object(timing, 'REVIEW_READ_LIMIT', report.stat().st_size):
+                description = self.invoke_timing('--report', report, '--report', report, '--save', archive,
+                                                 expected_exit=1)
+            self.assertIn('combined timing read limit', description['input_issues'][0]['error'])
+            self.assertFalse(archive.exists())
+            report.write_bytes(timing.json_bytes({**fast_report(19, 120), 'padding': 'x' * timing.TIMING_READ_LIMIT}))
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertIn('compact timing read limit', description['input_issues'][0]['error'])
+            self.assertFalse(archive.exists())
+
+    def test_archive_save_publishes_only_a_complete_new_file(self):
+        data = {'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': []}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / 'timing.json'
+            with patch.object(timing, 'MANUAL_ARCHIVE_LIMIT', 30):
+                with self.assertRaisesRegex(timing.TimingError, 'manual timing archive limit'):
+                    timing.save_review_archive(archive, data)
+            self.assertEqual([], list(root.iterdir()))
+            timing.save_review_archive(archive, data)
+            snapshot = archive.read_bytes()
+            with self.assertRaises(FileExistsError):
+                timing.save_review_archive(archive, {**data, 'input_issues': [{'error': 'different'}]})
+            self.assertEqual(snapshot, archive.read_bytes())
+            self.assertEqual([archive], list(root.iterdir()))
+
+    def test_explicit_save_rejects_incomplete_batches_and_retains_original_diagnostics(self):
+        sample = timing.report_sample(fast_report(19, 120))
+        clock = timing.hosted_timing(hosted_run(), [])
+        saved_note = {'run_id': '42', 'error': 'Original job clock was unavailable.'}
+        valid = {'kind': timing.ARCHIVE_KIND, 'samples': [sample], 'hosted': [clock], 'input_issues': [saved_note]}
+        cases = (
+            ({**valid, 'samples': [{**sample, 'checks': None}]}, 'Invalid timing sample'),
+            ({**valid, 'hosted': [{**clock, 'workflow': []}]}, 'Invalid attempt clock'),
+            ({**valid, 'input_issues': [saved_note, {}]}, 'Invalid collection issue'),
+            ({**valid, 'recent_collection': []}, 'timing archive collection record'),
+            ({**sample, 'checks': None}, 'Invalid timing sample'),
+            ({**fast_report(19, 120), 'kind': 'unexpected'}, 'timing input kind'),
+            ({**fast_report(19, 120), 'checks': [{}]}, 'harness report with run identity and checks'),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            control, faulty, destination = (root / name for name in ('valid.json', 'faulty.json', 'review.json'))
+            control.write_bytes(timing.json_bytes(valid))
+            for index, (data, message) in enumerate(cases):
+                with self.subTest(message=message):
+                    faulty.write_bytes(timing.json_bytes(data))
+                    rejected = root / f'rejected-{index}.json'
+                    result = self.invoke_timing('--report', control, '--report', faulty, '--save', rejected,
+                                                expected_exit=1)
+                    self.assertTrue(any(message in note['error'] for note in result['input_issues']))
+                    self.assertTrue(any(note.get('run_id') == '42' for note in result['input_issues']))
+                    self.assertFalse(rejected.exists())
+            self.invoke_timing('--report', control, '--save', destination)
+            stored = json.loads(destination.read_bytes())
+            self.assertEqual([sample], stored['samples'])
+            self.assertEqual([clock], stored['hosted'])
+            self.assertEqual([{**saved_note, 'file': control.name}], stored['input_issues'])
+
+    def test_actions_diagnostics_name_the_failing_input_and_sanitize_legacy_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run, jobs, old, output = (root / name for name in ('run.json', 'jobs.json', 'legacy.json', 'review.json'))
+            jobs.write_text('[]', encoding='utf-8')
+            first = self.invoke_timing('--report', old, '--actions', run, jobs, '--save', output, expected_exit=1)
+            self.assertEqual([old.name, run.name], [issue['file'] for issue in first['input_issues']])
+            self.assertNotIn(str(root), json.dumps(first))
+            self.assertFalse(output.exists())
+            run.write_bytes(timing.json_bytes(hosted_run()))
+            jobs.write_text('{', encoding='utf-8')
+            history = root / '.reports/timing/earlier.json'
+            archived_issue = {'run_id': '41', 'error': 'The earlier job clock was unavailable.'}
+            with (patch.object(timing, 'ROOT', root),
+                  patch.object(timing, 'shared_timing_directory', return_value=None)):
+                empty = self.invoke_timing('--actions', run, jobs, '--save', output, expected_exit=1)
+                jobs_issue, = empty['input_issues']
+                self.assertEqual(jobs.name, jobs_issue['file'])
+                self.assertNotIn(str(root), json.dumps(empty))
+                self.assertFalse(output.exists())
+
+                history.parent.mkdir(parents=True)
+                history.write_bytes(timing.json_bytes({
+                    'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [], 'input_issues': [archived_issue],
+                }))
+                populated = self.invoke_timing('--actions', run, jobs, '--save', output, expected_exit=1)
+                self.assertCountEqual([jobs_issue, {**archived_issue, 'file': history.name}],
+                                      populated['input_issues'])
+                self.assertNotIn(str(root), json.dumps(populated))
+                self.assertFalse(output.exists())
+
+            legacy_error = str(FileNotFoundError(2, 'Missing original input', str(run)))
+            windows_run, windows_jobs = r'C:\private\run-details.json', r'D:\private\job-details.json'
+            windows_error = f'[WinError 2] Missing original input: {windows_run!r}'
+            legacy = {'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [],
+                      'input_issues': [{'path': str(jobs), 'run_id': '42', 'error': legacy_error},
+                                       {'path': windows_jobs, 'run_id': '43', 'error': windows_error}]}
+            old.write_bytes(timing.json_bytes(legacy))
+            jobs.write_bytes(timing.json_bytes({'jobs': []}))
+            self.invoke_timing('--report', old, '--actions', run, jobs, '--save', output)
+            stored = json.loads(output.read_bytes())
+            retained, windows_retained = stored['input_issues']
+        self.assertEqual(('42', jobs.name, old.name), (retained['run_id'], retained['path'], retained['file']))
+        self.assertIn(run.name, retained['error'])
+        self.assertNotIn(str(root), json.dumps(retained))
+        self.assertEqual('job-details.json', windows_retained['path'])
+        self.assertEqual("[WinError 2] Missing original input: 'run-details.json'", windows_retained['error'])
+        self.assertEqual([timing.hosted_timing(hosted_run(), [])], stored['hosted'])
+
+    def test_actions_save_validates_repository_and_generated_clock_before_publication(self):
+        run = hosted_run()
+        linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
+        windows = hosted_job(32, 'windows', '00:20', '06:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
+        with (tempfile.TemporaryDirectory() as directory,
+              patch.object(timing, 'local_paths', return_value=[])):
+            root = Path(directory)
+            run_path, jobs_path, archive, resaved = (
+                root / name for name in ('run.json', 'jobs.json', 'timing.json', 'resaved.json')
+            )
+            run_path.write_bytes(timing.json_bytes(run))
+            jobs_path.write_bytes(timing.json_bytes({'jobs': [linux, windows]}))
+            self.invoke_timing('--actions', run_path, jobs_path, '--save', archive)
+            original = archive.read_bytes()
+            self.invoke_timing('--report', archive, '--save', resaved)
+            self.assertEqual(original, resaved.read_bytes())
+            clock, = json.loads(original)['hosted']
+            self.assertTrue(timing.clock_capture_complete(clock))
+            for label, bad_run, bad_jobs, filename in (
+                ('object-valued name', dict(run, repository={'full_name': {'wrong': 'shape'}}),
+                 [linux, windows], run_path),
+                ('malformed name', dict(run, repository={'full_name': 'missing-owner'}), [linux, windows], run_path),
+                ('invalid derived job', run, [linux, dict(windows, conclusion={})], jobs_path),
+            ):
+                with self.subTest(case=label, input=filename.name):
+                    run_path.write_bytes(timing.json_bytes(bad_run))
+                    jobs_path.write_bytes(timing.json_bytes(bad_jobs))
+                    rejected = root / 'rejected.json'
+                    for destination in (rejected, archive):
+                        result = self.invoke_timing('--actions', run_path, jobs_path, '--save', destination,
+                                                    expected_exit=1)
+                        self.assertEqual([filename.name], [note['file'] for note in result['input_issues']])
+                    self.assertFalse(rejected.exists())
+                    self.assertEqual(original, archive.read_bytes())
+
+    def test_resolved_collection_history_survives_save_load_save(self):
+        run_id = 45438134397
+        run = dict(hosted_run(run_id=run_id), conclusion='failure')
+        linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50', run_id=run_id)
+        windows = hosted_job(32, 'windows', '00:20', '06:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '05:20', run_id=run_id)
+        windows['conclusion'] = 'failure'
+        clock = timing.hosted_timing(run, [linux, windows])
+        samples = []
+        for platform in ['Linux', 'Windows']:
+            report = historical_report()
+            report.update(status='failed', environment={'system': platform, 'machine': 'x86_64'})
+            report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(run_id), 'run_attempt': '1',
+                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+            samples.append(timing.report_sample(report))
+        self.assertTrue(timing.failed_capture_is_complete(clock, samples, [clock]))
+        private = '/private/review/old-jobs.json'
+        notes = [
+            {'run_id': str(run_id), 'error': timing.MISSING_CLOCK},
+            {'run_id': str(run_id), 'error': timing.MISSING_COMPACT},
+            {'run_id': str(run_id), 'path': private, 'file': private,
+             'error': f'Independent collection issue in {private}.'},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            earlier, recovered, archive, again = (
+                root / name for name in ('earlier.json', 'recovered.json', 'saved.json', 'again.json')
+            )
+            earlier.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [],
+                                                   'input_issues': notes}))
+            recovered.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples,
+                                                     'hosted': [clock]}))
+            before = self.invoke_timing('--report', earlier)
+            self.assertEqual(3, len(before['input_issues']))
+            current = self.invoke_timing('--report', earlier, '--report', recovered, '--save', archive)
+            reopened = self.invoke_timing('--report', archive, '--save', again)
+            saved = json.loads(archive.read_bytes())
+            self.assertEqual(samples, saved['samples'])
+            self.assertEqual([clock], saved['hosted'])
+            self.assertEqual(archive.read_bytes(), again.read_bytes())
+            self.assertEqual(before['input_issues'], saved['input_issues'])
+            self.assertEqual([saved['input_issues'][2]], current['input_issues'])
+            self.assertEqual(current, reopened)
+            self.assertNotIn(private, archive.read_text(encoding='utf-8'))
+
+    def test_failed_save_does_not_append_to_a_summary_alias_or_existing_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report, archive, summary = (root / name for name in ('input.json', 'review.json', 'summary.md'))
+            report.write_bytes(timing.json_bytes(fast_report(19, 120)))
+            original = b'{"original":true}\n'
+            archive.write_bytes(original)
+            os.link(archive, summary)
+            self.invoke_timing('--report', report, '--save', archive, '--summary', summary, expected_exit=1)
+            self.assertEqual(original, archive.read_bytes())
+            self.assertEqual(original, summary.read_bytes())
+
+            archive.unlink()
+            link = os.link
+
+            def occupy_destination(stage, destination):
+                destination.write_bytes(original)
+                link(stage, destination)
+
+            with patch.object(timing.os, 'link', side_effect=occupy_destination):
+                self.invoke_timing('--report', report, '--save', archive, '--summary', summary, expected_exit=1)
+            self.assertEqual(original, archive.read_bytes())
+            self.assertEqual(original, summary.read_bytes())
+
+    def test_summary_aliased_after_save_uses_open_file_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report, archive, summary = (root / name for name in ('input.json', 'review.json', 'summary.md'))
+            report.write_bytes(timing.json_bytes(fast_report(19, 120)))
+            link = os.link
+
+            def publish_and_alias(stage, destination):
+                link(stage, destination)
+                if summary.exists():
+                    summary.unlink()
+                link(destination, summary)
+
+            with patch.object(timing.os, 'link', side_effect=publish_and_alias):
+                self.invoke_timing('--report', report, '--save', archive, '--summary', summary, expected_exit=1)
+            kept = json.loads(archive.read_bytes())
+            self.assertEqual(timing.ARCHIVE_KIND, kept['kind'])
+            self.assertEqual(1, len(kept['samples']))
 
 
 class RecentTimingTests(unittest.TestCase):

@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-111",
+  "task_definition_sha256": "5be11d48848c4a28f3da030c1f4b5dee16b692febf6527f54572a707be62018a",
+  "run_id": "20261125T055452.266029Z-e359d888",
+  "recorded_at": "2026-11-25T06:09:59.738706+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "7169fcdb7ba57b801295f8ba762c17c7102933f2947a84d0107d9f9e9c80bf0e",
+    "file_count": 597,
+    "git_head": "314219dc076a1b8fc7754976a9c2027a9756ae7e",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "595ccf02abcbda0d0d0ff3c0c895f90608b892b010883740ee5e4ccea3ff0dbb",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-1020-azure",
+    "machine": "x86_64",
+    "python": "3.12.16",
+    "python_executable": "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9be45cb1ef42a60c6fe0ca5a9c06948ffc6d1e2ab81adf4217d330af082cb517"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/runner/work/scopehub/scopehub/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d1f08229b6bf8fa1891644b2bf3bc20688f07a17e8cbcecc0d50391025411679"
+    }
+  ],
+  "project_definition_sha256": "5b8b32df6eb0b8fd0036b808fd1f694bec7db3bb34af7f037290c2919e794ec7",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "4bd1bf54678a582a12511f0c35b48e1fa05c99357494deadec54a88857b2ee53",
+    "66a588ab5caac8085b079a98160ba95838cec4edc58a37e5bf57748c1f272bf5",
+    "98dc704cdf8c8d7d993d73785dd93ab54fae6fdcd819d9584e95f467cfd1b4ac",
+    "cc1877ecdf0a535abab696aa592cec7f782958779e8937f7d4c15f4228ecac54",
+    "d4674853a118a978b76667b7e2d60129ede7c4e2b5f62d1ec8e029ba9d32467a",
+    "e15f28818661ae61078637dee70c9f919c5c3b7cb0ca5a2e14a5ba0fa754e7d1",
+    "edac92b6793ea64f928ee2526d238c05c556acf7a4ac67d32176ead00ed39e25"
+  ],
+  "ci": {
+    "provider": "github-actions",
+    "repository": "kacoyi/scopehub",
+    "run_id": "45556669680",
+    "run_attempt": "1",
+    "event": "pull_request",
+    "head_sha": "36185b8d8b78f91f97e0db4c9c3d4c32899acdab",
+    "checkout_sha": "314219dc076a1b8fc7754976a9c2027a9756ae7e",
+    "run_url": "https://github.com/kacoyi/scopehub/actions/runs/45556669680"
+  }
+}

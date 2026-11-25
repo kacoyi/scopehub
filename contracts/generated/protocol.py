@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=55c1f64e062d166285d140b25e336e7978e687a79e1a1c54b19127a83420e154. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -1325,6 +1325,45 @@ class CancelTaskError11(TypedDict):
     request_id: Uuid
     error: WorkspaceFault11
 Message = Hello | Request | Response | AiToolRequestEvent | Cancel | Heartbeat | MarketHistoryPageRequest | MarketHistoryPageResponse | MarketHistoryPageError | MarketSubscriptionRequest | MarketSubscriptionResponse | MarketSubscriptionError | LocalImportPreviewRequest | LocalImportPreviewResponse | LocalImportPreviewError | SaveLocalImportMappingRequest | SaveLocalImportMappingResponse | SaveLocalImportMappingError | LoadLocalImportMappingRequest | LoadLocalImportMappingResponse | LoadLocalImportMappingError | ListLocalImportRevisionsRequest | ListLocalImportRevisionsResponse | ListLocalImportRevisionsError | ReadLocalImportRevisionRequest | ReadLocalImportRevisionResponse | ReadLocalImportRevisionError | ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError | PreviewLocalFolderRefreshRequest | PreviewLocalFolderRefreshResponse | PreviewLocalFolderRefreshError | PrepareLocalFolderPublicationRequest | PrepareLocalFolderPublicationResponse | PrepareLocalFolderPublicationError | PublishLocalFolderRefreshRequest | PublishLocalFolderRefreshResponse | PublishLocalFolderRefreshError | ListLocalFolderRevisionsRequest | ListLocalFolderRevisionsResponse | ListLocalFolderRevisionsError | ReadLocalFolderRevisionRequest | ReadLocalFolderRevisionResponse | ReadLocalFolderRevisionError | ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError | RevokeLocalFolderRevisionRequest | RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError | RevokeLocalImportRevisionRequest | RevokeLocalImportRevisionResponse | RevokeLocalImportRevisionError | PublishLocalImportRequest | PublishLocalImportResponse | PublishLocalImportError | MarketBarUpdateEvent | MarketBarCorrectionEvent | MarketStreamGapEvent | WorkerHello11 | ScopedMutationRequest11 | ScopedMutationResponse11 | TrustedConfirmationDecision11 | PreviewReady11 | ArtifactChunk11 | TaskTerminalEvent11 | TaskCancelRequest11 | CancelMemberRequest11 | ReadProjectedChart11 | ProjectedChartResponse11 | SharedSelectionEvent11 | SharedSelectionRequest11 | AiToolRequest11 | AiToolResultDelivery11 | AiToolResultAck11 | ProjectedChartError11 | IndicatorCompute11 | IndicatorComputed11 | IndicatorInputSegment11 | SharedSelectionResponse11 | SharedSelectionError11 | SharedContextRequest11 | SharedContextResponse11 | SharedContextError11 | CancelTaskResponse11 | CancelTaskError11
+class ReadLocalImportSourceRowReviewRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalImportSourceRow']
+    payload: ReadLocalImportSourceRowReviewInput
+class ReadLocalImportSourceRowReviewResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalImportSourceRow']
+    ok: Literal[True]
+    result: ReadLocalImportSourceRowReviewOutput
+    error: None
+class ReadLocalFolderSourceRowReviewRequest(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['request']
+    request_id: Uuid
+    task_id: Uuid | None
+    operation: Literal['market.readLocalFolderSourceRow']
+    payload: ReadLocalFolderSourceRowReviewInput
+class ReadLocalFolderSourceRowReviewResponse(TypedDict):
+    protocol_version: Literal['1.1']
+    message_id: Uuid
+    timestamp_ms: Timestamp
+    type: Literal['response']
+    request_id: Uuid
+    operation: Literal['market.readLocalFolderSourceRow']
+    ok: Literal[True]
+    result: ReadLocalFolderSourceRowReviewOutput
+    error: None
+ExtendedMessage = Message | ReadLocalImportSourceRowReviewRequest | ReadLocalImportSourceRowReviewResponse | ReadLocalFolderSourceRowReviewRequest | ReadLocalFolderSourceRowReviewResponse
 ProtocolVersion11 = Literal['1.1']
 class WorkspaceObject11(TypedDict):
     kind: Literal['chart', 'layer', 'layout', 'dataset', 'workspace']
@@ -2520,6 +2559,10 @@ class ReadLocalImportRevisionOutput(TypedDict):
     bars: list[PublishedLocalImportBar]
 PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError
 ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError
+class CsvDeclarationConflict(TypedDict):
+    column_index: int
+    field: Literal['instrument_kind', 'venue', 'timeframe', 'calendar_id', 'session_scope', 'timezone', 'quantity_unit', 'price_adjustment', 'roll_method', 'record_kind', 'volume_semantics', 'timestamp_convention', 'timestamp_format', 'trading_day_format', 'daily_start_time']
+    reviewed_value: str | None
 class ReadLocalImportSourceRowInput(TypedDict):
     version: int
     revision_id: Uuid
@@ -2531,6 +2574,23 @@ class ReadLocalImportSourceRowOutput(TypedDict):
     locator: LocalImportRowLocator
     header: list[str]
     raw_fields: list[str]
+class ReadLocalImportSourceRowReviewInput(TypedDict):
+    version: int
+    revision_id: Uuid
+    locator: LocalImportRowLocator
+    review_declarations: bool
+class ReadLocalImportSourceRowReviewOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+    source_sha256: Hash
+    locator: LocalImportRowLocator
+    header: list[str]
+    raw_fields: list[str]
+    declaration_conflicts: list[CsvDeclarationConflict] | None
+ReadLocalImportSourceRowPayload = ReadLocalImportSourceRowInput | ReadLocalImportSourceRowReviewInput
+ReadLocalImportSourceRowResult = ReadLocalImportSourceRowOutput | ReadLocalImportSourceRowReviewOutput
+ReadLocalImportSourceRowWireRequest = ReadLocalImportSourceRowRequest | ReadLocalImportSourceRowReviewRequest
+ReadLocalImportSourceRowWireReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowReviewResponse | ReadLocalImportSourceRowError
 ReadLocalImportSourceRowReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError
 class RevokeLocalImportRevisionInput(TypedDict):
     version: int
@@ -2651,6 +2711,22 @@ class ReadLocalFolderSourceRowOutput(TypedDict):
     source: FolderRefreshSource
     header: list[str]
     raw_fields: list[str]
+class ReadLocalFolderSourceRowReviewInput(TypedDict):
+    version: int
+    revision_id: Uuid
+    source: FolderRefreshSource
+    review_declarations: bool
+class ReadLocalFolderSourceRowReviewOutput(TypedDict):
+    version: int
+    revision_id: Uuid
+    source: FolderRefreshSource
+    header: list[str]
+    raw_fields: list[str]
+    declaration_conflicts: list[CsvDeclarationConflict] | None
+ReadLocalFolderSourceRowPayload = ReadLocalFolderSourceRowInput | ReadLocalFolderSourceRowReviewInput
+ReadLocalFolderSourceRowResult = ReadLocalFolderSourceRowOutput | ReadLocalFolderSourceRowReviewOutput
+ReadLocalFolderSourceRowWireRequest = ReadLocalFolderSourceRowRequest | ReadLocalFolderSourceRowReviewRequest
+ReadLocalFolderSourceRowWireReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowReviewResponse | ReadLocalFolderSourceRowError
 ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError
 RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError
 AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative
