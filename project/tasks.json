@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-118",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -21285,7 +21285,7 @@
       "id": "M0-118",
       "title": "Verify the matched Linux browser admission observation window",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-105"
       ],
@@ -21309,7 +21309,12 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-118-b5731f152137c987.json",
+          "sha256": "5754fb540d849669285fec74900d00aa31ec4c15aa33c1714c25e96e674cd927"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261125T043455.480016Z-7345748b",
@@ -21317,9 +21322,9 @@
           "report_sha256": "a2e085cebc9e68548abe2867b906740299aea157dcfb59ee5762a8c5cf44e506"
         }
       ],
-      "next_action": "Verify the retained matched observations against their manifest, run the canonical M0-118 Linux task harness on a clean source, archive the passing receipt and hand any future recurrence to M0-119.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The initial d9102de failed run and its scoped attachments resolve under the original digest. The checked ecb8477b archive contains 204 case executions and 12 matched passes across one isolated baseline and three ordinary rounds under existing deadlines. It records zero TIMEOUT in 44 instrument.search requests, four successful chart-opened snapshots, eight expected scripted BUSY replies, and cleanup of all owned fixtures. Canonical Linux task run 20261125T065550.540350Z-57423efd at 0f4e87b6120a8d2575ec1821bc3a08727017ac1a passed project-state, Python contracts and workers, all 59 workspace-timeframe cases and all 8 desktop-workspace-transport cases. The original request stage and admission holder remain unknown. The feedback stays open, and M0-119 owns the next actual recurrence.",
       "plan": {
         "outcome": "Deliver an independently reviewable investigation that preserves the first failure, distinguishes a finite matched window without recurrence from causal attribution, and leaves the next actual recurrence owned.",
         "change_types": [
