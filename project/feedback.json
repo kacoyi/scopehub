@@ -6558,6 +6558,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "maintenance-review-intake-and-cold-handoff-gaps",
+      "source": "Independent Astra Standard t10m CHANGES_REQUESTED on 39921eb80c5892e5be8a8bede96ceb993ae75e33. Final manifest cc4e60bdfa549a71f3eec8af43e2e77f233b68ebd24a4bdeb85f65d2e305f3e8 and earlier findings manifest 6c2810a51a74d58d21c46c2bbbccef37f4a4f567860f0bcd5a54723bfae31a77 retained privately.",
+      "observation": "A freshly rehashed branch projection can omit all nine unique-history rows without invalidating protected history. Named retained staging cannot be admitted, legacy retirement can hide its obligation, qualified Windows recovery is not reflected, and valid same-day protection supplementation is rejected. Stable critical intake expands the full ledger and documented startup and module navigation require a writable uv cache.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
