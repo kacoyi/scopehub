@@ -223,6 +223,11 @@ def append_decision(root, decisions, decision):
     return decision, True
 
 
+def selected_plan(task):
+    plan = task.get('plan', {})
+    return bool(plan.get('independent_review') or BOUNDARY_TYPES.intersection(plan.get('change_types', [])))
+
+
 def qualifying_items(items, key, previous=()):
     earlier = {row['id'] for row in previous if row['severity'] in {'major', 'critical'} and row['status'] != 'deferred'}
     return {row['id']: {field: value for field, value in row.items() if field not in FEEDBACK_ADMIN}
@@ -322,9 +327,7 @@ def assess(root, project, records, head, bases, *, accepted, protected, trusted,
             continue
         previous = [(tasks.get(key, {}), feedback) for _, tasks, feedback in baselines]
         finding = qualifying_items(items, key, (row for _, feedback in previous for row in feedback)) if automatic else {}
-        plans = (record.get('plan', {}) for record in (task, *(old for old, _ in previous)))
-        selected = any(plan.get('independent_review') or BOUNDARY_TYPES.intersection(plan.get('change_types', []))
-                       for plan in plans)
+        selected = any(selected_plan(record) for record in (task, *(old for old, _ in previous)))
         decisions = records.get(key, [])
         if not (selected or finding or decisions):
             continue

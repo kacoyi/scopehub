@@ -293,3 +293,15 @@ class TaskReviewTests(ProjectFixture):
         (self.root / 'separate_input.py').write_bytes(b'outcome = True\n')
         self.commit()
         self.command('history', '--base', closed, error='Independent review for M0-001 is pending')
+
+    def test_consequential_context_teaches_importable_reply_without_burdening_routine_work(self):
+        _, _ = self.open_review()
+        for args in (('context', TASK), ('context', TASK, '--phase', 'verify'),
+                     ('context', TASK, '--phase', 'verify', '--detail')):
+            reply = self.command(*args)['review_reply']
+            self.assertEqual([f'APPROVE {TASK} <full-clean-reviewed-commit>',
+                              f'CHANGES_REQUESTED {TASK} <full-clean-reviewed-commit>'], reply['first_line'])
+            self.assertIn('standalone factual English sentence', reply['observation'])
+            self.assertIn('verbatim', reply['observation'])
+            self.assertIn('Chinese', reply['owner_communication'])
+        self.assertNotIn('review_reply', self.command('context', 'M0-002', '--phase', 'verify'))

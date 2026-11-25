@@ -798,6 +798,30 @@ def review_context(project, task, review):
             'intake_command': f'pnpm project:review {task["id"]} --help'}
 
 
+def attach_review_context(result, project, task, review, source_commit):
+    if review:
+        result['independent_review'] = review_context(project, task, review)
+    policy = project.get('development', {}).get('quality', {}).get('review')
+    finding = policy and review_acceptance.qualifying_items(project['feedback']['items'], task['id'])
+    if task['status'] in {'done', 'cancelled'} or not (review or finding or review_acceptance.selected_plan(task)):
+        return result
+
+    source = source_commit or '<full-clean-reviewed-commit>'
+    subject = f'{task["id"]} {source}'
+    reply = {
+        'first_line': [f'APPROVE {subject}', f'CHANGES_REQUESTED {subject}'],
+        'observation': 'After the single verdict line, give one short standalone factual English sentence '
+                       'stating what you independently observed. The coordinator uses that sentence verbatim '
+                       'for project:review --observation.',
+        'owner_communication': 'Write the additional explanation and limits for the owner in Chinese.',
+    }
+    if policy and (template := result.get('source_command')):
+        reply['policy_command'] = template.replace('<path>', 'project/development.json').replace(
+            '<json-pointer>', '/quality/review')
+    result['review_reply'] = reply
+    return result
+
+
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if __package__:
         from .development import effective_decisions, focused_context
@@ -811,15 +835,14 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if phase not in {'implement', 'verify', 'handoff'}:
         raise ProjectError(f'Unknown context phase: {phase}')
     review = task_review_status(root, project, local=True).get(key)
+    source_commit = getattr(root, 'commit', None)
     if not detail:
-        result = focused_context(project, key, phase)
-        if review:
-            result['independent_review'] = review_context(project, task, review)
-        return result
+        options = {'source_commit': source_commit} if source_commit else {}
+        view = focused_context(project, key, phase, **options)
+        return attach_review_context(view, project, task, review, source_commit)
     decision_ids = effective_decisions(project, task)
-    return {
+    result = {
         'task': task,
-        **({'independent_review': review_context(project, task, review)} if review else {}),
         'development': project.get('development'),
         'context_paths': list(dict.fromkeys([*project['delivery']['context'], *task.get('plan', {}).get('context', [])])),
         'dependencies': [project['tasks'][item] for item in task['depends_on']],
@@ -840,6 +863,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
                      'pnpm project:history --base <reviewed-commit>', f'pnpm project:record {key} --report <run-report>',
                      'pnpm project:readiness'],
     }
+    return attach_review_context(result, project, task, review, source_commit)
 
 
 def checkpoint(root=ROOT):
@@ -1708,7 +1732,7 @@ def main():
     review.add_argument('--transcript', required=True, type=Path, help='Retained final assistant export, final response, or rendered terminal transcript')
     review.add_argument('--reviewer', required=True, help='Independently observed reviewer or session identity')
     review.add_argument('--scope', help='Verbatim transcript excerpt naming the task if the verdict line omits it')
-    review.add_argument('--observation', required=True, help='Verbatim excerpt reporting an independent observation')
+    review.add_argument('--observation', required=True, help='Verbatim English sentence reporting an independent observation')
     review.add_argument('--supersedes', help='Retained current response ID when recording a subsequent decision')
 
     diagnostic = sub.add_parser('diagnostic', help='Identify or explicitly verify a retained diagnostic')
