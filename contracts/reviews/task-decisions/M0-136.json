@@ -123,6 +123,15 @@
       },
       "supersedes": "6e26539f53acdbb72e36a8176d637158dee40fe2eae56459e5ebd9580afcb114",
       "evidence_sha256": "912d259f3aa77312f8311a91696251edc3041025cf2a12548a2e3d36a804edd5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d29a74cb885bacf84015c79653ed6201ece1248b",
+      "scope": "Independently verify the previous significant-whitespace finding through the real review intake, preserved Markdown spans, legacy history, and the corresponding complete task and integration closure routes on this exact source.",
+      "supersedes": "59ebf0abf34c31902610aaeeee663fbe138bb76830da0273468b3a9839c7f601",
+      "requested_at": "2026-11-25T16:18:02.498115+00:00",
+      "request_id": "c044b0414b8b8789fd3416730978ab7db1303ecc4e5f67c36063c5f05e37c145",
+      "evidence_sha256": "cf5c488f726cc6c571ab4e64aa0e24af34752d0411609daf8506db637f16b615"
     }
   ]
 }
