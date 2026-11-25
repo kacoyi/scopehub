@@ -24242,7 +24242,11 @@
         "scripts/timing.py",
         "tests/project/test_timing.py",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "scripts/check.py",
+        "scripts/ci_artifacts.py",
+        "scripts/project.py",
+        "scripts/verification_scope.py"
       ],
       "decision_refs": [
         "0004",
@@ -24256,14 +24260,16 @@
         "Preserve a real shared-capture red and green replay and a canonical task report on the exact candidate. Keep the corrective task and findings active for independent review.",
         "Shared capture applies its ordinary reader bound and validates the candidate before atomic publication. A failed read, overflow or invalid update preserves original bytes, existing index and retry state.",
         "Separate job identity from observed fields. Missing fields enrich from matching known values, two known disagreements affect the dependent result, and independent job and platform observations remain usable.",
-        "A producer dispute does not prevent ordinary protected platform backfill and indexing. An exactly matching producer can supply one unknown component of an existing aggregate cache vector."
+        "A producer dispute does not prevent ordinary protected platform backfill and indexing. An exactly matching producer can supply one unknown component of an existing aggregate cache vector.",
+        "Complete attempt evidence establishes protected membership. All grounded evidence for the same identified job participates in clock reconciliation and dependent producer, platform and budget projections, even when an unrelated job is absent.",
+        "A producer supplies cache evidence only for the matching publisher-derived harness and Windows x64 identity in addition to exact attempt, checkout, input digest and selected result measurements. Preserve independent wall duration."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the four second-round failures and replay all eight findings and historical controls on real private shared capture, then deliver the exact canonical local task report for independent review.",
+      "next_action": "Reproduce both third-round findings, verify shared job facts and publisher identity across real private capture and normal timing commands, and retain an exact local report for independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24275,7 +24281,10 @@
           "scripts/timing.py",
           "tests/project/test_timing.py",
           "archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt",
-          "archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt"
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt",
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt",
+          "scripts/ci_artifacts.py",
+          "scripts/verification_scope.py"
         ],
         "hypotheses": [
           "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes.",
@@ -24307,6 +24316,18 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An unrelated missing job erases a known disagreement or an aggregate republishes a disputed copied stage. Check bounded input orders, duplicates, same job with independent fields, and the 900-second budget under direct and linked reopen.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Another harness, input set, platform or architecture classifies the Windows aggregate cache. Verify publisher-compatible and mismatched synthetic copies of an actual artifact through ordinary CLI, automatic discovery and captured reopen.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
@@ -24315,7 +24336,8 @@
             "development-tooling"
           ],
           "entrypoints": [
-            "scripts/timing.py"
+            "scripts/timing.py",
+            "scripts/ci_artifacts.py"
           ],
           "rules": [
             {
@@ -24328,7 +24350,9 @@
           ],
           "open_questions": [
             "Keep the existing archive format; reject a candidate that cannot be read within the shared limit rather than introducing a storage migration.",
-            "Use the attempt and job owner for an exact known-value union; use independently matched checks and digest for cache component authority."
+            "Use the attempt and job owner for an exact known-value union; use independently matched checks and digest for cache component authority.",
+            "Compare extending the aggregate reconciler with deriving producer and protected views from one set of normalized job facts. Use complete membership without discarding grounded partial fields, and preserve the current compact archive format.",
+            "Reuse the existing publisher run ID and Windows x64 functions in both publication and retrospective cache attribution."
           ]
         },
         "evolution": {
@@ -24338,7 +24362,8 @@
           ],
           "change": [
             "Reconcile exact attempt identity and compatible optional evidence before deriving platform, job, cache and index eligibility.",
-            "Validate and publish one bounded capture transaction under the per-attempt lock while permitting coherent independent platform backfill."
+            "Validate and publish one bounded capture transaction under the per-attempt lock while permitting coherent independent platform backfill.",
+            "Give identified job fields one reconciliation owner. Derive dependent platform stages from those facts and share publisher producer identity without migrating retained data."
           ],
           "data_plan": "Use authenticated historic snapshots and controlled copies under ignored paths and temporary shared Git storage.",
           "cleanup": "Keep immutable red and green evidence, remove temporary shared state, and leave the tracked worktree clean with M0-133 active."

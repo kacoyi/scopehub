@@ -6743,6 +6743,36 @@
       "resolution": null,
       "deferral_reason": null,
       "observation": "An authentic browser producer with matching CI identity, input digest and 11 check rows cannot complete an unknown browser component of the 804-second Windows aggregate; both orders and reopen lose the known partial classification."
+    },
+    {
+      "id": "timing-job-facts-depend-on-unrelated-matrix-membership",
+      "source": "Independent Astra review of 6a7777c57bc3318df850501e03baa478d64da007. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt (SHA-256 5ea04c5b235075234c3134119512a84e97e5e52ee04847510c691466c1d0a22e).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Authentic Linux job 138978153241 has an 806-second observation. A competing 926-second observation becomes invisible when an unrelated Windows core job is absent and 806 seconds is counted under the 900-second budget. The same separate fact paths allow a Windows aggregate to retain the disputed 27-second browser stage."
+    },
+    {
+      "id": "timing-cache-lane-matches-another-harness-or-architecture",
+      "source": "Independent Astra review of 6a7777c57bc3318df850501e03baa478d64da007. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt (SHA-256 5ea04c5b235075234c3134119512a84e97e5e52ee04847510c691466c1d0a22e).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "An exact Windows browser check projection from another harness report or from ARM64 fills an unknown x64 aggregate cache component. Explicit review, discovery and shared reopening raise the 804-second observation into the partial cache cohort without publisher-compatible producer identity."
     }
   ]
 }
