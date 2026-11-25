@@ -20,7 +20,9 @@ from jsonschema import Draft202012Validator, FormatChecker
 if __package__:
     from . import maintenance, review_acceptance
     from .development import expand_engineering_sources, read_only_project_command, resolve_source
-    from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from .diagnostic_archive import (
+        DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator, verify_completed_windows_python,
+    )
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .review_tree import CommittedPath
@@ -30,7 +32,9 @@ else:
     import maintenance
     import review_acceptance
     from development import expand_engineering_sources, read_only_project_command, resolve_source
-    from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
+    from diagnostic_archive import (
+        DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator, verify_completed_windows_python,
+    )
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from review_tree import CommittedPath
@@ -2529,6 +2533,15 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
             EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
             collect_run_observation, field_observation, redacted_check_log,
         )
+    if 'python-contracts-workers' in task['checks'] and (report['report_version'] == '2.1' or 'windows_python' in report):
+        validate_model(root, 'HostedHarnessReport', report)
+        if (not ci or ci['event'] != 'pull_request' or report['selection']['profile'] != 'full'
+                or not windows_x64(report['environment'])):
+            raise ProjectError('Split Python completion evidence requires a full native Windows pull request.')
+        try:
+            verify_completed_windows_python(artifact_root if artifact_root is not None else reports_root, report)
+        except DiagnosticArchiveError as error:
+            raise ProjectError(str(error)) from error
     selected = []
     field_records = {}
     external_client_observation = None

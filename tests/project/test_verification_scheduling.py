@@ -19,7 +19,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts import check as harness
-from scripts import ci_artifacts, windows_python
+from scripts import ci_artifacts, project, windows_python
 from scripts.diagnostic_archive import diagnostic_locator, resolve_diagnostic
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
@@ -521,7 +521,7 @@ class WindowsLaneTests(ProjectFixture):
             shutil.rmtree(self.reports)
         return reports
 
-    def partition_fixture(self, discovery=None, *, scoped_catalog=False):
+    def partition_fixture(self, discovery=None, *, scoped_catalog=False, receipt_scope=False):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)['command'] = windows_python.COMMAND
@@ -536,6 +536,10 @@ class WindowsLaneTests(ProjectFixture):
                         catalog['required_change_checks'].append(key)
                         present.add(key)
         catalog_path.write_bytes(json_bytes(catalog))
+        if receipt_scope:
+            ledger = self.ledger()
+            task_by_id(ledger, 'M0-001')['checks'].append(windows_python.CHECK)
+            self.save_ledger(ledger)
         for directory in ('scripts', 'tests', 'tests/project'):
             (self.root / directory).mkdir()
         shutil.copyfile(Path(__file__).resolve().parents[2] / 'scripts/windows_python.py',
@@ -588,6 +592,33 @@ class WindowsLaneTests(ProjectFixture):
                 '        if os.environ.get("SCOPEHUB_CASE_EVENTS") == "fixture": raise RuntimeError("fixture error")\n'
                 '    def test_fixture(self): pass\n',
                 encoding='utf-8')
+        elif discovery == 'package_skip':
+            (self.root / 'tests/project/__init__.py').write_text(
+                'import unittest\n'
+                'def setUpModule(): raise unittest.SkipTest("package fixtures unavailable")\n'
+                'class PackageCase(unittest.TestCase):\n'
+                '    def test_package(self): self.fail("package should stay skipped")\n', encoding='utf-8')
+            (self.root / 'tests/project/test_skip_submodule.py').write_text(
+                'import unittest\n'
+                'def setUpModule(): raise unittest.SkipTest("submodule fixtures unavailable")\n'
+                'class SubmoduleCase(unittest.TestCase):\n'
+                '    def test_submodule(self): self.fail("submodule should stay skipped")\n', encoding='utf-8')
+        elif discovery == 'destructor':
+            module = self.root / 'tests/project/test_first.py'
+            with module.open('a', encoding='utf-8') as output:
+                output.write('import os\n'
+                             'class FinalOutput:\n'
+                             '    def __del__(self, write=os.write): write(2, b"ordinary final destructor output\\n")\n'
+                             'final_output = FinalOutput()\n')
+        elif discovery == 'source_drift':
+            module = self.root / 'tests/project/test_first.py'
+            with module.open('a', encoding='utf-8') as output:
+                output.write('import os\n'
+                             'from pathlib import Path\n'
+                             'class Drift(unittest.TestCase):\n'
+                             '    def test_exercise_source(self):\n'
+                             '        if "SCOPEHUB_FIXTURE_SOURCE_DRIFT" in os.environ:\n'
+                             '            Path("implementation.py").write_bytes(b"value = 2\\n")\n')
         elif discovery == 'package_error':
             (self.root / 'tests/project/__init__.py').write_text(
                 'raise RuntimeError("rejected package import")\n', encoding='utf-8')
@@ -1110,6 +1141,183 @@ class WindowsLaneTests(ProjectFixture):
         code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
         self.assertEqual(0, code)
         self.assertEqual('passed', report['integration_gates']['status'])
+
+    def test_public_record_requires_both_split_originals_and_preserves_legacy_import(self):
+        self.partition_fixture(receipt_scope=True)
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual((0, '2.1'), (code, report['report_version']))
+        downloaded = self.reports / 'ci' / 'ordinary'
+        downloaded.parent.mkdir()
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, downloaded, os.environ))
+        subprocess.run(['git', 'checkout', '--quiet', '--detach', report['ci']['head_sha']],
+                       cwd=self.root, check=True)
+        subprocess.run(['git', 'remote', 'add', 'origin', 'https://github.com/fixture/scopehub'],
+                       cwd=self.root, check=True)
+
+        def record(path, *, artifact=None, error=None):
+            output = StringIO()
+            args = ['project.py', 'record', 'M0-001', '--report', str(path)]
+            if artifact:
+                args.extend(('--artifact-root', str(artifact)))
+            with patch.object(project, 'ROOT', self.root), patch.object(sys, 'argv', args), redirect_stdout(output):
+                if error:
+                    with self.assertRaises(SystemExit) as failed:
+                        project.main()
+                    self.assertEqual(1, failed.exception.code)
+                else:
+                    project.main()
+            result = json.loads(output.getvalue())
+            if error:
+                self.assertIn(error, result['error'])
+            return result
+
+        run = downloaded / 'runs' / report['run_id']
+        download_report = downloaded / 'test-report.json'
+        originals = {run / f'windows-python-{lane}.{ext}': (run / f'windows-python-{lane}.{ext}').read_bytes()
+                     for lane in windows_python.LANES for ext in ('log', 'json')}
+        for action, paths in [('missing', tuple(originals)), ('damaged', (run / 'windows-python-recovery.json',)),
+                              ('damaged', (run / 'windows-python-python.log',))]:
+            with self.subTest(action=action, paths=[path.name for path in paths]):
+                try:
+                    for path in paths:
+                        if action == 'missing':
+                            path.unlink()
+                        else:
+                            path.write_bytes(b'damaged original')
+                    record(download_report, artifact=downloaded, error='diagnostic bytes')
+                    self.assertFalse((self.root / 'project/evidence').exists())
+                finally:
+                    for path in paths:
+                        path.write_bytes(originals[path])
+        missing = deepcopy(report)
+        del missing['windows_python']
+        wrong_id = deepcopy(report)
+        wrong_id['windows_python']['recovery']['id'] = 'windows-python-python'
+        misplaced = deepcopy(report)
+        misplaced['windows_python']['python']['log'] = '.reports/runs/another/windows-python-python.log'
+        for changed, error in ((missing, 'part identities'), (wrong_id, 'part: recovery'),
+                               (misplaced, 'misplaced Windows Python diagnostic log')):
+            try:
+                download_report.write_bytes(json_bytes(changed))
+                record(download_report, artifact=downloaded, error=error)
+                self.assertFalse((self.root / 'project/evidence').exists())
+            finally:
+                download_report.write_bytes(json_bytes(report))
+        receipt = record(download_report, artifact=downloaded)
+        self.assertEqual(harness.file_digest(download_report),
+                         read_json(self.root / receipt['path'])['report_sha256'])
+        with patch.dict(os.environ, {'GITHUB_ACTIONS': 'false'}):
+            code, legacy = self.run_harness('--task', 'M0-001')
+        self.assertEqual((0, '2.0'), (code, legacy['report_version']))
+        local = record(self.reports / 'test-report.json')
+        self.assertNotEqual(receipt['path'], local['path'])
+
+    def test_real_package_skip_leaves_submodule_cases_in_the_published_order(self):
+        self.partition_fixture('package_skip')
+        serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
+                                capture_output=True, check=True)
+        self.assertIn(b'Ran 3 tests', serial.stderr)
+        self.assertIn(b'OK (skipped=3)', serial.stderr)
+        self.produce()
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        row = next(row for row in report['checks'] if row['id'] == windows_python.CHECK)
+        combined = (self.root / row['log']).read_bytes()
+        self.assertEqual([line for line in serial.stderr.splitlines() if b' ... ' in line],
+                         [line for line in combined.splitlines() if b' ... ' in line])
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, self.downloads / 'published', os.environ))
+        run = self.root / row['log']
+        manifest_path = run.parent / 'windows-python-python.json'
+        manifest = read_json(manifest_path)
+        case = 'tests.project.test_first.First.test_prefix'
+        self.assertEqual(['tests.project.test_first', 'tests.project.test_first.First'], manifest['owners'][case])
+        manifest['owners'][case][0] = 'tests.project'
+        manifest_path.write_bytes(json_bytes(manifest))
+        report['windows_python']['python']['manifest_sha256'] = harness.file_digest(manifest_path)
+        for path in (self.reports / 'test-report.json', run.parent / 'test-report.json'):
+            path.write_bytes(json_bytes(report))
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'fixture outcomes'):
+            ci_artifacts.stage_artifacts(self.root, self.downloads / 'rejected-owner', os.environ)
+
+    def test_main_push_stages_honest_identity_failures_but_collection_rejects_them(self):
+        self.partition_fixture('source_drift')
+        original_file = self.root / 'implementation.py'
+        original = original_file.read_bytes()
+        pull = read_json(self.event)['pull_request']
+        after = os.environ['GITHUB_SHA']
+        event = {'ref': 'refs/heads/main', 'before': pull['base']['sha'], 'after': after}
+        self.event.write_bytes(json_bytes(event))
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': event['ref'],
+                                     'SCOPEHUB_SOURCE_HEAD': after}):
+            self.produce()
+            uploaded = self.downloads / 'verification-windows-2-python'
+            retained = Path(self.enterContext(tempfile.TemporaryDirectory()))
+            loaded = harness.load_project(self.root)
+            for field in ('source_unchanged', 'project_unchanged'):
+                with self.subTest(field=field), ExitStack() as stack:
+                    if field == 'project_unchanged':
+                        stack.enter_context(patch.object(harness, 'load_project',
+                            side_effect=[loaded, project.ProjectError('observed final project read failure')]))
+                    else:
+                        stack.enter_context(patch.dict(os.environ, {'SCOPEHUB_FIXTURE_SOURCE_DRIFT': '1'}))
+                    try:
+                        code, report = self.run_harness('--ci-windows-lane', 'python')
+                    finally:
+                        original_file.write_bytes(original)
+                    self.assertEqual((1, '2.0', 'failed'), (code, report['report_version'], report['status']))
+                    self.assertFalse(report[field])
+                    other = 'source_unchanged' if field == 'project_unchanged' else 'project_unchanged'
+                    self.assertTrue(report[other])
+                    python = next(row for row in report['checks'] if row['id'] == windows_python.CHECK)
+                    self.assertEqual(('passed', 0), (python['status'], python['exit_code']))
+                    self.assertNotIn('windows_python', report)
+                    archived = retained / field
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, archived, os.environ, lane=True))
+                    self.assertEqual((self.reports / 'test-report.json').read_bytes(),
+                                     (archived / 'test-report.json').read_bytes())
+                    self.assertEqual((self.root / python['log']).read_bytes(),
+                                     (archived / python['log'].removeprefix('.reports/')).read_bytes())
+                    shutil.rmtree(uploaded)
+                    shutil.copytree(archived, uploaded)
+                    shutil.rmtree(self.reports)
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, 'another checkout'):
+                        self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+                    self.assertFalse((self.reports / 'test-report.json').exists())
+                    shutil.rmtree(self.reports, ignore_errors=True)
+
+    def test_closed_producer_log_retains_ordinary_interpreter_destructor_output(self):
+        self.partition_fixture('destructor')
+        serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
+                                capture_output=True, check=True)
+        tail = b'ordinary final destructor output'
+        self.assertIn(tail, serial.stderr)
+        self.produce()
+        code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        published = self.downloads / 'published'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, published, os.environ))
+        for lane, part in aggregate['windows_python'].items():
+            with self.subTest(lane=lane):
+                original = self.root / part['log']
+                raw = original.read_bytes()
+                manifest = read_json(original.with_suffix('.json'))
+                self.assertNotIn(tail, raw[:manifest['log_size']])
+                self.assertIn(tail, raw[manifest['log_size']:])
+                self.assertEqual(part['log_sha256'], manifest['final_log_sha256'])
+                self.assertEqual(raw, (published / part['log'].removeprefix('.reports/')).read_bytes())
+                try:
+                    original.write_bytes(raw + b'forged shutdown bytes\n')
+                    changed = deepcopy(aggregate)
+                    changed['windows_python'][lane]['log_sha256'] = harness.file_digest(original)
+                    for path in (self.reports / 'test-report.json', original.parent / 'test-report.json'):
+                        path.write_bytes(json_bytes(changed))
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, 'original|Original'):
+                        ci_artifacts.stage_artifacts(self.root, self.downloads / f'rejected-{lane}', os.environ)
+                finally:
+                    original.write_bytes(raw)
+                    for path in (self.reports / 'test-report.json', original.parent / 'test-report.json'):
+                        path.write_bytes(json_bytes(aggregate))
 
     def test_main_push_binds_the_aggregate_to_before_and_after(self):
         pull = read_json(self.event)['pull_request']

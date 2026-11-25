@@ -413,8 +413,13 @@ def main():
             if 'duration_seconds' in record:
                 record['started_at'] = part_start
             manifest = run_dir / f'{label}.json'
-            if manifest.is_file():
-                record['manifest_sha256'] = file_digest(manifest)
+            if manifest.is_file() and 'log_sha256' in record:
+                try:
+                    # execute() has already closed and digested the complete original log.
+                    windows_python.seal_manifest(manifest, record['log_sha256'])
+                    record['manifest_sha256'] = file_digest(manifest)
+                except (OSError, ValueError) as error:
+                    record.update(status='failed', reason_code='missing_acceptance_evidence', reason=str(error))
             elif record['status'] == 'passed':
                 record.update(status='failed', reason_code='missing_acceptance_evidence',
                               reason='Windows Python part completed without its case manifest.')

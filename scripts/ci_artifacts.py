@@ -522,7 +522,8 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile, 
 def validate_lane_verdict(project, report, selected, lane, profile):
     statuses = {row['status'] for row in report['checks'] if row['id'] in selected
                 and (profile in SCOPED_PROFILES or project['checks'][row['id']]['status'] == 'implemented')}
-    if any(part['status'] != 'passed' for part in report.get('windows_python', {}).values()):
+    if (not report['source_unchanged'] or not report['project_unchanged']
+            or any(part['status'] != 'passed' for part in report.get('windows_python', {}).values())):
         statuses.add('failed')
     expected = 'failed' if 'failed' in statuses else 'blocked' if 'blocked' in statuses else 'passed'
     if report['status'] != expected:

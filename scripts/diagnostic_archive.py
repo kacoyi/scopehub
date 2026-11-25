@@ -217,15 +217,19 @@ def _checked_observations(root, directory, checks):
     return verified
 
 
-def _checked_windows_python(directory, report):
+def _checked_windows_python(directory, report, *, complete=False):
     records = report.get('windows_python', {})
     if not isinstance(records, dict) or records.keys() - {'python', 'recovery'}:
         raise DiagnosticArchiveError('Invalid Windows Python diagnostic part identities')
+    if complete and records.keys() != {'python', 'recovery'}:
+        raise DiagnosticArchiveError('Missing or unexpected Windows Python part identities')
     verified = []
     for lane, part in records.items():
         name = f'windows-python-{lane}'
         if not isinstance(part, dict) or part.get('id') != name or part.get('status') not in _HARNESS_STATUSES:
             raise DiagnosticArchiveError(f'Invalid Windows Python diagnostic part: {lane}')
+        if complete and (part['status'] != 'passed' or part.get('exit_code') != 0 or part.get('reason_code')):
+            raise DiagnosticArchiveError(f'Unsuccessful Windows Python part: {lane}')
         log = name + '.log'
         manifest = name + '.json'
         if part['status'] == 'passed' and not {'log', 'log_sha256', 'manifest_sha256'} <= part.keys():
@@ -239,6 +243,14 @@ def _checked_windows_python(directory, report):
             _verify_file(directory, manifest, part['manifest_sha256'])
             verified.append(manifest)
     return verified
+
+
+def verify_completed_windows_python(reports, report):
+    run = report.get('run_id')
+    if not _identifier(run):
+        raise DiagnosticArchiveError('Invalid Windows Python evidence run identifier')
+    directory = _path(reports, f'runs/{run}', directory=True)
+    return _checked_windows_python(directory, report, complete=True)
 
 
 def _files(directory):

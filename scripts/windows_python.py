@@ -139,11 +139,11 @@ class PartResult(unittest.TextTestResult):
                 self.event(subtest, 'ERROR', self.errors[-1][1], owner=test)
 
 
-def write_manifest(label, result, inventory):
+def write_manifest(label, result, owners):
     if result is None:
         return
-    # The harness redirects both standard streams to this original from process launch.
-    # Register before discovery so ordinary test shutdown output is included as well.
+    # Bind the output observed inside the interpreter. The harness separately seals
+    # the original stream after the process exits and its redirection is closed.
     sys.stdout.flush()
     sys.stderr.flush()
     destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (label + '.json')
@@ -151,7 +151,8 @@ def write_manifest(label, result, inventory):
         log_digest = file_digest(raw, 'sha256').hexdigest()
         log_size = os.fstat(raw.fileno()).st_size
     manifest = {
-        'inventory': inventory,
+        'inventory': list(owners),
+        'owners': owners,
         'cases': result.cases,
         'counts': {key: len(getattr(result, key)) for key in COUNTS},
         'events': result.events,
@@ -159,17 +160,31 @@ def write_manifest(label, result, inventory):
         'log_size': log_size,
         'log_sha256': log_digest,
     }
+    write_manifest_file(destination, manifest)
+
+
+def write_manifest_file(destination, manifest):
     pending = destination.with_suffix('.tmp')
     pending.write_bytes((json.dumps(manifest, allow_nan=False) + '\n').encode('utf-8'))
     pending.replace(destination)
 
 
+def seal_manifest(destination, log_sha256):
+    manifest = json.loads(destination.read_bytes())
+    if not isinstance(manifest, dict) or 'final_log_sha256' in manifest:
+        raise ValueError('Invalid unsealed Windows Python runner manifest.')
+    manifest['final_log_sha256'] = log_sha256
+    write_manifest_file(destination, manifest)
+
+
 def run(lane):
     result = None
-    inventory = []
-    atexit.register(lambda: write_manifest(part_id(lane), result, inventory))
+    owners = {}
+    atexit.register(lambda: write_manifest(part_id(lane), result, owners))
     discovered = list(tests(unittest.defaultTestLoader.discover('tests', 'test_*.py', '.')))
     inventory = [test.id() for test in discovered]
+    # These are the same owners unittest uses to invoke module and class fixtures.
+    owners = {test.id(): [type(test).__module__, unittest.util.strclass(type(test))] for test in discovered}
     live = set(partition(inventory)[lane])
     suite = unittest.TestSuite(test for test in discovered if test.id() in live)
     warnings = None if sys.warnoptions else 'default'
@@ -178,10 +193,18 @@ def run(lane):
 
 
 def verify_manifest(manifest, lane):
-    if not isinstance(manifest, dict) or set(manifest) != {
-            'inventory', 'cases', 'counts', 'events', 'runner_seconds', 'log_size', 'log_sha256'}:
+    required = {'inventory', 'cases', 'counts', 'events', 'runner_seconds', 'log_size', 'log_sha256'}
+    if (not isinstance(manifest, dict) or required - manifest.keys()
+            or manifest.keys() - required - {'owners', 'final_log_sha256'}):
         raise ValueError('Incomplete Windows Python case manifest.')
     expected = partition(manifest['inventory'])[lane]
+    if 'owners' in manifest:
+        owners = manifest['owners']
+        if (not isinstance(owners, dict) or owners.keys() != set(manifest['inventory'])
+                or any(not isinstance(row, list) or len(row) != 2
+                       or any(not isinstance(value, str) or not value for value in row)
+                       or not row[1].startswith(row[0] + '.') for row in owners.values())):
+            raise ValueError('Invalid Windows Python discovered fixture owners.')
     cases = manifest['cases']
     if not isinstance(cases, list):
         raise ValueError('Invalid Windows Python case list.')
@@ -221,7 +244,9 @@ def verify_events(manifest, expected):
     if not isinstance(events, list):
         raise ValueError('Invalid unittest callback events.')
     counts = dict.fromkeys(COUNTS, 0)
-    setup_blocks = []
+    setup_blocks = set()
+    # Older structured archives recorded the conventional unittest IDs only.
+    owners = manifest.get('owners')
     by_case = {}
     positions = {case: index for index, case in enumerate(cases)}
     previous = -1
@@ -246,12 +271,20 @@ def verify_events(manifest, expected):
             by_case.setdefault(owner, []).append((outcome, subtest))
         else:
             hook, _, fixture = owner.partition(' (')
-            prefix = fixture.removesuffix(')') + '.'
             if (subtest or hook not in FIXTURES or not fixture.endswith(')') or description != owner
-                    or outcome not in {'ERROR', 'skipped'} or not any(case.startswith(prefix) for case in expected)):
+                    or outcome not in {'ERROR', 'skipped'}):
+                raise ValueError('Unittest callback has an unknown case or fixture owner.')
+            name = fixture[:-1]
+            class_fixture = hook.endswith('Class')
+            if owners is None:
+                components = 1 if class_fixture else 2
+                members = {case for case in expected if case.rsplit('.', components)[0] == name}
+            else:
+                members = {case for case in expected if owners[case][int(class_fixture)] == name}
+            if not members:
                 raise ValueError('Unittest callback has an unknown case or fixture owner.')
             if hook in SETUP:
-                setup_blocks.append(prefix)
+                setup_blocks.update(members)
         if count := OUTCOMES[outcome]:
             counts[count] += 1
         status = f'skipped {detail!r}' if outcome == 'skipped' else outcome
@@ -262,7 +295,7 @@ def verify_events(manifest, expected):
         elif outcome == 'unexpected success':
             diagnostics.append('=' * 70 + f'\nUNEXPECTED SUCCESS: {description}\n')
 
-    unblocked = [case for case in expected if not case.startswith(tuple(setup_blocks))]
+    unblocked = [case for case in expected if case not in setup_blocks]
     if list(by_case) != unblocked or list(cases) != unblocked or counts != manifest['counts']:
         raise ValueError('Unittest callback order, counts or fixture outcomes differ from discovery.')
     for case, outcomes in by_case.items():
@@ -307,7 +340,10 @@ def verify_original(record, raw, manifest, lane):
         raise ValueError('Original unittest log differs from the runner-bound bytes.')
     trailer = raw[size:]
     reason = record.get('reason_code')
-    if trailer and not reason:
+    if 'final_log_sha256' in manifest:
+        if manifest['final_log_sha256'] != sha256(raw).hexdigest():
+            raise ValueError('Original unittest log differs from the closed producer log.')
+    elif trailer and not reason:
         raise ValueError('Unexpected output after the original unittest run.')
     verdict = unittest_verdict(manifest['counts'], len(manifest['cases']))
     exit_code = int(verdict.startswith(b'FAILED'))
@@ -320,7 +356,7 @@ def verify_original(record, raw, manifest, lane):
             or sum(elapsed for _, elapsed in case_times([manifest])) > runner_seconds + CLOCK_ROUNDING):
         raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
     progress, diagnostics = verify_events(manifest, expected)
-    return progress, diagnostics + trailer
+    return progress, diagnostics + (trailer if reason else b'')
 
 
 def elapsed_seconds(parts):
@@ -341,8 +377,8 @@ def combine(parts):
             completed.append(manifest)
         elif passed:
             raise ValueError('Successful Windows Python part has no case manifest.')
-    if len(completed) == 2 and completed[0]['inventory'] != completed[1]['inventory']:
-        raise ValueError('Windows Python parts have different ordered discovery inventories.')
+    if len(completed) == 2 and any(completed[0].get(key) != completed[1].get(key) for key in ('inventory', 'owners')):
+        raise ValueError('Windows Python parts have different ordered discovery inventories or fixture owners.')
     if len(completed) < 2:
         log = b''.join(f'\n=== Windows Python {lane} part ===\n'.encode() + raw
                        for lane, (_, raw, _) in zip(LANES, parts, strict=True))
