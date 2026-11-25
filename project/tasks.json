@@ -21184,7 +21184,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Use the next qualifying ordinary full warm PR after native workspace preparation passes. Verify the relevant producer and profile changes in the tested base or head, then compare its windows and aggregate clocks with the browser-gated four-producer run 45459661035 and Python-gated three-producer run 45475965426. The same-tree 897-second #85 main push and failed M0-102 task are diagnostic only. Keep PR recovery pending until measured at or below 900 seconds on the attributable correction.",
+      "next_action": "Observe the next naturally occurring successful first-attempt full warm PR with the protected ACL correction in the exact tested parents and matching named outcomes. Run 45560872604 passed at 854 seconds with partial core, browser and recovery cache restores before main 45560649687 seeded the exact keys. Compare the critical producer, protected tail and runner work with the three retained original PRs. Retain the required receipts before closure. See contracts/reviews/2026-11-25-pr-timing-recurrences.json.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -21283,7 +21283,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the next three naturally occurring successful full warm Linux PR observations with the same selected coverage, runner metadata, restore and compile clocks, and named test durations. The archived median increase is concentrated in harness time across many tests, with no proven removable duplicate. If the matched-host window repeats, isolate Rust rebuild contention and workspace fixture cost first using their existing stage timings. The Windows profile batch changes do not shorten the Linux fixture route. Keep the finding open and leave current accepted delivery independent.",
+      "next_action": "Use the retained Linux attribution in contracts/reviews/2026-11-25-pr-timing-recurrences.json. The latest three full warm ordinary PRs have matching selected outcomes and a 681-second median, 56 seconds above the original 625-second baseline and below the material-growth threshold. No duplicate build or attributable corrective revision was found. If a comparable recurrence identifies a removable cost, verify the exact correction and require the normal three-run post-correction window and task receipts before closure.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
