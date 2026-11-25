@@ -30,6 +30,15 @@
       },
       "supersedes": "4df9099892473d3768c0d347809b710f8bbf1cb71cbb6829ff7017a2bebe2de9",
       "evidence_sha256": "b37d4327da83ee49544b624ec07f79c830e91ef0f9f7b5debda05ca5de29cc34"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Revisit the previous changes_requested. Reproduce the real PR 84 browser-identity and checkout disputes after 12 later captures, in both save orders. Exercise ordinary timing review, explicit link, budget and archived reopen, bounded or malformed capture handling and independently verified partial clocks. Verify that clearing one invalid attribution preserves independent evidence.",
+      "supersedes": "f64f38437f2fd64db8cf26da7fcc6ffd5f4be5a039faf686400703421cb2e065",
+      "requested_at": "2026-11-25T22:53:00.023214+00:00",
+      "request_id": "f765e514cbbf00378a62255701d7791c63971593d35094219de2ece4bec2f702",
+      "evidence_sha256": "f1673ef3eaf5d00a8976c3c6a27c79925298135eed8f37180a3fe6a2ab69f07f"
     }
   ]
 }

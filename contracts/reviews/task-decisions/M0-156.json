@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-156",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Review the shared Git execution-input identity calculation and its two real callers. Run the ordinary weekly command from a clean system Python on an expired historical preview. Compare exact source digests for present and substituted revisions across the project command and the weekly reader, and exercise missing, mismatched and extra evidence. Check import and exception boundaries, historical exclusions and sensitivity to genuine execution-input changes.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:53:03.981103+00:00",
+      "request_id": "87179cfc72716efb031cf89dbd8d3226c65943e108a40b3ac6792047a97f932d",
+      "evidence_sha256": "cceecefd294ef603cec0cdb7b5364223facfff2c72f4081dd2cf1cb4e8a9c3b4"
+    }
+  ]
+}

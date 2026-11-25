@@ -30,6 +30,15 @@
       },
       "supersedes": "e2a21721a95e3bfd35bab9269827f15176aa21b692e31fb563769576532bc962",
       "evidence_sha256": "252333058a6235ae4a58fe738fce7514a4cd0d46d81a1234c63d6464afd12ac1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Recheck partial Windows producers, the historical publishing catalog and refused platform attribution after both corrections. Exercise an archived qualified full report, an omitted check and a real partial producer. Check the ordinary weekly path, evidence completeness and preservation of the earlier receipts.",
+      "supersedes": "6ad289339d245b7b21c97af05ea22d525a08df3ab01721827c3ec9aed4a702fe",
+      "requested_at": "2026-11-25T22:52:57.971566+00:00",
+      "request_id": "93bcfda4fc99c0d892c2402a4aef8fd66fab8ab88f49b3ed2463c19c273ecc31",
+      "evidence_sha256": "8da291560e5ec0c2bb3339d2c5687f1aa7633a97e84ebc9419ff3ca147c35f6e"
     }
   ]
 }

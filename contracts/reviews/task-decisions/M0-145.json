@@ -30,6 +30,15 @@
       },
       "supersedes": "b5cea64e694395b6d28d585140eaba6667392657dad6cc808a24282caca2d0c7",
       "evidence_sha256": "045ce84f749991a460f191b3aee7dad9cce16474ce28c7ceb0e1b5231feaea5d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Verify current-period collection freshness and missing, scoped, prior-attempt or historical controls on the real archived weekly workflow input. Exercise the system Python weekly result and both fresh and pending maintenance observations, including the effect of the historical conflict correction.",
+      "supersedes": "1d7dceae3b15948870cb2d27b5eb9e855f0c1a69e5f0cd8f85e4a3a4425ecbe4",
+      "requested_at": "2026-11-25T22:53:01.049769+00:00",
+      "request_id": "44018da24cb9db1aeda5f8875aeefda824af09c533bef179a6fe87e01d2864f1",
+      "evidence_sha256": "ba34464e0f6e26e7bfb5772a025ffe230fcc9623d1a75cea720a9291323d5e0f"
     }
   ]
 }

@@ -30,6 +30,15 @@
       },
       "supersedes": "b1e12ef38501d0f32f3e504f6d928ab5c3ad1400803e24316986709d4bff3582",
       "evidence_sha256": "7caa3d2770e9d068a19d3c6318cd14f976323479c325acd3f43cb83a41024176"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Verify Windows role and attempt binding, wall and runner clocks and full versus per-job coverage against real retained jobs. Exercise independent wall evidence with a conflicting browser job, a conflicting checkout, valid clocks and previously accepted cache boundaries after rotation.",
+      "supersedes": "9af8462bd0267281b8c63c84f617f261ac941d2541f9224cd2a47add1d77bf27",
+      "requested_at": "2026-11-25T22:52:59.031953+00:00",
+      "request_id": "603a7530918e2c61b66727685b67098462f442f520b6a916298895a6c7d98a7d",
+      "evidence_sha256": "d4df0bcce7061df6d39c70f4b7caa61e96a43fc7b64a1d4257157418816ff8f3"
     }
   ]
 }

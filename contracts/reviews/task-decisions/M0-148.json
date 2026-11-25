@@ -30,6 +30,15 @@
       },
       "supersedes": "5c9dbb5b351adff08ec437fcc939b96068c5d0d2e979b2720d5a2f663b815b5d",
       "evidence_sha256": "a354005da09c90ee653be215fed7be9e5ec7b7668244ce5554a7d0bac93c41e9"
+    },
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Revisit the previous clean-system weekly failure using the retained PR 84 sample with the expired preview and its historical substitute. Check actual weekly output and receipts in system Python without Marko, available-preview and mismatch controls, CRLF/LF and all 35 omission controls, and the independent Windows evidence from the original task.",
+      "supersedes": "80abbff37302adebad63f1a4b05447303286db1af91625c047c238484467e090",
+      "requested_at": "2026-11-25T22:53:02.066390+00:00",
+      "request_id": "692fff7d0da8ca8340242c21d80faff0d16f5653ac3343b428eb7d6a0f1b4049",
+      "evidence_sha256": "81b86d1521ea4a8c22eefe19144a7b5f1db67740533d3f80837be8e3ef565864"
     }
   ]
 }

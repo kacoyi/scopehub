@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-155",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "Review ownership and bounds of exact-attempt lookup in capture, ordinary review, linked budgets and reopened saved timing. Reproduce rotation past 12 records, both conflict orders and a valid control. Check wrong or corrupt identities, oversized or unavailable records, partial attribution, archive-only reopening and whether an older saved review can restore a disputed value.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:53:03.073631+00:00",
+      "request_id": "21a7e8b1cec1eccdbcb76a6e4fa633be454388d41906a14d91b0caed4380b244",
+      "evidence_sha256": "35ee16df69ab02a0e500b65245b2bbd63a717179ed037ab78be0e05d5381816e"
+    }
+  ]
+}
