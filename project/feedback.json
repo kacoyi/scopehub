@@ -6788,6 +6788,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-observation-inline-code-whitespace",
+      "source": "Independent Astra Standard final on 227e0413b61e1e17d790e4cbf57580267aab534d. Original final SHA-256 24fcb368cb736ee5a3096c7189a89edeaeaf362d5961d65212cc2a8cc95cf0af. Package manifest SHA-256 5a0df6ae70f6ea8a9d7d84bab017b63e9c8e88a5d4126338703afd8687316957.",
+      "observation": "Ordinary M0-103 review intake collapsed two interior spaces in a quoted inline-code filename to one. A one-space quotation absent from the original could then satisfy the pending request and all three normal closure paths.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

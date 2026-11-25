@@ -24556,7 +24556,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify that only authored prose from the parsed final reply can qualify as an observation. Recheck the exact UTF-8 handoff, historical originals and complete decision order before independent review.",
+      "next_action": "Verify exact inline-code spelling through the ordinary UTF-8 review handoff. Recheck paragraph wrapping, legacy replies and pending request order before independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
