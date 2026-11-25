@@ -6924,6 +6924,28 @@
           "report_sha256": "30cd3108ea869b8d055739e809cc55dc517c13d15cc4286fa3cb26379135fecf"
         }
       ]
+    },
+    {
+      "id": "windows-private-handoff-verification-deadline",
+      "source": "Protected main push 45668943982, attempt 1, Windows browser producer 139398629052. The aggregate report is archives/runs/windows-change-45668943982-1/test-report.json. Its workspace-timeframe log has SHA-256 79d9d51be67b34df9c44be45c536f233d9eb17ac5a4e642c6d6eddcade96a35c.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The test-owned private handoff verifier reported subprocess deadline exceeded during its first assertion. Of 76 native Windows workspace cases, 73 passed and two used their documented platform skips. All 64 isolated workspace profiles prepared in 138 ms. The descriptor verdict and last internal stage were not observed. The earlier M0-125 incident had no classified subprocess outcome.",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45668943982-1",
+          "source_commit": "ae0259db9ea0481aaf004b8682023ddfd8350328",
+          "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
