@@ -1,0 +1,53 @@
+{
+  "version": 3,
+  "task_id": "M0-136",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "0eb573bb19e6f8fceccb8e70f83ff673183731e9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 0eb573bb19e6f8fceccb8e70f83ff673183731e9",
+      "scope": "CHANGES_REQUESTED M0-136 0eb573bb19e6f8fceccb8e70f83ff673183731e9",
+      "observation": "The review intake accepted the M0-103 commit hash as the entire observation, and handoff displayed that hash with approved status.",
+      "reviewer": "Independent Astra Standard (t10p)",
+      "original_sha256": "bb15049b3773310d9078a513194e58710b0ad194b30b4b8aa3ce809f28f3fb52",
+      "response_id": "a96bf91e41147152aa3d915ad2b7a40af17513f7eaa5241b09483d257f712e2e",
+      "response_sha256": "342e28e3c26fd5dbb7b9d734dca7b8ee0bed24c0ee23e1ec8c2dd636716575ad",
+      "observation_body_sha256": "dd7e6d4ecda0ffb34e0bb5262efa0e41b15a16bf40ecade90486a54342cb8c00",
+      "event": {
+        "id": "msg_04375d6da88d3747016b06e5b379e087d0be6505d8a56e6575",
+        "timestamp": "2026-11-25T13:42:44.459Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "64c5c584d8b0cdc8a889d08b552b46f698440049ac7184d2372bcf8310c68821"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "226fac00b657b876ed893a3f2e2118cd655daf61",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 226fac00b657b876ed893a3f2e2118cd655daf61",
+      "scope": "CHANGES_REQUESTED M0-136 226fac00b657b876ed893a3f2e2118cd655daf61",
+      "observation": "The M0-103 acceptance checks passed with a citation label as the entire observation, and a pending review request could not be reopened on the replacement branch.",
+      "reviewer": "Independent Astra Standard (t10w)",
+      "original_sha256": "84e04619ba08ffe8c6b6232cccd95c9c26a6a7a93cb26405cfc980149cb2aeee",
+      "response_id": "2409624b5dd5111835b36d1ca167db0b8468ea2358b3516d9a09d00a85329f23",
+      "response_sha256": "f373a0408b55c08ab555c332d7fac0fc1f269ebfd549a10ab79c1a17884f3aee",
+      "observation_body_sha256": "43a2a26ae357d3567180eae73e49a3803e6f468227f36e2857b015da09a37d27",
+      "event": {
+        "id": "msg_01ce82aa439c3972016b06eb93ff1c87d0b068450e713ef1a8",
+        "timestamp": "2026-11-25T14:07:34.993Z"
+      },
+      "supersedes": "a96bf91e41147152aa3d915ad2b7a40af17513f7eaa5241b09483d257f712e2e",
+      "evidence_sha256": "fb68bcff419eb9ed8ad441186e113586382d963381df20b3a68d17e2bd0afb91"
+    },
+    {
+      "kind": "request",
+      "source_commit": "874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "scope": "Independently verify evidence provenance, pending-source replacement, risk selection, and the ordinary review handoff on this exact combined implementation.",
+      "supersedes": "2409624b5dd5111835b36d1ca167db0b8468ea2358b3516d9a09d00a85329f23",
+      "requested_at": "2026-11-25T14:26:02.691905+00:00",
+      "request_id": "1bba51ce07786290365c81c64779e153c4516d57ae2009afd50a91dcf45361d1",
+      "evidence_sha256": "ceafe956eb5f04c770c66c4915967965f87f02d2a44a006c58730faf753a2f76"
+    }
+  ]
+}
