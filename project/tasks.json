@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-139",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25143,7 +25143,7 @@
       "id": "M0-139",
       "title": "Recover the recurring warm Windows main verification budget",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-091"
       ],
@@ -25167,7 +25167,12 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-139-9544d66731ab928b.json",
+          "sha256": "d30779e3b9a2e60e05ce2a8d1573d10d5d1ecdd43c8e15ddaf2c19a13084caef"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45603929191-1",
@@ -25185,9 +25190,9 @@
           "report_sha256": "7da9ecf4cc71dd85f3f05ee76f33a65b9a85c348e7c1843b5539a8e495edd620"
         }
       ],
-      "next_action": "After independent source review and protected integration, inspect the first subsequent ordinary full warm Windows main push with this repair through project:status and retained timing. Require the same selected outcomes and at most 900 seconds; keep the finding active otherwise.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The reviewed scheduling change assigns market-recovery-ui to the existing recovery producer. All 35 Windows checks retain their commands and coverage. The initial full warm PR took 839 seconds. M0-141 owns the first qualifying protected push containing the repair. The main-push budget finding remains open until that observation.",
       "plan": {
         "outcome": "The full warm Windows main verification returns within its measured wall-time budget while retaining the same operations, cases, failures and protected aggregate.",
         "change_types": [
