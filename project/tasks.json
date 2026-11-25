@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-133",
   "tasks": [
     {
       "id": "M0-001",
@@ -24227,6 +24227,101 @@
           ],
           "data_plan": "Replay retained public first-attempt reports and official clocks, with controlled counterexamples copied into ignored paths.",
           "cleanup": "Keep red and green artifacts independently, leave sourced reports untouched, and retain only the matching canonical receipt in Git."
+        }
+      }
+    },
+    {
+      "id": "M0-133",
+      "title": "Reconcile timing evidence consistently across capture and review",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-131"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A contradictory partial producer observation remains disputed alongside a complete clock after transactional shared capture, linked-index handling and public archive reopen.",
+        "Conflicting internally valid checkout claims within one attempt retain their original reports without attributable timing or protected capture and index qualification.",
+        "A matching known checkout enriches an otherwise identical clock without replacing observed times. Differing known checkout claims remain disputed.",
+        "Known per-producer cache facts enrich unknown facts. Conflicting known facts foreclose cache-dependent cohorts while valid wall duration survives. Preserve real full-sample conflicts, historic records timing, and previously accepted task and receipt history.",
+        "Preserve a real shared-capture red and green replay and a canonical task report on the exact candidate. Keep the corrective task and findings active for independent review."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce all four timing evidence faults with the public CLI and temporary shared capture. Verify deterministic reconciliation and retain the exact task report for independent review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A timing observation and any dispute produce the same eligibility and attribution before and after capture, indexing and reopening.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt"
+        ],
+        "hypotheses": [
+          "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes."
+        ],
+        "risks": [
+          {
+            "failure": "Saving replaces one disputing clock or publishes an index for incompatible checkout evidence. Use authentic first-attempt records with a controlled conflicting producer or checkout and verify real file writes, marker state, reopening and repeated input.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Complementary checkout or cache facts become disputes, or genuine conflicts become qualified. Exercise both orders, duplicate inputs, complementary clock spans and component caches, known contradictions, and unchanged records and full-scope controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Workflow, runtime product, accepted task records, remote operations and premature M0-133 closure."
+          ],
+          "open_questions": [
+            "Keep the compatible legacy capture format while preserving distinct disputed observations and derived timing."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original artifacts, accepted M0-103, M0-105, M0-130 and M0-131 history, protected wall timing and scoped records coverage."
+          ],
+          "change": [
+            "Reconcile exact attempt identity and compatible optional evidence before deriving platform, job, cache and index eligibility."
+          ],
+          "data_plan": "Use authenticated historic snapshots and controlled copies under ignored paths and temporary shared Git storage.",
+          "cleanup": "Keep immutable red and green evidence, remove temporary shared state, and leave the tracked worktree clean with M0-133 active."
         }
       }
     }

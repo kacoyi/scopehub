@@ -6623,6 +6623,66 @@
       },
       "deferral_reason": null,
       "observation": "Ordinary discovery leaves cache unknown despite matching compact siblings. An incomplete core raw plus compact observation changes cache with input order. A controlled warm aggregate remains in a warm cohort when authenticated browser and recovery cache observations say partial. Preserve applicable exact cache facts and label contradictions."
+    },
+    {
+      "id": "timing-shared-capture-drops-partial-role-dispute",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "During normal public review a complete clock and a contradictory partial browser job ID remove the 645-second attribution in both orders. Shared capture saves only the complete clock, and reopening silently restores the browser time."
+    },
+    {
+      "id": "timing-checkout-dispute-remains-capture-and-index-eligible",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Individually valid source claims at two different checkouts of the same attempt suppress platform timing in the CLI but still produce captured status and two index markers. In a producer-only pair, both incompatible checkouts receive attributable clocks."
+    },
+    {
+      "id": "timing-known-checkout-conflicts-with-missing-clock-checkout",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Adding the correct checkout to the otherwise identical browser job is treated as a complete-clock conflict in either order and drops 645, 321 and 804 seconds. Two different known checkouts must still be disputed."
+    },
+    {
+      "id": "timing-incomplete-component-cache-drops-platform-wall-observation",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "An official full platform compact and a compatible copy with one unknown producer cache lose the platform and its 804-second objective in both orders. Actual known cache contradictions need scoped diagnostics and exclusion from cache cohorts while the valid wall time remains."
     }
   ]
 }
