@@ -6984,6 +6984,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-witness-rejects-ineffective-allow-entry",
+      "source": "Independent Astra Standard t10c at 0ff1c4da15fbede912b909aef2ad226ba7fce838. Archives/observations/repo-hygiene-20261125/independent-final-m0-147-0ff1c4da/final-response.txt SHA-256 9f8962801f6995ffc670ea32d8c58775dd127cb1f9ab0f4a63418c6518d2df7d; original response line SHA-256 7424ed9411eca2881653faadab3e0319e63222f00baf0483d801a67d2c670c1e.",
+      "observation": "The raw native handoff checker classifies every access-allowed entry before asking whether it grants access to this regular file. A valid private handoff with an inherited effective user grant and a zero-mask or inherit-only allow for another trustee can therefore receive exit 58. The earlier Framework file access-control view removes both entries during leaf ACL normalization. The independent finding is a source observation and does not explain the original subprocess deadline.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
