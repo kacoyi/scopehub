@@ -7,6 +7,8 @@ authority or upgrades archived evidence into current verification.
 from functools import cache
 import json
 import os
+import shlex
+import subprocess
 from pathlib import Path
 
 if __package__:
@@ -242,10 +244,12 @@ def feedback_for_task(items, task_id):
 
 
 def read_only_project_command(*arguments, source_commit=None):
-    """Render the repository-root command used by the read-only review role."""
+    """Render the pinned interpreter form used by the read-only review role."""
     python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
-    command = ' '.join((python, '-B', 'scripts/project.py', *arguments))
-    return f'{command} --source {source_commit}' if source_commit is not None else command
+    command = [python, '-B', 'scripts/project.py', *arguments]
+    if source_commit is not None:
+        command += ['--source', source_commit]
+    return subprocess.list2cmdline(command) if os.name == 'nt' else shlex.join(command)
 
 
 def bound_review_navigation(task_id, source_commit, current_commands):
@@ -253,17 +257,14 @@ def bound_review_navigation(task_id, source_commit, current_commands):
     return {
         'commands': [read_only_project_command(*context, '--detail', source_commit=source_commit),
                      read_only_project_command(*context, source_commit=source_commit)],
-        'source_command': read_only_project_command('source', '"<path>"', '"<json-pointer>"',
-                                                    source_commit=source_commit),
+        'source_command': read_only_project_command('source') + f' "<path>" "<json-pointer>" --source {source_commit}',
         'current_checkout_commands': current_commands,
     }
 
 
 def feedback_source_command(index, source_commit=None):
     pointer = f'/items/{index}'
-    if source_commit is None:
-        return f'pnpm project:source project/feedback.json {pointer}'
-    return read_only_project_command('source', 'project/feedback.json', pointer, source_commit=source_commit)
+    return project_navigation('source', 'project/feedback.json', pointer, source_commit=source_commit)
 
 
 def diagnostic_commands(records, *, read_only=False):
@@ -275,10 +276,7 @@ def diagnostic_commands(records, *, read_only=False):
             except DiagnosticArchiveError:
                 continue  # Historical rows can predate the current locator validation.
             arguments = (locator['run_id'], locator['source_commit'], locator['report_sha256'])
-            if read_only:
-                yield read_only_project_command('diagnostic', 'resolve', *arguments)
-            else:
-                yield 'pnpm project:diagnostic resolve ' + ' '.join(arguments)
+            yield project_navigation('diagnostic', 'resolve', *arguments, read_only=read_only)
 
 
 def excerpt(text, limit, *, observation=False):
@@ -492,13 +490,177 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
             'claim_scope': 'Explanatory view only. Readiness and current verification still use their original strict gates.'}
 
 
-def status_view(state, *, detail=False):
-    """Keep the opening view short while preserving every omission in detail."""
+def project_navigation(*arguments, read_only=False, source_commit=None):
+    if read_only or source_commit is not None:
+        if arguments[0] == 'status':
+            arguments += ('--read-only',)
+        return read_only_project_command(*arguments, source_commit=source_commit)
+    return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
+
+
+def unassigned_feedback(items, tasks):
+    severity = {'critical': 0, 'major': 1, 'minor': 2}
+    return sorted((item for item in items if item['status'] == 'open' and
+                   all(tasks[key]['status'] in {'done', 'cancelled'} for key in item['task_ids'])),
+                  key=lambda item: (severity[item['severity']], item['id']))
+
+
+def project_overview(state, *, read_only=False):
+    focus = state.get('focus')
+    verification = state['verification']
+    evidence = state['evidence_overview']
+    counts = {}
+    if verification['current']:
+        for check in evidence['checks']:
+            reason = check['explanation']
+            counts[reason] = counts.get(reason, 0) + 1
+    local = 'current' if verification['current'] else (
+        'invalid' if verification['report_error'] else 'stale' if verification['report_available'] else 'unobserved')
+    retained = state.get('retained_failures', {})
+    retained_count = retained.get('matching_inputs', {}).get('count')
+    scan_coverage = retained.get('scan', {}).get('coverage')
+    reviews = [review for review in state['periodic_reviews'] if review.get('state')]
+    attention = ['evidence_missing', 'evidence_invalid', 'intake_needed', 'recheck_needed', 'owned_action', 'checks_needed',
+                 'policy_needed', 'due']
+    first = next((review for status in attention for review in reviews if review['state'] == status), None)
+    if first is None:
+        first = next((review for review in reviews if review['review_due']), None)
+
+    def navigation(*arguments):
+        return project_navigation(*arguments, read_only=read_only)
+
+    def action(review):
+        result = {key: review[key] for key in
+                  ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
+                   'problem', 'report_sha256', 'scope_follow_through') if key in review}
+        if read_only and (command := result.get('command')):
+            parts = shlex.split(command)
+            if parts[:1] == ['pnpm'] and parts[1] in {'project:source', 'project:context'}:
+                result['command'] = navigation(parts[1].split(':', 1)[1], *parts[2:])
+            elif parts[:4] == ['uv', 'run', 'python', 'scripts/project.py']:
+                result['command'] = navigation(*parts[4:])
+        return result
+
+    context = navigation('context', focus['id']) if focus else navigation('brief')
+    active = set(state['active_task_ids'])
+    ready = set(state['ready_task_ids'])
+    completed = set(state['completed_task_ids'])
+    unassigned = set(state['feedback_needing_assignment'])
+
+    def finding_action(finding):
+        identity = finding['id']
+        candidates = [task for task in finding['task_ids'] if task not in completed]
+        task = next((task for task in candidates if task in active or task in ready), None)
+        status = 'owned_action' if task else 'planned_follow_through'
+        if identity in unassigned or not candidates:
+            status = 'assignment_needed'
+            command = navigation('source', 'project/feedback.json', '--id', identity)
+        else:
+            phase = ('--phase', 'verify') if task else ()
+            command = navigation('context', task or candidates[0], *phase)
+        return {'id': identity, 'state': status, 'owner': 'development AI',
+                'trigger': 'Open ' + finding['severity'] + ' feedback', 'command': command}
+
+    opened = [finding for finding in state['unresolved_feedback'] if finding['status'] == 'open']
+    important = sorted((finding for finding in opened if finding['severity'] == 'critical'),
+                       key=lambda finding: (not active.intersection(finding['task_ids']), finding['id']))
+    critical = finding_action(important[0]) if important else None
+    owned = next((finding_action(finding) for finding in opened if finding['severity'] == 'major'
+                  and active.intersection(finding['task_ids'])), None)
+    failure = None
+    if retained_count:
+        original = next(iter(retained['matching_inputs'].get('items', [])), {})
+        failure = {'owner': 'development AI', 'state': 'retained_failure',
+                   'trigger': 'Retained failure on matching inputs', 'command': navigation('status', '--retained-failures')}
+        if report := original.get('report'):
+            failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
+    missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
+    needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
+    next_action = (critical or failure or missing or owned or (action(first) if first else None)
+                   or needs_assignment or {'owner': 'development AI', 'command': context})
+    other_urgent = next((candidate for candidate in (critical, failure, missing, owned)
+                         if candidate and candidate != next_action), None)
+    calendar = next((review for review in reviews if review['review_due']
+                     and review['state'] not in {'evidence_missing', 'evidence_invalid'}), None)
+    maintenance_action = first if first and first['id'] != next_action.get('id') else calendar
+    additional = (action(maintenance_action) if maintenance_action
+                  and maintenance_action['id'] != next_action.get('id') else None)
+    return {
+        'purpose': state.get('purpose'),
+        'focus': {key: focus[key] for key in ('id', 'title', 'status')} if focus else None,
+        'backlog': {
+            'ready': len(state['ready_task_ids']), 'active': len(state['active_task_ids']),
+            'blocked': len(state['blocked']), 'open_findings': len(state['unresolved_feedback']),
+            'unassigned_findings': len(state['feedback_needing_assignment']),
+            **({'unassigned_lookup': navigation('source', 'project/feedback.json', '--unassigned',
+                                                 *(['--read-only'] if read_only else []))}
+               if unassigned else {}),
+        },
+        'verification': {
+            'local': local, 'run_id': verification['run_id'], 'outcome': verification['recorded_status'],
+            'current_check_counts': counts or None,
+            'historical_task_receipts': len(evidence['historical_task_evidence']),
+            'retained_failures_on_matching_inputs': retained_count,
+            'retained_failure_scan': scan_coverage,
+            **({'retained_failures_lookup': navigation('status', '--retained-failures')}
+               if retained_count or scan_coverage == 'incomplete' else {}),
+        },
+        'gates': {'hosted': 'pnpm project:ci',
+                  'product_release_and_native': navigation('readiness'),
+                  'scope': 'Hosted, release and physical gates require separate evidence.'},
+        'maintenance': {'periodic_attention': sum(review['review_due'] or review['state'] in attention
+                                                  for review in reviews),
+                        'waiting_for_event': sum(review['state'] == 'waiting_for_event' or
+                                                 review.get('repair_recovery', {}).get('state') == 'waiting_for_event'
+                                                 for review in reviews),
+                        'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due'),
+                        'follow_through': additional},
+        'next': next_action,
+        'also_urgent': other_urgent,
+        'details': {'delivery': navigation('brief'), 'focused_work': context,
+                    'status': navigation('status'), 'receipts': navigation('status', '--detail'),
+                    'modules': navigation('source', 'project/development.json', '/modules')},
+    }
+
+
+def retained_failure_page(retained, *, after=None, read_only=False):
+    matching = retained['matching_inputs']
+    items = matching['items']
+    start = 0
+    if after is not None:
+        for index, row in enumerate(items):
+            if after == f"{row['run_id']}/{row['check_id']}":
+                start = index + 1
+                break
+        else:
+            raise ValueError('That matching failure is no longer pending. Restart the retained failure lookup.')
+    page = items[start:start + 5]
+    result = {
+        'basis': retained['basis'], 'scan_coverage': retained['scan']['coverage'],
+        'matching_count': matching['count'], 'other_or_unverified_count': retained['other_or_unverified_inputs']['count'],
+        'items': [
+            {'check_id': row['check_id'], 'run_id': row['run_id'], 'report': row['report'],
+             'command': project_navigation('diagnostic', 'identify', row['report'], read_only=read_only)}
+            for row in page
+        ],
+    }
+    if start + len(page) < len(items):
+        last = page[-1]
+        cursor = f"{last['run_id']}/{last['check_id']}"
+        result['more'] = project_navigation('status', '--retained-failures', '--after', cursor, read_only=read_only)
+    return result
+
+
+def status_view(state, *, detail=False, overview=False, read_only=False):
     if detail:
         return state
-    result = dict(state)
+    summary = project_overview(state, read_only=read_only)
+    if overview:
+        return summary
+    result = {'overview': summary, **state}
     result['periodic_reviews'] = [
-        {key: review[key] for key in ('id', 'next_review_by', 'review_due')}
+        {key: review[key] for key in ('id', 'next_review_by', 'review_due',
+                                      'state', 'owner', 'command', 'problem', 'finding', 'repair_recovery', 'overseen_staging', 'scope_follow_through', 'follow_through_task') if key in review}
         for review in state['periodic_reviews']
     ]
     focus = state.get('focus')
