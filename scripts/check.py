@@ -33,7 +33,10 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from .storage import maintain_automatically
-        from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
+        from .verification_evidence import (
+            FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
+            integration_validation, redacted_check_log, release_artifacts,
+        )
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
@@ -43,7 +46,10 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from storage import maintain_automatically
-        from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
+        from verification_evidence import (
+            FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
+            integration_validation, redacted_check_log, release_artifacts,
+        )
 except Exception as error:
     if __name__ != '__main__':
         raise
@@ -68,7 +74,7 @@ def ci_provenance(source, env, root=ROOT):
     return record
 
 
-PRIVATE_CHECK_LOGS = set(SESSION_CHECKS) | set(FIELD_ACTIONS) | {'configured-external-ai-clients', 'credential-boundaries'}
+PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-boundaries'}
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
@@ -83,10 +89,6 @@ WINDOWS_LANE_CHECKS = {
 }
 WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 CHECK_OUTPUT_LOCK = Lock()
-
-
-def redacted_check_log(exit_code):
-    return (json.dumps({'exit_code': exit_code}) + '\n').encode('ascii')
 
 
 def print_check(record):
@@ -112,7 +114,7 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_bytes(redacted_check_log(exit_code))
     status = 'passed' if exit_code == 0 and reason is None else 'failed'
-    if exit_code == 77 and reason is None and name in {*FIELD_ACTIONS, *SESSION_CHECKS}:
+    if exit_code == 77 and reason is None and name in (RUN_OBSERVATION_CHECKS | FIELD_ACTIONS.keys()):
         status = 'blocked'
         reason = 'observation_unavailable'
     record = {'id': name, 'status': status, 'command': argv, 'exit_code': exit_code,
@@ -262,7 +264,7 @@ def ci_requires_build_setup(project, task_id=None, *, profile=None):
 
 
 def checked_session(project, run_dir, key, source):
-    observation = collect_session(run_dir, key, source)
+    observation = collect_run_observation(ROOT, run_dir, key, source)
     verify_primary_model(project, {key: {'observation': observation}}, check_id=key)
     return observation
 
@@ -373,7 +375,7 @@ def main():
                 result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']))
             if result['status'] == 'passed':
                 try:
-                    if check['id'] in SESSION_CHECKS:
+                    if check['id'] in RUN_OBSERVATION_CHECKS:
                         result['observation'] = checked_session(project, run_dir, check['id'], source)
                     elif check['id'] in FIELD_ACTIONS:
                         result['field_observation'] = field_observation(ROOT, check['id'], hosted=ci is not None)

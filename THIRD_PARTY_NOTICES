@@ -802,17 +802,17 @@ crates.io: jsonptr 0.7.1
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/jsonptr/0.7.1
 
-crates.io: jsonschema 0.61.2
+crates.io: jsonschema 0.62.0
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/jsonschema/0.61.2
+Upstream metadata: https://crates.io/crates/jsonschema/0.62.0
 
-crates.io: jsonschema-regex 0.61.2
+crates.io: jsonschema-regex 0.62.0
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/jsonschema-regex/0.61.2
+Upstream metadata: https://crates.io/crates/jsonschema-regex/0.62.0
 
-crates.io: jsonschema-value 0.61.2
+crates.io: jsonschema-value 0.62.0
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/jsonschema-value/0.61.2
+Upstream metadata: https://crates.io/crates/jsonschema-value/0.62.0
 
 crates.io: keyboard-types 0.8.3
 Declared license: MIT OR Apache-2.0
@@ -1170,21 +1170,21 @@ crates.io: ref-cast-impl 1.0.27
 Declared license: MIT OR Apache-2.0
 Upstream metadata: https://crates.io/crates/ref-cast-impl/1.0.27
 
-crates.io: referencing 0.61.2
+crates.io: referencing 0.62.0
 Declared license: MIT
-Upstream metadata: https://crates.io/crates/referencing/0.61.2
+Upstream metadata: https://crates.io/crates/referencing/0.62.0
 
-crates.io: regex 1.13.1
+crates.io: regex 1.13.2
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/regex/1.13.1
+Upstream metadata: https://crates.io/crates/regex/1.13.2
 
-crates.io: regex-automata 0.4.18
+crates.io: regex-automata 0.4.19
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/regex-automata/0.4.18
+Upstream metadata: https://crates.io/crates/regex-automata/0.4.19
 
-crates.io: regex-syntax 0.8.11
+crates.io: regex-syntax 0.8.12
 Declared license: MIT OR Apache-2.0
-Upstream metadata: https://crates.io/crates/regex-syntax/0.8.11
+Upstream metadata: https://crates.io/crates/regex-syntax/0.8.12
 
 crates.io: reqwest 0.13.5
 Declared license: MIT OR Apache-2.0

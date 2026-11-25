@@ -3704,15 +3704,19 @@
       "id": "external-client-observation-publication",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding external-client-evidence",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The current private-log and hosted observation formats cannot retain the two independent client observations required for qualification. The executable release check itself is still planned.",
       "task_ids": [
-        "M4-005"
+        "M4-017"
       ],
       "regression_checks": [
-        "configured-external-ai-clients"
+        "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The external-client check had no run-bound observation format, and private-check logs retained only exit codes.",
+        "correction": "Retain a bounded redacted pair with independent publication consents, the same synthetic workspace and exact source identity. Validate it again when staging hosted artifacts and importing receipts.",
+        "prevention": "Exercise a synthetic publish and import round trip. Reject missing observations, shared or absent consent, wrong source and workspace bindings, changed bytes and private fields. The ordinary M4-005 unsupplied check remained blocked with exit 77."
+      },
       "deferral_reason": null
     },
     {
@@ -5713,12 +5717,14 @@
     },
     {
       "id": "m0-105-linux-browser-concurrent-admission",
-      "source": "Local M0-105 task .reports/runs/20261125T043455.480016Z-7345748b/test-report.json on d9102de9c036fb6ae4b962a5dfa9529927110315. The desktop Playwright admission attachment preserves the BUSY reply. Matched single-worker loopback rerun: .reports/m0-105-file-ace/browser-d9102de/check.log (SHA-256 55588a18fec2c72c7865a05dbbb7acbf8c532cf0457fb05d9586aeedcba7ef18).",
-      "observation": "Two ordinary Linux workspace journeys received TIMEOUT from instrument.search. The desktop chart-opened snapshot received BUSY after the frozen-chart reply showed opened. The Linux browser paths are independent of the Windows ACL worker. All three matching cases passed sequentially on the same Linux browser and service code with isolated loopback ports, one Playwright worker and the original deadlines. This establishes a nonrecurrence in isolation. The original run did not attribute the TIMEOUT to a particular worker phase or identify the other request occupying admission when the snapshot returned BUSY. Follow-up: compare the three matched cases in one isolated one-worker run and three runs with ordinary Linux workspace and desktop test concurrency, using isolated ports and the original deadlines. Record the pass, TIMEOUT and BUSY count for each case and the worker count for every run. For any recurrence, capture the last instrument.search worker stage or the operation holding writer admission at the BUSY response, then assign the corrective work to the entry point that owns that stage.",
+      "source": "Local M0-105 task archives/runs/20261125T043455.480016Z-7345748b/test-report.json on d9102de9c036fb6ae4b962a5dfa9529927110315. The desktop Playwright admission attachment preserves the BUSY reply. Matched single-worker loopback rerun: archives/observations/m0-105-linux-browser-concurrent-admission/d9102de-matched-one-worker.log (SHA-256 55588a18fec2c72c7865a05dbbb7acbf8c532cf0457fb05d9586aeedcba7ef18). The matched follow-up on clean source ecb8477b79639fd43f06d302fd2ac4aa0ca999ab is retained under archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z. Its 52-file SHA256SUMS manifest has SHA-256 1ae1445a5a20fcdc6488a74341a8be44cba7cd91669460748783475f29e67cfc. The scoped-results.json summary has SHA-256 9f7c6e7e44743d5b7c0aa51cc7ce4552d28835a94918d0f6231e2589a5f37e49.",
+      "observation": "Two ordinary Linux workspace journeys received TIMEOUT from instrument.search. The desktop chart-opened snapshot received BUSY after the frozen-chart reply showed opened. The Linux browser paths are independent of the Windows ACL worker. All three matching cases passed sequentially on the same Linux browser and service code with isolated loopback ports, one Playwright worker and the original deadlines. This establishes a nonrecurrence in isolation. The original run did not attribute the TIMEOUT to a particular worker phase or identify the other request occupying admission when the snapshot returned BUSY. The completed follow-up used separate loopback listeners and the existing deadlines. The isolated one-worker baseline passed 2 workspace cases and 1 desktop case. Each of three ordinary sequential check pairs passed all 59 workspace cases with 2 workers and all 8 desktop cases with 1 worker. That is 204 case executions and 12 of 12 matched passes, with zero failures, skips or flaky results. The scoped attachments recorded 44 distinct instrument.search requests with zero TIMEOUT and four successful chart-opened snapshots with zero unexpected BUSY. The held-reader controls returned the eight expected scripted BUSY replies, one snapshot and one frozen-chart request per round. All eight check process trees terminated, four workspace setup directories and seven desktop profile directories were cleared, all eight owned temporary directories were removed, and no observed listener remained. The two original search failures were admitted by the preview and returned TIMEOUT in an HTTP 200 body. The original worker phase and the operation holding desktop admission remain unknown. At the next ordinary Linux recurrence in either linked check, the verification owner of that run takes M0-119 and retains the failing raw report and scoped attachments before any retry. For search TIMEOUT, correlate the preview request and Rust bridge with worker launch, hello, request send and terminal reply, recording the last completed phase and elapsed times. For an unexpected chart-opened BUSY, correlate the refused snapshot with the operation type and request identity holding admission when the refusal occurred, including whether it is the scripted held reader. Record worker count, existing deadlines and a same-source ordinary control. Retain the traces with the original failure and assign a bounded corrective task to the entry point that owns the observed stage once it is identified.",
       "severity": "minor",
       "status": "open",
       "task_ids": [
-        "M0-105"
+        "M0-105",
+        "M0-118",
+        "M0-119"
       ],
       "regression_checks": [
         "workspace-timeframe",
@@ -6186,6 +6192,297 @@
         "cause": "The test loaded developer timing history through ordinary path discovery and assumed that the explicit jobs error was first. The CLI already included the correct explicit error after retained diagnostics.",
         "correction": "Exercise the same Actions path with an isolated temporary timing root and then with a synthetic saved diagnostic. Compare the exact diagnostic identities and errors without assuming output order.",
         "prevention": "Retain assertions for the failing input, legacy path redaction and save refusal. The regression also requires the existing historical diagnosis. Re-run the complete fast profile against the six unchanged genuine timing files."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "decision-note-deletion-feedback-after-peer-refresh",
+      "source": "Authenticated Ubuntu main run 45565130414 at fb8497ec64d276c4c14e36e518ef242125f0a984, archives/runs/20261125T070439.970641Z-5b827275/test-report.json. The retained workspace log SHA-256 is 8dd2f2b50cdfa005464727379f6bd7db7d4240c5d6e78e7951d87fd2bbe73c59. Older Windows run 45547568595 at 33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d has a separate assertion in its workspace log (SHA-256 cabc26415102ec2b5ec73004a75d95cdc456cc48bf81bc1f3de38b85685a812f). Controlled Linux Chromium failure on the unchanged application at base 507cc7c91bebe385d77109faa5f8852985cdfa43 with the archived regression patch: archives/observations/m2-036-note-deletion-507cc7c/SHA256SUMS (SHA-256 765732f864879fd3935803953854c74ad3ceb7fe91d785e914eb0b70905cf62d). The captured receipt, read-only SQLite observation, projection and notice count are in archives/observations/m2-036-note-deletion-507cc7c/observed-deletion.json (SHA-256 850a0734be0b45f79c2da03cb64ae7534ee7b1ac4b72c6f312bea4e899dd1aa7).",
+      "observation": "One of 59 Ubuntu workspace cases failed after two peer timeframe changes and an outcome save. The deleting tab timed out waiting for the visible Decision note deleted. status after the confirmation click. The retained screenshot shows the dated note in a decision-note list. The original artifacts contain no correlated delete receipt or persisted row observation. The older Windows case reached the observer assertion for No saved decision notes. after the delete helper returned, so it establishes a different missing UI observation. The controlled two-tab Chromium run first delayed approval until a peer committed 5m. Approval returned STALE_CONTEXT, the note and outcome remained and no success appeared. A newly reviewed approval then returned a matching non-undoable receipt. SQLite contained the deletion marker at the committed revision and neither the note nor its outcome. The held list reply contained no notes and the peer displayed the empty list. The initiating tab showed success while that reply was delayed, then removed it when the list response was lost. Both existing peer scenarios passed in that run. The exact operation outcome and refresh ordering in the original hosted failure remain unknown.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-036"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "In controlled Linux Chromium, the deletion had a verified receipt, then a lost list response cleared the selection and its already-confirmed action notice together. The original hosted operation outcome and ordering were not captured.",
+        "correction": "Retain the confirmed deletion notice while refreshing or recovering the list. A failed post-commit list read reports its own error and exposes the existing reload action. A rejected or unverified approval cannot set the deletion notice.",
+        "prevention": "The two-tab Chromium control verifies peer STALE_CONTEXT refusal and intact rows, then a matching committed receipt, removal of note and outcome, a revision-bound deletion marker and a peer empty list. Dropping the initiating list response retains success through the explicit reload. The ordinary draft, consent and peer removal assertions are still checked. The positive observation is in archives/observations/m2-036-note-deletion-74103f6/observed-deletion.json (SHA-256 7b384646ae7d1e6905711fa60d776455e76c4d4dde36a81a669bb86eef7d62fe)."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070439.970641Z-5b827275",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
+        }
+      ]
+    },
+    {
+      "id": "decision-note-delete-list-retry-verification-alert",
+      "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses. Real Linux Chromium with the recorded regression patch on clean base fa15ea7dc0d606ad03d375afd6d63797a118ccdc. The retained red manifest is archives/observations/m2-037-note-notice/red-fa15ea7/SHA256SUMS (SHA-256 0906e664ac9aca84d127aaf41c9f31b5f936b506072a2ee414d29af73d37fc6e); wire, SQLite and UI observations are in archives/observations/m2-037-note-notice/red-fa15ea7/observed-deletion.json (SHA-256 7153d33c0f5d681e107d4fb54fc5347f671c778c7ffa4c1a46c0839dc6da1497).",
+      "observation": "After one confirmed deletion, the first lost list response produced the list-refresh alert and retained success. A second lost list response from Reload decision notes replaced the refresh alert with The local workspace could not verify the result. The deletion was already verified and no additional deletion request was sent. A successful list read should clear the list alert and retain the confirmed result. The real two-tab Linux control reproduced both list alerts in that order. All three reads returned an empty list from the server, the first two replies were lost, and the third reached the browser. There was one successful-phase approval request, and the deletion marker and missing rows were identical before and after retries. The peer displayed the empty list without the initiating tab notice.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-037"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Reload decision notes used the operation failure descriptor after the post-commit list refresh had already established a separate read failure.",
+        "correction": "Use the same list refresh descriptor for an explicit list retry after a verified deletion. Keep the existing note target and operation failure descriptor for detail retries and unverified outcomes.",
+        "prevention": "Real Chromium received two list-specific alerts after two lost replies. The third read cleared the list alert, the initiating success and peer empty list persisted, and only one successful-phase approval was sent with the durable rows unchanged by retries. The known cancellation and unknown-result controls passed. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "decision-note-delete-notice-at-new-editor",
+      "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses. Real Linux Chromium with the recorded regression patch on clean base fa15ea7dc0d606ad03d375afd6d63797a118ccdc. The retained red manifest is archives/observations/m2-037-note-notice/red-fa15ea7/SHA256SUMS (SHA-256 0906e664ac9aca84d127aaf41c9f31b5f936b506072a2ee414d29af73d37fc6e); wire, SQLite and UI observations are in archives/observations/m2-037-note-notice/red-fa15ea7/observed-deletion.json (SHA-256 7153d33c0f5d681e107d4fb54fc5347f671c778c7ffa4c1a46c0839dc6da1497).",
+      "observation": "After the list recovered following a confirmed deletion, opening New decision note left the old Decision note deleted. status visible in the new editor. It remained until draft review. Opening an editor starts a new action, so retire the earlier notice at that user gesture while read-only retries retain it. The real two-tab Linux control observed the old status in the new editor after the third list read had cleared the alert. The draft was then discarded. No extra approved delete was sent and the stored deletion marker remained identical.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M2-037"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The new-note button opened its editor without clearing the previous action notice.",
+        "correction": "Clear the old notice when the user starts a new note. Keep the current notice during read-only recovery.",
+        "prevention": "The real Chromium case retains success until the new-note gesture, then observes the editor without the earlier delete notice. Discarding the draft leaves the deletion marker and empty peer list intact. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-consumer-entry-budget",
+      "source": "2026-11-25 coordinator read-only retirement inventory, retained as .reports/audit-20261125/retirement-before-entry-limit.json. SHA-256 273a8ef78d3c137fc1eb7265c134f0832df700d2941bc1a31b78985c2aa29558.",
+      "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
+        "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
+        "prevention": "A native Git fixture reaches a real nested link with an explicit 20,001-entry budget and confirms the unchanged default still reports exhaustion. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-unbounded-ignored-root-intake",
+      "source": "Astra Standard independent review of 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a on 2026-11-25.",
+      "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
+        "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
+        "prevention": "A real 64-root Git fixture with a dirty tracked file measures two retained roots with a budget of one. Additional regressions measure the initial iterator and exercise a native rename whose source begins with an ignored-status prefix. The pre-fix regression log is retained at .reports/audit-20261125/retirement-root-intake-red.log with SHA-256 f4e4c66619ab3dbe3b469437d91af1923bc37af9ca5dea9e7912ba0e204f1228. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-ignored-status-drains-past-budget",
+      "source": "Second Astra Standard independent review of 95f20e913f2d4d91f347156af10d72467b4b3f74 on 2026-11-25.",
+      "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-116"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
+        "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
+        "prevention": "The measured native Git fixture reduced ignored stdout consumption from 2,048 records and 165,888 bytes to two records and 4,096 bytes. Separate regressions cover tail dirtiness, nonzero exits before and at overflow, an unreadable pipe, child cleanup and complete small trees. The original regression log is retained at .reports/audit-20261125/m0-116-red.log with SHA-256 1ac03d8cccb3442841c31fa74ed607f675e0c8b193664f88ed8b1c30906cb001."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-drops-observed-second-status-dirtiness",
+      "source": "Astra Standard independent review of the M0-116 retirement entry at handoff 936615e6e937cec013fa4edec2089858fc5196fd.",
+      "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-117"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
+        "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
+        "prevention": "Both native Git regressions reproduced an eligible dirty checkout before the fix. The original log is retained at .reports/audit-20261125/m0-117-red.log with SHA-256 d7ebf206e12a4a0084bf3b53e456a6cbdbb6853613a3c0750a3926983803e694. The coordinator confirmed Astra Standard approval of 37cb4e896e8a99f8af07eb7829d2550d84c99c19 after both second-read replays were held, a small clean checkout stayed eligible, and ignored status remained bounded. The required regression checks are retained in the attached task receipt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "run-observation-publication-inconsistent-reads",
+      "source": "Independent Astra Standard review of PR 101 at 62114cc3dc3655b017a565a33e7cc10115faa551. Retained transcript SHA-256 b56d19308977f0134e367670af9c13fac4aa653c9f60b004c91e4a933fea962c.",
+      "observation": "A synthetic interleaving at hosted session staging parsed a market observation named fixture-a, used the SHA-256 of fixture-b, and published fixture-b under a report naming fixture-a. The shared model, voice and market collector read the file separately for parsing and digest calculation, and staging read it again.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-018"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Parsing, digest calculation and hosted staging opened the same observation path independently.",
+        "correction": "Capture the observation once and derive its validated summary and digest from those bytes. Publish only that capture after comparing it with the report.",
+        "prevention": "Interleave two synthetic byte sequences through the actual stage_artifacts entry for model, voice, market and the external-client pair. Preserve duplicate-key, private-field and size rejections."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-obsolete-status-probe-admission",
+      "source": "Authenticated PR 107 attempt 1, checkout 78860de6b1786b91a73feed4c0c6bc822e6dfaa4. Original archives/runs/20261125T080802.632754Z-2f17cbc5/test-report.json. Workspace log SHA-256 f86da8ff8b42c525ba95fef3ea9a9b3d126f02402d673eedb6dfd89e91f632c5. Paired artifacts and screenshot are indexed at archives/observations/repo-hygiene-20261125/pr107-native-original-45573475685/manifest.json (SHA-256 01e0af05e881344e57d6dcf2d8f4430d5d3f7d9c59774e8bec36c091c50bc428). Controlled Linux Chromium red on unchanged application and the retained fixture patch at 048199d. See archives/observations/m0-122-obsolete-indicator-status-red-048199d/SHA256SUMS (SHA-256 f55f474695cb1c7bef0ee1411c24a7613cf1c92ef52182e595567ca7162c3fc3) and observed-status.json (SHA-256 a9644bb66d79f651302709910dd2033d09bf21eddadb946723a2a1f091742c73).",
+      "observation": "The obsolete-input browser case failed when its direct indicator_preview_status response body reported BUSY instead of STALE_CONTEXT after the cancel exchange. The probe discarded HTTP status and did not record the competing request or registry stage. Windows passed on the same preview checkout. The ordinary product already polls BUSY within its existing deadline. The failing assertion was in the one-shot test probe, and its original BUSY stage remains unknown. In the controlled Chromium red, the original held ready request settled after invalidation, with acceptance absent. A separately tagged snapshot reached the actual Rust writer. The obsolete status probe against that holder returned HTTP 429 with retryable BUSY, and the matching writer reply drained at revision 1. Treating this refusal as the semantic answer reproduced the assertion failure.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-122"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The direct test probed obsolete status once and discarded HTTP status. In Chromium a separately tagged Rust snapshot held the writer, and the probe was refused with HTTP 429 before the stale check; the original hosted holder and stage were unobserved.",
+        "correction": "Use one bounded read-only probe which retries only an explicit retryable HTTP 429 BUSY. Keep admitted replies, the expected STALE_CONTEXT, mutation and UI assertions, and exact output comparison.",
+        "prevention": "The real control observes a cancelled late browser delivery, a still-held snapshot and one refused read stopped by caller cancellation. A subsequent read receives 429, the exact snapshot drains, and the same task returns HTTP 200 STALE_CONTEXT. Stale mutations are refused and the earlier document is identical after restart. The outcome is retained at archives/observations/m0-122-obsolete-indicator-status-green-5b66ac2/observed-status.json (SHA-256 f04d68833b21c2cc1a1fd00f952018ec2613bc94d86ea162845a830afd4f9a8c)."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T080802.632754Z-2f17cbc5",
+          "source_commit": "78860de6b1786b91a73feed4c0c6bc822e6dfaa4",
+          "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
+        }
+      ]
+    },
+    {
+      "id": "obsolete-indicator-forwarding-does-not-settle-on-error",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Injected route.fulfill threw the original error and disposed the fetched response, but the awaiting test still waited for forwarded. The worker could interrupt the test before the route, service and profile followed their owning finally blocks. Forwarding and the intercepted browser request completion share a finite verification window. The local replay observed the exact injected error and disposed response with the original forwarding waiter pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Only successful forwarding settled the deferred result. A thrown route error disposed the response but left the test waiting.",
+        "correction": "Settle the captured forwarding result on success or failure and keep the original failure through disposal. Use one bound for forwarding and captured request completion. Distinguish an already cancelled Chromium request from an ordinary missing response.",
+        "prevention": "Inject the original error into a live Chromium route and an independent absent response. Verify exact error identity, removal of the owned route, release of the listener and profile removal. The ordinary workflow observes genuine cancellation. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "obsolete-indicator-port-failure-leaks-profile",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "An injected freePort rejection occurred after profile allocation and before the owning try block. The review counted one created profile and zero close calls. Reserve the port before preparing the profile and verify the real profile still closes after a later failure. The local acquisition replay counted one prepared profile and zero closes while the same injected port error propagated.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The fixture created the profile before awaiting the port outside the owning finally.",
+        "correction": "Reserve the loopback port before acquiring the profile; keep the existing owning finally for later failures.",
+        "prevention": "Injected port rejection preserves the original error and prepares zero profiles. Both later forwarding failures remove each actual profile. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-probe-timeout-loses-last-refusal",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Repeated retryable 429 BUSY responses exhausted the probe timeout with only a boolean poll assertion. Both obsolete status and shared accepted-output probes need attempted request count and the last numeric HTTP status, BUSY code and retryability without response body or capability text. The local replay observed three retryable 429 attempts and verified the old diagnostic did not identify HTTP 429 or code BUSY.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The former boolean poll assertion retained no transport fields when the admission budget expired.",
+        "correction": "Keep the original absolute deadline and retry only the supported retryable HTTP 429 BUSY envelope. At expiry report the attempted count and last validated refusal fields. Preserve caller cancellation and return every other response to the assertion.",
+        "prevention": "The shared accepted-output probe sees repeated real HTTP 429 while the Rust snapshot stays held. Its bounded failure records the attempt count, HTTP 429, BUSY and retryability. The stale and malformed requests are returned after one attempt each; cancellation and reopened output are still checked. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-observer-outlives-read-deadline",
+      "source": "Astra Standard repeat review of M0-123 source 75aca5612da59e6c4b415aee0e7b64edfff9171f, archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt (SHA-256 6924986d05b324f36249808fff84a530af3149bed1fe2616795925f10e7b21e1). Exact-base fixture regression at 2b20311687f1fabf734e5381fa48309c975e1d42: archives/observations/m0-124-indicator-observer/red-2b20311/SHA256SUMS (SHA-256 280d5864c42fd3b43e6d1173b9965d61e46c400cbfbd8164109d356c3fd414c7) and observed.json (SHA-256 bc5e9abd5415e6df7f73b964c7e53ac9cc5ee51f9cc7c7584e9949a60d9bcbfa).",
+      "observation": "The actual probe awaited its undo observer after the first retryable HTTP 429. That callback started a separate 3-second drained wait. A drain after the read deadline settled in 3.807 seconds, and withholding drain settled in 4.206 seconds with an AbortError that omitted the refusal. An explicit caller cancellation at 161 milliseconds returned only at 813 milliseconds. The controls must separate deadline with late or withheld drain from early caller cancellation, and prove that admitted and nonretryable replies and arbitrary observer errors remain intact. With a 500 ms read budget the late case took 1013 ms and completed the wait after the late notification. The missing event took 3015 ms and lost the refusal. The explicit cancellation took 3016 ms and lost the original reason. The admitted and nonretryable controls each returned after one request. An unrelated observer error with the caller reason as its cause was replaced by that reason.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-124"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The read probe started a single timeout, but the observer callback awaited an independent drained timeout. Its generic cause check could also turn an unrelated observer error into cancellation.",
+        "correction": "Pass the composed read signal into both real drain observers and the snapshot wait. Abort removes pending event subscriptions. Preserve the original reason of a caller abort and report the captured refusal on the internal deadline. Propagate other observer failures.",
+        "prevention": "The controlled loopback probe exercises late and withheld IPC, early caller cancellation, admitted and nonretryable replies, and an unrelated error sharing the caller abort as its cause. Each makes one request. In the two deadline cases the probe reports the retained HTTP 429 BUSY retryable fields. All three drain waiters clean their listeners. Exact source evidence: archives/observations/m0-124-indicator-observer/green-58191c3/observed.json (SHA-256 8f7e3598cdbb6e321334bab5e8df343775339dbce0585dc327a18a46770d4895)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-opaque-process-failure",
+      "source": "Windows browser producer job 139085466034 on protected-main push 45579441190. Canonical aggregate in archives/runs/windows-change-45579441190-1/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The first private-handoff assertion at workspace.spec.mjs:3404 failed with only PowerShell execution. The probe did not retain the stage for startup, timeout, signal, buffer limit or an undeclared nonzero exit. The archived failure does not identify which disposition occurred.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45579441190-1",
+          "source_commit": "c678d0e53a5546138ebf9673af8c627f64446c6c",
+          "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
+        }
+      ],
+      "resolution": {
+        "cause": "The earlier wrapper collapsed undeclared subprocess failures into the generic PowerShell execution label. The condition that caused the original Windows subprocess to fail remains unclassified.",
+        "correction": "Expose a bounded startup, deadline, signal, output limit or exit disposition from the test-owned runner while retaining the existing native ACL assertions and limits.",
+        "prevention": "Guarded native Windows run 45585469848 passed the private handoff ACL assertion, both unsafe fixtures and the profile pool ACL case. If the failure recurs during ordinary Windows verification, retain the exact source, raw report and bound log with the last safe stage and observed subprocess disposition before any retry. Reopen only against that new observation, keeping paths, arguments, SID and stderr out of diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-deadline-loses-completed-outcome",
+      "source": "Astra Standard review of 3b1dfe67fb91d2fa264e134e9e8b14f56206b583 and independently repeated Node 24.22.3 child-process observations.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "With a 400 ms limit and descendant-held output pipes, native execFile returned success at 403 ms and declared exit 58 at 404 ms. The candidate took about 1.35 seconds and mislabelled exit 58 as a deadline. The reviewer also observed a child live after timeout rejection and asynchronous overflow controls that emitted no bytes. Synchronous writes to each output descriptor consistently triggered the output limit.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The separate abort timer could wait on inherited output after a direct child exited and relabel its existing result. The asynchronous buffer controls did not reliably produce bytes.",
+        "correction": "Use Node execFile to bound pipe closure, preserve finished direct-child outcomes and wait for a running child to terminate. Emit overflow bytes synchronously to each descriptor in the test fixtures.",
+        "prevention": "The guarded Ubuntu suite passed all eleven subprocess controls. The guarded native Windows suite passed ten applicable controls and named the POSIX child-signal skip separately. The controls cover retained streams after success and a declared exit, reaping at a genuine deadline and both output buffer limits."
       },
       "deferral_reason": null
     },

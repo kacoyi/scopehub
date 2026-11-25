@@ -8,7 +8,9 @@ import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import stat
+import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 
@@ -22,6 +24,7 @@ else:
 
 
 INTEGRATION_REF = 'refs/remotes/origin/main'
+GIT_READ_OPTIONS = ('--no-optional-locks', '--no-replace-objects')
 FULL_COMMIT = re.compile(r'(?:[0-9a-f]{40}|[0-9a-f]{64})\Z')
 DURABLE_REF = re.compile(r'refs/(?:heads|tags|remotes|scopehub/recovery)/.+')
 GIT_OPERATIONS = (
@@ -39,7 +42,7 @@ CARGO_INCREMENTAL_LOCK = re.compile(r's-[a-z0-9]+-[a-z0-9]+\.lock')
 PNPM_DEPENDENCY_GROUPS = ('dependencies', 'devDependencies', 'optionalDependencies')
 PNPM_PEERS = re.compile(r'(?:\((?:@[a-z0-9._-]+/)?[a-z0-9._-]+@\d+\.\d+\.\d+[-+\w.]*\))*')
 MAX_EVIDENCE_DETAILS = 8
-MAX_CONSUMER_ENTRIES = 20_000
+IGNORED_BUDGET_EXHAUSTED = 'Ignored path inventory exceeded the observation budget'
 PROJECT_RECORDS = (
     'project/tasks.json', 'project/checks.json', 'project/feedback.json', 'project/development.json',
     'project/delivery.json', 'project/dependencies.json', 'project/dependency-inventory.json',
@@ -48,7 +51,7 @@ PROJECT_RECORDS = (
 
 
 def git(cwd, *args, **options):
-    return worktree.git(cwd, '--no-optional-locks', '--no-replace-objects', *args, **options)
+    return worktree.git(cwd, *GIT_READ_OPTIONS, *args, **options)
 
 
 def commit_at(cwd, ref):
@@ -297,11 +300,22 @@ def dependency_patterns(consumer, candidates, directories, *, absolute=False):
     return patterns
 
 
-def editable_python_paths(checkout, mounts):
+def editable_python_paths(checkout, mounts, *, entry_limit=worktree.DEFAULT_RETIREMENT_ENTRY_LIMIT):
     # Python reads startup path files directly from these virtual environment locations.
     environment = checkout / '.venv'
     library_names = {'lib', 'lib64', 'Lib'}
     paths = [environment]
+    remaining = entry_limit
+
+    def directory_entries(path):
+        nonlocal remaining
+        with os.scandir(path) as entries:
+            for entry in entries:
+                if remaining == 0:
+                    raise OSError('Python consumer inventory exceeded the observation budget')
+                remaining -= 1
+                yield Path(entry.path)
+
     while paths:
         path = paths.pop()
         info = worktree.entry_info(path)
@@ -315,20 +329,20 @@ def editable_python_paths(checkout, mounts):
         if not stat.S_ISDIR(info.st_mode):
             raise OSError(f'Expected a Python environment directory: {path}')
         if path.name == 'site-packages':
-            for entry in path.iterdir():
+            for entry in directory_entries(path):
                 if entry.suffix in {'.pth', '.egg-link'} or (
                         entry.name.startswith('__editable__') and entry.name.endswith('_finder.py')):
                     yield entry, True
         elif path == environment:
             # Preserve actual spellings without revisiting aliases on case-insensitive volumes.
-            paths.extend(entry for entry in path.iterdir() if entry.name in library_names or
+            paths.extend(entry for entry in directory_entries(path) if entry.name in library_names or
                          (os.name == 'nt' and entry.name.casefold() in library_names))
             config = path / 'pyvenv.cfg'
             if worktree.entry_info(config) is not None:
                 yield config, True
         elif path.parent == environment:
             paths.append(path / 'site-packages')
-            paths.extend(entry for entry in path.iterdir()
+            paths.extend(entry for entry in directory_entries(path)
                          if re.fullmatch(r'python\d+\.\d+[a-z]*', entry.name))
         else:
             paths.append(path / 'site-packages')
@@ -355,7 +369,7 @@ def manifest_paths(value):
             yield from manifest_paths(item)
 
 
-def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts, files):
+def observe_dependencies(consumer, candidates, common, git_dir, config, ignored, mounts, files, *, entry_limit):
     common_directories = {consumer, consumer / 'project', consumer / 'scripts', git_dir}
     patterns = dependency_patterns(consumer, candidates, common_directories, absolute=True)
     nested_checkout = any(path.is_relative_to(consumer) for path in patterns)
@@ -418,10 +432,11 @@ def observe_dependencies(consumer, candidates, common, git_dir, config, ignored,
                     observe_path_dependency(directory / value, name, patterns, observed)
         elif worktree.regular_file(path):
             observe_text(path.read_text(encoding='utf-8', errors='surrogateescape'), name, path.parent)
-    for path, regular in ignored_files(consumer, ignored, mounts, include_generated_links=True):
+    for path, regular in ignored_files(consumer, ignored, mounts, entry_limit=entry_limit,
+                                      include_generated_links=True):
         if not regular:
             observe_symlink(path, patterns, observed)
-    for path, startup_file in editable_python_paths(consumer, mounts):
+    for path, startup_file in editable_python_paths(consumer, mounts, entry_limit=entry_limit):
         if observe_symlink(path, patterns, observed) or not startup_file:
             continue
         if path in mounts:
@@ -463,7 +478,56 @@ def checkout_files(checkout):
         yield name, stage.split(' ', 1)[0], tag
 
 
-def git_status(checkout):
+def status_records(stream):
+    pending = b''
+    while block := stream.read1(4_096):
+        offset = 0
+        while (end := block.find(b'\0', offset)) != -1:
+            yield pending + block[offset:end]
+            pending = b''
+            offset = end + 1
+        pending += block[offset:]
+    if pending:
+        raise ValueError('Incomplete Git status record')
+
+
+def checkout_status(checkout, overrides, entry_limit):
+    # Disabling rename detection keeps one pathname per record. The dirty boolean
+    # is the same for a rename and for separate removal and addition records.
+    status_args = ('-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', *overrides,
+                   'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=normal',
+                   '--ignore-submodules=all')
+    dirty = bool(git(checkout, *status_args, '--ignored=no').stdout)
+    argv = ['git', *GIT_READ_OPTIONS, *status_args, '--ignored=matching']
+    ignored = []
+    with tempfile.TemporaryFile() as errors, subprocess.Popen(
+            argv, cwd=checkout, env=worktree.git_environment(), stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=errors) as process:
+        try:
+            for record in status_records(process.stdout):
+                if len(record) < 4 or record[2:3] != b' ':
+                    raise ValueError('Cannot read Git status record')
+                if record.startswith(b'!! '):
+                    ignored.append(checkout / os.fsdecode(record[3:]).removesuffix('/'))
+                    if len(ignored) > entry_limit:
+                        break
+                else:
+                    dirty = True
+            # An excess root proves exhaustion. Preserve any known Git failure
+            # before stopping the producer without reading the rest of its output.
+            status = process.poll() if len(ignored) > entry_limit else process.wait()
+            if status:
+                errors.seek(0)
+                detail = os.fsdecode(errors.read(65_536)).strip()
+                raise worktree.WorktreeError(detail or f'git status exited with status {status}')
+        finally:
+            if process.returncode is None:
+                process.kill()
+                process.wait()
+    return dirty, ignored
+
+
+def git_status(checkout, *, entry_limit):
     config = os.fsdecode(git(checkout, 'config', '--null', '--list', '--includes').stdout)
     commands = {}
     for line in config.split('\0'):
@@ -482,16 +546,10 @@ def git_status(checkout):
     for driver in sorted({driver for driver, _ in commands.values()}):
         for key, value in (('clean', ''), ('process', ''), ('required', 'false')):
             overrides.extend(('-c', f'filter.{driver}.{key}={value}'))
-    output = git(checkout, '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', *overrides,
-                 'status', '--porcelain=v1', '-z', '--untracked-files=normal',
-                 '--ignored=matching', '--ignore-submodules=all').stdout
-    records = [item for item in os.fsdecode(output).split('\0') if item]
+    dirty, ignored = checkout_status(checkout, overrides, entry_limit)
     files = list(checkout_files(checkout))
     hidden = any(tag == 'S' or tag.islower() for _, _, tag in files)
-    ignored = [
-        checkout / item[3:].removesuffix('/') for item in records if item.startswith('!! ')
-    ]
-    return any(not item.startswith('!! ') for item in records), hidden, ignored, config, filters, files
+    return dirty, hidden, ignored, config, filters, files
 
 
 def cache_tag(path):
@@ -689,19 +747,20 @@ def rebuildable(path, checkout, info, mounts, cargo_cache):
     return False
 
 
-def ignored_files(checkout, paths, mounts, *, include_generated_links=False, exclusions=None):
+def ignored_files(checkout, paths, mounts, *, entry_limit, include_generated_links=False, exclusions=None):
+    pending = list(islice(paths, entry_limit + 1))
+    if len(pending) > entry_limit:
+        raise OSError(IGNORED_BUDGET_EXHAUSTED)
+    pending.sort(reverse=True)
     target = checkout / 'target'
     target_info = worktree.entry_info(target)
     cargo_cache = (target_info is not None and stat.S_ISDIR(target_info.st_mode) and
                    not storage.reparse(target_info) and worktree.regular_file(checkout / 'Cargo.lock') and
                    cache_tag(target))
-    pending = sorted(paths, reverse=True)
     inspected = 0
     while pending:
         path = pending.pop()
         inspected += 1
-        if inspected > MAX_CONSUMER_ENTRIES:
-            raise OSError('Ignored path inventory exceeded the observation budget')
         info = path.lstat()
         if path in mounts or (not mounts and stat.S_ISDIR(info.st_mode) and path.is_mount()):
             if include_generated_links:
@@ -713,22 +772,22 @@ def ignored_files(checkout, paths, mounts, *, include_generated_links=False, exc
             if include_generated_links and path.is_symlink():
                 yield path, False
             elif include_generated_links and path == checkout / '.venv/bin':
-                queue_directory(path, pending, inspected)
+                queue_directory(path, pending, entry_limit - inspected)
             continue
         elif stat.S_ISDIR(info.st_mode) and not storage.reparse(info):
-            queue_directory(path, pending, inspected)
+            queue_directory(path, pending, entry_limit - inspected)
         else:
             yield path, stat.S_ISREG(info.st_mode) and not storage.reparse(info)
 
 
-def queue_directory(path, pending, inspected):
-    remaining = MAX_CONSUMER_ENTRIES - inspected - len(pending)
+def queue_directory(path, pending, remaining):
+    remaining -= len(pending)
     if remaining < 0:
-        raise OSError('Ignored path inventory exceeded the observation budget')
+        raise OSError(IGNORED_BUDGET_EXHAUSTED)
     with os.scandir(path) as entries:
         paths = [Path(entry.path) for entry in islice(entries, remaining + 1)]
     if len(paths) > remaining:
-        raise OSError('Ignored path inventory exceeded the observation budget')
+        raise OSError(IGNORED_BUDGET_EXHAUSTED)
     pending.extend(sorted(paths, reverse=True))
 
 
@@ -804,7 +863,9 @@ def verify_consumer_checkout(common, entry, *, primary):
     return common
 
 
-def retirement_report(cwd, common, registered, *, archive_root=None, dispositions=None):
+def retirement_report(cwd, common, registered, *, archive_root=None, dispositions=None,
+                      entry_limit=worktree.DEFAULT_RETIREMENT_ENTRY_LIMIT):
+    worktree.validate_retirement_entry_limit(entry_limit)
     archive_error = None
     archive = None
     if archive_root is None:
@@ -874,7 +935,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             if row['integration'] is None:
                 holds['not_integrated_or_disposed'] = True
 
-            dirty, hidden, ignored, config, filters, files = git_status(checkout)
+            dirty, hidden, ignored, config, filters, files = git_status(checkout, entry_limit=entry_limit)
             if dirty:
                 holds['dirty_checkout'] = True
             if hidden:
@@ -893,7 +954,8 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             evidence = []
             excluded = []
             verified = 0
-            for source, regular in ignored_files(checkout, ignored, mounts, exclusions=excluded):
+            for source, regular in ignored_files(checkout, ignored, mounts, entry_limit=entry_limit,
+                                                 exclusions=excluded):
                 if not regular or not retained(checkout, archive, entry.head, source):
                     evidence.append(str(source.relative_to(checkout)))
                 else:
@@ -911,7 +973,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             if ignored is None:
                 raise OSError('Cannot inspect ignored checkout paths')
             for target, locations in observe_dependencies(checkout, checkouts, common, git_dir, config,
-                                                          ignored, mounts, files).items():
+                                                          ignored, mounts, files, entry_limit=entry_limit).items():
                 dependencies[target].update(f'{checkout}: {location}' for location in locations)
         except (OSError, RuntimeError, ValueError) as error:
             uncertain_consumers.append(f'{checkout}: {error}')
@@ -965,6 +1027,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
         'integration_tip': integrated,
         'archive_root': str(archive) if archive else None,
         'archive_error': archive_error,
+        'entry_limit': entry_limit,
         'activity_issues': sorted(set(uncertainty)),
         'worktrees': worktrees,
     }
