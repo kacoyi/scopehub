@@ -25257,7 +25257,9 @@
       ],
       "scope": [
         "apps/desktop/ui",
-        "tests/ubuntu-preview"
+        "tests/ubuntu-preview",
+        "apps/desktop/src-tauri",
+        "tests/ui"
       ],
       "decision_refs": [
         "0004",
@@ -25270,21 +25272,29 @@
         "ui-build",
         "market-workflow",
         "workspace-timeframe",
-        "desktop-workspace-transport"
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
       ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45682874140-1",
           "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
           "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        },
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
         }
       ],
       "acceptance": [
         "The full, cropped and lost-delivery indicator journeys exercise the actual workspace. When a status read is explicitly refused before admission, the observable result, original admitted task, bounded delivery recovery and user-visible exhaustion remain correct.",
         "The verification records every raw draft, preview, status and cancellation. An extra admitted status recovery, a new or repeated preview submission, a wrong-task read and an ambiguous refusal cannot satisfy the same-task recovery assertion.",
-        "Retain the original Windows admission sequence, the focused positive and rejected controls, and a passing ordinary Windows exercise of the corrected candidate."
+        "Retain the original Windows admission sequence, the focused positive and rejected controls, and a passing ordinary Windows exercise of the corrected candidate.",
+        "Native preview status retries only an explicitly refused writer admission. An admitted registry or storage BUSY, an older unclassified reply and an unrelated native error stop and cancel the original task.",
+        "The first-window journal rejects a raw cancellation with no task ID. A valid previous-task cancellation and the cancellation on exhaustion remain accounted for."
       ],
-      "next_action": "Review the corrected browser journal and status retry on the exact candidate, then obtain a passing ordinary native Windows run before closing the finding.",
+      "next_action": "Verify native writer admission attribution and the first-trial cancellation journal against the independent findings, then obtain a passing ordinary native Windows run.",
       "blocker": null,
       "delivery": "current-contract",
       "evidence": [],
@@ -25299,12 +25309,17 @@
           "apps/desktop/ui/src/indicator-preview.tsx",
           "apps/desktop/ui/src/use-local-workspace.ts",
           "tests/ubuntu-preview/workspace.spec.mjs",
-          "PR 116 run 45682874140"
+          "PR 116 run 45682874140",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "Independent Astra review of 2738fa7edc800b37ba3eb3d4196eb86908e36104"
         ],
         "hypotheses": [
           "The Windows two-loss trial received one explicit HTTP 429 BUSY and one lost HTTP 200 ready response after the original ready delivery reset. The existing raw length assertion counted both as recovery attempts.",
           "Real Windows and Linux controls separate the original ready delivery reset, an authenticated HTTP 429 before writer admission and the next admitted read. Each status attempt owns a distinct wire ID for the same task.",
-          "The old polling loop retried any BUSY, including HTTP 200 after admission. Use the existing transport admission signal and preserve both the total polling deadline and the single allowed frozen status delivery recovery."
+          "The old polling loop retried any BUSY, including HTTP 200 after admission. Use the existing transport admission signal and preserve both the total polling deadline and the single allowed frozen status delivery recovery.",
+          "The native writer lock can be acquired before an application or SQLite BUSY is returned. Only the pre-lock failure can attest to refusal.",
+          "With no previous task, equality against an undefined task ID can hide an invalid raw cancellation."
         ],
         "risks": [
           {
@@ -25321,6 +25336,19 @@
               "ui-build",
               "market-workflow"
             ]
+          },
+          {
+            "failure": "Treating an admitted native storage error or an older unclassified reply as pre-admission reissues a status read. Moving the signal outside the writer lock boundary also risks changing other workspace and protocol replies.",
+            "checks": [
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "An unscoped cancellation is treated as past-task cleanup, or rejecting it disrupts real previous-task or exhaustion cleanup.",
+            "checks": [
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Retain both native reports, their raw request journals and the historical strict replay controls. Restore the prior assertion if the admission boundary cannot be identified.",
@@ -25332,7 +25360,9 @@
           "entrypoints": [
             "apps/desktop/ui/src/indicator-preview.tsx",
             "apps/desktop/ui/src/use-local-workspace.ts",
-            "tests/ubuntu-preview/workspace.spec.mjs"
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "tests/ui/desktop-workspace.spec.mjs"
           ],
           "rules": [
             {

@@ -7004,6 +7004,51 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-native-admitted-busy-retried",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "The native polling replay reads the same task again after an admitted retryable BUSY. Tauri treats all retryable BUSY replies as refusals even though reaching a ready indicator job can acquire the writer slot and return SQLite BUSY during its application read.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-first-trial-cancel-without-task-accepted",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "Adding a raw task.cancel without task_id and with HTTP 400 to the retained cut=0 browser journal passes the recorded verifier. There is no previous task in this trial, but the missing task is classified as previous cleanup and skipped.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
