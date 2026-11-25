@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-116",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20183,7 +20183,7 @@
       "id": "M0-116",
       "title": "Stop reading ignored worktree status after budget overflow",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M0-115"],
       "scope": [
         "scripts/worktree_retirement.py",
@@ -20197,10 +20197,15 @@
         "A measured real Git regression limits ignored records and bytes at a budget of one. Tail-dirty and failed or unreadable status streams preserve the applicable holds and process cleanup."
       ],
       "checks": ["project-state", "python-contracts-workers"],
-      "evidence": [],
-      "next_action": "Retain the failing measured status regression, split ordinary status from ignored intake, and archive the required checks on the corrected source.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-116-36fa036d0b2cb670.json",
+          "sha256": "46f11fc5ae0eaf18315003ce5bc65e8147d244df2668b24c6e0dd67c1967086c"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "A real Git fixture with 2,048 sibling ignored roots and a budget of one fell from 2,048 records and 165,888 bytes consumed to two records and 4,096 bytes read from stdout. The tail-dirty, status failure, unreadable pipe, cleanup and small-tree controls passed. Both required Linux checks passed on 4e54112a55a00764b0a268a53f925c9536592a09. The existing retirement default and holds were preserved. M0-115's accepted definition and receipt were verified unchanged. The coordinator owns the separate host capture and publication.",
       "plan": {
         "outcome": "A small retirement observation budget stops ignored pathname consumption at overflow while preserving dirty and incomplete observations.",
         "change_types": ["tooling"],

@@ -5241,10 +5241,14 @@
       "source": "Second Astra Standard independent review of 95f20e913f2d4d91f347156af10d72467b4b3f74 on 2026-11-25.",
       "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M0-116"],
       "regression_checks": ["project-state", "python-contracts-workers"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
+        "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
+        "prevention": "The measured native Git fixture reduced ignored stdout consumption from 2,048 records and 165,888 bytes to two records and 4,096 bytes. Separate regressions cover tail dirtiness, nonzero exits before and at overflow, an unreadable pipe, child cleanup and complete small trees. The original regression log is retained at .reports/audit-20261125/m0-116-red.log with SHA-256 1ac03d8cccb3442841c31fa74ed607f675e0c8b193664f88ed8b1c30906cb001."
+      },
       "deferral_reason": null
     }
   ]
