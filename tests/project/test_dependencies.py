@@ -2,7 +2,8 @@
 
 from datetime import date
 from contextlib import redirect_stdout
-from io import StringIO
+from http.client import HTTPResponse
+from io import BytesIO, StringIO
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,14 @@ from scripts import publisher_advisory as publisher
 from scripts.project import maintenance_status
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def publisher_reply(status, headers):
+    wire_headers = ''.join(f'{name}: {value}\r\n' for name, value in headers)
+    wire = f'HTTP/1.1 {status} Fixture\r\n{wire_headers}\r\n'.encode('ascii')
+    response = HTTPResponse(Mock(makefile=Mock(return_value=BytesIO(wire))))
+    response.begin()
+    return response
 
 
 class PublisherAdvisoryTests(unittest.TestCase):
@@ -71,6 +80,22 @@ class PublisherAdvisoryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'HTTP 403'):
                 publisher.fetch(publisher.URL, self.token)
             self.assertEqual([call(self.token), call(None)], get.call_args_list)
+
+    def test_hosted_anonymous_fallback_keeps_the_generic_error(self):
+        quota = [('X-RateLimit-Remaining', '0'), ('X-RateLimit-Reset', '1795601698')]
+        with patch.object(publisher, 'HTTPSConnection') as connect:
+            connection = connect.return_value
+            connection.getresponse.side_effect = [publisher_reply(403, quota), publisher_reply(403, quota)]
+            with self.assertRaisesRegex(ValueError, r'^Publisher advisory unavailable \(HTTP 403\)$'):
+                publisher.fetch(publisher.URL, self.token)
+            self.assertEqual(2, connect.call_count)
+            self.assertEqual(2, connection.request.call_count)
+            first, second = connection.request.call_args_list
+            self.assertEqual(first.args, ('GET', publisher.ROUTE))
+            self.assertEqual(second.args, first.args)
+            self.assertEqual(first.kwargs['headers']['Authorization'], f'Bearer {self.token}')
+            self.assertNotIn('Authorization', second.kwargs['headers'])
+            self.assertEqual(2, connection.close.call_count)
 
     def test_transient_errors_allow_one_retry_and_terminal_errors_disclose_no_credential(self):
         reply = (200, json.dumps(self.response).encode())
@@ -259,6 +284,59 @@ class DependencyTests(unittest.TestCase):
         queried.assert_not_called()
         result = review.read(next((self.root / '.reports/dependencies').glob('*.json')))
         self.assertEqual(('blocked', 'not_queried'), (result['status'], result['advisories']))
+
+    def test_local_403_reports_only_confirmed_anonymous_quota_and_a_valid_utc_reset(self):
+        def check_publisher(_root, policy):
+            item = next(entry for entry in policy['advisory_dispositions']
+                        if entry['scope_guard'] == 'upstream-excludes-locked-version')
+            review.validate_upstream_range(item)
+
+        generic = 'Publisher advisory unavailable (HTTP 403)'
+        exhausted = f'{generic}. Anonymous API quota exhausted.'
+        reset = ('X-RateLimit-Reset', '1795601698')
+        remaining = ('x-ratelimit-remaining', '0')
+        cases = [
+            ([remaining, reset], f'{exhausted} Reset at 2026-11-25T10:14:58Z.'),
+            ([remaining], exhausted),
+            ([remaining, reset, ('x-ratelimit-reset', '1795601698')], exhausted),
+            ([], generic),
+            ([reset], generic),
+            ([('X-RateLimit-Remaining', '7'), reset], generic),
+            ([('X-RateLimit-Remaining', '0, 0'), reset], generic),
+            ([('X-RateLimit-Remaining', '+0'), reset], generic),
+            ([remaining, ('X-RateLimit-Remaining', '0'), reset], generic),
+            ([remaining, ('X-RateLimit-Remaining', '1'), reset], generic),
+        ]
+        for value in ('-1', '1795601698.5', 'Wed, 25 Nov 2026 10:14:58 GMT',
+                      '253402300800', '9' * 80, 'unexpected-server-text'):
+            cases.append(([remaining, ('X-RateLimit-Reset', value)], exhausted))
+        for headers, expected in cases:
+            with self.subTest(headers=headers):
+                response = publisher_reply(403, [*headers, ('X-Unrelated', 'private-server-fixture')])
+                with (patch.object(review, 'ROOT', self.root),
+                      patch.object(sys, 'argv', ['dependencies.py']),
+                      patch.dict(os.environ, {publisher.TOKEN_ENV: 'synthetic-local-token'}, clear=True),
+                      patch.object(review, 'validate_advisory_scope', side_effect=check_publisher),
+                      patch.object(review, 'query_advisories', side_effect=AssertionError('publisher gate failed')),
+                      patch.object(publisher, 'HTTPSConnection') as connect,
+                      patch.object(response, 'read', wraps=response.read) as body,
+                      redirect_stdout(StringIO()) as stdout):
+                    connect.return_value.getresponse.return_value = response
+                    with self.assertRaises(SystemExit) as stopped:
+                        review.main()
+                self.assertEqual(1, stopped.exception.code)
+                connect.assert_called_once_with(publisher.HOST, timeout=8)
+                connect.return_value.request.assert_called_once_with(
+                    'GET', publisher.ROUTE,
+                    headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review'},
+                )
+                connect.return_value.close.assert_called_once_with()
+                body.assert_not_called()
+                output = json.loads(stdout.getvalue())
+                report = review.read(self.root / output.pop('report'))
+                self.assertEqual(report, output)
+                self.assertEqual(('failed', 'passed', expected),
+                                 (report['status'], report['inventory'], report['error']))
 
     def test_all_batches_and_paginated_findings_are_observed(self):
         request = Mock(side_effect=[{'results': [{'next_page_token': 'next'}]},

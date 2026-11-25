@@ -1,5 +1,6 @@
 """Fetch the one reviewed public publisher advisory without sharing CI credentials."""
 
+from datetime import datetime, timedelta, timezone
 from http.client import HTTPException, HTTPSConnection
 import json
 import os
@@ -41,6 +42,21 @@ def public_record(body):
     return {'ghsa_id': ADVISORY, 'state': 'published', 'withdrawn_at': None, 'vulnerabilities': vulnerabilities}
 
 
+def _anonymous_quota_diagnostic(response):
+    # HTTPResponse joins repeated fields, so exact equality also rejects ambiguous values.
+    if response.getheader('X-RateLimit-Remaining') != '0':
+        return b''
+    diagnostic = 'Publisher advisory unavailable (HTTP 403). Anonymous API quota exhausted.'
+    reset = response.getheader('X-RateLimit-Reset', '')
+    if not (1 <= len(reset) <= 12 and reset.isascii() and reset.isdecimal()):
+        return diagnostic
+    try:
+        instant = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=int(reset))
+    except OverflowError:
+        return diagnostic
+    return f'{diagnostic} Reset at {instant:%Y-%m-%dT%H:%M:%SZ}.'
+
+
 def request_once(token):
     headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review'}
     if token:
@@ -52,13 +68,18 @@ def request_once(token):
     try:
         connection.request('GET', ROUTE, headers=headers)
         with connection.getresponse() as response:
-            return response.status, response.read(MAX_BYTES + 1) if response.status == 200 else b''
+            if response.status == 200:
+                return response.status, response.read(MAX_BYTES + 1)
+            if response.status == 403 and token is None:
+                return response.status, _anonymous_quota_diagnostic(response)
+            return response.status, b''
     finally:
         connection.close()
 
 
 def fetch(url, token=None):
     require_exact_url(url)
+    local_anonymous = token is None
     for attempt in range(2):
         try:
             status, data = request_once(token)
@@ -80,6 +101,8 @@ def fetch(url, token=None):
             continue
         if attempt == 0 and status in TRANSIENT:
             continue
+        if local_anonymous and status == 403 and isinstance(data, str):
+            raise ValueError(data)
         raise ValueError(f'Publisher advisory unavailable (HTTP {status})')
 
 
