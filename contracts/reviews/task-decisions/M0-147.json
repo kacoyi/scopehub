@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T21:39:09.472632+00:00",
       "request_id": "b46244c11bdf5c033c462c8f801b42de4b9823138e3b7389b5bfd2636722acea",
       "evidence_sha256": "146c237300277fc9c82f9d92789e13bc80e3d0adf699f5b3f8f4eeacdbe7cda5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "verdict": "approved",
+      "decision": "APPROVE M0-147 bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "scope": "APPROVE M0-147 bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "observation": "I observed the row 19 readback error appear before the row 0 cleanup error in a 182-byte diagnostic, with all 24 removals attempted and zero witness launches.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "83a45ed1a19481a10f6897d885d1ed14d2f1d4a7da01460a74d9f4fd28b1f33e",
+      "response_id": "02424da46c21c04daf4709ca55e8ca97fad7eae6fa915ec3e4e782c58b06fca3",
+      "response_sha256": "1cdc2e5b6740be6e12d09209088aed8c48a9a8b10a3c13b738271e2d36a979e0",
+      "legacy_response_sha256": "a82d8379ab79846464e733438a94a25544c4b639fc01079453ae0a49d6995271",
+      "observation_body_sha256": "265b0d5fb52a1b71582df314d1f0b8f2029a985f0e751254dc0eb2f9eec9aaff",
+      "event": {
+        "id": "msg_02395960ec1524e8016b075c3723f487d09cfb224019f2ca06",
+        "timestamp": "2026-11-25T22:08:04.910Z"
+      },
+      "supersedes": "b46244c11bdf5c033c462c8f801b42de4b9823138e3b7389b5bfd2636722acea",
+      "evidence_sha256": "658f361bf8f7bf852fbc48a1d130b0776f4a2eda7bb7f16c716ee29bcc9cc6b2"
     }
   ]
 }
