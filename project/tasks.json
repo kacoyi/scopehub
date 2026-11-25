@@ -25168,7 +25168,8 @@
         "Require explicit supervisor confirmation of finished cleanup across parent SIGCHLD dispositions, and record a late interruption after bounded cleanup.",
         "Publish a bounded stable snapshot before digesting the ordinary log when Linux cleanup is unconfirmed. Keep the failed diagnosis and a verified retry independently resolvable.",
         "Record an interrupt arriving during serial log finalization and preserve any existing cleanup failure. Retain the terminal row, durable run report and ordinary stop behavior.",
-        "A real SIGINT at a blocked console result write promptly stops output without losing its terminal row, log digest, original and latest reports or independent retry."
+        "A real SIGINT at a blocked console result write promptly stops output without losing its terminal row, log digest, original and latest reports or independent retry.",
+        "On the actual parallel entry, one SIGINT releases a full shared Linux pipe whether a second writer fills it before or after readiness. Preserve caller descriptor flags, terminal outcomes, original and latest reports, and a separate retry."
       ],
       "checks": [
         "project-state",
@@ -25199,7 +25200,8 @@
           "The early command result currently substitutes for cleanup evidence when the parent automatically reaps the supervisor. A late SIGINT can escape the final wait.",
           "A residual inherited writer can still mutate the original log inode after unconfirmed cleanup.",
           "The serial digest and terminal result phase currently has no interrupt handling after the check runner returns.",
-          "Console emission currently precedes admission of terminal rows and is not part of durable report publication."
+          "Console emission currently precedes admission of terminal rows and is not part of durable report publication.",
+          "Pipe readiness does not reserve capacity for a later write. A cooperative flag cannot interrupt an already blocking write."
         ],
         "risks": [
           {
@@ -25244,6 +25246,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A competing writer invalidates readiness, nonblocking flags leak to the caller, or partial output loses or duplicates bytes.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the failed original and port observation. If the shared supervisor changes existing exit semantics, restore the previous path and retain the active finding until a bounded repair passes.",
@@ -25284,14 +25292,15 @@
             "Separate command readiness from final cleanup confirmation, and complete bounded teardown after a late interruption.",
             "Detach the published diagnostic inode from unconfirmed Linux output writers while retaining the existing archive bindings.",
             "Carry a serial finalization interrupt into the ordinary check result and run report.",
-            "Handle blocked console interruption independently of row admission and persist the original and latest reports without relying on stdout."
+            "Handle blocked console interruption independently of row admission and persist the original and latest reports without relying on stdout.",
+            "Use owned nonblocking pipe output for the Linux cooperative console and retry only unwritten bytes."
           ],
           "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
           "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
         }
       },
       "closure_reason": null,
-      "next_action": "Obtain independent review of interruptible terminal publication and durable reports, then retain ordinary native Windows verification.",
+      "next_action": "Verify both two-writer readiness orders and the corrected console ownership on the ordinary task, then return for independent review.",
       "blocker": null,
       "evidence": [
         {

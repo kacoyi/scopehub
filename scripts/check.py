@@ -13,6 +13,7 @@ import platform
 import select
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 from threading import Event, Lock, current_thread, main_thread
@@ -109,23 +110,48 @@ class CheckConsole:
             except (AttributeError, UnsupportedOperation):
                 pass
             else:
-                # Flush directly. TextIOWrapper can leave buffered bytes that
-                # would retry a full pipe again at interpreter shutdown.
-                pending = memoryview((line + '\n').encode('ascii'))
-                writable = select.poll()
-                writable.register(fd, select.POLLOUT)
-                while pending and not self.muted:
-                    if (self.cooperative or self.interrupted) and not writable.poll(0 if self.interrupted else 50):
-                        if self.interrupted:
-                            self.muted = True
-                        continue
-                    # Do not request more than the pipe can accept atomically.
-                    written = os.write(fd, pending[:select.PIPE_BUF])
-                    if not written:
-                        raise OSError('Console write made no progress')
-                    pending = pending[written:]
+                self.write_linux_line(fd, line)
                 return
         print(line, flush=True)
+
+    def write_linux_line(self, fd, line):
+        owned = None
+        try:
+            if self.cooperative or self.interrupted:
+                original = os.fstat(fd)
+                if stat.S_ISFIFO(original.st_mode):
+                    # Reopen the pipe with a separate file description. dup()
+                    # would share flags with the caller and other writers.
+                    owned = os.open(f'/proc/self/fd/{fd}', os.O_WRONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+                    if not os.path.samestat(original, os.fstat(owned)):
+                        raise OSError('Console pipe changed while reopening it')
+                    fd = owned
+
+            # Write directly so shutdown cannot retry a buffered console write.
+            pending = memoryview((line + '\n').encode('ascii'))
+            writable = select.poll()
+            writable.register(fd, select.POLLOUT)
+            while pending and not self.muted:
+                if (self.cooperative or self.interrupted) and not writable.poll(0 if self.interrupted else 50):
+                    if self.interrupted:
+                        self.muted = True
+                    continue
+                try:
+                    written = os.write(fd, pending[:select.PIPE_BUF])
+                except BlockingIOError:
+                    if owned is None:
+                        raise
+                    # Readiness is not a reservation. Another writer can fill
+                    # the pipe before write; wait again only while uncancelled.
+                    if self.interrupted:
+                        self.muted = True
+                    continue
+                if not written:
+                    raise OSError('Console write made no progress')
+                pending = pending[written:]
+        finally:
+            if owned is not None:
+                os.close(owned)
 
     def emit(self, record):
         try:

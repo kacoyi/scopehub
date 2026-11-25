@@ -7060,6 +7060,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "linux-parallel-console-write-blocks-after-pipe-readiness",
+      "source": "Astra Standard t10k on 5b968c9a96ea385a5efcb675ec7086d454574ecf. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-5b968c9a/final-response.txt (SHA-256 0843eda2c110a31aa8d8ad8fc8a2fd4cf6c31c1c338a802ccf502598f321398f). Original event SHA-256 968182378b3727933e75b541f4a49267afbd6c39924079119d6a1bf175e2bce3.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-138"
+      ],
+      "observation": "A second writer filled the same Linux 4 KiB pipe after the parallel console poll reported write readiness and before os.write. One SIGINT set the cooperative stop flag, but the blocking write remained stuck after 5.5 seconds and neither the original report nor the new latest was published until external drainage. Filling before readiness retained the report without drainage. The independent sequential interruption, reaping and immutable-log controls passed.",
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

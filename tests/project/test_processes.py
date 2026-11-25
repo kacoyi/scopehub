@@ -1152,3 +1152,278 @@ with open('.reports/unrelated.lock', 'w') as handle:
                     verified = resolve_diagnostic(diagnostic_locator(original(result)), reports)
                     self.assertEqual(status, verified['recorded_status'])
                     self.assertIn('project-state', verified['verified_logs'])
+
+
+class ParallelPipePublicationTests(ProjectFixture):
+    @unittest.skipUnless(sys.platform == 'linux', 'requires an owned Linux pipe and cooperative SIGINT')
+    def test_competing_pipe_writer_cannot_block_parallel_report(self):
+        import fcntl
+
+        reports = self.root / '.reports'
+        reports.mkdir()
+        latest = reports / 'test-report.json'
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        template = catalog['checks'][2]
+        catalog['checks'][2:2] = [
+            {**template, 'id': 'python-contracts-workers'},
+            {**template, 'id': 'ui-build', 'command': ['{python}', '-c',
+             'import os, sys; print("parallel child already completed"); sys.exit(int(os.getenv("FIXTURE_EXIT", "0")))']},
+        ]
+        catalog['required_change_checks'].extend(('python-contracts-workers', 'ui-build'))
+        # This is a portable stub, not a native Windows check.
+        next(row for row in catalog['checks'] if row['id'] == 'windows-native-build')['platforms'] = 'all'
+        catalog_path.write_bytes(json_bytes(catalog))
+        driver = self.root / 'parallel-driver.py'
+        driver.write_text('import sys\nsys.path.insert(0, '
+                          + repr(str(Path(harness.__file__).resolve().parents[1])) + ')\n' + '''
+import os, select, signal, threading
+from pathlib import Path
+from scripts import check, processes
+
+check.ROOT = Path.cwd()
+check.REPORTS = check.ROOT / '.reports'
+signal.signal(signal.SIGINT, signal.default_int_handler)
+order = os.getenv('FIXTURE_ORDER')
+notify = int(os.getenv('FIXTURE_NOTIFY', '-1'))
+release = int(os.getenv('FIXTURE_RELEASE', '-1'))
+emit = check.print_check
+write_line = check.CheckConsole.write_line
+real_poll = select.poll
+real_write = os.write
+stop_tree = processes.stop_tree
+watched_thread = None
+first_poll = True
+first_write = True
+stdout_stat = os.fstat(1)
+
+def watching():
+    return watched_thread == threading.get_ident()
+
+def exchange(marker):
+    real_write(notify, marker)
+    if not select.select([release], [], [], 8)[0] or os.read(release, 1) != b'G':
+        raise RuntimeError('fixture did not release the output synchronization point')
+
+def observed_emit(record):
+    global watched_thread
+    if record.get('id') != 'ui-build' or 'log_sha256' not in record:
+        return emit(record)
+    watched_thread = threading.get_ident()
+    try:
+        return emit(record)
+    finally:
+        watched_thread = None
+
+def observed_line(console, line):
+    if watching() and order:
+        exchange(b'T')
+    return write_line(console, line)
+
+class ObservedPoll:
+    def __init__(self):
+        self.poller = real_poll()
+
+    def register(self, *args):
+        self.poller.register(*args)
+
+    def poll(self, timeout):
+        global first_poll
+        ready = self.poller.poll(timeout)
+        if watching() and order and first_poll:
+            first_poll = False
+            if order == 'before':
+                assert not ready
+                real_write(notify, b'P')
+            else:
+                assert ready
+                exchange(b'R')
+        return ready
+
+def observed_write(fd, data):
+    global first_write
+    if watching() and first_write and os.path.samestat(os.fstat(fd), stdout_stat):
+        assert os.get_blocking(1), 'the caller stdout flags changed'
+        if fd != 1:
+            assert not os.get_blocking(fd) and not os.get_inheritable(fd)
+        first_write = False
+        if order == 'after':
+            real_write(notify, b'W')
+            try:
+                return real_write(fd, data)
+            except BlockingIOError:
+                real_write(notify, b'E')
+                raise
+        if not order:
+            written = real_write(fd, data[:11])
+            Path('.reports/short-write').write_text(str(written))
+            return written
+    return real_write(fd, data)
+
+def observed_stop(process, *args, **kwargs):
+    outcome = stop_tree(process, *args, **kwargs)
+    if os.getenv('FIXTURE_CLEANUP_FAILED') and 'parallel child already completed' in process.args[-1]:
+        raise OSError('fixture cannot confirm cleanup')
+    return outcome
+
+check.print_check = observed_emit
+check.CheckConsole.write_line = observed_line
+select.poll = ObservedPoll
+os.write = observed_write
+processes.stop_tree = observed_stop
+check.main()
+''', encoding='utf-8')
+        subprocess.run(['git', 'add', '.'], cwd=self.root, check=True, capture_output=True)
+        git = ['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org']
+        subprocess.run([*git, 'commit', '-m', 'Disposable parallel pipe checks'],
+                       cwd=self.root, check=True, capture_output=True)
+        commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
+        env = dict(os.environ, GITHUB_ACTIONS='true', GITHUB_REPOSITORY='fixture/scopehub',
+                   GITHUB_RUN_ID='42', GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='push',
+                   SCOPEHUB_SOURCE_HEAD=commit, SCOPEHUB_STORAGE='off')
+        for name in ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR',
+                     'SCOPEHUB_REVIEW_BASE', 'SCOPEHUB_CHECKPOINT_BASE'):
+            env.pop(name, None)
+        argv = [sys.executable, '-B', str(driver)]
+
+        def original(report):
+            return reports / 'runs' / report['run_id'] / 'test-report.json'
+
+        def healthy():
+            mode = reports / 'short-write'
+            mode.unlink(missing_ok=True)
+            result = subprocess.run(argv, cwd=self.root, env=env, capture_output=True, timeout=15, check=False)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual('11', mode.read_text())
+            emitted = [json.loads(line) for line in result.stdout.splitlines()]
+            report = read_json(latest)
+            self.assertEqual('passed', report['status'])
+            rows = [row for row in report['checks'] if row['id'] == 'ui-build']
+            self.assertEqual(rows, [row for row in emitted if row.get('id') == 'ui-build' and 'log_sha256' in row])
+            self.assertEqual('passed', rows[0]['status'])
+            self.assertEqual(report['run_id'], Path(emitted[-1]['report']).parent.name)
+            return report
+
+        def read_marker(fd, marker):
+            self.assertTrue(select.select([fd], [], [], 8)[0], f'fixture did not reach {marker!r}')
+            self.assertEqual(marker, os.read(fd, 1))
+
+        def close_fixture(process):
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=5)
+
+        for order, cleanup_failed in (('before', False), ('after', False), ('after', True)):
+            with self.subTest(order=order, cleanup_failed=cleanup_failed), ExitStack() as owned:
+                prior = healthy()
+                prior_bytes = original(prior).read_bytes()
+                prior_originals = set((reports / 'runs').glob('*/test-report.json'))
+                self.assertEqual(prior_bytes, latest.read_bytes())
+
+                def pipe():
+                    pair = os.pipe()
+                    for fd in pair:
+                        owned.callback(os.close, fd)
+                    return pair
+
+                read_fd, write_fd = pipe()
+                notice_read, notice_write = pipe()
+                continue_read, continue_write = pipe()
+                capacity = fcntl.fcntl(write_fd, fcntl.F_SETPIPE_SZ, 4096)
+                original_flags = fcntl.fcntl(write_fd, fcntl.F_GETFL)
+                race = dict(env, FIXTURE_ORDER=order, FIXTURE_NOTIFY=str(notice_write),
+                            FIXTURE_RELEASE=str(continue_read), FIXTURE_EXIT='23')
+                if cleanup_failed:
+                    race['FIXTURE_CLEANUP_FAILED'] = '1'
+                caller = owned.enter_context(subprocess.Popen(argv, cwd=self.root, env=race, stdout=write_fd,
+                                             stderr=subprocess.PIPE, pass_fds=(notice_write, continue_read),
+                                             start_new_session=True))
+                owned.callback(close_fixture, caller)
+                transcript = bytearray()
+                deadline = time.monotonic() + 8
+                while True:
+                    ready, _, _ = select.select([read_fd, notice_read], [], [],
+                                                 max(0, deadline - time.monotonic()))
+                    self.assertTrue(ready, 'fixture did not reach its terminal write')
+                    if read_fd in ready:
+                        transcript.extend(os.read(read_fd, capacity))
+                    if notice_read in ready:
+                        read_marker(notice_read, b'T')
+                        break
+                # The emitting thread now holds the console lock at its gate.
+                while select.select([read_fd], [], [], 0)[0]:
+                    transcript.extend(os.read(read_fd, capacity))
+                self.assertIn(b'"id": "ui-build", "status": "running"', transcript)
+                if order == 'after':
+                    os.write(continue_write, b'G')
+                    read_marker(notice_read, b'R')
+
+                # The competing writer is a separate process and retains a
+                # foreign lock until explicitly released by this fixture.
+                lock = reports / 'foreign.lock'
+                foreign = owned.enter_context(subprocess.Popen([sys.executable, '-c', '''
+import fcntl, os, sys
+with open(sys.argv[1], 'w') as lock:
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    assert os.write(1, b'F' * int(sys.argv[2])) == int(sys.argv[2])
+    os.write(int(sys.argv[3]), b'C')
+    os.read(0, 1)
+''', str(lock), str(capacity), str(notice_write)], stdin=subprocess.PIPE, stdout=write_fd,
+                    pass_fds=(notice_write,), start_new_session=True))
+                owned.callback(close_fixture, foreign)
+                read_marker(notice_read, b'C')
+                os.write(continue_write, b'G')
+                nonblocking_write_observed = False
+                if order == 'before':
+                    read_marker(notice_read, b'P')
+                else:
+                    read_marker(notice_read, b'W')
+                    deadline = time.monotonic() + 5
+                    while True:
+                        if select.select([notice_read], [], [], .01)[0]:
+                            read_marker(notice_read, b'E')
+                            nonblocking_write_observed = True
+                            break
+                        if 'pipe_write' in Path(f'/proc/{caller.pid}/wchan').read_text():
+                            break  # The red control can enter a real blocking syscall here.
+                        self.assertLess(time.monotonic(), deadline, 'actual console write was not observed')
+
+                self.assertEqual(original_flags, fcntl.fcntl(write_fd, fcntl.F_GETFL))
+                caller.send_signal(signal.SIGINT)
+                try:
+                    exit_code = caller.wait(timeout=4)
+                except subprocess.TimeoutExpired:
+                    self.assertEqual(prior_bytes, latest.read_bytes())
+                    self.assertEqual(prior_originals, set((reports / 'runs').glob('*/test-report.json')))
+                    self.fail('one SIGINT left the parallel write blocked; no original report or new latest')
+                self.assertEqual(1, exit_code, caller.stderr.read())
+                if order == 'after':
+                    self.assertTrue(nonblocking_write_observed, 'the full pipe must return EAGAIN from the actual write')
+                self.assertEqual(original_flags, fcntl.fcntl(write_fd, fcntl.F_GETFL))
+                self.assertEqual(b'F' * capacity, os.read(read_fd, capacity), 'the pipe stayed full until exit')
+                self.assertIsNone(foreign.poll())
+                with lock.open('rb') as handle, self.assertRaises(BlockingIOError):
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                foreign.stdin.close()
+                self.assertEqual(0, foreign.wait(timeout=5))
+
+                interrupted_bytes = latest.read_bytes()
+                interrupted = json.loads(interrupted_bytes)
+                self.assertNotEqual(prior['run_id'], interrupted['run_id'])
+                self.assertEqual('failed', interrupted['status'])
+                self.assertEqual(interrupted_bytes, original(interrupted).read_bytes())
+                row = next(row for row in interrupted['checks'] if row['id'] == 'ui-build')
+                self.assertEqual(('failed', 'cleanup_failed' if cleanup_failed else 'interrupted',
+                                  None if cleanup_failed else 23),
+                                 (row['status'], row.get('reason_code'), row['exit_code']))
+                log = (self.root / row['log']).read_bytes()
+                self.assertIn(b'parallel child already completed', log)
+                self.assertEqual(row['log_sha256'], hashlib.sha256(log).hexdigest())
+                retry = healthy()
+                self.assertEqual(prior_bytes, original(prior).read_bytes())
+                self.assertEqual(interrupted_bytes, original(interrupted).read_bytes())
+                self.assertEqual(3, len({prior['run_id'], interrupted['run_id'], retry['run_id']}))
+                for report, status in ((prior, 'passed'), (interrupted, 'failed'), (retry, 'passed')):
+                    verified = resolve_diagnostic(diagnostic_locator(original(report)), reports)
+                    self.assertEqual(status, verified['recorded_status'])
+                    self.assertIn('ui-build', verified['verified_logs'])
