@@ -24645,12 +24645,16 @@
         }
       },
       "closure_reason": null,
-      "next_action": "Reproduce the two independently observed teardown failures, verify the corrected protocol and return for independent review.",
+      "next_action": "Obtain independent review of the cleanup confirmation and bounded interruption handling, then retain native Windows Job Object and ordinary desktop localization results.",
       "blocker": null,
       "evidence": [
         {
           "path": "project/evidence/M0-138-07913ffe8377351d.json",
           "sha256": "d06ec15f976cac19f387ba3a4ef52050a11f7e9f64769add916f8934169eeff2"
+        },
+        {
+          "path": "project/evidence/M0-138-55559d3c46bcf6ff.json",
+          "sha256": "779ec90099ac111c762e2ec859a0e07589d20be8fde659e2c7238d4716c9c246"
         }
       ]
     }
