@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-123",
   "tasks": [
     {
       "id": "M0-001",
@@ -22714,6 +22714,104 @@
           ],
           "data_plan": "Use an isolated synthetic browser profile, the normal Vite HTTP route and the real Rust writer.",
           "cleanup": "Release held replies and the tagged writer on any exit, observe drain and remove the fixture profile."
+        }
+      }
+    },
+    {
+      "id": "M0-123",
+      "title": "Preserve indicator fixture cleanup and admission diagnostics",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-122"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real Chromium route forwarding fault reaches the waiting test as its original error and the route, Vite listener and profile are cleaned through the owning finally blocks. Bound forwarding and intercepted browser request completion together. Distinguish genuine browser cancellation from an absent response.",
+        "An injected port failure has no prepared profile. A profile acquired before any later fixture failure is closed.",
+        "Hold a real snapshot through several rejected output reads, exhaust only the test probe deadline and report attempts plus the last retryable 429 BUSY fields. Unexpected responses terminate immediately and caller cancellation stops without another read. Keep obsolete STALE_CONTEXT and exact reopened accepted output.",
+        "Run the combined obsolete-indicator and decision-note browser cases, workspace-timeframe and the canonical task harness. Retain both histories, the original review and M0-122 acceptance."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the three review findings with scoped failure injection, repair only the fixture boundaries and capture the red and exact-source green evidence.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Failures in the obsolete indicator fixture report their own cause and release owned resources, while a persistent admission refusal provides safe bounded diagnostics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The missing forwarding result, acquisition order and boolean polling diagnostics are fixture defects independent of the product status semantics."
+        ],
+        "risks": [
+          {
+            "failure": "A route error or absent response is hidden as cancellation, or the test times out before its own cleanup. Inject a live route failure, observe same error identity and check route removal, closed listener and removed profile.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A failing port allocation builds a disposable profile, or the new deadline retries admitted errors. Count acquisitions, hold a real writer for a persistent refusal, and keep admitted and cancelled controls.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain exact red observations and accepted M0-122 evidence. Revert any fixture correction that suppresses semantic failure or changes PR 106 behavior.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Runtime, authorization, persistence or deadline changes, and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Which already-settled Chromium cancellation and no-response outcomes does the real route expose?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original stale and reopened output assertions, admitted status shape, local receipt history and combined note code."
+          ],
+          "change": [
+            "Settle owned routing failures, acquire the port first and retain the minimal bounded refusal summary."
+          ],
+          "data_plan": "Use synthetic application profiles, actual loopback Vite and a tagged native snapshot. Record only failure labels and permitted metadata.",
+          "cleanup": "Release the held response and any tagged snapshot, unregister routes, terminate the service and remove each owned profile."
         }
       }
     }
