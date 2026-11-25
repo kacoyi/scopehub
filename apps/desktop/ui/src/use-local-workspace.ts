@@ -433,6 +433,14 @@ export function useLocalWorkspace() {
   const sourceActive = useRef(false);
   const sourceReadback = useRef<SourceReadback | null>(null);
   const mounted = useRef(false);
+  const focus = useRef({ generation: 0, pending: false });
+  const [focusView, setFocusView] = useState(focus.current);
+  const updateFocus = useCallback((status: typeof focus.current) => {
+    focus.current = status;
+    setFocusView(status);
+  }, []);
+  const hasConfirmedFocus = useCallback((generation: number) =>
+    focus.current.generation === generation && !focus.current.pending, []);
   const queuedRecovery = useRef<{ revision: number; start: () => void } | null>(null);
   const queuedAccess = useRef<{ revisions: Set<string>; start?: () => void }>({ revisions: new Set() });
   const unconfirmedAccess = useRef(new Set<string>());
@@ -456,9 +464,12 @@ export function useLocalWorkspace() {
     const controller = new AbortController();
     active.current = controller;
     const checkedAccess = pending === 'open' ? [...unconfirmedAccess.current] : [];
+    const focusAtRead = work === readWorkspaceSnapshot ? focus.current : undefined;
+    const superseded = () => focusAtRead !== undefined && focusAtRead.generation !== focus.current.generation;
     setView(previous => ({ ...previous, pending, errorId: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
-      if (controller.signal.aborted) return false;
+      if (controller.signal.aborted || superseded()) return false;
+      if (focusAtRead?.pending) updateFocus({ ...focusAtRead, pending: false });
       if (checkedAccess.length) {
         const next = new Set(unconfirmedAccess.current);
         for (const id of checkedAccess) {
@@ -470,7 +481,7 @@ export function useLocalWorkspace() {
       setView(previous => ({ snapshot, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice }));
       return true;
     }, error => {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && !superseded()) {
         const selectionBusy = pending === 'evidence' && errorCode(error) === 'BUSY';
         setView(previous => ({
           ...previous, pending: undefined,
@@ -480,21 +491,25 @@ export function useLocalWorkspace() {
       }
       return false;
     }).finally(() => release(controller));
-  }, [release]);
-  const refreshPublishedAccess = useCallback((id: string) => {
-    if (!mounted.current) return;
+  }, [release, updateFocus]);
+  const queueSnapshot = useCallback(() => {
     const entry = queuedAccess.current;
-    if (entry.revisions.has(id)) return;
-    entry.revisions.add(id);
-    unconfirmedAccess.current = new Set(unconfirmedAccess.current).add(id);
-    setUnconfirmedRevisions(unconfirmedAccess.current);
     const start = () => {
       entry.revisions.clear();
       void run(readWorkspaceSnapshot, 'open');
     };
+    // Native admission is single-flight. A burst shares the running read
+    // and one trailing slot, which captures the latest focus when it starts.
     if (active.current || sourceReadback.current) entry.start = start;
     else start();
   }, [run]);
+  const refreshPublishedAccess = useCallback((id: string) => {
+    if (!mounted.current || queuedAccess.current.revisions.has(id)) return;
+    queuedAccess.current.revisions.add(id);
+    unconfirmedAccess.current = new Set(unconfirmedAccess.current).add(id);
+    setUnconfirmedRevisions(unconfirmedAccess.current);
+    queueSnapshot();
+  }, [queueSnapshot]);
   const canCheckRevision = useCallback(() => !sourceActive.current, []);
   const runSource = useCallback(async (work: (signal: AbortSignal) => Promise<void>) => {
     if (active.current) throw { code: 'BUSY' };
@@ -549,8 +564,17 @@ export function useLocalWorkspace() {
   useEffect(() => {
     if (!enabled) return;
     mounted.current = true;
+    const requireFocusConfirmation = () => {
+      if (document.visibilityState !== 'visible' || sourceActive.current || sourceReadback.current) return;
+      updateFocus({ generation: focus.current.generation + 1, pending: true });
+      queueSnapshot();
+    };
+    window.addEventListener('focus', requireFocusConfirmation);
+    document.addEventListener('visibilitychange', requireFocusConfirmation);
     reload();
     return () => {
+      window.removeEventListener('focus', requireFocusConfirmation);
+      document.removeEventListener('visibilitychange', requireFocusConfirmation);
       mounted.current = false;
       queuedRecovery.current = null;
       queuedAccess.current = { revisions: new Set() };
@@ -560,7 +584,7 @@ export function useLocalWorkspace() {
       active.current?.abort();
       active.current = null;
     };
-  }, [reload]);
+  }, [queueSnapshot, reload, updateFocus]);
 
   if (!enabled) return undefined;
   const { snapshot } = view;
@@ -617,6 +641,7 @@ export function useLocalWorkspace() {
   }
   return {
     ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource, refreshPublishedAccess, unconfirmedRevisions,
+    focus: focusView, hasConfirmedFocus,
     error: view.errorId && t(view.errorId),
     selectionNotice: view.selectionNotice && t(view.selectionNotice),
     sourceNotice: view.sourceNotice && t(view.sourceNotice),

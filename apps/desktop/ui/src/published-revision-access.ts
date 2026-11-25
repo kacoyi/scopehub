@@ -122,11 +122,10 @@ export type PublishedRevisionAccess = ReturnType<typeof usePublishedRevisionAcce
 
 export function useWatchPublishedRevision(
   id: string | undefined, verify: PublishedRevisionAccess['verify'], workspace: LocalWorkspace | undefined,
-  initialAccess: 'check' | 'checked-by-reader' | 'focus-only' = 'check',
-  handleFocus?: (id: string) => boolean,
+  initialAccess: 'check' | 'checked-by-reader' = 'check',
 ) {
   const refresh = workspace?.snapshot;
-  const reload = workspace?.sourceRecovery ? undefined : workspace?.reload;
+  const workspaceHandlesFocus = workspace !== undefined && !workspace.sourceRecovery;
   const canCheckRevision = workspace?.canCheckRevision;
   const errorId = workspace?.errorId;
   const previous = useRef({ id, refresh, errorId });
@@ -136,7 +135,7 @@ export function useWatchPublishedRevision(
     // The foreground read authorizes its own result. An independent profile change
     // still rechecks access, including while that result is in transit.
     const profileChanged = observed.id === id && (observed.refresh !== refresh || observed.errorId !== errorId);
-    if (id && initialAccess !== 'focus-only' && (initialAccess === 'check' || profileChanged)) void verify(id);
+    if (id && (initialAccess === 'check' || profileChanged)) void verify(id);
   }, [id, verify, refresh, errorId, initialAccess]);
 
   useEffect(() => {
@@ -145,12 +144,9 @@ export function useWatchPublishedRevision(
       if (document.visibilityState === 'visible') void verify(id);
     };
     const focus = () => {
-      if (document.visibilityState !== 'visible' || canCheckRevision?.() === false) return;
-      if (handleFocus?.(id)) return;
-      if (reload) reload();
-      else if (initialAccess !== 'focus-only') check();
+      if (!workspaceHandlesFocus && canCheckRevision?.() !== false) check();
     };
-    const timer = initialAccess === 'focus-only' ? undefined : window.setInterval(check, 2000);
+    const timer = window.setInterval(check, 2000);
     window.addEventListener('focus', focus);
     document.addEventListener('visibilitychange', focus);
     return () => {
@@ -158,5 +154,5 @@ export function useWatchPublishedRevision(
       window.removeEventListener('focus', focus);
       document.removeEventListener('visibilitychange', focus);
     };
-  }, [id, reload, verify, canCheckRevision, initialAccess, handleFocus]);
+  }, [id, workspaceHandlesFocus, verify, canCheckRevision]);
 }
