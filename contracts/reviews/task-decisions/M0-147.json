@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-147",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "dc5be1ffdcfa6bff97c9f309ea171d054881fbfd",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-147 dc5be1ffdcfa6bff97c9f309ea171d054881fbfd",
+      "scope": "CHANGES_REQUESTED M0-147 dc5be1ffdcfa6bff97c9f309ea171d054881fbfd",
+      "observation": "I verified that a simulated cleanup failure replaced the correct row 19 readback diagnostic with the full path of the row 0 fixture.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "ae6da1b3005baf69d6f210a6455965fc0b2518048c8fc6b9545035035a8aa46f",
+      "response_id": "15858256cab38c2f65b4fc383518b76ffa78fadd5d2252f8f6a0e48e31cb9b91",
+      "response_sha256": "3f2387a603ff2240f6a6c4aef5b9676f477d8a48c082ccd0fc1944ab4b871a14",
+      "legacy_response_sha256": "d314aa4214675e2c1cca6c072232e3c15db4e2d55e46ab85681f048555a1178e",
+      "observation_body_sha256": "dfe7e16145d47a7fadb27e2adafa25c3515e1cc17def98dbd995a534b21a8bb9",
+      "event": {
+        "id": "msg_02395960ec1524e8016b074edb268087d098e0405b6ecf9e1d",
+        "timestamp": "2026-11-25T21:11:05.948Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "fb79f539c74b9dbcbe0a1e3bda75461a350a747a06b49fe3755932baa9a3fff1"
+    }
+  ]
+}
