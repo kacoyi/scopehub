@@ -856,8 +856,8 @@ test('workspace delivers pre-admission BUSY after a complete indicator draft req
   }
 });
 
-test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }) => {
-  await observeFrozenIndicatorPreview(browser, [
+test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }, testInfo) => {
+  await observeFrozenIndicatorPreview(browser, testInfo, [
     { count: 3, cut: 0 },
     { count: 1, cut: 1, refusals: 2 },
     { count: 1, cut: 2, refusals: 1 },
@@ -875,13 +875,28 @@ const indicatorStatusFaults = [
 ];
 
 for (const [name, http, body, alert, persistent] of indicatorStatusFaults) {
-  test(`indicator-preview stops on ${name} after a lost status reply`, async ({ browser }) => {
-    await observeFrozenIndicatorPreview(browser, [{ count: 1, cut: 1, fault: { name, http, body, alert, persistent } }]);
+  test(`indicator-preview stops on ${name} after a lost status reply`, async ({ browser }, testInfo) => {
+    await observeFrozenIndicatorPreview(browser, testInfo, [{ count: 1, cut: 1, fault: { name, http, body, alert, persistent } }]);
   });
 }
 
-function isWorkspaceAdmissionRefusal({ http, reply, delivery, lost, substituted }) {
-  return http === 429 && !delivery && !lost && !substituted && isDeepStrictEqual(reply, busy);
+test('indicator-preview accounts for the terminal deadline on the persistent refusal route', async ({ browser }, testInfo) => {
+  const fault = {
+    name: 'persistent refusal with a held final reply', http: 429, body: () => busy,
+    alert: 'The indicator preview could not be completed.', persistent: true, holdFinalReply: true,
+  };
+  await observeFrozenIndicatorPreview(browser, testInfo, [{ count: 1, cut: 1, fault }]);
+});
+
+function isWorkspaceAdmissionRefusal({ http, reply, delivery, lost, substituted, response_error, browserDeadline }) {
+  return http === 429 && !delivery && !lost && !substituted && !response_error && !browserDeadline
+    && isDeepStrictEqual(reply, busy);
+}
+
+function isIsolatedStatusDeadline(attempt) {
+  return attempt?.syntheticRefusalRoute === true && attempt.browserDeadline === true
+    && attempt.delivery === 'net::ERR_ABORTED'
+    && ['http', 'reply', 'response_error', 'lost', 'substituted', 'gated'].every(key => attempt[key] === undefined);
 }
 
 function expectSingleAdmittedCommand(attempts, result) {
@@ -906,7 +921,8 @@ function verifyFrozenIndicatorJournal(journal, previousTask, { cut, fault }) {
   expect(taskId).toEqual(expect.any(String));
 
   const statuses = journal.filter(attempt => attempt.operation === 'indicator_preview_status');
-  expect(statuses.every(attempt => attempt.task_id === taskId)).toBe(true);
+  expect(statuses.every(attempt => attempt.task_id === taskId && typeof attempt.request_id === 'string'
+    && attempt.request_id.length > 0)).toBe(true);
   expect(new Set(statuses.map(attempt => attempt.request_id)).size).toBe(statuses.length);
   expect(journal.indexOf(run)).toBeLessThan(journal.indexOf(statuses[0]));
 
@@ -917,7 +933,21 @@ function verifyFrozenIndicatorJournal(journal, previousTask, { cut, fault }) {
   for (const attempt of statuses.slice(0, terminalIndex).filter(a => !isWorkspaceAdmissionRefusal(a))) {
     expect(attempt).toMatchObject({ http: 200, reply: { ok: true, result: { status: 'running', task_id: taskId } } });
   }
-  const observations = statuses.slice(terminalIndex).filter(attempt => !isWorkspaceAdmissionRefusal(attempt));
+  let deadline;
+  if (fault?.persistent) {
+    const afterLoss = statuses.slice(terminalIndex + 1);
+    if (isIsolatedStatusDeadline(afterLoss.at(-1))) deadline = afterLoss.pop();
+    expect(afterLoss.length).toBeGreaterThan(1);
+    expect(afterLoss.every(attempt => attempt.syntheticRefusalRoute === true && isWorkspaceAdmissionRefusal(attempt))).toBe(true);
+    if (fault.holdFinalReply) {
+      expect(afterLoss).toHaveLength(2);
+      expect(deadline).toMatchObject({ heldForDeadline: true, triedLateFulfillment: true });
+    }
+  }
+  // Every post-loss row is independently accounted for above in the persistent
+  // case. The isolated deadline is neither a refusal nor a status observation.
+  const observations = statuses.slice(terminalIndex)
+    .filter(attempt => attempt !== deadline && !isWorkspaceAdmissionRefusal(attempt));
   const expectedObservations = cut === 0 || fault?.persistent ? 1 : 2;
   expect(observations).toHaveLength(expectedObservations);
   for (const attempt of observations.slice(0, cut)) {
@@ -926,15 +956,11 @@ function verifyFrozenIndicatorJournal(journal, previousTask, { cut, fault }) {
     expect(attempt.http).toBeUndefined();
     expect(attempt.lost.result).toEqual(observations[0].lost.result);
   }
-  if (fault?.persistent) {
-    const refused = statuses.slice(terminalIndex + 1);
-    expect(refused.length).toBeGreaterThan(1);
-    expect(refused.every(attempt => attempt.simulatedRefusal && isWorkspaceAdmissionRefusal(attempt))).toBe(true);
-  } else if (fault) {
+  if (fault && !fault.persistent) {
     expect(observations[1]).toMatchObject({ http: fault.http,
       substituted: { http: 200, result: { status: 'ready', task_id: taskId } } });
     expect(observations[1].reply).toEqual(observations[1].substituted.replacement);
-  } else if (cut < 2) {
+  } else if (!fault && cut < 2) {
     const ready = observations.at(-1);
     expect(ready).toMatchObject({ http: 200, reply: { ok: true,
       result: { status: 'ready', task_id: taskId, event: { task_id: taskId } } } });
@@ -983,7 +1009,99 @@ function rejectAlteredIndicatorJournals(journal, previousTask, trial) {
   console.info('Frozen indicator journal rejected controls', JSON.stringify(Object.keys(controls)));
 }
 
-async function observeFrozenIndicatorPreview(browser, trials) {
+function rejectAlteredDeadlineJournals(journal, previousTask, trial) {
+  const natural = { ...trial, fault: { ...trial.fault, holdFinalReply: false } };
+  const deadline = journal.find(isIsolatedStatusDeadline);
+  const refusal = journal.find(attempt => attempt.syntheticRefusalRoute && isWorkspaceAdmissionRefusal(attempt));
+  const lost = journal.find(attempt => attempt.lost);
+  const index = journal.indexOf(deadline);
+  const prefix = journal.slice(0, index);
+  const suffix = journal.slice(index + 1);
+  const verify = rows => verifyFrozenIndicatorJournal(rows, previousTask, natural);
+  const fresh = (attempt, task_id = attempt.task_id) => {
+    const payload = { ...attempt.payload, request_id: randomUUID(), task_id };
+    return { ...attempt, request_id: payload.request_id, task_id, payload, body: JSON.stringify(payload) };
+  };
+
+  expect(verify(journal)).toBe(deadline.task_id);
+  // Project the same complete refusals without the canceled wire request.
+  expect(verify([...prefix, ...suffix])).toBe(deadline.task_id);
+  const controls = {
+    'missing abort provenance': [{ ...deadline, browserDeadline: undefined }],
+    'possibly forwarded timeout': [{ ...deadline, syntheticRefusalRoute: undefined }],
+    'response headers without delivery': [{ ...deadline, http: 429 }],
+    'link reset instead of deadline': [{ ...deadline, delivery: 'net::ERR_CONNECTION_RESET' }],
+    'wrong task': [fresh(deadline, randomUUID())],
+    'duplicate wire request': [deadline, deadline],
+    'two distinct aborts': [fresh(deadline), deadline],
+    'later delivered refusal': [deadline, fresh(refusal)],
+    'later admitted result': [deadline, { ...fresh(refusal),
+      syntheticRefusalRoute: undefined, http: 200, reply: { ok: true, result: lost.lost.result } }],
+  };
+  for (const [name, replacement] of Object.entries(controls)) {
+    expect(() => verify([...prefix, ...replacement, ...suffix]), name).toThrow();
+  }
+  const earlier = prefix.indexOf(refusal);
+  expect(() => verify([...prefix.slice(0, earlier), deadline, ...prefix.slice(earlier), ...suffix]),
+    'a timeout before the delivered refusals').toThrow();
+  console.info('Frozen indicator deadline journal rejected controls', JSON.stringify(Object.keys(controls)));
+}
+
+// Observe the real fetch rejection without replacing the promise used by the app.
+function observeFrozenStatusDeadlines() {
+  const fetch = window.fetch;
+  const deadlines = new Set();
+  window.frozenStatusDeadlines = deadlines;
+  window.fetch = function (path, options) {
+    const response = fetch.call(this, path, options);
+    if (path === '/__scopehub/workspace' && typeof options?.body === 'string') {
+      const payload = JSON.parse(options.body);
+      if (payload.type === 'indicator_preview_status') {
+        void response.then(undefined, error => {
+          if (options.signal?.aborted && error === options.signal.reason && error.name === 'TimeoutError') {
+            deadlines.add(payload.request_id);
+          }
+        });
+      }
+    }
+    return response;
+  };
+}
+
+function frozenJournalEvidence(journal) {
+  const attempts = [...journal.values()];
+  const bounded = value => typeof value === 'string' ? value.slice(0, 120) : undefined;
+  const result = value => value && ({
+    status: bounded(value.status), task_id: bounded(value.task_id),
+    request_id: bounded(value.request_id), outcome: bounded(value.outcome?.state ?? value.outcome?.status),
+    result_hash: bounded(value.event?.artifact?.result_hash),
+  });
+  const reply = value => value && ({
+    ok: typeof value.ok === 'boolean' ? value.ok : undefined, result: result(value.result),
+    error: value.error && { code: bounded(value.error.code),
+      retryable: typeof value.error.retryable === 'boolean' ? value.error.retryable : undefined },
+  });
+  return {
+    total: attempts.length,
+    omitted: Math.max(0, attempts.length - 192),
+    attempts: (attempts.length <= 192 ? attempts : [...attempts.slice(0, 96), ...attempts.slice(-96)]).map(attempt => ({
+      operation: bounded(attempt.operation), request_id: bounded(attempt.request_id), task_id: bounded(attempt.task_id),
+      at_ms: attempt.at_ms, body_sha256: createHash('sha256').update(attempt.body ?? '').digest('hex'),
+      http: attempt.http, reply: reply(attempt.reply), delivery: bounded(attempt.delivery),
+      response_error: bounded(attempt.response_error), browserDeadline: attempt.browserDeadline,
+      syntheticRefusalRoute: attempt.syntheticRefusalRoute, heldForDeadline: attempt.heldForDeadline,
+      triedLateFulfillment: attempt.triedLateFulfillment,
+      lateFulfillmentError: bounded(attempt.lateFulfillmentError), gated: attempt.gated,
+      lost: attempt.lost && { http: attempt.lost.http, result: result(attempt.lost.result) },
+      substituted: attempt.substituted && {
+        http: attempt.substituted.http, result: result(attempt.substituted.result),
+        replacement: reply(attempt.substituted.replacement),
+      },
+    })),
+  };
+}
+
+async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   const profile = await makeProfile();
   const revision = randomUUID();
   const prices = [133.33, 120.21, 120.21].map((close, index) => {
@@ -1003,6 +1121,7 @@ async function observeFrozenIndicatorPreview(browser, trials) {
         await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
         const failure = panel.getByRole('alert').or(panel.getByText('Indicator preview cancelled.', { exact: true }));
         const run = panel.getByRole('button', { name: 'Run preview' });
+        if (trials.some(trial => trial.fault?.persistent)) await page.evaluate(observeFrozenStatusDeadlines);
         let journal = new Map();
         let routeStatus;
         let startedAt;
@@ -1038,13 +1157,26 @@ async function observeFrozenIndicatorPreview(browser, trials) {
           startedAt = performance.now();
           let lost = 0;
           let substituted = false;
+          let simulatedAttempts = 0;
           let remaining = refusals;
           let holder;
           let snapshotReply;
           let alert;
           routeStatus = async (route, attempt) => {
             if (fault?.persistent && lost === cut) {
-              attempt.simulatedRefusal = true;
+              attempt.syntheticRefusalRoute = true;
+              if (++simulatedAttempts === 3 && fault.holdFinalReply) {
+                // Let the real application deadline end this request while
+                // the route still has its refusal available to fulfill.
+                attempt.heldForDeadline = true;
+                await page.waitForEvent('requestfailed', {
+                  predicate: request => request === route.request(), timeout: 18_000,
+                });
+                attempt.triedLateFulfillment = true;
+                try { await route.fulfill({ status: fault.http, json: fault.body() }); }
+                catch (error) { attempt.lateFulfillmentError = error.name; }
+                return;
+              }
               return route.fulfill({ status: fault.http, json: fault.body() });
             }
             if (!remaining && lost >= cut && (!fault || substituted)) return route.continue();
@@ -1101,6 +1233,12 @@ async function observeFrozenIndicatorPreview(browser, trials) {
             await expect.poll(() => [...journal.values()].every(attempt =>
               attempt.reply || attempt.delivery || attempt.response_error)).toBe(true);
             const attempts = [...journal.values()];
+            if (fault?.persistent) {
+              const expired = new Set(await page.evaluate(() => [...window.frozenStatusDeadlines]));
+              for (const attempt of attempts) {
+                if (expired.has(attempt.request_id)) attempt.browserDeadline = true;
+              }
+            }
             const task = verifyFrozenIndicatorJournal(attempts, previousTask, trial);
             expect(attempts.filter(attempt => attempt.gated && isWorkspaceAdmissionRefusal(attempt))).toHaveLength(refusals);
             if (cut === 0) {
@@ -1113,6 +1251,7 @@ async function observeFrozenIndicatorPreview(browser, trials) {
                 'A raw cancellation without a task ID must fail on the first trial').toThrow();
             }
             if (cut === 2) rejectAlteredIndicatorJournals(attempts, previousTask, trial);
+            if (fault?.holdFinalReply) rejectAlteredDeadlineJournals(attempts, previousTask, trial);
             if (alert) continue;
             previousTask = task;
             const ready = attempts.find(attempt => attempt.reply?.result?.status === 'ready').reply.result;
@@ -1124,12 +1263,16 @@ async function observeFrozenIndicatorPreview(browser, trials) {
             await expect(table.locator('tbody tr')).toHaveCount(count);
             await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
           } finally {
-            holder?.release();
-            if (snapshotReply) await Promise.allSettled([snapshotReply.then(responseStatus)]);
-            console.info('Frozen indicator preview observation', JSON.stringify({
-              count, cut, refusals, fault: fault?.name, alert, elapsed_ms: elapsed(),
-              attempts: [...journal.values()].map(({ payload, ...attempt }) => attempt),
-            }));
+            try {
+              const evidence = { count, cut, refusals, fault: fault?.name, alert, elapsed_ms: elapsed(),
+                ...frozenJournalEvidence(journal) };
+              await testInfo.attach('Frozen indicator request journal', {
+                body: JSON.stringify(evidence), contentType: 'application/json',
+              });
+            } finally {
+              holder?.release();
+              if (snapshotReply) await Promise.allSettled([snapshotReply.then(responseStatus)]);
+            }
           }
         }
       });
