@@ -33,7 +33,6 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from .storage import maintain_automatically
-        from .verification_scope import windows_lanes_run_id
         from .verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
             integration_validation, redacted_check_log, release_artifacts,
@@ -47,7 +46,6 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from storage import maintain_automatically
-        from verification_scope import windows_lanes_run_id
         from verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
             integration_validation, redacted_check_log, release_artifacts,
@@ -306,6 +304,10 @@ def main():
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
     if split and not args.profile:
+        if __package__:
+            from .verification_scope import windows_lanes_run_id
+        else:
+            from verification_scope import windows_lanes_run_id
         run_id = windows_lanes_run_id(ci)
     run_dir = REPORTS / 'runs' / run_id
     env = checkout_git_environment()

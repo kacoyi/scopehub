@@ -6773,6 +6773,28 @@
       "resolution": null,
       "deferral_reason": null,
       "observation": "An exact Windows browser check projection from another harness report or from ARM64 fills an unknown x64 aggregate cache component. Explicit review, discovery and shared reopening raise the 804-second observation into the partial cache cohort without publisher-compatible producer identity."
+    },
+    {
+      "id": "timing-lane-identity-import-preempts-ledger-recovery",
+      "source": "The exact M0-133 local harness on d653a581d2852cea0caab6b85008805426af189c reproduced an early import error in the isolated recovery fixture. Original at archives/runs/20261125T124443.585764Z-8080952c/test-report.json.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T124443.585764Z-8080952c",
+          "source_commit": "d653a581d2852cea0caab6b85008805426af189c",
+          "report_sha256": "687b98c175f18418320fc0c8607805d19a517f756d5247ffb3a49926103d12f2"
+        }
+      ],
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Importing the Windows lane identity helper at harness startup caused the isolated malformed-ledger recovery check to report an unrelated missing module before reaching ledger validation. The helper is used only after Windows split verification is selected."
     }
   ]
 }

@@ -24328,6 +24328,13 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A Windows-only publisher import preempts the ordinary harness recovery boundary. Preserve the original malformed-ledger diagnostic and verify the hosted split publisher path with the existing recovery and scheduling fixtures.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
