@@ -7473,7 +7473,7 @@
       "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 843e97a61010b193fb0146aa1c4242013fa66169. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt (SHA-256 f7cc505f36547b00350e4f58130262b2f1792d9d4ca64a68e6643c22d3d7474c). Original assistant response SHA-256 9f11b2f69e67c95144271a2ae47fa12609f56fd06b9229bd26972d2adce89266.",
       "observation": "In the public recent timing and verify-maintenance replay of run 45546767887, acquiring only the authentic browser fragment refreshed Windows pull_request when a full platform report remained in retained history. A controlled second attempt also borrowed first-attempt evidence. A fresh full report qualified and a missing download stayed pending.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-145"
       ],
@@ -7481,7 +7481,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Weekly maintenance inferred current acquisition from a merged platform trend that could include a retained report for the same run.",
+        "correction": "Issue refresh evidence from the reports actually downloaded in the current invocation, tied to their attempts and job observations. Retain eligible history for trend display.",
+        "prevention": "Replay the complete Windows report, a browser fragment, a missing download and a different attempt through both normal recent-collection commands. Reopen the archived output to check the maintenance result."
+      },
       "deferral_reason": null
     },
     {
@@ -7489,7 +7493,7 @@
       "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 843e97a61010b193fb0146aa1c4242013fa66169. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt (SHA-256 f7cc505f36547b00350e4f58130262b2f1792d9d4ca64a68e6643c22d3d7474c). Original assistant response SHA-256 9f11b2f69e67c95144271a2ae47fa12609f56fd06b9229bd26972d2adce89266.",
       "observation": "The scheduled workflow uses the default one-commit checkout. With the same authentic 45546767887 inputs, the complete object store produced the Windows 804-second platform sample, while the one-commit object store lacked the historical publishing catalog and withheld the Windows platform attribution.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-145"
       ],
@@ -7497,7 +7501,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The scheduled checkout contained only the tip, so the timing command could not read an earlier publishing catalog required to classify an ordinary historical run.",
+        "correction": "Fetch full history for the weekly timing job and preserve the existing unknown result when the required historical object cannot be obtained.",
+        "prevention": "Compare full-history and shallow object stores on the same archived run. Verify 804 elapsed seconds and 2467 runner-seconds on the eligible input and retain the catalog diagnostic when absent."
+      },
       "deferral_reason": null
     },
     {
@@ -7505,7 +7513,7 @@
       "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 5057e9d6e519c42821c2e65748647d0fee0d5d9d. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-145-5057e9d6/final-response.txt (SHA-256 78cf97f518ed720c44afc03a9947fc9ab25ab77370ae25d0486753e7fa1ba854). Original assistant response SHA-256 fdc96c36af12caf43e34a6538200df717c8dc3a36c77827eceb2e8567d89066a.",
       "observation": "The public weekly commands credit an invalid current Windows report when matching eligible history exists. On single-job run 45389970933, adding split-job caches makes the original download fail native layout qualification. On run 45546767887, withholding the only applicable retained Git tree proof makes the original download fail historical publishing catalog qualification. In isolation neither download earns freshness. With the matching historical report, the original identity subset lets verify-maintenance advance the Windows pull_request scope.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-145"
       ],
@@ -7513,7 +7521,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The original acquisition identifier described only part of a platform report and permitted qualified history to supply missing layout or catalog proof.",
+        "correction": "Qualify the acquired original with its own attempt jobs and catalog evidence before historical enrichment, and bind its complete compact report digest to the refresh receipt.",
+        "prevention": "On runs 45389970933 and 45546767887, verify that an ineligible original cannot issue a refresh receipt on its own or with eligible history. The fully qualified original issues the same receipt through both CLI modes."
+      },
       "deferral_reason": null
     }
   ]

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-145",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25447,7 +25447,7 @@
       "id": "M0-145",
       "title": "Bind weekly timing freshness to qualified reports received in the current collection",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "delivery": "current-contract",
       "depends_on": [
         "M0-133",
@@ -25475,10 +25475,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Retain the independent Windows layout and publishing catalog red cases, exercise independently valid and invalid acquisitions both alone and with retained history, and check the exact candidate.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-145-a76fec7c9893390c.json",
+          "sha256": "96bcc3e611375aa17633ef68044711b8d2bb1562508a667db2cc1c628313d5bc"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review reproduced the 804-second Windows elapsed and 2467 runner-seconds for run 45546767887 through both recent-collection commands. The three local task checks passed with 814 Python tests and four native-specific skips. An incomplete, differently attempted, incorrectly laid out or unsupported current report could not refresh the weekly scope using valid history. M0-130, M0-131, M0-133 and M0-135 keep their existing acceptance and receipts.",
       "plan": {
         "outcome": "A fresh weekly timing claim proves exact report receipt and qualification while historic trends and unavailable-catalog diagnostics retain their established meaning.",
         "change_types": [
