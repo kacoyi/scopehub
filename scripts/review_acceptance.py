@@ -19,6 +19,7 @@ SUBJECT_TASK = re.compile(r'(?<![\w-])M[0-9]+-[0-9]{3}(?![\w-])')
 BOUNDARY_TYPES = {'permissions', 'model-connection'}
 DECISION = re.compile(r'^(?:• )?(\*\*(?:APPROVED?|CHANGES[_ ]REQUESTED)\*\*|(?:APPROVED?|CHANGES[_ ]REQUESTED)\b)')
 COMMIT = re.compile(r'(?<![a-f0-9])(?:[a-f0-9]{64}|[a-f0-9]{40})(?![a-f0-9])')
+MARKDOWN_FENCE = re.compile(r'^ {0,3}(?:`{3,}|~{3,})')
 TRANSCRIPT_LIMIT = 4 * 1024 * 1024
 OBSERVATION_FILE_LIMIT = 4096
 TASK_ADMIN = {'status', 'evidence', 'next_action', 'blocker', 'closure_reason'}
@@ -204,7 +205,12 @@ def final_response(text):
             raise ReviewError('Expected one retained completed final assistant export.') from error
 
     lines = markdown_source(text).split('\n')
-    if not any(line.startswith(('› ', '• ')) for line in lines):
+    # A clipped terminal capture may begin with indented output. Its opening
+    # exchange must appear before any plain verdict, Markdown fence, or prose.
+    opening = next((line for line in lines if line.strip()
+                    and (not line.startswith('  ') or DECISION.match(line.lstrip())
+                         or MARKDOWN_FENCE.match(line))), '')
+    if not opening.startswith(('› ', '• ')):
         return text, None, False
     turns = [index for index, line in enumerate(lines)
              if line.startswith('› ') and line.strip() != '› Ask Codex to do anything']

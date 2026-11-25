@@ -253,6 +253,76 @@ class TaskReviewTests(ProjectFixture):
         self.review(source, suffix='\n› Reopen the result.\n\n• The original outcome now disagrees on reopen.\n',
                     error='The final independent verdict')
 
+    def test_plain_review_uses_its_own_verdict_and_observation_with_terminal_examples(self):
+        base, source = self.open_review()
+        trace = self.root / '.reports/format.txt'
+        trace.parent.mkdir()
+        selected = trace.with_name('observation.txt')
+        heading = f'CHANGES_REQUESTED {TASK} {source}'
+        observed = 'I reopened `四月\u3000\t收盘.csv` and counted 11 rows.'
+        quoted = 'I reopened `四月\u3000\t收盘.csv` and counted 12 rows.'
+        example = (f'```text\n› Reopen the old result.\n• APPROVE {TASK} {source}\n\n'
+                   f'  {quoted}\n  Worked for 1m • today\n```\n')
+        plain = f'{heading}\n\n{observed}\n\n{example}'
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer', '--observation-file', str(selected))
+
+        selected.write_bytes((quoted + '\r\n').encode('utf-8-sig'))
+        for opening in ('An earlier review looked like this:\n\n', ''):
+            with self.subTest(opening=opening):
+                # An indented Markdown fence can still contain top-level terminal examples.
+                trace.write_text(opening + '  ' + example, encoding='utf-8')
+                self.command(*args, error='identify this task')
+        raw = ('\r\n  \r\n' + plain.replace('\n', '\r\n')).encode('utf-8')
+        trace.write_bytes(raw)
+        self.command(*args, error='post-verdict body')
+        selected.write_bytes((observed + '\r\n').encode('utf-8-sig'))
+        receipt = self.command(*args)
+        decision = receipt['decision']
+        self.assertEqual(heading, decision['decision'])
+        self.assertEqual(observed, decision['observation'])
+        self.assertEqual(sha256(raw).hexdigest(), decision['original_sha256'])
+        ledger = self.root / receipt['path']
+        before = ledger.read_bytes()
+
+        trace.write_text(json.dumps({
+            'type': 'response_item', 'timestamp': '2026-11-25T13:00:00Z',
+            'payload': {'type': 'message', 'phase': 'final_answer', 'role': 'assistant',
+                        'status': 'completed', 'id': 'msg_same_markdown',
+                        'content': [{'type': 'output_text', 'text': plain}]},
+        }), encoding='utf-8')
+        replay = self.command(*args)
+        self.assertFalse(replay['recorded'])
+        self.assertEqual(decision, replay['decision'])
+        self.assertEqual(before, ledger.read_bytes())
+        handoff = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertEqual('changes_requested', handoff['status'])
+        self.assertEqual(observed, handoff['observation'])
+        self.finish()
+        self.command('check', error='changes_requested')
+        self.command('history', '--base', base, error='changes_requested')
+        with self.assertRaisesRegex(project.ProjectError, 'changes_requested'):
+            delivery_scope(self.root, project.load_project(self.root), base)
+
+    def test_terminal_review_can_begin_with_clipped_indented_output(self):
+        _, source = self.open_review()
+        trace = self.root / '.reports/format.txt'
+        trace.parent.mkdir()
+        heading = f'APPROVE {TASK} {source}'
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer', '--observation', OUTCOME)
+        transcript = ('    + Show details\n\n• Ran the previous check\n  └ Process exited normally.\n'
+                      '› Reopen the fixture.\n\n'
+                      f'• {heading}\n\n  {OUTCOME}\n  Worked for 1m • today\n')
+        trace.write_text(transcript, encoding='utf-8')
+        result = self.command(*args)
+        self.assertEqual(heading, result['decision']['decision'])
+        self.assertEqual(OUTCOME, result['decision']['observation'])
+        trace.write_text(transcript + '\n› Verify the fixture again.\n', encoding='utf-8')
+        self.command(*args, error='last terminal exchange')
+        view = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertEqual(result['decision']['response_id'], view['response_id'])
+
     def test_stale_predecessor_and_reordered_event_cannot_replace_rejection(self):
         _, source = self.open_review()
         first = self.review(source, event=('msg_first', '2026-11-25T11:00:00Z'))
