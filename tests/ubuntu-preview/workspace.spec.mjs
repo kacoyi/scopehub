@@ -1763,9 +1763,9 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         const rejectedSource = (await send(respond(oldSource.challenge_id))).result.outcome;
         expect(rejectedSource).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
         observation.sourceChange = rejectedSource;
-        expect(await readIndicatorAfterAdmission(server, request)).toMatchObject({
-          http: 200, body: { ok: true, result: readSaved },
-        });
+        const current = await readIndicatorAfterAdmission(server, request);
+        expect(current).toMatchObject({ http: 200, body: { ok: true } });
+        expect(current.body.result).toEqual(readSaved);
       });
     }, { snapshotGate: true });
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -1780,8 +1780,11 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
       observation.restarted = { version: saved.version_id, input: restored.result.document.snapshot };
     });
   } finally {
-    await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
-    await profile.close();
+    try {
+      await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
+    } finally {
+      await profile.close();
+    }
   }
 });
 
