@@ -5,25 +5,68 @@ import unittest
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
-from worker_runtime.protocol import MAX_MESSAGE_BYTES, SCHEMA, ProtocolError, decode_line, encode_message
+from worker_runtime.protocol import (
+    MAX_MESSAGE_BYTES,
+    SCHEMA,
+    ProtocolError,
+    decode_extended_line,
+    decode_line,
+    encode_extended_message,
+    encode_message,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class ProtocolTests(unittest.TestCase):
     def test_shared_vectors(self):
+        review_envelopes = set()
         for example in json.loads((ROOT / 'tests/fixtures/protocol-cases.json').read_text()):
             with self.subTest(name=example['name']):
-                if example['valid']:
-                    value = decode_line(example['wire'].encode())
-                    self.assertEqual(decode_line(encode_message(value)), value)
-                    self.assertEqual(value, json.loads(example['wire']))
-                    if 'expected_timestamp' in example:
-                        self.assertIs(type(value['timestamp_ms']), int)
-                        self.assertEqual(value['timestamp_ms'], example['expected_timestamp'])
+                wire = example['wire'].encode()
+                if not example['valid']:
+                    for decode in (decode_line, decode_extended_line):
+                        with self.assertRaises(ProtocolError):
+                            decode(wire)
+                    continue
+
+                expected = json.loads(wire)
+                value = decode_extended_line(wire)
+                self.assertEqual(value, expected)
+                self.assertEqual(decode_extended_line(encode_extended_message(value)), value)
+                if 'expected_timestamp' in example:
+                    self.assertIs(type(value['timestamp_ms']), int)
+                    self.assertEqual(value['timestamp_ms'], example['expected_timestamp'])
+
+                if ('review_declarations' in (expected.get('payload') or {})
+                        or 'declaration_conflicts' in (expected.get('result') or {})):
+                    review_envelopes.add((expected['operation'], expected['type']))
+                    with self.assertRaisesRegex(ProtocolError, '^INVALID_ARGUMENT$'):
+                        decode_line(wire)
                 else:
-                    with self.assertRaises(ProtocolError):
-                        decode_line(example['wire'].encode())
+                    original = decode_line(wire)
+                    self.assertEqual(original, expected)
+                    self.assertEqual(decode_line(encode_message(original)), original)
+
+        self.assertEqual(review_envelopes, {
+            (operation, kind)
+            for operation in ('market.readLocalImportSourceRow', 'market.readLocalFolderSourceRow')
+            for kind in ('request', 'response')
+        })
+
+    def test_extended_review_retains_newline_inclusive_frame_limit(self):
+        examples = json.loads((ROOT / 'tests/fixtures/protocol-cases.json').read_text())
+        wire = next(example['wire'].encode() for example in examples
+                    if example['name'] == '1.1 frozen import source row attributes a declaration conflict')
+        body = wire.removesuffix(b'\n')
+        exact = body.ljust(MAX_MESSAGE_BYTES - 2) + b'\r\n'
+        self.assertEqual(decode_extended_line(exact), decode_extended_line(wire))
+        with self.assertRaisesRegex(ProtocolError, '^RESOURCE_LIMIT$'):
+            decode_extended_line(exact + b' ')
+        unknown = wire.replace(b'market.readLocalImportSourceRow', b'market.unknown')
+        for invalid in (unknown, wire + b'\n', b'\xff\n'):
+            with self.assertRaisesRegex(ProtocolError, '^INVALID_ARGUMENT$'):
+                decode_extended_line(invalid)
 
     def test_oversize_and_invalid_utf8(self):
         for wire in [b'x' * (MAX_MESSAGE_BYTES + 1), b'\xff\n']:

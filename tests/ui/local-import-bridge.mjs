@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
-export function startLocalImportBridge(binary, profile, folder) {
-  const child = spawn(binary, [profile, folder], { stdio: ['pipe', 'pipe', 'pipe'] });
+export function startLocalImportBridge(binary, profile, folder, { workspace = false } = {}) {
+  const args = workspace ? [profile, folder, '--workspace'] : [profile, folder];
+  const child = spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'] });
   const output = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
   let diagnostic = '';
   child.stderr.on('data', data => { diagnostic = (diagnostic + data.toString()).slice(-2048); });

@@ -1,0 +1,214 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-041",
+  "task_definition_sha256": "c13d22afe509bb0e34f9cae4ba23248ff1c5d899b1a71482e1bb868b32c632bd",
+  "run_id": "20261125T035626.894378Z-242d8444",
+  "recorded_at": "2026-11-25T04:01:31.399958+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "f7b668456cd70b97dde6ba74885db71635dfd3777c31ba70bdd86f94616c6757",
+    "file_count": 597,
+    "git_head": "b70f861d61b64cf9bba4b11a3659aa4adc25f5a1",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "a51fdc473804766380b12a8ee167206d311633c5f4b7bfe8f508c0d08f2eb44d",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4dd8f3361db98a010d1fa17773c16398d1b9d48c6cb610b335cbf567705ce570"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5b8c205f905c940459e9cd715bca030895700158507d0a5bedfb256c503116aa"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "335e72742b41df69a1a96898749c757adc16becde3022703e15a875a90a31d75"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "df31673ff938e9a6a603c56cfd13949b42c1b8edcba9d2688c7f771f48c449d9"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb8ab813a7d8651316783d4969a57713b55822fc094647b6a95ad56c513d690f"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6a5b5af0f82f5dc9459bb2851b15b749d988c2ee965a9f6be12be01b61ac7fcd"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "434936e8b0d06a0ed38e2f49a5e8105ff7977c8f503e6481a059200f7d1a5f0c"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb2ceff38dd8314d4d151aa11d332dc123f1c82b22d9d7d46ef4c72291d1a9b8"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "333f173f8e433911ca5c61ee1948a0c717e359d276efa073e39d67c60fe4f56f"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cec05e130b33678d7e4e25867b7de83975594be18c500d3a0ef9871753dcf0bd"
+    },
+    {
+      "id": "local-import-publication",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/check_local_import_publication.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "843ddc18d96bf4b25188ddac309a76a06d02e081ec6e78ba1f4d9352107844d5"
+    },
+    {
+      "id": "local-folder-import",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "folder-import"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ef4bed2eb70a1c691d76389ed6631b1b0b96e8696ce4b783da077c818eaf8a27"
+    }
+  ],
+  "project_definition_sha256": "41283503b94a0a7f0edb380072fdcb010197d67cd96011fc687e13949b8aa3e6",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "fa867a2617153073a6aa3687b65bd53331a8ca604457e628753b7f4f8fde5983"
+  ]
+}

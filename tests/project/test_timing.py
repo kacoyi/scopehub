@@ -1032,10 +1032,25 @@ class TimingRegressionTests(unittest.TestCase):
             self.assertFalse(output.exists())
             run.write_bytes(timing.json_bytes(hosted_run()))
             jobs.write_text('{', encoding='utf-8')
-            second = self.invoke_timing('--actions', run, jobs, '--save', output, expected_exit=1)
-            self.assertEqual(jobs.name, second['input_issues'][0]['file'])
-            self.assertNotIn(str(root), json.dumps(second))
-            self.assertFalse(output.exists())
+            history = root / '.reports/timing/earlier.json'
+            archived_issue = {'run_id': '41', 'error': 'The earlier job clock was unavailable.'}
+            with (patch.object(timing, 'ROOT', root),
+                  patch.object(timing, 'shared_timing_directory', return_value=None)):
+                empty = self.invoke_timing('--actions', run, jobs, '--save', output, expected_exit=1)
+                jobs_issue, = empty['input_issues']
+                self.assertEqual(jobs.name, jobs_issue['file'])
+                self.assertNotIn(str(root), json.dumps(empty))
+                self.assertFalse(output.exists())
+
+                history.parent.mkdir(parents=True)
+                history.write_bytes(timing.json_bytes({
+                    'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [], 'input_issues': [archived_issue],
+                }))
+                populated = self.invoke_timing('--actions', run, jobs, '--save', output, expected_exit=1)
+                self.assertCountEqual([jobs_issue, {**archived_issue, 'file': history.name}],
+                                      populated['input_issues'])
+                self.assertNotIn(str(root), json.dumps(populated))
+                self.assertFalse(output.exists())
 
             legacy_error = str(FileNotFoundError(2, 'Missing original input', str(run)))
             windows_run, windows_jobs = r'C:\private\run-details.json', r'D:\private\job-details.json'
