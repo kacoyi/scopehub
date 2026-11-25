@@ -20,30 +20,32 @@ const stages = {
 
 const startupCodes = new Set(['EACCES', 'EAGAIN', 'EINVAL', 'EMFILE', 'ENFILE', 'ENOENT', 'ENOEXEC', 'ENOMEM', 'ENOTDIR', 'EPERM']);
 
-function probeFailure(error, deadline, exitStages) {
+function probeFailure(error, child, exitStages) {
   if (error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') return 'subprocess output limit exceeded';
-  if (deadline.aborted) return 'subprocess deadline exceeded';
-  if (error.signal && Object.hasOwn(constants.signals, error.signal)) {
-    return `subprocess terminated by ${error.signal}`;
-  }
   if (Number.isInteger(error.code)) {
     return exitStages[error.code] ?? `subprocess exited with code ${error.code}`;
+  }
+  // Node can set error.killed when a deadline only closes inherited pipes.
+  // child.killed means a signal was actually sent to the direct child.
+  if (child?.killed) return 'subprocess deadline exceeded';
+  if (error.signal && Object.hasOwn(constants.signals, error.signal)) {
+    return `subprocess terminated by ${error.signal}`;
   }
   if (startupCodes.has(error.code)) return `subprocess startup failed (${error.code})`;
   return 'subprocess startup failed';
 }
 
 export async function runHandoffProbe(executable, args, { timeout = 10_000, maxBuffer = 8192, env, exitStages = stages } = {}) {
-  const deadline = new AbortController();
-  const timer = setTimeout(() => deadline.abort(), timeout);
+  let child;
   try {
-    await exec(executable, args, { signal: deadline.signal, killSignal: 'SIGKILL', maxBuffer, windowsHide: true, env });
+    // Let execFile close the pipes at its deadline and wait for the direct child.
+    const execution = exec(executable, args, { timeout, killSignal: 'SIGKILL', maxBuffer, windowsHide: true, env });
+    child = execution.child;
+    await execution;
   } catch (error) {
     // execFile errors can carry the command, stdout and stderr. Retain only
     // the enumerated outcome, without chaining the original error.
-    throw new Error(probeFailure(error, deadline.signal, exitStages));
-  } finally {
-    clearTimeout(timer);
+    throw new Error(probeFailure(error, child, exitStages));
   }
 }
 

@@ -6336,6 +6336,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-deadline-loses-completed-outcome",
+      "source": "Astra Standard review of 3b1dfe67fb91d2fa264e134e9e8b14f56206b583 and independently repeated Node 24.22.3 child-process observations.",
+      "severity": "major",
+      "status": "open",
+      "observation": "With a 400 ms limit and descendant-held output pipes, native execFile returned success at 403 ms and declared exit 58 at 404 ms. The candidate took about 1.35 seconds and mislabelled exit 58 as a deadline. The reviewer also observed a child live after timeout rejection and asynchronous overflow controls that emitted no bytes. Synchronous writes to each output descriptor consistently triggered the output limit.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

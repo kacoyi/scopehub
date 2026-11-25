@@ -22866,7 +22866,8 @@
       "acceptance": [
         "Distinguish startup errors, deadline expiry, signal termination, buffer exhaustion, declared stage exits and other exit codes in the common subprocess runner.",
         "Report only bounded and allowlisted diagnostics. Preserve the existing PowerShell probe, timing limits and native acceptance rules.",
-        "Retain the original aggregate report and reproduce missing classifications with benign controlled children before verifying the correction."
+        "Retain the original aggregate report and reproduce missing classifications with benign controlled children before verifying the correction.",
+        "When a finished child leaves inherited output pipes open, keep its success or declared exit and bound the wait as Node execFile does. Confirm a genuinely timed-out child is gone and verify both buffer controls emit bytes."
       ],
       "checks": [
         "project-state",
@@ -22881,7 +22882,7 @@
           "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
         }
       ],
-      "next_action": "Capture a portable red regression and verify the corrected common subprocess entry before native verification.",
+      "next_action": "Retain the reviewed regression, run canonical local verification, and hand the exact source to the coordinator for native Windows qualification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -22895,7 +22896,8 @@
           "archives/runs/windows-change-45579441190-1/test-report.json"
         ],
         "hypotheses": [
-          "A common subprocess wrapper can safely classify diagnostics previously collapsed by the caller. The failed hosted operation did not retain enough information to attribute its original cause."
+          "A common subprocess wrapper can safely classify diagnostics previously collapsed by the caller. The failed hosted operation did not retain enough information to attribute its original cause.",
+          "Use execFile to own both its timeout and stream closure. A direct child can exit while inherited pipes remain open, so a late timeout flag alone cannot determine its outcome."
         ],
         "risks": [
           {
@@ -22909,6 +22911,12 @@
             "checks": [
               "workspace-timeframe",
               "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Retained descendant pipes extend a completed result beyond the deadline or replace an observed declared exit. Asynchronous fixtures may emit no bytes and fail to prove buffer classification.",
+            "checks": [
+              "workspace-timeframe"
             ]
           }
         ],
@@ -22937,10 +22945,12 @@
         "evolution": {
           "kind": "additive",
           "preserve": [
-            "Existing positive and negative Windows ACL probes, native timing limits and product behavior."
+            "Existing positive and negative Windows ACL probes, native timing limits and product behavior.",
+            "Node execFile deadline and stream closure, including precedence for a completed child outcome."
           ],
           "change": [
-            "Expose the safe subprocess disposition on probe failures."
+            "Expose the safe subprocess disposition on probe failures.",
+            "Retain a direct exit while inherited streams drain and verify actual overflow with synchronous writes."
           ],
           "data_plan": "Keep only fixed diagnostic labels and bounded numeric codes. Use synthetic subprocess inputs and retain archived original logs privately.",
           "cleanup": "Keep the original report unchanged and discard raw child output and failure objects at the runner boundary."
