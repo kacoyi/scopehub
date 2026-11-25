@@ -183,7 +183,8 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     setOutcomeDraft(undefined);
     setPrepared(undefined);
     setUncertain(false);
-    setNotice(undefined);
+    // The confirmed deletion belongs to the action, independent of a subsequent list read.
+    setNotice(previous => previous === actions['decisionNote.delete'].done ? previous : undefined);
   }, []);
 
   const run = useCallback((work: (signal: AbortSignal) => Promise<void>, describe: (code: unknown) => Message = failureMessage) => {
@@ -366,6 +367,10 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       discardPage();
       try {
         await load(deleting ? null : noteId, 0, signal);
+      } catch (fault) {
+        if (!deleting) throw fault;
+        signal.throwIfAborted();
+        setError({ code: noteErrorCode(fault), description: message('The decision-note list could not be refreshed.') });
       } finally {
         if (!signal.aborted) workspace.reload();
       }
@@ -396,7 +401,8 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       {(workspace.error || error?.code === 'STALE_CONTEXT') && <button type="button" className="secondary-button"
         disabled={busy || Boolean(workspace.pending)} onClick={workspace.reload}>{t('Reload workspace state')}</button>}
       {!page && !prepared && (busy ? <p role="status">{t('Loading decision notes…')}</p>
-        : <button type="button" className="secondary-button" onClick={() => navigate(outcomeDraft?.noteId ?? null)}>{t('Reload decision notes')}</button>)}
+        : <button type="button" className="secondary-button"
+          onClick={() => run(signal => load(outcomeDraft?.noteId ?? null, 0, signal))}>{t('Reload decision notes')}</button>)}
       {page && !editor && !prepared && (note ? <div className="note-actions">
         <button type="button" className="secondary-button" disabled={busy} onClick={() => navigate(null)}>{t('All decision notes')}</button>
         <button type="button" className="secondary-button" disabled={editingBlocked} onClick={() => {

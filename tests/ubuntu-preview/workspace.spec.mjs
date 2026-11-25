@@ -2655,7 +2655,7 @@ test('a confirmed decision-note deletion stays visible when its refreshed list r
               await expect(peerNotes.getByText('Decision note deleted.')).toHaveCount(0);
               releaseProjection.resolve();
               await expect(reload).toBeVisible();
-              await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
+              await expect(notes.getByRole('alert')).toHaveText('The decision-note list could not be refreshed.');
               observation.noticeAfterLostProjection = await status.count();
               await expect(status).toBeVisible();
             } finally {
@@ -2664,6 +2664,8 @@ test('a confirmed decision-note deletion stays visible when its refreshed list r
             }
             await reload.click();
             await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+            await expect(status).toBeVisible();
+            await expect(notes.getByRole('alert')).toHaveCount(0);
             await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
           });
         });
@@ -4461,14 +4463,16 @@ function onDecisionNoteDeleteApproval(page, action) {
 async function deleteBackupTestNote(page, notes, date) {
   await notes.getByRole('button', { name: new RegExp(date) }).click();
   await notes.getByRole('button', { name: 'Review deletion' }).click();
-  const reply = await onDecisionNoteDeleteApproval(page, () =>
-    notes.getByRole('button', { name: 'Delete decision note' }).click());
+  const reply = await onDecisionNoteDeleteApproval(page, async () => {
+    await notes.getByRole('button', { name: 'Delete decision note' }).click();
+    await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+  });
   const request = reply.request().postDataJSON();
   const frame = await reply.json();
   expect(frame).toMatchObject({ ok: true, result: { request_id: request.request_id, outcome: {
     state: 'committed', receipt: { target: request.scope.target, undoable: false },
   } } });
-  await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+  await expect(notes.getByRole('button', { name: 'New decision note' })).toBeVisible();
   await expect(notes.getByRole('button', { name: new RegExp(date) })).toHaveCount(0);
 }
 

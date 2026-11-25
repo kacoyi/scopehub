@@ -21427,6 +21427,7 @@
       ],
       "scope": [
         "apps/desktop/ui/src/decision-notes.tsx",
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/research.json",
         "tests/ubuntu-preview/workspace.spec.mjs",
         "project/tasks.json",
         "project/feedback.json",
