@@ -25502,7 +25502,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Repair the five exact-source review findings and verify positive and rejected original artifacts through the full Windows publishing path. Validate the ordinary task on the combined candidate against both parents. The coordinator owns the next authentic full warm Windows PR after independent review.",
+      "next_action": "Review the five local publishing and discovery repairs against the combined parents. After independent review, the coordinator owns the new authentic ordinary full warm Windows PR that retains the 35 selected outcomes and meets the 900-second objective.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -25543,7 +25543,8 @@
           "archives/runs/windows-change-45674883737-1/test-report.json",
           "Full local measured partitions and raw logs: .reports/audit-20261125/m0-146-windows-pr-python-distribution/candidate-verified-parts/parts.json (SHA-256 b25091e97278cd3a9ea65e22459039759d4b51827cb1c2ebb7ddc1f519d05a9a). Public positive, rejected and missing-checkpoint comparisons: .reports/audit-20261125/m0-146-windows-pr-python-distribution/public-verified/measurement.json (SHA-256 4542cb1fb814859128244ecf907a4085fc3c105f9b93447fab13c0b0f0db30d1).",
           "Composition with independently reviewed M0-139 e342a17dfdb614cf1df83d9ab2142eee880db918: .reports/audit-20261125/m0-146-windows-pr-python-distribution/native-composition.json (SHA-256 80805463734478cacedffac0591b78612eda8de3c10ec0a55467325cf2a17b7a).",
-          "Local serial/partition parity for all 801 cases: .reports/audit-20261125/m0-146-windows-pr-python-distribution/first-canonical-order-parity.json (SHA-256 ad295de7fd723bec672956a34b6d97afe4681a56bb563f403eb173daba20cf2d). The final loader fix preserves original unittest import failures and later tests, and reassembles the retained normal partition output byte for byte."
+          "Local serial/partition parity for all 801 cases: .reports/audit-20261125/m0-146-windows-pr-python-distribution/first-canonical-order-parity.json (SHA-256 ad295de7fd723bec672956a34b6d97afe4681a56bb563f403eb173daba20cf2d). The final loader fix preserves original unittest import failures and later tests, and reassembles the retained normal partition output byte for byte.",
+          "Exact-source independent repair staging replay: .reports/audit-20261125/m0-146-independent-repair/reversible-final/results.json (SHA-256 0608cc0127a28b12c0654cebcbc49d72decd1d259ffffbbd326a75ad36664b1c). The known passing 801-case originals, CRLF and millisecond boundaries pass. Rehashed genuine failure, zero process durations, empty selection and a failed timeout under a passing summary all reproduce on the reviewed code and are rejected by the repair."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
