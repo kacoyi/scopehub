@@ -25502,7 +25502,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify the four exact-source collection and original-evidence repairs against both reviewed parents for independent review. The coordinator owns the next authentic ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
+      "next_action": "Independently review the corrected local collector, producer verdicts and structured unittest evidence. The coordinator owns integration and the first authentic ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -25545,7 +25545,10 @@
           "Composition with independently reviewed M0-139 e342a17dfdb614cf1df83d9ab2142eee880db918: .reports/audit-20261125/m0-146-windows-pr-python-distribution/native-composition.json (SHA-256 80805463734478cacedffac0591b78612eda8de3c10ec0a55467325cf2a17b7a).",
           "Local serial/partition parity for all 801 cases: .reports/audit-20261125/m0-146-windows-pr-python-distribution/first-canonical-order-parity.json (SHA-256 ad295de7fd723bec672956a34b6d97afe4681a56bb563f403eb173daba20cf2d). The final loader fix preserves original unittest import failures and later tests, and reassembles the retained normal partition output byte for byte.",
           "Exact-source independent repair staging replay: .reports/audit-20261125/m0-146-independent-repair/reversible-final/results.json (SHA-256 0608cc0127a28b12c0654cebcbc49d72decd1d259ffffbbd326a75ad36664b1c). The known passing 801-case originals, CRLF and millisecond boundaries pass. Rehashed genuine failure, zero process durations, empty selection and a failed timeout under a passing summary all reproduce on the reviewed code and are rejected by the repair.",
-          "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca)."
+          "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca).",
+          "archives/observations/repo-hygiene-20261125/m0-146-structured-part-evidence-e2558a19/scoped-native-replay/results.json (SHA-256 6e3173f86cdc2aaa20e5b5c4427f2f1ee98aa85f1c107fdf8ff6c1245403b164).",
+          "archives/observations/repo-hygiene-20261125/m0-146-structured-part-evidence-e2558a19/unittest-originals/results.json (SHA-256 98d3e0e1c0567084e6699898aaac27ce2e11e117adaad807468f0c1e08d5e9da).",
+          "Integration references: M0-150 remains active at 460248f97fdc6d7bf647ac6207eec38b5eb3ee22 on codex/historical-windows-lane-scope. M0-136 is protected at a796cf4b43a73a16f0968b11eb0c7727a9562019 with reviewed parent 70a6ad63b941a662d7b623bbbc5e87734b76ac53."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
