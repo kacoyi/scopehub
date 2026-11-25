@@ -74,6 +74,7 @@ SCOPE_REASONS = {
 DOCUMENT_FILES = {b'README.md'}
 RECORD_FILES = {b'project/tasks.json', b'project/feedback.json', b'contracts/references.json'}
 EVIDENCE_FILE = re.compile(rb'project/evidence/M[0-9]+-[0-9]{3}-[0-9a-f]{16}\.json')
+TASK_REVIEW_FILE = re.compile(rb'contracts/reviews/task-decisions/M[0-9]+-[0-9]{3}\.json')
 NARRATIVE_FIELDS = {
     b'engineering-contract-v1.json': (
         ('product', 'purpose'),
@@ -382,7 +383,7 @@ def classify_file(root, change):
             return 'records' if path in DOCUMENT_FILES else 'tooling'
         return 'full'
 
-    record = path in RECORD_FILES or EVIDENCE_FILE.fullmatch(path)
+    record = path in RECORD_FILES or EVIDENCE_FILE.fullmatch(path) or TASK_REVIEW_FILE.fullmatch(path)
     if not (record or path in NARRATIVE_FIELDS or path == HERDR_SETTINGS or path in LOCALE_FILES):
         return 'full'
 
