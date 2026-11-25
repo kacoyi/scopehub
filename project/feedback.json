@@ -5215,14 +5215,18 @@
       "source": "Independent Astra Standard review of PR 101 at 62114cc3dc3655b017a565a33e7cc10115faa551. Retained transcript SHA-256 b56d19308977f0134e367670af9c13fac4aa653c9f60b004c91e4a933fea962c.",
       "observation": "A synthetic interleaving at hosted session staging parsed a market observation named fixture-a, used the SHA-256 of fixture-b, and published fixture-b under a report naming fixture-a. The shared model, voice and market collector read the file separately for parsing and digest calculation, and staging read it again.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M4-018"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Parsing, digest calculation and hosted staging opened the same observation path independently.",
+        "correction": "Capture the observation once and derive its validated summary and digest from those bytes. Publish only that capture after comparing it with the report.",
+        "prevention": "Interleave two synthetic byte sequences through the actual stage_artifacts entry for model, voice, market and the external-client pair. Preserve duplicate-key, private-field and size rejections."
+      },
       "deferral_reason": null
     }
   ]

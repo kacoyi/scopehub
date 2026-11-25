@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M4-018",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20211,7 +20211,7 @@
       "id": "M4-018",
       "title": "Publish the validated session observation bytes",
       "milestone": "M4",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M4-017"
       ],
@@ -20236,10 +20236,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the split read at hosted staging, then verify the same boundary for all run observation types.",
+      "evidence": [
+        {
+          "path": "project/evidence/M4-018-0313085e1627082c.json",
+          "sha256": "e09f22f7cebe47a49d99cb7c62325fbc036b01fc27920733e9a3799bb77f7135"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Synthetic hosted staging published one validated byte capture for model, voice, market and paired external-client observations. Interleaved replacements and inconsistent report digests were rejected. Duplicate-key, size and redaction checks remained effective.",
       "plan": {
         "outcome": "A successfully staged observation contains the bytes evaluated against the report.",
         "change_types": [
