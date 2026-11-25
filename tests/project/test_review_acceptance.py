@@ -4,6 +4,7 @@ from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 from hashlib import sha256
 from io import StringIO
+from itertools import product
 import json
 import subprocess
 from unittest.mock import patch
@@ -403,6 +404,7 @@ class TaskReviewTests(ProjectFixture):
         before = 'The earlier capture preserved the original result.'
         worked = 'Worked for 2m appeared above the input prompt in the first capture.'
         observation = 'I reopened `四月\u3000\t收盘.csv` and counted 11 rows.'
+        altered = observation.replace('\t', ' \t')
         chrome = 'The terminal display showed the next input prompt.'
         cases = (
             ('first-prose', (worked, before), '1m 54s • 8:04 PM', True, False),
@@ -413,9 +415,10 @@ class TaskReviewTests(ProjectFixture):
         args = ('review', TASK, '--source', source, '--transcript', str(trace),
                 '--reviewer', 'Synthetic independent reviewer', '--observation')
         ledger = self.root / f'{review_acceptance.DIRECTORY}/{TASK}.json'
-        for label, paragraphs, elapsed, prompt, structured_first in cases:
-            with self.subTest(label=label):
+        for (label, paragraphs, elapsed, prompt, structured_first), newline in product(cases, ('\n', '\r\n')):
+            with self.subTest(label=label, newline=newline):
                 ledger.unlink(missing_ok=True)
+                other_newline = '\r\n' if newline == '\n' else '\n'
                 body = '\n\n'.join((*paragraphs, observation))
                 plain = f'{heading}\n\n{body}\n'
                 rendered = '\n'.join('  ' + line if line else '' for line in body.split('\n'))
@@ -428,24 +431,38 @@ class TaskReviewTests(ProjectFixture):
                     'type': 'response_item', 'timestamp': '2026-11-25T13:00:00Z',
                     'payload': {'type': 'message', 'phase': 'final_answer', 'role': 'assistant',
                                 'status': 'completed', 'id': f'msg_{label}',
-                                'content': [{'type': 'output_text', 'text': plain}]},
-                })
+                                'content': [{'type': 'output_text', 'text': plain.replace('\n', newline)}]},
+                }) + '\n'
                 original, replay = (export, terminal) if structured_first else (terminal, export)
-                trace.write_text(original, encoding='utf-8')
+                raw = original.replace('\n', newline).encode('utf-8')
+                trace.write_bytes(raw)
                 receipt = self.command(*args, observation)
                 self.assertEqual(ledger, self.root / receipt['path'])
                 saved = ledger.read_bytes()
                 decision = receipt['decision']
                 self.assertEqual(observation, decision['observation'])
-                self.assertEqual(sha256(original.encode('utf-8')).hexdigest(), decision['original_sha256'])
-                for equivalent in (replay, plain):
-                    trace.write_text(equivalent, encoding='utf-8')
+                self.assertEqual(sha256(raw).hexdigest(), decision['original_sha256'])
+                for equivalent in (original, replay, plain):
+                    raw_replay = equivalent.replace('\n', other_newline).encode('utf-8')
+                    self.assertNotEqual(sha256(raw_replay).hexdigest(), decision['original_sha256'])
+                    trace.write_bytes(raw_replay)
                     duplicate = self.command(*args, observation)
                     self.assertFalse(duplicate['recorded'])
                     self.assertEqual(decision, duplicate['decision'])
-                trace.write_text(terminal, encoding='utf-8')
+
+                trace.write_bytes(terminal.replace('\n', other_newline).encode('utf-8'))
                 self.command(*args, chrome, error='post-verdict body')
+                self.command(*args, altered, error='post-verdict body')
                 self.assertEqual(saved, ledger.read_bytes())
+
+                raw_altered = terminal.replace(observation, altered).replace('\n', other_newline).encode('utf-8')
+                trace.write_bytes(raw_altered)
+                distinct = self.command(*args, altered, '--supersedes', decision['response_id'])
+                self.assertTrue(distinct['recorded'])
+                self.assertEqual(altered, distinct['decision']['observation'])
+                self.assertEqual(sha256(raw_altered).hexdigest(), distinct['decision']['original_sha256'])
+                self.assertNotEqual(decision['response_sha256'], distinct['decision']['response_sha256'])
+                self.assertEqual([decision, distinct['decision']], json.loads(ledger.read_bytes())['events'])
                 ledger.unlink()
 
     def test_stale_predecessor_and_reordered_event_cannot_replace_rejection(self):
