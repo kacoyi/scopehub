@@ -14,7 +14,8 @@ if __package__:
                         windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
-    from .timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
+    from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
+                         windows_aggregate_cache)
     from .verification_evidence import (
         EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
         capture_run_observation, field_observation,
@@ -27,7 +28,8 @@ else:
                        windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
-    from timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
+    from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
+                        windows_aggregate_cache)
     from verification_evidence import (
         EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
         capture_run_observation, field_observation,
@@ -410,7 +412,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     run_id = windows_lanes_run_id(ci)
     rows = {}
     started = []
-    caches = set()
+    caches = {}
     with tempfile.TemporaryDirectory(prefix='scopehub-windows-', dir=env.get('RUNNER_TEMP')) as directory:
         for lane in names:
             incoming = checked_path(downloads, prefix + lane, directory=True)
@@ -437,12 +439,15 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                         raise PublicationError('Windows lane evidence paths overlap.')
                     copy_file(file, reports / relative)
             timing = matching_lane_timing(incoming, report)
-            caches.add(timing.get('cache', 'unknown'))
+            caches[lane] = timing.get('cache', 'unknown')
             if lane == 'core' and (generator := timing.get('generated_contracts')):
                 write_artifact(reports / WINDOWS_GENERATOR_SAMPLE, json_bytes(generator))
     if output := env.get('GITHUB_OUTPUT'):
         with Path(output).open('a', encoding='utf-8') as stream:
-            stream.write(f"cache={next(iter(caches)) if len(caches) == 1 else 'unknown'}\n")
+            cache = caches['core'] if profile else windows_aggregate_cache(caches)
+            stream.write(f'cache={cache}\n')
+            if not profile:
+                stream.write(f'windows_caches={json.dumps(caches, sort_keys=True)}\n')
     if profile:
         return core, 0
     core['checks'] = [rows[check['id']] for check in project['catalog']['checks']]
@@ -464,6 +469,14 @@ def stage_timing(destination, env, *, has_report):
         }
     sample = report_sample(report, cache=env.get('SCOPEHUB_TIMING_CACHE'))
     if has_report:
+        if raw_caches := env.get('SCOPEHUB_TIMING_WINDOWS_CACHES'):
+            try:
+                caches = json.loads(raw_caches)
+                if windows_aggregate_cache(caches) != sample['cache']:
+                    raise ValueError('Producer states differ from the aggregate cache state.')
+            except ValueError as error:
+                raise PublicationError('Invalid Windows cache observations.') from error
+            sample['windows_caches'] = caches
         if 'SCOPEHUB_WINDOWS_LANE_RESULT' in env:
             observed = optional_path(ROOT / '.reports', WINDOWS_GENERATOR_SAMPLE)
             comparison = evidence_json(observed.read_bytes()) if observed else None

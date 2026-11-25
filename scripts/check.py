@@ -78,13 +78,16 @@ PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
-# Market recovery uses the Python producer's spare Windows time and the browser cache key.
-WINDOWS_PYTHON_CHECKS = {'python-contracts-workers', 'market-recovery'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
                           'local-import-ui', 'market-live-stream', 'market-quality-states',
                           'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
                           'desktop-workspace-transport', 'desktop-localization'}
-WINDOWS_LANES = ('core', 'browser', 'python')
+WINDOWS_LANE_CHECKS = {
+    'browser': WINDOWS_BROWSER_CHECKS,
+    'python': {'python-contracts-workers'},
+    'recovery': {'market-recovery'},
+}
+WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 CHECK_OUTPUT_LOCK = Lock()
 
 
@@ -135,11 +138,9 @@ def check_timeout(check, system):
 
 
 def windows_lane_checks(selected, lane):
-    if lane == 'python':
-        return selected & WINDOWS_PYTHON_CHECKS
-    if lane == 'browser':
-        return selected & WINDOWS_BROWSER_CHECKS
-    return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS
+    if lane == 'core':
+        return selected.difference(*WINDOWS_LANE_CHECKS.values())
+    return selected & WINDOWS_LANE_CHECKS[lane]
 
 
 def windows_lanes_run_id(ci):
@@ -322,7 +323,7 @@ def main():
     stopped = False
     catalog = project['catalog']['checks']
     hosted_full = ci is not None and not (args.task or args.profile or args.fail_fast)
-    overlap = (hosted_full and
+    overlap = (hosted_full and not args.ci_windows_lane and
                not any(env.get(key) for key in ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')))
     concurrent_results = {}
     if args.ci_windows_aggregate:
@@ -361,15 +362,7 @@ def main():
                             'reason_code': 'unsupported_platform', 'reason': 'Requires native Windows x64.'})
         else:
             if overlap and check['id'] == 'python-contracts-workers':
-                if args.ci_windows_lane == 'python':
-                    # Only the full Windows Python producer has isolated browser prerequisites.
-                    window = [check]
-                    window.extend(recovery for recovery in catalog[index + 1:]
-                                  if recovery['id'] == 'market-recovery' and recovery['id'] in selected
-                                  and recovery['status'] == 'implemented'
-                                  and (recovery['platforms'] == 'all' or windows_x64(environment)))
-                else:
-                    window = build_window(catalog, selected, environment, index)
+                window = build_window(catalog, selected, environment, index)
                 if len(window) > 1:
                     concurrent_results = run_overlapped(window, env, run_dir, system=environment['system'])
             result = concurrent_results.pop(check['id'], None)
