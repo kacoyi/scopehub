@@ -5186,6 +5186,75 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
+      "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
+      "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T090140.387541Z-e76e7b16",
+          "source_commit": "c065d60ec30612787a6585290710c2aec52172e2",
+          "report_sha256": "9800b5e6f9d22654353ff27d750a6b6089e822bf5a203192add8dd2af5e6403b"
+        },
+        {
+          "run_id": "20261124T093734.046540Z-27df2492",
+          "source_commit": "a6d9460d6bc5fffa533117350ceec175d8f49fec",
+          "report_sha256": "eb41a70ccdd5cd1f45eb9624218d5c92fd77ef9b612a017fc7f923daaae58714"
+        },
+        {
+          "run_id": "20261124T100820.639261Z-a7e0e867",
+          "source_commit": "b3475fa7581a959c0d4c3a53f722d532683f333e",
+          "report_sha256": "fb296e5496e468ce764ea292ad34b8402db2f88af53b12a0bd170f25e5d6ebd5"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-hidden-by-missing-clock-or-capture",
+      "source": "Standard Astra read-only review of 77bf40bca029942544f5bfd77f1f7e0b4ee073b5, archives/observations/m0-097-linked-timing-review/astra-77bf40b.txt, SHA-256 d6ef15d14a000186a1ea9277f19638f7640754bc0fd07d2b67e86c8390e09690.",
+      "observation": "After the automatic and manual windows rotated, two indexed attempts declared the same linked original report identity. Ordinary status and regular CI reported the conflict with both clocks present, then incorrectly reported recovery when one indexed attempt lacked its clock or its original compact file.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-linked-timing-index-path-alias",
+      "source": "Ordinary PR #84 Actions run 45450283829, archives/runs/windows-change-45450283829-1/test-report.json. The Windows Python producer log has SHA-256 3face0bc62bd4e064fb63a4d54ef5118fc491e3c523c3a527200b80627b50cc7.",
+      "observation": "The Windows Python producer ran 706 tests. All four local/shared compact capture cases reported 'Expected a plain directory for the linked timing index' during ordinary intake: complete local, partial local, complementary archives, and retry partial shared. The same-source Linux check had no failures.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45450283829-1",
+          "source_commit": "c4e65847e8c66667da5bb3cc7696c06081f963cb",
+          "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
