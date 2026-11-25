@@ -834,6 +834,7 @@
       "The integration unit is a coherent completed task or a tightly related group with archived acceptance, a reviewable diff and a recovery direction. Split unfinished behavior into a later task/PR or keep it unreachable; future planned milestones alone do not block integration. Open a fresh task branch from current main after integration.",
       "The named Windows main-push budget finding can stay open across a verified repair only when the current protected PR has proven recovery, the repair has archived regression evidence, and an independent ready task owns the first ordinary full main-push measurement. A failed or over-budget push keeps the finding open and calls for corrective action.",
       "The main-push timing rule binds the named M0-087 findings and M0-091 when first introduced. The protected base retains that rule for later integrations, and all governed records must resolve.",
+      "The separately adopted recurring warm Windows binding can hand off its named open finding after a completed repair with a matching regression receipt, verified original main-push controls, and successful full native PR evidence on the exact reviewed inputs. Keep both downloaded PR reports under .reports/ci/<run-id>/<platform> and require the authenticated Windows PR wall clock within 900 seconds. The planned follow-up owns the later ordinary main-push observation. A candidate cannot adopt and use the binding in the same change.",
       "Close that finding through ordinary verification after the follow-up receipt and comparable successful timing identify the same protected main push containing the repair. A record-only closure uses its ordinary selected checks.",
       "Run project:integration --pr <number> after task closure, after CI completion when a delivery is complete, at handoff, and immediately before an authorized merge. It reads live PR head/base, latest workflow jobs, server protection, current local source, completed scope and relevant feedback; unavailable or changing observations remain blocked. A draft can be ready to present for review while still ineligible to merge.",
       "Present a merge proposal naming the PR, head/base revisions, delivered tasks, verification, material limits and recovery plan. Review the actual diff and unresolved conversations. Owner review may be recorded in the conversation for this single-owner repository; an empty GitHub reviewDecision or zero required external approvals never proves that review occurred.",
@@ -841,6 +842,16 @@
       "For an authorized merge, check the PR head again and use an expected-head guard such as gh pr merge --match-head-commit <sha>; preserve strict server checks and never use an admin bypass. Record the actual main merge commit and inspect its push workflow. A merged PR with failed main CI is an integration incident, not release-ready source.",
       "After verifying the main push, confirm retirement of the integrated head. Before merging a branch that another open pull request uses as its base, integrate or retarget the dependent work and reverify it. If another integration already contains a whole pull request head, verify its exact ancestry and record the containing main change before closing that pull request."
     ],
+    "recurring_main_push_budget": {
+      "main_push_feedback_id": "verification-windows-warm-main-browser-lane-budget",
+      "repair_task_id": "M0-139",
+      "follow_up_task_id": "M0-141",
+      "next_action": "After the repair merges, retain the first comparable ordinary full warm Windows main-push report and timing. Keep the finding open until the result includes the repair, preserves coverage, and succeeds within 900 seconds.",
+      "repair_commit": "903ce1a0e34525b7c09f7a36ee98405c37545a6d",
+      "finding_sha256": "c961b5adc90324c02e886e9d39518e35e5e3fdedba445e1a6ad1a655dee71693",
+      "control_reports_sha256": "3e8071c21205fab815992cdb148e3e801ac642be852013009ba945ee5847a99d",
+      "selected_check_count": 35
+    },
     "post_merge_main_push_budget": {
       "pull_request_feedback_id": "verification-overrun-without-timely-remediation",
       "main_push_feedback_id": "verification-main-push-feedback-budget-overrun",
