@@ -25272,7 +25272,8 @@
         "When a raw leaf DACL contains zero-mask or inherit-only allow entries, accept the otherwise private handoff as the legacy managed view would. Keep the distinct refusal for a nonzero effective allow to another trustee.",
         "Validate each known raw ACE layout before applying the legacy leaf filter. Match the real regular-file matrix for allowed, denied, callback and object entries. Reject malformed entries and any surviving unsupported grant.",
         "The selected ordinary Rust workspace check must execute the existing seven windows_handoff_probe parser tests, including malformed and oversized inert entry refusal. Retain those results separately from the 24 real Windows file comparisons selected by workspace-timeframe.",
-        "Retain the existing subprocess diagnostic controls, cleanup, launch rotation and platform semantics. Verify the exact repair with native Windows and Linux reports and inspect the next protected push."
+        "Retain the existing subprocess diagnostic controls, cleanup, launch rotation and platform semantics. Verify the exact repair with native Windows and Linux reports and inspect the next protected push.",
+        "A native failure preparing the 24 synthetic leaf fixtures names the fixture and the bounded write, raw readback, or managed comparison reason. Retain the exact on-disk comparison and the later native witness assertion for each fixture."
       ],
       "checks": [
         "project-state",
@@ -25286,9 +25287,19 @@
           "run_id": "windows-change-45668943982-1",
           "source_commit": "ae0259db9ea0481aaf004b8682023ddfd8350328",
           "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
+        },
+        {
+          "run_id": "windows-change-45689952772-1",
+          "source_commit": "bcd21c0981401d61d9f0c3b087eb8b0f88690956",
+          "report_sha256": "650a1c591652e66e403cdd01400c8e05e32d38b96fd5edb29dc92ebcadb2353d"
+        },
+        {
+          "run_id": "20261125T195735.990394Z-0479c9ec",
+          "source_commit": "d0020d3a1ddc5075dbf10e78ed349212df910d92",
+          "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
         }
       ],
-      "next_action": "Bind the exact candidate to the existing Rust test harness, retain the selection regression and actual test names, and obtain independent review and native Windows evidence for both the parser and the real file matrix.",
+      "next_action": "Obtain a native result on the named readback calibration before changing fixture representation. Keep the original deadline, independent descriptor checks, and separate Linux observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25305,11 +25316,16 @@
           "crates/platform/Cargo.toml",
           "project/checks.json",
           "scripts/rust_workspace.py",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/final-response.txt",
+          "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
+          "crates/platform/src/workspace_acl/windows/tests.rs",
+          "archives/runs/windows-change-45689952772-1/test-report.json",
+          "archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json"
         ],
         "hypotheses": [
           "A test-owned interpreter startup shares the probe deadline with reading the descriptor. The original report identifies deadline expiry, and records no internal stage. Compare independently measured native paths before assigning the cause.",
-          "The previous managed file ACL projection removed ineffective leaf entries before evaluating trustees. Check the raw and managed views of the same synthetic descriptor."
+          "The previous managed file ACL projection removed ineffective leaf entries before evaluating trustees. Check the raw and managed views of the same synthetic descriptor.",
+          "The retained native storage matrix applies protected fixture descriptors through SetFileSecurityW. The live handoff fixtures preserve an inherited grant and use SetNamedSecurityInfoW. Either a readback API or descriptor representation difference could explain the reported stage. The available reports identify neither the row nor the property."
         ],
         "risks": [
           {
@@ -25343,6 +25359,15 @@
             "checks": [
               "project-state",
               "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An opaque raw readback failure blocks the live handoff journey before its file witness assertions. Keep the existing write and exact comparison, identify the first failing fixture and bounded property, and exercise valid and rejected public launcher controls without leaking synthetic paths, trustees or subprocess streams.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
             ]
           }
         ],

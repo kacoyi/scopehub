@@ -7057,6 +7057,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-synthetic-readback-lacks-case-and-reason",
+      "source": "Ordinary PR127 Windows attempt 1 at archives/runs/windows-change-45689952772-1/test-report.json, then guarded M0-147 Windows at archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json. The ordinary 117-file manifest has SHA-256 e0cf5835e6d0197f4a6680a8f013b0535b7b272c373797b3b1d3cb45bdf47d65. The paired observation in archives/observations/repo-hygiene-20261125/m0-147-native-paired-readback-45690028912/observations.json has SHA-256 ca446c2f0d5aed7160e75eabeff6581c89efce1b693f6d4378219ae3cf94baba.",
+      "observation": "Both native Windows runs executed the seven Rust tests and reported 74 workspace passes, two skips and one failed live handoff case. The failure occurred during synthetic regular-file raw ACE readback before the array-wide native witness loop. Neither report identifies the row, differing field or read operation. This is distinct from the prior live probe deadline and the guarded Linux peer-note observation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45689952772-1",
+          "source_commit": "bcd21c0981401d61d9f0c3b087eb8b0f88690956",
+          "report_sha256": "650a1c591652e66e403cdd01400c8e05e32d38b96fd5edb29dc92ebcadb2353d"
+        },
+        {
+          "run_id": "20261125T195735.990394Z-0479c9ec",
+          "source_commit": "d0020d3a1ddc5075dbf10e78ed349212df910d92",
+          "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
