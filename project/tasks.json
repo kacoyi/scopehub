@@ -24063,6 +24063,10 @@
         {
           "path": "project/evidence/M0-129-c8128b3975393efa.json",
           "sha256": "c8eec6d53f0d25e7271e44bc93590580f256d31af5b75232e0c8c51edc56d75b"
+        },
+        {
+          "path": "project/evidence/M0-129-6568e37a7309aa55.json",
+          "sha256": "a2bcbb77250e00597e0b48fc9beb5a58259d8f9c0f2c94195d55148b22f1830f"
         }
       ],
       "next_action": "Have Astra Standard review the committed executable cleanup and retained native receipt. Record administrative disposition after the independent review.",
