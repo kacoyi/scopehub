@@ -7,8 +7,12 @@
       "observation": "While holding a drag from before the first quote, the historical 09:40 wick stayed at x=519.5 on append, then jumped to x=378.5 on the next +6 px move instead of x=525.5. The SDK keeps a scroll-start offset based on the old time-scale base index. At the left limit the reviewer also observed an immediate one-bar shift on the first append. The original task check started holding the drag after the append.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-031"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-031"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The SDK updates its base index when the first replay bar appears, while an active scroll retains its captured offset relative to the old base. The first append may also clamp the previously valid left limit before compensating for the new base.",
         "correction": "On explicit Start, reserve the single replay time with an invisible axis-only series and reapply the existing logical range. The first admitted quote fills that slot without advancing the base index. Reset clears the slot and restores the frozen series.",
@@ -764,7 +768,7 @@
     {
       "id": "private-content-and-hosted-reports",
       "source": "Owner direction on local private data, ordinary connected-model use, and Herdr-led development. Inspection of the hosted workflow and session verifier.",
-      "observation": "The hosted workflow selected the whole reports directory. The real-model qualification could pass without distinguishing ordinary consent from a one-request private excerpt, and older records did not distinguish the co-developer’s authority from the permissions of each product user.",
+      "observation": "The hosted workflow selected the whole reports directory. The real-model qualification could pass without distinguishing ordinary consent from a one-request private excerpt, and older records did not distinguish the co-developer\u2019s authority from the permissions of each product user.",
       "severity": "major",
       "status": "addressed",
       "task_ids": [
@@ -2047,7 +2051,7 @@
     {
       "id": "sample-recovery-dom-checked-before-transport",
       "source": "Authenticated Ubuntu and Windows workspace-timeframe artifacts from PR run 44610931395 at head 20d0ae950f4063583973f15b0975f5194d0dc81f.",
-      "observation": "The first healthy sample open completed both reads. On the controlled disconnected reopen, the catalog returned successfully and the host closed the initial selected-history response before headers. At the five-second DOM assertion cutoff Chromium was still fetching, and the same logical request had reached host admission again. The test ended before the browser reported a terminal outcome. On Windows the ordinary first sample open and the recovery control’s initial healthy open both finished the catalog and reached admission of the selected history. Both observations ended at the same five-second cutoff while fetch was still pending. The shared-producer contention and peer-rename controls passed on both platforms.",
+      "observation": "The first healthy sample open completed both reads. On the controlled disconnected reopen, the catalog returned successfully and the host closed the initial selected-history response before headers. At the five-second DOM assertion cutoff Chromium was still fetching, and the same logical request had reached host admission again. The test ended before the browser reported a terminal outcome. On Windows the ordinary first sample open and the recovery control\u2019s initial healthy open both finished the catalog and reached admission of the selected history. Both observations ended at the same five-second cutoff while fetch was still pending. The shared-producer contention and peer-rename controls passed on both platforms.",
       "severity": "major",
       "status": "addressed",
       "task_ids": [
@@ -2578,7 +2582,7 @@
       "resolution": {
         "cause": "Storage used a narrower ancestry check than the worktree manager. Git used exit 128 for both an empty marker directory and unresolved foreign metadata, which both callers could interpret as permission to proceed.",
         "correction": "Check foreign and unresolved ancestor Git markers at admission and under Cargo locks. Preserve mounted-worktree diagnostics and keep both host helpers independently runnable.",
-        "prevention": "Independent disposable repositories exercise foreign linked ancestry, missing marker targets, and an outer Git repository’s committed file surviving collection after the locks. The existing mount and relocation fixtures continue to pass."
+        "prevention": "Independent disposable repositories exercise foreign linked ancestry, missing marker targets, and an outer Git repository\u2019s committed file surviving collection after the locks. The existing mount and relocation fixtures continue to pass."
       },
       "deferral_reason": null
     },
@@ -3764,7 +3768,7 @@
     {
       "id": "git-context-misattributes-feedback-checkpoint",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json and a Git-launched local project preflight over two independent fixture repositories, archives/runs/20261123T112336.451128Z-4b84eb5b/test-report.json",
-      "observation": "In one fixture repository an unsupported closure of a major finding failed local project validation. Invoking that same command through an external Git alias in another repository returned success and reported the other repository’s independently accepted checkpoint.",
+      "observation": "In one fixture repository an unsupported closure of a major finding failed local project validation. Invoking that same command through an external Git alias in another repository returned success and reported the other repository\u2019s independently accepted checkpoint.",
       "severity": "major",
       "status": "addressed",
       "task_ids": [
@@ -3774,7 +3778,7 @@
         "python-contracts-workers"
       ],
       "resolution": {
-        "cause": "Git-launched commands inherited the caller’s repository, index and object selectors while validating files in a second checkout.",
+        "cause": "Git-launched commands inherited the caller\u2019s repository, index and object selectors while validating files in a second checkout.",
         "correction": "Resolve project history, source identity, check subprocesses, recovery and receipt provenance against the target checkout, clearing inherited repository-local Git selectors.",
         "prevention": "Use independent repositories and a registered worktree to verify both false acceptance and false rejection, the identity seen inside a check, and the archived receipt."
       },
@@ -3923,8 +3927,12 @@
       "observation": "The v2 permission procedure replaces explicit v1 denial paths with a generic protected-resource observation. Direct application SQLite and saved-credential checks can be omitted while reporting the generic observation, and v1 requires independent evidence per denied path.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-028"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M2-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The generic v2 permission trial dropped the original list of individually observed denial paths.",
         "correction": "The effective specification lists four denied paths and binds each to a synthetic control, an independent observation and zero unauthorized outcomes.",
@@ -3938,8 +3946,12 @@
       "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery. The re-review added ProcessFailed to the shared required observations at d4cea0d. All five specification tests still passed because the checks required minimum evidence without excluding WebView2-specific observations from the requirements effective for other runtimes.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-028"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M2-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "A WebView2-specific signal was required of all Windows runtimes. The initial correction checked only minimum lists.",
         "correction": "WebView2 candidates retain reuse and ProcessFailed evidence. A different native runtime proves its own identity and loss signal alongside the shared Rust, exit and recovery observations.",
@@ -3953,8 +3965,12 @@
       "observation": "The cold-restore procedure checks the revoked case but gives the granted reopen no required positive data value, source locator or saved selection outcome. An empty restored canvas could satisfy the listed observations.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-028"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M2-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The granted cold-reopen procedure could restore an empty presentation while satisfying all listed outcomes.",
         "correction": "The granted native trial now requires the event-0910 row, its 25 basis-point value and its saved selection. The revoked trial starts with the old cache and requires zero protected reads and frames.",
@@ -4032,8 +4048,12 @@
       "observation": "The chart-only synthetic equity composition displayed the legacy futures source disclosure above its candlesticks. The host painted the expected annotations on the timeframe switch and restored the view after rejecting an unknown source.",
       "severity": "minor",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The canvas displayed its original synthetic futures source independently of which blocks were visible.",
         "correction": "The canvas discloses the futures source for the tile and table blocks and each candlestick discloses its synthetic equity binding.",
@@ -4047,8 +4067,12 @@
       "observation": "The reviewer accepted a candlestick showing the 15-minute 09:30 UTC result at 4.7%, previewed an empty composition, then rejected a grant-mismatched draft. Restore returned the original author text but switched the chart to the 5-minute 09:40 UTC result at 3.2%. The focused Chromium regression reproduced the reset of the 15-minute control after the chart was removed.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The chart component owned the selected timeframe and lost it when an empty draft unmounted the accepted chart.",
         "correction": "The workbench retains the accepted block timeframes with their validated definitions and original authored text. Preview changes stay with the draft.",
@@ -4062,8 +4086,12 @@
       "observation": "Appending an identical candlestick definition changes the existing 15-minute chart and the new chart to five minutes. Changing only the accepted annotation threshold from 0.8 to 0.85 silently replaces the 09:30 UTC result at 4.7% with the five-minute 09:40 UTC result at 3.2%. The native review confirmed that accepting the scoped edit retains the wrong result. The coordinator also identified in-place edits to the plotted or condition field of a sole chart as same-source binding changes that must preserve its timeframe.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The preview reconciled blocks using their complete binding and required a unique match. A scoped edit or duplicate could reset an existing block.",
         "correction": "Reconcile the transient instances by source, unchanged bindings and their occurrences. Preserve a single remaining same-source field edit and give a new instance its own timeframe.",
@@ -4077,8 +4105,12 @@
       "observation": "All five Chromium cases passed and the native executable built. The WebView2 probe stopped at tests/ui/renderer-probe-windows.ps1:49 when GetCurrentPattern(InvokePattern) returned Unsupported Pattern for a button. The log did not identify the requested control or list its patterns. A timeframe button exposing TogglePattern is a hypothesis.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T091241.788693Z-00666947",
@@ -4156,8 +4188,12 @@
       "observation": "The CSV reader preserves distinct raw headers Close and Close followed by 1020 spaces, with respective values 101 and 202. Both match the draft's close alias after trimming. The editor discards the overlength name before counting candidates and silently binds Close, selecting 101 without an ambiguity warning.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M1-037"],
-      "regression_checks": ["local-import-publication"],
+      "task_ids": [
+        "M1-037"
+      ],
+      "regression_checks": [
+        "local-import-publication"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T111043.682851Z-363ffbde",
@@ -4468,13 +4504,19 @@
       "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M4-016"],
-      "regression_checks": ["model-connection-workflow"],
-      "diagnostic_reports": [{
-        "run_id": "20261124T111053.555558Z-28236d9b",
-        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
-        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
-      }],
+      "task_ids": [
+        "M4-016"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111053.555558Z-28236d9b",
+          "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+          "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+        }
+      ],
       "resolution": {
         "cause": "Citation navigation checked the new workspace snapshot while the composer continued to use the opening selection.",
         "correction": "Use the existing citation snapshot to invalidate only a composer binding superseded by same-workspace selection authority. Keep the draft and retain newer valid selections.",
@@ -4488,13 +4530,19 @@
       "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The browser reproduction lost focus and moved the transcript scroll offset from 20 to 689 pixels after only a local snapshot read.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M4-016"],
-      "regression_checks": ["model-connection-workflow"],
-      "diagnostic_reports": [{
-        "run_id": "20261124T111053.555558Z-28236d9b",
-        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
-        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
-      }],
+      "task_ids": [
+        "M4-016"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111053.555558Z-28236d9b",
+          "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+          "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+        }
+      ],
       "resolution": {
         "cause": "The return flag drove both reopening focus and ordinary transcript scrolling. Rejection changed the flag while the same citation remained open.",
         "correction": "Keep focus and scroll in the evidence reading state after a rejection. A deliberate submit clears that state so ordinary follow-up behavior resumes.",
@@ -4572,8 +4620,12 @@
       "observation": "After a successful synthetic folder picker reply from the ordinary Data sources panel, the source workflow timed out at tests/ui/local-import.spec.mjs:419. The first page-wide exact Local CSV match resolved to a hidden h3 on 14 polls. The chart keeps its panel mounted while CSV review is active, and the import header uses the same text. The retrieved and archived artifacts contain the verification log but lack the local-import screenshot and trace listed in it. Two local repetitions on df99e89 first verified the visible import region and the retained hidden heading, then failed at the original locator. The failure screenshot shows equities/daily.csv in the visible editor. The browser report, screenshots and traces remain under .reports/m1-038-red/ (browser-results.json SHA-256 20e5b3ad323f0041973de5460fcf91ac90836027410eb72e7fa07e6c807cd536).",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M1-038"],
-      "regression_checks": ["local-import-ui"],
+      "task_ids": [
+        "M1-038"
+      ],
+      "regression_checks": [
+        "local-import-ui"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T122836.056903Z-08468273",
@@ -4730,7 +4782,7 @@
     },
     {
       "id": "verification-budget-recovery-order-and-provenance",
-      "source": "Independent Standard Astra review of 74e3ec3724fb528195aba44bfb301eb053f40fbe in the verification-cost checkout, archives/observations/m0-087-budget-recovery-proof-74e3ec3/astra-74e3ec3.pending.txt lines 3–15, SHA-256 2ce1e3de9f98c08de421f3e510ac333112b39486f60100b1ff459eb5b78b1c5a.",
+      "source": "Independent Standard Astra review of 74e3ec3724fb528195aba44bfb301eb053f40fbe in the verification-cost checkout, archives/observations/m0-087-budget-recovery-proof-74e3ec3/astra-74e3ec3.pending.txt lines 3\u201315, SHA-256 2ce1e3de9f98c08de421f3e510ac333112b39486f60100b1ff459eb5b78b1c5a.",
       "observation": "Ordinary handoff accepted run 16 as recovery after the retained timing for linked overrun 18 disappeared. It accepted a single-parent descendant as a PR preview and rejected a genuine two-parent preview containing the repair through its first parent. It could not measure recovery from a within-budget median increase. After a measured recovery it dropped the still-active owner for two new overruns and mixed old runs into a false new sustained-growth window.",
       "severity": "major",
       "status": "addressed",
@@ -5051,7 +5103,7 @@
     {
       "id": "worker-interruption-skips-visible-reconnecting",
       "source": "Authenticated full pull request 82 workflow 45429086512 attempt 1 at PR head c300005fd77778c851096ba04bebd72af84ad952 and checked-out merge 4c8fcf533b3a19f59c77b2feb585c419dde01c34. The retained original Windows browser producer and Linux reports and logs are indexed at archives/observations/m0-095-protected-pr-45429086512/index.json with SHA-256 99e62f041fe9556c30c83f8b17a3e37f0069ed718715ec47c231774f429b5532. Windows browser producer report SHA-256 9344d8f2e614f2a0212e8f55d7fdcc7b576d13bd53ff4e5e82fdd9fa9648f094 and check log SHA-256 9ecffa7b80a3d9b7e7b89bb3badab6c29c42d45efd8e2b2c91059d24ed84574e. Linux report SHA-256 203efaced85475e95b15a7cf7ee03da2ab62cd701d3673df44371ab020b1c00a and check log SHA-256 2b42f8fce8ba013014ee4494275f67ddcdc1f00304cb89057f1fd0384f86a2b2.",
-      "observation": "On both Windows and Ubuntu, the named case resumes one real chart stream after its confirmed worker exits failed at worker-interruption.spec.mjs:99. The captured UI went from Synthetic replay in progress to Market worker resumed, omitting Market worker reconnecting… with the confirmed Close 3501.2, volume 120 and Offline. The trace contained the frozen, confirmed and final closed bar values. The later raw frame assertions were not reached. The M0-093 local task had classified the change as stream-slice, but its delivery mapping did not select market-worker-interruption, so the exact regression first surfaced in the protected PR.",
+      "observation": "On both Windows and Ubuntu, the named case resumes one real chart stream after its confirmed worker exits failed at worker-interruption.spec.mjs:99. The captured UI went from Synthetic replay in progress to Market worker resumed, omitting Market worker reconnecting\u2026 with the confirmed Close 3501.2, volume 120 and Offline. The trace contained the frozen, confirmed and final closed bar values. The later raw frame assertions were not reached. The M0-093 local task had classified the change as stream-slice, but its delivery mapping did not select market-worker-interruption, so the exact regression first surfaced in the protected PR.",
       "severity": "major",
       "status": "addressed",
       "task_ids": [
@@ -6085,8 +6137,12 @@
       "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The authenticated ref reads and GitHub's branch resolution are separate operations.",
         "correction": "Include the expected head and base in the request. Gate the matrix on the event commit and a fresh protected base observation, then pin checkout and evidence to the expected head.",
@@ -6100,8 +6156,12 @@
       "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "Membership in the task ledger did not attribute the changes in an explicit stack.",
         "correction": "Require scoped changes and a distinct committed task definition or a legitimate declared dependency.",
@@ -6115,8 +6175,12 @@
       "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The CLI treated a lost POST response as ordinary failure and discarded response details.",
         "correction": "Expose an unknown outcome and a correlation ID without retrying. Retain the returned run ID and isolate guarded dispatch concurrency.",
@@ -6130,8 +6194,12 @@
       "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "Shared scope and an older completed declaration could attribute unrelated changes to a stack.",
         "correction": "Require a supplementary receipt for an already completed dependency and check that it covers the proposed source.",
@@ -6145,8 +6213,12 @@
       "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "A receipt file digest authenticated its bytes without recomputing its recorded source from Git.",
         "correction": "Recompute the execution-input digest and file count from the receipt's own commit and historical snapshot rules.",
@@ -6160,8 +6232,12 @@
       "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The dependency preflight treated a cancelled record as unfinished.",
         "correction": "Reject cancelled dependencies on the protected base or the proposed base.",
@@ -6265,8 +6341,13 @@
       "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-115"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-115"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
         "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
@@ -6280,8 +6361,13 @@
       "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-115"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-115"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
         "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
@@ -6295,8 +6381,13 @@
       "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-116"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-116"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
         "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
@@ -6310,8 +6401,13 @@
       "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-117"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-117"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
         "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
@@ -6610,7 +6706,7 @@
     {
       "id": "bound-review-navigation-loses-source-and-read-only-entry",
       "source": "Astra Standard cold rereview of 5b6c61a3cb84ae3fedb5a12a79d96f80ac06ebe6. Original transcript: archives/observations/m0-134-navigation-finding-5b6c61a/astra-cold-review-5b6c61a.txt (SHA-256 bdb799cc76324b100e62f1b70044faac42021b7bb257f9654336b363581e9cf0).",
-      "observation": "A reader following the bound context’s printed detail, repeat verification and generic source navigation can lose the reviewed SHA and read substituted worktree feedback or the linked engineering product record. Feedback links retained the SHA but used pnpm and uv. The normal read-only role could not create the uv cache lock. Explicitly bound reads and dirty or moved checkout admission controls succeeded.",
+      "observation": "A reader following the bound context\u2019s printed detail, repeat verification and generic source navigation can lose the reviewed SHA and read substituted worktree feedback or the linked engineering product record. Feedback links retained the SHA but used pnpm and uv. The normal read-only role could not create the uv cache lock. Explicitly bound reads and dirty or moved checkout admission controls succeeded.",
       "severity": "major",
       "status": "addressed",
       "task_ids": [
@@ -7517,6 +7613,28 @@
         "correction": "Preserve the actual runtime platform in the two controlled interpreter configurations and let the existing gate-launch test exercise its process identity and containment assertions.",
         "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
       },
+      "deferral_reason": null
+    },
+    {
+      "id": "interrupt-regression-peer-lock-unheld-at-last-running-stage",
+      "status": "open",
+      "severity": "major",
+      "source": "Protected Linux run 45712964544 and identical-tree PR 124 run 45709305124. Original report archives/runs/20261125T222514.810400Z-4ec1e5c9/test-report.json. The retained comparison is archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json (SHA-256 b3cecaac05b7015850f94c1fd80de73cacbc09b2b066d49572024e8eaff45d23).",
+      "observation": "The final running-stage subtest acquired the peer lock after one SIGINT. Its seven-scenario test took 30.242 seconds and the helper uses a 30-second lifetime starting before the scenarios. The same-tree PR completed the test in 16.462 seconds. The failing run did not report the helper exit reason or lock-release time.",
+      "task_ids": [
+        "M0-157"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T222514.810400Z-4ec1e5c9",
+          "source_commit": "5aedc53645f217b18bdf996f987019d75bb098c2",
+          "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
+        }
+      ],
+      "resolution": null,
       "deferral_reason": null
     }
   ]
