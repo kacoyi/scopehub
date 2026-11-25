@@ -148,9 +148,7 @@ impl SqliteWorkspace {
             binding.profile_id.clone_from(profile_id);
         }
         let path = &location.database;
-        let exists = location.main_len.is_some()
-            || storage::create_database(path).map_err(|_| OpenWorkspaceError::Database)?;
-        let initial_version = if exists {
+        let initial_version = if location.main_len.is_some() {
             // A read-only preflight cannot recover a rollback journal into an
             // unsupported database or checkpoint an unsupported WAL.
             let mut reader = Connection::open_with_flags(
@@ -160,20 +158,21 @@ impl SqliteWorkspace {
             reader.set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, true)?;
             reader.busy_timeout(Duration::from_secs(3))?;
             if desktop && anchor.is_none() && location.main_len.unwrap_or_default() > 0 {
-                recover_unanchored_binding(&reader, &mut binding)?;
+                recover_unanchored_binding(&reader, &mut binding, location.owner.as_deref())?;
             }
             check_format(&mut reader, &binding, anchor.is_some())?
         } else {
             0
         };
-        if desktop && anchor.is_none() && initial_version == 0 {
-            binding.profile_id = profile_anchor::fresh_id(&binding.profile_id);
+        if initial_version == 0 {
+            if let Some(owner) = location.owner.as_deref().filter(|_| desktop) {
+                binding.profile_id = profile_anchor::fresh_id(&binding.profile_id, owner);
+            }
+            initialize_database(path, &binding)?;
         }
         let mut connection = Connection::open_with_flags(
             path,
-            OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_CREATE
-                | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NOFOLLOW,
         )?;
         // Closing an unqualified connection must not checkpoint another format's WAL.
         connection.set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, true)?;
@@ -187,14 +186,8 @@ impl SqliteWorkspace {
 
         // Recheck under SQLite's own locking before any persistent SQL.
         let version = check_format(&mut connection, &binding, anchor.is_some())?;
-        connection.pragma_update(None, "synchronous", "FULL")?;
         if version == 0 {
-            // The initial commit must materialize a main database before any
-            // WAL can contain the new profile identity.
-            let transaction =
-                connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-            migrate(&transaction, &binding)?;
-            transaction.commit()?;
+            return Err(OpenWorkspaceError::Database);
         }
         let mode: String = connection.pragma_query_value(None, "journal_mode", |row| row.get(0))?;
         if mode != "wal" {
@@ -214,7 +207,7 @@ impl SqliteWorkspace {
         if !secure_delete {
             return Err(OpenWorkspaceError::Database);
         }
-        if version > 0 && version < SCHEMA_VERSION {
+        if version < SCHEMA_VERSION {
             let transaction =
                 connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             // Another host may have migrated the database while we waited.
@@ -234,9 +227,34 @@ impl SqliteWorkspace {
     }
 }
 
+fn initialize_database(path: &Path, binding: &WorkspaceBinding) -> Result<(), OpenWorkspaceError> {
+    let staged = storage::new_initial_database(path).map_err(|_| OpenWorkspaceError::Database)?;
+    let initialize = || {
+        let mut connection = Connection::open_with_flags(
+            &staged,
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+        )?;
+        connection.pragma_update(None, "synchronous", "FULL")?;
+        connection.pragma_update(None, "foreign_keys", true)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        migrate(&transaction, binding)?;
+        #[cfg(test)]
+        tests::interrupt_first_initialization(&transaction);
+        transaction.commit()?;
+        connection.close().map_err(|(_, error)| error)?;
+        storage::publish_initial_database(&staged, path).map_err(|_| OpenWorkspaceError::Database)
+    };
+    let result = initialize();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&staged);
+    }
+    result
+}
+
 fn recover_unanchored_binding(
     connection: &Connection,
     binding: &mut WorkspaceBinding,
+    owner: Option<&str>,
 ) -> Result<(), OpenWorkspaceError> {
     let application_id: i64 =
         connection.pragma_query_value(None, "application_id", |row| row.get(0))?;
@@ -246,9 +264,9 @@ fn recover_unanchored_binding(
             [],
             |row| row.get(0),
         )?;
-        // A crash can interrupt anchor publication after committing a new
-        // identity. Recover it only at the location that allocated it.
-        if profile_anchor::matches_original_path(&saved, &binding.profile_id) {
+        // A completely initialized database can precede anchor publication.
+        // Its namespace must prove both original location and current account.
+        if profile_anchor::matches_origin(&saved, &binding.profile_id, owner) {
             binding.profile_id = saved;
         }
     }

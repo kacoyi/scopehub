@@ -336,7 +336,7 @@ impl Profile {
     fn raw_connection(&self) -> Connection {
         let location = storage::open_path(&self.0).unwrap();
         if location.main_len.is_none() {
-            storage::create_database(&location.database).unwrap();
+            storage::create_fixture_file(&location.database).unwrap();
         }
         Connection::open(location.database).unwrap()
     }
@@ -407,7 +407,7 @@ fn desktop_anchor_requires_its_owner_and_original_database_before_open() {
     assert!(!profile.db().exists());
     assert_eq!(fs::read(&retained).unwrap(), db);
 
-    storage::create_database(&profile.db()).unwrap();
+    storage::create_fixture_file(&profile.db()).unwrap();
     assert_eq!(
         SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
         Some(OpenWorkspaceError::ProfileMismatch)
@@ -1289,4 +1289,170 @@ fn desktop_open_refuses_ntfs_hard_links_before_sqlite() {
         assert_eq!(fs::read(&file).unwrap(), original);
         assert_eq!(fs::read(&linked).unwrap(), original);
     }
+}
+
+fn synthetic_desktop_binding() -> WorkspaceBinding {
+    WorkspaceBinding {
+        profile_id: format!("desktop-development:{}", "e".repeat(64)),
+        workspace_id: Profile::binding().workspace_id,
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn only_the_original_account_can_recover_a_new_profile_anchor() {
+    let profile = Profile::new();
+    let (writer, identity) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    drop(writer);
+    let anchor = profile.0.join(storage::PROFILE_ANCHOR);
+    fs::remove_file(&anchor).unwrap();
+    let (writer, recovered) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    assert_eq!(recovered, identity);
+    let owner = fs::read_to_string(&anchor).unwrap();
+    let owner = owner.lines().nth(1).unwrap();
+    let foreign = if owner.starts_with('a') { "b" } else { "a" }.repeat(64);
+    let foreign_identity =
+        profile_anchor::fresh_id(&synthetic_desktop_binding().profile_id, &foreign);
+    writer
+        .connection
+        .execute(
+            "UPDATE profile_binding SET profile_id = ?1",
+            [&foreign_identity],
+        )
+        .unwrap();
+    drop(writer);
+    fs::remove_file(&anchor).unwrap();
+    let copied = fs::read(profile.db()).unwrap();
+
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert_eq!(fs::read(profile.db()).unwrap(), copied);
+    assert!(!anchor.exists());
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn unanchored_fresh_profile_without_owner_proof_is_refused() {
+    let profile = Profile::new();
+    let original = synthetic_desktop_binding();
+    let digest = original
+        .profile_id
+        .strip_prefix("desktop-development:")
+        .unwrap();
+    let stored = WorkspaceBinding {
+        profile_id: format!("desktop-profile:{digest}:{}", Uuid::new_v4()),
+        workspace_id: original.workspace_id.clone(),
+    };
+    // This was a valid identity in the earlier format, but the backup has no
+    // owner anchor and the database itself has no original-account proof.
+    let expected = stored.profile_id.clone();
+    drop(SqliteWorkspace::open(&profile.0, stored).unwrap());
+    let original_bytes = fs::read(profile.db()).unwrap();
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, original.clone()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert_eq!(fs::read(profile.db()).unwrap(), original_bytes);
+    assert!(!profile.0.join(storage::PROFILE_ANCHOR).exists());
+
+    // An existing account anchor for the earlier identity remains sufficient.
+    {
+        let location = storage::open_path(&profile.0).unwrap();
+        profile_anchor::publish(&location, &expected).unwrap();
+    }
+    let (_, identity) = SqliteWorkspace::open_desktop_profile(&profile.0, original).unwrap();
+    assert_eq!(identity, expected);
+}
+
+const INTERRUPTED_PROFILE: &str = "SCOPEHUB_TEST_INTERRUPTED_INITIAL_PROFILE";
+
+pub(super) fn interrupt_first_initialization(transaction: &Connection) {
+    if std::env::var_os(INTERRUPTED_PROFILE).is_some() {
+        transaction
+            .execute_batch(
+                "PRAGMA cache_size = 1;
+                 CREATE TABLE interrupted_synthetic_rows (data BLOB);
+                 WITH RECURSIVE pages(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM pages WHERE n<64)
+                 INSERT INTO interrupted_synthetic_rows SELECT zeroblob(4096) FROM pages;",
+            )
+            .unwrap();
+        // SQLite has spilled dirty pages under a live rollback journal. This
+        // subprocess must exit without a destructor closing the transaction.
+        std::process::exit(86);
+    }
+}
+
+#[test]
+fn desktop_initialization_recovers_after_an_interrupted_first_commit() {
+    if let Some(path) = std::env::var_os(INTERRUPTED_PROFILE) {
+        let _ =
+            SqliteWorkspace::open_desktop_profile(Path::new(&path), synthetic_desktop_binding());
+        panic!("the initial migration did not reach the interruption point");
+    }
+    let profile = Profile::new();
+    let exit = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "tests::desktop_initialization_recovers_after_an_interrupted_first_commit",
+        ])
+        .env(INTERRUPTED_PROFILE, &profile.0)
+        .status()
+        .unwrap();
+    assert_eq!(exit.code(), Some(86));
+    let directory = fs::read_dir(&profile.0).unwrap();
+    let journal = directory
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.to_string_lossy().ends_with("-journal"))
+        .expect("interrupted initial SQLite journal");
+    let main = PathBuf::from(journal.to_str().unwrap().strip_suffix("-journal").unwrap());
+    let journal_bytes = fs::read(&journal).unwrap();
+    let main_bytes = fs::read(&main).unwrap();
+    assert!(journal_bytes.len() > 512 && !main_bytes.is_empty());
+    let reader = Connection::open_with_flags(&main, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    let error = reader
+        .pragma_query_value(None, "application_id", |row| row.get::<_, i64>(0))
+        .unwrap_err();
+    assert!(
+        matches!(error, rusqlite::Error::SqliteFailure(ref error, _)
+        if error.extended_code == rusqlite::ffi::SQLITE_READONLY_ROLLBACK),
+        "{error:?}"
+    );
+    drop(reader);
+
+    let (writer, identity) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    assert_eq!(writer.snapshot(None, false).unwrap().state.revision, 0);
+    drop(writer);
+    assert_eq!(fs::read(journal).unwrap(), journal_bytes);
+    assert_eq!(fs::read(main).unwrap(), main_bytes);
+    let (_, reopened) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    assert_eq!(reopened, identity);
+
+    // Identical hot pages beside the definitive database may be historical
+    // data. Startup must not recover or replace them as staged initialization.
+    let historical = Profile::new();
+    for (path, contents) in [
+        (historical.db(), &main_bytes),
+        (
+            historical.0.join("workspace.sqlite3-journal"),
+            &journal_bytes,
+        ),
+    ] {
+        storage::create_fixture_file(&path).unwrap();
+        fs::write(path, contents).unwrap();
+    }
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&historical.0, synthetic_desktop_binding()).err(),
+        Some(OpenWorkspaceError::Database)
+    );
+    assert_eq!(fs::read(historical.db()).unwrap(), main_bytes);
+    assert_eq!(
+        fs::read(historical.0.join("workspace.sqlite3-journal")).unwrap(),
+        journal_bytes
+    );
 }

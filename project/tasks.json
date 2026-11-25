@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M5-001",
+  "focus_task_id": "M5-006",
   "tasks": [
     {
       "id": "M0-001",
@@ -20112,6 +20112,114 @@
           ],
           "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
           "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
+        }
+      }
+    },
+    {
+      "id": "M5-006",
+      "title": "Recover first desktop initialization and verify original-account attribution",
+      "milestone": "M5",
+      "status": "active",
+      "depends_on": [
+        "M5-005"
+      ],
+      "scope": [
+        "crates/persistence",
+        "apps/desktop",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030",
+        "0031"
+      ],
+      "acceptance": [
+        "A new profile durably ties anchor recovery to the original OS account and original path while anchored and legacy identities remain stable.",
+        "Recover from a crash during private first initialization without consuming historical main, rollback or WAL artifacts."
+      ],
+      "checks": [
+        "architecture",
+        "dependency-review",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45547568595-1",
+          "source_commit": "33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d",
+          "report_sha256": "561d938ea4d932d383aa6fc645ef7b1cb3efae8a1dde33a40dbf3acebe9ea7dc"
+        }
+      ],
+      "next_action": "Retain matching red and green regression checks for the review findings.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A synthetic desktop profile recovers only within its original account and safely survives interrupted initialization.",
+        "change_types": [
+          "persistence"
+        ],
+        "context": [
+          "crates/persistence/src/lib.rs",
+          "crates/persistence/src/profile_anchor.rs"
+        ],
+        "hypotheses": [
+          "A new profile durably ties anchor recovery to the original OS account and original path while anchored and legacy identities remain stable.",
+          "Recover from a crash during private first initialization without consuming historical main, rollback or WAL artifacts."
+        ],
+        "risks": [
+          {
+            "failure": "A database-only restore at the original path can claim a new-format identity from another account.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "An interrupted first commit can leave a hot rollback journal that fails every read-only preflight.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers",
+              "operations-workflow"
+            ]
+          }
+        ],
+        "rollback": "Revert the corrective software commit and retain profile bytes and prior decisions.",
+        "implementation": {
+          "modules": [
+            "persistence"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/lib.rs",
+            "crates/persistence/src/profile_anchor.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Physical Windows acceptance, release, or changes to unrelated authorization."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing authorization, provenance and historical evidence."
+          ],
+          "change": [
+            "A new profile durably ties anchor recovery to the original OS account and original path while anchored and legacy identities remain stable.",
+            "Recover from a crash during private first initialization without consuming historical main, rollback or WAL artifacts."
+          ],
+          "data_plan": "Use only synthetic profiles, fixtures and identifiers.",
+          "cleanup": "Discard superseded in-flight work while retaining recovery artifacts."
         }
       }
     }

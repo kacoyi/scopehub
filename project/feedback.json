@@ -5262,6 +5262,29 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "desktop-origin-account-and-initial-recovery-review",
+      "source": "Independent Astra Standard at d99800f and retained Windows host diagnostic.",
+      "severity": "major",
+      "status": "open",
+      "observation": "A database-only restore at the original path can claim a new-format identity from another account. An interrupted first commit can leave a hot rollback journal that fails every read-only preflight.",
+      "task_ids": [
+        "M5-006"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45547568595-1",
+          "source_commit": "33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d",
+          "report_sha256": "561d938ea4d932d383aa6fc645ef7b1cb3efae8a1dde33a40dbf3acebe9ea7dc"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

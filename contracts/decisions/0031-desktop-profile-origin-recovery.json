@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "id": "0031",
+  "title": "Publish an initialized profile and bind anchor recovery to its original account",
+  "status": "accepted",
+  "recorded_at": "2026-11-25",
+  "context": "Review of ADR 0030's implementation exposed a hot rollback journal during first initialization and a database-only restore that could reissue another account's anchor at the same path.",
+  "decision": "Under the existing startup lock, finish initial SQLite migration in a unique private file beside the final database. Close and synchronize it before atomic replacement of the missing or validated empty destination. Synchronize publication before opening the workspace and installing its anchor. A fresh desktop identity includes the original path digest, verified OS account fingerprint, and random ID. A missing anchor can be reissued only when both origin fields match.",
+  "authority": "ADR 0007 delegates software recovery design. ADR 0011 governs attribution. ADR 0030 retains the full-profile relocation rules. M5-006 covers the review repair and M5-001 retains physical and packaged qualification.",
+  "alternatives": [
+    {
+      "option": "Recover any hot rollback journal with a writable open before checking format.",
+      "reason": "SQLite could change an unsupported or foreign historical database before verification."
+    },
+    {
+      "option": "Apply the legacy original-path rule to every unanchored identity.",
+      "reason": "A different account could claim the same new-format identity and its credential namespace by restoring the database alone at the same path."
+    }
+  ],
+  "consequences": [
+    "An abandoned initialization file and its journal stay outside the definitive database path. The next startup can initialize a clean database. Historical main, WAL and rollback journals remain subject to the existing read-only preflight.",
+    "Existing anchored and legitimate legacy IDs remain stable. A previously anchored fresh identity with no embedded origin keeps its private anchor. Reissuing a lost anchor for that format requires the original complete backup. Hosts without a stable account fingerprint retain original-path binding.",
+    "Physical power-loss recovery, Windows cross-account restore, former reader and installed release qualification remain under M5-001."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0011", "0030"],
+  "revisit_when": [
+    "A supported account or machine transfer, a packaged backup workflow, or physical power-loss verification changes the required guarantees."
+  ]
+}

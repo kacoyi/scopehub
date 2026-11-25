@@ -80,7 +80,35 @@ pub(super) fn prepare_profile_root(path: &Path) -> io::Result<()> {
     platform::prepare(path)
 }
 
-pub(super) use platform::{create_database, open_path};
+pub(super) use platform::open_path;
+
+#[cfg(test)]
+pub(super) fn create_fixture_file(path: &Path) -> io::Result<File> {
+    platform::create_private_file(path)
+}
+
+pub(super) fn new_initial_database(path: &Path) -> io::Result<PathBuf> {
+    let staged = path.with_file_name(format!(".workspace-initial-{}", uuid::Uuid::new_v4()));
+    platform::create_private_file(&staged)?;
+    Ok(staged)
+}
+
+pub(super) fn publish_initial_database(staged: &Path, path: &Path) -> io::Result<()> {
+    fs::OpenOptions::new()
+        .write(true)
+        .open(staged)?
+        .sync_all()?;
+    publish_staged(staged, path)
+}
+
+fn publish_staged(staged: &Path, path: &Path) -> io::Result<()> {
+    fs::rename(staged, path)?;
+    #[cfg(unix)]
+    File::open(path.parent().ok_or_else(denied)?)?.sync_all()?;
+    #[cfg(windows)]
+    fs::OpenOptions::new().write(true).open(path)?.sync_all()?;
+    Ok(())
+}
 
 pub(super) fn publish_anchor(path: &Path, content: &[u8]) -> io::Result<()> {
     let directory = path.parent().ok_or_else(denied)?;
@@ -88,14 +116,11 @@ pub(super) fn publish_anchor(path: &Path, content: &[u8]) -> io::Result<()> {
     let mut file = platform::create_private_file(&temporary)?;
     let written = file.write_all(content).and_then(|()| file.sync_all());
     drop(file);
-    let installed = written.and_then(|()| fs::rename(&temporary, path));
+    let installed = written.and_then(|()| publish_staged(&temporary, path));
     if installed.is_err() {
         let _ = fs::remove_file(&temporary);
     }
-    installed?;
-    #[cfg(unix)]
-    File::open(directory)?.sync_all()?;
-    Ok(())
+    installed
 }
 
 #[cfg(any(target_os = "linux", windows))]
@@ -236,20 +261,6 @@ mod platform {
         inspect_files(&directory, startup, owner(uid), |path| {
             check_file(path, uid)
         })
-    }
-
-    pub(in super::super) fn create_database(path: &Path) -> io::Result<bool> {
-        // SQLite derives its WAL, SHM and journal file mode from the database.
-        match create_private_file(path) {
-            Ok(_) => Ok(false),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if check_file(path, effective_uid()?)?.is_none() {
-                    return Err(error);
-                }
-                Ok(true)
-            }
-            Err(error) => Err(error),
-        }
     }
 
     pub(super) fn create_private_file(path: &Path) -> io::Result<File> {
@@ -454,20 +465,6 @@ mod platform {
         inspect_files(root, startup, owner, check_file)
     }
 
-    pub(in super::super) fn create_database(path: &Path) -> io::Result<bool> {
-        // Hold the same validated directory inheritance for database creation.
-        match create_private_file(path) {
-            Ok(_) => Ok(false),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if check_file(path)?.is_none() {
-                    return Err(error);
-                }
-                Ok(true)
-            }
-            Err(error) => Err(error),
-        }
-    }
-
     pub(super) fn create_private_file(path: &Path) -> io::Result<File> {
         OpenOptions::new().write(true).create_new(true).open(path)
     }
@@ -482,10 +479,6 @@ mod platform {
     }
 
     pub(in super::super) fn open_path(_: &Path) -> io::Result<ProfileStorage> {
-        Err(io::ErrorKind::Unsupported.into())
-    }
-
-    pub(in super::super) fn create_database(_: &Path) -> io::Result<bool> {
         Err(io::ErrorKind::Unsupported.into())
     }
 
