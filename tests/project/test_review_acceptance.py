@@ -1,12 +1,13 @@
 """Exercise the independent decision at the actual project acceptance boundaries."""
 
 from contextlib import redirect_stdout
+from datetime import datetime, timedelta
 from io import StringIO
 import json
 import subprocess
 from unittest.mock import patch
 
-from scripts import project
+from scripts import project, review_acceptance
 from scripts.integration import delivery_scope
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
@@ -203,9 +204,9 @@ class TaskReviewTests(ProjectFixture):
         current = self.git('rev-parse', 'HEAD')
         path = self.root / old['path']
         record = json.loads(path.read_bytes())
-        record['decisions'].pop()
+        record['events'].pop()
         path.write_text(json.dumps(record), encoding='utf-8')
-        self.command('history', '--base', current, error='decision history changed')
+        self.command('history', '--base', current, error='review history changed')
 
     def test_first_authority_boundary_and_adjacent_routine_activation(self):
         ledger = self.ledger()
@@ -261,7 +262,7 @@ class TaskReviewTests(ProjectFixture):
         self.finish()
         file = self.root / result['path']
         record = json.loads(file.read_bytes())
-        record['decisions'][0]['observation'] = 'Changed local projection with unchanged original SHA.'
+        record['events'][0]['observation'] = 'Changed local projection with unchanged original SHA.'
         file.write_bytes(project.json_bytes(record))
         self.command('check', error='public evidence digest mismatch')
         self.command('history', '--base', base, error='public evidence digest mismatch')
@@ -305,3 +306,93 @@ class TaskReviewTests(ProjectFixture):
             self.assertIn('verbatim', reply['observation'])
             self.assertIn('Chinese', reply['owner_communication'])
         self.assertNotIn('review_reply', self.command('context', 'M0-002', '--phase', 'verify'))
+
+    def test_post_verdict_observation_rejects_heading_atoms_and_accepts_short_facts(self):
+        base, source = self.open_review()
+        short = 'Reopen: BUSY.'
+        trace = self.root / '.reports/response-body.txt'
+        trace.parent.mkdir()
+        trace.write_text(f'APPROVE {TASK} {source}\n\n{short}\n', encoding='utf-8')
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer')
+        for invalid in (source, TASK, 'APPROVE', 'BUSY'):
+            self.command(*args, '--observation', invalid, error='post-verdict body')
+        actual = self.command(*args, '--observation', short)
+        self.assertEqual(short, actual['decision']['observation'])
+        self.finish()
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        path = self.root / actual['path']
+        record = json.loads(path.read_bytes())
+        entry = record['events'][0]
+        entry['observation'] = source
+        entry['evidence_sha256'] = review_acceptance.evidence_digest(TASK, entry)
+        path.write_bytes(project.json_bytes(record))
+        self.command('check', error='Unusable independent decision or observation')
+        self.command('history', '--base', base, error='Unusable independent decision or observation')
+
+    def test_new_request_persists_across_replays_and_waits_for_a_later_same_source_reply(self):
+        base, source = self.open_review()
+        old = self.review(source)
+        self.finish()
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        scope = 'Independently repeat the exact reopen and verify the original persisted value.'
+        args = ('review', TASK, '--source', source, '--request', scope,
+                '--supersedes', old['decision']['response_id'])
+        opened = self.command(*args)
+        pending = self.command(*args)
+        self.assertTrue(opened['recorded'])
+        self.assertFalse(pending['recorded'])
+        self.assertEqual(opened['request'], pending['request'])
+        request = opened['request']
+        self.assertEqual('request', opened['current_entry_kind'])
+        view = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertEqual('pending', view['status'])
+        self.assertEqual(scope, view['pending_request']['scope'])
+        self.assertIn(request['request_id'], view['coordination_command'])
+        self.assertEqual('approved', view['last_verdict'])
+        self.command('check', error='is pending')
+        self.command('history', '--base', base, error='is pending')
+        with self.assertRaisesRegex(project.ProjectError, 'is pending'):
+            delivery_scope(self.root, project.load_project(self.root), base)
+        self.review(source, suffix='\n', supersedes=request['request_id'])
+        self.command('check', error='is pending')
+        self.review(source, observation='The reproduced reopen retained the original durable value.',
+                    supersedes=request['request_id'], error='later final assistant export')
+        previous = datetime.fromisoformat(request['requested_at'])
+        self.review(source, observation='The older independent replay retained a durable value.',
+                    supersedes=request['request_id'],
+                    event=('msg_too_early', (previous - timedelta(seconds=1)).isoformat()), error='predates')
+        self.review(base, observation='Another independent replay retained that other source value.',
+                    supersedes=request['request_id'],
+                    event=('msg_other_source', (previous + timedelta(seconds=1)).isoformat()),
+                    error='exact source')
+        new = self.review(source, observation='The later independent replay retained the exact durable value.',
+                          supersedes=request['request_id'],
+                          event=('msg_later', (previous + timedelta(seconds=2)).isoformat()))
+        self.assertEqual('decision', new['current_entry_kind'])
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        self.assertFalse(self.command(*args)['recorded'])
+        self.assertEqual('approved', self.command('context', TASK)['independent_review']['status'])
+
+    def test_data_effect_distinguishes_destructive_unclassified_and_additive_changes(self):
+        delivery = project.read_json(self.root / 'project/delivery.json')
+        delivery['change_types'].append({'id': 'persistence', 'triggers': ['Durable data effects.'],
+                                         'checks': ['project-state']})
+        (self.root / 'project/delivery.json').write_bytes(project.json_bytes(delivery))
+        self.commit()
+        ledger = self.ledger()
+        task = task_by_id(ledger, TASK)
+        task['plan']['change_types'] = ['persistence']
+        evolution = {'kind': 'additive', 'preserve': ['Existing rows outside the selected identity.'],
+                     'change': ['Exercise the declared storage outcome.'],
+                     'data_plan': 'Use bounded fixture records.', 'cleanup': 'Clear the isolated test data.'}
+        for effect, required in ((None, True), ('destructive', True), ('preserved', False), ('additive', False)):
+            with self.subTest(effect=effect):
+                task['plan']['evolution'] = dict(evolution, **({'data_effect': effect} if effect else {}))
+                self.save_ledger(ledger)
+                result = self.command('context', TASK)
+                self.assertEqual(required, 'independent_review' in result)
+        task['plan']['change_types'] = ['tooling']
+        task['plan']['evolution']['data_effect'] = 'destructive'
+        self.save_ledger(ledger)
+        self.assertEqual('pending', self.command('context', TASK)['independent_review']['status'])

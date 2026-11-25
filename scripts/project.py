@@ -21,7 +21,7 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, require_ancestor
+    from .verification_scope import ScopeError, checkout_git_environment, exact_commit, git, nul_fields, require_ancestor
     from .worktree import WorktreeError, exclusive_git_lock, git_path, has_git_metadata
 else:
     import review_acceptance
@@ -29,7 +29,7 @@ else:
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, require_ancestor
+    from verification_scope import ScopeError, checkout_git_environment, exact_commit, git, nul_fields, require_ancestor
     from worktree import WorktreeError, exclusive_git_lock, git_path, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -788,7 +788,17 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
 def review_context(project, task, review):
     plan = task.get('plan', {})
     source = review.get('source')
-    return {**review,
+    follow_up = review.get('current_entry_id')
+    request = review.get('pending_request')
+    intake = f'pnpm project:review {task["id"]}'
+    if request and review['status'] == 'pending':
+        action = (f'{intake} --source {request["source_commit"]} --supersedes {follow_up} '
+                  '--transcript <final-assistant-export> --reviewer <reviewer> --observation "<body sentence>"')
+    else:
+        action = f'{intake} --source <full-clean-reviewed-commit> --request "<scope>"'
+        if follow_up:
+            action += f' --supersedes {follow_up}'
+    return {**review, 'coordination_command': action,
             **({'source_command': f'pnpm project:source {source["path"]} {source["pointer"]}'} if source else {}),
             'record_basis': 'current_checkout',
             'evolution': plan.get('evolution'), 'hypotheses': plan.get('hypotheses', []),
@@ -1382,10 +1392,16 @@ def task_review_status(root, project, *, base=None, local=False, enforce=False):
         explicit = feedback_commit(root, os.environ.get('SCOPEHUB_REVIEW_BASE')) if local else None
         complete = git(root, 'rev-parse', '--is-shallow-repository').strip() == b'false'
         protected = protected_feedback_base(root, head).get('commit') if complete else None
-        # The head of a hosted push can equal its tracking ref. Only a prior
-        # comparison supplied by the workflow qualifies that new transition.
-        if protected == head and any(revision and revision != head for revision in (base, explicit)):
-            protected = None
+        # Comparing an observed protected head to a prior revision inherits
+        # acceptance from that ancestor, while checking this latest transition.
+        prior = base or explicit
+        if protected == head and prior and prior != head:
+            try:
+                require_ancestor(root, prior, head)
+            except ScopeError:
+                protected = None
+            else:
+                protected = prior
         trusted = {protected} if protected else set()
         for revision in (base, explicit):
             if not complete or not revision or revision == head:
@@ -1412,29 +1428,39 @@ def task_review_status(root, project, *, base=None, local=False, enforce=False):
         raise ProjectError(str(error)) from error
 
 
-def record_task_review(root, task, source, transcript, reviewer, scope, observation, supersedes=None):
+def record_task_review(root, task, source, transcript, reviewer, scope, observation, supersedes=None, *, request=None):
     if not review_acceptance.TASK_ID.fullmatch(task):
         raise ProjectError('Supply a tracked task ID.')
     project = load_project(root)
-    if task not in project['tasks']:
-        raise ProjectError(f'Unknown task: {task}')
+    current = project['tasks'].get(task)
+    if current is None or current['status'] == 'cancelled':
+        raise ProjectError(f'Expected a tracked task eligible for review: {task}')
     try:
-        decision = review_acceptance.create_decision(
-            root, task, source, transcript, reviewer, scope, observation, supersedes)
-        validate_model(root, 'TaskReviewDecisions', {'version': 2, 'task_id': task, 'decisions': [decision]})
-        reviewed_tasks = tasks_at_feedback_checkpoint(root, decision['source_commit'])
-        if task not in reviewed_tasks:
+        reviewed = exact_commit(root, source)
+        reviewed_task = tasks_at_feedback_checkpoint(root, reviewed).get(task)
+        if reviewed_task is None:
             raise ProjectError(f'{task} did not exist at the reviewed source.')
+        if request is None:
+            entry = review_acceptance.create_decision(
+                root, task, reviewed, transcript, reviewer, scope, observation, supersedes)
+        else:
+            head = feedback_commit(root, 'HEAD')
+            if (reviewed != head or task_definition_hash(current) != task_definition_hash(reviewed_task)
+                    or not review_acceptance.source_matches(root, reviewed, head, None)):
+                raise ProjectError('Open an independent review request on the exact current committed task source.')
+            entry = review_acceptance.create_request(task, reviewed, request, supersedes)
+        validate_model(root, 'TaskReviewDecisions', {'version': 3, 'task_id': task, 'events': [entry]})
     except (review_acceptance.ReviewError, ScopeError, UnicodeError) as error:
         raise ProjectError(str(error)) from error
     path = local_path(root, f'{review_acceptance.DIRECTORY}/{task}.json')
     try:
         lock = git_path(root, '--git-dir') / f'scopehub-review-{task}.lock'
         with exclusive_git_lock(lock):
-            decisions = load_task_reviews(root).get(task, [])
-            decision, added = review_acceptance.append_decision(root, decisions, decision)
+            entries = load_task_reviews(root).get(task, [])
+            entry, added = review_acceptance.append_entry(root, entries, entry)
             if added:
-                value = {'version': 2, 'task_id': task, 'decisions': [*decisions, decision]}
+                entries = [*entries, entry]
+                value = {'version': 3, 'task_id': task, 'events': entries}
                 validate_model(root, 'TaskReviewDecisions', value)
                 require_portable_report_paths(root, value, f'Independent review for {task}')
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -1449,9 +1475,12 @@ def record_task_review(root, task, source, transcript, reviewer, scope, observat
         raise ProjectError(f'Cannot safely update independent review for {task}. Retry after the other intake.') from error
     except (review_acceptance.ReviewError, ValueError) as error:
         raise ProjectError(str(error)) from error
-    return {'path': path.relative_to(root).as_posix(), 'decision': decision,
-            'claim_scope': 'Local transcript intake binds the verdict and verbatim excerpts. Reviewer identity and '
-                           'independence rely on the coordinator who retained the original.'}
+    latest = entries[-1]
+    return {'path': path.relative_to(root).as_posix(), entry['kind']: entry, 'recorded': added,
+            'current_entry_id': review_acceptance.entry_id(latest),
+            'current_entry_kind': latest['kind'],
+            'claim_scope': 'A request records coordination. A decision binds the final reply and a complete body observation. '
+                           'Reviewer identity and independence rely on the coordinator who retained the original.'}
 
 
 def local_feedback_history(root, project):
@@ -1729,11 +1758,13 @@ def main():
     review = sub.add_parser('review', help='Retain a separate independent decision from a local transcript')
     review.add_argument('task_id')
     review.add_argument('--source', required=True, metavar='COMMIT')
-    review.add_argument('--transcript', required=True, type=Path, help='Retained final assistant export, final response, or rendered terminal transcript')
-    review.add_argument('--reviewer', required=True, help='Independently observed reviewer or session identity')
+    review_input = review.add_mutually_exclusive_group(required=True)
+    review_input.add_argument('--transcript', type=Path, help='Retained final assistant export, final response, or rendered terminal transcript')
+    review_input.add_argument('--request', metavar='SCOPE', help='Open a durable independent review request before dispatch')
+    review.add_argument('--reviewer', help='Independently observed reviewer or session identity')
     review.add_argument('--scope', help='Verbatim transcript excerpt naming the task if the verdict line omits it')
-    review.add_argument('--observation', required=True, help='Verbatim English sentence reporting an independent observation')
-    review.add_argument('--supersedes', help='Retained current response ID when recording a subsequent decision')
+    review.add_argument('--observation', help='Complete verbatim factual sentence from the post-verdict body')
+    review.add_argument('--supersedes', help='Current decision or request ID when appending a subsequent entry')
 
     diagnostic = sub.add_parser('diagnostic', help='Identify or explicitly verify a retained diagnostic')
     diagnostic_commands = diagnostic.add_subparsers(dest='diagnostic_command', required=True)
@@ -1786,8 +1817,16 @@ def main():
         elif args.command == 'review':
             original = os.environ.get('INIT_CWD') if os.environ.get('npm_lifecycle_event') == 'project:review' else None
             caller = Path(original) if original else Path.cwd()
-            result = record_task_review(ROOT, args.task_id, args.source, caller / args.transcript, args.reviewer,
-                                        args.scope, args.observation, args.supersedes)
+            if args.transcript is not None:
+                if not args.reviewer or not args.observation:
+                    review.error('--transcript requires --reviewer and --observation.')
+                transcript = caller / args.transcript
+            else:
+                if args.reviewer is not None or args.observation is not None or args.scope is not None:
+                    review.error('--request supplies the scope. Reviewer and observation belong to the final decision.')
+                transcript = None
+            result = record_task_review(ROOT, args.task_id, args.source, transcript, args.reviewer,
+                                        args.scope, args.observation, args.supersedes, request=args.request)
         elif args.command == 'diagnostic':
             try:
                 if args.diagnostic_command == 'identify':
