@@ -5222,7 +5222,7 @@
       "id": "frozen-csv-review-compatibility",
       "source": "Independent Astra Standard review of PR 92 at 638c8dd29ad122e86755b2d1f7b0697e36c67f93. Local pre-repair observations are retained in .reports/m1-045-red-rust-caller.log (SHA-256 62c695e54e35def6acb3bf43bb1fe26b47389a3b44ee596e691fb4aadebd6644), .reports/m1-045-red-worker.log (SHA-256 b32dc3e2e3b4d2999d5852d63ce59da4f2acec75cb0e57a1215adbdb27693f5c), .reports/m1-045-red-browser.log (SHA-256 71a8e67b6034ab8c18c682abac5d0e138321d1ee20e39886da4c1ddbe6dc038e).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Optional review metadata makes otherwise valid frozen CSV rows exceed the response budget in both dialogs. The UI collapses meaningful mapping whitespace. The public Rust row signature and original request constructors changed, and older workers reject the unnegotiated option.",
       "task_ids": [
         "M1-045"
@@ -5232,7 +5232,11 @@
         "rust-contracts-workers",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The mandatory desktop review request consumed extra space, used the original worker capability, and conflated review metadata with stable Rust types. The review list collapsed whitespace.",
+        "correction": "Negotiate the distinct worker feature, retain the original Rust types and entry point, and use a fresh, reauthorized raw read on the two recoverable review failures. Show conflicting columns in an aligned table with literal whitespace.",
+        "prevention": "Exercise the 64 KiB boundary and an oversized original, permission revocation between review and retry, and literal whitespace in both dialogs. Compile a separate old caller and verify positive and negative private capability paths."
+      },
       "deferral_reason": null
     }
   ]
