@@ -17,6 +17,8 @@ pub struct Profile(pub PathBuf);
 
 impl Profile {
     pub fn new() -> Self {
+        register_workspace_acl_worker();
+
         let temporary = std::env::temp_dir();
         #[cfg(unix)]
         let temporary = temporary.canonicalize().unwrap();
@@ -30,7 +32,13 @@ impl Profile {
     }
 }
 
+fn register_workspace_acl_worker() {
+    #[cfg(windows)]
+    scopehub_persistence::use_workspace_acl_test_host("support::workspace_acl_worker");
+}
+
 pub fn store(root: &Path) -> SqliteWorkspace {
+    register_workspace_acl_worker();
     SqliteWorkspace::open(root, binding(PROFILE_ID)).unwrap()
 }
 
@@ -110,4 +118,10 @@ pub fn assert_committed<'a>(reply: &'a Value, revision: u64, timeframe: &str) ->
         json!({"kind": "chart", "object_id": MAIN_CHART_ID})
     );
     receipt["operation_id"].as_str().unwrap()
+}
+
+#[cfg(windows)]
+#[test]
+fn workspace_acl_worker() {
+    scopehub_persistence::run_workspace_acl_test_worker();
 }

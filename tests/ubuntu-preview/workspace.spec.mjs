@@ -2,10 +2,10 @@ import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter, once } from 'node:events';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -19,6 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
 
@@ -766,6 +767,94 @@ test('indicator-preview uses the bound sample calendar through the normal chart'
   }
 });
 
+test('workspace delivers pre-admission BUSY after a complete indicator draft request', async () => {
+  const profile = await makeProfile();
+  const draft = {
+    protocol_version: '1.1', type: 'request', task_id: null, message_id: randomUUID(),
+    request_id: randomUUID(), timestamp_ms: Date.now(),
+    scope: {
+      workspace_id: workspaceId, target: { kind: 'chart', object_id: 'main-chart' },
+      expected_workspace_revision: 0, expected_selection_revision: 0, idempotency_key: randomUUID(),
+    },
+    intent: { operation: 'indicator.createDraft', arguments: { language: 'declarative', source: {
+      parameters: [], outputs: [{ kind: 'line', id: 'close', pane: 'price',
+        style: { color: '#001122', width: 2 }, value: { op: 'field', field: 'close' } }],
+    } } },
+  };
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      const holder = server.tagSnapshot();
+      const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+      void snapshotReply.catch(() => {});
+      try {
+        await holder.wait('written');
+        const draftBody = JSON.stringify(draft);
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+          const tag = server.tagSnapshot();
+          const request = httpRequest(server.url + endpoint, {
+            method: 'POST', agent: false, signal: AbortSignal.timeout(4_000),
+            headers: {
+              Origin: server.url, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(draftBody),
+              Authorization: 'Bearer ' + server.capability, ...tag.headers,
+            },
+          });
+          const response = once(request, 'response').then(async ([reply]) => {
+            const chunks = [];
+            for await (const chunk of reply) chunks.push(chunk);
+            return { http: reply.statusCode, body: JSON.parse(Buffer.concat(chunks)) };
+          });
+          void response.catch(() => {});
+          try {
+            request.write(draftBody[0]);
+            const handled = await tag.wait('handled');
+            console.info('Split workspace draft admission', JSON.stringify({ attempt, handled }));
+            expect(handled).toMatchObject({ complete: false, headers_sent: false, socket_destroyed: false });
+            if (attempt === 2) {
+              holder.release();
+              expect(await responseStatus(await snapshotReply)).toBe(200);
+              // An incomplete, already-refused upload must not hold a free writer.
+              expect(await postStatus(server, snapshot)).toBe(200);
+            }
+            request.end(draftBody.slice(1));
+            const refused = await response;
+            const finished = await tag.wait('finished');
+            console.info('Workspace draft admission refusal', JSON.stringify({ attempt, refused, finished }));
+            expect(refused).toEqual({ http: 429, body: busy });
+            expect(finished).toMatchObject({ complete: true, http: 429, socket_destroyed: false });
+          } finally {
+            request.destroy();
+            await Promise.allSettled([response]);
+          }
+        }
+      } finally {
+        holder.release();
+        await Promise.allSettled([snapshotReply]);
+      }
+      expect((await snapshotReply).status).toBe(200);
+      const committed = async body => (await (await post(server, body)).json()).result;
+      const delivery = await post(server, draft);
+      // Keep a witness of the real reply while discarding the caller's copy.
+      // Only this test explicitly sends the identical command again.
+      const [witness] = await Promise.all([delivery.clone().json(), delivery.body.cancel()]);
+      const first = witness.result;
+      expect(first).toMatchObject({ request_id: draft.request_id, outcome: { state: 'committed',
+        receipt: { committed_workspace_revision: 0, undoable: false } } });
+      const duplicate = await committed(draft);
+      expect(duplicate).toMatchObject({ request_id: draft.request_id, outcome: first.outcome });
+      const conflict = structuredClone(draft);
+      conflict.intent.arguments.source.outputs[0].style.color = '#334455';
+      expect(await committed(conflict)).toMatchObject({ request_id: draft.request_id,
+        outcome: { state: 'failed', error: { code: 'INVALID_ARGUMENT' } } });
+      expect((await committed(draft)).outcome).toEqual(first.outcome);
+      console.info('Workspace draft receipt identity', JSON.stringify({
+        request_id: draft.request_id, draft_id: first.outcome.result.draft_id, operation_id: first.outcome.receipt.operation_id,
+      }));
+    }, { snapshotGate: true });
+  } finally {
+    await profile.close();
+  }
+});
+
 test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }) => {
   const profile = await makeProfile();
   const revision = randomUUID();
@@ -784,14 +873,117 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
         await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
         const panel = dialog.getByRole('region', { name: 'Indicator preview' });
         await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
-        for (const count of [3, 1]) {
-          if (count === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
-          const [reply] = await Promise.all([
-            page.waitForResponse(async r => r.url().endsWith(endpoint)
-              && r.request().postDataJSON()?.type === 'indicator_preview_status' && (await r.json()).result?.status === 'ready'),
-            panel.getByRole('button', { name: 'Run preview' }).click(),
-          ]);
-          const ready = (await reply.json()).result;
+        let losses = 0;
+        let frames = [];
+        let dropped = [];
+        let requests = [];
+        let startedAt = performance.now();
+        const previewRequest = request => {
+          if (new URL(request.url()).pathname !== endpoint) return undefined;
+          const payload = request.postDataJSON();
+          const operation = payload?.intent?.operation ?? payload?.operation ?? payload?.type;
+          return ['indicator.createDraft', 'indicator.runPreview', 'indicator_preview_status', 'task.cancel'].includes(operation)
+            ? { operation, request_id: payload.request_id, task_id: payload.task_id } : undefined;
+        };
+        page.on('request', request => {
+          const entry = previewRequest(request);
+          if (entry) requests.push(entry);
+        });
+        page.on('response', async response => {
+          const entry = previewRequest(response.request());
+          if (!entry) return;
+          const frame = { ...entry, at_ms: Math.round(performance.now() - startedAt), http: response.status() };
+          frames.push(frame);
+          try {
+            const reply = await response.json();
+            const result = reply.result;
+            frame.ok = reply.ok;
+            frame.outcome = result?.outcome?.state ?? result?.status;
+            frame.terminal = result?.event?.outcome?.status ?? result?.outcome?.status;
+            frame.code = reply.error?.code ?? result?.outcome?.error?.code ?? result?.event?.outcome?.error?.code;
+            frame.reply_task_id = result?.task_id ?? result?.outcome?.result?.task_id;
+            if (result?.status === 'ready') frame.ready = result;
+          } catch (error) {
+            frame.response_error = error.name;
+          }
+        });
+        page.on('requestfailed', request => {
+          const entry = previewRequest(request);
+          if (entry) frames.push({ ...entry, at_ms: Math.round(performance.now() - startedAt), delivery: request.failure()?.errorText });
+        });
+        await page.route(server.url + endpoint, async route => {
+          const entry = previewRequest(route.request());
+          if (dropped.length >= losses || entry?.operation !== 'indicator_preview_status') return route.continue();
+          const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
+          const result = (await response.json()).result;
+          if (result?.status !== 'ready') return route.fulfill({ response });
+          dropped.push({ ...entry, http: response.status(), result, requestsAtLoss: requests.length });
+          await route.abort('connectionreset');
+        });
+        for (const { count, cut } of [{ count: 3, cut: 0 }, { count: 1, cut: 1 }, { count: 1, cut: 2 }]) {
+          frames = [];
+          dropped = [];
+          requests = [];
+          losses = cut;
+          startedAt = performance.now();
+          if (cut === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
+          const failure = panel.getByRole('alert').or(panel.getByText('Indicator preview cancelled.', { exact: true }));
+          const run = panel.getByRole('button', { name: 'Run preview' });
+          const describe = visibleError => JSON.stringify({
+            count, cut, alert: visibleError,
+            frames: frames.map(({ ready, ...frame }) => frame),
+            ...(dropped.length && { afterLoss: requests.slice(dropped[0].requestsAtLoss) }),
+            lost: dropped.map(({ result, ...frame }) => ({
+              ...frame, status: result.status, result_hash: result.event.artifact.result_hash,
+            })),
+          });
+          try {
+            await run.click();
+            await expect(panel.getByText(/Preview layers/).or(failure)).toBeVisible({ timeout: 30_000 });
+          } catch (error) {
+            console.info('Frozen indicator preview observation', describe(null));
+            throw error;
+          }
+          const visibleError = await failure.isVisible() ? await failure.innerText() : null;
+          const observation = describe(visibleError);
+          console.info('Frozen indicator preview observation', observation);
+          expect(visibleError, observation).toBe(cut === 2 ? 'The indicator preview could not be completed.' : null);
+
+          const admitted = () => frames.find(frame => frame.operation === 'indicator.runPreview' && frame.outcome === 'committed');
+          const current = () => {
+            return frames.find(frame => frame.ready && frame.task_id === admitted()?.reply_task_id)?.ready;
+          };
+          if (cut) {
+            await expect.poll(() => admitted()?.reply_task_id).toBe(dropped[0]?.task_id);
+            expect(dropped).toHaveLength(cut);
+            for (const entry of dropped) {
+              expect(entry).toMatchObject({ http: 200, task_id: admitted()?.reply_task_id });
+              expect(frames).toContainEqual(expect.objectContaining({
+                request_id: entry.request_id, task_id: entry.task_id, delivery: 'net::ERR_CONNECTION_RESET',
+              }));
+            }
+            const afterLoss = requests.slice(dropped[0].requestsAtLoss);
+            expect(afterLoss.filter(({ operation }) =>
+              operation === 'indicator.createDraft' || operation === 'indicator.runPreview'),
+            'Actual requests after status delivery loss must not resubmit the preview').toEqual([]);
+            expect(afterLoss.filter(({ operation }) => operation === 'indicator_preview_status'))
+              .toMatchObject([{ operation: 'indicator_preview_status', task_id: dropped[0].task_id }]);
+          }
+          if (cut === 2) {
+            await expect(run).toBeEnabled();
+            expect(current()).toBeUndefined();
+            await expect.poll(() => frames.some(frame => frame.operation === 'task.cancel'
+              && frame.task_id === dropped[0].task_id && frame.http === 200)).toBe(true);
+            expect(frames.filter(frame => frame.operation === 'indicator_preview_status'
+              && frame.task_id === dropped[0].task_id && frame.code !== 'BUSY' && frame.outcome !== 'running')).toHaveLength(2);
+            continue;
+          }
+          await expect.poll(current, { message: 'Observe the ready status for the admitted preview task' }).toBeDefined();
+          const ready = current();
+          if (cut) {
+            expect(ready).toEqual(dropped[0].result);
+            expect(frames.some(frame => frame.operation === 'task.cancel' && frame.task_id === ready.task_id)).toBe(false);
+          }
           const values = ready.event.artifact.result.series[1].points;
           expect(values).toHaveLength(count);
           expect(values.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
@@ -3419,6 +3611,11 @@ test('ordinary and Ubuntu history startup do not open a writer or dispatch data 
 });
 
 async function makeProfile(id = 'synthetic-' + randomUUID()) {
+  if (process.platform === 'win32') {
+    const root = await claimProfile(process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL);
+    if (root) return { root, id, close: () => rm(root, { recursive: true, force: true, maxRetries: 3 }) };
+    // Large or repeated verification runs can still prepare additional profiles.
+  }
   const directory = await mkdtemp(join(tmpdir(), 'scopehub-ubuntu-test-'));
   const profile = join(directory, 'profile');
   const close = () => rm(directory, { recursive: true, force: true });
@@ -3429,6 +3626,58 @@ async function makeProfile(id = 'synthetic-' + randomUUID()) {
     await close();
     throw error;
   }
+}
+
+if (process.platform === 'win32') {
+  test('the Windows workspace pool opens a claimed profile and refuses unsafe outer ACLs', async () => {
+    const runPool = process.env.SCOPEHUB_WORKSPACE_TEST_PROFILE_POOL;
+    expect(runPool).toBeTruthy();
+    await withProfilePoolAclControl(dirname(runPool), async (control, prepare) => {
+      // Use a separate one-profile pool so this remains a real claim and open
+      // even if a larger or repeated suite has consumed the ordinary pool.
+      const pool = join(control, 'positive');
+      await prepare(python, workspaceBridge, pool);
+      const profile = await claimProfile(pool, 1);
+      expect(profile).toBe(join(pool, 'profiles', 'profile-0'));
+      const database = join(profile, 'workspace.sqlite3');
+      await expect(stat(database)).rejects.toMatchObject({ code: 'ENOENT' });
+      const writer = exec(workspaceBridge, [profile, 'synthetic-' + randomUUID(), workspaceId], { timeout: 12_000 });
+      writer.child.stdin.end();
+      const { stdout } = await writer;
+      expect(JSON.parse(stdout.trim())).toMatchObject({
+        ok: true, private_profile: true, result: { workspace: { id: workspaceId, revision: 0 } },
+      });
+      expect((await stat(database)).isFile()).toBe(true);
+
+      // The enclosing control already owns cleanup even if the Python command
+      // creates the directory and exits before delivering its result.
+      const legacy = join(control, 'python-owner-rights');
+      const legacyControl = `
+from pathlib import Path
+import sys
+if sys.implementation.name == 'cpython' and sys.version_info >= (3, 12, 4):
+    Path(sys.argv[1]).mkdir(mode=0o700)
+    print('created')
+`;
+      const legacyResult = await exec(python, ['-B', '-c', legacyControl, legacy], {
+        timeout: 12_000, windowsHide: true,
+      });
+
+      const replaceable = join(control, 'replaceable');
+      await mkdir(replaceable);
+      const icacls = join(process.env.SystemRoot, 'System32', 'icacls.exe');
+      await exec(icacls, [replaceable, '/grant', '*S-1-1-0:(DC)'], { timeout: 12_000, windowsHide: true });
+
+      const ancestors = legacyResult.stdout.trim() === 'created' ? [legacy, replaceable] : [replaceable];
+      for (const ancestor of ancestors) {
+        const refused = join(ancestor, 'pool');
+        await expect(prepare(python, workspaceBridge, refused)).rejects.toMatchObject({
+          code: 1, stderr: expect.stringContaining('(prepare, replaceable-ancestor)'),
+        });
+        await expect(stat(refused)).rejects.toMatchObject({ code: 'ENOENT' });
+      }
+    });
+  });
 }
 
 async function assertPrivateHandoff(handoff) {

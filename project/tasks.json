@@ -20096,6 +20096,1065 @@
       }
     },
     {
+      "id": "M0-097",
+      "title": "Retain exact linked verification timing across bounded history",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project",
+        "project/feedback.json",
+        "project/delivery.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary offline project status and regular CI recover explicitly linked original timed controls from the shared retained authentic compact captures after both recent history windows rotate. A new worktree uses the same controls without copying or refreshing files.",
+        "A supported offline migration brings existing captures into exact-identity lookup. New captures establish their own lookup entries without full-history scanning during normal intake. The ordinary read windows keep their existing limits.",
+        "Missing or conflicting captures stay visible and never prove recovery. A retained authenticated failure still overrides a stale success for that exact attempt. Preserve original diagnostics, completed task evidence and historical finding dispositions."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-097-3a293e4ffdc873f7.json",
+          "sha256": "e605be098c818d944d5f0960af05954e949e50b0b8508af3151ee6d758a0cd63"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Standard Astra approved exact source 6241372d7e6b95902fa721c2c8f393b8c869dbb0. One matching offline Linux task run, 20261124T171439.340023Z-42549823, passed the environment, project state and Python contracts and workers checks and observed both registered findings. The actual shared migration indexed 23 retained captures and an independent worktree read every linked control with no manual timing archive. No hosted or protected integration claim is made by this receipt.",
+      "plan": {
+        "outcome": "A maintainer sees qualifying linked timing evidence after recent history rotates or a fresh worktree opens.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/ci.py",
+          "scripts/project.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A shared exact lookup pointing to the existing capture bytes can recover linked controls without widening the default observation windows."
+        ],
+        "risks": [
+          {
+            "failure": "A linked PR or push control disappears when the automatic or manual history window rolls over, or a new worktree cannot reach the retained observation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing or contradictory exact inputs look like recovery, including when one indexed claimant lacks a clock or compact file, a stale success overrides a known failed attempt, or indexing failures change the regular CI verdict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Remove exact lookup and the migration command while retaining the original compact captures, diagnostics, and existing bounded observation path.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/ci.py",
+            "scripts/project.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No change to timing objectives, ordinary capture limits, workflow protection, receipt eligibility or remote collection."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep original captures, previous receipts and immutable accepted records."
+          ],
+          "change": [
+            "Read referenced timing identities through a shared lookup in addition to the existing bounded history."
+          ],
+          "data_plan": "Index original compact captures using their native source identity. Migrate existing data offline and leave original bytes in place.",
+          "cleanup": "Keep the shared lookup derived and rebuildable. Missing originals remain explicitly unavailable."
+        }
+      }
+    },
+    {
+      "id": "M0-094",
+      "title": "Prepare a separate Windows market recovery producer if main remains over budget",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-092"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/check.py",
+        "scripts/ci_artifacts.py",
+        "scripts/timing.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Locally demonstrate that ordinary full Windows assigns the unchanged Python contracts and market recovery commands to independent producers, with the contracts starting after pinned Python, Git and Rust setup and each selected check still required.",
+        "Demonstrate digest-checked collection and current-attempt identity for four producers, rejection of missing or invalid evidence, failure visibility, and comparison with original three-producer clocks and cache states. Preserve scoped, Linux, native Windows and release check coverage.",
+        "Retain the projection, original local parity and limitations, and an independent Standard review. Keep this candidate local and park it if an ordinary successful M0-093 main push meets the existing budget. The M0-091 finding remains open until its authoritative recovery criteria are satisfied."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-recovery",
+        "windows-native-build"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45407009232-1",
+          "source_commit": "5e965c24828cf5b1c2210e94eb8a913ac423099e",
+          "report_sha256": "5df4ad7b1224fc323dddfc8476912b57f71325d639c709058a2f33eff7f212c9"
+        },
+        {
+          "run_id": "windows-change-45410634661-1",
+          "source_commit": "427540bb8b6ea77bcb7887dd83421c0a18307a61",
+          "report_sha256": "d281e8caffb511130f3fb663ebf988486b173c795ecee552a0846fc48aa0348b"
+        },
+        {
+          "run_id": "windows-change-45418380941-1",
+          "source_commit": "66023a76b4ca41af10ce4cef6146d9dd47d45a4c",
+          "report_sha256": "a81e0f4231a6e676895146bd678608905fd38932b3b275d993480460b036f8d3"
+        },
+        {
+          "run_id": "windows-change-45421408601-1",
+          "source_commit": "4de5df8a51e8dee93038b3cd7a2aeb85dcd163ab",
+          "report_sha256": "2d2aa7f3edba8ea5667e3896511f9132fc49df2f17fb8f7809bd34e997523503"
+        },
+        {
+          "run_id": "windows-change-45437657243-1",
+          "source_commit": "2396f08e4b44d9a29086c49735d2acea6ffd1d20",
+          "report_sha256": "3bff5ad63588291ae1df134e47edc89998bb16c0cfff791df8c2db448e54fbf7"
+        }
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-094-347037deddcd9d33.json",
+          "sha256": "c6687c3518728754135a6b412d22e10dd36625ea4c3b6ad377fed743a4b02342"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Ordinary full pull request 84 run 45459661035 passed on the exact checked merge. The protected workflow took 910 seconds and used 3200 runner seconds. Its Windows aggregate retained all four producer outcomes, cache states and native Windows build and supplies the four task checks. The independent Standard review is retained at archives/observations/m0-094-m0-097-astra-216ad67/review.txt. The final pull request head still requires protection. The separate ordinary main budget observation remains with M0-091.",
+      "plan": {
+        "outcome": "Prepare a local fallback that moves browser and Cargo cache setup off the Windows Python contracts critical path.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/ci_artifacts.py",
+          "scripts/timing.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "In failed full main 45421408601, the successful Python producer spent 216 seconds in setup, including 105 seconds restoring the exact 2.738 GB Cargo cache and 37 seconds installing and probing pinned Chromium. The archived projection puts that 928-second workflow near 829 seconds with about 219 additional runner seconds. The 1192-second cache seed remains over budget. Evidence and limitations are in archives/observations/m0-094-windows-recovery-startup-study/SHA256SUMS (SHA-256 fae92b8237b6acc1f05c3edccc2bb03813758fabc1fbb50ce35d159b28820ab0).",
+          "M0-094 owns the technical fallback. M0-091 owns the comparable ordinary main timing observation under verification-main-push-feedback-budget-overrun, whose task owners remain M0-087 and M0-091. The fallback study informs that decision without changing the governed record.",
+          "The isolated Linux contracts run preserved all 700 named outcomes without Node, pnpm, Chromium, or a restored Cargo cache. The real Cargo fixture still needs pinned Rust, and Windows-specific behavior remains unmeasured.",
+          "Successful full main 45437657243 took 920 seconds with warm Cargo caches and no cache saves. The Python producer ended at second 877, followed by 43 seconds for the protected result. Replaying the measured 128 seconds of transferable setup puts Python at second 749 and Core last at second 765, projecting 808 seconds with about 213 additional Windows runner seconds. Original clock identities, algorithm, and limits are retained at archives/observations/m0-094-main-45437657243/projection.json (SHA-256 27dde8a18dc34f755ca769de7d3c4d584776f31d24eaa4afc03276cffa568e26)."
+        ],
+        "risks": [
+          {
+            "failure": "A lean producer loses a real prerequisite or scope routing omits existing Python, market recovery, or native Windows checks.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery",
+              "windows-native-build"
+            ]
+          },
+          {
+            "failure": "A missing, stale, failed, or wrongly assigned fourth producer is accepted, or its recovery outputs collide or disappear.",
+            "checks": [
+              "python-contracts-workers",
+              "market-recovery"
+            ]
+          },
+          {
+            "failure": "Cache omissions appear warm, retained three-producer evidence stops comparing, or local projections are mistaken for main recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Linking the fallback as a third owner of the governed main timing finding makes ordinary delivery block on that finding and prevents the protected two-owner closure.",
+            "checks": [
+              "project-state"
+            ]
+          },
+          {
+            "failure": "The four-producer timing reader promotes a sample without producer cache provenance, discards a conflicting original during archive reload, or accepts an incomplete unmarked layout as legacy.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Park the local candidate if the ordinary product repair meets the budget, if setup independence fails, or if stronger verification no longer establishes comparable coverage and provenance. M0-091 retains its independent measurement and disposition.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/check.py",
+            "scripts/ci_artifacts.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No M0-093 product work, new hosted runs, remote publication, cache policy redesign, modified check assertions, or change to the protected job and budget objective."
+          ],
+          "open_questions": [
+            "Will the next ordinary repaired main already meet the budget, or is a later exact Windows candidate worth the additional runner work?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The check catalog, selected commands, reports, artifact paths, heap and process ownership, deadlines, historical timing and accepted check coverage."
+          ],
+          "change": [
+            "Give the original market recovery command its own Windows full producer. Identify historical and current producer layouts explicitly and retain independent cache observations."
+          ],
+          "data_plan": "Keep original run evidence and provenance. Add only backward-compatible timing metadata for the four-producer layout. If delivery proceeds, freeze the task and project definitions for the ordinary full pull request. Record the same successful Windows aggregate report for project-state, Python contracts, market recovery and native Windows build. Keep the original input and run identities when attaching the receipt.",
+          "cleanup": "Retain the local candidate and independent review without scheduling a new protected acceptance round."
+        }
+      }
+    },
+    {
+      "id": "M0-098",
+      "title": "Recognize ordinary Windows paths in the linked timing index",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-097"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Regular CI intake can index all four local/shared capture combinations when the filesystem canonicalizes the spelling of an ordinary directory. Offline status can still look up linked controls.",
+        "Both the writer and offline reader reject actual filesystem redirection on linked index directory paths without following it. Preserve original timing captures, historical records, and CI verdicts."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-098-347037deddcd9d33.json",
+          "sha256": "7584112e01cb3fc4976f864f533080b9736aea76c0f417d56fea7d82708dc904"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Ordinary full pull request 84 run 45459661035 passed the Windows timing backfill method with its four cases and the new native junction rejection control. Both task checks are present in the successful Windows aggregate. The first failed attempt remains archived. The independent Standard review is retained at archives/observations/m0-098-linked-timing-windows-ef65312/astra-ef65312.txt.",
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45450283829-1",
+          "source_commit": "c4e65847e8c66667da5bb3cc7696c06081f963cb",
+          "report_sha256": "465a66c3485a88d8803c4060d07e4452af762429cd4d79e69ba03e27f6e2275d"
+        }
+      ],
+      "plan": {
+        "outcome": "A Windows maintainer can index and read original linked timing captures from plain directories regardless of their path spelling.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The current resolve-and-compare test conflates canonical spelling of an existing directory with filesystem redirection. The runner log identifies the guard and caller, but does not record the original temporary path spelling."
+        ],
+        "risks": [
+          {
+            "failure": "Ordinary timing intake reports link errors for a valid alternate directory spelling.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Accepting alternate spelling also lets linked index reads or writes traverse a symlink or Windows reparse point.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the path check if redirected paths leak into linked lookup. Retain the original compact captures and failed Windows diagnostic.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No workflow, budget objective, history window, archive format, or hosted scheduling changes."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact capture identity, original compact files, historical task and finding records, and the existing redirect boundary."
+          ],
+          "change": [
+            "Decide whether linked timing index directories are plain from filesystem entries instead of their spelling."
+          ],
+          "data_plan": "Keep the existing linked index layout and original bytes. No migration is needed.",
+          "cleanup": "Retain the failed aggregate and producer provenance and reuse the next ordinary Windows PR for native confirmation."
+        }
+      }
+    },
+    {
+      "id": "M0-099",
+      "title": "Recover the cropped frozen-chart indicator preview path",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M3-001",
+        "M0-093"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "apps/desktop/src-tauri",
+        "crates/application",
+        "crates/persistence",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Observe the full and cropped rolling two-bucket preview through the ordinary frozen CSV chart. Preserve the exact dataset, warmup, zero volatility and rendered row assertions.",
+        "Distinguish admitted, retryable, terminal and stale responses by the initiating request and task, and preserve cancellation and explicit retry semantics.",
+        "Retain the protected Windows failure, source and cropped-state screenshot. Verify the confirmed cause with a bounded control without extending the existing preview or test deadlines."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-099-347037deddcd9d33.json",
+          "sha256": "724dde353cb8e59e82427c1488a8e14a667c612f49483783a8b458db549932d6"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45453952239-1",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "359bb4ca0543d85f02e75e17486f39f3c2b7b11ddfb24e9f62f387c8ab74262f"
+        },
+        {
+          "run_id": "20261124T175733.115972Z-00d136ed",
+          "source_commit": "4d18bb8c74344a852c4ec68f39748d1bb87ba1ab",
+          "report_sha256": "2cdd528fe3eb0e92e618eda111fd2606e152a4ee3fb3e5514e46d36f7c5dd8cb"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Ordinary full pull request 84 run 45459661035 passed both original frozen preview cases, their exact result assertions and all seven task checks. The controlled loss and forbidden identical replay were reproduced and reviewed separately at archives/observations/m0-099-cropped-indicator/index.json. The triggering exchange in the older hosted timeout remains unknown.",
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "The ordinary frozen CSV indicator shows the expected zero in the full and cropped windows. A terminal reply is correlated and surfaced promptly with the correct recovery semantics.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "crates/application/src/workspace/indicators.rs",
+          "PR 84 workflow 45453952239"
+        ],
+        "hypotheses": [
+          "The screenshot establishes that the cropped attempt reached the user-facing terminal error, but does not identify whether draft creation, admission, status, or client validation caused it.",
+          "A request-correlated observation of the real frozen fixture can distinguish the failure from a ready-only waiter masking it."
+        ],
+        "risks": [
+          {
+            "failure": "A successful or terminal reply is attributed to the wrong run, an identical submission replay escapes detection, or an accepted result loses exact zero or warmup semantics.",
+            "checks": [
+              "workspace-timeframe",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Changing deadlines or accepting a broader error could mask the cropped failure or alter unrelated authorization, stale work or desktop transport behavior.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Retain the original red, undo any correction shown to alter a different path, and keep the named full and cropped assertions visible while correcting the confirmed entry.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop",
+            "application"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "crates/application/src/workspace/indicators.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Longer deadlines, relaxing zero or artifact assertions, wider indicator permissions, or changes to accepted historical task records."
+          ],
+          "open_questions": [
+            "The hosted reply is unavailable. A controlled single status delivery loss reproduces the terminal UI despite a real ready result. Prove bounded recovery on the same task and prompt terminal handling after the allowance is spent."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact frozen revision, range, warmup, cancellation, authorization, and full and cropped zero assertions."
+          ],
+          "change": [
+            "Add a bounded correlated observation and correct only the earliest confirmed failure path."
+          ],
+          "data_plan": "Retain original report, screenshot and diagnostic log. Use only isolated synthetic frozen data in deterministic controls.",
+          "cleanup": "Release any held replies and preserve the primary error before stopping the fixture."
+        }
+      }
+    },
+    {
+      "id": "M0-101",
+      "title": "Preserve indicator draft admission replies during cropped preview",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-099"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "crates/application",
+        "tests/ubuntu-preview"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Recover the ordinary frozen CSV indicator preview when the old task cancellation overlaps draft admission. Preserve full and cropped zero volatility, warmup, same-task status recovery, exact rejection and cancellation.",
+        "Prove the first affected entry with bounded controls that distinguish pre-admission refusal, admitted replies, and connection loss. An accepted draft is accounted for once and a recovery does not manufacture another mutation key.",
+        "Keep the original Windows and Linux evidence and the confirmed source and stage. Leave test and product deadlines unchanged."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-101-1539772caeae4480.json",
+          "sha256": "8c31ae4dd167cf7acef87bba79b61fd5d577536561a7fa6592880da0d05035fb"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45462762808-1",
+          "source_commit": "838315fd5e56291fbccb0d2ad8c2000a594d415a",
+          "report_sha256": "e446f1a8bfb86ca7da5651c335720aa79bff86fa7bdb161bac1c3dd8862490bd"
+        },
+        {
+          "run_id": "20261124T184539.601790Z-f957f8f0",
+          "source_commit": "838315fd5e56291fbccb0d2ad8c2000a594d415a",
+          "report_sha256": "18057b010e2a42132ad0e55993552bfdb5d706bc8a7311309e0c257d05b8983b"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The independently approved source 183e404 passed all six required checks and the environment check in local Linux run 20261124T191213.131242Z-d78b1248. The real workspace transport now waits for bounded complete authorized intake before delivering a pre-admission BUSY. The writer stays available and an explicitly repeated identical draft retains its single authoritative receipt in the original writer. The full and cropped indicator result and the existing same-task status recovery passed. The original Windows reset is retained with unknown upstream disposition. The protected Windows confirmation will run on the same PR after this closure.",
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "The user can run the cropped preview across an overlapping cancellation and obtain the original reviewed zero sample. The local transport returns a usable bounded pre-admission refusal and any ambiguous draft delivery remains safe.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/ubuntu-workspace.mjs",
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "crates/application/src/workspace/indicators.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "PR 84 workflow 45462762808"
+        ],
+        "hypotheses": [
+          "A verified Windows browser reset on createDraft occurred before any observed run or status. The writer outcome and exact transport state are not recorded.",
+          "Same-source Linux and earlier Windows controls show an overlapping old cancellation and an answered pre-admission 429 followed by a committed draft with the original request ID. A bounded body intake may distinguish a lost early refusal."
+        ],
+        "risks": [
+          {
+            "failure": "An early pre-admission refusal closes an incomplete request before a small authenticated caller can read the explicit 429, or waiting for its body occupies the writer lane.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A retry changes mutation identity, repeats an admitted effect, widens recovery to unrelated writes or hides a definite failure.",
+            "checks": [
+              "workspace-timeframe",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A transport correction changes existing preview bounds, authorization, frozen zero values or the M0-099 same-task read recovery.",
+            "checks": [
+              "workspace-timeframe",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Retain the exact red and peer timing controls. Remove only the new refusal or reconciliation behavior if it cannot preserve the known writer admission contract.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop",
+            "application"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/ubuntu-workspace.mjs",
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "General mutation resend, new idempotency keys for an unresolved attempt, a new native capability, increased timeouts, and edits to the accepted M0-099 historical record."
+          ],
+          "open_questions": [
+            "The real smaller-body probe confirmed an early refusal ending before request completion. Preserve bounded intake and verify exact same-key draft receipt behavior within its existing in-memory horizon. There is no controlled evidence of a lost committed hosted draft."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact draft identity and accepted scope, cancellation, permission and error semantics, full and cropped numeric assertions, and existing single same-task preview polling recovery."
+          ],
+          "change": [
+            "Correct the first demonstrated delivery failure at its owning boundary and require real bounded pre-admission and accepted controls."
+          ],
+          "data_plan": "Use only synthetic CSV evidence and isolated profiles; retain the actual request journal and response stages without authorization headers.",
+          "cleanup": "Release all gates and stop test clients and the owned workspace with primary failures preserved."
+        }
+      }
+    },
+    {
+      "id": "M0-102",
+      "title": "Recover Windows workspace browser profile preparation",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-089",
+        "M0-101"
+      ],
+      "scope": [
+        "crates/persistence/src/bin/workspace_bridge.rs",
+        "crates/persistence/src/lib.rs",
+        "crates/persistence/src/storage.rs",
+        "crates/persistence/src/storage_acl.ps1",
+        "crates/persistence/tests/workspace_process.rs",
+        "tests/ubuntu-preview/workspace.setup.mjs",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_profile_pool.mjs",
+        "scripts/prepare_workspace_profile_pool.py",
+        "tests/project/test_processes.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The ordinary Windows workspace browser setup prepares a finite run-level pool before either browser worker through a single supervised invocation of the existing ACL policy. The first cold invocation still has its existing ten-second helper deadline and twelve-second caller deadline. The original four named browser cases reach their actual assertions.",
+        "The same policy explicitly sets and verifies the current user as the owner of every isolated profile. The normal writer independently validates each claimed root and sidecar before admitting SQLite or a handoff. A genuinely shared profile fails preparation and ordinary open without changing its saved bytes. Concurrent claims cannot reuse a profile within a run.",
+        "Retain the original Windows failure and Linux comparison. Preserve setup failure cleanup, ordinary one-profile preparation, and the independent tested indicator paths. Use actual Windows evidence for NTFS ownership and the first cold preparation."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-102-f4f0af76b8fe9a20.json",
+          "sha256": "e2afbc6e39ad8d040b4ee9a66ef0058d04f40be8cddde7d533f1d448b56833ef"
+        },
+        {
+          "path": "project/evidence/M0-102-ffeca4014976d347.json",
+          "sha256": "b8b233cd2cfa9a6eda8169daf52a23817f8e9d48792119a6fc66c2fa0254ffa7"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45468479291-1",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "01316e545218cd9c7e6c63a1c2d33d6529bd253a0ca489ded44fc8d4cbb3c9a3"
+        },
+        {
+          "run_id": "20261124T191751.193512Z-520f9d9d",
+          "source_commit": "690bc88379d73dda40ef6776f22496bf935c35f8",
+          "report_sha256": "9f26f5107e91ef5f5420a0c7c1e5bfe2e41e6d11e0deeeb9089efa2f86a3e60e"
+        },
+        {
+          "run_id": "20261124T201729.469593Z-0c3de589",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "659472212fa59440e3decb59239908c0dfc8d895e67bfbeb9e19f332ba3bcfe1"
+        },
+        {
+          "run_id": "20261124T201537.748700Z-a28a86bb",
+          "source_commit": "f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb",
+          "report_sha256": "d3f533758abe4b8d7221870305611c49e267cc967115fa6f8131d35be4f6e697"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Official task run 45484754044 passed all selected checks on Windows and Linux at 2b078aa5f5e0d31dabf36705ce0cce117b91508b, the same tree as independently approved 72e4136eb1f8e7f38de6ee40915fb6c29b47447a. The first Windows browser setup prepared 64 isolated roots in 735 ms. The dedicated one-slot native control opened its claimed profile through the normal writer and rejected the CPython 0700 Owner Rights and Everyone DeleteChild ancestors without leaving either refused pool. All four original cases passed on their first attempt on both platforms. Windows passed 59 cases with the existing POSIX-only skip. Linux passed 59 cases. The native Rust shared-ACL refusal preserved the database bytes, and the three supervisor regressions passed on both platforms. The failed earlier run and independent review originals are retained. The earlier Windows logs do not establish the internal cause of the PowerShell timeout or the exact ancestor and ACE in the later refusal.",
+      "plan": {
+        "outcome": "The native Windows browser suite performs one bounded, owner-only run setup before starting its workers, then exercises the ordinary writer with isolated profiles.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/storage_acl.ps1",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "project/delivery.json",
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "tests/ubuntu-preview/workspace_profile_pool.mjs"
+        ],
+        "hypotheses": [
+          "Four Windows bridge profile preparations failed at the ten-second PowerShell child deadline, before Vite, SQLite or any observed application operation. The same four cases passed on Linux. The raw failure does not isolate PowerShell startup, scheduling or ACL I/O.",
+          "The earlier Tauri process-local test admission slot does not govern the separately launched browser bridges. The fourth failure occurred without another running workspace case. Reducing independent cold helper startup is a more direct correction than serializing two browser slots.",
+          "The observed fixture launches can be amortized by preparing their disposable roots together with the same policy before browser concurrency. A directory can inherit a private DACL while taking an elevated token default owner, so use the existing explicit owner and DACL creation for each child. The original report does not identify the mechanism inside the helper or prove the first cold invocation will finish on a later host.",
+          "Actual Windows task 45478673119 rejected a replaceable ancestor during the first browser setup, in 375 ms with zero scenarios. Rust passed its own batch and shared-root controls and Linux passed. CPython 3.12.10 uses a protected full-access Owner Rights ACE for Windows mkdir with mode 0700. That ACE fits the current ancestor refusal. The hosted report did not identify an actual path component or ACE."
+        ],
+        "risks": [
+          {
+            "failure": "Preparation admits a shared, redirected, nonlocal or incorrectly owned profile, changes existing ACLs or allows work to continue after a refusal.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A preparation timeout or refusal leaks a child or a synthetic profile, shares profiles, or is hidden by skipping existing assertions.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The correction merely delays the same timeout or transfers it to the next ordinary workspace entry.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The run exposes partially prepared roots, reuses a profile after a worker failure, or accepts inferred directory ownership from ACL inheritance alone.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A first cold batch fails before the test reporters start and hides the real ACL error or leaves temporary storage behind.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The twelve-second fixture deadline kills the bridge but leaves its ACL descendant active while global setup removes the pool.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The caller waits past the original deadline if the process interpreter stalls before the supervisor can enforce it. A late interpreter could launch work after the caller has rejected startup.",
+            "checks": [
+              "python-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The Windows browser supervisor uses different ancestor creation semantics from the passing Rust fixture, or a repair bypasses real replaceable-ancestor refusal and publishes a profile before its protected root can be checked.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A large or repeated browser run exhausts the ordinary shared pool before the new native control opens its positive profile.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The special 0700 ACL fixture creates a directory before its Python process reports success, leaving the control outside cleanup ownership.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep both official runs and any focused native diagnostics. Revert only the preparation correction if it cannot retain the original refusal and cleanup contract.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "crates/persistence/src/storage_acl.ps1",
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "scripts/prepare_workspace_profile_pool.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Increased deadlines, weaker ACLs, blanket serialization, retries that hide refusal, new profile or database formats, and alteration of accepted M0-036, M0-071, M0-089, M0-099 or M0-101 task definitions."
+          ],
+          "open_questions": [
+            "The native browser case opens a claimed profile from an independent one-slot pool and runs two refused parents under the same exclusively owned control directory within the Node-selected temporary parent: CPython 3.12.10 mode 0700 and an explicit Everyone DeleteChild grant. The control owns cleanup before either child creates a directory and holds its contents when pool exit cannot be confirmed. The original output cannot identify the exact refused ancestor. Node and Rust have different TEMP/TMP preference, and this correction keeps the existing Node root and the complete ancestry policy."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Trusted owner and ACL admission, refusal before access, actual profile isolation, database and sidecar policy, normal resource cleanup, browser assertions and limits."
+          ],
+          "change": [
+            "Amortize the Windows browser fixture preparation in one finite command from the ordinary run setup using the unchanged ACL policy and process limits. Claim each prepared profile at most once. A larger verification run can use the existing one-profile path after the pool is exhausted."
+          ],
+          "data_plan": "Use only isolated synthetic profiles and the retained original hosted artifacts. No user data format or migrations change.",
+          "cleanup": "Use the same caller deadline before interpreter readiness and after granting the supervisor authority. An interpreter without the grant cannot acquire a pool, and an expired result cannot become a fixture. Make the supervisor confirm that the complete owned command tree has stopped before removing a failed preparation pool. Retain the pool and the primary error if termination cannot be confirmed. Workers remove acquired profiles, and suite teardown removes unused profiles and claim markers."
+        }
+      }
+    },
+    {
+      "id": "M0-105",
+      "title": "Remove the Windows storage admission dependency on PowerShell startup",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-102"
+      ],
+      "scope": [
+        "crates/persistence",
+        "crates/platform",
+        "apps/desktop/src-tauri",
+        "tests/ubuntu-preview",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/development.json",
+        "scripts/check_architecture.py",
+        "scripts/prepare_workspace_profile_pool.py",
+        "contracts/decisions/0029-supervised-native-windows-workspace-acl.json",
+        "contracts/reviews/2026-11-25-windows-workspace-acl-layouts.json",
+        "Cargo.lock",
+        "project/dependency-inventory.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0029"
+      ],
+      "acceptance": [
+        "The ordinary authorized Windows writer preparation and open use one policy in a supervised worker that does not start a PowerShell interpreter. The unbundled and installed executable can use the same trusted worker after relocation.",
+        "The first browser fixture setup reaches its real claimed-profile writer and the original browser cases under the existing command bounds. Existing local NTFS, owner, protected creation, ACE, private file and sidecar refusal controls still exercise the same authoritative policy.",
+        "Retain the same-input hosted failure and green control. Record bounded worker launch and working milestones without private path or SID values. Preserve definite failure, child and directory cleanup, and no admission after timeout or caller loss."
+      ],
+      "checks": [
+        "project-state",
+        "dependency-review",
+        "python-contracts-workers",
+        "architecture",
+        "operations-workflow",
+        "rust-format",
+        "rust-lints",
+        "rust-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "windows-native-build"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-105-4d5050a2660a498a.json",
+          "sha256": "e71987be995358b29376a58c26588cda0c9b278fb3bb6b9600976c5aff19844e"
+        },
+        {
+          "path": "project/evidence/M0-105-1441cab6f7c78975.json",
+          "sha256": "4c0e26314f958adfca218188db75ae766352f4fdb66c70eb1f59521c26008a37"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45489014243-1",
+          "source_commit": "2d31fe9338a8c8ca5dc051412870fe4f8c459783",
+          "report_sha256": "66bc75a2551c438b4158b8e395695a3a30035e4aa1137eee8c64ac9ea96d8b46"
+        },
+        {
+          "run_id": "windows-change-45543157570-1",
+          "source_commit": "d339b4d155932af6cc196cee9ab4479280c1dd85",
+          "report_sha256": "f8b5cc2f1913d5252a732a8c33796dec03e02d348a1438545950a1fc1e8e2329"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Official PR 84 run 45556094486 passed all six jobs for the independently reviewed head 04f20c9beb2365edb21c874ea30dd905d89b117f and its checked merge 9bf3476a4f7c71abc88cff6d0a00008e9299de2d. The canonical Windows receipt records all eleven task checks, including native build, the original workspace and desktop journeys under existing deadlines, and private-workspace admission and unchanged DB and WAL bytes after sharing refusal. The Linux aggregate passed 27 checks and reports the Windows-only native-build check blocked (original report SHA-256 212b2b5965ec8e10666c27d790a3c3bd679fe0af2df41fd756fd6e04ffb40f3c). The earlier Windows receipt remains historical. The two pre-chart setup-timeout archive reports are identified in the resolved Windows ACL timeout finding. The separate Linux browser concurrency finding remains open with a matched follow-up. Physical Windows and packaged release acceptance remain separate gates.",
+      "plan": {
+        "outcome": "A Windows user can prepare and open an owner-only workspace without relying on repeated interpreter startup and with the existing failure and cleanup contract.",
+        "change_types": [
+          "tooling",
+          "packaging"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/src-tauri/src/main.rs",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+          "tests/ubuntu-preview/workspace.setup.mjs",
+          "scripts/prepare_workspace_profile_pool.py",
+          "project/delivery.json",
+          "crates/platform/src/workspace_acl.rs",
+          "crates/platform/src/workspace_acl/windows.rs"
+        ],
+        "hypotheses": [
+          "The ordinary browser producer timed out in the one PowerShell-backed global preparation after 10.290 seconds and ran zero cases. Same execution inputs and the same 64-profile entry passed in 735 ms in official task run 45484754044. No original artifact measures script entry or the ACL phases, so process startup, scheduling, and inner work cannot be distinguished retrospectively.",
+          "A shared precompiled worker or native policy may remove the interpreter dependency while preserving an OS process that can be terminated and waited. Compare cost and ability to run the normal desktop, development bridge and test entry without portable or packaging surprises."
+        ],
+        "risks": [
+          {
+            "failure": "A correctly bounded SID with oversized trailing data is normalized away even though the managed baseline rejects it during parsing. Verify each qualified layout at and above its greatest aligned opaque length.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A known ACE is refused before inert-entry normalization, or a malformed object flag, optional GUID, compound layout or opaque unknown entry reaches normalization and alters admission. Cover each recognized descriptor layout and verify real file and directory DACLs against the historical evaluator.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The native path rejects a callback before checking whether it can affect the selected object, or ignores a malformed, unknown or still-effective unsupported entry. Verify common ACE lengths and SID bounds, object-specific normalization and the legacy post-normalization rejection order.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An ordinary inert ACE makes previously admitted storage unreadable, or normalization discards a real directory inheritance grant or regular-file grant. Compare both managed object types and require the ordinary writer to preserve DB and WAL bytes when it refuses sharing.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The Windows platform binding change and lock resolve while the governed dependency inventory still describes the prior lock bytes.",
+            "checks": [
+              "dependency-review",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The replacement relaxes a Windows ACL refusal, local volume or ancestor guard, or opens any SQLite sidecar before verifying a trusted profile.",
+            "checks": [
+              "rust-contracts-workers",
+              "operations-workflow",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A stalled worker or lost caller continues to create files after a failure report or leaves a descendant active while a fixture is removed.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The ordinary compiled desktop or installed Windows application cannot find the exact trusted worker, or test mode bypasses the real production policy.",
+            "checks": [
+              "architecture",
+              "rust-lints",
+              "rust-contracts-workers",
+              "windows-native-build",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Fresh libtest processes for interrupted writer or restore operations cannot reach the same ACL worker when opening an already-prepared workspace directly.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A cold synchronous Job creation or child creation keeps the ordinary desk host beyond its admission deadline before the authority gate is available.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A native prepare can check or create an entry outside the originally validated drive and ancestor chain.",
+            "checks": [
+              "rust-contracts-workers",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "The native descriptor reader calls a SID routine before bounding and validating the SID inside its ACE.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A previously supported private workspace with equivalent same-user inheritance grants becomes unreadable, or a replacement grants access across different scopes. The differential must use the original managed export exactly once and cover already-complete inherited grants, ordered adjacent compaction and a refused three-way combination.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The post-grant timeout regression observes a fixture marker before its next poll, without proving the exact worker exited before the supervisor returned.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the exact historical source and failed artifacts. Revert the worker transport and policy replacement together if native policy equivalence, bounded cleanup or the normal build and installed entry fail to match.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "platform",
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/storage.rs",
+            "crates/persistence/src/bin/workspace_bridge.rs",
+            "apps/desktop/src-tauri/src/main.rs",
+            "tests/ubuntu-preview/workspace.setup.mjs",
+            "crates/platform/src/workspace_acl.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Blind retry, increased deadlines, profile format changes, ACL exceptions, native-only claims from a cross build, permanent parallel policies, or modifying the accepted M0-102 results."
+          ],
+          "open_questions": [
+            "Native Windows runtime equivalence, normal GUI-subsystem pipe handling and current protected timing require ordinary Windows evidence. Linux GNU cross checking and linking establish compilation and same-image composition only.",
+            "Compare equivalent split explicit rules through both the historical managed descriptor reader and the ordinary native writer on Windows. Source review has identified the mechanism and did not observe a hosted ACL anomaly.",
+            "The raw/managed comparison includes two and three same-user grants with equal scope, two equal full-control masks with exactly representable child scopes, and a partial split across different scopes that must still fail. Compare ordinary ordered pairs and mixed allowed principals against the prior canonical order and one-pass compaction, including order-dependent acceptance and refusal."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "One effective Windows storage policy, trusted profile and file identities, cancellation, finite command bounds, protected creation, explicit refusal, root isolation and original history."
+          ],
+          "change": [
+            "Use the non-inheritable per-call Win32 Job to run a worker hosted by the same executable before UI or database setup. All Windows workspace prepare and open paths use the platform ACL check. The installed or relocated executable carries its own worker. Test executables explicitly register the same policy."
+          ],
+          "data_plan": "Use synthetic local profiles and existing Windows artifacts. No on-disk migration.",
+          "cleanup": "Retain the same timeout and process termination boundary. Confirm owned process exit before deleting disposable profiles, and preserve uncertain recovery state."
+        }
+      }
+    },
+    {
       "id": "M0-110",
       "title": "Restore linked verification timing on protected main",
       "milestone": "M0",
