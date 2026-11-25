@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-136",
   "tasks": [
     {
       "id": "M0-001",
@@ -24027,6 +24027,123 @@
           ],
           "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified.",
           "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
+        }
+      }
+    },
+    {
+      "id": "M0-136",
+      "title": "Require independent evidence when accepting consequential work",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [],
+      "scope": [
+        "scripts/project.py",
+        "scripts/review_acceptance.py",
+        "scripts/development.py",
+        "contracts/schemas/project.schema.json",
+        "contracts/reviews/task-decisions",
+        "tests/project/test_review_acceptance.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary project check, accepted-history comparison and integration reject completion of a new consequential task or confirmed major correction when the ordinary harness is green but its independent decision is missing, requests changes, or belongs to different source, task, scope or material inputs.",
+        "A genuine approval and its independently observed outcome can qualify its exact reviewed task after receipt-only administration and a disjoint protected integration. Pending, changed-risk, cancellation and superseding work remain recoverable. Preserve recognized accepted history and keep routine tasks inexpensive.",
+        "Expose the selected task evolution, retained observation and next action through the normal implementation intake. Replay actual approved and rejected reviews and a mundane control, preserving the limits of local provenance."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the existing early closure versus the genuine reviewed source. Add the smallest ordinary acceptance check and retain its independent positive and negative controls for a new exact-source review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Administrative completion of consequential work keeps an independent decision tied to the reviewed task, scope, source and observed behavior.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/integration.py",
+          "project/delivery.json",
+          "project/development.json",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The prior closure qualified engineering execution correctly. The missing link is independent review at task acceptance, so the same green report cannot qualify the new transition by itself.",
+          "Canonical task scope, feedback occurrence, Git changes and one retained decision can qualify the transition without granting authenticity to an untrusted transcript or requiring re-review of administrative receipts."
+        ],
+        "risks": [
+          {
+            "failure": "Ordinary or hosted acceptance accepts absent, rejected, stale, unrelated or unverifiable independent evidence, or loses it on invalidation.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The transition demands approvals of old receipts, recurring routine edits, cancelled work or an unrelated protected change.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Review intake invents authenticity or requires private transcript bytes or a network lookup on ordinary project checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the acceptance addition and retain original independently observed decisions and the known early-closure reproduction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/integration.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Herdr routing and immutable source projection, review cadence, product runtime, policy for external approval systems or prior accepted record changes."
+          ],
+          "open_questions": [
+            "Which material source changes after review require a second decision, and which administrative or protected changes retain the original scope?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing passing harness receipts and their identity, append-only accepted history, ordinary local and hosted task verification, cancellation and handoff."
+          ],
+          "change": [
+            "Require evidence of independent disposition at new consequential completion. Carry the evolution facts already authored in the task plan into review selection and handoff."
+          ],
+          "data_plan": "Keep reviewed Git identity, exact task scope and a bounded reviewer-owned observation plus digest-checked provenance. Keep raw local transcripts private.",
+          "cleanup": "Retain independently rejected decisions for recovery and keep source changes visibly pending until an independent approval matches. Review only the amended outcome if the task changes."
         }
       }
     }

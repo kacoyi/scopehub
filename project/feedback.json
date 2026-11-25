@@ -6528,6 +6528,22 @@
         "prevention": "Keep the digested ordinary PR controls and require exact repair ancestry, complete producer clocks, matching outcomes and full warm cache evidence for any future disposition. The task-bound regression receipt and native provenance are indexed in contracts/reviews/2026-11-25-pr-timing-recurrences.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "consequential-task-completed-without-independent-decision",
+      "source": "Observed disposable ordinary project check and history on 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a with authentic passing run 20261125T115836.374177Z-fc7c2887. Observation SHA-256 b8c778557d02d2371e5273f6e3bb8e869cef813ead01479843a8a20389d6da9a. Independent cold review transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Prior local completed task sources 97fedb3771bcdbcbf1030d32d4eec1c69401d656 and ecf48f65a02b94967e0813fec4e9cbbec360ffbf.",
+      "observation": "The normal project check and history accepted a simulated completed corrective task and addressed finding in a disposable checkout with a genuine green harness receipt and zero independent approval. The actual independent review requested changes on that exact source. Earlier local M0-130 and M0-131 similarly reached an accepted state before reviewer reproduction of timing capture and reopen disagreement. Passing engineering checks and immutable historical receipts establish their verified scope. They do not establish the independent decision.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
