@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-112",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -11854,7 +11854,7 @@
       "id": "M0-112",
       "title": "Review and bind the setup-uv 10.4.0 workflow action",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-040",
         "M0-041",
@@ -11953,15 +11953,23 @@
           "cleanup": "Retain the original proposal and red evidence; review exact-head hosted results before substituting the original proposal."
         }
       },
-      "next_action": "Have the coordinator obtain hosted Ubuntu and native Windows verification on this candidate. Attach the matching reports and close the task before integration.",
+      "next_action": null,
       "blocker": null,
       "evidence": [
         {
           "path": "project/evidence/M0-112-409611a1b23fa12c.json",
           "sha256": "09d0c6c55aa83c06abdc7b7990c8ede5c2cab63e16b78954c6e1960475a69bff"
+        },
+        {
+          "path": "project/evidence/M0-112-bf159b280635808b.json",
+          "sha256": "85e4622c22b269de16395c75a006100990637fefa77e8b617383c86215c37127"
+        },
+        {
+          "path": "project/evidence/M0-112-b4f2df1e931e7dde.json",
+          "sha256": "87bc56bc203c97ada350c35b7719c0d5cf2d8db3780a78196e7d174124745587"
         }
       ],
-      "closure_reason": null,
+      "closure_reason": "Independent Astra Standard review approved 8624025. Authenticated Linux and Windows run 45556221309 passed every required task check on the reviewed source.",
       "diagnostic_reports": [
         {
           "run_id": "20261125T003718.129583Z-fcf62f9b",
