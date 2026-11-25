@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-150",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "460248f97fdc6d7bf647ac6207eec38b5eb3ee22",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 460248f97fdc6d7bf647ac6207eec38b5eb3ee22",
+      "scope": "CHANGES_REQUESTED M0-150 460248f97fdc6d7bf647ac6207eec38b5eb3ee22",
+      "observation": "For both historical runs, the timing CLI rejected the authentic browser report when given its matching browser job, then restored the browser time when I added the recovery job.",
+      "reviewer": "Independent Astra Standard (t10z)",
+      "original_sha256": "6acc7b9f80348f9e624289e8004a065e2748c5aebf20676ad24d36bd03db2f8b",
+      "response_id": "b71d8c10195bf4f9d605bc57c5e57419a4affee280d0d8c33834dfebd7c3ab37",
+      "response_sha256": "bb973bcfbb2a3bab123ead7de7afe0d9c78db8cb0aeb3f5e14d842ce9a526bda",
+      "legacy_response_sha256": "ae8502da6afd190e6eb96f23d6ea28ab5c02be487551179e3486b595d3be120f",
+      "observation_body_sha256": "854c4bad8248df6052458315a9a37871992d61c821a928d736123af74b2db060",
+      "event": {
+        "id": "msg_0dc31d302fb4c8f6016b07486c5e0887d080e4fb641827efcd",
+        "timestamp": "2026-11-25T20:43:42.415Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "0b5d3a5063edeb06e23bf7e3735ca5809dcd5c6dd0e406f7b160380c1be01c3d"
+    }
+  ]
+}
