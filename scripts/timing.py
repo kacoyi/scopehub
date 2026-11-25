@@ -869,8 +869,12 @@ def coalesce_samples(samples, issues):
             scope = ('diagnostic', sample['profile'])
         key = (*ci_key(ci), sample['platform'], scope) if ci else ('local', sample['run_id'], sample['platform'])
         observations[key].append(sample)
-    return [coalesce_sample_group(group, producers.get(ci_key(group[0]['ci'] or {}), ()), issues)
-            for group in observations.values()]
+    diagnostics = []
+    groups = [coalesce_sample_group(group, producers.get(ci_key(group[0]['ci'] or {}), ()), diagnostics)
+              for group in observations.values()]
+    for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
+        timing_issue(issues, issue)
+    return groups
 
 
 def coalesce_sample_group(group, producers, issues):
@@ -1642,10 +1646,7 @@ def retained_failures_for_clocks(directories, hosted, already_read, issues):
              if CI_TIMING_NAME.fullmatch(path.name)}
     for path in sorted(paths - set(already_read)):
         try:
-            data = read_bounded_timing(path)
-            if data.get('kind') != ARCHIVE_KIND:
-                raise TimingError('Expected an authenticated failure timing archive.')
-            _, clocks = archive_inputs(data, path.name, issues, collection_issues=False)
+            _, _, clocks, _ = read_timing_capture(path)
             for clock in clocks:
                 if clock.get('authenticated_failure') and ci_key(clock) in attempts:
                     yield clock
@@ -1815,6 +1816,12 @@ def retained_budget_inputs(root, feedback=()):
     review_budget = TimingReadBudget()
     for path in [*recent, *archives, *local]:
         try:
+            if path in recent:
+                _, rows, clocks, notes = read_timing_capture(path)
+                samples.extend(rows)
+                hosted.extend(clocks)
+                issues.extend(collection_issue(note, path.name) for note in notes)
+                continue
             if path in archives:
                 data = read_bounded_timing(path, manual_archive=True, budget=review_budget)
             else:
@@ -1958,14 +1965,14 @@ def retain_authenticated_failure(root, failure):
     raise TimingError(f'Could not retain the authenticated workflow failure: {failure_to_write}')
 
 
-def read_timing_capture(path):
+def read_timing_capture(path, *, budget=None):
     try:
         info = entry_info(path)
         if info is None:
             return 0, [], [], []
         if not stat.S_ISREG(info.st_mode) or reparse_point(info):
             raise TimingError('Expected a plain original compact timing capture.')
-        data = read_bounded_timing(path)
+        data = read_bounded_timing(path, budget=budget)
         if not isinstance(data, dict) or data.get('kind') != ARCHIVE_KIND:
             raise TimingError('Expected a compact capture archive.')
         require_review_archive_shape(data)
@@ -2345,6 +2352,12 @@ def main():
             raise TimingError('The review archive and job summary must use different files.')
         for path in args.report if args.report is not None else local_paths(ROOT):
             try:
+                if args.report is None and CI_TIMING_NAME.fullmatch(path.name):
+                    _, rows, clocks, notes = read_timing_capture(path, budget=read_budget)
+                    samples.extend(rows)
+                    workflows.extend(clocks)
+                    issues.extend(collection_issue(note, path.name) for note in notes)
+                    continue
                 manual = args.report is not None or (
                     path.parent == ROOT / '.reports/timing' and not CI_TIMING_NAME.fullmatch(path.name))
                 data = read_bounded_timing(path, manual_archive=manual, budget=read_budget)

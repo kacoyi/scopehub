@@ -2504,6 +2504,9 @@ class RecentTimingTests(unittest.TestCase):
                     timing.collect_new_ci_timing(root, repository, run, samples, [clock])
                 self.assertEqual(invalid, path.read_bytes())
                 self.assertTrue(timing.index_retained_captures(root)['input_issues'])
+                rows, clocks, issues = timing.retained_budget_inputs(root)
+                self.assertEqual(([], []), (rows, clocks))
+                self.assertIn('Could not read retained timing capture', issues[0]['error'])
                 self.assertEqual(1, len(list(shared.glob('linked-harness/*/ci-*.json'))))
 
             padded['padding'] = padded['padding'][:-8192]
