@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M5-007",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25050,7 +25050,7 @@
       "id": "M5-007",
       "title": "Integrate original-account desktop recovery with native Windows storage admission",
       "milestone": "M5",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-105",
         "M5-006"
@@ -25081,10 +25081,19 @@
         "rust-lints",
         "state-migrations"
       ],
-      "evidence": [],
-      "next_action": "Run the exact merged candidate on native Windows with synthetic profiles, confirm the ACL and recovery cases, and record matched platform verification.",
+      "evidence": [
+        {
+          "path": "project/evidence/M5-007-46123ff7f5a38928.json",
+          "sha256": "97522f1b2edb52ddc514d41aa0177c1d5b8ba9cf1005236c7943be88886f566a"
+        },
+        {
+          "path": "project/evidence/M5-007-234f345044c5b6bf.json",
+          "sha256": "f9b2fdce562ed4f0da009f22c3e65386f117bc6035ddf06e02124b3dbb7b1d35"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review approved c722c488fac3a651d0472938217622a0adc76c4c. Authenticated workflow 45663767766 passed all eight selected checks on native Windows and Linux. The Windows persistence and desktop suites verified the original account, independent identity at the vacated path, serialized initialization, NTFS link refusal and retained WAL on refusal. Exact installed-package acceptance remains with M5-001.",
       "plan": {
         "outcome": "A same-account desktop opens and recovers its synthetic profile through the supervised native Windows worker without changing the stored identity, grants or historical database bytes.",
         "change_types": [

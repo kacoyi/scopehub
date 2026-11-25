@@ -7002,9 +7002,9 @@
     },
     {
       "id": "desktop-recovery-native-admission-integration",
-      "source": "Local three-way merge of PR 95 a59dfe1 and protected main 87dd079. The storage admission, desktop native worker test entry and dependency manifests conflicted. The original conflict transcript is retained in .reports/m5-007-integration/merge-original.log. The first build retained a test reference to the removed production script and failed in .reports/m5-007-integration/merged-relocation-obsolete-fixture-red.log.",
+      "source": "Local three-way merge of PR 95 a59dfe1 and protected main 87dd079. The storage admission, desktop native worker test entry and dependency manifests conflicted. The original conflict transcript is retained in archives/observations/repo-hygiene-20261125/m5-007-desktop-composition-de94598c/merge-original.log. The first build retained a test reference to the removed production script and failed in archives/observations/repo-hygiene-20261125/m5-007-desktop-composition-de94598c/merged-relocation-obsolete-fixture-red.log.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The protected native preflight returns an admission result for SQLite files, while the recovery branch additionally needs the original-account fingerprint and checks for ownership metadata. Keeping either side alone would omit one of these required behaviors.",
       "task_ids": [
         "M5-007"
@@ -7014,7 +7014,11 @@
         "state-migrations",
         "operations-workflow"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The protected native admission and the desktop recovery work changed the same storage and worker entries. Their first integration also retained a fixture referring to the retired script.",
+        "correction": "Compose native worker admission with the original account fingerprint and profile ownership checks before opening SQLite. Exercise the resulting desktop and persistence paths with their current worker entry.",
+        "prevention": "The matched Linux and Windows task runs cover relocation, initialization after interruption, refused NTFS links, preserved WAL and independent profile identities through the real migration and desktop tests."
+      },
       "deferral_reason": null
     }
   ]
