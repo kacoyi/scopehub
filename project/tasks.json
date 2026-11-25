@@ -24422,6 +24422,106 @@
       }
     },
     {
+      "id": "M0-132",
+      "title": "Investigate Python worker schema reference lookup cost",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-047"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence/",
+        "contracts/reviews/2026-11-25-worker-schema-lookup.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the authenticated Linux observation, local static lookup profile and rejected experiment to their original source and evidence digests.",
+        "Compare protected and experimental sources on the fixed shared vectors, typed codec outcomes, frame boundaries and actual one-shot and reused worker paths.",
+        "Retain the protected runtime, public exports, dependencies, checks and lock bytes. Record the independent disposition, user-workload reopening trigger and separate M0-104 hosted qualification."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-132-338cb5191f54e8d2.json",
+          "sha256": "ce304d717b633c6b650f86b5766a725d66e2d1ec68caa89843fa90f426b42e5b"
+        }
+      ],
+      "closure_reason": "Completed the investigation and retained the protected validator. Independent Astra Standard approved the evidence disposition at c6c5d6f36ea24afd4839ab044564a9f593fd572b. The candidate saved 0.514 seconds in the shared-vector test and improved 32-page worker reuse. Three distinct cold CSV observations favored the baseline. The review record separates their retained samples and specifies the product workload, latency and memory evidence needed to reopen. M0-104 retains its hosted timing qualification.",
+      "plan": {
+        "outcome": "Complete a source-bound investigation and retain the protected validator after measuring end-to-end worker costs.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+          "python/worker_runtime/protocol.py",
+          "crates/worker-host/src/local_import.rs"
+        ],
+        "hypotheses": [
+          "One-time schema preparation can reduce repeated static lookup work. Ordinary short-lived and reused worker paths determine whether that benefit outweighs process startup cost."
+        ],
+        "risks": [
+          {
+            "failure": "The investigation handoff accidentally carries experimental runtime, dependencies or changed protocol coverage.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Local timing or pre-withdrawal evidence is presented as baseline acceptance or hosted recovery.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Use the exact protected execution inputs and retain the reviewed Git bundle and raw evidence privately.",
+        "implementation": {
+          "modules": [
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/worker_runtime/protocol.py",
+            "python/worker_runtime/local_import.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/worker-runtime-v1.json",
+              "pointer": "/protocol"
+            }
+          ],
+          "non_goals": [
+            "Product or dependency changes, new external observations, and M0-104 hosted recovery qualification."
+          ],
+          "open_questions": [
+            "Do real reused worker sessions spend meaningful user-visible time in protocol reference resolution?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Protected runtime, schema, tests, dependencies and accepted milestone history."
+          ],
+          "change": [
+            "Add the investigation disposition and a receipt for the baseline checks."
+          ],
+          "data_plan": "Use the existing privately retained raw observations and rejected source by digest.",
+          "cleanup": "Keep experimental code and experimental verification evidence only in private recovery history."
+        }
+      }
+    },
+    {
       "id": "M0-135",
       "title": "Verify follow-through for the five periodic reviews",
       "milestone": "M0",
