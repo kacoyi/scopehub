@@ -25630,7 +25630,7 @@
           "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
         }
       ],
-      "next_action": "Reuse the completed standalone test seed, verify isolated copies, rejection, cleanup and unchanged discovery, then retain the ordinary task report and the native qualification boundary.",
+      "next_action": "Review the exact isolated fixture correction and its before/after and rejection controls. Qualify the unchanged ordinary Windows Python check on the corrected source, then retain the first eligible protected main-push result within the original deadline.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
