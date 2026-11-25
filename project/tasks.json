@@ -11953,9 +11953,14 @@
           "cleanup": "Retain the original proposal and red evidence; review exact-head hosted results before substituting the original proposal."
         }
       },
-      "next_action": "After archiving local verification, run the approved candidate through the protected Ubuntu and Windows workflows and retain both exact-head reports before integration.",
+      "next_action": "Have the coordinator obtain hosted Ubuntu and native Windows verification on this candidate. Attach the matching reports and close the task before integration.",
       "blocker": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-112-409611a1b23fa12c.json",
+          "sha256": "09d0c6c55aa83c06abdc7b7990c8ede5c2cab63e16b78954c6e1960475a69bff"
+        }
+      ],
       "closure_reason": null,
       "diagnostic_reports": [
         {
