@@ -24545,7 +24545,8 @@
       "acceptance": [
         "Exercise the ordinary check execution entry with a detached listener and a distinct unowned listener. After normal exit, failure, cancellation and timeout, the owned listener can be rebound, the unrelated listener still replies and the original outcome is retained.",
         "Run the ordinary desktop localization check with the repository deadlines and a fresh port. Retain the original failed Linux report and the ownership and port observations.",
-        "Verify the task checks and preserve the existing Linux market supervisor and Windows job behavior through the same public execution entry."
+        "Verify the task checks and preserve the existing Linux market supervisor and Windows job behavior through the same public execution entry.",
+        "Require explicit supervisor confirmation of finished cleanup across parent SIGCHLD dispositions, and record a late interruption after bounded cleanup."
       ],
       "checks": [
         "project-state",
@@ -24572,7 +24573,8 @@
           "tests/localization/desktop.config.mjs"
         ],
         "hypotheses": [
-          "Only the market recovery check requests the Linux subreaper. The ordinary localization launcher starts descendants in separate sessions, which survive process-group cleanup."
+          "Only the market recovery check requests the Linux subreaper. The ordinary localization launcher starts descendants in separate sessions, which survive process-group cleanup.",
+          "The early command result currently substitutes for cleanup evidence when the parent automatically reaps the supervisor. A late SIGINT can escape the final wait."
         ],
         "risks": [
           {
@@ -24584,6 +24586,18 @@
           },
           {
             "failure": "A cleanup operation reaches an unrelated process or masks a real timeout, command failure or cleanup failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The parent accepts an early, missing or incomplete cleanup result as a pass after supervisor failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A first interruption during teardown drops the check row or leaves owned descendants without confirming cleanup.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -24623,14 +24637,15 @@
             "Original per-check output, exit codes, genuine timeouts, independent verification processes and Windows job ownership."
           ],
           "change": [
-            "Apply process-tree lifetime ownership at the Linux verification boundary that runs the affected commands."
+            "Apply process-tree lifetime ownership at the Linux verification boundary that runs the affected commands.",
+            "Separate command readiness from final cleanup confirmation, and complete bounded teardown after a late interruption."
           ],
           "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
           "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
         }
       },
       "closure_reason": null,
-      "next_action": "Obtain independent source review and ordinary native Windows Job Object and desktop localization results for the reviewed candidate.",
+      "next_action": "Reproduce the two independently observed teardown failures, verify the corrected protocol and return for independent review.",
       "blocker": null,
       "evidence": [
         {

@@ -80,14 +80,16 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
         finally:
             try:
                 if process is not None:
-                    if process.stdin and not process.stdin.closed:
-                        process.stdin.close()
                     if result_pipe is None:
+                        if process.stdin and not process.stdin.closed:
+                            process.stdin.close()
                         stop_tree(process, job)
                     else:
-                        command_exit, command_reason = stop_tree(process, result_pipe=result_pipe)
+                        command_exit, command_reason = stop_tree(process, result_pipe=result_pipe, cancel=cancel)
                         if reason is None:
                             exit_code, reason = command_exit, command_reason
+                            if reason == 'interrupted':
+                                output.write(b'\nCheck stopped: interrupted.\n')
             except (OSError, subprocess.SubprocessError) as cleanup_error:
                 output.write(f'Process cleanup failed: {cleanup_error}\n'.encode('utf-8'))
                 reason = 'cleanup_failed'

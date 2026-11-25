@@ -1,6 +1,7 @@
 """Bounded cleanup for verification subprocesses."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from io import BufferedReader
 import json
 import os
 from pathlib import Path
@@ -10,7 +11,10 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Any, BinaryIO, Protocol, cast
+from typing import Any, Protocol
+
+
+COMMAND_READY = b'R'
 
 
 def running_group(group: int) -> bool:
@@ -29,11 +33,12 @@ class ProcessJob(Protocol):
     def stop(self) -> None: ...
 
 
-def start_linux_check(argv: Sequence[str], **options: Any) -> tuple[subprocess.Popen[bytes], BinaryIO]:
+def start_linux_check(argv: Sequence[str], **options: Any) -> tuple[subprocess.Popen[bytes], BufferedReader]:
     # The subreaper belongs to one check, never to the multithreaded harness.
     read_fd, write_fd = os.pipe()
     with os.fdopen(write_fd, 'wb') as result:
         try:
+            os.set_blocking(read_fd, False)
             process = subprocess.Popen(
                 [getattr(sys, '_base_executable', sys.executable), '-I', '-S', __file__, str(result.fileno()), *argv],
                 stdin=subprocess.PIPE, pass_fds=(result.fileno(),), **options,
@@ -44,7 +49,7 @@ def start_linux_check(argv: Sequence[str], **options: Any) -> tuple[subprocess.P
     return process, os.fdopen(read_fd, 'rb')
 
 
-def wait_linux_check(process: subprocess.Popen[bytes], result_pipe: BinaryIO, timeout: float) -> None:
+def wait_linux_check(process: subprocess.Popen[bytes], result_pipe: BufferedReader, timeout: float) -> None:
     # The command outcome is ready before the supervisor finishes reaping.
     with DefaultSelector() as selector:
         selector.register(result_pipe, EVENT_READ)
@@ -52,15 +57,46 @@ def wait_linux_check(process: subprocess.Popen[bytes], result_pipe: BinaryIO, ti
             raise subprocess.TimeoutExpired(process.args, timeout)
 
 
+def _confirmed_linux_outcome(result: bytes) -> tuple[int | None, str | None]:
+    if len(result) > 128 or not (result.startswith(COMMAND_READY) and result.endswith(b'\n')):
+        raise OSError('Linux check process supervisor did not confirm cleanup')
+    try:
+        code, reason = json.loads(result[1:-1])
+    except (TypeError, ValueError) as error:
+        raise OSError('Invalid Linux check cleanup confirmation') from error
+    if not ((type(code) is int and reason is None) or (code is None and reason in (None, 'launch_error'))):
+        raise OSError('Invalid Linux check cleanup confirmation')
+    return code, reason
+
+
+def _stop_linux_check(process: subprocess.Popen[bytes], result_pipe: BufferedReader,
+                      cancel: Callable[[], bool] | None) -> tuple[int | None, str | None]:
+    deadline = time.monotonic() + 10
+    interrupted = False
+    while True:
+        try:
+            # Closing control input requests cancellation. The supervisor
+            # continues cleanup even if waiting for it is interrupted.
+            if process.stdin is not None and not process.stdin.closed:
+                process.stdin.close()
+            if process.wait(timeout=max(0, deadline - time.monotonic())) != 0:
+                raise OSError('Linux check process supervisor failed')
+            # SIGCHLD ignored can make wait() report zero without an exit
+            # status. Require the post-reap record; peek keeps retries safe.
+            outcome = _confirmed_linux_outcome(result_pipe.peek(128))
+            if interrupted or (cancel is not None and cancel()):
+                return None, 'interrupted'
+            return outcome
+        except KeyboardInterrupt:
+            interrupted = True
+
+
 def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *,
-              result_pipe: BinaryIO | None = None) -> Sequence[int | str | None] | None:
+              result_pipe: BufferedReader | None = None,
+              cancel: Callable[[], bool] | None = None) -> tuple[int | None, str | None] | None:
     """Checks are trusted local programs, not a sandbox for hostile code."""
     if result_pipe is not None:
-        # Closing the control pipe requests cancellation. The supervisor
-        # result is trusted only after it has reaped all of its children.
-        if process.wait(timeout=10) != 0 or not (result := result_pipe.read(128)):
-            raise OSError('Linux check process supervisor failed')
-        return cast(list[int | str | None], json.loads(result))
+        return _stop_linux_check(process, result_pipe, cancel)
     if sys.platform == 'win32':
         assert job is not None
         job.stop()
@@ -130,9 +166,10 @@ def supervise_linux_check(result_fd: int, argv: Sequence[str]) -> None:
             reason = 'launch_error'
         finally:
             try:
-                result.write(json.dumps([exit_code, reason]).encode('ascii'))
+                result.write(COMMAND_READY)
             finally:
                 reap_linux_children()
+        result.write(json.dumps([exit_code, reason]).encode('ascii') + b'\n')
 
 
 if __name__ == '__main__':

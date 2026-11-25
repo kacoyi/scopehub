@@ -6699,6 +6699,36 @@
           "report_sha256": "555ee0b8ec281ecde392cbd5db6d656a8b673862b23e3d5d688444731eb0d1d9"
         }
       ]
+    },
+    {
+      "id": "linux-check-cleanup-unconfirmed-under-sigchld-ignore",
+      "source": "Astra Standard t10k on e11cec5729848235ed7ce066cd20402896b7cb7d. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-e11cec57/final-response.txt (SHA-256 0d20eb5a39cd0e72a2fa04638febb9c20a40a87646159b90b877b9ba054056c4).",
+      "severity": "major",
+      "status": "open",
+      "observation": "On the reviewed source a check command exited zero and its supervisor failed to read the owned children after a test-only descriptor limit. The harness returned cleanup_failed under default SIGCHLD. With SIGCHLD ignored it returned passed and zero for desktop-localization and market-recovery while the detached fixture still held its lock.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "linux-check-late-sigint-drops-result-during-reaping",
+      "source": "Astra Standard t10k on e11cec5729848235ed7ce066cd20402896b7cb7d. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-e11cec57/final-response.txt (SHA-256 0d20eb5a39cd0e72a2fa04638febb9c20a40a87646159b90b877b9ba054056c4).",
+      "severity": "major",
+      "status": "open",
+      "observation": "One real SIGINT reached the serial check caller after its supervisor started reaping an owned detached tree. The reviewed desktop-localization and market-recovery entries escaped with KeyboardInterrupt and produced no interrupted check record. Independent cleanup confirmed the fixture processes exited.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

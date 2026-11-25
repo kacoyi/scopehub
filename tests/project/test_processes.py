@@ -2,17 +2,19 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, redirect_stderr, redirect_stdout
+import errno
 from io import BytesIO, StringIO, TextIOWrapper
 import json
 import os
 import hashlib
 from pathlib import Path
 import select
+import signal
 import socket
 import sys
 import subprocess
 import tempfile
-from threading import Event, Thread
+from threading import Event, Thread, get_ident
 import time
 from types import SimpleNamespace
 import unittest
@@ -21,7 +23,7 @@ import venv
 
 from scripts import check as harness
 from scripts import doctor
-from scripts import prepare_workspace_profile_pool, processes
+from scripts import prepare_workspace_profile_pool, process_tree, processes
 
 
 class ProcessTests(unittest.TestCase):
@@ -185,6 +187,179 @@ raise SystemExit(int(mode))
                             self.assertEqual(b'rebound', response.read())
                 fdinfo = Path(f'/proc/self/fdinfo/{identity}').read_text().splitlines()
                 self.assertEqual('-1', next(line.split()[1] for line in fdinfo if line.startswith('Pid:')))
+
+    @unittest.skipUnless(sys.platform == 'linux', 'requires Linux subreapers and private file locks')
+    def test_linux_execute_requires_cleanup_confirmation_and_records_late_interruption(self):
+        import fcntl
+
+        shim = self.root / 'supervisor.py'
+        shim.write_text(f'''
+import os, resource, sys, time
+from pathlib import Path
+
+sys.path.insert(0, {str(Path(process_tree.__file__).resolve().parents[1])!r})
+from scripts import process_tree
+
+reap = process_tree.reap_linux_children
+def controlled_reap():
+    Path('reaping').touch()
+    deadline = time.monotonic() + 6
+    while not Path('finish-reaping').exists():
+        if time.monotonic() >= deadline:
+            raise RuntimeError('fixture did not release supervisor')
+        time.sleep(.01)
+    if os.environ['FIXTURE_MODE'] in ('failure', 'ignored-failure'):
+        # Only this fixture supervisor loses the ability to open its child list.
+        resource.setrlimit(resource.RLIMIT_NOFILE, (3, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
+    reap()
+    if os.environ['FIXTURE_MODE'] == 'partial-confirmation':
+        os.write(int(sys.argv[1]), b'[0, nul')
+        os._exit(0)
+    if os.environ['FIXTURE_MODE'] == 'invalid-confirmation':
+        os.write(int(sys.argv[1]), b'0\\n')
+        os._exit(0)
+
+process_tree.reap_linux_children = controlled_reap
+process_tree.supervise_linux_check(int(sys.argv[1]), sys.argv[2:])
+''')
+        worker = '''
+import fcntl, os, sys, time
+from pathlib import Path
+
+name = sys.argv[1]
+with open(name + '.lock', 'w') as handle:
+    fcntl.flock(handle, fcntl.LOCK_EX)
+    Path(name + '.pid').write_text(str(os.getpid()))
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline and not Path(name + '-stop').exists():
+        time.sleep(.02)
+'''
+        command = '''
+import subprocess, sys, time
+from pathlib import Path
+
+subprocess.Popen([sys.executable, '-c', sys.argv[1], 'owned'], start_new_session=True)
+deadline = time.monotonic() + 5
+while not Path('owned.pid').exists():
+    if time.monotonic() >= deadline:
+        raise SystemExit(99)
+    time.sleep(.01)
+print('command completed before cleanup', flush=True)
+raise SystemExit(int(sys.argv[2]))
+'''
+
+        def lock_is_free(path):
+            with path.open('r+b') as handle:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    return False
+                return True
+
+        def wait_for_exit(fd):
+            readable = select.poll()
+            readable.register(fd, select.POLLIN)
+            self.assertTrue(readable.poll(5000), 'the private fixture must exit')
+
+        driver_thread = get_ident()
+        cases = [
+            ('failure', ('failed', None, 'cleanup_failed')),
+            ('ignored-failure', ('failed', None, 'cleanup_failed')),
+            ('ignored-nonzero', ('failed', 23, None)),
+            ('partial-confirmation', ('failed', None, 'cleanup_failed')),
+            ('invalid-confirmation', ('failed', None, 'cleanup_failed')),
+            ('late-sigint', ('failed', None, 'interrupted')),
+            ('late-cancel', ('failed', None, 'interrupted')),
+        ]
+        for mode, expected in cases:
+            with self.subTest(mode=mode), ExitStack() as cleanup:
+                work = self.root / mode
+                work.mkdir()
+                control = subprocess.Popen([sys.executable, '-c', worker, 'unrelated'], cwd=work)
+                cleanup.callback(control.wait, timeout=5)
+                cleanup.callback((work / 'unrelated-stop').touch)
+                self.read_live_pid(work / 'unrelated.pid')
+                self.assertFalse(lock_is_free(work / 'unrelated.lock'))
+                cleanup.callback((work / 'owned-stop').touch)
+
+                cancel = Event()
+                owned_handles = []
+
+                def finish_fixture():
+                    (work / 'owned-stop').touch()
+                    for fd in owned_handles:
+                        try:
+                            wait_for_exit(fd)
+                        finally:
+                            os.close(fd)
+
+                def release_reaping():
+                    try:
+                        deadline = time.monotonic() + 5
+                        while not (work / 'reaping').exists():
+                            self.assertLess(time.monotonic(), deadline, 'supervisor did not begin reaping')
+                            time.sleep(.01)
+                        pid = self.read_live_pid(work / 'owned.pid')
+                        owned_handles.append(os.pidfd_open(pid))
+                        self.assertEqual(pid, os.getsid(pid))
+                        self.assertFalse(lock_is_free(work / 'owned.lock'))
+                        if mode == 'late-sigint':
+                            while True:
+                                frame = sys._current_frames()[driver_thread]
+                                while frame is not None and frame.f_code is not subprocess.Popen._wait.__code__:
+                                    frame = frame.f_back
+                                if frame is not None:
+                                    break
+                                self.assertLess(time.monotonic(), deadline, 'caller did not enter final wait')
+                                time.sleep(.01)
+                            os.kill(os.getpid(), signal.SIGINT)
+                        elif mode == 'late-cancel':
+                            cancel.set()
+                    finally:
+                        (work / 'finish-reaping').touch()
+
+                cleanup.callback(finish_fixture)
+                controller = cleanup.enter_context(ThreadPoolExecutor(max_workers=1))
+                ready = controller.submit(release_reaping)
+                previous_interrupt = signal.signal(signal.SIGINT, signal.default_int_handler)
+                child_disposition = signal.SIG_IGN if mode.startswith('ignored-') else signal.SIG_DFL
+                previous_child = signal.signal(signal.SIGCHLD, child_disposition)
+                try:
+                    with (patch.object(harness, 'ROOT', work),
+                          patch.object(process_tree, '__file__', str(shim)),
+                          redirect_stdout(StringIO())):
+                        result = harness.execute(
+                            'desktop-localization', [sys.executable, '-c', command, worker,
+                                                     '23' if mode == 'ignored-nonzero' else '0'],
+                            dict(os.environ, FIXTURE_MODE=mode), work / '.reports', 8,
+                            cancel=cancel.is_set if mode == 'late-cancel' else None,
+                        )
+                except KeyboardInterrupt:
+                    self.fail('late SIGINT escaped without a check record')
+                finally:
+                    signal.signal(signal.SIGCHLD, previous_child)
+                    signal.signal(signal.SIGINT, previous_interrupt)
+                ready.result(timeout=6)
+                self.assertIsNone(control.poll())
+                self.assertFalse(lock_is_free(work / 'unrelated.lock'))
+                self.assertEqual(expected, (result['status'], result['exit_code'], result.get('reason_code')))
+                log = (work / result['log']).read_bytes()
+                self.assertIn(b'command completed before cleanup', log)
+                self.assertEqual(hashlib.sha256(log).hexdigest(), result['log_sha256'])
+                if mode.endswith('failure'):
+                    self.assertIn(f'[Errno {errno.EMFILE}]'.encode('ascii'), log)
+                    self.assertFalse(lock_is_free(work / 'owned.lock'), 'this failure must leave cleanup unconfirmed')
+                else:
+                    if mode == 'partial-confirmation':
+                        self.assertIn(b'did not confirm cleanup', log)
+                    if mode == 'invalid-confirmation':
+                        self.assertIn(b'Invalid Linux check cleanup confirmation', log)
+                    if mode.startswith('late-'):
+                        self.assertIn(b'Check stopped: interrupted.', log)
+                    self.assertTrue(lock_is_free(work / 'owned.lock'))
+                    self.assertEqual(1, len(owned_handles))
+                    fdinfo = Path(f'/proc/self/fdinfo/{owned_handles[0]}').read_text().splitlines()
+                    self.assertEqual('-1', next(line.split()[1] for line in fdinfo if line.startswith('Pid:')))
 
     @unittest.skipUnless(sys.platform in {'linux', 'win32'}, 'requires owned process tree verification')
     def test_workspace_profile_pool_waits_for_grandchild_before_removal(self):
