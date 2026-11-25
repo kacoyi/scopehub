@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-151",
   "tasks": [
     {
       "id": "M0-001",
@@ -25245,6 +25245,125 @@
           "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
         }
       }
+    },
+    {
+      "id": "M0-151",
+      "title": "Synchronize the owned market worker interruption witness",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M1-019"
+      ],
+      "scope": [
+        "tests/ubuntu-preview",
+        "tests/project/test_market_probe_owner.py",
+        "crates/worker-host/examples/history_bridge.rs",
+        "crates/worker-host/src/market.rs",
+        "python/worker_runtime",
+        "apps/desktop/ui/ubuntu-preview.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Both ordinary interruption journeys observe a confirmed partial, terminate exactly the admitted original synthetic worker, verify the replacement witness, replay through one subscription and preserve the frozen history. An ordinary later request works.",
+        "An absent, ambiguous, stale or decoy worker is refused without terminating unrelated processes. Portable controls exercise disposable subprocesses and bounded waits. The original hosted Windows outcome and passing companion controls remain recoverable."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "market-worker-interruption",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Establish the replay and worker-exit ordering at the test boundary, prove the correction on Linux, then hand the exact candidate to independent review and the coordinator for ordinary Windows verification.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The ordinary browser check interrupts a positively identified live worker at confirmed replay progress under the existing deadlines, and verifies the resulting recovery.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/worker-interruption.spec.mjs",
+          "tests/ubuntu-preview/interrupt_owned_worker.py",
+          "crates/worker-host/examples/history_bridge.rs",
+          "python/worker_runtime/replay.py",
+          "archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json"
+        ],
+        "hypotheses": [
+          "The current mutation observer triggers asynchronously after the confirmed partial becomes visible. The worker emits the closing update independently and its bridge can reap it before the one-shot descendant scan. The failing native stream contains normal completion without any recovery frames. The original report does not identify the precise ordering of process exit and enumeration.",
+          "The portable control should distinguish a still-live original instance from a naturally completed replay, and require exact ownership through the actual Windows launcher and POSIX preview paths."
+        ],
+        "risks": [
+          {
+            "failure": "A slow browser or process enumeration misses the original worker, or a naturally completed stream is counted as a real interruption.",
+            "checks": [
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "A missing, ambiguous or stale process identity terminates a decoy or a subsequent request, or a blocked worker increases existing deadlines.",
+            "checks": [
+              "python-contracts-workers",
+              "market-worker-interruption",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the isolated interruption-witness change if it cannot maintain bounded progress and exact process ownership. Retain the original diagnostic and matching positive controls.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "worker-host",
+            "ui"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/worker-interruption.config.mjs",
+            "tests/ubuntu-preview/interrupt_owned_worker.py",
+            "crates/worker-host/examples/history_bridge.rs",
+            "python/worker_runtime/replay.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "Product or runner deadline changes, external dependencies, wider process authority, or changes to the accepted M1-019 and independent M0-119 and M0-144 records."
+          ],
+          "open_questions": [
+            "Can the test hold the confirmed synthetic replay between its real worker updates without affecting normal callers? The coordinator owns the eventual ordinary Windows verification."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing platform ownership, replay timing for ordinary callers, request and instance authority, exact protocol and browser assertions, and unrelated processes."
+          ],
+          "change": [
+            "Tie the interruption to a live owned replay witness instead of inferring worker liveness from a delayed browser render."
+          ],
+          "data_plan": "Use disposable synthetic fixtures and retain source-identified raw diagnostics and control artifacts in the private archive.",
+          "cleanup": "Release every fixture-owned process and temporary resource on completion or refusal; preserve previous native originals."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686305388-1",
+          "source_commit": "d1736c1566fe7eb8ba05b46c03c266842dcd8149",
+          "report_sha256": "40f50f064608fe13b174f31ade14f78b697b1da6c97714653cfa77bbd8ffd96b"
+        }
+      ]
     }
   ]
 }
