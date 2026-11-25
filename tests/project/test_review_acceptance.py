@@ -340,6 +340,12 @@ class TaskReviewTests(ProjectFixture):
             docs + '1. A listed exchange.\n' + exchange,
             '• `Copied syntax\n' + exchange.replace('\n\n', '\n') + '`\n',
             docs + '<pre>\n' + exchange + '</pre>\n',
+            f'• [Archived example\n› Prior request.\n• {heading}\n](https://example.test)\n\n'
+            f'  {claim}\n  Worked for 1m • today\n',
+            f'• **Archived example\n› Prior request.\n• {heading}**\n\n'
+            f'  {claim}\n  Worked for 1m • today\n',
+            f'• Archived example\n› Prior request.\n• {heading}\n---\n\n'
+            f'  {claim}\n  Worked for 1m • today\n',
             f'    {heading}\n\n{claim}\n',
             f'APPROVE {TASK}\n  ```text\n  {source}\n  ```\n\n{claim}\n',
         )

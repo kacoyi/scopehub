@@ -58,18 +58,28 @@ def literal_spans(node):
             yield from literal_spans(child)
 
 
-def review_line_spans(document):
+def review_line_spans(document, source):
     for node in document.children:
         if isinstance(node, block.CodeBlock):
             # A terminal capture can start inside indented output. It cannot
             # establish an exchange or a verdict from that output.
             yield node.start_pos, node.end_pos, False
-        elif isinstance(node, (block.Paragraph, block.Heading, block.SetextHeading)):
+        elif isinstance(node, (block.Heading, block.SetextHeading)):
+            # A first-line verdict may be written as a heading. Further
+            # physical lines of that heading are not terminal control lines.
+            newline = source.find('\n', node.start_pos, node.end_pos)
+            yield node.start_pos, node.end_pos if newline == -1 else newline, True
+        elif isinstance(node, block.Paragraph):
             start = node.start_pos
-            for literal in literal_spans(node):
-                if start < literal.start_pos:
-                    yield start, literal.start_pos, True
-                start = literal.end_pos
+            for child in node.children:
+                if child.source_span is None or isinstance(child, (*TEXT, inline.LineBreak)):
+                    continue
+                # A line may open Markdown formatting, but a continuation
+                # inside a link, emphasis, or literal is not an outer line.
+                inside = child.start_pos + 1
+                if start < inside:
+                    yield start, inside, True
+                start = child.end_pos
             if start < node.end_pos:
                 yield start, node.end_pos, True
 
@@ -77,7 +87,7 @@ def review_line_spans(document):
 def review_line_contexts(source, lines):
     prose, indented = set(), set()
     try:
-        spans = iter(review_line_spans(Markdown(extensions=['gfm']).parse(source)))
+        spans = iter(review_line_spans(Markdown(extensions=['gfm']).parse(source), source))
         span = next(spans, None)
         offset = 0
         for index, line in enumerate(lines):
