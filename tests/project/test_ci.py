@@ -1,6 +1,8 @@
 """Reject stale hosted results and preserve provenance when importing native evidence."""
 
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 import json
 from pathlib import Path
 import shutil
@@ -12,9 +14,10 @@ from unittest.mock import patch
 from scripts import ci
 from scripts.check import ci_provenance
 from scripts.project import (
-    ProjectError, archive_evidence, checkpoint, digest, json_bytes, read_json, source_identity,
+    INPUT_EXCLUSIONS, ProjectError, archive_evidence, checkpoint, digest, json_bytes, read_json, source_identity,
 )
 from tests.project.test_continuity import ProjectFixture
+from tests.project.fixtures import task_by_id
 
 
 class HostedStatusTests(unittest.TestCase):
@@ -166,6 +169,328 @@ class HostedStatusTests(unittest.TestCase):
                 self.assertEqual(event, result['run']['event'])
                 self.assertIn(scope, result['claim_scope'])
                 call.assert_called_once_with(['gh', 'api', 'repos/fixture/scopehub/actions/runs/11'], ci.ROOT)
+
+
+class TaskDispatchTests(ProjectFixture):
+    repository = 'fixture/scopehub'
+    author = ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false']
+
+    def git(self, *args):
+        return subprocess.run(['git', *self.author, *args], cwd=self.root, capture_output=True, text=True,
+                              check=True).stdout.strip()
+
+    def commit(self, message):
+        self.git('add', '.')
+        self.git('commit', '--quiet', '-m', message)
+        return self.git('rev-parse', 'HEAD')
+
+    def setUp(self):
+        super().setUp()
+        self.rules = self.root / 'scripts/project.py'
+        self.rules.parent.mkdir(exist_ok=True)
+        self.rules.write_text(f'INPUT_EXCLUSIONS = {INPUT_EXCLUSIONS!r}\n', encoding='utf-8')
+        (self.root / 'project/branch-protection.json').write_bytes(json_bytes({'branch': 'main', 'repository': self.repository}))
+        self.git('remote', 'add', 'origin', f'https://github.com/{self.repository}.git')
+        self.git('config', '--local', 'github.account', 'fixture-owner')
+        ledger = self.ledger()
+        for task_id in ('M0-002', 'M0-004'):
+            task_by_id(ledger, task_id)['scope'] = ['dependency.py']
+        self.save_ledger(ledger)
+        self.base = self.commit('Protected task base')
+        self.git('update-ref', 'refs/remotes/origin/main', self.base)
+        self.git('checkout', '-qb', 'product')
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        self.reviewed = self.commit('Independent reviewed product')
+        self.git('checkout', '-qb', 'stack', self.base)
+        (self.root / 'dependency.py').write_text('other = True\n', encoding='utf-8')
+        self.declared_dependency = self.commit('Implement the declared dependency in its recorded scope')
+        task_by_id(ledger, 'M0-002')['acceptance'] = ['Exercise the separately reviewed dependency.']
+        self.save_ledger(ledger)
+        self.dependency = self.commit('Record the reviewed cross-task dependency')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Record both changes', self.reviewed)
+        self.stack = self.git('rev-parse', 'HEAD')
+
+    def request(self, *flags, remote_base=None, remote_head=None, on_post=None, task_id='M0-001'):
+        calls = []
+        remote = {'main': remote_base or self.base, 'product': remote_head or self.reviewed,
+                  'stack': remote_head or self.stack}
+        ordinary = ci.command
+
+        def spy(argv, root):
+            if argv[0] != 'gh':
+                return ordinary(argv, root)
+            calls.append(argv)
+            if argv[1:3] == ['auth', 'switch']:
+                return ''
+            if argv[1:3] == ['api', 'user']:
+                return 'fixture-owner'
+            if '/git/ref/heads/' in argv[2]:
+                branch = argv[2].rsplit('/', 1)[-1]
+                return json.dumps({'ref': f'refs/heads/{branch}', 'object': {'type': 'commit', 'sha': remote[branch]}})
+            self.assertEqual(['gh', 'api', '--method', 'POST'], argv[:4])
+            self.assertEqual(f'repos/{self.repository}/actions/workflows/verify.yml/dispatches', argv[4])
+            return on_post(argv, remote) if on_post else ''
+
+        output = StringIO()
+        args = ['dispatch-task', task_id, '--base', self.base, '--reviewed', self.reviewed, *flags]
+        with patch.object(ci, 'command', side_effect=spy), redirect_stdout(output):
+            exit_code = ci.main(args, root=self.root)
+        return exit_code, json.loads(output.getvalue()), calls
+
+    def test_wrong_stack_and_missing_history_never_reach_github(self):
+        result, view, calls = self.request('--ref', 'stack', '--submit')
+        self.assertEqual(1, result)
+        self.assertIn(self.reviewed, view['error'])
+        self.assertIn('intended base', view['error'])
+        self.assertEqual([], calls)
+        self.git('update-ref', '-d', 'refs/remotes/origin/main')
+        result, view, calls = self.request('--ref', 'stack', '--submit')
+        self.assertEqual(1, result)
+        self.assertIn('history', view['error'])
+        self.assertEqual([], calls)
+
+    def test_submit_binds_live_protected_base_and_destination_tip(self):
+        self.git('checkout', '-q', 'product')
+        result, view, calls = self.request('--ref', 'product')
+        self.assertEqual(0, result)
+        self.assertEqual(('ready', self.reviewed, False), (view['status'], view['head_sha'], view['remote_refs_observed']))
+        self.assertEqual([], calls)
+        for change, message in (({'remote_base': self.dependency}, 'protected'),
+                                ({'remote_head': self.stack}, 'remote branch tip')):
+            with self.subTest(change=change):
+                result, view, calls = self.request('--ref', 'product', '--submit', **change)
+                self.assertEqual(1, result)
+                self.assertIn(message, view['error'])
+                self.assertFalse(any('POST' in call for call in calls))
+        result, view, calls = self.request('--ref', 'product', '--submit')
+        self.assertEqual(0, result)
+        self.assertEqual(('submitted', self.reviewed, True), (view['status'], view['head_sha'], view['remote_refs_observed']))
+        self.assertIsNone(view['run_id'])
+        self.assertEqual([['gh', 'api', '--method', 'POST', f'repos/{self.repository}/actions/workflows/verify.yml/dispatches',
+                           '-H', 'X-GitHub-Api-Version: 2022-11-28',
+                           '-f', 'ref=refs/heads/product', '-F', 'return_run_details=true',
+                           '-f', 'inputs[task_id]=M0-001', '-f', f'inputs[expected_head]={self.reviewed}',
+                           '-f', f'inputs[expected_base]={self.base}', '-f', f'inputs[dispatch_id]={view["dispatch_id"]}']],
+                         [call for call in calls if 'POST' in call])
+
+    def test_ref_moving_after_get_carries_the_original_candidate_and_returned_run_id(self):
+        self.git('checkout', '-q', 'product')
+        observed = []
+        url = f'https://github.com/{self.repository}/actions/runs/91'
+
+        def moved(argv, remote):
+            remote['product'] = self.base
+            observed.append(remote['product'])
+            return json.dumps({'workflow_run_id': 91, 'html_url': url})
+
+        result, view, calls = self.request('--ref', 'product', '--submit', on_post=moved)
+        self.assertEqual([self.base], observed)
+        self.assertEqual((0, 'submitted', 91, url), (result, view['status'], view['run_id'], view['run_url']))
+        self.assertIn(f'inputs[expected_head]={self.reviewed}', calls[-1])
+        self.assertIn(f'inputs[expected_base]={self.base}', calls[-1])
+        self.assertNotIn('remote_verified', view)
+        self.assertIn('Check the run head', view['next_action'])
+
+    def test_lost_response_after_accepted_post_returns_correlation_without_retry(self):
+        self.git('checkout', '-q', 'product')
+
+        def timeout(argv, remote):
+            raise subprocess.TimeoutExpired(argv, 30)
+
+        result, view, calls = self.request('--ref', 'product', '--submit', on_post=timeout)
+        self.assertEqual((1, 'submission_unknown'), (result, view['status']))
+        self.assertEqual(1, sum('POST' in call for call in calls))
+        self.assertIn(f'inputs[dispatch_id]={view["dispatch_id"]}', calls[-1])
+        self.assertEqual((self.repository, 'refs/heads/product', 'M0-001', self.reviewed),
+                         (view['repository'], view['ref'], view['task_id'], view['head_sha']))
+        self.assertIsNone(view['run_id'])
+        self.assertIn('before resubmitting', view['next_action'])
+
+    def test_named_dependent_base_is_compared_to_its_exact_integration(self):
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-002', self.dependency, '--submit')
+        self.assertEqual(0, result)
+        self.assertEqual(self.stack, view['head_sha'])
+        self.assertEqual({'task_id': 'M0-002', 'commit': self.dependency, 'binding': 'committed_definition'},
+                         view['dependency'])
+        self.assertEqual(1, len([call for call in calls if 'POST' in call]))
+
+    def test_unrelated_id_is_rejected_for_the_exact_stacked_commit(self):
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-004', self.dependency, '--submit')
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('M0-004', view['error'])
+        self.assertIn(self.dependency, view['error'])
+        self.assertEqual([], calls)
+
+    def test_declared_dependency_can_bind_scoped_changes_with_unchanged_task_definition(self):
+        self.git('checkout', '-qb', 'declared-stack', self.declared_dependency)
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'declared-stack', '--dependency', 'M0-002',
+                                           self.declared_dependency, task_id='M0-003')
+        self.assertEqual((0, 'ready', 'declared_dependency'), (result, view['status'], view['dependency']['binding']))
+        self.assertEqual([], calls)
+        result, view, calls = self.request('--ref', 'declared-stack', '--dependency', 'M0-001',
+                                           self.declared_dependency, '--submit', task_id='M0-003')
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('scope', view['error'])
+        self.assertEqual([], calls)
+
+    def complete_shared_dependency_on_protected_base(self):
+        self.git('checkout', '-qb', 'completed-base', self.base)
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['scope'] = ['dependency.py']
+        self.save_ledger(ledger)
+        (self.root / 'dependency.py').write_text('base = True\n', encoding='utf-8')
+        self.commit('Implement the original shared dependency')
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.base = self.commit('Close the original dependency on protected main')
+        self.git('update-ref', 'refs/remotes/origin/main', self.base)
+        self.git('checkout', '-qb', 'completed-product')
+        (self.root / 'implementation.py').write_text('value = 3\n', encoding='utf-8')
+        self.reviewed = self.commit('Implement the selected task after its dependency completed')
+
+    def test_completed_dependency_cannot_borrow_another_tasks_shared_path(self):
+        self.complete_shared_dependency_on_protected_base()
+        self.git('checkout', '-qb', 'other-stack', self.base)
+        (self.root / 'dependency.py').write_text('unrelated = True\n', encoding='utf-8')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-002')['acceptance'] = ['Observe the unrelated task in the same file.']
+        self.save_ledger(ledger)
+        unrelated = self.commit('Implement the other task in the shared path')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-001', unrelated, '--submit',
+                                           task_id='M0-003', remote_head=self.git('rev-parse', 'HEAD'))
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('Completed dependency M0-001', view['error'])
+        self.assertIn(unrelated, view['error'])
+        self.assertEqual([], calls)
+        result, view, calls = self.request('--ref', 'other-stack', '--dependency', 'M0-002',
+                                           unrelated, task_id='M0-003')
+        self.assertEqual((0, 'committed_definition'), (result, view['dependency']['binding']))
+        self.assertEqual([], calls)
+
+    def test_completed_dependency_requires_a_new_receipt_for_the_same_source(self):
+        self.complete_shared_dependency_on_protected_base()
+        self.git('checkout', '-qb', 'supplementary', self.base)
+        path = self.root / 'dependency.py'
+        path.write_text('refined = True\n', encoding='utf-8')
+        evidenced = self.commit('Prepare the supplementary check source')
+        receipt = archive_evidence(self.root, 'M0-001', self.report())
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['evidence'].append(receipt)
+        self.save_ledger(ledger)
+        intended = self.commit('Archive the supplementary result for the exact source')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'supplementary', '--dependency', 'M0-001',
+                                           intended, task_id='M0-003')
+        self.assertEqual((0, 'supplementary_receipt'), (result, view['dependency']['binding']))
+        self.assertEqual(evidenced, read_json(self.root / receipt['path'])['source']['git_head'])
+        self.assertEqual([], calls)
+
+        self.git('checkout', '-qb', 'beyond-receipt', intended)
+        path.write_text('unrelated = True\n', encoding='utf-8')
+        unrelated = self.commit('Change the shared file past the evidenced source')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-001', unrelated, '--submit',
+                                           task_id='M0-003', remote_head=self.git('rev-parse', 'HEAD'))
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('supplementary receipt', view['error'])
+        self.assertEqual([], calls)
+
+    def test_supplementary_receipt_uses_its_historical_execution_input_rules(self):
+        self.complete_shared_dependency_on_protected_base()
+        self.git('checkout', '-qb', 'historical-rules', self.base)
+        prior_digest = source_identity(self.root)['sha256']
+        exclusions = INPUT_EXCLUSIONS[:-1]
+        self.rules.write_text(f'INPUT_EXCLUSIONS = {exclusions!r}\nraise RuntimeError("historical source")\n',
+                              encoding='utf-8')
+        (self.root / 'dependency.py').write_text('refined = True\n', encoding='utf-8')
+        evidenced = self.commit('Use the historical snapshot rules for the checked source')
+        with patch('scripts.project.INPUT_EXCLUSIONS', exclusions):
+            ref = archive_evidence(self.root, 'M0-001', self.report())
+        path = self.root / ref['path']
+        receipt = read_json(path)
+        self.assertEqual(exclusions, receipt['source']['exclusions'])
+        path.unlink()
+
+        cases = {
+            'match': receipt['source'],
+            'stale-inputs': {**receipt['source'], 'sha256': prior_digest},
+            'wrong-count': {**receipt['source'], 'file_count': 1},
+            'wrong-exclusions': source_identity(self.root),
+            'missing-commit': {**receipt['source'], 'git_head': 'a' * 40},
+        }
+        for case, source in cases.items():
+            with self.subTest(case=case):
+                self.git('checkout', '-qb', case, evidenced)
+                data = json_bytes({**receipt, 'source': source})
+                path.write_bytes(data)
+                ledger = self.ledger()
+                task_by_id(ledger, 'M0-001')['evidence'].append({**ref, 'sha256': digest(data)})
+                self.save_ledger(ledger)
+                intended = self.commit('Archive the supplementary evidence')
+                self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+                args = ['--ref', 'stack', '--dependency', 'M0-001', intended]
+                if case != 'match':
+                    args.append('--submit')
+                result, view, calls = self.request(*args, task_id='M0-003', remote_head=self.git('rev-parse', 'HEAD'))
+                self.assertEqual([], calls)
+                if case == 'match':
+                    self.assertEqual((0, 'supplementary_receipt'), (result, view['dependency']['binding']))
+                else:
+                    self.assertEqual((1, 'failed'), (result, view['status']))
+                    self.assertIn('supplementary receipt', view['error'])
+
+    def test_declared_dependency_lifecycle_rejects_cancelled_records_before_remote(self):
+        original = self.base
+        for before, after in (('active', 'active'), ('blocked', 'blocked'), ('cancelled', 'cancelled'),
+                              ('planned', 'cancelled'), ('cancelled', 'planned')):
+            with self.subTest(before=before, after=after):
+                self.git('checkout', '-qb', f'{before}-{after}', original)
+                ledger = self.ledger()
+                dependency = task_by_id(ledger, 'M0-002')
+                dependency['plan'] = task_by_id(ledger, 'M0-001')['plan']
+                dependency.update(status=before, blocker='Waiting on a fixture' if before == 'blocked' else None,
+                                  closure_reason='Replaced by another outcome' if before == 'cancelled' else None)
+                if before == 'active':
+                    ledger['focus_task_id'] = 'M0-002'
+                self.save_ledger(ledger)
+                self.base = self.commit('Set the dependency status on the protected base')
+                self.git('update-ref', 'refs/remotes/origin/main', self.base)
+                dependency.update(status=after, blocker='Waiting on a fixture' if after == 'blocked' else None,
+                                  closure_reason='Replaced by another outcome' if after == 'cancelled' else None)
+                if before != after:
+                    dependency['acceptance'] = ['Record the changed dependency definition.']
+                self.save_ledger(ledger)
+                (self.root / 'dependency.py').write_text('other = True\n', encoding='utf-8')
+                intended = self.commit('Touch the dependency scope in the proposed base')
+                self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+                args = ['--ref', 'stack', '--dependency', 'M0-002', intended]
+                cancelled = 'cancelled' in (before, after)
+                if cancelled:
+                    args.append('--submit')
+                result, view, calls = self.request(*args, task_id='M0-003', remote_head=self.git('rev-parse', 'HEAD'))
+                self.assertEqual([], calls)
+                if cancelled:
+                    self.assertEqual((1, 'failed'), (result, view['status']))
+                    self.assertIn('Cancelled dependency M0-002', view['error'])
+                else:
+                    self.assertEqual((0, 'declared_dependency'), (result, view['dependency']['binding']))
+
+    def test_unverifiable_dependency_and_shallow_history_report_before_dispatch(self):
+        off_base = self.git('commit-tree', f'{self.base}^{{tree}}', '-m', 'Unrelated root')
+        for revision, problem in (('a' * 40, 'unavailable'), (off_base, 'not a verified ancestor')):
+            with self.subTest(revision=revision):
+                result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-002', revision, '--submit')
+                self.assertEqual(1, result)
+                self.assertIn(revision, view['error'])
+                self.assertIn(problem, view['error'])
+                self.assertEqual([], calls)
+        (self.root / '.git/shallow').write_text(self.base + '\n', encoding='ascii')
+        result, view, calls = self.request('--ref', 'stack', '--submit')
+        self.assertEqual(1, result)
+        self.assertIn(self.base, view['error'])
+        self.assertIn('Shallow', view['error'])
+        self.assertEqual([], calls)
 
 
 class HostedEvidenceTests(ProjectFixture):

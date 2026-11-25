@@ -4,7 +4,9 @@ from io import StringIO
 from pathlib import Path
 import unittest
 
-from providers.local_folder import CsvReviewRequired, check_complete_csv, inspect_folder_csv, preview_csv
+from providers.local_folder import (
+    CsvReviewRequired, check_complete_csv, inspect_folder_csv, preview_csv, read_csv_source_row,
+)
 from tests.integration.test_local_folder_preview import FUTURES_COLUMNS, FUTURES_HEADER, FUTURES_MAPPING
 
 
@@ -42,6 +44,7 @@ class NativeCsvDeclarationTests(unittest.TestCase):
         self.assertTrue(series.isdisjoint(rules) and config.isdisjoint(series | rules))
         self.assertEqual(series | rules | config, set(definitions['CsvMappingV1']['properties']))
         self.assertEqual(series | rules, set(CONFLICTS))
+        self.assertEqual(series | rules, set(definitions['CsvDeclarationConflict']['properties']['field']['enum']))
         self.assertEqual(set(definitions['CsvColumnMappingV1']['properties']),
                          {'symbol', 'timestamp', 'trading_day', 'open', 'high', 'low', 'close', 'volume'})
 
@@ -61,6 +64,10 @@ class NativeCsvDeclarationTests(unittest.TestCase):
                 self.assertIsNone(rejected['normalized'])
                 issue, = rejected['issues']
                 self.assertEqual((issue['field'], issue['code']), (field, field + '_mismatch'))
+                original = read_csv_source_row(content, mapping, 2, review_declarations=True)
+                self.assertEqual(original['declaration_conflicts'], [
+                    {'column_index': len(HEADER), 'field': field, 'reviewed_value': mapping[field]},
+                ])
                 for verify in (check_complete_csv, inspect_folder_csv):
                     with self.assertRaises(CsvReviewRequired) as failure:
                         verify(content, mapping)

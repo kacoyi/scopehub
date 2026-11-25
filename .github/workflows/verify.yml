@@ -1,4 +1,5 @@
 name: Verify delivery
+run-name: ${{ inputs.dispatch_id && format('Verify task {0} [{1}]', inputs.task_id, inputs.dispatch_id) || '' }}
 
 on:
   pull_request:
@@ -17,22 +18,73 @@ on:
         description: Optional project task ID for task-only verification
         type: string
         required: false
+      expected_head:
+        description: Reviewed commit SHA for a guarded task dispatch
+        type: string
+        required: false
+      expected_base:
+        description: Reviewed protected main SHA for a guarded task dispatch
+        type: string
+        required: false
+      dispatch_id:
+        description: Correlation ID supplied by the guarded task dispatch command
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
+  # A guarded request must never cancel another run, even if its ref moved.
   group: >-
-    ${{ github.event_name == 'schedule' && format('verify-weekly-{0}-{1}', github.workflow, github.ref) ||
+    ${{ (inputs.expected_head || inputs.expected_base || inputs.dispatch_id) && format('verify-dispatch-{0}-{1}', github.workflow, github.run_id) ||
+        github.event_name == 'schedule' && format('verify-weekly-{0}-{1}', github.workflow, github.ref) ||
         inputs.task_id && format('verify-task-{0}-{1}:{2}', github.workflow, github.ref, inputs.task_id) ||
         inputs.profile == 'release' && format('verify-release-{0}-{1}', github.workflow, github.ref) ||
         format('verify-{0}-{1}', github.workflow, github.ref) }}
   cancel-in-progress: true
 
 jobs:
+  reviewed_dispatch:
+    name: Check reviewed task dispatch
+    if: github.event_name == 'workflow_dispatch' && (inputs.expected_head || inputs.expected_base || inputs.dispatch_id)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Compare the event commit and protected base
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+          EXPECTED_BASE: ${{ inputs.expected_base }}
+          DISPATCH_ID: ${{ inputs.dispatch_id }}
+          TASK_ID: ${{ inputs.task_id }}
+          VERIFY_PROFILE: ${{ inputs.profile }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ || ! "$EXPECTED_BASE" =~ ^[0-9a-f]{40}$ ||
+                ! "$DISPATCH_ID" =~ ^[0-9a-f]{32}$ || ! "$TASK_ID" =~ ^M[0-9]+-[0-9]{3}$ ||
+                "$VERIFY_PROFILE" != full ]]; then
+            echo 'A guarded task dispatch requires an exact head, base, request ID and task with the full profile.' >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" != branch || "$GITHUB_SHA" != "$EXPECTED_HEAD" ]]; then
+            echo "Dispatch resolved to $GITHUB_REF at $GITHUB_SHA; reviewed head was $EXPECTED_HEAD." >&2
+            exit 1
+          fi
+          observed_base="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" \
+            --jq 'select(.ref == "refs/heads/main" and .object.type == "commit") | .object.sha')"
+          if [[ "$observed_base" != "$EXPECTED_BASE" ]]; then
+            echo "Protected main is at $observed_base; reviewed base was $EXPECTED_BASE." >&2
+            exit 1
+          fi
+
   verify:
     name: ${{ inputs.task_id && 'verify task' || 'verify' }} (${{ matrix.os }})
-    if: github.event_name != 'schedule' || github.ref == 'refs/heads/main'
+    needs: reviewed_dispatch
+    if: >-
+      ${{ !cancelled() && (github.event_name != 'schedule' || github.ref == 'refs/heads/main') &&
+          ((inputs.expected_head || inputs.expected_base || inputs.dispatch_id) && needs.reviewed_dispatch.result == 'success' ||
+           !(inputs.expected_head || inputs.expected_base || inputs.dispatch_id) && needs.reviewed_dispatch.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +95,7 @@ jobs:
     # Each check retains its own deadline.
     timeout-minutes: ${{ inputs.profile == 'release' && 180 || matrix.os == 'windows-latest' && 60 || 30 }}
     env: &verify_env
-      SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      SCOPEHUB_SOURCE_HEAD: ${{ inputs.expected_head || github.event.pull_request.head.sha || github.sha }}
     steps: &verify_steps
       - name: Reject a task ID with the release profile
         if: inputs.task_id && inputs.profile == 'release'
@@ -56,6 +108,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ inputs.expected_head || '' }}
       - &verify_uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
