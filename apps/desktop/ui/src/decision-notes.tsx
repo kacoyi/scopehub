@@ -8,7 +8,7 @@ import {
 } from './decision-note-transport';
 import { formatNumber, message, t, useLocale, type Message } from './i18n';
 import { withReplyDeadline } from './reply-deadline';
-import { readWorkspaceSnapshot, type LocalWorkspace } from './use-local-workspace';
+import { readWorkspaceSnapshot, readWorkspaceSnapshotAfterAdmission, type LocalWorkspace } from './use-local-workspace';
 import { WorkspaceIcon } from './workspace-icons';
 
 type Page = { noteId: string | null; offset: number; revision: number; epoch: number; data: DecisionNoteReadOutput };
@@ -17,7 +17,7 @@ type OutcomeDraft = { noteId: string; observed_on: string; outcome: string };
 type PendingAction = { kind: 'note'; note: PreparedNote } | { kind: 'restore'; restore: PreparedRestore };
 type NoteFailure = { code: unknown; description: Message };
 
-// Leave room for the transport's four-second admission retry inside the full fallback.
+// The fallback snapshot and list share this deadline, including admission retries and reply delivery.
 const fallbackReplyDeadlineMs = 5_000;
 const listRefreshFailure = message('The decision-note list could not be refreshed.');
 
@@ -235,7 +235,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
         discardPage();
         clearSelection();
         const { revision, data } = await withReplyDeadline(fallbackReplyDeadlineMs, async deadline => {
-          const revision = (await readWorkspaceSnapshot(deadline)).workspace.revision;
+          const revision = (await readWorkspaceSnapshotAfterAdmission(deadline)).workspace.revision;
           const data = await readNotes(workspaceId, null, 0, deadline, { waitForAdmission: true });
           return { revision, data };
         }, signal);

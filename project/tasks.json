@@ -25294,7 +25294,7 @@
           "report_sha256": "51c9da332b22091f780d8da2bf7ca63194ca6696a7e30ef4dd31d7d940e2d109"
         }
       ],
-      "next_action": "Reproduce the Windows fallback snapshot refusal on the current paired-window writer. Verify bounded snapshot and list admission, denied and missing delivery, cancellation and selection preservation under the same deadline.",
+      "next_action": "Review the exact red and green paired-window snapshot contention, terminal denial and loss, and shared deadline evidence. Verify guarded Windows on the clean corrected candidate, including the ordinary paired-window journey.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
