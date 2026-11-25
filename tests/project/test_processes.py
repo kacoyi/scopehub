@@ -1,6 +1,6 @@
 """Real subprocess regressions for diagnostics and bounded check lifetimes."""
 
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import BytesIO, StringIO, TextIOWrapper
 import json
 import os
@@ -18,7 +18,7 @@ import venv
 
 from scripts import check as harness
 from scripts import doctor
-from scripts import processes
+from scripts import prepare_workspace_profile_pool, processes
 
 
 class ProcessTests(unittest.TestCase):
@@ -63,6 +63,102 @@ class ProcessTests(unittest.TestCase):
         self.assertIn(b'Check stopped: timeout', log)
         self.assertEqual(result['log_sha256'], hashlib.sha256(log).hexdigest())
         path.unlink()
+
+    @unittest.skipUnless(sys.platform in {'linux', 'win32'}, 'requires owned process tree verification')
+    def test_workspace_profile_pool_waits_for_grandchild_before_removal(self):
+        pool = self.root / 'pool'
+        marker = self.root / 'descendant.pid'
+        release = self.root / 'release'
+        grandchild = '''
+from pathlib import Path
+import os, sys, time
+pool, marker, release = map(Path, sys.argv[1:])
+marker.write_text(str(os.getpid()), encoding='ascii')
+deadline = time.monotonic() + 30
+while time.monotonic() < deadline and not release.exists():
+    time.sleep(.01)
+if release.exists():
+    pool.mkdir(exist_ok=True)
+    (pool / 'late').write_text('late write', encoding='ascii')
+'''
+        bridge = '''
+import subprocess, sys, time
+subprocess.Popen([sys.executable, '-I', '-S', '-c', *sys.argv[1:]],
+                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(30)
+'''
+        observed = []
+        original_wait = processes._wait_for_check
+        original_remove = prepare_workspace_profile_pool.shutil.rmtree
+
+        def watch_then_timeout(process, timeout, cancel):
+            pid = self.read_live_pid(marker)
+            if sys.platform == 'win32':
+                import _winapi
+                handle = _winapi.OpenProcess(_winapi.SYNCHRONIZE, False, pid)
+                self.addCleanup(_winapi.CloseHandle, handle)
+                self.assertEqual(_winapi.WAIT_TIMEOUT, _winapi.WaitForSingleObject(handle, 0))
+                stopped = lambda: _winapi.WaitForSingleObject(handle, 0) == _winapi.WAIT_OBJECT_0
+            else:
+                status = Path(f'/proc/{pid}/stat')
+
+                def stopped():
+                    try:
+                        return status.read_bytes().rsplit(b')', 1)[1].split()[0] in {b'Z', b'X'}
+                    except FileNotFoundError:
+                        return True
+
+                self.assertFalse(stopped())
+            observed.append(stopped)
+            return original_wait(process, .1, None)
+
+        def verify_before_removal(path, *args, **kwargs):
+            self.assertEqual(pool, path)
+            self.assertEqual(1, len(observed))
+            self.assertTrue(observed[0](), 'an owned descendant was still live when removing the pool')
+            release.write_text('write only if still alive', encoding='ascii')
+            return original_remove(path, *args, **kwargs)
+
+        diagnostic = StringIO()
+        with (patch.object(processes, '_wait_for_check', watch_then_timeout),
+              patch.object(prepare_workspace_profile_pool.shutil, 'rmtree', verify_before_removal),
+              redirect_stderr(diagnostic)):
+            status = prepare_workspace_profile_pool.prepare(
+                [sys._base_executable, '-I', '-S', '-c', bridge, grandchild, str(pool), str(marker), str(release)],
+                pool, 12,
+            )
+        self.assertEqual(124, status, diagnostic.getvalue())
+        self.assertTrue(release.exists())
+        self.assertFalse(pool.exists())
+        self.assertIn('Check stopped: timeout', diagnostic.getvalue())
+
+    def test_workspace_profile_supervisor_refuses_start_when_grant_is_absent_or_expired(self):
+        path = Path(prepare_workspace_profile_pool.__file__)
+        for grant, deadline, expected in [(b'', 12_000, 125), (b'1', -1, 124)]:
+            with self.subTest(grant=grant, deadline=deadline):
+                pool = self.root / 'ungranted'
+                result = subprocess.run(
+                    [sys._base_executable, '-B', str(path), str(self.root / 'unused-bridge'), str(pool), '2',
+                     str(time.time_ns() // 1_000_000 + deadline)],
+                    input=grant, capture_output=True, timeout=10, check=False,
+                )
+                self.assertEqual(expected, result.returncode, result.stderr)
+                self.assertEqual('scopehub-workspace-profile-ready', result.stdout.decode().strip())
+                self.assertFalse(pool.exists())
+
+    def test_workspace_profile_pool_retains_root_if_cleanup_cannot_be_confirmed(self):
+        pool = self.root / 'pool'
+        diagnostic = StringIO()
+
+        def unconfirmed(*args, log_path, **kwargs):
+            log_path.write_text('original refusal\nProcess cleanup failed\n', encoding='utf-8')
+            return 31, 'cleanup_failed'
+
+        with patch.object(prepare_workspace_profile_pool, 'run_logged', unconfirmed), redirect_stderr(diagnostic):
+            self.assertEqual(31, prepare_workspace_profile_pool.prepare(['fixture'], pool, 12))
+        self.assertTrue(pool.is_dir())
+        self.assertIn('original refusal', diagnostic.getvalue())
+        self.assertIn('process exit was not confirmed', diagnostic.getvalue())
 
     @unittest.skipUnless(sys.platform == 'win32', 'requires the Windows venv redirector and Job Objects')
     def test_windows_gated_launcher_is_the_assigned_process(self):

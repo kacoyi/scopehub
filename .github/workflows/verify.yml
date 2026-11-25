@@ -89,9 +89,9 @@ jobs:
             echo 'split=true' >> "$GITHUB_OUTPUT"
           fi
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        if: steps.lane.outputs.skip != 'true'
+        if: &windows_web_tools steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.lane.outputs.skip != 'true'
+        if: *windows_web_tools
         with:
           node-version: '24'
           cache: pnpm
@@ -100,14 +100,14 @@ jobs:
         if: steps.lane.outputs.skip != 'true'
         with:
           toolchain: '1.99.0'
-          components: ${{ matrix.lane == 'python' && 'rustfmt' || 'rustfmt, clippy' }}
+          components: ${{ (matrix.lane == 'python' || matrix.lane == 'recovery') && 'rustfmt' || 'rustfmt, clippy' }}
       - run: uv sync --locked
         if: steps.lane.outputs.skip != 'true'
       - run: pnpm install --frozen-lockfile
-        if: steps.lane.outputs.skip != 'true'
+        if: *windows_web_tools
       - name: Check browser and build-output prerequisites
         id: build_setup
-        if: steps.lane.outputs.skip != 'true'
+        if: *windows_web_tools
         env:
           SCOPEHUB_TASK_ID: ${{ inputs.task_id }}
           SCOPEHUB_SCOPE: ${{ steps.scope.outcome == 'success' && steps.scope.outputs.profile || 'full' }}
@@ -137,7 +137,7 @@ jobs:
           fi
       - name: Select the Cargo cache key
         id: cargo_keys
-        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true'
+        if: &cargo_required steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python'
         env:
           SCOPEHUB_WINDOWS_LANE: ${{ steps.lane.outputs.split == 'true' && matrix.lane || '' }}
           TOOLCHAIN_HASH: ${{ hashFiles('rust-toolchain.toml') }}
@@ -148,7 +148,7 @@ jobs:
           legacy="$prefix$TOOLCHAIN_HASH-"
           cache_lane="$SCOPEHUB_WINDOWS_LANE"
           # Market recovery builds the same history bridge as the browser lane.
-          if [ "$cache_lane" = python ]; then
+          if [ "$cache_lane" = recovery ]; then
             cache_lane=browser
           fi
           primary="$prefix${cache_lane:+$cache_lane-}$TOOLCHAIN_HASH-"
@@ -173,7 +173,7 @@ jobs:
           key: ${{ steps.cargo_keys.outputs.primary }}
           restore-keys: ${{ steps.cargo_keys.outputs.fallback }}
       - name: Install and start the pinned chart-test browser
-        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
+        if: steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')
         shell: bash
         run: |
           pnpm exec playwright install chromium
@@ -267,8 +267,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Save the Cargo cache for this selection
-        # Split cache owners seed their own keys on main. Python only restores the browser key.
-        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && matrix.lane != 'python')) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
+        # Core and browser seed their keys on main. Recovery only restores the browser key.
+        if: success() && !inputs.task_id && steps.build_setup.outputs.profile == '' && (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && (matrix.lane == 'core' || matrix.lane == 'browser'))) && steps.cargo_cache.outputs['cache-primary-key'] != '' && steps.cargo_cache.outputs['cache-hit'] != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -314,16 +314,28 @@ jobs:
     env: *verify_env
     steps: *verify_steps
 
+  windows_recovery:
+    name: Windows change checks (${{ matrix.lane }})
+    if: *windows_change
+    strategy:
+      matrix:
+        lane: [recovery]
+        os: *windows_runner
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env: *verify_env
+    steps: *verify_steps
+
   windows_change:
     # Schedule the protected context even when a required producer fails or is cancelled.
     name: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && 'verify (windows-latest)' || 'Windows change verification (not requested)' }}
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push' && github.ref == 'refs/heads/main') }}
-    needs: [windows_core, windows_browser, windows_python]
+    needs: [windows_core, windows_browser, windows_python, windows_recovery]
     runs-on: windows-latest
     timeout-minutes: 10
     env:
       SCOPEHUB_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
-      SCOPEHUB_WINDOWS_LANE_RESULT: ${{ needs.windows_core.result == 'success' && needs.windows_browser.result == 'success' && needs.windows_python.result == 'success' && 'success' || 'failure' }}
+      SCOPEHUB_WINDOWS_LANE_RESULT: ${{ needs.windows_core.result == 'success' && needs.windows_browser.result == 'success' && needs.windows_python.result == 'success' && needs.windows_recovery.result == 'success' && 'success' || 'failure' }}
     steps:
       - *verify_checkout
       - *verify_uv
@@ -361,6 +373,7 @@ jobs:
           SCOPEHUB_SCOPE_DECISION: ${{ steps.scope.outputs.decision }}
           SCOPEHUB_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           SCOPEHUB_TIMING_CACHE: ${{ steps.full.outputs.cache || steps.scoped.outputs.cache }}
+          SCOPEHUB_TIMING_WINDOWS_CACHES: ${{ steps.full.outputs.windows_caches }}
         run: uv run --no-sync python scripts/ci_artifacts.py stage
       - if: always() && steps.artifacts.outcome == 'success' && steps.artifacts.outputs.path != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -378,7 +391,7 @@ jobs:
           path: ${{ steps.artifacts.outputs.timing_path }}
           if-no-files-found: error
           retention-days: 30
-      - name: Require successful Windows lane jobs
+      - name: Require successful Windows lane jobs (four producers)
         if: ${{ always() }}
         env:
           SCOPEHUB_AGGREGATE_PASSED: ${{ job.status == 'success' && (steps.full.outcome == 'success' || steps.scoped.outcome == 'success') }}
