@@ -21,6 +21,15 @@
       },
       "supersedes": null,
       "evidence_sha256": "accf8ac2eb6556c232a9f00dffa4553a18b8adaea4c3e7459048c6231997e991"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ca41a3fa3c4ff1683488843c4e59c6f94a903df8",
+      "scope": "Reassess the completed Windows main-push recovery scheduling decision on the combined Python partition. Verify domain separation for push and PR, ordinary protected gates and lane assignment, capture of supporting reports and the untouched owner of the first real post-repair main measurement.",
+      "supersedes": "45f271dbcddbfdd7deb9830827d6768e4e88452aed3aa18c9883d1a9f0c73730",
+      "requested_at": "2026-11-25T21:47:57.752902+00:00",
+      "request_id": "d343328b2db124a0a60b2252e74061733a50bf771240c217f02fd08e0e2e530e",
+      "evidence_sha256": "302d860302dc0fa5e2d32100ed6c0a32b7b1da909cd0895830e6be6f1bffb6b0"
     }
   ]
 }
