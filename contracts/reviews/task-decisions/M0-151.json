@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T21:15:17.656493+00:00",
       "request_id": "3b4ab6e1b65345ba6408d5be84c560e3e8dc4e8260e4299a19ac06211daea08c",
       "evidence_sha256": "64eefadb7b8aa1bf536f7ccfd5eae468a1579b9929a149ec9b32a6a17603d5e6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "335a42fb02c8027af2550e05230a04f62d4c236c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-151 335a42fb02c8027af2550e05230a04f62d4c236c",
+      "scope": "APPROVE M0-151 335a42fb02c8027af2550e05230a04f62d4c236c",
+      "observation": "With two live workers sharing a UUID, I observed the corrected selector count both after an expired entry and refuse selection when I made the second worker’s identity unreadable.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "c81c75d0f3e4bb58e8a9ca3822de6fda03a5c457e9ec0c1af233b880ffec1541",
+      "response_id": "eb0041c3e73dca49bd7e7622d3d35b9eea4a5d4fcf88580a84b6910ce5bc0d87",
+      "response_sha256": "cf7f0acbabc6d75bbfa5244ea500a72123997e26da92a7db75430ad7e488aeaa",
+      "legacy_response_sha256": "aa355d680d18ba21569d5c1fbb61edb86987d81d2bffaa59c17963b4ec8026a9",
+      "observation_body_sha256": "2b560ed4f14fc61fa811ebd6b9c0ee6587cd4b3a75729be31350e47aee534f03",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b0751a619e487d089052e229dafc01a",
+        "timestamp": "2026-11-25T21:22:57.750Z"
+      },
+      "supersedes": "3b4ab6e1b65345ba6408d5be84c560e3e8dc4e8260e4299a19ac06211daea08c",
+      "evidence_sha256": "3a24bd3869acffa39b15095aa135e7e5167fe3ba632dafa7ffbe79d49598dff7"
     }
   ]
 }
