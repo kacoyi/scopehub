@@ -447,6 +447,76 @@ class TaskReviewTests(ProjectFixture):
                 file.write_bytes(project.json_bytes(receipt))
                 self.command('check', error='Unusable independent decision or observation')
 
+    def test_body_blocks_keep_full_quotes_and_formatted_prose_without_accepting_titles(self):
+        _, source = self.open_review()
+        trace = self.root / '.reports/reply.txt'
+        trace.parent.mkdir()
+        facts = (
+            'The reopen reported "BUSY."',
+            '**A fresh session** observed the stored value.',
+            '**`replay`** consumed the final position.',
+            'The second reply was **READY.**',
+            '再次打开时返回“已恢复。”',
+            'The same read preserved the exact value after restart.',
+        )
+        body = (
+            f'**Review findings.** {facts[0]}\n\n'
+            f'**Review details**\n{facts[1]}\n\n'
+            f'{facts[2]}\n\n{facts[3]}\n\n{facts[4]}\n\n'
+            'The same read preserved the exact\nvalue after restart.\n\n'
+            '[An unrelated citation.](https://example.test/review)\n\n'
+            '> A quoted block is context.\n\n'
+            '**Review footer.**\n'
+        )
+        trace.write_text(f'APPROVE {TASK} {source}\n\n{body}', encoding='utf-8')
+        for fact in facts:
+            with self.subTest(fact=fact):
+                result = review_acceptance.create_decision(
+                    self.root, TASK, source, trace, 'Independent reviewer', None, fact)
+                self.assertEqual(fact, result['observation'])
+        for non_prose in ('**Review findings.', '**Review findings.**', 'Review details',
+                          'An unrelated citation.', 'A quoted block is context.', '**Review footer.**'):
+            with self.subTest(non_prose=non_prose), self.assertRaisesRegex(
+                    review_acceptance.ReviewError, 'post-verdict body'):
+                review_acceptance.create_decision(
+                    self.root, TASK, source, trace, 'Independent reviewer', None, non_prose)
+        heading = f'APPROVE {TASK} {source}'
+        self.assertFalse(review_acceptance.observed_statement('**Review findings.', heading, heading))
+        self.assertFalse(review_acceptance.observed_statement('**Review findings.**', heading, heading))
+
+    def test_observation_file_preserves_unicode_markup_and_accepts_windows_line_endings(self):
+        base, source = self.open_review()
+        opened = self.command('review', TASK, '--source', source, '--request',
+                              'Repeat the independent recovery control.')
+        pending = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertIn('--observation-file "review-observation.txt"', pending['coordination_command'])
+        self.assertNotIn('--observation "', pending['coordination_command'])
+        exact = '再次打开时返回 `recovered`，输出为“已恢复。”'
+        capture = self.root / '.reports'
+        capture.mkdir()
+        trace, observation = capture / 'final response.jsonl', capture / 'selected observation.txt'
+        event_time = datetime.fromisoformat(opened['request']['requested_at']) + timedelta(seconds=1)
+        trace.write_text(json.dumps({
+            'type': 'response_item',
+            'timestamp': event_time.isoformat(),
+            'payload': {'type': 'message', 'phase': 'final_answer', 'role': 'assistant', 'status': 'completed',
+                        'id': 'msg_observation_file', 'content': [{'type': 'output_text',
+                            'text': f'APPROVE {TASK} {source}\n\n{exact}'}]},
+        }, ensure_ascii=False), encoding='utf-8')
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--observation-file', str(observation), '--reviewer', 'Independent reviewer',
+                '--supersedes', opened['request']['request_id'])
+        observation.write_bytes(b'\xff\xfe')
+        self.command(*args, error='Save the observation file as UTF-8.')
+        observation.write_bytes(b'a' * (review_acceptance.OBSERVATION_FILE_LIMIT + 1))
+        self.command(*args, error='exceeds the one-sentence input limit')
+        observation.write_bytes((exact + '\r\n').encode('utf-8-sig'))
+        published = self.command(*args)['decision']
+        self.assertEqual(exact, published['observation'])
+        self.assertEqual('approved', self.command('context', TASK)['independent_review']['status'])
+        self.finish()
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+
     def test_replacing_closed_request_on_sibling_requires_a_fresh_approval(self):
         base, original = self.open_review()
         scope = 'Verify the persisted value and its selection in the original worktree.'

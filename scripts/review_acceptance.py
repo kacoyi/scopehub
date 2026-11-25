@@ -17,14 +17,18 @@ SUBJECT_TASK = re.compile(r'(?<![\w-])M[0-9]+-[0-9]{3}(?![\w-])')
 BOUNDARY_TYPES = {'permissions', 'model-connection'}
 DECISION = re.compile(r'^(?:• )?(\*\*(?:APPROVED?|CHANGES[_ ]REQUESTED)\*\*|(?:APPROVED?|CHANGES[_ ]REQUESTED)\b)')
 COMMIT = re.compile(r'(?<![a-f0-9])(?:[a-f0-9]{64}|[a-f0-9]{40})(?![a-f0-9])')
-SENTENCE_END = re.compile(r'[。！？]|[.!?](?=\s|$)')
+QUOTE_END = r"""["'”’»」』）)]*"""
+SENTENCE_END = re.compile(rf'[。！？]{QUOTE_END}|[.!?]{QUOTE_END}(?=\s|$)')
 LIST_ITEM = re.compile(r'^(?:[•*+-]|[0-9]+[.)])[ \t]+')
 BLOCK_BOUNDARY = re.compile(r'^(?:#{1,6}(?:\s|$)|[>|<]|(?:[-=_*]\s*){3,}$|\[[^\]]+\]:)')
 FENCE = re.compile(r'^(`{3,}|~{3,})')
 CODE_SPAN = re.compile(r'`+[^`]+`+')
 INLINE_BOUNDARY = re.compile(r'[\[\]<>|]')
-LIST_TITLE = re.compile(r'^(?:\*\*[^*]+\*\*|__[^_]+__)\s*')
+EMPHASIS = re.compile(r'(?<![\w\\*_])(?P<mark>\*{1,3}|_{1,3})(?![\s*_])'
+                      r'(?P<content>.+?)(?<=\S)(?P=mark)(?![*_])')
+OPEN_DELIMITER = re.compile(r'(?<![\w\\])(?:`|[*_]{1,3})(?=\S)')
 TRANSCRIPT_LIMIT = 4 * 1024 * 1024
+OBSERVATION_FILE_LIMIT = 4096
 TASK_ADMIN = {'status', 'evidence', 'next_action', 'blocker', 'closure_reason'}
 FEEDBACK_ADMIN = {'status', 'resolution', 'deferral_reason'}
 
@@ -209,13 +213,9 @@ def final_response(text):
 
 def observed_statement(text, heading, scope):
     plain = text.strip(' `*_#>•.!?。！？')
-    return (bool(plain) and any(character.isalpha() for character in plain)
-            and text.endswith(('.', '!', '?', '。', '！', '？'))
-            and not (BLOCK_BOUNDARY.match(text) or LIST_ITEM.match(text))
-            and not INLINE_BOUNDARY.search(CODE_SPAN.sub('', text))
+    return (text != scope and plain.casefold() not in heading.casefold()
             and not (COMMIT.fullmatch(plain) or SUBJECT_TASK.fullmatch(plain))
-            and plain.casefold() not in heading.casefold()
-            and text != scope)
+            and text in body_passages(text, rendered=False))
 
 
 def prose_blocks(body):
@@ -224,6 +224,8 @@ def prose_blocks(body):
     fence = None
     for line in body.splitlines():
         text = line.strip()
+        if not fence and not lines and EMPHASIS.fullmatch(text):
+            continue
         marker = FENCE.match(text)
         if fence:
             if text and not text.strip(fence[0]) and len(text) >= len(fence):
@@ -244,23 +246,46 @@ def prose_blocks(body):
         yield compact(' '.join(lines))
 
 
+def emphasized_boundary(match):
+    content = match['content']
+    # Keep offsets and make a terminal mark apply to the entire balanced
+    # inline span. A formatted heading alone still has no eligible prose.
+    stop = next((item[0][0] for item in SENTENCE_END.finditer(content) if item.end() == len(content)), None)
+    return '\0' * (len(match[0]) - 1) + (stop or '\0')
+
+
 def body_passages(body, *, rendered):
     for block in prose_blocks(body):
         item = LIST_ITEM.match(block)
         text = block[item.end():] if item else block
-        if item and not rendered:
-            text = LIST_TITLE.sub('', text)
-        # Only prose before the first citation or inline markup is eligible.
-        # Preserve offsets across code spans and ignore incomplete rendered tails.
-        masked = CODE_SPAN.sub(lambda match: '\0' * len(match[0]), text)
+        # Only prose before the first citation is eligible. Protect inline code
+        # and emphasis before finding sentence stops, without changing offsets.
+        code_masked = CODE_SPAN.sub(lambda match: '\0' * len(match[0]), text)
+        masked = EMPHASIS.sub(emphasized_boundary, code_masked)
         if markup := INLINE_BOUNDARY.search(masked):
             masked = masked[:markup.start()]
         start = 0
         for index, boundary in enumerate(SENTENCE_END.finditer(masked)):
             stop = boundary.end()
-            if not (rendered and item and index == 0):
-                yield text[start:stop].strip()
+            passage, without_code = text[start:stop].strip(), code_masked[start:stop]
             start = stop
+            if rendered and item and index == 0:
+                continue
+            prose = EMPHASIS.sub('', without_code)
+            if (not INLINE_BOUNDARY.search(without_code) and not OPEN_DELIMITER.search(prose)
+                    and any(character.isalpha() for character in prose)):
+                yield passage
+
+
+def read_observation_file(path):
+    with path.open('rb') as stream:
+        data = stream.read(OBSERVATION_FILE_LIMIT + 1)
+    if len(data) > OBSERVATION_FILE_LIMIT:
+        raise ReviewError('The observation file exceeds the one-sentence input limit.')
+    try:
+        return data.decode('utf-8-sig')
+    except UnicodeError as error:
+        raise ReviewError('Save the observation file as UTF-8.') from error
 
 
 def create_decision(root, task, source, transcript, reviewer, scope, observation, supersedes=None):

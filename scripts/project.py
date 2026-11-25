@@ -827,13 +827,17 @@ def review_context(project, task, review):
     intake = f'pnpm project:review {task["id"]}'
     if request and review['status'] == 'pending':
         action = (f'{intake} --source {request["source_commit"]} --supersedes {follow_up} '
-                  '--transcript <final-assistant-export> --reviewer <reviewer> --observation "<body sentence>"')
+                  '--transcript "final-assistant-export.jsonl" --reviewer "Reviewer name" '
+                  '--observation-file "review-observation.txt"')
     else:
         candidate = review.get('candidate_source') or '<full-clean-reviewed-commit>'
         action = f'{intake} --source {candidate} --request "<scope>"'
         if follow_up:
             action += f' --supersedes {follow_up}'
     return {**review, 'coordination_command': action,
+            **({'observation_input': 'Save the complete authored body sentence in a UTF-8 file. '
+                                     'Pass the filename with --observation-file.'}
+               if request and review['status'] == 'pending' else {}),
             **({'source_command': f'pnpm project:source {source["path"]} {source["pointer"]}'} if source else {}),
             'record_basis': 'current_checkout',
             'evolution': plan.get('evolution'), 'hypotheses': plan.get('hypotheses', []),
@@ -857,8 +861,8 @@ def attach_review_context(result, project, task, review, source_commit):
         'first_line': [f'APPROVE {subject}', f'CHANGES_REQUESTED {subject}'],
         'observation': 'After the single verdict line, give one short standalone factual English sentence '
                        'stating what you independently observed. Use a plain paragraph and put citations below it. '
-                       'The coordinator uses that sentence verbatim '
-                       'for project:review --observation.',
+                       'The coordinator uses that sentence verbatim in a UTF-8 file for '
+                       'project:review --observation-file.',
         'owner_communication': 'Write the additional explanation and limits for the owner in Chinese.',
     }
     if source_commit:
@@ -1808,7 +1812,10 @@ def main():
     review_input.add_argument('--request', metavar='SCOPE', help='Open a durable independent review request for this exact source before dispatch')
     review.add_argument('--reviewer', help='Independently observed reviewer or session identity')
     review.add_argument('--scope', help='Verbatim transcript excerpt naming the task if the verdict line omits it')
-    review.add_argument('--observation', help='Complete verbatim prose sentence from the post-verdict body. Keep citations separate.')
+    observation_input = review.add_mutually_exclusive_group()
+    observation_input.add_argument('--observation', help='Complete verbatim prose sentence from the post-verdict body')
+    observation_input.add_argument('--observation-file', type=Path, metavar='UTF8_FILE',
+                                   help='UTF-8 file containing the complete verbatim body sentence')
     review.add_argument('--supersedes', help='Current entry ID, including when replacing the source of an open review request')
 
     diagnostic = sub.add_parser('diagnostic', help='Identify or explicitly verify a retained diagnostic')
@@ -1874,16 +1881,22 @@ def main():
         elif args.command == 'review':
             original = os.environ.get('INIT_CWD') if os.environ.get('npm_lifecycle_event') == 'project:review' else None
             caller = Path(original) if original else Path.cwd()
+            observation = args.observation
             if args.transcript is not None:
-                if not args.reviewer or not args.observation:
-                    review.error('--transcript requires --reviewer and --observation.')
+                if not args.reviewer or (not observation and args.observation_file is None):
+                    review.error('--transcript requires --reviewer and either --observation or --observation-file.')
                 transcript = caller / args.transcript
+                if args.observation_file is not None:
+                    try:
+                        observation = review_acceptance.read_observation_file(caller / args.observation_file)
+                    except (OSError, review_acceptance.ReviewError) as error:
+                        raise ProjectError(str(error)) from error
             else:
-                if args.reviewer is not None or args.observation is not None or args.scope is not None:
+                if any(value is not None for value in (args.reviewer, observation, args.observation_file, args.scope)):
                     review.error('--request supplies the scope. Reviewer and observation belong to the final decision.')
                 transcript = None
             result = record_task_review(ROOT, args.task_id, args.source, transcript, args.reviewer,
-                                        args.scope, args.observation, args.supersedes, request=args.request)
+                                        args.scope, observation, args.supersedes, request=args.request)
         elif args.command == 'diagnostic':
             try:
                 if args.diagnostic_command == 'identify':
