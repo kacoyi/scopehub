@@ -25177,7 +25177,7 @@
           "report_sha256": "592eb378075891f4b7db92cfc672ca7a4d8b453e1dc05fa83171157a66e9879e"
         }
       ],
-      "next_action": "Isolate the observer-side unavailable-detail to list transition with a real busy reply, then verify the bounded read through the existing note transport.",
+      "next_action": "Review the verified observer-side read change independently and run the paired-window task on the native Windows candidate while retaining the original and local controls.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

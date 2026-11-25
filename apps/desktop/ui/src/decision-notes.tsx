@@ -231,7 +231,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
         discardPage();
         clearSelection();
         const revision = (await readWorkspaceSnapshot(signal)).workspace.revision;
-        const data = await readNotes(workspaceId, null, 0, signal);
+        const data = await readNotes(workspaceId, null, 0, signal, { waitForAdmission: true });
         if (!signal.aborted) setPage({ noteId: null, offset: 0, revision, epoch: ++pageEpoch.current, data });
       }
       throw fault;
