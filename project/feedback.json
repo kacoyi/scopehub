@@ -7051,6 +7051,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "source-save-readback-drops-focus-confirmation",
+      "source": "Independent Astra Standard t10n at d986886026997ad44ed18689ee873527a350c55d, archives/observations/repo-hygiene-20261125/independent-final-m2-039-d9868860/final-response.txt (SHA-256 bff79f282b4096758292de9f01750293e08eae90745a1e28b5030089ae2e2c12). The original response line SHA-256 is b3aa09dad5969ba27163ba5e5febbf846dd1c96ffba8be3aa460f2956439b3b2.",
+      "observation": "With the built UI and controlled native delivery, the first window saved A and its readback captured selection revision 2. A peer then committed revision 3 and displayed B at close 106. Four refocus events requested no trailing read while the source save was active. When the stale readback arrived, the dialog closed and the first window displayed A at 44. The same failure occurred on the first save from a source-free workspace. One more focus after the write/readback lane drained found B.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
