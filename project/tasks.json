@@ -25304,10 +25304,15 @@
         "Native preview status retries only an explicitly refused writer admission. An admitted registry or storage BUSY, an older unclassified reply and an unrelated native error stop and cancel the original task.",
         "The first-window journal rejects a raw cancellation with no task ID. A valid previous-task cancellation and the cancellation on exhaustion remain accounted for."
       ],
-      "next_action": "Demonstrate the real browser deadline race, retain the bounded raw journal, and verify the exact corrected candidate for independent review and ordinary native confirmation.",
+      "next_action": "Independently review the deadline journal controls on the verified exact source, then obtain matching ordinary native outcomes and keep the unclassified protected status requests distinct.",
       "blocker": null,
       "delivery": "current-contract",
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-149-986051150484c8f5.json",
+          "sha256": "74dfbda9adea96fc2d922ee8c41066bebaf75e0bff310451890923a9314e00e6"
+        }
+      ],
       "closure_reason": null,
       "plan": {
         "outcome": "Preserve bounded same-task recovery and make the native zero-volatility observation distinguish a definite pre-admission refusal from a second accepted status recovery.",
