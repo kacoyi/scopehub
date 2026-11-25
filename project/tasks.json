@@ -21936,6 +21936,178 @@
           "cleanup": "Use one frame parser and serializer for both validation entries."
         }
       }
+    },
+    {
+      "id": "M0-106",
+      "title": "Check the reviewed source before submitting a hosted task",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-092"
+      ],
+      "scope": [
+        "scripts/ci.py",
+        "scripts/project.py",
+        "scripts/verification_scope.py",
+        "tests/project/test_ci.py",
+        "tests/project/test_verify_browser_setup.py",
+        ".github/workflows/verify.yml",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A coordinator can inspect the exact reviewed task, protected base and proposed candidate locally. The historical mismatched M1-040 candidate is refused and the intended reviewed source is identified. Incomplete history stays explicitly unverified.",
+        "The opt-in entry attempts one submission after observing the expected protected base and branch tip. Mismatches observed in preflight cause zero submissions. GitHub resolves the branch separately. The guarded workflow checks the event commit and protected base before scheduling either verification job, checks out the exact expected commit, and binds evidence to it.",
+        "An explicitly named dependent base contributes scoped changes linked by a distinct task definition or an unfinished dependency declared by the reviewed task. A dependency already completed on the protected base needs a supplementary receipt whose input digest and file count match its own committed source under that revision's execution-input rules. Cancelled dependencies are rejected before remote access. The candidate must match the exact reviewed integration. Ordinary inspection, manual workflows and task receipt provenance keep their existing behavior.",
+        "A lost submission response is reported as unknown with enough information to locate the run, including a unique request identifier. A successful response retains the run ID when supplied. Guarded requests have isolated concurrency groups."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-106-9210b74877b6f317.json",
+          "sha256": "4fd621d811f7c24da327c03e4614160fb66e1f955c63ab6de2e5fbda78847138"
+        },
+        {
+          "path": "project/evidence/M0-106-be54a7b8d6d26331.json",
+          "sha256": "ccc65f0a8d922c264888c29947f54a4dde8d82a1a171507d5fca2c8cde20fb31"
+        },
+        {
+          "path": "project/evidence/M0-106-9dd4e89b86fcae2d.json",
+          "sha256": "afe098883a0da1b2136d6f9314f702b0ad7ec5edbfe29275558ed02d990365d9"
+        },
+        {
+          "path": "project/evidence/M0-106-33a260ee0e4c3f81.json",
+          "sha256": "f4a2ea366a066a142970b99c498dc53cd1f354d82644ec7975dd900f9caa5500"
+        },
+        {
+          "path": "project/evidence/M0-106-fa231894d650876c.json",
+          "sha256": "67b3a1a8165657c63ff67f277a12bd95dd076a820816c72ee1863685237212dd"
+        },
+        {
+          "path": "project/evidence/M0-106-b3d6bf14e3b06602.json",
+          "sha256": "f40f39fc4940de8c6026d44a3cbfca19b4da508932110f4ab13e3306ad0f82f2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "PR 91 reviewed head bc0af9581d75588dccdd290b764e6a6c3f568313 on protected base 9180963fb3185dbceaafcaf19ee5f2dc78ae3649 passed the guard and both native task jobs in authenticated dispatch 45554455415. Dispatch ID 1e59bf0010ca4bea9fca87fd92e12988 matched the run title, expected head and both artifact checkouts. Ordinary run 45552460066 passed both protected jobs on the reviewed head.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "plan": {
+        "outcome": "A coordinator can catch the wrong verified source or stale branch before consuming a two-platform task run.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/ci.py",
+          "scripts/verification_scope.py",
+          ".github/workflows/verify.yml",
+          "project/delivery.json",
+          "archives/observations/m1-040-integrated-task-45488642757/index.json"
+        ],
+        "hypotheses": [
+          "Local Git can compare the reviewed integration and attribute the explicit dependent base, while an authenticated observation and a lightweight workflow gate bound the freshness of mutable refs."
+        ],
+        "risks": [
+          {
+            "failure": "A branch moves after preflight or the protected base becomes stale before workflow admission, and expensive verification or evidence creation runs for the wrong source.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing dependency objects, unrelated dependency history or shallow history can abort without a structured local verdict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The named task only appears in the ledger and has no link to the candidate base, or a justified explicit stack is refused.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An already completed dependency borrows shared changed paths or an older receipt to claim an unrelated stack.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A clean receipt's input digest, file count or exclusions disagree with its own Git commit, or a cancelled dependency is treated as unfinished work.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A lost POST response hides possible acceptance or misdirects the operator into a second submission that cancels an existing run.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Workflow gating or concurrency changes interrupt ordinary read-only inspection, manual use or protected verification.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the opt-in entry, workflow guard and associated guidance together. Retain original evidence and diagnosis.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci.py",
+            "scripts/project.py",
+            "tests/project/test_ci.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/checkpoint"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No new hosted workflow, branch protection, credential, release gate, timing objective, receipt policy or automatic rerun."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing read-only inspection and direct GitHub workflow use, protected checks and immutable task history."
+          ],
+          "change": [
+            "Add one source-aware local entry for inspection and guarded submission of the existing manual task workflow."
+          ],
+          "data_plan": "Use exact Git objects and the existing task and GitHub identity records. Never modify original verification reports.",
+          "cleanup": "Keep the first ordinary entry regression and the local historical comparison with separate Git and dispatch-spy evidence."
+        }
+      }
     }
   ]
 }
