@@ -6655,6 +6655,29 @@
       "deferral_reason": null
     },
     {
+      "id": "m0-132-repeated-worker-schema-reference-resolution",
+      "source": "Authenticated ordinary full warm Linux PR 45601205813, archives/observations/repo-hygiene-20261125/pr111-native-original-45601205813/manifest.json (SHA-256 de77622735162ed6d87d07bbec62e6e6de07a383b669b3fb3c9690deccdbc50a). Byte-matched private isolation at archives/observations/repo-hygiene-20261125/m0-104-shared-vector-attribution-45601205813/disposition.json (SHA-256 377c4dec0066e8913aeb52e5e27c81bc39eff4eff7c20b73f99dc198b1055f2a) with original inputs and both profiles in SHA256SUMS.",
+      "observation": "PR111 selected the same 35 outcomes in 772 seconds. Python contracts and workers passed in 193.7 seconds; the slowest shared-vector case took 21.059 seconds. On matching protocol, schema, fixture and lock inputs the private ordinary target run recorded 459,826 repeated root-local static lookups, with 5.683 profiled seconds inside resolution. Four paired fresh Python controls measured median case time 6.788 to 4.929 seconds in a private immutable preparation experiment with intact validation. This does not identify runner load or hosted critical-path recovery.",
+      "severity": "minor",
+      "status": "deferred",
+      "task_ids": [
+        "M0-132"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T110714.425148Z-4a0f894c",
+          "source_commit": "b2838310471c9c405d9fcdbaaf66d62c4f2cb4b8",
+          "report_sha256": "2ec5f0826de9610adbe4c505dde659b99220dc831e783010099e7f591b1d4215"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
+    },
+    {
       "id": "consequential-task-completed-without-independent-decision",
       "source": "Observed disposable ordinary project check and history on 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a with authentic passing run 20261125T115836.374177Z-fc7c2887. Observation SHA-256 b8c778557d02d2371e5273f6e3bb8e869cef813ead01479843a8a20389d6da9a. Independent cold review transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Prior local completed task sources 97fedb3771bcdbcbf1030d32d4eec1c69401d656 and ecf48f65a02b94967e0813fec4e9cbbec360ffbf.",
       "observation": "The normal project check and history accepted a simulated completed corrective task and addressed finding in a disposable checkout with a genuine green harness receipt and zero independent approval. The actual independent review requested changes on that exact source. Earlier local M0-130 and M0-131 similarly reached an accepted state before reviewer reproduction of timing capture and reopen disagreement. Passing engineering checks and immutable historical receipts establish their verified scope. They do not establish the independent decision.",
