@@ -17,42 +17,16 @@ fn main() -> std::process::ExitCode {
 }
 
 #[cfg(any(windows, test))]
-fn grants_to_unexpected_trustee(mask: u32, inherit_only: bool, private_trustee: bool) -> bool {
-    // The legacy managed leaf ACL discarded both kinds of ineffective allow.
-    mask != 0 && !inherit_only && !private_trustee
-}
-
-#[cfg(test)]
-mod tests {
-    use super::grants_to_unexpected_trustee;
-
-    // FILE_READ_DATA is a single nonzero access right.
-    const READ_DATA: u32 = 1;
-
-    #[test]
-    fn zero_mask_does_not_grant_access() {
-        assert!(!grants_to_unexpected_trustee(0, false, false));
-    }
-
-    #[test]
-    fn inherit_only_allow_does_not_grant_access_to_the_file() {
-        assert!(!grants_to_unexpected_trustee(READ_DATA, true, false));
-    }
-
-    #[test]
-    fn effective_allow_still_checks_the_trustee() {
-        assert!(grants_to_unexpected_trustee(READ_DATA, false, false));
-        assert!(!grants_to_unexpected_trustee(READ_DATA, false, true));
-    }
-}
+#[path = "windows_handoff_acl/leaf_ace.rs"]
+mod leaf_ace;
 
 #[cfg(windows)]
 mod windows {
-    use super::grants_to_unexpected_trustee;
+    use super::leaf_ace::read_leaf_allow;
 
     use std::{
         fs::{OpenOptions, symlink_metadata},
-        mem::{offset_of, size_of},
+        mem::size_of,
         os::windows::{
             ffi::OsStrExt,
             fs::{MetadataExt, OpenOptionsExt},
@@ -65,10 +39,10 @@ mod windows {
     use windows_sys::Win32::{
         Foundation::{ERROR_SUCCESS, LocalFree},
         Security::{
-            ACCESS_ALLOWED_ACE, ACE_HEADER, ACL,
+            ACE_HEADER, ACL,
             Authorization::{GetNamedSecurityInfoW, SE_FILE_OBJECT},
-            DACL_SECURITY_INFORMATION, EqualSid, GetAce, GetTokenInformation, INHERIT_ONLY_ACE,
-            INHERITED_ACE, IsValidAcl, IsValidSid, IsWellKnownSid, OWNER_SECURITY_INFORMATION,
+            DACL_SECURITY_INFORMATION, EqualSid, GetAce, GetTokenInformation, INHERITED_ACE,
+            IsValidAcl, IsValidSid, IsWellKnownSid, OWNER_SECURITY_INFORMATION,
             PSECURITY_DESCRIPTOR, PSID, SECURITY_MAX_SID_SIZE, TOKEN_QUERY, TOKEN_USER, TokenUser,
             WinBuiltinAdministratorsSid, WinLocalSystemSid,
         },
@@ -76,13 +50,7 @@ mod windows {
             DELETE, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT,
             FILE_FLAG_OPEN_REPARSE_POINT, FILE_GENERIC_READ, FILE_GENERIC_WRITE, SYNCHRONIZE,
         },
-        System::{
-            SystemServices::{
-                ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE, SYSTEM_ALARM_ACE_TYPE,
-                SYSTEM_AUDIT_ACE_TYPE,
-            },
-            Threading::{GetCurrentProcess, OpenProcessToken},
-        },
+        System::Threading::{GetCurrentProcess, OpenProcessToken},
     };
 
     // Only these stages leave the process. Never emit paths, SIDs or OS errors.
@@ -160,52 +128,51 @@ mod windows {
             }
             // The old observer required .NET FileSystemRights Read | Write | Delete.
             const REQUIRED: u32 = (FILE_GENERIC_READ | FILE_GENERIC_WRITE | DELETE) & !SYNCHRONIZE;
-            const SID_OFFSET: usize = offset_of!(ACCESS_ALLOWED_ACE, SidStart);
             // SAFETY: read() validated the non-null DACL and its buffer is live.
-            let count = unsafe { u32::from((*self.dacl).AceCount) };
+            let acl = unsafe { &*self.dacl };
+            let acl_size = usize::from(acl.AclSize);
             let mut inherited_user = false;
-            for index in 0..count {
+            for index in 0..u32::from(acl.AceCount) {
                 let mut entry = null_mut();
                 // SAFETY: GetAce uses the validated DACL and initializes the output.
                 if unsafe { GetAce(self.dacl, index, &mut entry) } == 0 || entry.is_null() {
                     return Err(Stage::InheritedAccess);
                 }
-                // SAFETY: GetAce returns an aligned header in the validated DACL.
-                let header = unsafe { &*entry.cast::<ACE_HEADER>() };
-                match u32::from(header.AceType) {
-                    ACCESS_ALLOWED_ACE_TYPE => {}
-                    ACCESS_DENIED_ACE_TYPE | SYSTEM_AUDIT_ACE_TYPE | SYSTEM_ALARM_ACE_TYPE => {
-                        continue;
-                    }
-                    _ => return Err(Stage::InheritedAccess),
-                }
-                let size = usize::from(header.AceSize);
-                if size < SID_OFFSET + 8 {
-                    return Err(Stage::InheritedAccess);
-                }
-                // SAFETY: the allow ACE has room for its fixed fields and the SID header.
-                let ace = unsafe { &*entry.cast::<ACCESS_ALLOWED_ACE>() };
-                let sid = entry.cast::<u8>().wrapping_add(SID_OFFSET).cast();
-                let sub_authorities =
-                    unsafe { usize::from(*entry.cast::<u8>().add(SID_OFFSET + 1)) };
-                if SID_OFFSET + 8 + sub_authorities * size_of::<u32>() > size
-                    // SAFETY: the complete SID extent is inside the live ACE.
-                    || unsafe { IsValidSid(sid) } == 0
+                let offset = entry
+                    .addr()
+                    .checked_sub(self.dacl.addr())
+                    .ok_or(Stage::InheritedAccess)?;
+                let room = acl_size.checked_sub(offset).ok_or(Stage::InheritedAccess)?;
+                if offset < size_of::<ACL>()
+                    || room < size_of::<ACE_HEADER>()
+                    || !entry.addr().is_multiple_of(4)
                 {
                     return Err(Stage::InheritedAccess);
                 }
-                let flags = u32::from(header.AceFlags);
-                if grants_to_unexpected_trustee(
-                    ace.Mask,
-                    flags & INHERIT_ONLY_ACE != 0,
-                    private_trustee(sid, user),
-                ) {
+                // SAFETY: the header is aligned and stays within the validated DACL.
+                let size = usize::from(unsafe { (*entry.cast::<ACE_HEADER>()).AceSize });
+                if !(size_of::<ACE_HEADER>()..=room).contains(&size) {
+                    return Err(Stage::InheritedAccess);
+                }
+                // SAFETY: the complete entry fits within the owned live DACL.
+                let bytes = unsafe { std::slice::from_raw_parts(entry.cast::<u8>(), size) };
+                let Some(grant) =
+                    read_leaf_allow(bytes, acl.AclRevision).map_err(|_| Stage::InheritedAccess)?
+                else {
+                    continue;
+                };
+                let sid = grant.sid.as_ptr().cast_mut().cast();
+                // SAFETY: the validated SID is aligned and borrows from the live entry.
+                if unsafe { IsValidSid(sid) } == 0 {
+                    return Err(Stage::InheritedAccess);
+                }
+                if !private_trustee(sid, user) {
                     return Err(Stage::UnexpectedTrustee);
                 }
-                // SAFETY: the ACE and token supply live, valid SIDs.
+                // SAFETY: the entry and token supply live, valid SIDs.
                 inherited_user |= unsafe { EqualSid(sid, user) != 0 }
-                    && flags & (INHERITED_ACE | INHERIT_ONLY_ACE) == INHERITED_ACE
-                    && ace.Mask & REQUIRED == REQUIRED;
+                    && u32::from(grant.flags) & INHERITED_ACE != 0
+                    && grant.mask & REQUIRED == REQUIRED;
             }
             if !inherited_user {
                 return Err(Stage::InheritedAccess);
