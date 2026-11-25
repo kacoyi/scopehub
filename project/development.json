@@ -316,7 +316,8 @@
       ],
       "dependencies": [
         "domain",
-        "application"
+        "application",
+        "platform"
       ],
       "owns": [
         "Physical storage and migrations",
@@ -339,10 +340,11 @@
       "paths": [
         "crates/platform"
       ],
-      "responsibility": "Native resources, including read-only access to explicitly selected directories and profile-owned OpenAI credentials.",
+      "responsibility": "Native resources, including Windows workspace ACL admission, read-only access to explicitly selected directories, and profile-owned OpenAI credentials.",
       "public_entries": [
         "crates/platform/src/local_folder.rs",
-        "crates/platform/src/model_credentials.rs"
+        "crates/platform/src/model_credentials.rs",
+        "crates/platform/src/workspace_acl.rs"
       ],
       "dependencies": [
         "domain",
@@ -350,6 +352,7 @@
       ],
       "owns": [
         "OS-specific resources",
+        "Native policy and worker containment for Windows workspace storage",
         "Windows current-user credential lifecycle and process-local credential storage for portable sessions"
       ],
       "invariants": [
