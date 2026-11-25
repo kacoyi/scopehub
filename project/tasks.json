@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-124",
   "tasks": [
     {
       "id": "M0-001",
@@ -22817,6 +22817,104 @@
           ],
           "data_plan": "Use synthetic application profiles, actual loopback Vite and a tagged native snapshot. Record only failure labels and permitted metadata.",
           "cleanup": "Release the held response and any tagged snapshot, unregister routes, terminate the service and remove each owned profile."
+        }
+      }
+    },
+    {
+      "id": "M0-124",
+      "title": "Bound indicator read observations by the admission deadline",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-123"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real indicator probe and snapshot observer share one absolute deadline. Controlled late and withheld drained notifications release the wait and its listeners. The deadline retains the attempts and last HTTP 429 BUSY retryability.",
+        "An explicit early caller cancellation stops the same observation with the original reason and no further request. Admitted and nonretryable controls return their exact first replies; an unrelated observer error survives cancellation.",
+        "Preserve the existing forwarding fault cleanup, semantic STALE_CONTEXT, exact reopened output and PR 106 note test. Run the targeted browser cases and canonical M0-124, archive the reports, and preserve both accepted indicator tasks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "next_action": "Record exact-source red controls through the loopback read probe and the real fixture snapshot observer. Share the existing signal across the wait, verify cleanup and run combined Chromium and canonical task checks.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A stalled snapshot observation finishes within the indicator admission read budget and supplies the triggering refusal or caller cancellation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The independently timed drained wait survives the outer deadline and caller cancellation because the observer never receives the read signal."
+        ],
+        "risks": [
+          {
+            "failure": "A late or missing drain overruns the read budget, loses the last refusal, or leaves listeners. Drive the actual gate with controlled IPC and a bounded loopback read; check one refusal on deadline and no late success.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A caller cancellation is wrapped, an arbitrary observer error is disguised, or a nonretryable reply is retried. Check exact object identity and the admitted and nonretryable controls. Keep the existing native snapshot, stale, output and note scenarios.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the reviewed source, red witness and both earlier receipts. Reverse a fixture correction if it alters native admission or the operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Product code, protocol changes, longer waits and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Verify that the actual event waiter removes its abort listener and returns through the observer finally when the read signal expires."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing probe timeout and backoff, standalone snapshot wait defaults, stale/accepted-output assertions, forwarding cleanup, PR 106 note case and accepted M0-122 and M0-123 records."
+          ],
+          "change": [
+            "Pass the read signal to the observation and use it for the drained wait. Bound only the existing read operation."
+          ],
+          "data_plan": "Use loopback HTTP with synthetic replies and controlled IPC notifications for the shortest regression. Run the existing real Rust and Chromium scenarios on the exact candidate.",
+          "cleanup": "Verify listener disposal before attempting late notification, close the loopback listener, and preserve original and passing reports."
         }
       }
     }

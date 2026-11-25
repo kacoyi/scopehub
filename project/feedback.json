@@ -6337,6 +6337,22 @@
         "prevention": "The shared accepted-output probe sees repeated real HTTP 429 while the Rust snapshot stays held. Its bounded failure records the attempt count, HTTP 429, BUSY and retryability. The stale and malformed requests are returned after one attempt each; cancellation and reopened output are still checked. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-observer-outlives-read-deadline",
+      "source": "Astra Standard repeat review of M0-123 source 75aca5612da59e6c4b415aee0e7b64edfff9171f, archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt (SHA-256 6924986d05b324f36249808fff84a530af3149bed1fe2616795925f10e7b21e1).",
+      "observation": "The actual probe awaited its undo observer after the first retryable HTTP 429. That callback started a separate 3-second drained wait. A drain after the read deadline settled in 3.807 seconds, and withholding drain settled in 4.206 seconds with an AbortError that omitted the refusal. An explicit caller cancellation at 161 milliseconds returned only at 813 milliseconds. The controls must separate deadline with late or withheld drain from early caller cancellation, and prove that admitted and nonretryable replies and arbitrary observer errors remain intact.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-124"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
