@@ -5186,6 +5186,21 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "local-api-observation-time-rounding",
+      "source": "Controlled native loopback trial based on 9180963. The original local transcript .reports/m1-044-red-local-api.log has SHA-256 bebb8d80077be2a4f156dc7f992b08bb5173c2ad92493aad0f7f98fd7f5cf017. The pre-repair Playwright regression .reports/m1-044-red-api-regression.log has SHA-256 3aa64cc7763375aafaf48b9f97a5efd89942161f22453452a9615e5194559798.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The ordinary local API trial accepted 1770076800000.00001, 1e-999 and 8640000000000000.1 as valid millisecond observations. The displayed times acquired integer values through rounding or underflow before validation.",
+      "task_ids": [
+        "M1-044"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
