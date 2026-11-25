@@ -218,6 +218,26 @@
       "requested_at": "2026-11-25T18:04:20.552542+00:00",
       "request_id": "5dbfb798d7373a9ee941d869f24cb8ecf946e337a2d890b4d6896018b661bcbf",
       "evidence_sha256": "2fcbe557a92dfe2a37517780b691aac0e43d042449b9ae4aad36e2c6c0e0695d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "scope": "CHANGES_REQUESTED M0-136 d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "observation": "The M0-103 intake discarded the final observation when an earlier sentence in the terminal reply began with the words Worked for.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "adbfb35ac45aba0ea0403caaca59b513d00392a58762147abf3d88a187d1169f",
+      "response_id": "bf1203eb0e89006633461d1515dbf519d436b1f18b4b5405076e005782be1e2c",
+      "response_sha256": "3ce5f324e34ef04c3b4dfc0de86324178510e98de3613e6510996b5b8dc7a9c9",
+      "legacy_response_sha256": "e45c157b050700b2eab7491ff831e02c930a6d724fdb4c9860a55564b2312a39",
+      "observation_body_sha256": "f62ee549e87deea94bda5fb98443c197ba208cac4c376c0d7a55dc1c320aca57",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0725b5cd1887d087dff0c8bcbcb008",
+        "timestamp": "2026-11-25T18:15:28.045Z"
+      },
+      "supersedes": "5dbfb798d7373a9ee941d869f24cb8ecf946e337a2d890b4d6896018b661bcbf",
+      "evidence_sha256": "e7a8be0ca578551b98c1071c135d377e765cfa975bfa29946bf308d95ed052a5"
     }
   ]
 }
