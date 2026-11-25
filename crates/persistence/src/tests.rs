@@ -1353,7 +1353,7 @@ fn unanchored_fresh_profile_without_owner_proof_is_refused() {
     drop(SqliteWorkspace::open(&profile.0, stored).unwrap());
     let original_bytes = fs::read(profile.db()).unwrap();
     assert_eq!(
-        SqliteWorkspace::open_desktop_profile(&profile.0, original.clone()).err(),
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).err(),
         Some(OpenWorkspaceError::ProfileMismatch)
     );
     assert_eq!(fs::read(profile.db()).unwrap(), original_bytes);
