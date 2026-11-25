@@ -2,7 +2,8 @@
 
 from datetime import date
 from contextlib import redirect_stdout
-from io import StringIO
+from http.client import HTTPSConnection
+from io import BytesIO, StringIO
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,19 @@ from scripts import publisher_advisory as publisher
 from scripts.project import maintenance_status
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def publisher_wire(status, headers):
+    wire_headers = ''.join(f'{line}\r\n' for line in headers)
+    return f'HTTP/1.1 {status} Fixture\r\n{wire_headers}\r\n'.encode('latin-1')
+
+
+def publisher_connection(wire):
+    connection = HTTPSConnection(publisher.HOST, timeout=8)
+    connection.sock = Mock()
+    connection.sock.makefile.return_value = Mock(wraps=BytesIO(wire))
+    connection.request = Mock(wraps=connection.request)
+    return connection
 
 
 class PublisherAdvisoryTests(unittest.TestCase):
@@ -71,6 +85,25 @@ class PublisherAdvisoryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'HTTP 403'):
                 publisher.fetch(publisher.URL, self.token)
             self.assertEqual([call(self.token), call(None)], get.call_args_list)
+
+    def test_hosted_anonymous_fallback_keeps_the_generic_error(self):
+        quota = ['X-RateLimit-Remaining: 0', 'X-RateLimit-Reset: 1795601698']
+        wire = publisher_wire(403, quota)
+        authenticated, anonymous = publisher_connection(wire), publisher_connection(wire)
+        sockets = [authenticated.sock, anonymous.sock]
+        with patch.object(publisher, 'HTTPSConnection', side_effect=[authenticated, anonymous]) as connect:
+            with self.assertRaisesRegex(ValueError, r'^Publisher advisory unavailable \(HTTP 403\)$'):
+                publisher.fetch(publisher.URL, self.token)
+        self.assertEqual([call(publisher.HOST, timeout=8)] * 2, connect.call_args_list)
+        authenticated.request.assert_called_once()
+        anonymous.request.assert_called_once()
+        first, second = authenticated.request.call_args, anonymous.request.call_args
+        self.assertEqual(first.args, ('GET', publisher.ROUTE))
+        self.assertEqual(second.args, first.args)
+        self.assertEqual(first.kwargs['headers']['Authorization'], f'Bearer {self.token}')
+        self.assertNotIn('Authorization', second.kwargs['headers'])
+        for sock in sockets:
+            sock.close.assert_called_once_with()
 
     def test_transient_errors_allow_one_retry_and_terminal_errors_disclose_no_credential(self):
         reply = (200, json.dumps(self.response).encode())
@@ -259,6 +292,76 @@ class DependencyTests(unittest.TestCase):
         queried.assert_not_called()
         result = review.read(next((self.root / '.reports/dependencies').glob('*.json')))
         self.assertEqual(('blocked', 'not_queried'), (result['status'], result['advisories']))
+
+    def test_local_403_reports_only_confirmed_anonymous_quota_and_a_valid_utc_reset(self):
+        def check_publisher(_root, policy):
+            item = next(entry for entry in policy['advisory_dispositions']
+                        if entry['scope_guard'] == 'upstream-excludes-locked-version')
+            review.validate_upstream_range(item)
+
+        generic = 'Publisher advisory unavailable (HTTP 403)'
+        exhausted = f'{generic}. Anonymous API quota exhausted.'
+        reset = 'X-RateLimit-Reset: 1795601698'
+        remaining = 'x-ratelimit-remaining: 0'
+        with_reset = f'{exhausted} Reset at 2026-11-25T10:14:58Z.'
+        cases = [
+            ([remaining, reset], with_reset),
+            (['x-ratelimit-remaining:\t 0 \t', 'X-RateLimit-Reset:\t 1795601698 \t'], with_reset),
+            ([f'{remaining} \t', reset], with_reset),
+            ([remaining, f'{reset}\t '], with_reset),
+            ([remaining], exhausted),
+            ([remaining, reset, 'x-ratelimit-reset: 1795601698'], exhausted),
+            ([remaining, 'X-RateLimit-Reset: \t'], exhausted),
+            ([], generic),
+            ([reset], generic),
+            (['X-RateLimit-Remaining: 7', reset], generic),
+            (['X-RateLimit-Remaining: 0, 0', reset], generic),
+            (['X-RateLimit-Remaining: +0', reset], generic),
+            (['X-RateLimit-Remaining: 0\xa0', reset], generic),
+            ([remaining, 'X-RateLimit-Remaining: 0', reset], generic),
+            ([remaining, 'X-RateLimit-Remaining: 1', reset], generic),
+            ([remaining, 'Broken fixture line', 'X-RateLimit-Remaining: 7'], generic),
+            ([remaining, reset, 'Broken fixture line', 'X-RateLimit-Remaining: 7'], generic),
+        ]
+        for value in ('-1', '1795601698.5', 'Wed, 25 Nov 2026 10:14:58 GMT', '1795601698\xa0',
+                      '253402300800', '9' * 80, 'unexpected-server-text'):
+            cases.append(([remaining, f'X-RateLimit-Reset: {value}'], exhausted))
+        wire_cases = [
+            (publisher_wire(403, [*headers, 'X-Unrelated: private-server-fixture']), expected)
+            for headers, expected in cases
+        ]
+        truncated = b'HTTP/1.1 403 Fixture\r\nX-RateLimit-Remaining: 0\r\n'
+        wire_cases += [
+            (truncated, generic),
+            (truncated + b'X-RateLimit-Reset: 17', generic),
+            (b'HTTP/1.1 100 Continue\r\n\r\n' + truncated, generic),
+        ]
+        for wire, expected in wire_cases:
+            with self.subTest(wire=wire):
+                connection = publisher_connection(wire)
+                sock = connection.sock
+                with (patch.object(review, 'ROOT', self.root),
+                      patch.object(sys, 'argv', ['dependencies.py']),
+                      patch.dict(os.environ, {publisher.TOKEN_ENV: 'synthetic-local-token'}, clear=True),
+                      patch.object(review, 'validate_advisory_scope', side_effect=check_publisher),
+                      patch.object(review, 'query_advisories', side_effect=AssertionError('publisher gate failed')),
+                      patch.object(publisher, 'HTTPSConnection', return_value=connection) as connect,
+                      redirect_stdout(StringIO()) as stdout):
+                    with self.assertRaises(SystemExit) as stopped:
+                        review.main()
+                self.assertEqual(1, stopped.exception.code)
+                connect.assert_called_once_with(publisher.HOST, timeout=8)
+                connection.request.assert_called_once_with(
+                    'GET', publisher.ROUTE,
+                    headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review'},
+                )
+                sock.close.assert_called_once_with()
+                sock.makefile.return_value.read.assert_not_called()
+                output = json.loads(stdout.getvalue())
+                report = review.read(self.root / output.pop('report'))
+                self.assertEqual(report, output)
+                self.assertEqual(('failed', 'passed', expected),
+                                 (report['status'], report['inventory'], report['error']))
 
     def test_all_batches_and_paginated_findings_are_observed(self):
         request = Mock(side_effect=[{'results': [{'next_page_token': 'next'}]},
