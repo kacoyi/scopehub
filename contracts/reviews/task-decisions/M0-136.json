@@ -160,6 +160,26 @@
       "requested_at": "2026-11-25T17:17:32.309942+00:00",
       "request_id": "9d8b3d4394b5b3a9c14a6f5a679821d1e9c4f0cd1175174f5badfb95ccf135c5",
       "evidence_sha256": "7433576c90293dd92c53af473219b103ec3eca2097611c2d0c3332a978c321ee"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "scope": "CHANGES_REQUESTED M0-136 bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "observation": "In the M0-103 replay, the intake recorded an approval quoted inside a fenced code block as the verdict of a plain-text review that requested changes.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "b6245fbdd558251d6560b8216fa9d8fd5be5919ee6022c0f4510141ca9c912d7",
+      "response_id": "57de1e3de23256f802280c9f2f1f29fe4bd31af61e5e3722bdd51e35b044657c",
+      "response_sha256": "51aa1983734410c7cc2480e22eb8cdb8357b2320c1ba25b9e9cc593f33d4bc6f",
+      "legacy_response_sha256": "194a052bbb4cf5f8951888b8f58490ae327b4cb6ab6a400d84cff6033350537e",
+      "observation_body_sha256": "b25de623fafed7e6188349333ee722d0a71e017ecaf348796b178f291e46f6d0",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b071931ea0c87d0be19741119be43ac",
+        "timestamp": "2026-11-25T17:22:06.264Z"
+      },
+      "supersedes": "9d8b3d4394b5b3a9c14a6f5a679821d1e9c4f0cd1175174f5badfb95ccf135c5",
+      "evidence_sha256": "97dcf96ff75e91ebb4335e73c2d7853d981550a8518a3763134b320e4b39773b"
     }
   ]
 }
