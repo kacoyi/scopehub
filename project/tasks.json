@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M4-017",
   "tasks": [
     {
       "id": "M0-001",
@@ -3571,7 +3571,8 @@
       "milestone": "M4",
       "status": "planned",
       "depends_on": [
-        "M4-004"
+        "M4-004",
+        "M4-017"
       ],
       "scope": [
         "apps/desktop",
@@ -3595,7 +3596,7 @@
         "external-ai-bridge"
       ],
       "evidence": [],
-      "next_action": "Choose supported hosts for the two real clients. Perform the authorized sessions against the delivered bridge and retain separate observations for each client.",
+      "next_action": "After the bridge and observation path are ready, perform both independently authorized client sessions against the same synthetic workspace. Supply their redacted observations for qualification.",
       "blocker": null,
       "closure_reason": null
     },
@@ -20092,6 +20093,112 @@
           ],
           "data_plan": "Use temporary profiles and synthetic loopback responses; the trial remains read-only.",
           "cleanup": "Replace binary64 parsing of the provider observation token. Keep the existing wire type and schema validation."
+        }
+      }
+    },
+    {
+      "id": "M4-017",
+      "title": "Retain independently consented external client observations",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M0-082"
+      ],
+      "scope": [
+        "scripts/verification_evidence.py",
+        "scripts/check.py",
+        "scripts/ci_artifacts.py",
+        "scripts/project.py",
+        "contracts/schemas/project.schema.json",
+        "tests/project/test_ci_artifacts.py",
+        "project/checks.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008",
+        "0009"
+      ],
+      "acceptance": [
+        "Accept bounded, explicitly redacted observations from a CLI and a desktop client for the same synthetic workspace, revision and selection. Require a separate publication consent record for each client.",
+        "Bind the observation pair to the exact committed source and execution inputs. Publish and revalidate the pair through the private check, hosted artifact staging and task receipt paths.",
+        "The software regression accepts only fixture evidence of the retention path. A missing live observation remains unverified. Keep raw client data, grants, private logs and credentials outside publication."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Verify the synthetic publication and import path. Leave actual authorized client sessions to M4-005.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Retain two redacted observations in one source-bound check without exposing private session material or implying an observed client session.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_evidence.py",
+          "scripts/ci_artifacts.py",
+          "contracts/reviews/2026-11-23-continuity-audit.json"
+        ],
+        "hypotheses": [
+          "The current run-bound redacted observation path can carry the pair without changing client access or session execution."
+        ],
+        "risks": [
+          {
+            "failure": "One consent, a different workspace or a mismatched revision can qualify the pair.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Private or altered bytes reach staging or evidence import.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A missing or simulated observation qualifies an actual client.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the additional observation admission and retain prior artifacts and the recorded finding.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/verification_evidence.py",
+            "scripts/ci_artifacts.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-23-continuity-audit.json",
+              "pointer": "/findings"
+            }
+          ],
+          "non_goals": [
+            "No running client, credentials, bridge permission changes or M4-005 qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing model, market and field observation artifacts and historical task receipts."
+          ],
+          "change": [
+            "Add an optional explicitly redacted observation pair to the external-client check and receipt."
+          ],
+          "data_plan": "Only the consented synthetic-workspace summary enters the isolated run artifact. Private legs and logs stay local.",
+          "cleanup": "Use the shared publication, import and diagnostic paths for the new observation."
         }
       }
     }

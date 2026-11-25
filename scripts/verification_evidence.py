@@ -11,9 +11,9 @@ import stat
 from statistics import median
 
 if __package__:
-    from .project import ProjectError, file_digest, load_project, local_path, read_json, source_identity
+    from .project import ProjectError, digest, file_digest, json_bytes, load_project, local_path, read_json, source_identity, validate_model
 else:
-    from project import ProjectError, file_digest, load_project, local_path, read_json, source_identity
+    from project import ProjectError, digest, file_digest, json_bytes, load_project, local_path, read_json, source_identity, validate_model
 
 ROOT = Path(__file__).resolve().parents[1]
 SESSION_CHECKS = {
@@ -21,6 +21,9 @@ SESSION_CHECKS = {
     'configured-voice-session': ('configured_models', 'voice'),
     'configured-market-source': ('real_market_data', 'market'),
 }
+EXTERNAL_CLIENT_CHECK = 'configured-external-ai-clients'
+RUN_OBSERVATION_CHECKS = SESSION_CHECKS.keys() | {EXTERNAL_CLIENT_CHECK}
+EXTERNAL_CLIENT_MAX_BYTES = 8192
 WORKBENCH_OBSERVATION_VERSION = 2
 MANUAL_CLOCK_ALLOWANCE = timedelta(minutes=5)
 UBUNTU_SURFACE = 'native-ubuntu-tauri-webkitgtk'
@@ -358,6 +361,65 @@ def collect_session(run_dir, key, source):
     return result
 
 
+def redacted_check_log(exit_code):
+    return (json.dumps({'exit_code': exit_code}) + '\n').encode('ascii')
+
+
+def external_client_record(root, path, source):
+    with path.open('rb') as stream:
+        contents = stream.read(EXTERNAL_CLIENT_MAX_BYTES + 1)
+    if len(contents) > EXTERNAL_CLIENT_MAX_BYTES:
+        raise ProjectError('External-client observation exceeds the redacted size limit.')
+    try:
+        record = evidence_json(contents)
+        validate_model(root, 'ExternalClientObservation', record)
+    except (ValueError, RecursionError):
+        raise ProjectError('Invalid redacted external-client observation.') from None
+    if source.get('working_tree_dirty') is not False:
+        raise ProjectError('An external-client observation requires clean committed inputs.')
+    bound_source(record, source)
+    clients = {leg['kind']: leg for leg in record['clients']}
+    if set(clients) != {'cli', 'desktop'}:
+        raise ProjectError('Expected one CLI and one desktop observation.')
+    cli, desktop = clients['cli'], clients['desktop']
+    if cli['family'] != 'codex-cli' or desktop['family'] == cli['family']:
+        raise ProjectError('Expected Codex CLI and a separately identified desktop client.')
+    for key in ('workspace_sha256', 'revision_sha256', 'selection_sha256'):
+        if cli[key] != desktop[key] or cli[key] == '0' * 64:
+            raise ProjectError('External clients must observe the same identified synthetic workspace and selection.')
+    consent = {leg['consent_observation_sha256'] for leg in clients.values()}
+    if len(consent) != 2 or '0' * 64 in consent:
+        raise ProjectError('External clients require independent publication consent observations.')
+    for leg in clients.values():
+        observed_time(leg, completed=True)
+    return {'evidence_sha256': digest(contents), 'observation': record}
+
+
+def collect_run_observation(root, run_dir, key, source):
+    if key == EXTERNAL_CLIENT_CHECK:
+        path = hosted_artifact_path(run_dir, key + '.observation.json')
+        return external_client_record(root, path, source)
+    return collect_session(run_dir, key, source)
+
+
+def retain_external_client_record(root):
+    configured = os.environ.get('SCOPEHUB_EXTERNAL_CLIENT_OBSERVATION_FILE')
+    if not configured:
+        raise SystemExit(77)
+    try:
+        path = Path(configured)
+        runs = (root / '.reports/runs').resolve()
+        run_dir = Path(os.environ['SCOPEHUB_RUN_DIR']).resolve()
+        if not path.is_file() or run_dir.parent != runs or not run_dir.is_dir():
+            raise ProjectError('Expected a local summary and an isolated verification run.')
+        # The input is an explicitly approved summary. Private client files are never loaded.
+        record = external_client_record(root, path, source_identity(root))['observation']
+        with (run_dir / (EXTERNAL_CLIENT_CHECK + '.observation.json')).open('xb') as retained:
+            retained.write(json_bytes(record))
+    except (OSError, ValueError, TypeError, KeyError, RecursionError):
+        raise SystemExit('External-client observation failed validation.') from None
+
+
 def integration_validation(results):
     summary = {
         kind: {'status': 'not_evaluated', 'observations': []}
@@ -621,8 +683,11 @@ def release_artifacts(run_dir, source, policy, *, expected=None, hosted=False):
 
 def main(root=ROOT):
     parser = argparse.ArgumentParser()
-    parser.add_argument('kind', choices=FIELD_ACTIONS)
+    parser.add_argument('kind', choices=[*FIELD_ACTIONS, EXTERNAL_CLIENT_CHECK])
     kind = parser.parse_args().kind
+    if kind == EXTERNAL_CLIENT_CHECK:
+        retain_external_client_record(root)
+        return
     hosted = os.environ.get('GITHUB_ACTIONS') == 'true'
     if not (root / '.reports/observations' / kind / 'observation.json').is_file():
         print('The required interactive observation has not been supplied.')

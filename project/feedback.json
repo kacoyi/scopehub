@@ -3673,10 +3673,10 @@
       "status": "open",
       "observation": "The current private-log and hosted observation formats cannot retain the two independent client observations required for qualification. The executable release check itself is still planned.",
       "task_ids": [
-        "M4-005"
+        "M4-017"
       ],
       "regression_checks": [
-        "configured-external-ai-clients"
+        "python-contracts-workers"
       ],
       "resolution": null,
       "deferral_reason": null

@@ -13,10 +13,11 @@ if __package__:
     from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
                         windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                          project_definition_hash, task_definition_hash, validate_model, windows_x64)
+                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
     from .timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from .verification_evidence import (
-        FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
+        EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
+        collect_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
@@ -25,10 +26,11 @@ else:
     from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
                        windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
-                         project_definition_hash, task_definition_hash, validate_model, windows_x64)
+                         project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
     from timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from verification_evidence import (
-        FIELD_ACTIONS, SESSION_CHECKS, LocalFieldObservation, collect_session, field_observation,
+        EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
+        collect_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
@@ -175,15 +177,17 @@ def scope_provenance(report, report_sha256, env):
     return {'kind': 'scopehub-verification-scope-v1', **decision, 'report_sha256': report_sha256}
 
 
-def stage_session(reports, destination, run, result, source):
+def stage_run_observation(root, reports, destination, run, result, source):
     check = result['id']
     relative = f'{run}/{check}.observation.json'
-    expected = result['observation']
-    contents = bound_bytes(checked_path(reports, relative), expected['evidence_sha256'])
-    evidence_json(contents)
-    write_artifact(destination / relative, contents)
-    if expected != collect_session(destination / run, check, source):
+    manifest = checked_path(reports, relative)
+    if check == EXTERNAL_CLIENT_CHECK and source != source_identity(root):
+        raise PublicationError('External-client evidence does not match the current source inputs.')
+    expected = result.get('observation')
+    if expected is None or expected != collect_run_observation(root, manifest.parent, check, source):
         raise PublicationError('Redacted session evidence differs from the reported observation.')
+    contents = bound_bytes(manifest, expected['evidence_sha256'])
+    write_artifact(destination / relative, contents)
 
 
 def stage_field_observation(root, reports, destination, result):
@@ -270,7 +274,7 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     for result in report['checks']:
         check = result['id']
         passed = result['status'] == 'passed'
-        if (('observation' in result and (check not in SESSION_CHECKS or not passed))
+        if (('observation' in result and (check not in RUN_OBSERVATION_CHECKS or not passed))
                 or ('field_observation' in result and (check not in FIELD_ACTIONS or not passed))):
             raise PublicationError('The check has an unexpected observation.')
         if 'log' not in result:
@@ -290,8 +294,8 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
             copy_file(log, destination / relative, sha256=result['log_sha256'])
         executed[check] = result['status']
         if passed:
-            if check in SESSION_CHECKS:
-                stage_session(reports, destination, run, result, report['source'])
+            if check in RUN_OBSERVATION_CHECKS:
+                stage_run_observation(root, reports, destination, run, result, report['source'])
             elif check in FIELD_ACTIONS:
                 try:
                     stage_field_observation(root, reports, destination, result)
