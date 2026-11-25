@@ -13,7 +13,8 @@ const MAX_SAMPLE_BYTES: usize = 16 * 1024;
 #[serde(deny_unknown_fields)]
 struct SampleReply<'a> {
     instrument: String,
-    observed_at_ms: Value,
+    #[serde(borrow)]
+    observed_at_ms: &'a RawValue,
     #[serde(borrow)]
     value: &'a RawValue,
     unit: String,
@@ -76,16 +77,48 @@ pub async fn read_local_api_sample(trial: &LocalApiTrial) -> Result<Value, Error
     }
     let reply: SampleReply<'_> =
         serde_json::from_slice(&bytes).map_err(|_| failure(ErrorCode::OUTPUTINVALID))?;
+    let observed_at_ms = exact_observation_ms(reply.observed_at_ms.get())
+        .ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))?;
     let value = reply.value.get();
     if !matches!(value.as_bytes().first(), Some(b'-' | b'0'..=b'9')) {
         return Err(failure(ErrorCode::OUTPUTINVALID));
     }
     Ok(json!({
         "instrument": reply.instrument,
-        "observed_at_ms": reply.observed_at_ms,
+        "observed_at_ms": observed_at_ms,
         "value": value,
         "unit": reply.unit,
     }))
+}
+
+fn exact_observation_ms(token: &str) -> Option<u64> {
+    const MAX_OBSERVATION_MS: u64 = 8_640_000_000_000_000;
+
+    // RawValue has already checked the JSON syntax. Work from decimal digits
+    // so neither a small fraction nor underflow can create an integer time.
+    let unsigned = token.strip_prefix('-').unwrap_or(token);
+    if !unsigned.starts_with(|ch: char| ch.is_ascii_digit()) {
+        return None;
+    }
+    let (mantissa, exponent) = unsigned.split_once(['e', 'E']).unwrap_or((unsigned, "0"));
+    let (whole, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let digits = format!("{whole}{fraction}");
+    let significant = digits.trim_start_matches('0');
+    if significant.is_empty() {
+        return Some(0);
+    }
+    if unsigned != token {
+        return None;
+    }
+    let coefficient = significant.trim_end_matches('0');
+    let power = exponent
+        .parse::<i32>()
+        .ok()?
+        .checked_sub(fraction.len() as i32)?
+        .checked_add((significant.len() - coefficient.len()) as i32)?;
+    let magnitude = 10_u64.checked_pow(u32::try_from(power).ok()?)?;
+    let millis = coefficient.parse::<u64>().ok()?.checked_mul(magnitude)?;
+    (millis <= MAX_OBSERVATION_MS).then_some(millis)
 }
 
 fn read_error(error: reqwest::Error) -> Error {
