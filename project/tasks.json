@@ -25654,7 +25654,8 @@
         "A supported folder stage can complete after the single-revision read window. A user can stop waiting for a missing or slow reply without repeating staging. Rejected, cancelled and late replies cannot present an unverified comparison.",
         "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts.",
         "For manually selected published CSV and folder revisions, delay delivery of a real native comparison across focus. Nothing from that comparison is displayed until the latest focus has an authoritative access confirmation. A real peer withdrawal prevents publication details from appearing even temporarily.",
-        "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts."
+        "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts.",
+        "Restore the second conflict choice, one bar withdrawal and one source withdrawal after same-stage authorization is confirmed, keeping the private comparison out of the DOM during rechecks. A revision or stage change, cancellation of staging, or durable revocation discards the old decisions and prepared authority. Edit and reconfirm binds the visible choices to the exact native digest and one explicit publication."
       ],
       "checks": [
         "ui-build",
@@ -25671,7 +25672,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Hand the comparison access fence and both private correction controls to independent re-review and native qualification. Retain the original guarded Windows failure, ordinary observations and combined Linux receipt with their exact source identities.",
+      "next_action": "Replay the refused review choice and confirmation journey, validate the matching stage and candidate lifecycle, and hand off the exact local result for independent review and native qualification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25767,6 +25768,13 @@
             "checks": [
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "Focus hides the comparison by unmounting the owner of review decisions while preserving an unrelated prepared digest. Exercise the same authorized stage, repeated focus, revision and candidate supersession, cancellation, durable denial and a single explicit publication with readback.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -25779,7 +25787,8 @@
             "apps/desktop/ui/src/published-revision-access.ts",
             "apps/desktop/ui/src/use-local-workspace.ts",
             "apps/desktop/ui/src/local-revision-dialog.tsx",
-            "apps/desktop/ui/src/local-import-editor.tsx"
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/ui/src/folder-refresh-review.tsx"
           ],
           "rules": [
             {
@@ -25800,7 +25809,8 @@
           "change": [
             "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
             "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs.",
-            "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read."
+            "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read.",
+            "Keep unpublished choices with their staged review and retain the prepared digest only for those decisions. Visibility rechecks hide the comparison without discarding authorized choices."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

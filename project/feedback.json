@@ -7271,6 +7271,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "folder-review-choices-and-prepared-candidate-diverge-after-focus",
+      "source": "Independent Astra Standard t10n product replay at fc926f696c205d126df18ad9d2a0bed22778b367. Original archives/observations/repo-hygiene-20261125/independent-final-m2-039-fc926f69/original-assistant-response.jsonl (SHA-256 1d5a6fe3bc7a9a0091d4cb5f645fb1398abd514eeb88d932c08bbec4536d4341).",
+      "observation": "On refocus and successful access confirmation for the same revision, the selected second conflict alternative, one bar withdrawal and one source withdrawal reset from 1/1 to 0/1. A prepared confirmation still allowed publication with the original candidate digest despite the empty displayed choices. Focus itself did not submit a publication.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
