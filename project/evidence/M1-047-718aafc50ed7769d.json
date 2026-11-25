@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-047",
+  "task_definition_sha256": "0b64f465909cafeb656b77f7e74bc28c88d2b3db2b8d327d6f415774976890b7",
+  "run_id": "20261125T054133.364360Z-c9f7f452",
+  "recorded_at": "2026-11-25T05:45:08.187272+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "bafc026c43fe5e9b031fb4af7a444187c15d2b62845d857efcfa71639e23e5c3",
+    "file_count": 600,
+    "git_head": "5f4ea785c9b0012d524cf421286332a5174dd972",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "718aafc50ed7769d9476b45a98b2ffd5515478b612165b02a7ed07b2f79f6c72",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb8ab813a7d8651316783d4969a57713b55822fc094647b6a95ad56c513d690f"
+    },
+    {
+      "id": "typescript-contracts",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "check:contracts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7087f9b51e6d8765260b14484d001e07758ed2f1afc7a5ab6cb6cd1141439d7f"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2d6b2fd3da664bcd3c10a511fd2cb9bf5f7517722cb0753d911d03540bfa3cbf"
+    },
+    {
+      "id": "python-types-win32",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+        "-m",
+        "mypy",
+        "--platform",
+        "win32"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2d6b2fd3da664bcd3c10a511fd2cb9bf5f7517722cb0753d911d03540bfa3cbf"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "864294a7643c1017971b6a78733964ec950ba6dbe8244c036f95f1dc2031c809"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b36ae4e54843c13458582e0d62d924e858a231c5e1f8fa9ee59333778e073162"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-frozen-base/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    }
+  ],
+  "project_definition_sha256": "74ef17ca8c19c24ca1114b5ab7228efb773977fe7c63eb3ad1f6525ce53686bb",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "a1e60ff2e22a55e3e192506aa2160b5f54352407b4a89b0045b459e520a16373"
+  ]
+}
