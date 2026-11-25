@@ -10,8 +10,7 @@ import shutil
 import tempfile
 
 if __package__:
-    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
-                        windows_lane_checks)
+    from .check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
     from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
@@ -23,11 +22,11 @@ if __package__:
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
     from .verification_scope import (
-        SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor, windows_lane_report_matches, windows_lanes_run_id,
+        SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
+        windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id,
     )
 else:
-    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
-                       windows_lane_checks)
+    from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
     from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
@@ -39,7 +38,8 @@ else:
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
     from verification_scope import (
-        SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor, windows_lane_report_matches, windows_lanes_run_id,
+        SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
+        windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id,
     )
 
 ROOT = Path(__file__).resolve().parents[1]

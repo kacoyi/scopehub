@@ -26,6 +26,27 @@ def windows_lane_report_matches(ci, run_id, environment):
     return run_id == windows_lanes_run_id(ci) and windows_x64(environment)
 
 
+WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
+                          'local-import-ui', 'market-live-stream', 'market-quality-states',
+                          'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
+                          'desktop-workspace-transport', 'desktop-localization'}
+WINDOWS_LANE_CHECKS = {
+    'browser': WINDOWS_BROWSER_CHECKS,
+    'python': {'python-contracts-workers'},
+    'recovery': {'market-recovery'},
+}
+WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
+LEGACY_WINDOWS_LANES = WINDOWS_LANES[:-1]
+
+
+def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES):
+    if lane not in lanes:
+        return set()
+    if lane == 'core':
+        return selected.difference(*(WINDOWS_LANE_CHECKS[name] for name in lanes if name != 'core'))
+    return selected & WINDOWS_LANE_CHECKS[lane]
+
+
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
 SCOPE_REASONS = {
     'records': 'Only reviewed record paths or approved narrative fields changed.',

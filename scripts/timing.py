@@ -19,13 +19,15 @@ from typing import NamedTuple
 if __package__:
     from .doctor import tool_version
     from .verification_scope import (
-        SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history, windows_lane_report_matches,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git,
+        require_complete_history, windows_lane_checks, windows_lane_report_matches,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
     from doctor import tool_version
     from verification_scope import (
-        SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history, windows_lane_report_matches,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git,
+        require_complete_history, windows_lane_checks, windows_lane_report_matches,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
@@ -50,8 +52,7 @@ WORKFLOW_SECONDS = ('total_elapsed_seconds', 'runner_work_seconds')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
-LEGACY_WINDOWS_LANES = ('core', 'browser', 'python')
-WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in (*LEGACY_WINDOWS_LANES, 'recovery')}
+WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in WINDOWS_LANES}
 WINDOWS_PRODUCER_PROFILES = {f'ci-windows-{lane}': name for lane, name in WINDOWS_PRODUCERS.items()}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
 WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
@@ -430,8 +431,14 @@ def split_windows_seconds(aggregate, producers, requested, expected):
         seconds[stage] = producers[lane][0]['seconds'][metric]
 
 
+def windows_clock_lanes(run):
+    if not run or not (run['workflow'].get('windows_split') or 'sibling_jobs' in run):
+        return ()
+    return WINDOWS_LANES if run['workflow'].get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
+
+
 def split_windows_clock(run):
-    return bool(run['workflow'].get('windows_split') or 'sibling_jobs' in run)
+    return bool(windows_clock_lanes(run))
 
 
 def has_windows_producers(siblings, expected):
@@ -498,8 +505,13 @@ def hosted_timing(run, jobs):
 
     actual = [*rows, *siblings]
     runners = [row['seconds']['runner'] for row in actual]
-    if split and aggregate and identified_layout:
-        split_windows_seconds(aggregate, producers, requested, expected)
+    if split and aggregate:
+        if identified_layout:
+            split_windows_seconds(aggregate, producers, requested, expected)
+        else:
+            seconds = aggregate[0]['seconds']
+            for stage in (*WINDOWS_DERIVED_STAGES, *WINDOWS_COPIED_STAGES):
+                seconds[stage] = None
     ids = [row['job_id'] for row in actual if row['job_id'] is not None]
     if len(set(ids)) != len(ids):
         for row in actual:
@@ -663,13 +675,9 @@ def clock_membership_complete(run):
 
 
 def clock_capture_complete(run):
-    jobs = [*run['jobs'], *run.get('sibling_jobs', [])]
-    split = split_windows_clock(run)
-    return (clock_membership_complete(run)
-            and all(duration(run['workflow'].get(key)) is not None for key in WORKFLOW_SECONDS)
-            and all(job['seconds']['total'] is not None and job['seconds']['runner'] is not None for job in jobs)
-            and (not split or all(job['conclusion'] != 'success' or job['seconds']['harness_step'] is not None
-                                  for job in run['jobs'])))
+    # A single listing uses the same readiness rule as any retained union.
+    evidence = reconcile_timing_clocks([], [run], [])
+    return clock_ready_for_capture(evidence, ci_key(run), {}, [])
 
 
 def successful_clock_jobs(run):
@@ -801,7 +809,7 @@ def attempt_clocks(hosted, issues):
         else:
             attempts[key].append(run)
 
-    clocks, complete, measured = {}, set(), set()
+    clocks, complete = {}, set()
     for key in sorted(attempts.keys() | failures.keys(), key=repr):
         authority = failures.get(key, {})
         matching = [run for run in attempts[key] if not authority or set(authority) == {run['conclusion']}]
@@ -810,18 +818,23 @@ def attempt_clocks(hosted, issues):
                                   'error': 'Attempt clock conflicts with the authenticated workflow conclusion.'})
         candidates = [run for run in matching if clock_membership_complete(run)]
         if candidates:
+            split = [row for row in candidates if split_windows_clock(row)]
+            # A matching protected-only listing proves those job identities;
+            # its silence about producers cannot override a proven split layout.
+            if split:
+                protected = {job_clock_identity(job) for job in split[0]['jobs']}
+                candidates = [row for row in candidates if split_windows_clock(row)
+                              or {job_clock_identity(job) for job in row['jobs']} != protected]
             if (clock := complete_attempt_membership(candidates, issues)) is not None:
                 clocks[key] = clock
                 complete.add(key)
-                if any(map(clock_capture_complete, candidates)):
-                    measured.add(key)
         elif matching:
             clocks[key] = max(matching, key=clock_preference)
         if len(authority) == 1:
             clocks.setdefault(key, next(iter(authority.values())))
         elif len(authority) > 1:
             timing_issue(issues, {'run_id': key[1], 'error': 'Conflicting authenticated workflow conclusions.'})
-    return clocks, complete, measured
+    return clocks, complete
 
 
 class JobClockEvidence(NamedTuple):
@@ -846,14 +859,17 @@ def job_clock_observations(hosted, clocks, complete, issues):
                 role = ('platform', job['platform'])
                 roles[attempt, job['job_id']].add(role)
                 if job_clock_identity(job) in protected:
-                    jobs[attempt, role].append(inherit_job_checkout(run, job))
+                    jobs[attempt, role].append(protected_job_facts(run, authority, job))
         for job in run.get('sibling_jobs', []):
             if has_job_identity(job):
-                role = ('producer', job.get('name'))
+                name = job.get('name')
+                role = ('producer', name) if name in WINDOWS_PRODUCERS.values() else ('sibling', job['job_id'])
                 roles[attempt, job['job_id']].add(role)
-                if (role[1] in WINDOWS_PRODUCERS.values() and job['platform'] == 'Windows'
+                if (role[0] == 'producer' and job['platform'] == 'Windows'
                         and job['runner_label'] == 'windows-latest'):
                     jobs[attempt, role].append(inherit_job_checkout(run, job))
+                elif any(job_clock_identity(row) == job_clock_identity(job) for row in authority.get('sibling_jobs', ())):
+                    jobs[attempt, ('sibling', job['job_id'])].append(inherit_job_checkout(run, job))
     observed, producer_disputes = {}, set()
     for (attempt, role), candidates in sorted(jobs.items(), key=lambda item: repr(item[0])):
         scope, name = role
@@ -878,6 +894,24 @@ def job_clock_observations(hosted, clocks, complete, issues):
     return observed, producer_disputes
 
 
+def protected_job_facts(run, authority, job):
+    job = inherit_job_checkout(run, job)
+    if job['platform'] != 'Windows':
+        return job
+    layout, observed = windows_clock_lanes(authority), windows_clock_lanes(run)
+    if not layout:
+        return job
+    seconds = dict(job['seconds'])
+    # V1 split records store the original setup as aggregate_setup. That
+    # field marks a projected row, even if the original setup was unknown.
+    projected = 'aggregate_setup' in seconds
+    if observed != layout or not projected or not has_windows_producers(run.get('sibling_jobs', ()), layout):
+        aggregate_setup = seconds.get('aggregate_setup') if observed else seconds['setup']
+        seconds.update(dict.fromkeys((*WINDOWS_DERIVED_STAGES, *WINDOWS_COPIED_STAGES)))
+        seconds['aggregate_setup'] = aggregate_setup
+    return {**job, 'seconds': seconds}
+
+
 def inherit_job_checkout(run, job):
     checkout = job.get('checkout_sha') or run.get('checkout_sha')
     return {**job, 'checkout_sha': checkout} if checkout else job
@@ -886,17 +920,16 @@ def inherit_job_checkout(run, job):
 class ClockEvidence(NamedTuple):
     attempts: dict
     complete: set
-    measured: set
     jobs: dict
     checkout_disputes: set
     producer_disputes: set
 
 
-def project_windows_stages(evidence, attempt, run, job, profile, issues):
-    workflow = run['workflow']
-    if not split_windows_clock(run):
-        return job
-    lanes = WINDOWS_PRODUCERS if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
+def project_windows_stages(evidence, attempt, run, fact, profile, issues):
+    lanes = windows_clock_lanes(run)
+    if not lanes:
+        return fact
+    job = fact.job
     sources = {lane: evidence.jobs[attempt, ('producer', WINDOWS_PRODUCERS[lane])] for lane in lanes}
     groups = {'all': lanes, 'active': ('core',) if profile in SCOPED_PROFILES else lanes}
     seconds = dict(job['seconds'])
@@ -915,37 +948,77 @@ def project_windows_stages(evidence, attempt, run, job, profile, issues):
         timing_issue(issues, {'run_id': attempt[1], 'platform': 'Windows',
                               'fields': [stage for stage in (*ATTEMPT_SECONDS, *SPLIT_SECONDS) if stage in disputed],
                               'error': 'Conflicting Windows aggregate stage inputs.'})
-    return {**job, 'seconds': seconds}
+    return JobClockEvidence({**job, 'seconds': seconds}, (*fact.disputed, *sorted(disputed)))
+
+
+def protected_job(evidence, attempt, platform, profile, issues):
+    fact = evidence.jobs.get((attempt, ('platform', platform)))
+    if fact and fact.job and platform == 'Windows' and attempt in evidence.complete:
+        return project_windows_stages(evidence, attempt, evidence.attempts[attempt], fact, profile, issues)
+    return fact
+
+
+def clock_ready_for_capture(evidence, attempt, profiles, issues):
+    if attempt not in evidence.complete:
+        return False
+    run = evidence.attempts[attempt]
+    for row in run['jobs']:
+        platform = row['platform']
+        fields = ('total', 'runner')
+        if split_windows_clock(run) and row['conclusion'] == 'success':
+            fields += ('harness_step',)
+        if not observed_fields(protected_job(evidence, attempt, platform, profiles.get(platform), issues), fields):
+            return False
+    for row in run.get('sibling_jobs', ()):
+        name = row.get('name')
+        role = ('producer', name) if name in WINDOWS_PRODUCERS.values() else ('sibling', row['job_id'])
+        if not observed_fields(evidence.jobs.get((attempt, role)), ('total', 'runner')):
+            return False
+    return True
+
+
+def observed_fields(fact, required):
+    # A diagnosed dispute is not a missing download. It cannot acquire a
+    # numeric value but need not consume an automatic retry.
+    return fact is not None and (fact.job is None or all(
+        fact.job['seconds'].get(field) is not None or field in fact.disputed for field in required
+    ))
 
 
 def reconcile_timing_clocks(samples, hosted, issues):
     checkouts = timing_checkout_conflicts(samples, hosted, issues)
     consistent = [clock for clock in hosted if ci_key(clock) not in checkouts]
-    clocks, complete, measured = attempt_clocks(consistent, issues)
+    clocks, complete = attempt_clocks(consistent, issues)
     jobs, producer_disputes = job_clock_observations(consistent, clocks, complete, issues)
-    return ClockEvidence(clocks, complete, measured, jobs, checkouts, producer_disputes)
+    return ClockEvidence(clocks, complete, jobs, checkouts, producer_disputes)
 
 
-def coalesce_samples(samples, issues):
+def coalesce_samples(samples, issues, *, clocks=None):
     observations, producers = defaultdict(list), defaultdict(list)
+    clock_by_attempt = clocks or {}
+    diagnostics = []
     for sample in samples:
         ci = sample['ci']
+        attempt = ci_key(ci or {})
         scope = windows_producer_job_name(sample)
-        if ci and scope:
-            producers[ci_key(ci)].append(sample)
+        if native_report_issue(sample, clock_by_attempt.get(attempt), diagnostics):
+            scope = ('native diagnostic', scope, sample['run_id'], sample['arch'], tuple(sample['selected']))
+        elif ci and scope:
+            producers[attempt].append(sample)
         if ci and scope is None and ci['event'] in NORMAL_EVENTS and sample['profile'] not in AUTOMATIC_PROFILES:
             scope = ('diagnostic', sample['profile'])
         key = (*ci_key(ci), sample['platform'], scope) if ci else ('local', sample['run_id'], sample['platform'])
         observations[key].append(sample)
-    diagnostics = []
-    groups = [coalesce_sample_group(group, producers.get(ci_key(group[0]['ci'] or {}), ()), diagnostics)
-              for group in observations.values()]
+    groups = []
+    for group in observations.values():
+        attempt = ci_key(group[0]['ci'] or {})
+        groups.append(coalesce_sample_group(group, producers.get(attempt, ()), clock_by_attempt.get(attempt), diagnostics))
     for issue in sorted(diagnostics, key=lambda note: json.dumps(note, sort_keys=True)):
         timing_issue(issues, issue)
     return groups
 
 
-def coalesce_sample_group(group, producers, issues):
+def coalesce_sample_group(group, producers, run, issues):
     candidates = [row for row in group if sample_eligible(row)]
     if not candidates:
         # A diagnostic can still carry exact supplementary metadata. Compare
@@ -968,7 +1041,7 @@ def coalesce_sample_group(group, producers, issues):
             if sample_core(previous) != sample_core(sample):
                 return [previous, sample]
             return list(proofs.values())
-    result = reconcile_cache_metadata(previous, candidates, matched_producer_caches(previous, producers), issues)
+    result = reconcile_cache_metadata(previous, candidates, matched_producer_caches(previous, producers, run), issues)
     if proofs:
         result['generated_contracts'] = next(iter(proofs.values()))['generated_contracts']
     return [result]
@@ -1020,28 +1093,64 @@ def split_windows_report(sample):
     )
 
 
-def matched_producer_caches(sample, producers):
+def producer_measurements(sample, lanes, selected=None):
+    if not split_windows_report(sample):
+        return None
+    lane = sample['profile'].removeprefix('ci-windows-')
+    claimed = set(sample['selected'])
+    if not claimed or len(claimed) != len(sample['selected']):
+        return None
+    if claimed != windows_lane_checks(claimed if selected is None else selected, lane, lanes):
+        return None
+    measurements = [row for row in sample['checks'] if row['id'] in claimed]
+    if len(measurements) != len(claimed) or {row['id'] for row in measurements} != claimed:
+        return None
+    return measurements
+
+
+def matched_producer_caches(sample, producers, run):
     if sample['profile'] != 'full' or not sample_identity_complete(sample) or not split_windows_report(sample):
         return {}
     digest = sample.get('inputs_sha256')
     if sample['ci'] is None or not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
         return {}
+    lanes = windows_clock_lanes(run) or (WINDOWS_LANES if 'windows_caches' in sample else ())
+    if not lanes:
+        return {}
     rows = {row['id']: row for row in sample['checks'] if row['id'] in sample['selected']}
     states = defaultdict(list)
+    selected = set(sample['selected'])
     for producer in producers:
-        selected = set(producer['selected'])
-        measurements = [row for row in producer['checks'] if row['id'] in selected]
-        if (producer['ci'] == sample['ci'] and sample_eligible(producer) and split_windows_report(producer)
-                and producer.get('inputs_sha256') == digest and selected and len(measurements) == len(selected)
-                and {row['id'] for row in measurements} == selected
-                and selected <= rows.keys() and all(rows[row['id']] == row for row in measurements)):
+        if producer['ci'] != sample['ci'] or not sample_eligible(producer) or producer.get('inputs_sha256') != digest:
+            continue
+        measurements = producer_measurements(producer, lanes, selected)
+        if measurements is not None and all(rows.get(row['id']) == row for row in measurements):
             states[producer['profile'].removeprefix('ci-windows-')].append(producer['cache'])
     return states
 
 
+def native_report_issue(sample, run, issues):
+    if sample['platform'] != 'Windows':
+        return False
+    lanes = windows_clock_lanes(run)
+    producer = windows_producer_job_name(sample)
+    if producer:
+        if producer_measurements(sample, lanes or WINDOWS_LANES) is not None:
+            return False
+        timing_issue(issues, {'run_id': observation_id(sample), 'platform': 'Windows', 'producer': producer,
+                              'error': 'Timing producer does not match its native publisher identity or check selection.'})
+        return True
+    if (sample['profile'] == 'full' and (lanes or 'windows_caches' in sample or split_windows_report(sample))
+            and (not split_windows_report(sample) or run is not None and not lanes)):
+        timing_issue(issues, {'run_id': observation_id(sample), 'platform': 'Windows',
+                              'error': 'Timing aggregate does not match its native publisher identity or job layout.'})
+        return True
+    return False
+
+
 def merge_samples(samples, hosted, issues):
     evidence = reconcile_timing_clocks(samples, hosted, issues)
-    for group in coalesce_samples(samples, issues):
+    for group in coalesce_samples(samples, issues, clocks=evidence.attempts):
         if len(group) > 1:
             continue
         sample = group[0]
@@ -1054,11 +1163,11 @@ def merge_samples(samples, hosted, issues):
             if producer:
                 fact = evidence.jobs.get((attempt, ('producer', producer)))
             elif ci['event'] not in NORMAL_EVENTS or sample['profile'] in AUTOMATIC_PROFILES:
-                fact = evidence.jobs.get((attempt, ('platform', sample['platform'])))
+                fact = protected_job(evidence, attempt, sample['platform'], sample['profile'], issues)
         job = fact.job if fact else None
         complete = attempt in evidence.complete
-        if complete and job and not producer and sample['platform'] == 'Windows':
-            job = project_windows_stages(evidence, attempt, run, job, sample['profile'], issues)
+        if native_report_issue(sample, run, issues):
+            job = None
         if job and not sample_identity_complete(sample):
             issue = {'run_id': observation_id(sample), 'platform': sample['platform'],
                      'error': 'Timing sample checkout or identity does not match the retained job evidence.'}
@@ -1701,10 +1810,13 @@ def current_collection_issues(issues, samples, hosted):
         return isinstance(note.get('run_id'), str) and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}
 
     incomplete = {note['run_id'] for note in issues if missing_capture(note)}
-    complete = {clock['run_id'] for clock in hosted
-                if clock['run_id'] in incomplete and clock['conclusion'] != 'success'
-                and clock_capture_complete(clock) and failed_capture_is_complete(clock, samples, hosted)}
-    return [note for note in issues if not (missing_capture(note) and note['run_id'] in complete)]
+    attempts = defaultdict(set)
+    for clock in hosted:
+        if clock['run_id'] in incomplete:
+            attempts[clock['run_id']].add(ci_key(clock))
+    recovered = {run_id for run_id, keys in attempts.items() if len(keys) == 1
+                 and capture_is_complete(next(iter(keys)), samples, hosted)}
+    return [note for note in issues if not (missing_capture(note) and note['run_id'] in recovered)]
 
 
 def retained_failures_for_clocks(directories, hosted, already_read, issues):
@@ -1756,14 +1868,12 @@ def sample_belongs_to_capture(sample, path):
             and path.name == f"ci-{ci['event']}-{ci['run_id']}-1.json")
 
 
-def platform_sample_groups(samples, issues):
-    return [group for group in coalesce_samples(samples, issues) if platform_timing_identity(group[0])]
-
-
 def indexable_capture_samples(path, samples, hosted, issues):
-    disputes = timing_checkout_conflicts(samples, hosted, issues)
-    return [group[0] for group in platform_sample_groups(samples, issues) if len(group) == 1
-            and sample_belongs_to_capture(group[0], path) and ci_key(group[0]['ci']) not in disputes]
+    evidence = reconcile_timing_clocks(samples, hosted, issues)
+    return [group[0] for group in coalesce_samples(samples, issues, clocks=evidence.attempts) if len(group) == 1
+            and sample_belongs_to_capture(group[0], path)
+            and ci_key(group[0]['ci']) not in evidence.checkout_disputes
+            and not native_report_issue(group[0], evidence.attempts.get(ci_key(group[0]['ci'])), issues)]
 
 
 def index_capture(path, samples, hosted=(), issues=None):
@@ -1961,7 +2071,7 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     clocks = distinct_observations(row for row in hosted if ci_key(row) == identity)
     clock_evidence = reconcile_timing_clocks(samples, clocks, issues)
     clock = clock_evidence.attempts.get(identity)
-    groups = coalesce_samples(samples, issues)
+    groups = coalesce_samples(samples, issues, clocks=clock_evidence.attempts)
     platforms = [group for group in groups if platform_timing_identity(group[0])]
     disputed_platforms = {group[0]['platform'] for group in platforms if len(group) > 1}
     checkout_disputed = identity in clock_evidence.checkout_disputes
@@ -1970,9 +2080,10 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     diagnostic = outcome not in {None, 'success'}
     # A failed artifact can still establish its exact diagnostic identity.
     qualify = sample_identity_complete if diagnostic else sample_eligible
-    present = {group[0]['platform'] for group in platforms if len(group) == 1 and qualify(group[0])}
-    missing = set(PLATFORMS.values()) - present - disputed_platforms
-    complete_clock = (identity in clock_evidence.measured and clock['conclusion'] == outcome
+    present = {group[0]['platform']: group[0]['profile'] for group in platforms
+               if len(group) == 1 and qualify(group[0]) and not native_report_issue(group[0], clock, issues)}
+    missing = set(PLATFORMS.values()) - present.keys() - disputed_platforms
+    complete_clock = (clock_ready_for_capture(clock_evidence, identity, present, issues) and clock['conclusion'] == outcome
                       and (diagnostic or successful_clock_jobs(clock)))
     # Keep the distinct inputs (including disputed claims). Derived fields
     # are recomputed on read, so archive order cannot suppress a known fact.
@@ -1981,8 +2092,8 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     return CaptureEvidence(distinct_observations(retained), clocks, missing, complete_clock, ambiguous, checkout_disputed)
 
 
-def failed_capture_is_complete(clock, samples, hosted):
-    evidence = capture_observations(ci_key(clock), samples, hosted, [], conclusion=clock['conclusion'])
+def capture_is_complete(identity, samples, hosted):
+    evidence = capture_observations(identity, samples, hosted, [])
     return evidence.complete_clock and not evidence.missing and not evidence.ambiguous
 
 
