@@ -6790,6 +6790,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "initial-and-trailing-focus-confirmation-can-be-lost",
+      "source": "Independent Astra Standard t10n at 143d6844a745a7bce5b834ea546d4344b7202636, archives/observations/repo-hygiene-20261125/independent-final-m2-039-143d6844/final-response.txt (SHA-256 4866509dfc1546d8076e190cea39cc915c9fd3937688813ca65e4c8a7482c6d0). The original response line SHA-256 is 9922096a791c707ad3217a0d75ebf3aa3b4ce4cd1fc97b6130e28cf9c13ec1c3.",
+      "observation": "Independent two-window React controls captured A before the initial workspace snapshot was delivered, and separately captured A during an earlier focus confirmation. In both cases the peer committed B at selection revision 2 with close 106 before the next focus event. The first window dropped that focus and entered ready with old A at 44. An explicit reload or another focus after the held snapshot settled showed B. The independently verified folder refresh recovery passed.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

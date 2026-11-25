@@ -24916,6 +24916,7 @@
       "acceptance": [
         "Use two participating synthetic workspace windows and the ordinary first saved-chart reopen. B is visibly confirmed at close 106, and late data from source A with close 44 cannot display when focus has started checking the newer source, including when A returns before the workspace snapshot.",
         "A focus reload confirming the same saved source still opens its authenticated bars. Available, revoked, unavailable and source-free states preserve their existing authorization and provenance behavior.",
+        "The workspace must hold its first chart until the latest focus generation is confirmed, including focus before the first snapshot or during an earlier confirmation. One admitted read and one coalesced trailing read preserve the existing reply deadline.",
         "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog."
       ],
       "checks": [
@@ -24927,7 +24928,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Review the exact scoped correction and before-and-after observations in contracts/reviews/2026-11-26-first-reopen-and-folder-recovery.json independently before completing this task.",
+      "next_action": "Reproduce the two newly observed focus generation orderings. Confirm the latest focus on the native-compatible entry without exposing any stale restored chart.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24955,6 +24956,14 @@
               "market-workflow",
               "ui-build",
               "state-migrations"
+            ]
+          },
+          {
+            "failure": "Focus before the initial reply or during a prior confirmation is lost, or repeated focus starts overlapping reads and lets stale bars enter ready.",
+            "checks": [
+              "desktop-workspace-transport",
+              "market-workflow",
+              "ui-build"
             ]
           },
           {
