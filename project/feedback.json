@@ -6984,6 +6984,273 @@
       "deferral_reason": null
     },
     {
+      "id": "consequential-task-completed-without-independent-decision",
+      "source": "Observed disposable ordinary project check and history on 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a with authentic passing run 20261125T115836.374177Z-fc7c2887. Observation SHA-256 b8c778557d02d2371e5273f6e3bb8e869cef813ead01479843a8a20389d6da9a. Independent cold review transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Prior local completed task sources 97fedb3771bcdbcbf1030d32d4eec1c69401d656 and ecf48f65a02b94967e0813fec4e9cbbec360ffbf.",
+      "observation": "The normal project check and history accepted a simulated completed corrective task and addressed finding in a disposable checkout with a genuine green harness receipt and zero independent approval. The actual independent review requested changes on that exact source. Earlier local M0-130 and M0-131 similarly reached an accepted state before reviewer reproduction of timing capture and reopen disagreement. Passing engineering checks and immutable historical receipts establish their verified scope. They do not establish the independent decision.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An ordinary passing task receipt was sufficient to close a consequential change, even when the actual independent review had requested corrections.",
+        "correction": "Bind consequential acceptance to the latest applicable independent decision, its reviewed source, material scope and evidence.",
+        "prevention": "Exercise the normal project, history and integration entries with missing, rejected, unrelated and approved decisions, including a disjoint protected composition."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "consequential-review-subject-order-and-basis",
+      "source": "Independent Astra Standard final response on 92d2183d9c1e88ff3873b036c024dacceefa5e3f. Retained final UTF-8 SHA-256 2038c618210fbd10bc508e27c028ce7c755dffc3f2b47f7e286df6075dc0ff53. Private package manifest SHA-256 b56b2275398655946a53e963f00f97336b2388613362ca5841299b5c07b30f25.",
+      "observation": "Activating the permission and recipient plan of M4-001 generated no obligation without manual selection. Actual approval records could approve mentioned pending M0-104 or M0-119, and an earlier approval survived a later assistant response without a verdict. Adding a newline let an old approval override a later rejection. A cold read accepted a changed public observation with the original digest held fixed. Shallow or missing protected history grandfathered candidate completion in the PR107 and M0-130 controls. Focused phases omitted the genuine 876-second observation and decision lookup.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The first decision rules allowed secondary task mentions, stale replies or incomplete protected history to qualify a different change. The handoff omitted the observed outcome.",
+        "correction": "Match the primary subject and latest actual response, verify the recorded projection and protected comparison, and publish the independent observation in task context.",
+        "prevention": "Replay real subject mentions and ordered responses. Verify incomplete protected history stays unresolved and routine adjacent work preserves its treatment."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-reply-misses-public-english-observation",
+      "source": "Owner observation of the genuine final responses at c9bae572bcb74f76c63325556bb472f183944376, 92d2183d9c1e88ff3873b036c024dacceefa5e3f and f7358c66ea459f0df40102e90620aab73096cbef. Original final assistant response packages retained privately by the coordinator.",
+      "observation": "All three exact-source replies gave an English disposition and Chinese owner-facing observations. None offered a standalone English factual observation for the verbatim repository intake. The routine review context did not explain this split, so importing would either publish Chinese project content or require inventing a translation.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The review assignment omitted the English factual sentence needed by repository intake, leaving genuine owner-facing reviews without an importable observation.",
+        "correction": "Expose the required verdict, exact source and a standalone English observation in the normal review handoff.",
+        "prevention": "Check the generated review assignment and a genuine import while keeping owner-facing discussion available in Chinese."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-observation-request-and-durable-state-gaps",
+      "source": "Independent Astra Standard response on 0eb573bb19e6f8fceccb8e70f83ff673183731e9. Original final SHA-256 4875ad580483ee21fb39a43e3634167f217a89527ed46a72181630c850f380da. Private package manifest SHA-256 0031c08f4b772152769743705a76d14d9465918ab44ac825ad78069355a30e8b.",
+      "observation": "A genuine Windows review accepted its title commit SHA as the entire observation just like its independently measured outcome. An explicit scoped re-review followed by an invalid final reply left the earlier approval usable. The real M1-040 activation-to-closure transition passed without independent review despite a user-record deletion and stale identity risk. Comparing protected b01b2f7 with its parent 6cf0d0d also asked unchanged accepted M0-003 for a new approval.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A title revision counted as an observation, starting a new review did not invalidate the previous decision, and changes affecting persistent user records were omitted from the requirement.",
+        "correction": "Record ordered requests and superseding decisions, qualify observations from the response body and apply the obligation to consequential durable-state changes while preserving accepted protected history.",
+        "prevention": "Exercise the actual Windows observation, pending request and sensitive M1-040 transition along with the unchanged protected M0-003 control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-citation-provenance-and-replacement-source",
+      "source": "Independent Astra Standard final on 226fac00b657b876ed893a3f2e2118cd655daf61. Original final SHA-256 b90b4e4af1bafd0db8c3b5f770426dad4a80d58d0ef16792eb4bac564123adea. Private package manifest SHA-256 c5e28990658d80bed3088cc735e0282c2f8f83d513aafe5b77255425c5b7b9c4.",
+      "observation": "The M0-103 review accepted a rendered citation caption as the full observation and check, history, and integration allowed closure. The normal handoff recovery command could not replace an open request from the combined Windows and Linux source with the reviewed sibling Windows-only source.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A rendered citation caption appeared to be authored evidence. Recovery also lacked a route to replace an outstanding request after the source changed.",
+        "correction": "Select eligible authored review passages and permit a recorded replacement request bound to its source and predecessor.",
+        "prevention": "Replay the original M0-103 caption and actual observation and exercise replacement, stale source and current source through the public review entry."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-heading-and-observation-argument",
+      "source": "Independent Astra Standard final on 874b08b9ad95c1a496ca6a708aeba8b12b9b22d7. Original final SHA-256 9c6c0a50bb8789815ddbb7dcbec050e2c0f4dec0b8a73e2810cb93180416ef32. Package manifest SHA-256 5a9a6cfe478545a2858919b8412c149fce38abfa99f0aa8951afcda9138b8d23.",
+      "observation": "The ordinary M0-129 acceptance paths treated a partial bold section heading as independent evidence. The generated observation argument also lost the literal backtick terms from the genuine Chinese M0-103 observation under ordinary shell parsing.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A partial emphasized heading was accepted as a factual observation, while shell interpretation could remove literal terms from a suggested observation argument.",
+        "correction": "Qualify structural body prose and pass literal observation content through the supported file-data entry.",
+        "prevention": "Retain the actual M0-129 heading rejection and M0-103 literal-text round trip."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-observation-markdown-source-boundary",
+      "source": "Independent Astra Standard final on 624c4cdbacc1318bce6a9ac4af3d8938104fb671. Original final SHA-256 f0ce60d1ea81d7b113da548d7fc12b219f5b9cdd30d13e05050de61373f20d05. Package manifest SHA-256 4a2984d4ed3ba2c2789428bcf17d0b010a9c0b55e1cde2e9dc30e3dad705f002.",
+      "observation": "The ordinary M0-129 closure paths accepted an invisible link-reference title as the whole observation. Setext headings and lazy block quote continuations were also admitted. A complete factual sentence with two balanced inline emphasis spans was rejected.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Markdown definitions, headings and quoted continuations could count as factual prose, and valid observations with multiple emphasis spans could be lost.",
+        "correction": "Use parsed source spans to qualify passages and carry supported inline formatting through the observation projection.",
+        "prevention": "Exercise link definitions, Setext headings, quotations and the complete factual sentence through public intake and closure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-observation-inline-code-whitespace",
+      "source": "Independent Astra Standard final on 227e0413b61e1e17d790e4cbf57580267aab534d. Original final SHA-256 24fcb368cb736ee5a3096c7189a89edeaeaf362d5961d65212cc2a8cc95cf0af. Package manifest SHA-256 5a0df6ae70f6ea8a9d7d84bab017b63e9c8e88a5d4126338703afd8687316957.",
+      "observation": "Ordinary M0-103 review intake collapsed two interior spaces in a quoted inline-code filename to one. A one-space quotation absent from the original could then satisfy the pending request and all three normal closure paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Observation normalization folded significant adjacent spaces inside an authored inline-code filename.",
+        "correction": "Preserve significant consecutive inline-code characters while normalizing eligible surrounding prose.",
+        "prevention": "Compare otherwise identical one-space and two-space observations from the actual review through intake and closure."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-replay-collapses-literal-response-whitespace",
+      "source": "Independent Astra Standard final on d29a74cb885bacf84015c79653ed6201ece1248b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-d29a74cb/final-response.txt (SHA-256 b1f83bff756cf1c623f18e69f591ab2c709f25fb87eb1e396aa2b1cbd1ac5a3c).",
+      "observation": "The M0-103 replay accepted a plain-text approval of a filename containing one space, then blocked a later independently timed structured approval of the two-space filename. The selected observations were exact, but the folded response hash treated both replies as one and left the source-bound re-review request pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The selected observation preserved the literal text, but the response identity used for replay folded significant whitespace across input formats.",
+        "correction": "Compute replay identity from the extracted literal response while supporting earlier recorded evidence.",
+        "prevention": "Replay plain, terminal and structured source formats and distinguish changed literal filenames from a duplicate response."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-plain-markdown-misread-as-terminal",
+      "source": "Independent Astra Standard review of bce7aece3dde19df8a319c09a5e55b4acbd515d5, recorded in 7394897a6238cea3190daca7c989f9b243c63644. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-bce7aece/original-assistant-response.jsonl (SHA-256 b6245fbdd558251d6560b8216fa9d8fd5be5919ee6022c0f4510141ca9c912d7).",
+      "observation": "The first public M0-103 import of a plain-text CHANGES_REQUESTED reply took a prior approval and its observation from a fenced terminal example. Handoff presented approval and the three closure checks passed. The same response imported as a structured final correctly blocked closure.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A fenced exchange embedded in an ordinary Markdown response could select a different decision from the actual reply.",
+        "correction": "Determine the input format at the document opening and keep fenced examples outside the eligible reply.",
+        "prevention": "Exercise equivalent plain and structured genuine responses containing terminal examples and require the same independent decision."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-bulleted-document-activates-quoted-exchange",
+      "source": "Independent Astra Standard review of 4481eab5456943f1c46a7a05b3fc8e5e556e6d82, recorded at 76cc7d774fdb0fa457341ed3bc4cdb7ca34c9312. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-4481eab5/original-assistant-response.jsonl (SHA-256 93f3f9b026f3a4a04dbd8cbcdb77f2be2888ab27b0a6519f419cd48252da012a).",
+      "observation": "Adding a Unicode bullet to a documentation heading caused the first public M0-103 intake to record an approval and observation from a fenced terminal example. Handoff showed approval, and project check, history and delivery scope allowed closure. The unbulleted document was rejected and a source-bound pending request still blocked the untimed example.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A Unicode bullet or overlapping inline markup could cause a documentation example to be selected as a terminal exchange.",
+        "correction": "Keep quoted and nested examples inside their original context while finding the actual exchange and eligible prose.",
+        "prevention": "Replay bulleted documents, nested prose and a genuine clipped terminal exchange through the ordinary intake."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-terminal-footer-truncates-authored-reply",
+      "source": "Independent Astra Standard review of d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3, recorded at 82bd36ff7878b0033cf255c79cd01d10d7b2a153. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-d4c2ed99/original-assistant-response.jsonl (SHA-256 adbfb35ac45aba0ea0403caaca59b513d00392a58762147abf3d88a187d1169f).",
+      "observation": "Changing an ordinary sentence in the terminal version of an M0-103 reply to begin with Worked for removed a later observation despite the real formatted footer remaining below it. Selecting an earlier observation allowed import, but the equivalent full structured answer was then treated as a distinct response.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A sentence beginning with Worked for could be mistaken for a terminal footer and truncate a later factual observation.",
+        "correction": "Recognize the complete terminal footer at the actual exchange boundary and preserve earlier ordinary sentences, examples and literal response identity.",
+        "prevention": "The independent reviewer replayed the terminal and structured originals, retained the later observation, rejected footer and quoted content and confirmed equivalent duplicates."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "independent-review-fixture-hashes-unsaved-newlines",
+      "source": "Ordinary Windows PR126 run 45686340341 attempt 1. Preview ff2167962e02d8bf919b8ce8e3d5d098bffe650d, reviewed head b8f33ee368249f62c531af86590dc2849cbcfc32. Original archives/runs/windows-change-45686340341-1/test-report.json. The complete native collection is archives/observations/repo-hygiene-20261125/pr126-native-original-45686340341/manifest.json with SHA-256 f92949cafdd1e947673104090a4049ad9b88bf5198301bcef36ab65356039503.",
+      "observation": "The Windows Python suite ran 831 tests and failed the first-prose and footer-shaped-prose subtests at the original_sha256 comparison. The fixture hashes the LF string before text-mode output, while receipt intake hashes actual file bytes. The Linux Python check passed on the same preview. The observed failure is the fixture comparison, and the exact-byte and normalized-identity cases need independent portable reproduction.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686340341-1",
+          "source_commit": "ff2167962e02d8bf919b8ce8e3d5d098bffe650d",
+          "report_sha256": "980f9b48c34cf1db47f964de8a614aa5d8afe442f15681adf06b4c60d0da9594"
+        }
+      ],
+      "resolution": {
+        "cause": "The fixture hashed the original LF string before a text-mode write. Windows saved different bytes and review intake correctly hashed the saved original.",
+        "correction": "Write explicit LF and CRLF originals in the fixture and check both their differing file digests and their equivalent normalized response identities.",
+        "prevention": "Run the real review intake on both line endings. Verify literal observation text, duplicate decision identity and exact saved input bytes on Linux and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "peer-decision-note-observer-busy-fallback-list",
       "source": "Linux local M0-147 task run 20261125T181716.486623Z-e13b2103 at 0ff1c4da15fbede912b909aef2ad226ba7fce838. The original is archives/runs/20261125T181716.486623Z-e13b2103/test-report.json. The workspace-timeframe log has SHA-256 2deec7f8863299d655dd7887ecebe5ef22fb3fe358dd5ca6461dcd034394a064.",
       "severity": "major",
