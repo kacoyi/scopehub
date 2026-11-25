@@ -1054,3 +1054,185 @@ for (const scenario of [
     });
   });
 }
+
+for (const scenario of [
+  { name: 'a saved A is superseded during readback', startsWithA: true },
+  { name: 'a first source save is superseded during readback' },
+  { name: 'the same source is confirmed after readback', startsWithA: true, unchanged: true },
+  { name: 'focus during the issued write settles after its readback', heldWrite: true },
+  { name: 'focus survives failed readback and explicit recovery', recover: true },
+  { name: 'closing the dialog does not discard focus or repeat the write', closeDialog: true },
+]) {
+  test(`source-save focus waits for the latest snapshot when ${scenario.name}`, async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
+    await buildPreview();
+    await withProfile(async profile => {
+      const a = randomUUID();
+      const b = randomUUID();
+      const bar = (day, close) => ({
+        time_ms: Date.parse(day + 'T00:00:00Z'), trading_day: day,
+        open: close - 3, high: close + 3, low: close - 5, close, volume: 13, is_closed: true,
+      });
+      await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 44));
+      await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 106));
+      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+        const originalRevision = scenario.startsWithA ? 1 : 0;
+        const savedRevision = originalRevision + 1;
+        const confirmedRevision = scenario.unchanged ? savedRevision : savedRevision + 1;
+        const currentId = scenario.unchanged ? a : b;
+        if (scenario.startsWithA) {
+          expect(await dispatch({ type: 'workspace_source', request_id: randomUUID(), expected_selection_revision: 0,
+            source: { kind: 'frozen', revision_id: a } })).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+        }
+        const reopen = Promise.withResolvers();
+        const initialReadback = Promise.withResolvers();
+        const operation = Promise.withResolvers();
+        const trailing = Promise.withResolvers();
+        const readbackNumber = scenario.recover ? 3 : 2;
+        const snapshots = [];
+        const writes = [];
+        const trace = [];
+        let reopened = false;
+        let reads = 0;
+        const transport = windowName => async ({ operation: name, payload }) => {
+          if (name === 'market.listLocalImportRevisions') {
+            return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+          }
+          const number = windowName === 'first' && payload.type === 'snapshot' ? ++reads : undefined;
+          const reply = await dispatch(payload);
+          if (payload.type === 'workspace_source') {
+            writes.push({ window: windowName, request: payload, result: reply.result });
+            if (windowName === 'first' && scenario.heldWrite) await operation.promise;
+          }
+          if (number !== undefined) {
+            snapshots.push({ number, selection: reply.result?.selection_revision, source: reply.result?.source });
+            if (scenario.recover && number === 2) await initialReadback.promise;
+            if (number === readbackNumber && !scenario.heldWrite) await operation.promise;
+            if (number === readbackNumber + 1) await trailing.promise;
+            trace.push({ deliveredSnapshot: number });
+          }
+          if (windowName === 'first' && scenario.startsWithA && !reopened && payload.type === 'frozen_chart') {
+            reopened = true;
+            await reopen.promise;
+            trace.push({ deliveredOriginalChart: reply.result?.bars[0]?.bar.close });
+          }
+          return reply;
+        };
+
+        const selectedBar = view => view.locator('.plot-workspace [aria-label="Selected bar"]');
+        const dialog = view => view.getByRole('dialog', { name: 'Open published CSV' });
+        const prepare = async (view, id, close) => {
+          await openPanel(view, 'Data sources');
+          await control(view.getByRole('complementary', { name: 'Data sources' }), 'Open published CSV').click();
+          const drawer = dialog(view);
+          await drawer.getByLabel('Revision ID').fill(id);
+          await control(drawer, 'Open frozen chart').click();
+          await expect(drawer.getByLabel('Selected bar')).toContainText(`C ${close}`);
+          return control(drawer, 'Use as workspace source');
+        };
+        const focus = count => page.evaluate(count => {
+          if (document.visibilityState !== 'visible') throw new Error('The first workspace must be visible at focus.');
+          for (let i = 0; i < count; i++) window.dispatchEvent(new Event('focus'));
+        }, count);
+        const captured = number => snapshots.find(row => row.number === number);
+        const firstChart = selectedBar(page);
+        let peer;
+        try {
+          if (scenario.recover) await page.clock.install();
+          await nativeTransport(page, { optedIn: true }, transport('first'));
+          peer = await page.context().newPage();
+          await nativeTransport(peer, { optedIn: true }, transport('peer'));
+          await page.goto('/');
+          if (scenario.startsWithA) await expect.poll(() => reopened).toBe(true);
+          await (await prepare(page, a, 44)).click();
+          await expect.poll(() => writes.find(write => write.window === 'first')).toMatchObject({
+            request: { expected_selection_revision: originalRevision, source: { revision_id: a } },
+            result: { selection_revision: savedRevision },
+          });
+          if (scenario.recover) {
+            await expect.poll(() => captured(2)).toMatchObject({ selection: savedRevision, source: { revision_id: a } });
+            await page.clock.fastForward(16_000);
+            const reload = control(dialog(page), 'Reload workspace state');
+            await expect(reload).toBeEnabled();
+            await expect(dialog(page).getByRole('alert')).toContainText('The source was saved.');
+            await focus(1);
+            expect(reads).toBe(2);
+            await reload.click();
+          }
+          if (!scenario.heldWrite) {
+            await expect.poll(() => captured(readbackNumber)).toMatchObject({
+              selection: savedRevision, source: { revision_id: a },
+            });
+          }
+
+          await peer.goto('/');
+          await expect(selectedBar(peer)).toContainText('C 44');
+          if (!scenario.unchanged) {
+            await (await prepare(peer, b, 106)).click();
+            await expect(dialog(peer)).toHaveCount(0);
+            await expect(selectedBar(peer)).toContainText('C 106');
+          }
+          expect(await dispatch({ type: 'snapshot' })).toMatchObject({
+            ok: true, result: { selection_revision: confirmedRevision, source: { revision_id: currentId } },
+          });
+
+          await page.evaluate(() => {
+            window.sourceSaveFocusBars = [];
+            const observer = new MutationObserver(() => {
+              const bar = document.querySelector('.plot-workspace [aria-label="Selected bar"]');
+              if (bar) window.sourceSaveFocusBars.push(bar.textContent);
+            });
+            observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+            window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+          });
+          await focus(4);
+          trace.push({ focusEvents: 4, inFlightSnapshots: reads });
+          expect(reads).toBe(scenario.heldWrite ? 1 : readbackNumber);
+          if (scenario.closeDialog) await control(dialog(page), 'Close').click();
+          reopen.resolve();
+          operation.resolve();
+          await expect.poll(() => captured(readbackNumber + 1), { timeout: 4500 }).toMatchObject({
+            selection: confirmedRevision, source: { revision_id: currentId },
+          });
+          await expect(firstChart).toHaveCount(0);
+          if (scenario.heldWrite) {
+            await expect(dialog(page).getByRole('alert')).toContainText('The workspace selection changed after this request was saved.');
+          } else {
+            await expect(dialog(page)).toHaveCount(0);
+          }
+
+          trailing.resolve();
+          if (scenario.heldWrite) await control(dialog(page), 'Close').click();
+          await expect(firstChart).toContainText(scenario.unchanged ? 'C 44' : 'C 106');
+          if (scenario.recover) {
+            initialReadback.resolve();
+            await expect.poll(() => trace.some(row => row.deliveredSnapshot === 2)).toBe(true);
+            await page.clock.runFor(50);
+            await expect(firstChart).toContainText('C 106');
+          }
+          if (!scenario.unchanged) {
+            expect(await page.evaluate(() => window.sourceSaveFocusBars.some(text => text.includes('C 44')))).toBe(false);
+          }
+          expect(reads).toBe(readbackNumber + 1);
+          expect(writes.map(write => [write.window, write.result.selection_revision])).toEqual(
+            scenario.unchanged ? [['first', savedRevision]] : [['first', savedRevision], ['peer', confirmedRevision]],
+          );
+          await expect(dialog(page)).toHaveCount(0);
+        } finally {
+          reopen.resolve();
+          initialReadback.resolve();
+          operation.resolve();
+          trailing.resolve();
+          const visible = page.isClosed() ? [] : await firstChart.allTextContents();
+          const observed = page.isClosed() ? [] : await page.evaluate(() => window.sourceSaveFocusBars ?? []);
+          const peerVisible = peer && !peer.isClosed() ? await selectedBar(peer).allTextContents() : [];
+          await testInfo.attach('source-save-focus-ordering', {
+            body: JSON.stringify({ scenario, a, b, reads, snapshots, writes, trace, visible, observed, peerVisible }, null, 2),
+            contentType: 'application/json',
+          });
+          await peer?.close();
+        }
+      });
+    });
+  });
+}
