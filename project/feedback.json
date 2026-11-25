@@ -6804,6 +6804,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-replay-collapses-literal-response-whitespace",
+      "source": "Independent Astra Standard final on d29a74cb885bacf84015c79653ed6201ece1248b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-d29a74cb/final-response.txt (SHA-256 b1f83bff756cf1c623f18e69f591ab2c709f25fb87eb1e396aa2b1cbd1ac5a3c).",
+      "observation": "The M0-103 replay accepted a plain-text approval of a filename containing one space, then blocked a later independently timed structured approval of the two-space filename. The selected observations were exact, but the folded response hash treated both replies as one and left the source-bound re-review request pending.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
