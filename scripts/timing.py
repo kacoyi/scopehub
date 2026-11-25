@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 from statistics import median
 import subprocess
 from tempfile import TemporaryDirectory
@@ -16,11 +17,11 @@ from tempfile import TemporaryDirectory
 if __package__:
     from .doctor import tool_version
     from .verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
-    from .worktree import WorktreeError, exclusive_git_lock, git_path
+    from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
     from doctor import tool_version
     from verification_scope import SCOPED_PROFILES, ScopeError, exact_commit, git, require_complete_history
-    from worktree import WorktreeError, exclusive_git_lock, git_path
+    from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -31,6 +32,7 @@ TIMING_FILE = 'verification-timing.json'
 REVIEW_ID = 'verification-timing'
 BUDGET_SCOPE = ('repository', 'event', 'profile', 'platform')
 ATTEMPT_IDENTITY = ('repository', 'run_id', 'run_attempt', 'event', 'head_sha')
+CANONICAL_CAPTURE = re.compile(r'ci-(pull_request|push)-(\d+)-1\.json\Z')
 CI_TIMING_NAME = re.compile(r'ci-(pull_request|push)-(\d+)-1(?:-failure-[0-9a-f]{64})?\.json\Z')
 INTAKE_ATTEMPTS = 2
 MISSING_COMPACT = 'Compact reports are absent for part of the required matrix.'
@@ -41,8 +43,10 @@ SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
 NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
-WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in ('core', 'browser', 'python')}
+LEGACY_WINDOWS_LANES = ('core', 'browser', 'python')
+WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in (*LEGACY_WINDOWS_LANES, 'recovery')}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
+WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes' for profile in SCOPED_PROFILES}
 HARNESS_STEPS = {
     'Run pnpm check',
@@ -347,12 +351,22 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     return row, (start, end, harness_start, harness_end)
 
 
-def split_windows_seconds(aggregate, producers, requested):
+def windows_aggregate_cache(caches):
+    if (not isinstance(caches, dict) or caches.keys() != WINDOWS_PRODUCERS.keys()
+            or not all(isinstance(state, str) and state in CACHE_STATES | {'unknown'} for state in caches.values())):
+        raise ValueError('Expected one cache state per Windows producer.')
+    required = {state for lane, state in caches.items() if lane != 'python'}
+    if caches['python'] == 'not_requested' and len(required) == 1 and 'not_requested' not in required:
+        return next(iter(required))
+    return 'unknown'
+
+
+def split_windows_seconds(aggregate, producers, requested, expected):
     windows, (start, end, aggregate_harness_start, aggregate_harness_end), raw = aggregate
     seconds = windows['seconds']
     seconds.update(initial_queue=None, aggregate_setup=seconds['setup'], queue=None,
                    setup=None, harness_step=None, runner=None, browser_step=None)
-    if set(producers) != WINDOWS_PRODUCERS.keys():
+    if producers.keys() != set(expected):
         return
     scoped = any(step.get('name') in SCOPED_HARNESS_STEPS and step.get('conclusion') != 'skipped'
                  and step.get('status') not in {'queued', 'pending', 'waiting'} for step in raw.get('steps', []))
@@ -376,10 +390,10 @@ def split_windows_seconds(aggregate, producers, requested):
     seconds['browser_step'] = producers['browser'][0]['seconds']['browser_step']
 
 
-def has_windows_producers(siblings):
-    expected = WINDOWS_PRODUCERS.values()
-    named = [job for job in siblings if job.get('name') in expected]
-    return (sorted(job['name'] for job in named) == sorted(expected)
+def has_windows_producers(siblings, expected):
+    labels = [WINDOWS_PRODUCERS[lane] for lane in expected]
+    named = [job for job in siblings if job.get('name') in WINDOWS_PRODUCERS.values()]
+    return (sorted(job['name'] for job in named) == sorted(labels)
             and all(job['platform'] == 'Windows' and job['runner_label'] == 'windows-latest' for job in named))
 
 
@@ -396,11 +410,16 @@ def hosted_timing(run, jobs):
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
     identity = (run_id, attempt, run.get('head_sha'), repository)
     jobs = list(jobs)
-    split = run.get('event') in NORMAL_EVENTS and any(
-        job.get('name') in WINDOWS_PRODUCERS.values() or (
-            job.get('name') == 'verify (windows-latest)'
-            and any(step.get('name') == WINDOWS_AGGREGATE_MARKER for step in job.get('steps', []))
-        ) for job in jobs
+    aggregate_markers = {step.get('name') for job in jobs if job.get('name') == 'verify (windows-latest)'
+                         for step in job.get('steps', [])}
+    recovery_layout = (WINDOWS_RECOVERY_MARKER in aggregate_markers
+                       or any(job.get('name') == WINDOWS_PRODUCERS['recovery'] for job in jobs))
+    legacy_layout = WINDOWS_AGGREGATE_MARKER in aggregate_markers
+    expected = WINDOWS_PRODUCERS if recovery_layout else LEGACY_WINDOWS_LANES
+    identified_layout = legacy_layout != recovery_layout
+    split = run.get('event') in NORMAL_EVENTS and (
+        recovery_layout or legacy_layout
+        or any(job.get('name') in WINDOWS_PRODUCERS.values() for job in jobs)
     )
     rows, siblings, producers = [], [], {}
     aggregate = None
@@ -431,15 +450,15 @@ def hosted_timing(run, jobs):
 
     actual = [*rows, *siblings]
     runners = [row['seconds']['runner'] for row in actual]
-    if split and aggregate:
-        split_windows_seconds(aggregate, producers, requested)
+    if split and aggregate and identified_layout:
+        split_windows_seconds(aggregate, producers, requested, expected)
     ids = [row['job_id'] for row in actual if row['job_id'] is not None]
     if len(set(ids)) != len(ids):
         for row in actual:
             if ids.count(row['job_id']) > 1:
                 row['identity_issues']['conflicts'].append('duplicate_job_id')
     bound_matrix = (len(rows) == len(PLATFORMS) and {row['platform'] for row in rows} == set(PLATFORMS.values())
-                    and (not split or has_windows_producers(siblings))
+                    and (not split or identified_layout and has_windows_producers(siblings, expected))
                     and all(not row['identity_issues']['conflicts'] for row in actual))
     complete = (bound_matrix and run.get('status') == 'completed'
                 and all(row['status'] == 'completed' for row in actual))
@@ -462,6 +481,8 @@ def hosted_timing(run, jobs):
     if split:
         result['sibling_jobs'] = siblings
         result['workflow']['windows_split'] = True
+        if recovery_layout:
+            result['workflow']['windows_recovery_producer'] = True
     return result
 
 
@@ -483,7 +504,7 @@ def authenticated_failure(run, identity):
 
 
 def sample_core(sample):
-    return {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts'}}
+    return {key: value for key, value in sample.items() if key not in {'cache', 'generated_contracts', 'windows_caches'}}
 
 
 def valid_seconds(seconds, required):
@@ -514,6 +535,10 @@ def valid_sample(sample):
             or (ci is not None and not labels(ci, ('repository', 'run_id', 'run_attempt', 'event',
                                                   'head_sha', 'checkout_sha')))):
         return False
+    if 'windows_caches' in sample and (
+            sample['platform'] != 'Windows' or sample['profile'] != 'full'
+            or windows_aggregate_cache(sample['windows_caches']) != sample['cache']):
+        return False
     return not sample['coverage_complete'] or (
         set(selected) <= {check['id'] for check in checks}
         and all(check['status'] != 'passed' or check['exit_code'] == 0 for check in checks)
@@ -536,6 +561,8 @@ def valid_clock(run):
     return (isinstance(workflow, dict) and type(workflow['matrix_complete']) is bool
             and (workflow.get('identity_complete') is None or type(workflow['identity_complete']) is bool)
             and (workflow.get('windows_split') is None or type(workflow['windows_split']) is bool)
+            and ('windows_recovery_producer' not in workflow
+                 or (workflow.get('windows_split') is True and workflow['windows_recovery_producer'] is True))
             and isinstance(jobs, list) and isinstance(siblings, list) and all(
                 labels(job, ('job_id', 'platform', 'runner_label', 'status', 'conclusion'))
                 and all(isinstance(job['identity_issues'][key], list) for key in ('missing', 'conflicts'))
@@ -563,6 +590,7 @@ def clock_capture_complete(run):
     workflow = run['workflow']
     siblings = run.get('sibling_jobs', [])
     split = workflow.get('windows_split') or 'sibling_jobs' in run
+    expected = WINDOWS_PRODUCERS if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
     actual = [*run['jobs'], *siblings]
     ids = {job['job_id'] for job in actual if positive_id(job['job_id'])}
     return (run.get('status') == 'completed' and bool(run['conclusion']) and workflow['matrix_complete'] is True
@@ -574,7 +602,7 @@ def clock_capture_complete(run):
                     and not job['identity_issues']['conflicts']
                     and job['seconds']['total'] is not None and job['seconds']['runner'] is not None for job in actual)
             and (not split or (
-                has_windows_producers(siblings) and all(job['conclusion'] != 'success'
+                has_windows_producers(siblings, expected) and all(job['conclusion'] != 'success'
                                                        or job['seconds']['harness_step'] is not None for job in run['jobs'])
             )))
 
@@ -661,14 +689,23 @@ def coalesce_samples(samples, issues):
         # Compact artifacts can add observations absent from older samples and full reports.
         try:
             previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
+            previously_observed, observed = (row.get('windows_caches') for row in (previous, sample))
             caches = {previous['cache'], sample['cache']} - {'unknown'}
             if (sample_core(previous) != sample_core(sample) or len(caches) > 1
-                    or (previous_proof is not None and proof is not None and previous_proof != proof)):
+                    or (previous_proof is not None and proof is not None and previous_proof != proof)
+                    or (previously_observed is not None and observed is not None and previously_observed != observed)):
                 group.append(sample)
                 issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
                                'error': 'Conflicting complete timing samples for this run and platform.'})
                 continue
-            sample = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
+            cache = next(iter(caches), 'unknown')
+            lane_caches = observed or previously_observed
+            if lane_caches is not None and windows_aggregate_cache(lane_caches) != cache:
+                group.append(sample)
+                issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
+                               'error': 'Conflicting Windows producer and aggregate cache observations.'})
+                continue
+            sample = {**previous, **sample, 'cache': cache}
             if previous_proof is not None and proof is None:
                 sample['generated_contracts'] = previous_proof
         except TIMING_INPUT_ERRORS:
@@ -693,7 +730,11 @@ def merge_samples(samples, hosted, issues):
         seconds = {key: sample['seconds'][key] for key in ('harness', 'check_work')}
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
-        yield {**sample, 'seconds': seconds,
+        cache = sample['cache']
+        if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
+                and sample['profile'] == 'full' and 'windows_caches' not in sample):
+            cache = 'unknown'
+        yield {**sample, 'seconds': seconds, 'cache': cache,
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
                'workflow_conclusion': run['conclusion'] if run else None,
@@ -987,10 +1028,16 @@ def linked_timing_window(history, reports, growth_baseline):
     return [], []
 
 
-def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents):
+def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, ancestor, checkout_parents, indexed_conflicts):
     rows = [sample for sample in samples if has_hosted_inputs(sample) and matches_budget_scope(sample, scope)]
     required_reports = reports | growth_baseline
     linked = [row for row in rows if report_key(row) in required_reports]
+    attempts = defaultdict(set)
+    for row in linked:
+        attempts[report_key(row)].add(ci_key(row['ci']))
+    conflicts = required_reports & indexed_conflicts
+    conflicts.update(key for key, identities in attempts.items() if len(identities) > 1)
+    linked = [row for row in linked if report_key(row) not in conflicts]
     unavailable = sorted(required_reports - {report_key(row) for row in linked})
     # All linked observations in this scope bound the correction, even when they belong to another cohort.
     last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
@@ -1050,6 +1097,8 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
     action = f"Observe a comparable successful ordinary {scope['profile']} {scope['platform']} {event} within {HOSTED_BUDGET} seconds."
     if not commit_id(repair):
         action = 'Record the corrective commit. ' + action
+    elif conflicts:
+        action = 'Resolve conflicting hosted attempts for the linked timing identities. ' + action
     elif unavailable:
         action = 'Restore comparable retained timing for all linked observations. ' + action
     elif not comparisons:
@@ -1061,10 +1110,11 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
                   'runs that restore the earlier median within the sustained-growth tolerances.')
     return {'status': 'recovered' if recovered else 'pending', 'repair_commit': repair,
             'unavailable_reports': [{'run_id': run, 'source_commit': source} for run, source in unavailable],
+            'conflicting_reports': [{'run_id': run, 'source_commit': source} for run, source in sorted(conflicts)],
             'comparisons': comparisons, 'next_action': None if recovered else action}, cutoffs
 
 
-def budget_follow_up(view, feedback, tasks, *, root=ROOT):
+def budget_follow_up(view, feedback, tasks, *, root=ROOT, indexed_conflicts=frozenset()):
     @cache
     def ancestor(base, head):
         try:
@@ -1102,7 +1152,8 @@ def budget_follow_up(view, feedback, tasks, *, root=ROOT):
         if scope['event'] in NORMAL_EVENTS:
             growth_baseline = {report_key(row) for row in spec.get('growth_baseline', ())}
             recovery, cutoffs = measure_budget_recovery(scope, spec.get('repair_commit'), reports, growth_baseline,
-                                                        view.get('samples', ()), ancestor, checkout_parents)
+                                                        view.get('samples', ()), ancestor, checkout_parents,
+                                                        indexed_conflicts)
             for cohort, cutoff in cutoffs.items():
                 key = scope_key, cohort
                 recovered_cohorts[key] = max(recovered_cohorts.get(key, cutoff), cutoff)
@@ -1254,7 +1305,116 @@ def retained_failures_for_clocks(directories, hosted, already_read, issues):
             issues.append({'file': path.name, 'error': str(error)})
 
 
-def retained_budget_inputs(root):
+def linked_timing_keys(feedback):
+    keys = set()
+    for item in feedback:
+        scope = item.get('verification_budget', {})
+        if scope.get('event') in NORMAL_EVENTS:
+            keys.update(report_key(row) for row in item.get('diagnostic_reports', ()))
+            keys.update(report_key(row) for row in scope.get('growth_baseline', ()))
+    return keys
+
+
+def link_directory(directory, key):
+    return directory / 'linked-harness' / sha256(json_bytes(key)).hexdigest()
+
+
+def require_plain_index_directory(directory):
+    # A different canonical spelling can name the same plain directory on Windows.
+    # Inspect each existing component before accessing its children.
+    for part in reversed((directory, *directory.parents)):
+        if part == part.parent:
+            continue
+        info = entry_info(part)
+        if info is not None and (not stat.S_ISDIR(info.st_mode) or reparse_point(info)):
+            raise TimingError('Expected a plain directory for the linked timing index.')
+
+
+def sample_belongs_to_capture(sample, path):
+    ci = sample['ci']
+    return (ci and sample_identity_complete(sample) and ci['checkout_sha'] == sample['source_commit']
+            and ci['run_attempt'] == '1' and path.name == f"ci-{ci['event']}-{ci['run_id']}-1.json")
+
+
+def index_capture(path, samples):
+    # The empty markers refer to original files beside this index. Existing capture bytes are kept in place.
+    count = 0
+    for key in {report_key(row) for row in samples if sample_belongs_to_capture(row, path)}:
+        directory = link_directory(path.parent, key)
+        require_plain_index_directory(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        try:
+            with (directory / path.name).open('xb'):
+                count += 1
+        except FileExistsError:
+            pass
+    return count
+
+
+def index_retained_captures(root):
+    directory = shared_timing_directory(root)
+    if directory is None:
+        raise TimingError('Expected a checkout with shared retained timing storage.')
+    captures = links = 0
+    issues = []
+    for path in sorted(directory.glob('ci-*.json')):
+        if not CANONICAL_CAPTURE.fullmatch(path.name):
+            continue
+        try:
+            if path.is_symlink():
+                raise TimingError('Expected a plain original compact timing capture.')
+            data = read_bounded_timing(path)
+            if data.get('kind') != ARCHIVE_KIND:
+                raise TimingError('Expected an original compact timing capture.')
+            samples, _ = archive_inputs(data, path.name, issues, collection_issues=False)
+            links += index_capture(path, samples)
+            captures += 1
+        except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'file': path.name, 'error': str(error)})
+    return {'indexed_captures': captures, 'new_links': links, 'input_issues': issues}
+
+
+def linked_capture_inputs(directories, keys, recent, issues):
+    captures = defaultdict(set)
+    claimants = defaultdict(set)
+    for directory in directories:
+        for key in keys:
+            links = link_directory(directory, key)
+            try:
+                require_plain_index_directory(links)
+                for marker in links.glob('ci-*.json'):
+                    if CANONICAL_CAPTURE.fullmatch(marker.name):
+                        captures[directory / marker.name].add(key)
+                        claimants[key].add(marker.name)
+            except (OSError, RuntimeError, TimingError) as error:
+                issues.append({'report': key, 'error': str(error)})
+    # A second indexed claimant is durable evidence of ambiguity even if its capture or clock is unavailable.
+    for (run, source), names in claimants.items():
+        if len(names) > 1:
+            issues.append({'run_id': run, 'source_commit': source, 'linked_timing_conflict': True,
+                           'capture_files': sorted(names), 'error': 'Multiple indexed captures claim the timing identity.'})
+    samples, hosted = [], []
+    for path in sorted(captures.keys() - set(recent)):
+        try:
+            if path.is_symlink():
+                raise TimingError('Expected a plain original compact timing capture.')
+            data = read_bounded_timing(path)
+            if data.get('kind') != ARCHIVE_KIND:
+                raise TimingError('Expected an original compact timing capture.')
+            rows, clocks = archive_inputs(data, path.name, issues, collection_issues=False)
+            matching = [row for row in rows if report_key(row) in captures[path] and sample_belongs_to_capture(row, path)]
+            missing = captures[path] - {report_key(row) for row in matching}
+            if missing:
+                issues.append({'file': path.name, 'reports': sorted(missing), 'error': 'Indexed timing identities are absent.'})
+            attempts = {ci_key(row['ci']) for row in matching}
+            samples.extend(matching)
+            hosted.extend(clock for clock in clocks if ci_key(clock) in attempts)
+        except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            issues.append({'file': path.name, 'reports': sorted(captures[path]), 'error': str(error)})
+    return samples, hosted
+
+
+def retained_budget_inputs(root, feedback=()):
     # Read a bounded window of shared automatic observations and checkout-local reviews.
     directory = root / '.reports/timing'
     archives, issues = [], []
@@ -1286,17 +1446,23 @@ def retained_budget_inputs(root):
                 samples.append(report_sample(data))
         except (OSError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'error': str(error)})
+    linked_samples, linked_hosted = linked_capture_inputs(directories, linked_timing_keys(feedback), recent, issues)
+    samples.extend(linked_samples)
+    hosted.extend(linked_hosted)
     hosted.extend(retained_failures_for_clocks(directories, hosted, recent, issues))
     return samples, hosted, issues
 
 
 def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
+    indexed_conflicts = {report_key(note) for note in issues if isinstance(note, dict)
+                         and note.get('linked_timing_conflict') is True
+                         and short_label(note.get('run_id')) and commit_id(note.get('source_commit'))}
     try:
         view = timing_view(samples, hosted=hosted, issues=issues)
-        follow_up = budget_follow_up(view, feedback, tasks, root=root)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root, indexed_conflicts=indexed_conflicts)
     except TIMING_INPUT_ERRORS as error:
         view = {'objective_reviews': [], 'reviews': []}
-        follow_up = budget_follow_up(view, feedback, tasks, root=root)
+        follow_up = budget_follow_up(view, feedback, tasks, root=root, indexed_conflicts=indexed_conflicts)
         issues.append({'error': str(error)})
     return {**follow_up, 'timing_available': any(row['sample_count'] for row in view['objective_reviews']),
             'elapsed_observations': [
@@ -1314,7 +1480,7 @@ def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
 
 
 def offline_budget_status(root, feedback, tasks):
-    return budget_status(*retained_budget_inputs(root), feedback, tasks, root=root)
+    return budget_status(*retained_budget_inputs(root, feedback), feedback, tasks, root=root)
 
 
 def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
@@ -1412,7 +1578,12 @@ def collect_new_ci_timing(root, repository, run, samples, hosted):
     try:
         with exclusive_git_lock(path.with_suffix('.lock')):
             # Re-read after locking because another worktree may have captured this attempt.
-            return update_timing_capture(path, repository, observed, identity, samples, hosted)
+            result = update_timing_capture(path, repository, observed, identity, samples, hosted)
+            try:
+                index_capture(path, result[1])
+            except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+                result[3].append({'run_id': run_id, 'error': f'Could not index the retained capture: {error}'})
+            return result
     except BlockingIOError:
         return 'in_progress', [], [], []
 
@@ -1475,7 +1646,8 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
 
 
 def ci_budget_status(root, repository, run):
-    samples, hosted, issues = retained_budget_inputs(root)
+    feedback = read_json(root / 'project/feedback.json')['items']
+    samples, hosted, issues = retained_budget_inputs(root, feedback)
     intake = None
     if run:
         if failure := authenticated_failure(run, actions_attempt_identity(repository, run)):
@@ -1496,7 +1668,6 @@ def ci_budget_status(root, repository, run):
             intake = 'unavailable'
             issues.append({'run_id': str(run['id']), 'error': str(error)})
     tasks = {task['id']: task for task in read_json(root / 'project/tasks.json')['tasks']}
-    feedback = read_json(root / 'project/feedback.json')['items']
     return {**budget_status(samples, hosted, issues, feedback, tasks, root=root), 'intake': intake}
 
 
@@ -1658,7 +1829,17 @@ def main():
     parser.add_argument('--github-actions', action='store_true', help='Use the read-only job token for --recent in Actions')
     parser.add_argument('--summary', type=Path, help='Append a Markdown review to a job summary')
     parser.add_argument('--save', type=Path, help='Write a compact archive to a new file for offline review')
+    parser.add_argument('--index-retained', action='store_true', help='Index existing shared compact captures locally')
     args = parser.parse_args()
+    if args.index_retained:
+        if any((args.report, args.actions, args.run, args.attempt, args.recent, args.github_actions, args.summary, args.save)):
+            parser.error('--index-retained is a standalone offline operation')
+        try:
+            result = index_retained_captures(ROOT)
+        except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
+            parser.exit(1, f'Timing indexing failed: {error}\n')
+        print(json.dumps(result, indent=2))
+        raise SystemExit(bool(result['input_issues']))
     if args.attempt is not None and (args.attempt < 1 or len(args.run or []) != 1):
         parser.error('--attempt requires a positive attempt and exactly one --run')
     if any(run < 1 for run in args.run or []):

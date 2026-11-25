@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_INTERNAL = {
     'scopehub-domain': set(),
     'scopehub-application': {'scopehub-domain'},
-    'scopehub-persistence': {'scopehub-domain', 'scopehub-application'},
+    'scopehub-persistence': {'scopehub-domain', 'scopehub-application', 'scopehub-platform'},
     'scopehub-worker-host': {'scopehub-domain', 'scopehub-application'},
     'scopehub-platform': {'scopehub-domain', 'scopehub-application'},
     'scopehub-desktop': {'scopehub-domain', 'scopehub-application', 'scopehub-persistence', 'scopehub-worker-host', 'scopehub-platform'},

@@ -148,11 +148,13 @@ class HostedCargoCacheTests(unittest.TestCase):
         self.assertEqual(restore['uses'].split('@')[1], save['uses'].split('@')[1])
         self.assertEqual(restore['with']['path'], save['with']['path'])
         self.assertEqual("${{ steps.cargo_cache.outputs['cache-primary-key'] }}", save['with']['key'])
-        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true'", restore['if'])
+        self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' "
+                         "&& matrix.lane != 'python'", restore['if'])
         self.assertEqual(restore['if'], self.key['if'])
         self.assertEqual(
             "success() && !inputs.task_id && steps.build_setup.outputs.profile == '' "
-            "&& (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' && matrix.lane != 'python')) "
+            "&& (matrix.lane == '' || (github.event_name == 'push' && steps.lane.outputs.split == 'true' "
+            "&& (matrix.lane == 'core' || matrix.lane == 'browser'))) "
             "&& steps.cargo_cache.outputs['cache-primary-key'] != '' "
             "&& steps.cargo_cache.outputs['cache-hit'] != 'true'", save['if'],
         )
@@ -161,9 +163,9 @@ class HostedCargoCacheTests(unittest.TestCase):
         self.assertGreater(self.steps.index(save), next(i for i, step in enumerate(self.steps) if step.get('id') == 'artifacts'))
 
     @unittest.skipUnless(sys.platform == 'linux', 'Run the hosted cache-key script with Bash')
-    def test_browser_and_python_restore_the_same_key_with_legacy_fallback(self):
+    def test_browser_and_recovery_restore_the_same_key_with_legacy_fallback(self):
         legacy = 'Windows-X64-cargo-toolchain-'
-        for lane, owner in (('python', 'browser'), ('browser', 'browser'), ('core', 'core'), ('', '')):
+        for lane, owner in (('recovery', 'browser'), ('browser', 'browser'), ('core', 'core'), ('', '')):
             with self.subTest(lane=lane), tempfile.TemporaryDirectory() as directory:
                 output = Path(directory) / 'outputs.txt'
                 subprocess.run(
