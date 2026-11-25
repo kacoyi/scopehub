@@ -20920,6 +20920,123 @@
       }
     },
     {
+      "id": "M0-120",
+      "title": "Compile replay orchestration only in its desktop and test callers",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-105",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge.rs",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the before and after logs for the locked offline local_import_bridge build. The three replay dead-code warnings reproduced on protected main are absent on the candidate.",
+        "The Windows replay preparation, subscription, cancellation and shutdown paths and the corresponding Linux unit tests retain their real worker behavior.",
+        "The portable import and explicit workspace fixture paths retain their existing admission and clean shutdown. Exercise the ordinary local-import-publication check and retain the platform scope of each observation."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "local-import-publication"
+      ],
+      "plan": {
+        "outcome": "The supported portable fixture builds without the three reproduced replay warnings and shares the same operation bridge as the native desktop.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+          "scripts/check_local_import_publication.py"
+        ],
+        "hypotheses": [
+          "Replay methods and their admission state have callers only in native Windows commands and bridge unit tests. Portable fixture operations and their common shutdown remain usable when that replay state is absent."
+        ],
+        "risks": [
+          {
+            "failure": "The fixture compiles cleanly by removing behavior required in a portable or native configuration.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Guarding replay state also changes common shutdown, dependency boundaries or source formatting.",
+            "checks": [
+              "architecture",
+              "rust-format",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the desktop bridge compile guards and retain the before and after logs for review.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+            "scripts/rust_workspace.py",
+            "scripts/check_local_import_publication.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changing replay semantics, fixture CLI behavior, workspace authorization, Windows commands or warning policy."
+          ],
+          "open_questions": [
+            "The local Linux build can exercise replay through tests. Native Windows commands remain an independent verification scope."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing replay admission and cancel ordering, native handlers, test coverage, shared desktop state and shutdown used by both portable fixture configurations."
+          ],
+          "change": [
+            "Compile replay-only private state, imports and methods with their existing Windows or test callers."
+          ],
+          "data_plan": "Use synthetic fixtures. The compile guard changes no records, protocol payloads or stored data.",
+          "cleanup": "Retain the original build output and the exact warning-free build, and report which native paths still require independent verification."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-120-f3e774336e24ddb0.json",
+          "sha256": "220958dbbd211fdf14928f52ad6112df364a30afaecad4f134c2ac454587e2b1"
+        },
+        {
+          "path": "project/evidence/M0-120-4fa6123379752819.json",
+          "sha256": "f380bbca748f8b7daffe323d483d4933aafb75742ff81d00f0260a9488696fd3"
+        },
+        {
+          "path": "project/evidence/M0-120-ef4a2365c7379f31.json",
+          "sha256": "a3e0d700029e52da2573b47e96c8deeb3e56744d423909f759918e9c3d29b8d1"
+        }
+      ],
+      "closure_reason": "The exact locked offline example build on protected main reproduced three dead-code warnings; the Linux candidate built with none. The local task harness passed the ordinary local-import-publication browser check and the Rust suite, including real worker replay cancellation. An isolated build with the previously reviewed opt-in fixture also verified both profile modes. Native Windows execution remains an independent review scope."
+    },
+    {
       "id": "M0-105",
       "title": "Remove the Windows storage admission dependency on PowerShell startup",
       "milestone": "M0",
