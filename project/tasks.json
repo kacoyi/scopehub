@@ -24701,7 +24701,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Validate the evidence-bound handoff and closure locally, then return the exact source for independent review.",
+      "next_action": "Verify all four independently reproduced handoff gaps against the native originals and the complete current receipt, then return the exact source for independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24720,6 +24720,12 @@
         "risks": [
           {
             "failure": "A candidate grants itself an exception, substitutes the observed source or unrelated evidence, skips a required native job, or closes the main observation prematurely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A completed repair loses its named owner, binds an older ancestor, relies on a native projection without its original or a timely wall clock, or combines separate incomplete receipts to appear current.",
             "checks": [
               "python-contracts-workers"
             ]

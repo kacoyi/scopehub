@@ -6824,6 +6824,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "recurring-main-push-handoff-incomplete-eligibility",
+      "source": "Independent Astra Standard changes requested on 1ca48c50a9dd42eb989b9fb0276a04edcd2cac8a. Original response SHA-256 7afbd4bf4a493b3e5d103f032989454d919fd0d58172cc903430b2972ebbc85a; extracted verdict SHA-256 482ef6fc7e0177a8ce31a74ae345ddba55d571e8c1cba5cce7683eb9efa8ebcb. Original and provenance retained privately.",
+      "observation": "Delivery accepted a completed M0-139 without its open finding or M0-141. Replacing the actual repair with its intake ancestor preserved the finding fingerprint. Native summaries with a substituted harness run ID or a Windows wall clock of 929 seconds qualified. A current incomplete receipt and an older complete receipt jointly allowed handoff, and an older valid receipt lacking an optional project digest prevented a later complete one from being considered.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-142"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
