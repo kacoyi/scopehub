@@ -76,6 +76,25 @@
       "requested_at": "2026-11-25T14:47:22.309201+00:00",
       "request_id": "452550f7d8c2767e321f48304fe4924ff2d220b3c7d7ba23a07d0ba8ddcc731a",
       "evidence_sha256": "c559ee2aeae01ba76170d267920c89c6c716b8fd6264622a78d39e2efcbf83f4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "scope": "CHANGES_REQUESTED M0-136 624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "observation": "In a read-only replay, the M0-129 acceptance checks passed with a Markdown link reference title as the entire recorded observation.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "1ee91c726d96f72bd88e032f7fc88707f9898548c8ef653c1d993642b37cc21b",
+      "response_id": "0854e91824526b5ff8e12c6a809de57b84480505cc60397f53b5d638b2f02641",
+      "response_sha256": "e62c3e36478a8af54ffa086f51b70b7b90b54624eaf75119d90f3d9d5bf20177",
+      "observation_body_sha256": "a200fbd1ab963a9acf90ac4090b61610b4085fde5f122f98b38237510a70bc8c",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b06fbc114b087d0a7ea03cff135d051",
+        "timestamp": "2026-11-25T15:16:35.303Z"
+      },
+      "supersedes": "452550f7d8c2767e321f48304fe4924ff2d220b3c7d7ba23a07d0ba8ddcc731a",
+      "evidence_sha256": "ea9788ffa5db6cbabb79d0219083e2f26e9405b4c6be87381b377fdfad07e547"
     }
   ]
 }
