@@ -247,6 +247,26 @@
       "requested_at": "2026-11-25T19:02:55.098681+00:00",
       "request_id": "81f4bf51aff40fa0c22fee23898e5fa5c0573bcae5630d97d00e16da9db98177",
       "evidence_sha256": "70570c873840f86fd2297d274f75e289af7b32600914750dfbc06628f39ab647"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "verdict": "approved",
+      "decision": "APPROVE M0-136 cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "scope": "APPROVE M0-136 cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "observation": "The M0-103 intake preserved the observation after the sentence beginning with Worked for and recognized the matching structured reply as a duplicate.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "0a1a9cfaad4035f6e2063339cdcfcae5a7dc2f6c82bf529885246378ab98560a",
+      "response_id": "dcf1aa3c57bed6163510bc3f6fe374276e901b49523f3d000060d5da163cfb6a",
+      "response_sha256": "18cc938d33eff49aaa8184c8b0dfc11ec7feae7bd154c841d81888e9512903b1",
+      "legacy_response_sha256": "d2cd6782ac61019f1b8b9d1d352d521a8bbb7dbcfea0a61aaf295e878d6d60b4",
+      "observation_body_sha256": "e941851fd0be3044b05f334ca641c5bcad00b36eb0bd54b4d5f921434e41e4c9",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0736e6f4f087d0a728f2322b315461",
+        "timestamp": "2026-11-25T19:28:47.954Z"
+      },
+      "supersedes": "81f4bf51aff40fa0c22fee23898e5fa5c0573bcae5630d97d00e16da9db98177",
+      "evidence_sha256": "b8f650e39655e0bb7e0670e3d4884372706e0fb44c112b3ed3a9c4eb2696d41c"
     }
   ]
 }
