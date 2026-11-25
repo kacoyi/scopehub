@@ -430,19 +430,25 @@ class HostedSchedulingTests(ProjectFixture):
 
 class WindowsLaneTests(ProjectFixture):
     recovery_screenshot = 'market-recovery/browser/market-closed-bar-repair-fixture/verified-closed-bar-repair.png'
+    recovery_ui_report = 'market-recovery-ui/results.json'
 
     def setUp(self):
         super().setUp()
         self.downloads = Path(self.enterContext(tempfile.TemporaryDirectory()))
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
-        for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe', 'market-recovery'):
+        for name in ('dependency-review', 'python-contracts-workers', 'workspace-timeframe',
+                     'market-recovery', 'market-recovery-ui'):
             catalog['checks'].append(dict(catalog['checks'][0], id=name))
             catalog['required_change_checks'].append(name)
-        for check in catalog['checks'][-2:]:
-            check['command'] = ['{python}', '-c', 'import os, sys; sys.exit(int(os.environ.get("SCOPEHUB_FIXTURE_EXIT", 0)))']
+        for check in catalog['checks'][-3:]:
+            exit_key = 'SCOPEHUB_FIXTURE_RECOVERY_UI_EXIT' if check['id'] == 'market-recovery-ui' else 'SCOPEHUB_FIXTURE_EXIT'
+            check['command'] = ['{python}', '-c', f'import os, sys; sys.exit(int(os.environ.get({exit_key!r}, 0)))']
         catalog['profiles']['records'] = ['environment', 'project-state', 'dependency-review']
         catalog_path.write_bytes(json_bytes(catalog))
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['checks'].append('market-recovery-ui')
+        self.save_ledger(ledger)
 
         def git(*args):
             command = ['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org', *args]
@@ -477,14 +483,16 @@ class WindowsLaneTests(ProjectFixture):
             harness.main()
         return exit.exception.code, read_json(self.reports / 'test-report.json')
 
-    def produce(self, profile=None, *, browser_exit=0, recovery_exit=0):
+    def produce(self, profile=None, *, browser_exit=0, recovery_exit=0, recovery_ui_exit=0):
         reports = {}
         for lane in ('core',) if profile else harness.WINDOWS_LANES:
             args = ('--profile', profile) if profile else ('--ci-windows-lane', lane)
-            expected_exit = {'browser': browser_exit, 'recovery': recovery_exit}.get(lane, 0)
-            with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_EXIT': str(expected_exit)}):
+            fixture_exit = {'browser': browser_exit, 'recovery': recovery_exit}.get(lane, 0)
+            ui_exit = recovery_ui_exit if lane == 'recovery' else 0
+            with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_EXIT': str(fixture_exit),
+                                         'SCOPEHUB_FIXTURE_RECOVERY_UI_EXIT': str(ui_exit)}):
                 code, report = self.run_harness(*args)
-            self.assertEqual(int(bool(expected_exit)), code)
+            self.assertEqual(int(bool(fixture_exit or ui_exit)), code)
             destination = self.downloads / f'verification-windows-2-{lane}'
             if lane == 'browser':
                 run = self.reports / 'runs' / report['run_id'] / 'workspace-timeframe'
@@ -495,6 +503,9 @@ class WindowsLaneTests(ProjectFixture):
                 screenshot.parent.mkdir(parents=True)
                 screenshot.write_bytes(b'synthetic screenshot bytes\n')
                 (screenshot.parents[2] / 'results.json').write_bytes(b'{"synthetic": true}\n')
+                ui_report = self.reports / 'runs' / report['run_id'] / self.recovery_ui_report
+                ui_report.parent.mkdir()
+                ui_report.write_bytes(b'{"synthetic": "recovery UI"}\n')
             self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ, lane=not profile))
             reports[lane] = report
             shutil.rmtree(self.reports)
@@ -506,7 +517,7 @@ class WindowsLaneTests(ProjectFixture):
                      'ai-workflow', 'market-fixtures', 'rust-lints'},
             'browser': {'workspace-timeframe'},
             'python': {'python-contracts-workers'},
-            'recovery': {'market-recovery'},
+            'recovery': {'market-recovery', 'market-recovery-ui'},
         }
         for lane, checks in expected.items():
             with (self.subTest(lane=lane),
@@ -525,7 +536,7 @@ class WindowsLaneTests(ProjectFixture):
     def test_aggregate_keeps_actual_commands_catalog_order_and_evidence_bytes(self):
         lanes = self.produce()
         self.assertEqual(['python-contracts-workers'], lanes['python']['selection']['checks'])
-        self.assertEqual(['market-recovery'], lanes['recovery']['selection']['checks'])
+        self.assertEqual(['market-recovery', 'market-recovery-ui'], lanes['recovery']['selection']['checks'])
         self.assertEqual(['workspace-timeframe'], lanes['browser']['selection']['checks'])
         self.assertNotIn('market-recovery', lanes['core']['selection']['checks'])
         with patch.object(harness, 'execute') as execute:
@@ -550,6 +561,8 @@ class WindowsLaneTests(ProjectFixture):
         screenshot = final / 'runs' / report['run_id'] / self.recovery_screenshot
         self.assertEqual(b'synthetic screenshot bytes\n', screenshot.read_bytes())
         self.assertEqual(b'{"synthetic": true}\n', (screenshot.parents[2] / 'results.json').read_bytes())
+        ui_report = final / 'runs' / report['run_id'] / self.recovery_ui_report
+        self.assertEqual(b'{"synthetic": "recovery UI"}\n', ui_report.read_bytes())
 
     def test_aggregate_records_each_cache_and_ignores_only_an_intentional_python_omission(self):
         lanes = self.produce()
@@ -615,6 +628,20 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual(0, code)
         self.assertEqual(original.read_bytes(), (self.reports / original.name).read_bytes())
         self.assertEqual(['dependency-review', 'environment', 'project-state'], report['selection']['checks'])
+
+    def test_moved_recovery_ui_still_runs_once_in_an_unsplit_task(self):
+        task = 'M0-001'
+        project = harness.load_project(self.root)
+        expected = harness.select_checks(project, task_id=task)
+        self.assertTrue(harness.ci_requires_build_setup(project, task))
+        code, report = self.run_harness('--task', task)
+        self.assertEqual(0, code)
+        self.assertEqual({'profile': 'task', 'task_id': task, 'checks': sorted(expected)}, report['selection'])
+        moved, = [row for row in report['checks'] if row['id'] == 'market-recovery-ui']
+        self.assertEqual('passed', moved['status'])
+        self.assertEqual(moved['log_sha256'], harness.file_digest(self.root / moved['log']))
+        recovery, = [row for row in report['checks'] if row['id'] == 'market-recovery']
+        self.assertEqual('not_selected', recovery['reason_code'])
 
     def test_scoped_aggregate_rejects_a_passed_report_omitting_dependency_review(self):
         lanes = self.produce('records')
@@ -737,6 +764,43 @@ class WindowsLaneTests(ProjectFixture):
         self.event.write_bytes(json_bytes(payload))
         with self.assertRaisesRegex(ScopeError, 'two parents'):
             collect()
+
+    def test_aggregate_rejects_missing_or_duplicate_recovery_ui_assignment(self):
+        lanes = self.produce()
+        for lane, checks in (('recovery', ['market-recovery']),
+                             ('browser', ['market-recovery-ui', 'workspace-timeframe'])):
+            with self.subTest(lane=lane):
+                original = lanes[lane]
+                incoming = self.downloads / f'verification-windows-2-{lane}'
+                reports = (incoming / 'test-report.json', incoming / 'runs' / original['run_id'] / 'test-report.json')
+                changed = dict(original, selection=dict(original['selection'], checks=checks))
+                for path in reports:
+                    path.write_bytes(json_bytes(changed))
+                try:
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, f'Windows {lane} lane has a different selection'):
+                        self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+                    self.assertFalse((self.reports / 'test-report.json').exists())
+                finally:
+                    for path in reports:
+                        path.write_bytes(json_bytes(original))
+                    shutil.rmtree(self.reports, ignore_errors=True)
+
+    def test_failed_moved_recovery_ui_keeps_its_result_and_attachment(self):
+        lanes = self.produce(recovery_ui_exit=7)
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(1, code)
+        self.assertEqual('failed', report['status'])
+        self.assertEqual('blocked', report['integration_gates']['status'])
+        self.assertIn('market-recovery-ui', report['integration_gates']['unverified'])
+        recovery = {row['id']: row for row in lanes['recovery']['checks']}
+        self.assertEqual('passed', recovery['market-recovery']['status'])
+        failed = recovery['market-recovery-ui']
+        self.assertEqual(7, failed['exit_code'])
+        self.assertIn(failed, report['checks'])
+        self.assertEqual(failed['log_sha256'], harness.file_digest(self.root / failed['log']))
+        ui_report = self.reports / 'runs' / report['run_id'] / self.recovery_ui_report
+        self.assertEqual(b'{"synthetic": "recovery UI"}\n', ui_report.read_bytes())
 
     def test_cancelled_lane_result_cannot_publish_a_passing_aggregate(self):
         self.produce()

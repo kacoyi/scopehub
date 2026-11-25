@@ -80,12 +80,12 @@ BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contrac
                 'rust-lints', 'windows-native-build'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
                           'local-import-ui', 'market-live-stream', 'market-quality-states',
-                          'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
+                          'market-worker-interruption', 'workspace-timeframe',
                           'desktop-workspace-transport', 'desktop-localization'}
 WINDOWS_LANE_CHECKS = {
     'browser': WINDOWS_BROWSER_CHECKS,
     'python': {'python-contracts-workers'},
-    'recovery': {'market-recovery'},
+    'recovery': {'market-recovery', 'market-recovery-ui'},
 }
 WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 CHECK_OUTPUT_LOCK = Lock()
