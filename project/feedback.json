@@ -6759,6 +6759,37 @@
         "prevention": "Chromium drives published CSV and folder workflows with delayed and failed responses, and the real Rust workspace test clears an authorized selection after one hosted-style 429."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "first-saved-chart-reopen-misses-focus-source-change",
+      "source": "Independent Astra Standard t10c at e39b8972840f6d854d40e9adfe3c84bd22c6df62, archives/observations/repo-hygiene-20261125/independent-final-m2-035-e39b8972/final-response.txt (SHA-256 2f53b9d3243d690983374c4762a8924868551f69ebcd44bb6f14628d6fbe1302).",
+      "observation": "During the first saved-chart reopen of A, the second window confirmed B. Focusing the first window issued zero workspace snapshot reads. A's delayed reply made that window ready with close 44 while B's verified close was 106. A second focus found B. The independent explicit-refresh control discarded A.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "folder-revision-refresh-skips-temporary-access-recheck",
+      "source": "Independent Astra Standard t10c at e39b8972840f6d854d40e9adfe3c84bd22c6df62, archives/observations/repo-hygiene-20261125/independent-final-m2-035-e39b8972/final-response.txt (SHA-256 2f53b9d3243d690983374c4762a8924868551f69ebcd44bb6f14628d6fbe1302).",
+      "observation": "A temporarily unavailable folder revision was hidden. After access recovered, Refresh revisions returned the same revision but did not issue a status recheck, so the library kept hiding it. Entering the same revision ID manually opened it, confirming it was available.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

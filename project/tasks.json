@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-039",
   "tasks": [
     {
       "id": "M0-001",
@@ -24886,6 +24886,118 @@
           ],
           "data_plan": "Use only synthetic profiles, fixtures and identifiers.",
           "cleanup": "Discard superseded in-flight work while retaining recovery artifacts."
+        }
+      }
+    },
+    {
+      "id": "M2-039",
+      "title": "Reconcile the first saved chart on focus and recover temporarily hidden folder revisions",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-035"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/workspace-source.ts",
+        "apps/desktop/ui/src/published-revision-access.ts",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "apps/desktop/ui/src/local-revision-dialog.tsx",
+        "tests/ui/desktop-workspace.spec.mjs",
+        "tests/ui/local-import.spec.mjs",
+        "contracts/reviews",
+        "project/evidence",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Use two participating synthetic workspace windows and the ordinary first saved-chart reopen. B is visibly confirmed at close 106, and late data from source A with close 44 cannot display when focus has started checking the newer source, including when A returns before the workspace snapshot.",
+        "A focus reload confirming the same saved source still opens its authenticated bars. Available, revoked, unavailable and source-free states preserve their existing authorization and provenance behavior.",
+        "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "local-import-ui",
+        "local-folder-refresh-preview",
+        "state-migrations"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the two independent findings at the ordinary browser entrypoints, then verify the exact corrected candidate.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Reconcile first chart restore and folder revision discovery against current access using the existing verified reply paths.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/workspace-source.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "tests/ui/local-import.spec.mjs"
+        ],
+        "hypotheses": [
+          "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
+          "The folder list filters globally withheld revisions without rechecking them after a successful refresh."
+        ],
+        "risks": [
+          {
+            "failure": "An old chart overtakes a newer snapshot, or same-source confirmation and normal startup stall.",
+            "checks": [
+              "desktop-workspace-transport",
+              "market-workflow",
+              "ui-build",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "A list reply or stale access reply bypasses the profile's availability or durable revocation.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/workspace-source.ts",
+            "apps/desktop/ui/src/published-revision-access.ts",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/local-revision-dialog.tsx"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Changes to the SQLite single-writer path, protocol, release or separate frozen shared-bar read timeout."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants."
+          ],
+          "change": [
+            "Fence a first read on focus and verify withheld folder revisions returned by the current list."
+          ],
+          "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
+          "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."
         }
       }
     }
