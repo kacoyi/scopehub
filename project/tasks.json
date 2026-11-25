@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-117",
   "tasks": [
     {
       "id": "M0-001",
@@ -20251,6 +20251,76 @@
           ],
           "data_plan": "Use temporary native Git fixtures and local task diagnostics. The coordinator owns the existing host capture and its report.",
           "cleanup": "Close the ignored output stream and reap the child on success, overflow, failure and interruption."
+        }
+      }
+    },
+    {
+      "id": "M0-117",
+      "title": "Retain dirty worktree observations across status queries",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": ["M0-116"],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "tests/project/test_worktree_retirement.py",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "A tracked modification or ordinary untracked path introduced between the two status queries produces a dirty checkout hold when Git reports it through the retirement entry.",
+        "Any ordinary status record observed by either query keeps the dirty result true. The ignored-root cutoff, pathname handling, status errors, and process cleanup retain their established behavior.",
+        "The coordinator receives the clean implementation revision for independent review. Task closure follows confirmed review approval and required evidence."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "Send the clean implementation revision for independent review, archive its required checks, and await coordinator confirmation of Astra approval and evidence before closure.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A retirement observation retains every dirty status it actually observes while keeping bounded ignored-path intake.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-116 accepted bounds, process cleanup, and receipt.",
+          "Astra Standard review of the M0-116 retirement entry.",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The ordinary query result initializes the dirty flag. The second query reads ordinary status before the ignored cutoff but currently leaves the flag unchanged."
+        ],
+        "risks": [
+          {
+            "failure": "An observed intervening tracked or ordinary untracked change leaves an otherwise eligible worktree marked clean.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Retaining ordinary observations expands the ignored read or changes error, literal pathname, or cleanup behavior.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert the dirty observation correction as a separate change while retaining the accepted earlier records.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Changes to accepted history, the separate host inventory, publication, and checkout retirement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The two status queries, the existing overflow cutoff, process lifecycle, and conservative error holds."
+          ],
+          "change": [
+            "A valid ordinary status record consumed in the second query also sets the dirty observation."
+          ],
+          "data_plan": "Exercise independent native Git fixtures with intervening filesystem changes. Retain local regression and required check evidence for coordinator review.",
+          "cleanup": "Reuse the current status loop and existing dirty hold."
         }
       }
     }

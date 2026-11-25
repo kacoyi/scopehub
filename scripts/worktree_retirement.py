@@ -511,6 +511,8 @@ def checkout_status(checkout, overrides, entry_limit):
                     ignored.append(checkout / os.fsdecode(record[3:]).removesuffix('/'))
                     if len(ignored) > entry_limit:
                         break
+                else:
+                    dirty = True
             # An excess root proves exhaustion. Preserve any known Git failure
             # before stopping the producer without reading the rest of its output.
             status = process.poll() if len(ignored) > entry_limit else process.wait()

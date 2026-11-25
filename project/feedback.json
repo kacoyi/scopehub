@@ -5250,6 +5250,17 @@
         "prevention": "The measured native Git fixture reduced ignored stdout consumption from 2,048 records and 165,888 bytes to two records and 4,096 bytes. Separate regressions cover tail dirtiness, nonzero exits before and at overflow, an unreadable pipe, child cleanup and complete small trees. The original regression log is retained at .reports/audit-20261125/m0-116-red.log with SHA-256 1ac03d8cccb3442841c31fa74ed607f675e0c8b193664f88ed8b1c30906cb001."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-drops-observed-second-status-dirtiness",
+      "source": "Astra Standard independent review of the M0-116 retirement entry at handoff 936615e6e937cec013fa4edec2089858fc5196fd.",
+      "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-117"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

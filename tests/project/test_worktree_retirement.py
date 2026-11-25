@@ -280,6 +280,38 @@ class WorktreeRetirementTests(unittest.TestCase):
             self.assertTrue(child.stdout.closed)
             self.assertIsNotNone(child.returncode)
 
+    def test_retirement_holds_tracked_and_untracked_changes_between_git_status_queries(self):
+        launch = subprocess.Popen
+        untracked_checkout = self.add_worktree('untracked')
+        for checkout, name in ((self.candidate, 'fixture.txt'),
+                               (untracked_checkout, 'ordinary untracked.txt')):
+            with self.subTest(name=name):
+                self.assert_candidate(self.row(IDLE, checkout, entry_limit=1))
+                ordinary_queries = []
+                ignored_queries = []
+
+                def change_before_ignored_status(args, **options):
+                    if options.get('cwd') != checkout or 'status' not in args:
+                        return launch(args, **options)
+                    if '--ignored=matching' in args:
+                        self.assertEqual([child.returncode for child in ordinary_queries], [0])
+                        (checkout / name).write_text('Change between status queries.\n', encoding='utf-8')
+                        child = launch(args, **options)
+                        ignored_queries.append(child)
+                        return child
+                    child = launch(args, **options)
+                    if '--ignored=no' in args:
+                        ordinary_queries.append(child)
+                    return child
+
+                with patch.object(subprocess, 'Popen', side_effect=change_before_ignored_status):
+                    row = self.row(IDLE, checkout, entry_limit=1)
+
+                self.assertEqual([child.returncode for child in ignored_queries], [0])
+                self.assertFalse(row['clean'], row)
+                self.assert_held(row, 'dirty_checkout')
+                self.assertEqual(row['holds'], ['dirty_checkout'], row)
+
     def test_retirement_holds_and_reaps_failed_git_status_commands(self):
         launch = subprocess.Popen
         invalid = '--scopehub-fixture-invalid-status-option'
