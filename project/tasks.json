@@ -11852,6 +11852,139 @@
       }
     },
     {
+      "id": "M0-112",
+      "title": "Review and bind the setup-uv 10.4.0 workflow action",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-040",
+        "M0-041",
+        "M0-081"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "project/dependencies.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Compare original proposal 88 and its red dependency-review evidence against the reviewed main base. Bind the official immutable release and built setup and post entrypoints to the recorded commit and digests.",
+        "The verified action selects uv 0.13.9 and Python 3.12 with the reviewed Windows and Linux archive checksums. Correct supplied digests allow setup; wrong digests fail. It retains GitHub Releases downloads, cache pruning and read-only workflow permissions.",
+        "Run the normal dependency gate and bound task checks. Retain exact-head Ubuntu and Windows workflow results before integration."
+      ],
+      "checks": [
+        "project-state",
+        "dependency-review",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "The protected verification workflow uses reviewed setup-uv 10.4.0 and the ordinary immutable-action and advisory checks accept its exact pin.",
+        "change_types": [
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "project/dependencies.json",
+          "pyproject.toml",
+          "uv.lock",
+          "scripts/dependencies.py"
+        ],
+        "hypotheses": [
+          "The immutable upstream release accepts the existing version-file, platform checksum, Python and cache inputs and retains the default tool-cache identity."
+        ],
+        "risks": [
+          {
+            "failure": "A pin or installed archive differs from the reviewed release, or an incompatible input selects a different tool or cache entry.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Workflow permissions, source selection, or accepted evidence changes outside the action upgrade.",
+            "checks": [
+              "project-state",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Use a reviewed revert of the action pin and its inventory together if either supported runner fails. Retain the original and candidate diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/dependencies.py",
+            "scripts/verification_scope.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Cargo updates, Python package changes, expanded workflow permissions or release acceptance."
+          ],
+          "open_questions": [
+            "Do both hosted runners use the intended archive, checksum and existing cache behavior?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The uv and Python pins, lock inputs, GitHub Releases source, cache pruning and contents-read workflow role."
+          ],
+          "change": [
+            "Bind the reviewed 10.4.0 action to the existing checksum and cache policy."
+          ],
+          "data_plan": "The workflow only handles development toolchains and caches. No product data or protocol changes.",
+          "cleanup": "Retain the original proposal and red evidence; review exact-head hosted results before substituting the original proposal."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-112-409611a1b23fa12c.json",
+          "sha256": "09d0c6c55aa83c06abdc7b7990c8ede5c2cab63e16b78954c6e1960475a69bff"
+        },
+        {
+          "path": "project/evidence/M0-112-bf159b280635808b.json",
+          "sha256": "85e4622c22b269de16395c75a006100990637fefa77e8b617383c86215c37127"
+        },
+        {
+          "path": "project/evidence/M0-112-b4f2df1e931e7dde.json",
+          "sha256": "87bc56bc203c97ada350c35b7719c0d5cf2d8db3780a78196e7d174124745587"
+        }
+      ],
+      "closure_reason": "Independent Astra Standard review approved 8624025. Authenticated Linux and Windows run 45556221309 passed every required task check on the reviewed source.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T003718.129583Z-fcf62f9b",
+          "source_commit": "7426cf6f9b4a76ea116d2913d74cd3a3c712d2ee",
+          "report_sha256": "d87a691bff91564fdc3211f1edb23624e4c1222a0e3a5cd3437901d571145317"
+        },
+        {
+          "run_id": "windows-change-45519231958-1",
+          "source_commit": "7426cf6f9b4a76ea116d2913d74cd3a3c712d2ee",
+          "report_sha256": "176969de12cd0dbefae113a4088a8fdadcaff4a2d93f23a77bdf9d2b77c3fb30"
+        }
+      ]
+    },
+    {
       "id": "M0-041",
       "title": "Replace the vulnerable uv trust-root toolchain pin",
       "milestone": "M0",
@@ -15920,6 +16053,173 @@
         }
       ],
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
+    },
+    {
+      "id": "M0-113",
+      "title": "Refresh the Rust schema and worker encoding dependency graph",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-040",
+        "M0-081"
+      ],
+      "scope": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/worker-host/Cargo.toml",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Independently reproduce the bounded Cargo resolution for original proposals 89 and 90 from reviewed main, compare the original diffs and retain their red dependency-review evidence. Verify published archive checksums, license expressions and supported build feature graphs.",
+        "Retain Draft 2020-12 and format validation with default retrieval disabled. Run existing positive and negative shared protocol and operation-schema checks at their actual Rust entrypoints.",
+        "Retain padded standard-alphabet raw-byte transfer, input bounds and rejection of malformed frames or reply identity and digest. Exercise the Rust worker host with the real worker and the receiver with malformed chunk controls.",
+        "Pass the ordinary dependency review and task checks with a matching license inventory. Retain combined candidate Ubuntu and Windows workflow results before integration."
+      ],
+      "checks": [
+        "project-state",
+        "dependency-review",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T003719.050402Z-4de5a0e5",
+          "source_commit": "4d42bcbfd528fa089143b33e81c314e4e3da9370",
+          "report_sha256": "9bb1099756379aeeba669281c69f9abe1f2f115c316194d5e889bdccd67f837b"
+        },
+        {
+          "run_id": "windows-change-45519296584-1",
+          "source_commit": "4d42bcbfd528fa089143b33e81c314e4e3da9370",
+          "report_sha256": "7b28612a4d717495a6534dcbdb05ecdfd1dd17bbf33dcdda5ede14488435d3cc"
+        },
+        {
+          "run_id": "20261125T003708.448058Z-67e6b0d0",
+          "source_commit": "b3ead63731816f21b4c2232d7d89f08e3f6693ea",
+          "report_sha256": "3772945ee93d8514867de62a15e368281839f00b5b4f9246d1fd2c1716dd0481"
+        },
+        {
+          "run_id": "windows-change-45519317188-1",
+          "source_commit": "b3ead63731816f21b4c2232d7d89f08e3f6693ea",
+          "report_sha256": "060a807c3b4e95f307926c9a7b44f7e5ed0b4d61ac3b76509deae778be3f16bd"
+        }
+      ],
+      "plan": {
+        "outcome": "One reviewed native lock aligns jsonschema 0.62.0 and the worker-host base64 0.23.1 edge with the existing security gates and Rust callers.",
+        "change_types": [
+          "dependencies"
+        ],
+        "context": [
+          "Cargo.toml",
+          "Cargo.lock",
+          "crates/worker-host/Cargo.toml",
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/tests/protocol.rs",
+          "project/dependencies.json",
+          "scripts/dependencies.py"
+        ],
+        "hypotheses": [
+          "Cargo resolves the two proposals together with seven package updates in the schema and regex family and one existing base64 edge change.",
+          "Disabling jsonschema defaults preserves local schema resolution. The worker's explicit standard general-purpose engine preserves the existing scalar encoding despite SIMD features already selected elsewhere."
+        ],
+        "risks": [
+          {
+            "failure": "Cargo changes an unrelated package, supported target features, license obligation or advisory disposition.",
+            "checks": [
+              "dependency-review",
+              "project-state",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Schema validation accepts an invalid request, rejects a valid one or changes operation authorization.",
+            "checks": [
+              "generated-contracts",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Worker transport alters byte encoding, frame bounds or rejection paths.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "rust-lints"
+            ]
+          }
+        ],
+        "rollback": "Keep both updater heads and the reviewed main graph recoverable. Revert the manifests, lock and reviewed inventory together if the combined candidate fails.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "domain",
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "Cargo.toml",
+            "crates/worker-host/Cargo.toml",
+            "crates/worker-host/tests/protocol.rs",
+            "crates/worker-host/src/local_import.rs",
+            "scripts/dependencies.py",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Workflow action updates, dependency exceptions, protocol or product behavior changes, and packaged release acceptance."
+          ],
+          "open_questions": [
+            "Does the combined graph preserve features and validation across the supported Ubuntu and native Windows hosted jobs?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Wire schemas, exact source byte encoding, package license rules and existing advisory dispositions."
+          ],
+          "change": [
+            "Refresh the shared schema and regex packages and move the worker host to the already locked base64 0.23.1 package."
+          ],
+          "data_plan": "The dependency update keeps stored data and wire representations. Verification sends synthetic worker input only.",
+          "cleanup": "Retain both failed updater runs. Confirm the combined candidate before substituting the original proposals."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-113-3a9a3e14e9c9f6c5.json",
+          "sha256": "e074c60d6752e681f20b77a8fcb7891601e837effe943e34102181a22094710f"
+        },
+        {
+          "path": "project/evidence/M0-113-23454099b43519bd.json",
+          "sha256": "915fb561ccae51514facd05b270c0f07557b62148dec98718ee19333623e125f"
+        },
+        {
+          "path": "project/evidence/M0-113-69965730d37b26ff.json",
+          "sha256": "7267526c6f0bde8c72ddb1ffcf7cc53e5eaf1e42e56dc27c84734d900f581bbc"
+        }
+      ],
+      "closure_reason": "Independent Astra Standard review approved ff5af89. Authenticated Linux and Windows run 45556728459 passed every required task check on the reviewed source."
     },
     {
       "id": "M0-081",
@@ -23168,6 +23468,335 @@
           ],
           "data_plan": "Only captured, verified redacted data enter hosted artifacts. There is no data migration.",
           "cleanup": "Remove extra reads of the run observation at the shared publication boundary."
+        }
+      }
+    },
+    {
+      "id": "M0-122",
+      "title": "Distinguish obsolete indicator status from workspace admission in the browser contract",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-069",
+        "M0-099",
+        "M0-101"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Retain the authenticated Linux failure and paired Windows result. Preserve the difference between the hosted BUSY body and its unknown origin.",
+        "In real Chromium, cancel a held ready response and bind a different snapshot to the actual Rust writer. The exact direct status probe first receives retryable HTTP 429 while the snapshot owns admission. After its reply drains, the same obsolete task is rejected as STALE_CONTEXT. The old preview and challenges remain unacceptably stale, and the exact original accepted output survives a writer restart.",
+        "Bound the read by its existing deadline and stop on caller cancellation while the holder remains. Other responses and mutations receive no admission retry from this probe. Archive the focused control and canonical task receipt."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-122-cad66da4094c3ec1.json",
+          "sha256": "2a7d80021092eedef908a6059ad16597178b0dc81010b291dc4c27643b3adef8"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T080802.632754Z-2f17cbc5",
+          "source_commit": "78860de6b1786b91a73feed4c0c6bc822e6dfaa4",
+          "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T082915.991200Z-b2f075c2 at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6 passed all four task checks and all 59 workspace cases. Controlled real Chromium distinguished a retryable pre-admission HTTP 429 from the HTTP 200 STALE_CONTEXT after the matching Rust snapshot drained. Caller cancellation stopped while admission remained occupied, the old ready response stayed ineligible, obsolete acceptance was refused, and the exact saved document survived restart. The separate native indicator_lifecycle tests passed, with log SHA-256 9774aad3a4c99d653cf378d95e9ff8ff1889e2392fb8f1ea9ff67bb7e602241c. The authenticated PR 107 pair, earlier feedback and controlled red and green are retained. The original hosted BUSY stage and holder remain unknown.",
+      "plan": {
+        "outcome": "The ordinary obsolete-preview test verifies the real stale result and preserved output even if the read-only diagnostic probe briefly loses admission.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/runs/20261125T080802.632754Z-2f17cbc5/test-report.json",
+          "archives/observations/repo-hygiene-20261125/pr107-native-original-45573475685/manifest.json",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/ui/src/indicator-preview.tsx"
+        ],
+        "hypotheses": [
+          "The direct single-shot test conflates a possible admission refusal with the semantic answer. A held real snapshot can reproduce that distinction without attributing the original hosted holder."
+        ],
+        "risks": [
+          {
+            "failure": "A generic BUSY or lost mutation result gets replayed, or a status probe loses its original deadline. Check the HTTP status and retryable envelope with one bound and explicit cancellation while a holder is still active.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A late ready artifact or stale acceptance changes what the user can accept or replaces the original document. Observe the held browser request, stale status and stale mutation, and inspect exact output after restart.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain the original and controlled failure. Revert a change that masks one of the stale or persistence assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+            "crates/persistence/src/bin/workspace_bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to product polling, admission, mutation semantics, deadlines, timing PR 107 or M0-119."
+          ],
+          "open_questions": [
+            "The original hosted trace did not identify the BUSY status or writer owner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing deadlines, stale semantic and approval checks, and exact durable output."
+          ],
+          "change": [
+            "Use a bounded read-only diagnostic probe and record the transport response separately."
+          ],
+          "data_plan": "Use an isolated synthetic browser profile, the normal Vite HTTP route and the real Rust writer.",
+          "cleanup": "Release held replies and the tagged writer on any exit, observe drain and remove the fixture profile."
+        }
+      }
+    },
+    {
+      "id": "M0-123",
+      "title": "Preserve indicator fixture cleanup and admission diagnostics",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-122"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real Chromium route forwarding fault reaches the waiting test as its original error and the route, Vite listener and profile are cleaned through the owning finally blocks. Bound forwarding and intercepted browser request completion together. Distinguish genuine browser cancellation from an absent response.",
+        "An injected port failure has no prepared profile. A profile acquired before any later fixture failure is closed.",
+        "Hold a real snapshot through several rejected output reads, exhaust only the test probe deadline and report attempts plus the last retryable 429 BUSY fields. Unexpected responses terminate immediately and caller cancellation stops without another read. Keep obsolete STALE_CONTEXT and exact reopened accepted output.",
+        "Run the combined obsolete-indicator and decision-note browser cases, workspace-timeframe and the canonical task harness. Retain both histories, the original review and M0-122 acceptance."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-123-206c7134639ae7c1.json",
+          "sha256": "4b54f7f3be5e06769a8f559430bfd17f152cb695a06ed7dc0c3dd5ca948fe7ce"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux run 20261125T084825.263828Z-3f3b6b69 on 75aca5612da59e6c4b415aee0e7b64edfff9171f passed all four task checks and all 62 workspace cases. The local Chromium injected error reaches its owning finally, including route removal, listener release and profile removal. Port failure prepared zero profiles. A held real Rust snapshot exhausted the shared output read budget with a safe refusal summary. The obsolete indicator and PR 106 decision-note cases passed on the same combined source. The original semantic stale and exact reopened output checks remain covered. M0-122 acceptance retains its original scope and receipt.",
+      "plan": {
+        "outcome": "Failures in the obsolete indicator fixture report their own cause and release owned resources, while a persistent admission refusal provides safe bounded diagnostics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The missing forwarding result, acquisition order and boolean polling diagnostics are fixture defects independent of the product status semantics."
+        ],
+        "risks": [
+          {
+            "failure": "A route error or absent response is hidden as cancellation, or the test times out before its own cleanup. Inject a live route failure, observe same error identity and check route removal, closed listener and removed profile.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A failing port allocation builds a disposable profile, or the new deadline retries admitted errors. Count acquisitions, hold a real writer for a persistent refusal, and keep admitted and cancelled controls.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain exact red observations and accepted M0-122 evidence. Revert any fixture correction that suppresses semantic failure or changes PR 106 behavior.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Runtime, authorization, persistence or deadline changes, and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Which already-settled Chromium cancellation and no-response outcomes does the real route expose?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original stale and reopened output assertions, admitted status shape, local receipt history and combined note code."
+          ],
+          "change": [
+            "Settle owned routing failures, acquire the port first and retain the minimal bounded refusal summary."
+          ],
+          "data_plan": "Use synthetic application profiles, actual loopback Vite and a tagged native snapshot. Record only failure labels and permitted metadata.",
+          "cleanup": "Release the held response and any tagged snapshot, unregister routes, terminate the service and remove each owned profile."
+        }
+      }
+    },
+    {
+      "id": "M0-124",
+      "title": "Bound indicator read observations by the admission deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-123"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real indicator probe and snapshot observer share one absolute deadline. Controlled late and withheld drained notifications release the wait and its listeners. The deadline retains the attempts and last HTTP 429 BUSY retryability.",
+        "An explicit early caller cancellation stops the same observation with the original reason and no further request. Admitted and nonretryable controls return their exact first replies; an unrelated observer error survives cancellation.",
+        "Preserve the existing forwarding fault cleanup, semantic STALE_CONTEXT, exact reopened output and PR 106 note test. Run the targeted browser cases and canonical M0-124, archive the reports, and preserve both accepted indicator tasks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-124-ddb7ec94f8369b42.json",
+          "sha256": "8b6ceefb30e583aced1e2417f868df23fece11b1ed063bcdacc9c7958800f88e"
+        },
+        {
+          "path": "project/evidence/M0-124-6a2e7624c628ac9b.json",
+          "sha256": "0b41b2cd6c28a6e67faf5280be54a6df9014d40c244d00c59bbdf34b010c8f58"
+        },
+        {
+          "path": "project/evidence/M0-124-b4ea2fd06ede7cef.json",
+          "sha256": "5c6fd20964e264baf468ab4c611b5df1d568d0d544302b3ffd34abbee89d6c7d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux run 20261125T090238.439791Z-34a6bf84 on 58191c3e15946cf2755a1edee23c04a6b00dbabd passed all four task checks and all 63 workspace cases. On the exact focused source, a 500 ms budget with late and withheld drain settled in 501 ms with the same HTTP 429 refusal. Explicit cancellation returned its original error in 3 ms. The observer exited with no remaining wait listener in each case. The admitted and nonretryable controls returned once and the arbitrary observer error retained its identity. The real obsolete indicator, reopened output, forwarding cleanup and PR 106 note scenarios passed. M0-122 and M0-123 retain their own acceptance and receipts.",
+      "plan": {
+        "outcome": "A stalled snapshot observation finishes within the indicator admission read budget and supplies the triggering refusal or caller cancellation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The independently timed drained wait survives the outer deadline and caller cancellation because the observer never receives the read signal."
+        ],
+        "risks": [
+          {
+            "failure": "A late or missing drain overruns the read budget, loses the last refusal, or leaves listeners. Drive the actual gate with controlled IPC and a bounded loopback read; check one refusal on deadline and no late success.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A caller cancellation is wrapped, an arbitrary observer error is disguised, or a nonretryable reply is retried. Check exact object identity and the admitted and nonretryable controls. Keep the existing native snapshot, stale, output and note scenarios.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the reviewed source, red witness and both earlier receipts. Reverse a fixture correction if it alters native admission or the operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Product code, protocol changes, longer waits and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Verify that the actual event waiter removes its abort listener and returns through the observer finally when the read signal expires."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing probe timeout and backoff, standalone snapshot wait defaults, stale/accepted-output assertions, forwarding cleanup, PR 106 note case and accepted M0-122 and M0-123 records."
+          ],
+          "change": [
+            "Pass the read signal to the observation and use it for the drained wait. Bound only the existing read operation."
+          ],
+          "data_plan": "Use loopback HTTP with synthetic replies and controlled IPC notifications for the shortest regression. Run the existing real Rust and Chromium scenarios on the exact candidate.",
+          "cleanup": "Verify listener disposal before attempting late notification, close the loopback listener, and preserve original and passing reports."
         }
       }
     },
