@@ -24928,7 +24928,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Reproduce the two newly observed focus generation orderings. Confirm the latest focus on the native-compatible entry without exposing any stale restored chart.",
+      "next_action": "Obtain independent review of the latest focus generation, the coalesced trailing read and the preserved folder checks on the exact scoped candidate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
