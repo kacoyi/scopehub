@@ -17,6 +17,7 @@ from scripts.project import (
     ProjectError, archive_evidence, checkpoint, digest, json_bytes, read_json, source_identity,
 )
 from tests.project.test_continuity import ProjectFixture
+from tests.project.fixtures import task_by_id
 
 
 class HostedStatusTests(unittest.TestCase):
@@ -188,6 +189,11 @@ class TaskDispatchTests(ProjectFixture):
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes({'branch': 'main', 'repository': self.repository}))
         self.git('remote', 'add', 'origin', f'https://github.com/{self.repository}.git')
         self.git('config', '--local', 'github.account', 'fixture-owner')
+        self.ledger = self.root / 'project/tasks.json'
+        ledger = read_json(self.ledger)
+        for task_id in ('M0-002', 'M0-004'):
+            task_by_id(ledger, task_id)['scope'] = ['dependency.py']
+        self.ledger.write_bytes(json_bytes(ledger))
         self.base = self.commit('Protected task base')
         self.git('update-ref', 'refs/remotes/origin/main', self.base)
         self.git('checkout', '-qb', 'product')
@@ -195,11 +201,14 @@ class TaskDispatchTests(ProjectFixture):
         self.reviewed = self.commit('Independent reviewed product')
         self.git('checkout', '-qb', 'stack', self.base)
         (self.root / 'dependency.py').write_text('other = True\n', encoding='utf-8')
-        self.dependency = self.commit('Separate planned dependency')
+        self.declared_dependency = self.commit('Implement the declared dependency in its recorded scope')
+        task_by_id(ledger, 'M0-002')['acceptance'] = ['Exercise the separately reviewed dependency.']
+        self.ledger.write_bytes(json_bytes(ledger))
+        self.dependency = self.commit('Record the reviewed cross-task dependency')
         self.git('merge', '--no-ff', '--quiet', '-m', 'Record both changes', self.reviewed)
         self.stack = self.git('rev-parse', 'HEAD')
 
-    def request(self, *flags, remote_base=None, remote_head=None):
+    def request(self, *flags, remote_base=None, remote_head=None, on_post=None, task_id='M0-001'):
         calls = []
         remote = {'main': remote_base or self.base, 'product': remote_head or self.reviewed,
                   'stack': remote_head or self.stack}
@@ -218,10 +227,10 @@ class TaskDispatchTests(ProjectFixture):
                 return json.dumps({'ref': f'refs/heads/{branch}', 'object': {'type': 'commit', 'sha': remote[branch]}})
             self.assertEqual(['gh', 'api', '--method', 'POST'], argv[:4])
             self.assertEqual(f'repos/{self.repository}/actions/workflows/verify.yml/dispatches', argv[4])
-            return ''
+            return on_post(argv, remote) if on_post else ''
 
         output = StringIO()
-        args = ['dispatch-task', 'M0-001', '--base', self.base, '--reviewed', self.reviewed, *flags]
+        args = ['dispatch-task', task_id, '--base', self.base, '--reviewed', self.reviewed, *flags]
         with patch.object(ci, 'command', side_effect=spy), redirect_stdout(output):
             exit_code = ci.main(args, root=self.root)
         return exit_code, json.loads(output.getvalue()), calls
@@ -242,7 +251,7 @@ class TaskDispatchTests(ProjectFixture):
         self.git('checkout', '-q', 'product')
         result, view, calls = self.request('--ref', 'product')
         self.assertEqual(0, result)
-        self.assertEqual(('ready', self.reviewed, False), (view['status'], view['head_sha'], view['remote_verified']))
+        self.assertEqual(('ready', self.reviewed, False), (view['status'], view['head_sha'], view['remote_refs_observed']))
         self.assertEqual([], calls)
         for change, message in (({'remote_base': self.dependency}, 'protected'),
                                 ({'remote_head': self.stack}, 'remote branch tip')):
@@ -253,17 +262,75 @@ class TaskDispatchTests(ProjectFixture):
                 self.assertFalse(any('POST' in call for call in calls))
         result, view, calls = self.request('--ref', 'product', '--submit')
         self.assertEqual(0, result)
-        self.assertEqual(('submitted', self.reviewed, True), (view['status'], view['head_sha'], view['remote_verified']))
+        self.assertEqual(('submitted', self.reviewed, True), (view['status'], view['head_sha'], view['remote_refs_observed']))
+        self.assertIsNone(view['run_id'])
         self.assertEqual([['gh', 'api', '--method', 'POST', f'repos/{self.repository}/actions/workflows/verify.yml/dispatches',
-                           '-f', 'ref=refs/heads/product', '-f', 'inputs[task_id]=M0-001']],
+                           '-H', 'X-GitHub-Api-Version: 2022-11-28',
+                           '-f', 'ref=refs/heads/product', '-F', 'return_run_details=true',
+                           '-f', 'inputs[task_id]=M0-001', '-f', f'inputs[expected_head]={self.reviewed}',
+                           '-f', f'inputs[expected_base]={self.base}', '-f', f'inputs[dispatch_id]={view["dispatch_id"]}']],
                          [call for call in calls if 'POST' in call])
+
+    def test_ref_moving_after_get_carries_the_original_candidate_and_returned_run_id(self):
+        self.git('checkout', '-q', 'product')
+        observed = []
+        url = f'https://github.com/{self.repository}/actions/runs/91'
+
+        def moved(argv, remote):
+            remote['product'] = self.base
+            observed.append(remote['product'])
+            return json.dumps({'workflow_run_id': 91, 'html_url': url})
+
+        result, view, calls = self.request('--ref', 'product', '--submit', on_post=moved)
+        self.assertEqual([self.base], observed)
+        self.assertEqual((0, 'submitted', 91, url), (result, view['status'], view['run_id'], view['run_url']))
+        self.assertIn(f'inputs[expected_head]={self.reviewed}', calls[-1])
+        self.assertIn(f'inputs[expected_base]={self.base}', calls[-1])
+        self.assertNotIn('remote_verified', view)
+        self.assertIn('Check the run head', view['next_action'])
+
+    def test_lost_response_after_accepted_post_returns_correlation_without_retry(self):
+        self.git('checkout', '-q', 'product')
+
+        def timeout(argv, remote):
+            raise subprocess.TimeoutExpired(argv, 30)
+
+        result, view, calls = self.request('--ref', 'product', '--submit', on_post=timeout)
+        self.assertEqual((1, 'submission_unknown'), (result, view['status']))
+        self.assertEqual(1, sum('POST' in call for call in calls))
+        self.assertIn(f'inputs[dispatch_id]={view["dispatch_id"]}', calls[-1])
+        self.assertEqual((self.repository, 'refs/heads/product', 'M0-001', self.reviewed),
+                         (view['repository'], view['ref'], view['task_id'], view['head_sha']))
+        self.assertIsNone(view['run_id'])
+        self.assertIn('before resubmitting', view['next_action'])
 
     def test_named_dependent_base_is_compared_to_its_exact_integration(self):
         result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-002', self.dependency, '--submit')
         self.assertEqual(0, result)
         self.assertEqual(self.stack, view['head_sha'])
-        self.assertEqual({'task_id': 'M0-002', 'commit': self.dependency}, view['dependency'])
+        self.assertEqual({'task_id': 'M0-002', 'commit': self.dependency, 'binding': 'committed_definition'},
+                         view['dependency'])
         self.assertEqual(1, len([call for call in calls if 'POST' in call]))
+
+    def test_unrelated_id_is_rejected_for_the_exact_stacked_commit(self):
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-004', self.dependency, '--submit')
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('M0-004', view['error'])
+        self.assertIn(self.dependency, view['error'])
+        self.assertEqual([], calls)
+
+    def test_declared_dependency_can_bind_scoped_changes_with_unchanged_task_definition(self):
+        self.git('checkout', '-qb', 'declared-stack', self.declared_dependency)
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'declared-stack', '--dependency', 'M0-002',
+                                           self.declared_dependency, task_id='M0-003')
+        self.assertEqual((0, 'ready', 'declared_dependency'), (result, view['status'], view['dependency']['binding']))
+        self.assertEqual([], calls)
+        result, view, calls = self.request('--ref', 'declared-stack', '--dependency', 'M0-001',
+                                           self.declared_dependency, '--submit', task_id='M0-003')
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('scope', view['error'])
+        self.assertEqual([], calls)
 
     def test_unverifiable_dependency_and_shallow_history_report_before_dispatch(self):
         off_base = self.git('commit-tree', f'{self.base}^{{tree}}', '-m', 'Unrelated root')

@@ -5228,6 +5228,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-ref-moves-after-preflight",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-unbound-dependency-id",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-lost-response-obscures-acceptance",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

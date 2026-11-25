@@ -9,6 +9,7 @@ import re
 import subprocess
 from tempfile import TemporaryDirectory
 from urllib.parse import quote
+from uuid import uuid4
 
 if __package__:
     from .project import ProjectError, checkout_git_environment, load_project, read_json, source_identity, task_definition_hash
@@ -87,6 +88,59 @@ def remote_branch_tip(root, repository, branch):
     return oid(target.get('sha'))
 
 
+def dependency_binding(root, base, intended, dependency_id, reviewed_task):
+    task = committed_tasks(root, intended).get(dependency_id)
+    if not task or dependency_id == reviewed_task['id']:
+        raise ProjectError(f'The named dependency {dependency_id} is absent from its base or is the selected task.')
+    # Shared ledger and feedback edits cannot by themselves attribute a stack to a task.
+    paths = [path for path in task['scope'] if path not in {'project/tasks.json', 'project/feedback.json'}]
+    if not paths or not git(root, '--literal-pathspecs', 'diff', '--no-ext-diff', '--no-renames',
+                            '--name-only', '-z', base, intended, '--', *paths):
+        raise ProjectError(f'Dependency {dependency_id} at {intended} contributes no changes in its recorded scope.')
+    if dependency_id in reviewed_task['depends_on']:
+        return 'declared_dependency'
+    previous = committed_tasks(root, base).get(dependency_id)
+    if previous is None or task_definition_hash(task) != task_definition_hash(previous):
+        return 'committed_definition'
+    raise ProjectError(f'Dependency {dependency_id} at {intended} has no distinct task definition in the stack '
+                       f'and is not declared by {reviewed_task["id"]}.')
+
+
+def submit_reviewed_task(root, result, repository):
+    task_id, head, base, ref = (result[key] for key in ('task_id', 'head_sha', 'protected_base', 'ref'))
+    dispatch_id = uuid4().hex
+    result.update(repository=repository, dispatch_id=dispatch_id, run_id=None,
+                  workflow_url=f'https://github.com/{repository}/actions/workflows/verify.yml',
+                  run_title=f'Verify task {task_id} [{dispatch_id}]',
+                  attempted_at=datetime.now(timezone.utc).isoformat(timespec='seconds'),
+                  base_observation='authenticated_remote', remote_refs_observed=True)
+    try:
+        response = command([
+            'gh', 'api', '--method', 'POST', f'repos/{repository}/actions/workflows/verify.yml/dispatches',
+            '-H', 'X-GitHub-Api-Version: 2022-11-28',
+            '-f', f'ref={ref}', '-F', 'return_run_details=true', '-f', f'inputs[task_id]={task_id}',
+            '-f', f'inputs[expected_head]={head}', '-f', f'inputs[expected_base]={base}',
+            '-f', f'inputs[dispatch_id]={dispatch_id}',
+        ], root)
+    except (ProjectError, OSError, subprocess.SubprocessError, UnicodeError, KeyboardInterrupt) as error:
+        # A lost response can follow a successful POST. Never retry here.
+        result.update(status='submission_unknown', error=str(error) or 'The dispatch request was interrupted.',
+                      next_action='Look for run_title at workflow_url before resubmitting. '
+                                  'Search regardless of the run head, which may differ after a ref move.')
+        return result
+
+    result.update(status='submitted', next_action='Check the run head against head_sha before using any evidence. '
+                                                  'If run_id is missing, look for run_title at workflow_url.')
+    try:
+        details = json.loads(response) if response else None
+    except ValueError:
+        details = None
+    run_id = details.get('workflow_run_id') if isinstance(details, dict) else None
+    if type(run_id) is int and run_id > 0:
+        result.update(run_id=run_id, run_url=f'https://github.com/{repository}/actions/runs/{run_id}')
+    return result
+
+
 def dispatch_task(root, task_id, *, base, reviewed, branch, dependency=None, submit=False):
     source = source_identity(root)
     if source['working_tree_dirty'] or not source['git_head']:
@@ -107,6 +161,10 @@ def dispatch_task(root, task_id, *, base, reviewed, branch, dependency=None, sub
     except ScopeError:
         raise ProjectError('Pass an exact branch name with --ref.') from None
 
+    reviewed_task = committed_tasks(root, reviewed).get(task_id)
+    candidate_task = load_project(root)['tasks'].get(task_id)
+    if not reviewed_task or not candidate_task or task_definition_hash(reviewed_task) != task_definition_hash(candidate_task):
+        raise ProjectError(f'Task {task_id} does not have the same definition in the reviewed source and checkout.')
     intended = base
     if dependency:
         dependency_id, revision = dependency
@@ -115,8 +173,7 @@ def dispatch_task(root, task_id, *, base, reviewed, branch, dependency=None, sub
             require_ancestor(root, base, intended)
         except ScopeError as error:
             raise ProjectError(f'Dependency {dependency_id} at {revision} is unavailable or unverified against base {base}: {error}') from error
-        if dependency_id == task_id or dependency_id not in committed_tasks(root, intended):
-            raise ProjectError(f'The named dependency {dependency_id} is absent from its base or is the selected task.')
+        binding = dependency_binding(root, base, intended, dependency_id, reviewed_task)
     expected = expected_integration_tree(root, intended, reviewed)
     actual = git(root, 'rev-parse', f'{head}^{{tree}}').strip().decode('ascii')
     if actual != expected:
@@ -128,16 +185,12 @@ def dispatch_task(root, task_id, *, base, reviewed, branch, dependency=None, sub
         require_ancestor(root, intended, head)
     except ScopeError as error:
         raise ProjectError(f'Cannot verify intended base {intended} in checkout {head}: {error}') from error
-    reviewed_task = committed_tasks(root, reviewed).get(task_id)
-    candidate_task = load_project(root)['tasks'].get(task_id)
-    if not reviewed_task or not candidate_task or task_definition_hash(reviewed_task) != task_definition_hash(candidate_task):
-        raise ProjectError(f'Task {task_id} does not have the same definition in the reviewed source and checkout.')
     ref = f'refs/heads/{branch}'
     result = {'status': 'ready', 'task_id': task_id, 'head_sha': head, 'reviewed_sha': reviewed,
               'protected_base': base, 'intended_base': intended, 'expected_tree': expected, 'ref': ref,
-              'base_observation': 'local_tracking', 'remote_verified': False}
+              'base_observation': 'local_tracking', 'remote_refs_observed': False}
     if dependency:
-        result['dependency'] = {'task_id': dependency_id, 'commit': intended}
+        result['dependency'] = {'task_id': dependency_id, 'commit': intended, 'binding': binding}
     if submit:
         repository = github_identity(root)
         if repository != policy['repository']:
@@ -148,10 +201,7 @@ def dispatch_task(root, task_id, *, base, reviewed, branch, dependency=None, sub
         observed_head = remote_branch_tip(root, repository, branch)
         if observed_head != head:
             raise ProjectError(f'The remote branch tip for {ref} is {observed_head}; expected checkout {head}.')
-        command(['gh', 'api', '--method', 'POST', f'repos/{repository}/actions/workflows/verify.yml/dispatches',
-                 '-f', f'ref={ref}', '-f', f'inputs[task_id]={task_id}'], root)
-        result.update(status='submitted', base_observation='authenticated_remote', remote_verified=True,
-                      next_action='Check the resulting run head against head_sha before using any evidence.')
+        return submit_reviewed_task(root, result, repository)
     return result
 
 
