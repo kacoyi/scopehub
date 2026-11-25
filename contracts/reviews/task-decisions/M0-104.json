@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T21:19:06.765066+00:00",
       "request_id": "fbbc61bc1e93db2def47e9f5f74b8e450f897540a62fa3940638fd6848e90348",
       "evidence_sha256": "bbb3c46af2251efdd7439f611ef00fbb9342425dbae5a720ec20bf9ffbd4e20b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0d04c7010a7787898134208a4615a95935eaabaa",
+      "verdict": "approved",
+      "decision": "APPROVE M0-104 0d04c7010a7787898134208a4615a95935eaabaa",
+      "scope": "APPROVE M0-104 0d04c7010a7787898134208a4615a95935eaabaa",
+      "observation": "On the same 416-receipt ledger, I counted 832 receipt opens with the protected implementation and 416 with the candidate, and the public check produced byte-identical output.",
+      "reviewer": "Independent Astra Standard (t10m)",
+      "original_sha256": "0bec793887af7d125841ac3c3128cf4316c90fa7a19e2813934fb0d6f0884712",
+      "response_id": "e84b108f3d0be764e647ab4838206b5cb97e8bb12bab856d6c2aa151c750083f",
+      "response_sha256": "20559173ee26ae91a6b573c406699dcb43c69632fe60b44240b3242c349443bb",
+      "legacy_response_sha256": "dcd5f3582f1cdae8187217f1470a3bbca8c05475373cd0bb196583bcbc29fbea",
+      "observation_body_sha256": "4770a42a25fd6190fd8b567319cac0aa5c9ddfd0d55c662b8992191dcfa289a2",
+      "event": {
+        "id": "msg_08e2d81584f7fe2a016b075323a34887d0ae845bc7ab1a4904",
+        "timestamp": "2026-11-25T21:29:23.462Z"
+      },
+      "supersedes": "fbbc61bc1e93db2def47e9f5f74b8e450f897540a62fa3940638fd6848e90348",
+      "evidence_sha256": "ac5f26dbe21799cf66fa097b8933303d7d8a0fb640569e140dc73182a354f7a9"
     }
   ]
 }
