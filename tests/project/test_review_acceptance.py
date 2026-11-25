@@ -484,6 +484,37 @@ class TaskReviewTests(ProjectFixture):
         self.assertFalse(review_acceptance.observed_statement('**Review findings.', heading, heading))
         self.assertFalse(review_acceptance.observed_statement('**Review findings.**', heading, heading))
 
+    def test_markdown_context_controls_observation_eligibility(self):
+        base, source = self.open_review()
+        trace = self.root / '.reports/independent-markdown.txt'
+        trace.parent.mkdir()
+        invisible = '"Windows directory snapshots."'
+        setext = 'The Windows jobs restored the documented cache.'
+        quoted = 'The Windows jobs produced complete snapshots.'
+        authored = '**Both Windows jobs** emitted **two snapshots.**'
+        body = (
+            f'[log]: https://example.test/windows\n  {invisible}\n\n'
+            f'{setext}\n--\n\n'
+            f'> Notes copied from a prior review.\n{quoted}\n\n'
+            f'{authored} [Evidence][log]\n'
+        )
+        trace.write_text(f'APPROVE {TASK} {source}\n\n{body}', encoding='utf-8')
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Independent reviewer')
+        for non_prose in (invisible, setext, quoted, 'Evidence', '**two snapshots.**'):
+            with self.subTest(non_prose=non_prose):
+                self.command(*args, '--observation', non_prose, error='post-verdict body')
+        self.finish()
+        self.command('check', error='is pending')
+        self.command('history', '--base', base, error='is pending')
+        with self.assertRaisesRegex(project.ProjectError, 'is pending'):
+            delivery_scope(self.root, project.load_project(self.root), base)
+        accepted = self.command(*args, '--observation', authored)['decision']
+        self.assertEqual(authored, accepted['observation'])
+        self.assertEqual('passed', self.command('check')['status'])
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        self.assertEqual([TASK], delivery_scope(self.root, project.load_project(self.root), base)['completed_task_ids'])
+
     def test_observation_file_preserves_unicode_markup_and_accepts_windows_line_endings(self):
         base, source = self.open_review()
         opened = self.command('review', TASK, '--source', source, '--request',
