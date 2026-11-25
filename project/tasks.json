@@ -25247,6 +25247,231 @@
       }
     },
     {
+      "id": "M0-139",
+      "title": "Recover the recurring warm Windows main verification budget",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-091"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "tests/project/test_verification_scheduling.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Keep the three authenticated first-attempt full Windows push observations and identical 35 selected outcomes. Compare browser, recovery, setup and aggregate spans from the original jobs.",
+        "Evaluate the existing recovery-UI allocation against the present catalog, host setup, actual stage lengths and dependencies. Exercise exact-once selection, failed or missing moved evidence, artifact preservation and task-specific coverage through the ordinary verification entry.",
+        "Record the candidate and its local regression separately from observed hosted improvement. Qualify recovery on a successful comparable ordinary full warm Windows main push containing the correction within 900 seconds. If recovery is pending, preserve the active owner and next action."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-139-9544d66731ab928b.json",
+          "sha256": "d30779e3b9a2e60e05ce2a8d1573d10d5d1ecdd43c8e15ddaf2c19a13084caef"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45603929191-1",
+          "source_commit": "6cf0d0dc87b344203ab194a2cd047d36bf801f3c",
+          "report_sha256": "9a7580d885232498a7ba971891936b05ec96929c970bff74d6c1a3cd82dabd10"
+        },
+        {
+          "run_id": "windows-change-45633169286-1",
+          "source_commit": "21bb9dcf89b1044341cc0d37f40d537481286987",
+          "report_sha256": "ef5a6ad6bbc1af8a86db6f87fec457678a79048c0f6d81c9b51bbe07d077f315"
+        },
+        {
+          "run_id": "windows-change-45636810364-1",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "7da9ecf4cc71dd85f3f05ee76f33a65b9a85c348e7c1843b5539a8e495edd620"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The reviewed scheduling change assigns market-recovery-ui to the existing recovery producer. All 35 Windows checks retain their commands and coverage. The initial full warm PR took 839 seconds. M0-141 owns the first qualifying protected push containing the repair. The main-push budget finding remains open until that observation.",
+      "plan": {
+        "outcome": "The full warm Windows main verification returns within its measured wall-time budget while retaining the same operations, cases, failures and protected aggregate.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/ci_artifacts.py",
+          "tests/project/test_verification_scheduling.py",
+          ".github/workflows/verify.yml",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The browser producer finished last in both new overruns. The existing recovery producer already installs Chromium. The earlier dcb1d3d allocation of market-recovery-ui is a candidate that must be checked against the current inputs and ordinary runner measurements. The three actual Windows push job spans and original moved-check durations project 856, 901 and 868.422 seconds with unchanged setup and aggregate tail. In the 901-second projection Python becomes critical; the recovery producer retains at least 424.891 seconds of headroom across the three projections."
+        ],
+        "risks": [
+          {
+            "failure": "One check is omitted, duplicated or depends on unavailable setup when moved between producers. A failed producer could be reported as a successful aggregate.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A local projection, the earlier serial-scheduler recovery, partial-cache evidence or a PR wall clock is mistaken for ordinary warm main-push recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain ordinary attempts, preserve required checks, and revert the allocation if its measured critical path or runner work worsens. Continue the active timing investigation on the retained original.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/ci_artifacts.py",
+            "tests/project/test_verification_scheduling.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changing product deadlines, releasing a version, adding a runner or weakening required coverage."
+          ],
+          "open_questions": [
+            "Does the next comparable native main observation confirm the projected critical path and meet the budget without adding runner work?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The four existing Windows producers, the aggregate contract, immutable M0-091 serial-scheduling recovery, the original check commands and each raw attachment."
+          ],
+          "change": [
+            "Re-evaluate and, when supported by current measurements, rebalance one existing check using the present catalog."
+          ],
+          "data_plan": "Use authenticated GitHub timing, retained reports and synthetic scheduling fixtures. No user data changes.",
+          "cleanup": "Track the ordinary native recovery, retain failed comparisons, and retire only a superseded allocation after testing the resulting plan."
+        }
+      }
+    },
+    {
+      "id": "M0-141",
+      "title": "Measure the first ordinary warm Windows main push after the recurring scheduling repair",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-139"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/integration.py",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the exact main commit, PR merge, first-attempt native Windows job and full report for a warm push containing the repair. Verify the same 35 selected outcomes, elapsed wall time, runner work and the original artifact and log digests.",
+        "Compare with the three authenticated push controls. Close the named finding only when the protected proof meets the 900 second objective and preserves coverage. If timing or a comparable original is unavailable, keep the finding open and assign the next concrete corrective action."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "After the repair merges, retain the first comparable ordinary full warm Windows main-push report and timing. Keep the finding open until the result includes the repair, preserves coverage, and succeeds within 900 seconds.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The coordinator evaluates the first comparable ordinary Windows main push containing the scheduling repair and records the observed budget result.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/integration.py",
+          "project/delivery.json",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "An ordinary full warm Windows main push can show whether moving the existing recovery UI check shortens the critical path while preserving the selected coverage."
+        ],
+        "risks": [
+          {
+            "failure": "A PR clock, earlier protected commit, different attempt, partial platform report or changed coverage is treated as recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unavailable or over-budget run is closed without preserving the original or assigning corrective work.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original observation open. Retain the observed push and assign the measured bottleneck if the run is over budget or its evidence is incomplete.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/integration.py",
+            "project/feedback.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changes to product execution, verification coverage or the Windows runner budget."
+          ],
+          "open_questions": [
+            "Does the first comparable full warm protected Windows push containing the scheduling change finish within 900 seconds?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The original three native push controls, their job and check identities and the independently observed PR clocks."
+          ],
+          "change": [
+            "Add the protected post-repair observation and its outcome to the existing finding."
+          ],
+          "data_plan": "Use authenticated hosted job timing and the matching synthetic verification artifacts.",
+          "cleanup": "Resolve the finding only after the actual protected push meets the coverage and timing conditions. Preserve any unsuccessful or incomparable observation with its next action."
+        }
+      }
+    },
+    {
       "id": "M0-146",
       "title": "Recover the Windows Python critical path on full warm pull requests",
       "milestone": "M0",
