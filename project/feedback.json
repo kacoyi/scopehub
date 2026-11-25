@@ -6962,6 +6962,28 @@
         "prevention": "The integration regressions include absent ownership, unrelated ancestry, mismatched report or job identity, 900 and 901 second boundaries and disjoint receipt coverage. The independent reviewer rechecked each outcome."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "peer-decision-note-observer-busy-fallback-list",
+      "source": "Linux local M0-147 task run 20261125T181716.486623Z-e13b2103 at 0ff1c4da15fbede912b909aef2ad226ba7fce838. The original is archives/runs/20261125T181716.486623Z-e13b2103/test-report.json. The workspace-timeframe log has SHA-256 2deec7f8863299d655dd7887ecebe5ef22fb3fe358dd5ca6461dcd034394a064.",
+      "severity": "major",
+      "status": "open",
+      "observation": "In the paired-window note contention journey the initiator committed one deletion at revision 5 and its same-request list retry changed from HTTP 429 to 200. The observing window saw revision 5, received DATA_UNAVAILABLE for the deleted detail and then received HTTP 429 on its fallback list. It stayed on Reload with the busy notice. The original M2-038 repair covered the initiating list read.",
+      "task_ids": [
+        "M2-040"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T181716.486623Z-e13b2103",
+          "source_commit": "0ff1c4da15fbede912b909aef2ad226ba7fce838",
+          "report_sha256": "592eb378075891f4b7db92cfc672ca7a4d8b453e1dc05fa83171157a66e9879e"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

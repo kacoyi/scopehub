@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-040",
   "tasks": [
     {
       "id": "M0-001",
@@ -25136,6 +25136,118 @@
           ],
           "data_plan": "Reuse the existing task, feedback, timing and receipt records. Preserve raw observations and their exact locators.",
           "cleanup": "Retain a planned M0-141 until the first eligible ordinary protected main push is independently verified."
+        }
+      }
+    },
+    {
+      "id": "M2-040",
+      "title": "Return the observing note window to its list after a busy fallback read",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-038"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "apps/desktop/ui/src/decision-note-transport.ts",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce the observing window receiving committed revision 5, an unavailable deleted detail and a retryable busy reply for its fallback list. The initiating deletion commits exactly once.",
+        "Return the observer to the current list after a recoverable read. Exercise continuing contention, nonretryable errors, cancellation and a new selection without replaying a mutation or showing the deleted content.",
+        "Preserve the initiating window\u2019s verified list retry and both windows\u2019 ability to recover. Run the actual paired-window workspace journey on Linux and Windows and retain the original failed trace."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T181716.486623Z-e13b2103",
+          "source_commit": "0ff1c4da15fbede912b909aef2ad226ba7fce838",
+          "report_sha256": "592eb378075891f4b7db92cfc672ca7a4d8b453e1dc05fa83171157a66e9879e"
+        }
+      ],
+      "next_action": "Isolate the observer-side unavailable-detail to list transition with a real busy reply, then verify the bounded read through the existing note transport.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "After its peer deletes a note, the observing window shows the verified current list or an actionable terminal read result and keeps the deleted title hidden.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/ui/src/decision-note-transport.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/20261125T181716.486623Z-e13b2103/test-report.json"
+        ],
+        "hypotheses": [
+          "The observer\u2019s fallback list read after an unavailable deleted detail can stop at one retryable refusal. Inspect the regular and manual recovery read owners and their deadline."
+        ],
+        "risks": [
+          {
+            "failure": "A busy fallback leaves the observing window in an obsolete detail state, issues a second deletion, or makes unrelated new work reuse the prior read.",
+            "checks": [
+              "workspace-timeframe",
+              "market-workflow",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "A nonretryable refusal, closed drawer, newer selection or exhausted read deadline exposes old content or schedules further work.",
+            "checks": [
+              "workspace-timeframe",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Revert the observer-side change and keep the original failed and controlled paired-window traces available for recovery.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "apps/desktop/ui/src/decision-note-transport.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to the committed note operation, database, authorization or shared writer admission policy."
+          ],
+          "open_questions": [
+            "Is the existing bounded same-request note read suitable for the observing window after the first detail returns unavailable?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The initiating window\u2019s deletion receipt and single committed delete, manual reload, freshness checks, and the handling of denied access and stale confirmations."
+          ],
+          "change": [
+            "Restore a temporarily refused observer-side fallback list read within its existing observation deadline."
+          ],
+          "data_plan": "Use paired synthetic note windows and per-run profiles. Preserve original reports and operation identifiers in the local diagnostic archive.",
+          "cleanup": "Release observers, remove test profiles after retaining evidence and discard canceled or superseded reads."
         }
       }
     }
