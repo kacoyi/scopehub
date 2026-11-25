@@ -95,6 +95,15 @@
       },
       "supersedes": "452550f7d8c2767e321f48304fe4924ff2d220b3c7d7ba23a07d0ba8ddcc731a",
       "evidence_sha256": "ea9788ffa5db6cbabb79d0219083e2f26e9405b4c6be87381b377fdfad07e547"
+    },
+    {
+      "kind": "request",
+      "source_commit": "227e0413b61e1e17d790e4cbf57580267aab534d",
+      "scope": "Verify independently that factual excerpts are selected from actual visible Markdown body spans in historical and newly requested reviews, including the held-out reference title, block continuations, positive inline spans and exact source binding at closure.",
+      "supersedes": "0854e91824526b5ff8e12c6a809de57b84480505cc60397f53b5d638b2f02641",
+      "requested_at": "2026-11-25T15:56:17.447940+00:00",
+      "request_id": "6e26539f53acdbb72e36a8176d637158dee40fe2eae56459e5ebd9580afcb114",
+      "evidence_sha256": "def17808cc0c637fdc950e75d5caaabe6e56a8d51a6ba78b538ab9258282f086"
     }
   ]
 }
