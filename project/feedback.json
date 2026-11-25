@@ -5188,6 +5188,25 @@
       "deferral_reason": null
     },
     {
+      "id": "local-api-observation-time-rounding",
+      "source": "Controlled native loopback trial based on 9180963. The original local transcript .reports/m1-044-red-local-api.log has SHA-256 bebb8d80077be2a4f156dc7f992b08bb5173c2ad92493aad0f7f98fd7f5cf017. The pre-repair Playwright regression .reports/m1-044-red-api-regression.log has SHA-256 3aa64cc7763375aafaf48b9f97a5efd89942161f22453452a9615e5194559798.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The ordinary local API trial accepted 1770076800000.00001, 1e-999 and 8640000000000000.1 as valid millisecond observations. The displayed times acquired integer values through rounding or underflow before validation.",
+      "task_ids": [
+        "M1-044"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The HTTP adapter decoded the observation time through a binary JSON numeric representation before checking whole milliseconds.",
+        "correction": "Validate the original decimal token using exact integer arithmetic within the existing schema range. Keep the separate original price token intact.",
+        "prevention": "A controlled HTTP peer drives the ordinary native settings trial with exact integers, equivalent decimal and exponent forms, rounded fractions, underflow, an out-of-range number and a quoted value."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
       "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
       "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
