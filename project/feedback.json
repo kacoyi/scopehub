@@ -6811,6 +6811,119 @@
       "deferral_reason": null
     },
     {
+      "id": "local-publisher-advisory-403-drops-confirmed-quota",
+      "source": "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json (SHA-256 ca812dcd5b0e98a62c3f2378efea97d9343435a93bd7156345b8072cc21b6d2e). The 486b674 original report is archives/runs/20261125T095828.866735Z-186642bb/test-report.json. The canonical archive verified 27 bound logs and dependency-review was the sole failed check (log SHA-256 ff4a3df0716c6864661ea36b29d1b9558b58e76c30067df61e3ca282a533fe08).",
+      "observation": "The 09:08:09 UTC local review on 5d93d80 and the 09:58:30 UTC local review on 486b674 each retained a generic HTTP 403 after validating 587 packages. The original responses do not establish their cause. The anonymous 200 at 09:18:42 UTC and passing same-source recheck on 5d93d80 followed the first failure and establish recovery there. The 10:02:04 UTC anonymous 403 on 486b674 was a separate control that observed zero remaining and reset at 10:14:58 UTC. Offline replays of the ordinary command on the two original sources produce the same failed report and exit for confirmed quota headers and a plain 403 because the publisher transport discards non-200 headers.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-126"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The local publisher transport discarded rate-limit headers on failed responses, leaving a proven quota response indistinguishable from another 403.",
+        "correction": "Report quota exhaustion only from the same approved anonymous TLS response with a complete, valid zero-remaining header. Preserve the existing request count, failure exit and general status for unclassified responses.",
+        "prevention": "The ordinary dependency command exercises known and unclassified responses. The two original generic 403s remain unattributed, separately from the dated live quota observation."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T090808.094431Z-146d8e97",
+          "source_commit": "5d93d80a9393830cf9779bcb6495d1c2af4c9180",
+          "report_sha256": "e1eaeb0ba922392de4b51e39510b7c17d73cc6f454b6b6cbf1b1c82007905f25"
+        },
+        {
+          "run_id": "20261125T091948.282573Z-25b5ae6c",
+          "source_commit": "5d93d80a9393830cf9779bcb6495d1c2af4c9180",
+          "report_sha256": "dd58004bdd84b2a3396a9683a421a69facbfad7de3c5649e3af010cfbb1952c6"
+        },
+        {
+          "run_id": "20261125T095828.866735Z-186642bb",
+          "source_commit": "486b674755033668b7e41d9d6d095599b627687b",
+          "report_sha256": "b91ae510e3e1940ba86307a734aca9303ff65919654b2a238fa26f72111bc013"
+        }
+      ]
+    },
+    {
+      "id": "local-publisher-advisory-quota-header-parse",
+      "source": "Astra Standard CHANGES_REQUESTED for exact implementation 2b0e9b44870c02571352337c69e3eda18f1895ce. Independent report archives/observations/repo-hygiene-20261125/m0-126-review-2b0e9b4/astra-report.txt (SHA-256 f7eb17a9da0613fed7858e4abba2435015749532b4c84e2541d86a51ce0a1c08).",
+      "observation": "At the ordinary offline dependency reporter a real HTTPResponse with a zero remaining field followed by a malformed line and a conflicting remaining field exposes only the first value and records a parse defect. The reporter still attributes the 403 to exhausted quota. An otherwise valid remaining or reset with trailing HTTP space and tab loses the quota or reset diagnosis. The ordinary error path and failure exit are required in every case.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-126"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The email-style parser could retain a leading zero while reporting malformed or folded remaining fields, and trailing HTTP whitespace prevented valid headers from matching.",
+        "correction": "Reject ambiguous, conflicting or malformed metadata for quota classification. Normalize valid field whitespace and format only a valid reset in UTC.",
+        "prevention": "Retain ordinary offline response controls for missing, duplicate, malformed and whitespace-bearing headers plus hosted fallback and the single request bound."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-publisher-advisory-quota-header-truncation",
+      "source": "Independent CHANGES_REQUESTED for exact source d5dd6c49057382afa3bd8f7ac4970b2b0988c496. Retained review: archives/observations/repo-hygiene-20261125/independent-final-m0-126-d5dd6c49/final-response.txt (SHA-256 6d18d64c0f172af9858fa5fab11fcabb6e3102cda47e6f704a18ebf183b0533a). Separate live task run on that source: archives/runs/20261125T155644.625742Z-e2d24d9c/test-report.json.",
+      "observation": "The ordinary dependency reporter attributed HTTP 403 to exhausted anonymous quota when the connection ended after a complete zero-remaining field without the header terminator. When the connection ended inside the reset field after 17, the reporter also printed 1970-01-01T00:00:17Z. Python 3.12 reported no header parser defects. Each replay made one request and exited 1. Both truncated replies must retain the generic HTTP 403 diagnostic, and a complete control with HTTP space and tab must retain the quota and UTC reset diagnosis.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-126"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Python HTTPResponse could accept EOF after a field, including a partial numeric reset, without reporting a header parsing defect.",
+        "correction": "Confirm the terminator of the final response header block before accepting quota metadata. Preserve generic HTTP 403 after EOF and tolerate valid whitespace in complete fields.",
+        "prevention": "The normal dependency reporter exercises EOF after zero, a truncated reset, an interim response and the fully terminated control. Independent Standard review replayed these cases on the approved source."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T155644.625742Z-e2d24d9c",
+          "source_commit": "d5dd6c49057382afa3bd8f7ac4970b2b0988c496",
+          "report_sha256": "e7601e629e9a737b47aed0aeb62883ef76717aae99fa221c73afba6d32661013"
+        }
+      ]
+    },
+    {
+      "id": "confirmed-peer-decision-note-delete-misses-initiator-list",
+      "source": "Ordinary PR 115 first attempt 45650476275 on Linux. The original report is archives/runs/20261125T160307.507960Z-afd0f7cf/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "One of 74 workspace cases failed. In the decision-note draft and peer-timeframe journey the deleting page first observed the deletion notice and a response matching its request, committed state and expected target. Its New decision note button was then absent for 5 seconds. The retained screenshot shows a list with a dated row but does not identify which document was captured. The original run did not report the final stored rows or subsequent read order. The historical M2-036 failure stopped earlier, at deletion confirmation.",
+      "task_ids": [
+        "M2-038"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "In the controlled two-window reproduction a successful deletion depended on another snapshot before loading the list. A busy peer caused that snapshot to fail before the list read was sent. The original hosted run did not record the read sequence.",
+        "correction": "Use the verified deletion receipt revision as the lower bound for the list read. A retryable busy reply can repeat that same read within its original deadline. Keep a committed deletion distinct from a failed list refresh and retain manual reload.",
+        "prevention": "Exercise a real peer-held writer, cancellation, stale rejection, dropped list responses and normal deletion through the Chromium desktop entry. Correlate the request IDs, both windows, the SQLite rows and a single matching deletion record."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T160307.507960Z-afd0f7cf",
+          "source_commit": "e6f2c917bccd4506e0227bf1d966eabadc538154",
+          "report_sha256": "30cd3108ea869b8d055739e809cc55dc517c13d15cc4286fa3cb26379135fecf"
+        }
+      ]
+    },
+    {
       "id": "timing-intake-confuses-windows-producers-with-platform-samples",
       "source": "Official PR 84 run 45546767887 attempt 1, checkout f7fdd11cacc123552b5535e9cd8d986f6723e7b7. Original browser report SHA-256 a68f9478cb1ab394b3b6ad9fdc21623f87cdf9ca3fb588bc1e0c02d2a89c41ed; recovery report c9c7e6424dd5408375bfdb8646dcb5072b42d3443a712bcc440d77cda82b5083; protected aggregate 4d5050a2660a498ac3a9b18e76192a0ccfd81e48c1f3fb5b61b9d95c6312c17d matches the existing M0-105 receipt. Exact ordinary CLI replay, controlled conflict and scoped comparison: archives/observations/m0-130-timing-producer-inputs/red-eddceb4/SHA256SUMS (SHA-256 1e0265aa4b21ac46de1422fc5594b8ff26f16e95b08deb2a8424ea0cdf3726ef).",
       "observation": "Normal local discovery drops two valid, distinct Windows producer reports as conflicting complete samples. Their profiles are ci-windows-browser and ci-windows-recovery, with eleven and one passing checks. Explicit mixed input also suppresses the valid protected aggregate with 28 passes. Alone each producer incorrectly acquires job 138982816287 and its 804-second protected total while excluded from the automatic review. The aggregate-alone control gets that total correctly. The genuinely different complete control remains ambiguous and malformed explicit JSON produces a diagnostic without discarding the aggregate. Authenticated records PR run 45493294184 republishes the byte-identical scoped core report as protected coverage; it gives one legitimate four-check scoped sample.",
