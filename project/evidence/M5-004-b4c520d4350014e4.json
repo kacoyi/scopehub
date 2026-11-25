@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M5-004",
+  "task_definition_sha256": "13479b255dfa12d37893ad4640307e3fe42c610915f45c65c21c06a676f22fcd",
+  "run_id": "20261125T035641.314082Z-c776ee83",
+  "recorded_at": "2026-11-25T03:58:23.137811+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c5dbc22644364ca017deee08dd7f8592536b86d765e675ee12828ce1f83f6483",
+    "file_count": 598,
+    "git_head": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+    "working_tree_dirty": true,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "b4c520d4350014e4e8ca602a1755ee9263fc8f8169add9db7523c282cddb7ceb",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "04b18dba8427a71fcaaa8f77ef38d9ca3da17b6c4d7400de9390c5d1cb6be14c"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7c36d2761513a033e2cd6d1b4266819792f57fd788f974627cca7cd06f113696"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-desktop-recovery/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a262f6eb49bf340cc6ae190d0050d6247a0190f4ed4bf5814dfaa479f15006da"
+    }
+  ],
+  "project_definition_sha256": "cf69da6b0b0b197662044accde28bc17d66925266d22468f1c0b2a9377cbc4ac",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

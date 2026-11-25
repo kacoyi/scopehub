@@ -857,10 +857,10 @@ impl BoundWorkspace {
             .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?;
         let digest = Sha256::digest(native_path.as_bytes());
         let profile_id = format!("desktop-development:{digest:x}");
-        let store = SqliteWorkspace::open(
+        let (store, profile_id) = SqliteWorkspace::open_desktop_profile(
             &directory,
             WorkspaceBinding {
-                profile_id: profile_id.clone(),
+                profile_id,
                 workspace_id: WORKSPACE_ID.into(),
             },
         )

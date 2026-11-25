@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0029",
+  "title": "Restore the complete desktop profile under its original local account",
+  "status": "accepted",
+  "recorded_at": "2026-11-25",
+  "context": "A valid same-user desktop profile stopped opening when relocated. The native host derived the profile ID from its canonical directory, and the SQLite database required the original ID. A database copied by itself into another profile is already rejected.",
+  "decision": "After a successful native open, atomically retain a versioned private anchor beside the database. The anchor carries the original profile ID and a fingerprint of the account verified by filesystem admission. Use the Windows token SID or the Linux machine ID and effective UID. On reopen, require the matching account, database and workspace. The persistence layer owns the anchor and the native host supplies the legacy path-derived ID.",
+  "authority": "ADR 0007 delegates this software repair. ADR 0011 governs local identity and disclosure. M5-004 verifies the native software behavior and M5-001 owns the packaged recovery qualification.",
+  "alternatives": [
+    {
+      "option": "Adopt the profile ID from any private database at the new path.",
+      "reason": "A copied database alone could replace the active profile identity and its credential namespace."
+    },
+    {
+      "option": "Rewrite the database identity and dependent records at the new path.",
+      "reason": "This would require rewriting attribution and identity-indexed state and would risk disconnecting current entitlements."
+    }
+  ],
+  "consequences": [
+    "For pre-anchor profiles, open the upgraded app once in the original location, then close all writers and retain the entire private workspace directory, including its anchor and any SQLite sidecars. For a pre-anchor profile already moved, return it to its original path for that first open.",
+    "Restore into a vacant destination under the same account and preserve restrictive ownership and permissions. Preserve the original directory or backup until the restored profile has opened. A missing database, incompatible database, copied database alone or wrong account cannot claim the saved identity.",
+    "The anchor changes neither the SQLite format nor the grant records. Database tombstones and provenance remain attached to their original identity. Live folder access and policy grants still expire with their session. The OS manages existing credentials behind their original profile namespace.",
+    "Older binaries still require the original path. To return to an older binary using the same database format, restore a closed complete profile to its original location. Restoring an older snapshot may restore its older data and rights, so exact backup and upgrade handling remain in the release acceptance."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0011", "0016"],
+  "revisit_when": [
+    "The product qualifies a cross-account or cross-machine transfer, adds a native backup entry, or changes how platform-owned profile identities are established."
+  ]
+}
