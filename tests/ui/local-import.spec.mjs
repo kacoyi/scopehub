@@ -2581,14 +2581,40 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
   const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-legacy-csv-review-'));
   const app = join(root, 'profile');
   const folder = join(root, 'synthetic-csv');
-  const declarations = ['timeframe', 'timezone', 'volume_semantics'];
+  const declarations = ['timeframe', 'timezone', 'volume_semantics', 'timestamp_format'];
   const header = [...future.header, ...declarations, 'Vendor note'];
-  const agreed = ['5m', 'Asia/Shanghai', 'per_bar'];
-  const disputed = ['1m', 'UTC', 'cumulative'];
+  const agreed = ['5m', 'Asia/Shanghai', 'per_bar', '%Y-%m-%d  %H:%M'];
+  const disputed = ['1m', 'UTC', 'cumulative', '%Y-%m-%d %H:%M'];
   const note = 'Original note\nsecond physical line';
-  const row1 = [...future.rows[0], ...agreed, 'Compatible'];
-  const firstPart = [header, row1].map(row => row.join(',') + '\n').join('');
-  const csv = values => firstPart + [...future.rows[1], ...values, '"' + note + '"'].join(',') + '\n';
+  const fields = (index, time = null) => future.rows[index].map((value, field) =>
+    field === 1 ? (time ?? value).replace(' ', '  ') : field === 9 ? 'true' : value);
+  const rows = [
+    fields(0), fields(1), fields(2), fields(2, '2026-04-14 21:20'),
+  ];
+  const row3 = { record_number: 3, line_start: 5, line_end: 5 };
+  const framingHash = 'a'.repeat(64);
+  const framingId = randomUUID();
+  const frameSize = (raw_fields, locator) => Math.max(
+    Buffer.byteLength(JSON.stringify({
+      version: 1, request_id: framingId, ok: true,
+      source_row: { source_sha256: framingHash, locator, header, raw_fields },
+    }) + '\n'),
+    Buffer.byteLength(JSON.stringify({
+      version: 1, revision_id: framingId, source_sha256: framingHash, locator, header, raw_fields,
+    })),
+    Buffer.byteLength(JSON.stringify({
+      version: 1, revision_id: framingId,
+      source: { relative_path: 'night.csv', source_sha256: framingHash, ...locator }, header, raw_fields,
+    })),
+  );
+  const nearLimit = 'x'.repeat(65_536 - frameSize([...rows[2], ...disputed, ''], row3));
+  const overLimit = nearLimit + 'x'.repeat(180);
+  const csv = values => [
+    header.join(','), [...rows[0], ...agreed, 'Compatible'].join(','),
+    [...rows[1], ...values, '"' + note + '"'].join(','),
+    [...rows[2], ...values, nearLimit].join(','),
+    [...rows[3], ...agreed, overLimit].join(','),
+  ].join('\n') + '\n';
   const current = csv(agreed);
   const legacy = Buffer.from(csv(disputed));
   const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -2611,13 +2637,24 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
     const source = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: oldDigest };
     const mapping = {
       version: 1, revision: 'historical-night', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
-      ...future.settings, columns: future.columns, timestamp_convention: 'bar_start', volume_semantics: 'per_bar',
+      ...future.settings, timestamp_format: agreed.at(-1), columns: future.columns, timestamp_convention: 'bar_start', volume_semantics: 'per_bar',
     };
     const preview = { ...source, mapping, row_limit: 1 };
     await market('previewLocalImport', preview);
     const { record } = await market('saveLocalImportMapping', preview);
     const { revision } = await market('publishLocalImport', { ...source, review_revision: record.review_revision });
     const revisionId = revision.revision_id;
+    const folderChoice = { folder_id: source.folder_id };
+    const staged = await market('previewLocalFolderRefresh', { ...folderChoice, revision_id: revisionId });
+    expect(staged.publication_allowed).toBe(true);
+    const review = { ...folderChoice, review_id: staged.review_id };
+    const prepared = await market('prepareLocalFolderPublication', {
+      ...review, conflicts: [], withdraw_bars: [], withdraw_sources: [],
+    });
+    const folderPublished = await market('publishLocalFolderRefresh', {
+      ...review, candidate_sha256: prepared.candidate_sha256, idempotency_key: randomUUID(),
+    });
+    const folderRevision = folderPublished.revision.revision_id;
     const locator = { record_number: 2, line_start: 3, line_end: 4 };
     const open = async () => {
       const reply = await call({ type: 'frozen_chart', revision_id: revisionId, request_id: randomUUID() });
@@ -2638,6 +2675,9 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
         SET source_sha256 = ?, content_json = json_set(content_json, '$.file_sha256', ?)
         WHERE revision_id = ?`).run(legacyDigest, legacyDigest, revisionId);
       expect(changed.changes).toBe(1);
+      const manifest = db.prepare(`UPDATE local_folder_manifest_sources
+        SET source_sha256 = ? WHERE revision_id = ? AND relative_path = 'night.csv'`).run(legacyDigest, folderRevision);
+      expect(manifest.changes).toBe(1);
     } finally {
       db.close();
     }
@@ -2649,10 +2689,37 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
     const input = { revision_id: revisionId, locator };
     const raw = await market('readLocalImportSourceRow', input);
     expect(raw).toEqual({
-      version: 1, ...input, source_sha256: legacyDigest, header, raw_fields: [...future.rows[1], ...disputed, note],
+      version: 1, ...input, source_sha256: legacyDigest, header, raw_fields: [...rows[1], ...disputed, note],
     });
 
-    await page.exposeBinding('testNativeInvoke', async (_, command, args) => bridge.request(command, args));
+    const row4 = { record_number: 4, line_start: 6, line_end: 6 };
+    for (const kind of ['Import', 'Folder']) {
+      const operation = `market.readLocal${kind}SourceRow`;
+      const at = locator => ({ version: 1, ...(kind === 'Import' ? {
+        revision_id: revisionId, locator,
+      } : {
+        revision_id: folderRevision, source: { relative_path: 'night.csv', source_sha256: legacyDigest, ...locator },
+      }) });
+      expect((await call(at(row3), operation)).result.raw_fields.at(-1)).toBe(nearLimit);
+      expect((await call({ ...at(row3), review_declarations: true }, operation)).error?.code).toBe('RESOURCE_LIMIT');
+      expect((await call(at(row4), operation)).error?.code).toBe('RESOURCE_LIMIT');
+    }
+
+    let olderWorker = false;
+    let beforeRawRetry;
+    const inspected = [];
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      if (!/SourceRow$/.test(args?.operation ?? '')) return bridge.request(command, args);
+      if (beforeRawRetry && !args.payload.review_declarations) {
+        const revoke = beforeRawRetry;
+        beforeRawRetry = undefined;
+        await revoke();
+      }
+      const reply = olderWorker && args.payload.review_declarations
+        ? { error: { code: 'UNSUPPORTED_CAPABILITY' } } : await bridge.request(command, args);
+      inspected.push({ ...args, reply });
+      return reply;
+    });
     await page.addInitScript(() => {
       window.isTauri = true;
       window.__TAURI_INTERNALS__ = {
@@ -2666,23 +2733,83 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
     await page.goto('/');
     await control(page, 'Open published CSV').last().click();
     const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
-    await dialog.getByRole('button', { name: /Open night\.csv/ }).click();
-    await dialog.getByText('Source rows (2)', { exact: true }).click();
-    const originalFields = dialog.getByRole('region', { name: 'Original CSV fields', exact: true });
-    await control(dialog, 'Inspect record 1').click();
-    await expect(originalFields).toContainText('No declaration conflicts in this record.');
-    await control(dialog, 'Inspect record 2').click();
-    await expect(originalFields).toContainText('Record 2 · Source lines 3–4');
-    await expect(originalFields.getByRole('alert')).toContainText(
-      'Original declarations conflict with the mapping used for this frozen revision.',
-    );
-    await expect(originalFields.getByRole('listitem')).toHaveText(declarations.map((field, index) => `${field} · Reviewed value ${agreed[index]}`));
-    for (const [index, field] of declarations.entries()) {
-      await expect(originalFields.getByRole('row', { name: `${field} ${disputed[index]}`, exact: true })).toBeVisible();
+    for (const kind of ['file', 'folder']) {
+      const isFolder = kind === 'folder';
+      const operation = isFolder ? 'market.readLocalFolderSourceRow' : readSourceRow;
+      const id = isFolder ? folderRevision : revisionId;
+      if (isFolder) {
+        await dialog.getByRole('button', { name: 'Folder revisions' }).click();
+        await dialog.getByRole('button', { name: /Open folder revision from night\.csv/ }).click();
+      } else {
+        await dialog.getByRole('button', { name: /Open night\.csv/ }).click();
+      }
+      await dialog.getByText('Source rows (4)', { exact: true }).click();
+      const originalFields = dialog.getByRole('region', { name: 'Original CSV fields', exact: true });
+      const inspect = number => control(dialog, `Inspect record ${number}${isFolder ? ' from night.csv' : ''}`).click();
+      const rowCalls = () => inspected.filter(call => call.operation === operation && call.payload.revision_id === id);
+      const assertFallback = (initialCount, code, hasRawResponse) => {
+        const [attempt, raw] = rowCalls().slice(initialCount);
+        expect(attempt.reply.error?.code).toBe(code);
+        expect(attempt.payload.review_declarations).toBe(true);
+        const { review_declarations: _, ...originalRequest } = attempt.payload;
+        expect(raw.payload).toEqual(originalRequest);
+        expect(raw.requestId).not.toBe(attempt.requestId);
+        if (hasRawResponse) expect(raw.reply.result.declaration_conflicts).toBeUndefined();
+        else expect(raw.reply.error?.code).toBe('RESOURCE_LIMIT');
+      };
+
+      await inspect(1);
+      await expect(originalFields).toContainText('No declaration conflicts in this record.');
+      await inspect(2);
+      await expect(originalFields).toContainText('Record 2 · Source lines 3–4');
+      const conflicts = originalFields.getByRole('table', { name: 'Conflicting CSV declarations' });
+      await expect(conflicts).toBeVisible();
+      for (const [index, field] of declarations.entries()) {
+        const [sourceValue, mappedValue] = await conflicts.getByRole('row', { name: new RegExp(field) }).getByRole('cell').all();
+        expect(await sourceValue.textContent()).toBe(disputed[index]);
+        expect(await mappedValue.textContent()).toBe(agreed[index]);
+        await expect(sourceValue).toHaveCSS('white-space', 'break-spaces');
+        await expect(mappedValue).toHaveCSS('white-space', 'break-spaces');
+      }
+      await expect(originalFields.getByRole('row', { name: /Vendor note Original note second physical line/ })).toBeVisible();
+
+      let count = rowCalls().length;
+      await inspect(3);
+      await expect(originalFields).toContainText('Declaration review is unavailable for this record.');
+      expect(await originalFields.getByRole('row', { name: /^Vendor note x/ }).getByRole('cell').textContent()).toBe(nearLimit);
+      assertFallback(count, 'RESOURCE_LIMIT', true);
+
+      count = rowCalls().length;
+      await inspect(4);
+      await expect(dialog.getByRole('alert')).toHaveText('This original CSV row exceeds the inspection size limit.');
+      await expect(originalFields).toHaveCount(0);
+      assertFallback(count, 'RESOURCE_LIMIT', false);
+
+      count = rowCalls().length;
+      olderWorker = true;
+      await inspect(1);
+      await expect(originalFields).toContainText('Declaration review is unavailable for this record.');
+      await expect(originalFields.getByRole('row', { name: 'Vendor note Compatible' })).toBeVisible();
+      assertFallback(count, 'UNSUPPORTED_CAPABILITY', true);
+      olderWorker = false;
+      if (!isFolder) {
+        await expect(dialog.getByRole('region', { name: 'Frozen local CSV chart' }).getByLabel('Selected bar')).toContainText('C 106');
+        expect(await open()).toEqual(beforeReview);
+      }
+
+      count = rowCalls().length;
+      olderWorker = true;
+      beforeRawRetry = () => market(isFolder ? 'revokeLocalFolderRevision' : 'revokeLocalImportRevision', { revision_id: id });
+      await inspect(1);
+      await expect.poll(() => rowCalls().length).toBe(count + 2);
+      const [reviewAttempt, denied] = rowCalls().slice(count);
+      expect(reviewAttempt.reply.error?.code).toBe('UNSUPPORTED_CAPABILITY');
+      expect(denied.requestId).not.toBe(reviewAttempt.requestId);
+      expect(denied.reply.error?.code).toMatch(/PERMISSION_DENIED|SNAPSHOT_UNAVAILABLE/);
+      expect(denied.reply.result).toBeUndefined();
+      await expect(originalFields).toHaveCount(0);
+      olderWorker = false;
     }
-    await expect(originalFields.getByRole('row', { name: /Vendor note Original note second physical line/ })).toBeVisible();
-    await expect(dialog.getByRole('region', { name: 'Frozen local CSV chart' }).getByLabel('Selected bar')).toContainText('C 105');
-    expect(await open()).toEqual(beforeReview);
     await bridge.close();
     bridge = undefined;
     const reopened = new DatabaseSync(dbPath, { readOnly: true });

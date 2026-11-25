@@ -38,6 +38,8 @@ const VERSION: u8 = 1;
 const CHECK_LOCAL_IMPORT: &str = "market.checkLocalImport";
 const INSPECT_LOCAL_FOLDER_SOURCE: &str = "market.inspectLocalFolderSource";
 const INSPECT_LOCAL_IMPORT_SOURCE_ROW: &str = "market.inspectLocalImportSourceRow";
+const REVIEW_LOCAL_IMPORT_SOURCE_ROW: &str = "market.reviewLocalImportSourceRow";
+const SOURCE_ROW_REVIEW_ENV: &str = "SCOPEHUB_CSV_SOURCE_ROW_REVIEW";
 
 #[derive(Clone, Copy, Serialize)]
 #[serde(untagged)]
@@ -59,6 +61,16 @@ enum Check {
 }
 
 impl Check {
+    fn reviews_declarations(self) -> bool {
+        matches!(
+            self,
+            Self::ReadSourceRow {
+                review_declarations: Some(true),
+                ..
+            }
+        )
+    }
+
     fn capability(self) -> &'static str {
         match self {
             Self::Preview { .. } => PREVIEW_LOCAL_IMPORT,
@@ -328,7 +340,48 @@ pub async fn read_source_row(
     sha256: &str,
     mapping: &Value,
     record_number: u64,
-    review_declarations: bool,
+    cancelled: impl Future<Output = ()>,
+) -> Result<Value, Error> {
+    source_row(
+        config,
+        content,
+        sha256,
+        mapping,
+        record_number,
+        None,
+        cancelled,
+    )
+    .await
+}
+
+/// Compare declarations using the separately negotiated worker capability.
+pub async fn review_source_row(
+    config: &WorkerConfig,
+    content: &[u8],
+    sha256: &str,
+    mapping: &Value,
+    record_number: u64,
+    cancelled: impl Future<Output = ()>,
+) -> Result<Value, Error> {
+    source_row(
+        config,
+        content,
+        sha256,
+        mapping,
+        record_number,
+        Some(true),
+        cancelled,
+    )
+    .await
+}
+
+async fn source_row(
+    config: &WorkerConfig,
+    content: &[u8],
+    sha256: &str,
+    mapping: &Value,
+    record_number: u64,
+    review_declarations: Option<bool>,
     cancelled: impl Future<Output = ()>,
 ) -> Result<Value, Error> {
     if !(1..=MAX_SOURCE_RECORDS).contains(&record_number) {
@@ -341,7 +394,7 @@ pub async fn read_source_row(
         mapping,
         Check::ReadSourceRow {
             record_number,
-            review_declarations: review_declarations.then_some(true),
+            review_declarations,
         },
         cancelled,
         None::<fn() -> Result<(), Error>>,
@@ -371,6 +424,9 @@ async fn analyze(
         return Err(failure(ErrorCode::INVALIDARGUMENT));
     }
     let (mut python, owns_interpreter) = command(config);
+    if check.reviews_declarations() {
+        python.env(SOURCE_ROW_REVIEW_ENV, "1");
+    }
     if !owns_interpreter {
         retry_check = None;
     }
@@ -452,10 +508,19 @@ async fn exchange(
                     | CHECK_LOCAL_IMPORT
                     | INSPECT_LOCAL_FOLDER_SOURCE
                     | INSPECT_LOCAL_IMPORT_SOURCE_ROW
+                    | REVIEW_LOCAL_IMPORT_SOURCE_ROW
             )
         })
     {
         return Err(failure(ErrorCode::PROTOCOLMISMATCH));
+    }
+    if request.check.reviews_declarations()
+        && !negotiated
+            .capabilities
+            .iter()
+            .any(|name| name == REVIEW_LOCAL_IMPORT_SOURCE_ROW)
+    {
+        return Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY));
     }
     input.write_all(header).await.map_err(worker_io)?;
     for (index, bytes) in content.chunks(CHUNK_BYTES).enumerate() {
@@ -995,6 +1060,39 @@ while not pathlib.Path('release').exists() and time.monotonic() < deadline:
         );
         process.reclaim().unwrap().wait().await.unwrap();
         assert!(process.child.is_none());
+    }
+
+    #[tokio::test]
+    async fn old_csv_worker_accepts_raw_rows_and_is_never_sent_review_data() {
+        let fixture = Fixture::with_capabilities(
+            r#"import json, pathlib, sys
+first = sys.stdin.buffer.readline()
+if first:
+    header = json.loads(first)
+    pathlib.Path('received').write_text(first.decode('utf-8'), encoding='utf-8')
+    assert 'review_declarations' not in header
+    assert header['record_number'] == 1
+    assert sys.stdin.buffer.read() == b''
+    print(json.dumps({
+        'version': 1, 'request_id': header['request_id'], 'ok': True,
+        'source_row': {'source_sha256': header['sha256'], 'locator': {'record_number': 1},
+                       'header': ['Close'], 'raw_fields': ['04.00']},
+    }), flush=True)
+"#,
+            &[INSPECT_LOCAL_IMPORT_SOURCE_ROW],
+        );
+        let mapping = json!({});
+        let error = review_source_row(&fixture.0, b"", DIGEST, &mapping, 1, future::pending())
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::UNSUPPORTEDCAPABILITY);
+        assert!(!fixture.0.root.join("received").exists());
+        let raw = read_source_row(&fixture.0, b"", DIGEST, &mapping, 1, future::pending())
+            .await
+            .unwrap();
+        assert_eq!(raw["raw_fields"], json!(["04.00"]));
+        assert!(raw.get("declaration_conflicts").is_none());
+        assert!(fixture.0.root.join("received").is_file());
     }
 
     #[tokio::test]

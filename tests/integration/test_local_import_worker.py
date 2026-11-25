@@ -107,14 +107,17 @@ class ShortWritingOutput(BytesIO):
 
 
 class LocalImportWorkerTests(unittest.TestCase):
-    def reply_frames(self, stdout):
+    def reply_frames(self, stdout, *, review=False):
         hello_line, *replies = stdout.splitlines(keepends=True)
         hello = decode_line(hello_line)
         self.assertEqual((hello['type'], hello['protocol_version'], hello['role']), ('hello', '1.1', 'market'))
-        self.assertEqual(hello['capabilities'], [
+        capabilities = [
             'market.previewLocalImport', 'market.checkLocalImport', 'market.inspectLocalFolderSource',
             'market.inspectLocalImportSourceRow',
-        ])
+        ]
+        if review:
+            capabilities.append('market.reviewLocalImportSourceRow')
+        self.assertEqual(hello['capabilities'], capabilities)
         return replies
 
     def test_child_previews_normalized_and_rejected_rows_using_hash_of_all_chunks(self):
@@ -211,6 +214,13 @@ class LocalImportWorkerTests(unittest.TestCase):
                 reply, = self.reply_frames(output.getvalue())
                 self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': expected})
 
+    def test_unadvertised_declaration_review_does_not_enter_the_optional_worker_path(self):
+        output = BytesIO()
+        frames = source_row_request(CSV_PREFIX, 1, review_declarations=True)
+        self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output), 0)
+        reply, = self.reply_frames(output.getvalue())
+        self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': 'INVALID_ARGUMENT'})
+
     def test_frozen_row_reports_every_conflicting_declaration_without_reinterpreting_bytes(self):
         content = (
             'Ticker,Date,Open,High,Low,Close,Shares,timeframe,Time Zone,volume-semantics,Vendor\r\n'
@@ -228,8 +238,8 @@ class LocalImportWorkerTests(unittest.TestCase):
             with self.subTest(record=record):
                 frames = source_row_request(content, record, review_declarations=True)
                 output = BytesIO()
-                self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output), 0)
-                reply, = self.reply_frames(output.getvalue())
+                self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output, offer_review=True), 0)
+                reply, = self.reply_frames(output.getvalue(), review=True)
                 result = json.loads(reply)
                 self.assertIs(result['ok'], True, result)
                 row = result['source_row']
@@ -242,8 +252,8 @@ class LocalImportWorkerTests(unittest.TestCase):
         frames = source_row_request(content, 2, review_declarations=True,
                                     mapping={**MAPPING, 'timezone': 'Legacy/RemovedZone'})
         output = BytesIO()
-        self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output), 0)
-        reply, = self.reply_frames(output.getvalue())
+        self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output, offer_review=True), 0)
+        reply, = self.reply_frames(output.getvalue(), review=True)
         row = json.loads(reply)['source_row']
         self.assertIsNone(row['declaration_conflicts'])
         self.assertEqual(row['raw_fields'][8], 'UTC')

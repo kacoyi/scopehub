@@ -52,12 +52,21 @@ pub struct FrozenLocalSourceRow<R = ReadLocalImportSourceRowInput> {
     pub original: Vec<u8>,
     pub source_sha256: String,
     pub mapping: CsvMappingV1,
-    pub review_declarations: bool,
+    pub(crate) review_declarations: bool,
     pub(crate) request: R,
     pub(crate) header_sha256: String,
 }
 
 impl<R> FrozenLocalSourceRow<R> {
+    pub fn with_declaration_review(mut self, requested: bool) -> Self {
+        self.review_declarations = requested;
+        self
+    }
+
+    pub fn reviews_declarations(&self) -> bool {
+        self.review_declarations
+    }
+
     pub(crate) fn verify(&self, row: &Value, locator: &LocalImportRowLocator) -> Result<(), Error> {
         let header = row["header"].as_array();
         let conflicts = row.get("declaration_conflicts");
@@ -150,6 +159,30 @@ pub fn read_local_import_source_row_input(
         payload,
     )?)
     .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
+}
+
+pub fn read_local_import_source_row_request(
+    actor: Actor,
+    payload: Value,
+) -> Result<(ReadLocalImportSourceRowInput, bool), Error> {
+    let (raw, review) = validated_source_row_request(actor, READ_LOCAL_IMPORT_SOURCE_ROW, payload)?;
+    let input = serde_json::from_value(raw).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+    Ok((input, review))
+}
+
+pub(crate) fn validated_source_row_request(
+    actor: Actor,
+    name: &str,
+    payload: Value,
+) -> Result<(Value, bool), Error> {
+    let mut validated = validated_input(actor, name, payload)?;
+    let review = validated
+        .as_object_mut()
+        .and_then(|fields| fields.remove("review_declarations"))
+        .is_some_and(|flag| flag == true);
+    let input =
+        serde_json::from_value(validated).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+    Ok((input, review))
 }
 
 pub fn list_local_import_revisions_input(
@@ -396,7 +429,7 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             original,
             source_sha256: stored.source_sha256,
             mapping: reviewed.mapping,
-            review_declarations: request.review_declarations.unwrap_or_default(),
+            review_declarations: false,
             request,
             header_sha256: reviewed.header_sha256,
         })

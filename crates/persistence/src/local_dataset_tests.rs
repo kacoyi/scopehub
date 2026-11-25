@@ -187,7 +187,7 @@ fn prepared_source_row_requires_current_local_display() {
     let input = read_local_import_source_row_input(
         Actor::LocalUser,
         json!({
-            "version": 1, "revision_id": id, "locator": locator, "review_declarations": true,
+            "version": 1, "revision_id": id, "locator": locator,
         }),
     )
     .unwrap();
@@ -223,6 +223,7 @@ fn prepared_source_row_requires_current_local_display() {
         registry
             .prepare_frozen_local_source_row(&access, input.clone())
             .unwrap()
+            .with_declaration_review(true)
     };
     let prepared = prepare();
     assert_eq!(prepared.mapping, mapping);

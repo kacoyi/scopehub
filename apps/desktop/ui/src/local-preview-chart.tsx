@@ -149,6 +149,10 @@ function sameLocator(left: LocalImportRowLocator, right: LocalImportRowLocator) 
   return left.record_number === right.record_number && left.line_start === right.line_start && left.line_end === right.line_end;
 }
 
+function sourceRowErrorCode(error: unknown) {
+  return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+}
+
 function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, workspace?: LocalWorkspace) {
   const [read, setRead] = useState<SourceRowRead>();
   const pending = useRef<string | undefined>(undefined);
@@ -160,13 +164,26 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
     setRead(undefined);
   }
 
-  async function inspect(recordNumber: number, load: (requestId: string) => Promise<OriginalSourceRow | undefined>) {
+  async function inspect(
+    recordNumber: number,
+    load: (requestId: string, review: boolean) => Promise<OriginalSourceRow | undefined>,
+  ) {
     if (!access.canDisplay(revisionId)) return;
-    const requestId = crypto.randomUUID();
+    let requestId = crypto.randomUUID();
     pending.current = requestId;
     setRead({ loading: recordNumber });
     try {
-      const row = await load(requestId);
+      let row;
+      try {
+        row = await load(requestId, true);
+      } catch (error) {
+        const code = sourceRowErrorCode(error);
+        if (code !== 'RESOURCE_LIMIT' && code !== 'UNSUPPORTED_CAPABILITY') throw error;
+        if (pending.current !== requestId || !access.canDisplay(revisionId)) return;
+        requestId = crypto.randomUUID();
+        pending.current = requestId;
+        row = await load(requestId, false);
+      }
       if (pending.current !== requestId || !access.canDisplay(revisionId)) return;
       if (!row || row.header.length !== row.raw_fields.length) {
         setRead({ error: message('The original CSV row could not be verified.') });
@@ -181,7 +198,7 @@ function useSourceRowRead(revisionId: string, access: PublishedRevisionAccess, w
         workspace?.reload();
         return;
       }
-      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      const code = sourceRowErrorCode(error);
       setRead({ error: code === 'RESOURCE_LIMIT' ? message('This original CSV row exceeds the inspection size limit.')
         : code === 'BUSY' ? message('The CSV reader is busy. Try inspecting the record again.') : message('Unable to inspect the original CSV row.') });
     } finally {
@@ -206,11 +223,20 @@ function OriginalSourceFields({ read }: { read: SourceRowRead | undefined }) {
       : row.declaration_conflicts.length === 0 ? <p>{t('No declaration conflicts in this record.')}</p>
         : <div className="local-import-error" role="alert">
           <p>{t('Original declarations conflict with the mapping used for this frozen revision.')}</p>
-          <ul>{row.declaration_conflicts.map(({ column_index, reviewed_value }) => <li key={column_index}>
-            {t('{column} · Reviewed value {value}', {
-              column: row.header[column_index] ?? '', value: reviewed_value ?? t('No applicable value'),
-            })}
-          </li>)}</ul>
+          <div className="local-import-table local-import-source-fields local-import-declarations table-scroll">
+            <table aria-label={t('Conflicting CSV declarations')}>
+              <thead><tr>
+                <th scope="col">{t('Source column')}</th>
+                <th scope="col">{t('Original CSV value')}</th>
+                <th scope="col">{t('Frozen mapping value')}</th>
+              </tr></thead>
+              <tbody>{row.declaration_conflicts.map(({ column_index, reviewed_value }) => <tr key={column_index}>
+                <th scope="row">{row.header[column_index]}</th>
+                <td>{row.raw_fields[column_index]}</td>
+                <td>{reviewed_value ?? t('No applicable value')}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
         </div>}
     <div className="local-import-table local-import-source-fields table-scroll" tabIndex={0} role="region" aria-label={t('Scroll original CSV fields')}>
       <table aria-label={t('Original CSV fields')}>
@@ -244,8 +270,9 @@ function FrozenSourceRows({ result, workspace, access }: {
   }
 
   function readSourceRow(locator: LocalImportRowLocator) {
-    return inspect(locator.record_number, async requestId => {
-      const row = await readLocalImportSourceRow({ version: 1, revision_id: revisionId, locator, review_declarations: true }, requestId);
+    return inspect(locator.record_number, async (requestId, review) => {
+      const original = { version: 1, revision_id: revisionId, locator };
+      const row = await readLocalImportSourceRow(review ? { ...original, review_declarations: true } : original, requestId);
       if (row.revision_id === revisionId && row.source_sha256 === revision.source_sha256 && sameLocator(row.locator, locator)) return row;
     });
   }
@@ -313,13 +340,14 @@ export function FrozenFolderChart({ result, access }: { result: ReadLocalFolderR
   }
 
   function readSourceRow(source: FolderRefreshSource) {
-    return inspect(source.record_number, async requestId => {
-      const row = await readLocalFolderSourceRow({ version: 1, revision_id: revisionId, source, review_declarations: true }, requestId);
+    return inspect(source.record_number, async (requestId, review) => {
+      const original = { version: 1, revision_id: revisionId, source };
+      const row = await readLocalFolderSourceRow(review ? { ...original, review_declarations: true } : original, requestId);
       if (row.revision_id === revisionId && row.source.relative_path === source.relative_path
         && row.source.source_sha256 === source.source_sha256 && sameLocator(row.source, source)) {
         return {
           locator: row.source, header: row.header, raw_fields: row.raw_fields,
-          declaration_conflicts: row.declaration_conflicts, relativePath: row.source.relative_path,
+          declaration_conflicts: 'declaration_conflicts' in row ? row.declaration_conflicts : undefined, relativePath: row.source.relative_path,
         };
       }
     });

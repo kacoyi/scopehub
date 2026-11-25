@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-045",
   "tasks": [
     {
       "id": "M0-001",
@@ -20126,6 +20126,141 @@
           ],
           "data_plan": "Read immutable bytes through the existing entitled operations. Use synthetic historical fixtures and preserve the original bytes even if they conflict.",
           "cleanup": "Share one declaration comparison with live admission. No persistent cache or secondary source store."
+        }
+      }
+    },
+    {
+      "id": "M1-045",
+      "title": "Preserve original CSV inspection across review limits and worker versions",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-041"
+      ],
+      "scope": [
+        "apps/desktop",
+        "contracts",
+        "crates/application",
+        "crates/worker-host",
+        "crates/persistence",
+        "python/worker_runtime",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Through the single-file and folder source-row dialogs, fall back to the entitled original response after review metadata exceeds the reply limit or a compatible worker lacks the optional capability. Use a new native request identity and show that review is unavailable. A truly oversized raw row remains rejected.",
+        "Show original and historical mapping values together for each conflicting column. Preserve observable spaces in both values, including one versus two spaces in a timestamp format.",
+        "Compile the original public Rust row-reader signature and the original request and result literals. Keep existing payloads and their optional review forms compatible through additive types and explicitly negotiated worker support."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "local-import-publication",
+        "local-folder-import",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "Retain the failing compatibility cases at the reviewed PR head, then repair the bounded and negotiated read paths.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Both frozen CSV dialogs retain original-row access while presenting attributable, legible declaration review when the reader can supply it.",
+        "change_types": [
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "contracts/market-data-v1.json",
+          "python/worker_runtime/local_import.py",
+          "crates/worker-host/src/local_import.rs",
+          "apps/desktop/ui/src/local-preview-chart.tsx",
+          "tests/ui/local-import.spec.mjs"
+        ],
+        "hypotheses": [
+          "A fresh, ordinary authorized read can preserve an original response when review fails for a known capability or size reason. Separately typed opt-in payloads can preserve both the original Rust constructors and the accepted JSON shapes."
+        ],
+        "risks": [
+          {
+            "failure": "Fallback hides a supported row, bypasses revocation, repeats a stale request, or admits oversized raw fields.",
+            "checks": [
+              "local-import-publication",
+              "local-folder-import",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Mixed worker versions receive unnegotiated framing or valid legacy Rust callers fail to compile.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "generated-contracts",
+              "typescript-contracts"
+            ]
+          },
+          {
+            "failure": "Whitespace is lost or the original value is associated with an unrelated mapping field.",
+            "checks": [
+              "local-folder-import",
+              "desktop-localization",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Revert the compatibility correction while retaining the reviewed PR and all immutable source and verification records.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "worker-host",
+            "worker-runtime",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_import.rs",
+            "crates/application/src/local_publication.rs",
+            "crates/application/src/folder_publication.rs",
+            "apps/desktop/ui/src/local-preview-chart.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/ReadLocalImportSourceRowInput"
+            }
+          ],
+          "non_goals": [
+            "Bulk revision scans and historical observation time admission."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original 64 KiB frame limit, raw wire forms, historical revision identity, mapping version, and current profile access."
+          ],
+          "change": [
+            "Negotiate opt-in declaration review, recover supported raw reads with a fresh request, and present conflicts by column with their literal values."
+          ],
+          "data_plan": "Use synthetic historical publications and private worker fixtures. The existing storage format and read-only authorization path are sufficient.",
+          "cleanup": "Reuse the same raw reader and shared dialog retry path for both revision kinds."
         }
       }
     }

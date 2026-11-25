@@ -21,7 +21,7 @@ use crate::{
     StoredFolderManifest, WorkspaceAccess, authorized_operation, failure,
     folder_manifest::FolderManifestAnchor,
     local_mapping_fingerprint,
-    local_publication::{bounded_source_row_output, validated_input},
+    local_publication::{bounded_source_row_output, validated_input, validated_source_row_request},
 };
 
 pub const PREPARE_LOCAL_FOLDER_PUBLICATION: &str = "market.prepareLocalFolderPublication";
@@ -85,6 +85,15 @@ pub fn read_local_folder_source_row_input(
         payload,
     )?)
     .map_err(|_| failure(ErrorCode::INVALIDARGUMENT))
+}
+
+pub fn read_local_folder_source_row_request(
+    actor: Actor,
+    payload: Value,
+) -> Result<(ReadLocalFolderSourceRowInput, bool), Error> {
+    let (raw, review) = validated_source_row_request(actor, READ_LOCAL_FOLDER_SOURCE_ROW, payload)?;
+    let input = serde_json::from_value(raw).map_err(|_| failure(ErrorCode::INVALIDARGUMENT))?;
+    Ok((input, review))
 }
 
 pub fn revoke_local_folder_revision_input(
@@ -268,7 +277,7 @@ impl<S: FolderManifestStore + LocalDatasetStore> OperationRegistry<S> {
             original,
             source_sha256: target.source_sha256.clone(),
             mapping: reviewed.mapping,
-            review_declarations: request.review_declarations.unwrap_or_default(),
+            review_declarations: false,
             request,
             header_sha256: reviewed.header_sha256,
         })
