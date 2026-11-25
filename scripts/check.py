@@ -25,7 +25,6 @@ else:
 
 try:
     if __package__:
-        from . import windows_python
         from .doctor import tool_version
         from .processes import log_tail, run_logged
         from .project import (
@@ -39,7 +38,6 @@ try:
             integration_validation, redacted_check_log, release_artifacts,
         )
     else:
-        import windows_python
         from doctor import tool_version
         from processes import log_tail, run_logged
         from project import (
@@ -306,7 +304,13 @@ def main():
         parser.error('A Windows lane uses its fixed selection')
     if args.ci_windows_aggregate and not (args.require_windows or args.profile):
         parser.error('The Windows aggregate requires a full native or scoped selection')
-    python_split = split and not args.profile and windows_python.enabled(project, ci, selected)
+    python_split = False
+    if split and not args.profile:
+        if __package__:
+            from . import windows_python
+        else:
+            import windows_python
+        python_split = windows_python.enabled(project, ci, selected)
     if args.ci_windows_lane:
         selected = windows_lane_checks(selected, args.ci_windows_lane, python_split=python_split)
     maintain_automatically(ROOT)
