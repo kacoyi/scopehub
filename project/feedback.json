@@ -6485,6 +6485,21 @@
         "prevention": "The guarded Ubuntu suite passed all eleven subprocess controls. The guarded native Windows suite passed ten applicable controls and named the POSIX child-signal skip separately. The controls cover retained streams after success and a declared exit, reaping at a genuine deadline and both output buffer limits."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-intake-confuses-windows-producers-with-platform-samples",
+      "source": "Official PR 84 run 45546767887 attempt 1, checkout f7fdd11cacc123552b5535e9cd8d986f6723e7b7. Original browser report SHA-256 a68f9478cb1ab394b3b6ad9fdc21623f87cdf9ca3fb588bc1e0c02d2a89c41ed; recovery report c9c7e6424dd5408375bfdb8646dcb5072b42d3443a712bcc440d77cda82b5083; protected aggregate 4d5050a2660a498ac3a9b18e76192a0ccfd81e48c1f3fb5b61b9d95c6312c17d matches the existing M0-105 receipt. Exact ordinary CLI replay, controlled conflict and scoped comparison: archives/observations/m0-130-timing-producer-inputs/red-eddceb4/SHA256SUMS (SHA-256 1e0265aa4b21ac46de1422fc5594b8ff26f16e95b08deb2a8424ea0cdf3726ef).",
+      "observation": "Normal local discovery drops two valid, distinct Windows producer reports as conflicting complete samples. Their profiles are ci-windows-browser and ci-windows-recovery, with eleven and one passing checks. Explicit mixed input also suppresses the valid protected aggregate with 28 passes. Alone each producer incorrectly acquires job 138982816287 and its 804-second protected total while excluded from the automatic review. The aggregate-alone control gets that total correctly. The genuinely different complete control remains ambiguous and malformed explicit JSON produces a diagnostic without discarding the aggregate. Authenticated records PR run 45493294184 republishes the byte-identical scoped core report as protected coverage; it gives one legitimate four-check scoped sample.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-130"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

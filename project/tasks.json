@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-130",
   "tasks": [
     {
       "id": "M0-001",
@@ -23923,6 +23923,101 @@
           ],
           "data_plan": "Keep only fixed diagnostic labels and bounded numeric codes. Use synthetic subprocess inputs and retain archived original logs privately.",
           "cleanup": "Keep the original report unchanged and discard raw child output and failure objects at the runner boundary."
+        }
+      }
+    },
+    {
+      "id": "M0-130",
+      "title": "Preserve producer timing without substituting Windows platform coverage",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-111"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary local discovery and explicit raw or compact reads retain separate Windows producer observations. A single producer uses only its own matching job clocks and remains ineligible for platform capture and timing objectives.",
+        "The authenticated PR 84 aggregate remains eligible alongside its two real producers. Historical scoped core and protected republication preserve their existing scope. Keep genuine conflicts between complete platform reports and explicit malformed input diagnostics.",
+        "Compare aggregate-only, producer-only, mixed, conflicting and malformed controls through project:timing. Retain exact source red and green, run the canonical task, maintain the accepted M0-105 receipt and compare accepted history."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Add the CLI and capture regressions for the confirmed boundary, then replay the authenticated Windows reports and scoped control with the pinned toolchain.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Timing intake identifies full Windows producers from authentic selection identity, retaining their own work without treating them as protected platform outcomes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/ci_artifacts.py",
+          "project/delivery.json",
+          "archives/observations/m0-130-timing-producer-inputs/red-eddceb4/SHA256SUMS"
+        ],
+        "hypotheses": [
+          "The report source already preserves the producer-specific selection profile, but timing coalescing and clock lookup use the platform key alone. The scoped core is intentionally republished unchanged for its exact protected scoped run."
+        ],
+        "risks": [
+          {
+            "failure": "Raw producers either suppress the complete aggregate or acquire its clock and satisfy a required platform. Check browser and recovery independently, together and with the aggregate; require exact producer job identity and missing platform capture for producer-only observations.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New grouping hides corrupt or genuinely conflicting full samples, or drops a legitimate scoped core republication. Exercise explicit malformed input, a controlled complete conflict, compact save and reopen and the authenticated scoped historical control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the bounded timing reader fix if exact full or scoped observations lose their existing qualification. Retain original reports, the controlled conflict, and the independent M0-105 receipt.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Workflow changes, changes to assurance or protected checks, M0-105 task history, and ad-hoc M0-078 timing notes in other worktrees."
+          ],
+          "open_questions": [
+            "Only producer roles present in the recorded profile can be classified without inferring role from mutable local file names."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original raw artifacts, timing archive format, authenticated protected and historic scoped observations, and material conflict checks."
+          ],
+          "change": [
+            "Use the explicit historical Windows producer profiles when coalescing and looking up clocks, and exclude producer-only rows from platform capture and review."
+          ],
+          "data_plan": "Use digest-checked public artifacts and bounded synthetic controls in ignored directories, with independent private manifests.",
+          "cleanup": "Leave historical source files in place and preserve the isolated test artifacts without altering the primary checkout."
         }
       }
     }
