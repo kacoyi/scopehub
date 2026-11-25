@@ -6530,6 +6530,44 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-cache-probe-stale-hardlink-length",
+      "source": "Astra Standard pre-execution review of ea22af10707fbf360724cb2da2b5f88b913fed5d. Original: archives/observations/m0-129-astra-ea22af1/astra-native-cache-composition-ea22af1.txt (SHA-256 6443ddef2b0c7e1e0516aa454574488a31a1e25ee8adc3c225b452a483377e97).",
+      "observation": "Astra reproduced conflicting logical sizes of 8192 and 1 for two paths to the same resized Windows file using stale directory-entry metadata. The collector marked the sample complete. It must query current metadata without following reparse points or trusting enumeration sizes for Windows regular file paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-129"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Windows directory enumeration could retain the earlier length at another hardlink path after a resize. The original alias control wrote the content before linking and missed that stale-metadata case.",
+        "correction": "For the one-shot probe, query the current logical length through a non-following Windows metadata handle for each regular file path. Preserve alias path accounting and the scan deadline.",
+        "prevention": "The portable stale-metadata control and the resized cross-component native hardlink both verify the current 8192-byte length at each path. PR 112 run 45606747991 attempt 1 retains the native result and logs. The reviewed cleanup removes the diagnostic. Any future equivalent measurement must exercise the resized alias before treating its totals as complete."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-cache-probe-ambiguous-root-coverage",
+      "source": "Astra Standard pre-execution review of ea22af10707fbf360724cb2da2b5f88b913fed5d. Original: archives/observations/m0-129-astra-ea22af1/astra-native-cache-composition-ea22af1.txt (SHA-256 6443ddef2b0c7e1e0516aa454574488a31a1e25ee8adc3c225b452a483377e97).",
+      "observation": "Astra swapped a genuinely missing git/db and a skipped target junction with a genuinely missing target and skipped git/db. Both observations reported the same complete aggregate. Fixed root labels and statuses must preserve exclusions and incomplete coverage independently of inner-entry counts.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-129"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Shared counters merged missing and excluded cache roots with skipped inner entries. Swapping a missing optional git/db and an excluded target could yield the same complete aggregate.",
+        "correction": "For the one-shot probe, record each fixed root status and entry counters separately. Require target to be observed and scanned. Permit genuinely missing optional roots and preserve errors, exclusions and budget limits.",
+        "prevention": "Retain the swapped-root and budget regressions and the passing native junction fixture from PR 112 run 45606747991 attempt 1. Each of the four accepted records scanned target and labeled only git/db as missing. Any future equivalent measurement must distinguish an excluded required root from an absent optional root before treating the sample as complete."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "consequential-review-after-timing-task-closure",
       "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4, transcript SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341. Original local task closures ecf48f65a02b94967e0813fec4e9cbbec360ffbf and 97fedb3771bcdbcbf1030d32d4eec1c69401d656.",
       "observation": "M0-130 and M0-131 were locally done with passing receipts before independent review found that a known timing conflict could disappear after normal capture and reopen. On the reviewed source the CLI correctly withheld the disputed browser clock on first interpretation, while saving kept only the complete listing and reopening its output recovered a 645-second clock without a conflict. Existing evidence qualified the cases actually exercised before closure. The review launch used the implementation-phase task context; whether an earlier focused independent review would have caught the missing boundary is an implementation hypothesis.",
