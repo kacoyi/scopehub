@@ -1714,6 +1714,263 @@ for (const { kind, withdrawn } of [
   });
 }
 
+for (const confirmBeforeFocus of [false, true]) {
+  base(`keeps folder ${confirmBeforeFocus ? 'confirmation' : 'choices'} bound to the authorized staged comparison`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page }, testInfo) => {
+    const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+    base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+    const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-choices-'));
+    const profile = join(root, 'profile');
+    const folder = join(root, 'source');
+    const csv = rows => [equity.header, ...rows].map(row => row.join(',') + '\n').join('');
+    const firstSource = csv(equity.rows);
+    const sourceHash = createHash('sha256').update(firstSource).digest('hex');
+    const conflictTime = Date.parse(equity.times[0]);
+    const withdrawalTime = Date.parse(equity.times[1]);
+    const choices = alternative_index => ({
+      conflicts: [{ time_ms: conflictTime, alternative_index }], withdraw_bars: [withdrawalTime], withdraw_sources: ['removed.csv'],
+    });
+    let bridge;
+    let peer;
+    let accessGate;
+    let stageGate;
+    const calls = [];
+    const observations = [];
+    const replyFor = name => calls.filter(({ args }) => args?.operation === `market.${name}`);
+    const read = (operation, payload, owner = bridge) => owner.request('execute_operation', {
+      operation: `market.${operation}`, requestId: randomUUID(), payload: { version: 1, ...payload },
+    });
+    const run = async (operation, payload) => {
+      const reply = await read(operation, payload);
+      expect(reply.error).toBeUndefined();
+      return reply.result;
+    };
+    try {
+      await mkdir(profile, { mode: 0o700 });
+      await mkdir(folder, { mode: 0o700 });
+      const removed = join(folder, 'removed.csv');
+      await writeFile(removed, firstSource);
+      bridge = startLocalImportBridge(binary, profile, folder, { workspace: true });
+      const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+      const selected = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: sourceHash };
+      const mapping = { version: 1, revision: 'synthetic-review-equity', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+        timestamp_convention: 'bar_start', volume_semantics: 'per_bar', ...equity.settings, columns: equity.columns };
+      const preview = { ...selected, mapping, row_limit: 2 };
+      expect((await run('previewLocalImport', preview)).preview.rows[1].normalized.close).toBe(40);
+      const { record } = await run('saveLocalImportMapping', preview);
+      const { revision: { revision_id: revision } } = await run('publishLocalImport', { ...selected, review_revision: record.review_revision });
+      const sourceFolder = { folder_id: catalog.folder_id };
+      const cleanStage = await run('previewLocalFolderRefresh', { ...sourceFolder, revision_id: revision });
+      const cleanReview = { ...sourceFolder, review_id: cleanStage.review_id };
+      const cleanCandidate = await run('prepareLocalFolderPublication', { ...cleanReview, conflicts: [], withdraw_bars: [], withdraw_sources: [] });
+      const { revision: { revision_id: folderRevision } } = await run('publishLocalFolderRefresh', {
+        ...cleanReview, candidate_sha256: cleanCandidate.candidate_sha256, idempotency_key: randomUUID(),
+      });
+      const replacement = join(folder, 'replacement.csv');
+      const alternative = close => equity.rows[0].map((cell, index) => index === 5 ? String(close) : cell);
+      await rm(removed);
+      await writeFile(replacement, csv([alternative(37), alternative(39)]));
+
+      await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+        if (command === 'cancel_local_import_preview') {
+          calls.push({ command, args });
+          return { result: null };
+        }
+        const reply = await bridge.request(command, args);
+        calls.push({ command, args, reply });
+        const gate = args?.operation === 'market.previewLocalFolderRefresh' ? stageGate
+          : args?.payload?.type === 'frozen_chart_status' && args.payload.revision_id === revision ? accessGate : undefined;
+        if (gate) {
+          gate.entered.resolve(reply);
+          await gate.release.promise;
+        }
+        return reply;
+      });
+      await page.addInitScript(() => {
+        window.isTauri = true;
+        window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+        window.__TAURI_INTERNALS__ = {
+          async invoke(command, args) {
+            const reply = await window.testNativeInvoke(command, args);
+            if (args?.operation === 'market.previewLocalFolderRefresh') {
+              window.deliveredFolderStages = (window.deliveredFolderStages ?? 0) + 1;
+            }
+            if (reply.error) throw reply.error;
+            return reply.result;
+          },
+        };
+      });
+      await page.goto('/');
+      await control(page, 'Choose local CSV folder').last().click();
+      const review = page.getByRole('region', { name: 'Folder refresh review' });
+      const accepted = review.getByLabel('Accepted revision ID');
+      const table = review.getByRole('table', { name: 'Folder source changes' });
+      const stage = control(review, 'Stage folder refresh');
+      const prepare = control(review, 'Review folder publication');
+      const publish = control(review, 'Publish reviewed folder');
+      const counters = review.getByText(/conflicts resolved/);
+      const radios = [1, 2].map(number => review.getByRole('radio', { name: `Use alternative ${number} for ${new Date(conflictTime).toISOString()}` }));
+      const withdrawal = review.getByRole('checkbox', { name: `Withdraw bar at ${new Date(withdrawalTime).toISOString()}` });
+      const removal = review.getByRole('checkbox', { name: 'Withdraw source removed.csv' });
+      const focus = () => page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      const selectDetails = async () => {
+        for (const summary of [/2026-04-14.+Competing values/, /2026-04-15.+Withdrawal candidate/]) {
+          const header = review.getByText(summary);
+          if (!await header.evaluate(node => node.parentElement.open)) await header.click();
+        }
+      };
+      const recordChoices = async phase => {
+        await selectDetails();
+        const selected = { conflict: await radios[1].isChecked(), bar: await withdrawal.isChecked(), source: await removal.isChecked() };
+        observations.push({ phase, selected, publishEnabled: await publish.count() === 1 && await publish.isEnabled(),
+          prepares: replyFor('prepareLocalFolderPublication').length, publishes: replyFor('publishLocalFolderRefresh').length,
+          digest: replyFor('prepareLocalFolderPublication').at(-1)?.reply.result?.candidate_sha256 });
+        return selected;
+      };
+      const choose = async alternativeIndex => {
+        await selectDetails();
+        await radios[alternativeIndex].check();
+        await withdrawal.check();
+        await removal.check();
+        await expect(prepare).toBeEnabled();
+      };
+      const prepareCandidate = async alternativeIndex => {
+        await prepare.click();
+        await expect(publish).toBeEnabled();
+        const prepared = replyFor('prepareLocalFolderPublication').at(-1);
+        expect(prepared.args.payload).toMatchObject(choices(alternativeIndex));
+        expect(prepared.reply.result).toMatchObject({
+          review_id: prepared.args.payload.review_id, parent_revision_id: revision, bar_count: 1, source_count: 1,
+        });
+        expect(prepared.reply.result.candidate_sha256).toMatch(/^[a-f0-9]{64}$/);
+        return prepared.reply.result;
+      };
+      const assertWithheld = async () => {
+        await expect(table).toHaveCount(0);
+        for (const content of [sourceHash, 'removed.csv', 'replacement.csv']) {
+          await expect(review.getByText(content, { exact: true })).toHaveCount(0);
+        }
+        await expect(review.getByText(/Competing values|Withdrawal candidate/)).toHaveCount(0);
+        await expect(publish).toHaveCount(0);
+      };
+      const recheck = async (expected, withdraw = false) => {
+        const gate = { entered: Promise.withResolvers(), release: Promise.withResolvers() };
+        accessGate = gate;
+        await focus();
+        await expect.poll(() => calls.filter(call => call.args?.payload?.type === 'frozen_chart_status'
+          && call.args.payload.revision_id === revision).at(-1)?.reply.result).toEqual(expected);
+        expect((await gate.entered.promise).result).toEqual(expected);
+        await assertWithheld();
+        accessGate = undefined;
+        gate.release.resolve();
+        if (!withdraw) await expect(table).toBeVisible();
+      };
+      const stageNew = async () => {
+        await stage.click();
+        await expect(table).toBeVisible();
+        return replyFor('previewLocalFolderRefresh').at(-1).reply.result;
+      };
+
+      await accepted.fill(revision);
+      const initial = await stageNew();
+      expect(initial.bars.find(item => item.time_ms === conflictTime).alternatives.map(item => item.bar.close)).toEqual([37, 39]);
+      await choose(1);
+      await expect(counters).toContainText('1 of 1 conflicts resolved · 1 of 1 bar withdrawals reviewed · 1 of 1 source withdrawals reviewed');
+      const prepared = confirmBeforeFocus ? await prepareCandidate(1) : undefined;
+      await recheck({ available: true });
+      expect(await recordChoices('same stage after access confirmation')).toEqual({ conflict: true, bar: true, source: true });
+      expect(replyFor('previewLocalFolderRefresh')).toHaveLength(1);
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+
+      if (!prepared) {
+        await prepareCandidate(1);
+        peer = startLocalImportBridge(binary, profile, folder, { workspace: true });
+        expect((await read('revokeLocalImportRevision', { revision_id: revision }, peer)).result.revision_id).toBe(revision);
+        await recheck({ available: false, revoked: true }, true);
+        await expect(page.getByRole('alert')).toContainText('Access removed for this published revision.');
+        await assertWithheld();
+        expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+        observations.push({ phase: 'real peer revocation removed prepared authority' });
+        return;
+      }
+
+      await expect(publish).toBeEnabled();
+      await control(review, 'Edit folder choices').click();
+      await expect(publish).toHaveCount(0);
+      await radios[0].check();
+      const edited = await prepareCandidate(0);
+      expect(edited.review_id).toBe(prepared.review_id);
+      expect(edited.candidate_sha256).not.toBe(prepared.candidate_sha256);
+      await recheck({ available: true });
+      await selectDetails();
+      await expect(radios[0]).toBeChecked();
+      await expect(radios[1]).not.toBeChecked();
+      await expect(withdrawal).toBeChecked();
+      await expect(removal).toBeChecked();
+      await expect(publish).toBeEnabled();
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+      observations.push({ phase: 'edited choices confirmed on the same stage', digest: edited.candidate_sha256 });
+
+      await accepted.fill(folderRevision);
+      await assertWithheld();
+      await accepted.fill(revision);
+      await assertWithheld();
+      await accepted.fill(folderRevision);
+      const folderStage = await stageNew();
+      expect(folderStage.folder_base.revision_id).toBe(folderRevision);
+      await expect(counters).toContainText('0 of 1 conflicts resolved · 0 of 1 bar withdrawals reviewed · 0 of 1 source withdrawals reviewed');
+      await accepted.fill(revision);
+      await assertWithheld();
+      await writeFile(replacement, csv([alternative(37), alternative(39), alternative(39)]));
+      const changed = await stageNew();
+      expect(changed.review_id).not.toBe(initial.review_id);
+      await expect(counters).toContainText('0 of 1 conflicts resolved · 0 of 1 bar withdrawals reviewed · 0 of 1 source withdrawals reviewed');
+      await choose(1);
+      await prepareCandidate(1);
+
+      stageGate = { entered: Promise.withResolvers(), release: Promise.withResolvers() };
+      await stage.click();
+      expect((await stageGate.entered.promise).result.review_id).toBe(changed.review_id);
+      await control(page, 'Cancel folder refresh').click();
+      const deliveries = replyFor('previewLocalFolderRefresh').length;
+      stageGate.release.resolve();
+      stageGate = undefined;
+      await expect.poll(() => page.evaluate(() => window.deliveredFolderStages)).toBe(deliveries);
+      await expect(page.getByText('Stopped waiting for the folder refresh.', { exact: true })).toBeVisible();
+      await assertWithheld();
+      expect(calls.filter(call => call.command === 'cancel_local_import_preview')).toHaveLength(1);
+      await stageNew();
+      await expect(counters).toContainText('0 of 1 conflicts resolved · 0 of 1 bar withdrawals reviewed · 0 of 1 source withdrawals reviewed');
+      await choose(0);
+      const final = await prepareCandidate(0);
+      expect(final.review_id).toBe(changed.review_id);
+      await expect(radios[0]).toBeChecked();
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(0);
+      await publish.click();
+      const published = page.getByRole('region', { name: 'Published local folder' });
+      await expect(published).toContainText('1 bar · 1 source');
+      const [submission] = replyFor('publishLocalFolderRefresh');
+      expect(replyFor('publishLocalFolderRefresh')).toHaveLength(1);
+      expect(submission.args.payload).toMatchObject({ review_id: final.review_id, candidate_sha256: final.candidate_sha256 });
+      const newId = submission.reply.result.revision.revision_id;
+      const frozen = await run('readLocalFolderRevision', { revision_id: newId });
+      expect(frozen.bars.map(item => [item.bar.time_ms, item.bar.close])).toEqual([[conflictTime, 37]]);
+      expect(frozen.files.map(item => item.relative_path)).toEqual(['replacement.csv']);
+      const list = await run('listLocalFolderRevisions', { after_revision_id: null, limit: 8 });
+      expect(list.revisions.map(item => item.revision_id).sort()).toEqual([folderRevision, newId].sort());
+      observations.push({ phase: 'one explicit publication', digest: final.candidate_sha256, close: 37, sources: 1 });
+    } finally {
+      accessGate?.release.resolve();
+      stageGate?.release.resolve();
+      await testInfo.attach('folder-review-choice-lifecycle', { body: JSON.stringify(observations), contentType: 'application/json' });
+      await peer?.close();
+      await bridge?.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
+
 base('rejects a late source declaration conflict before publishing a native CSV revision', {
   tag: '@profile-local-csv',
 }, async () => {
