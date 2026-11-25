@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-140",
   "tasks": [
     {
       "id": "M0-001",
@@ -24525,7 +24525,7 @@
       "id": "M0-140",
       "title": "Measure worker protocol cost in complete synthetic user workflows",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [
         "M0-132"
       ],
