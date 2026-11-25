@@ -23505,7 +23505,7 @@
           "sha256": "0597e370afc519a8f79134c4c9024cdcc0dfef9d0de6b4c4897b2c7c8568e676"
         }
       ],
-      "next_action": "Complete independent Astra Standard review of 2b0e9b44870c02571352337c69e3eda18f1895ce. The required ordinary task receipt is retained.",
+      "next_action": "Correct the confirmed HTTP parser and optional whitespace regressions, retain required checks on the corrected source, and obtain final independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -23518,7 +23518,8 @@
           "scripts/publisher_advisory.py",
           "scripts/dependencies.py",
           "tests/project/test_dependencies.py",
-          "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json"
+          "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json",
+          "Astra Standard CHANGES_REQUESTED for 2b0e9b44870c02571352337c69e3eda18f1895ce."
         ],
         "hypotheses": [
           "The publisher transport discards non-200 headers. The dependency report already persists the resulting error."
@@ -23533,7 +23534,7 @@
             ]
           },
           {
-            "failure": "Malformed or repeated headers produce false attribution or disclose raw server text.",
+            "failure": "Incomplete or repeated headers produce false attribution, legitimate HTTP field whitespace loses an accurate diagnosis, or malformed values disclose server text.",
             "checks": [
               "python-contracts-workers"
             ]
