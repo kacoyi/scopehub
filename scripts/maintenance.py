@@ -171,12 +171,17 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None, sta
                                         'status', 'conclusion')
         } if run else None)
     elif key == 'verification-timing':
+        if __package__:
+            from .timing import qualified_collected_reports
+        else:
+            from timing import qualified_collected_reports
+        reports = qualified_collected_reports(data.get('samples', []), data.get('recent_collection'))
         fields = ('repository', 'event', 'profile', 'platform', 'sample_count', 'recent_runs', 'recent_objective_breaches')
         facts.update(scopes=[{name: item[name] for name in fields} for item in data['objective_reviews']
                              if item['event'] in {'pull_request', 'push'} and item['profile'] == 'full'
                              and item['sample_count'] >= 3],
                      captured_samples=[{name: row[name] for name in ('run_id', 'platform', 'event')}
-                                       for row in (data.get('recent_collection') or {}).get('collected_samples', [])],
+                                       for row in reports if row['repository'] == policy['repository']],
                      local_fast=local_fast_observation(data, clock), product_delivery=product_timing,
                      input_complete=not data['input_issues'],
                      adverse=bool(data['budget_follow_up']['repeated_breaches'] or data['budget_follow_up']['sustained_growth']))

@@ -78,16 +78,6 @@ PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
-WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
-                          'local-import-ui', 'market-live-stream', 'market-quality-states',
-                          'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
-                          'desktop-workspace-transport', 'desktop-localization'}
-WINDOWS_LANE_CHECKS = {
-    'browser': WINDOWS_BROWSER_CHECKS,
-    'python': {'python-contracts-workers'},
-    'recovery': {'market-recovery'},
-}
-WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 CHECK_OUTPUT_LOCK = Lock()
 
 
@@ -135,16 +125,6 @@ def check_command(check):
 def check_timeout(check, system):
     default = check['timeout_seconds']
     return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
-
-
-def windows_lane_checks(selected, lane):
-    if lane == 'core':
-        return selected.difference(*WINDOWS_LANE_CHECKS.values())
-    return selected & WINDOWS_LANE_CHECKS[lane]
-
-
-def windows_lanes_run_id(ci):
-    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
 
 
 def build_window(catalog, selected, environment, index):
@@ -224,14 +204,15 @@ def select_checks(project, *, profile=None, task_id=None):
         if task_id not in project['tasks']:
             raise ProjectError(f'Unknown task: {task_id}')
         return set(project['tasks'][task_id]['checks']) | {'environment', 'project-state'}
-    if profile:
-        if profile == 'release':
-            return release_checks(project)
-        if profile not in project['catalog'].get('profiles', {}):
-            raise ProjectError(f'Unknown check profile: {profile}')
-        return set(project['catalog']['profiles'][profile])
-    return {key for key, check in project['checks'].items()
-            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
+    if profile == 'release':
+        return release_checks(project)
+    if profile and profile not in project['catalog'].get('profiles', {}):
+        raise ProjectError(f'Unknown check profile: {profile}')
+    if __package__:
+        from .verification_scope import hosted_check_selection
+    else:
+        from verification_scope import hosted_check_selection
+    return hosted_check_selection(project['catalog'], profile)
 
 
 TASK_CHECKS_WITHOUT_BROWSER_OR_CARGO_BUILD = {
@@ -278,9 +259,17 @@ def main():
     selection.add_argument('--task')
     parser.add_argument('--fail-fast', action='store_true')
     parser.add_argument('--ci-build-setup-required', action='store_true', help=argparse.SUPPRESS)
-    parser.add_argument('--ci-windows-lane', choices=WINDOWS_LANES, help=argparse.SUPPRESS)
+    parser.add_argument('--ci-windows-lane', help=argparse.SUPPRESS)
     parser.add_argument('--ci-windows-aggregate', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
+    split = args.ci_windows_lane is not None or args.ci_windows_aggregate is not None
+    if split:
+        if __package__:
+            from .verification_scope import WINDOWS_LANES, windows_lane_checks, windows_lanes_run_id
+        else:
+            from verification_scope import WINDOWS_LANES, windows_lane_checks, windows_lanes_run_id
+        if args.ci_windows_lane is not None and args.ci_windows_lane not in WINDOWS_LANES:
+            parser.error('Unknown Windows verification lane')
     if args.ci_build_setup_required:
         try:
             required = ci_requires_build_setup(load_project(ROOT), args.task, profile=args.profile)
@@ -294,7 +283,6 @@ def main():
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
     ci = ci_provenance(source, os.environ, ROOT)
-    split = bool(args.ci_windows_lane or args.ci_windows_aggregate)
     if split and (not ci or ci['event'] not in {'pull_request', 'push'} or platform.system() != 'Windows'
                   or args.task or args.fail_fast):
         parser.error('Windows lanes require hosted Windows change verification')

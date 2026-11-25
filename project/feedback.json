@@ -6982,6 +6982,635 @@
         "prevention": "The paired public status fixture keeps the accepted successor and reversed ancestor, checks the full output bytes and traces the actual Git calls. The three pairs per case retained 41 to 36 and 42 to 37 total Git invocations."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-intake-confuses-windows-producers-with-platform-samples",
+      "source": "Official PR 84 run 45546767887 attempt 1, checkout f7fdd11cacc123552b5535e9cd8d986f6723e7b7. Original browser report SHA-256 a68f9478cb1ab394b3b6ad9fdc21623f87cdf9ca3fb588bc1e0c02d2a89c41ed; recovery report c9c7e6424dd5408375bfdb8646dcb5072b42d3443a712bcc440d77cda82b5083; protected aggregate 4d5050a2660a498ac3a9b18e76192a0ccfd81e48c1f3fb5b61b9d95c6312c17d matches the existing M0-105 receipt. Exact ordinary CLI replay, controlled conflict and scoped comparison: archives/observations/m0-130-timing-producer-inputs/red-eddceb4/SHA256SUMS (SHA-256 1e0265aa4b21ac46de1422fc5594b8ff26f16e95b08deb2a8424ea0cdf3726ef).",
+      "observation": "Normal local discovery drops two valid, distinct Windows producer reports as conflicting complete samples. Their profiles are ci-windows-browser and ci-windows-recovery, with eleven and one passing checks. Explicit mixed input also suppresses the valid protected aggregate with 28 passes. Alone each producer incorrectly acquires job 138982816287 and its 804-second protected total while excluded from the automatic review. The aggregate-alone control gets that total correctly. The genuinely different complete control remains ambiguous and malformed explicit JSON produces a diagnostic without discarding the aggregate. Authenticated records PR run 45493294184 republishes the byte-identical scoped core report as protected coverage; it gives one legitimate four-check scoped sample.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-130"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Coverage coalescing keyed the full and producer reports by the same attempt and platform. Clock binding looked up the protected platform job even for a producer with an explicit identity in its profile.",
+        "correction": "Coalesce recorded Windows producer roles independently, bind clocks only to the matching named producer job with complete job identity, and exclude producer observations from protected platform capture and budget reviews. Keep normal scoped records and existing protected conflict rules.",
+        "prevention": "The original authenticated browser and recovery reports retain their 11 and 1 checks and their 645 and 321 second clocks. With both present, the protected aggregate retains 28 passes and 804 seconds. The authenticated scoped core and republication retain one records sample. Ordinary discovery, explicit raw and compact reads, archive reopen, malformed input and conflicting full samples all have controls. The replay is retained in archives/observations/m0-130-timing-producer-inputs/green-3ac0da8/SHA256SUMS (SHA-256 13e57a3c5f5d864190273b85794df7d7b2f28bd5bd122296be7c0e0c0b6de45c)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-invalid-producer-scope-fills-protected-slot",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Report projection trimmed invalid profile syntax into an unknown scope, while protected capture and the linked index inferred platform scope from the absence of a named producer.",
+        "correction": "Validate profile syntax before projection. Require one of the supported automatic profiles, a known platform and exact CI checkout identity for platform timing capture and the linked index.",
+        "prevention": "Real spaced and unknown producer reports give diagnostics while the authentic aggregate still qualifies. A legacy normalized unknown row leaves Windows capture missing and cannot enter the linked index. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
+      "deferral_reason": null,
+      "observation": "A trailing space on the actual browser producer profile loses the role during projection. The explicit CLI assigns the protected 804-second clock with no diagnostic. The same observation fills Windows capture with a real Linux sample, becomes indexable, and displaces the protected aggregate as a false full conflict. Unknown reserved profiles also require a diagnostic."
+    },
+    {
+      "id": "timing-producer-role-and-checkout-binding-is-ambiguous",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Complete clock comparison omitted the job role. Producer binding also trusted the absence of a missing-identity flag instead of requiring a positive actual job identifier and matching checkout.",
+        "correction": "Bind by exact attempt, role and positive job ID. Compare role-bearing clock signatures for attempt selection and archive deduplication, and honor retained checkout evidence.",
+        "prevention": "The exact swapped-role replay gives the same conflict in both orders and after archive reopen. A null job ID or incompatible checkout gives no producer clock. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
+      "deferral_reason": null,
+      "observation": "Two complete Actions lists with intentionally swapped core and recovery roles select different recovery clocks depending on input order. The wrong result is 756 seconds instead of 321. A null compact browser job ID or an inconsistent report checkout can still deliver the 645-second browser clock."
+    },
+    {
+      "id": "timing-complementary-producer-clocks-are-order-dependent",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An incomplete attempt record replaced the previous record as a whole, losing independent producer observations.",
+        "correction": "Resolve compatible producer jobs across the retained attempt records and keep the complete protected clock decision separate.",
+        "prevention": "Either order of the complementary lists yields browser 645 seconds and recovery 321 seconds. The attempt remains unqualified for a platform timing objective. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
+      "deferral_reason": null,
+      "observation": "Two partial official job lists with complementary browser and recovery observations overwrite each other. The last list determines the only producer clock. Both named job observations must remain available without qualifying protected platform clocks."
+    },
+    {
+      "id": "timing-cache-provenance-is-lost-or-contradictory",
+      "source": "Independent Astra review of 97fedb3771bcdbcbf1030d32d4eec1c69401d656. Original archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt (SHA-256 7b95634e25729b297ad42975b270d62a9b93f2de622b6b1a3633617698dc5d06).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-131"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Default discovery skipped compact siblings. Incomplete duplicate projections lost known cache metadata, and a platform cache vector was never checked against the authenticated producer measurements.",
+        "correction": "Require an exact harness projection for automatic compact enrichment. Merge compatible exact metadata across complete or incomplete projections, diagnose contradictory observed caches by producer role and remove disputed cache from dependent comparison cohorts.",
+        "prevention": "The official three samples retain partial in default and explicit compact intake. Both core input orders preserve partial. A warm contradiction retains the 804-second wall observation and enters no cache-dependent cohort. The authentic records control retains 4 passes and 166 seconds. Public CLI replay and exact original controls are retained in archives/observations/m0-131-timing-producer-identities/green-fa4d434/SHA256SUMS (SHA-256 ea68ee266210d2d57cdc3378169c02e70e1f65c75072365ce60ec5b7f8136b91)."
+      },
+      "deferral_reason": null,
+      "observation": "Ordinary discovery leaves cache unknown despite matching compact siblings. An incomplete core raw plus compact observation changes cache with input order. A controlled warm aggregate remains in a warm cohort when authenticated browser and recovery cache observations say partial. Preserve applicable exact cache facts and label contradictions."
+    },
+    {
+      "id": "timing-shared-capture-drops-partial-role-dispute",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Shared capture reduced attempt observations to the preferred complete clock and lost the competing partial browser job identity.",
+        "correction": "Retain distinct grounded observations and reconcile the same attempt facts for initial review, capture, indexing and linked reopen.",
+        "prevention": "test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders retains a partial wrong browser job beside the complete clock, keeps protected elapsed time, and reopens the same producer dispute."
+      },
+      "deferral_reason": null,
+      "observation": "During normal public review a complete clock and a contradictory partial browser job ID remove the 645-second attribution in both orders. Shared capture saves only the complete clock, and reopening silently restores the browser time."
+    },
+    {
+      "id": "timing-checkout-dispute-remains-capture-and-index-eligible",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The checkout disagreement was consumed by elapsed review without applying the same qualification to producer attribution, capture status and index markers.",
+        "correction": "Collect mutually incompatible known checkout claims at the attempt boundary. Retain their evidence, withhold hosted attribution and reconcile existing links against the disputed attempt.",
+        "prevention": "test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders exercises conflicting complete checkout reports in both orders and checks raw retained reports, ambiguous capture, removed index markers and absent linked attribution."
+      },
+      "deferral_reason": null,
+      "observation": "Individually valid source claims at two different checkouts of the same attempt suppress platform timing in the CLI but still produce captured status and two index markers. In a producer-only pair, both incompatible checkouts receive attributable clocks."
+    },
+    {
+      "id": "timing-known-checkout-conflicts-with-missing-clock-checkout",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Whole-clock comparison treated a missing checkout and a matching known checkout as differing complete observations.",
+        "correction": "Join compatible job facts by identity and let a sole known checkout fill the missing fact. Preserve distinct known checkout disagreements.",
+        "prevention": "test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders compares missing and matching checkout controls against a real disagreement, with both orderings and linked reopen."
+      },
+      "deferral_reason": null,
+      "observation": "Adding the correct checkout to the otherwise identical browser job is treated as a complete-clock conflict in either order and drops 645, 321 and 804 seconds. Two different known checkouts must still be disputed."
+    },
+    {
+      "id": "timing-incomplete-component-cache-drops-platform-wall-observation",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt (SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Grouping treated an optional producer cache component like an elapsed measurement, so a compatible unknown component could invalidate the full platform sample.",
+        "correction": "Reconcile cache components separately. A known cache disagreement withholds the cache cohort and leaves the independent eligible wall observation.",
+        "prevention": "test_component_cache_union_preserves_protected_elapsed_observation joins complementary unknown values and covers a known cache contradiction while retaining the platform objective."
+      },
+      "deferral_reason": null,
+      "observation": "An official full platform compact and a compatible copy with one unknown producer cache lose the platform and its 804-second objective in both orders. Actual known cache contradictions need scoped diagnostics and exclusion from cache cohorts while the valid wall time remains."
+    },
+    {
+      "id": "timing-capture-overwrites-readable-and-invalid-originals",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Shared capture could write a union larger than the ordinary reader limit, then interpret a read failure as empty capture on another intake.",
+        "correction": "Apply ordinary read and validation bounds before atomic publication. Treat an unreadable incumbent as a failed read and preserve its bytes, links and retry state.",
+        "prevention": "test_shared_capture_size_validation_and_retry_preserve_the_original exercises the exact byte limit, one byte over, a malformed original, interrupted and overflowing updates, unchanged index and retry state, and a fitting update."
+      },
+      "deferral_reason": null,
+      "observation": "A 2,095,408-byte readable shared capture is replaced with a 2,099,767-byte union that its normal reader rejects. Later collection reads the rejected capture as empty and overwrites the archived evidence."
+    },
+    {
+      "id": "timing-optional-step-erases-independent-elapsed-clocks",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Clock reconciliation compared whole jobs including optional stage clocks, so an absent step endpoint conflicted with otherwise compatible measurements.",
+        "correction": "Join independently known step and job facts per identified job. Apply uncertainty to the intervals that depend on the disputed endpoints.",
+        "prevention": "test_job_fields_join_by_identity_without_voting_away_independent_measurements and test_agreed_split_intervals_survive_a_missing_or_contested_step_endpoint cover missing completion, incompatible field claims, and preserved eligible clocks after archive reopen."
+      },
+      "deferral_reason": null,
+      "observation": "Removing only a recovery browser-install completion timestamp from a matching Actions record causes both orders to lose the known 645, 321 and 804 second elapsed clocks, including after archive reopen."
+    },
+    {
+      "id": "timing-producer-dispute-stops-independent-platform-intake",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "One producer ambiguity made overall capture exit before the scoped download for missing protected platform reports.",
+        "correction": "Calculate platform backfill and index eligibility independently of a producer role dispute while retaining that dispute in the shared observation.",
+        "prevention": "test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders starts with producer-only evidence, verifies exactly one protected backfill, and reopens both protected links with the producer left disputed."
+      },
+      "deferral_reason": null,
+      "observation": "Two producer reports and one browser job identity dispute produce no platform requests on either collection, even when Linux and Windows protected artifacts are available and the recovery clock is usable."
+    },
+    {
+      "id": "timing-exact-producer-cache-cannot-complete-aggregate-vector",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Cache reconciliation ignored compatible per-lane evidence when the protected sample already had a vector with an unknown component.",
+        "correction": "Use a matching publisher lane with compatible provenance and measurement rows to fill its existing aggregate cache component.",
+        "prevention": "test_matched_lane_can_fill_only_its_existing_aggregate_cache_field checks an exact browser match, input orders, duplicate observations, mismatched measurement rows and a genuine known cache disagreement."
+      },
+      "deferral_reason": null,
+      "observation": "An authentic browser producer with matching CI identity, input digest and 11 check rows cannot complete an unknown browser component of the 804-second Windows aggregate; both orders and reopen lose the known partial classification."
+    },
+    {
+      "id": "timing-job-facts-depend-on-unrelated-matrix-membership",
+      "source": "Independent Astra review of 6a7777c57bc3318df850501e03baa478d64da007. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt (SHA-256 5ea04c5b235075234c3134119512a84e97e5e52ee04847510c691466c1d0a22e).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Complete attempt topology selected the clock facts as well as membership, discarding disagreements in compatible partial listings when an unrelated job was absent.",
+        "correction": "Establish protected membership from qualified complete layouts and use compatible evidence for each identified member in protected, producer and budget projections.",
+        "prevention": "test_protected_job_uses_known_facts_from_partial_membership verifies compatible enrichment and a conflicting elapsed claim, with independent queue and Windows facts and budget sample counts."
+      },
+      "deferral_reason": null,
+      "observation": "Authentic Linux job 138978153241 has an 806-second observation. A competing 926-second observation becomes invisible when an unrelated Windows core job is absent and 806 seconds is counted under the 900-second budget. The same separate fact paths allow a Windows aggregate to retain the disputed 27-second browser stage."
+    },
+    {
+      "id": "timing-cache-lane-matches-another-harness-or-architecture",
+      "source": "Independent Astra review of 6a7777c57bc3318df850501e03baa478d64da007. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt (SHA-256 5ea04c5b235075234c3134119512a84e97e5e52ee04847510c691466c1d0a22e).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Lane cache matching compared the selected result projection without qualifying the publisher harness and Windows architecture.",
+        "correction": "Require the publisher-derived harness identity and Windows x64 along with the attempt, checkout, source digest and check projection before a lane supplies cache evidence.",
+        "prevention": "test_matched_lane_can_fill_only_its_existing_aggregate_cache_field keeps wall time and rejects ARM64, wrong harness, different digest and mismatched check controls while accepting x64 aliases."
+      },
+      "deferral_reason": null,
+      "observation": "An exact Windows browser check projection from another harness report or from ARM64 fills an unknown x64 aggregate cache component. Explicit review, discovery and shared reopening raise the 804-second observation into the partial cache cohort without publisher-compatible producer identity."
+    },
+    {
+      "id": "timing-lane-identity-import-preempts-ledger-recovery",
+      "source": "The exact M0-133 local harness on d653a581d2852cea0caab6b85008805426af189c reproduced an early import error in the isolated recovery fixture. Original at archives/runs/20261125T124443.585764Z-8080952c/test-report.json.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T124443.585764Z-8080952c",
+          "source_commit": "d653a581d2852cea0caab6b85008805426af189c",
+          "report_sha256": "687b98c175f18418320fc0c8607805d19a517f756d5247ffb3a49926103d12f2"
+        }
+      ],
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The ordinary check harness imported the Windows lane helper before it reached the malformed task ledger validation in the isolated recovery fixture.",
+        "correction": "Load the Windows lane helpers only after selecting split Windows verification, preserving the ordinary bootstrap and recovery path.",
+        "prevention": "test_failure_before_run_creation_is_preserved exercises the isolated malformed ledger and verifies the original verification-phase error and recovery snapshot. The original failed harness report remains archived."
+      },
+      "deferral_reason": null,
+      "observation": "Importing the Windows lane identity helper at harness startup caused the isolated malformed-ledger recovery check to report an unrelated missing module before reaching ledger validation. The helper is used only after Windows split verification is selected."
+    },
+    {
+      "id": "timing-single-job-votes-as-split-windows-measurement",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The attempt grouped a protected-only job duration with the split runner sum and stage span despite different measurement definitions.",
+        "correction": "Bind each Windows elapsed and runner measurement to the authenticated job role and established split layout before projecting aggregate metrics.",
+        "prevention": "test_split_windows_measurement_and_joint_capture_use_the_identified_layout checks split and protected-only evidence together and keeps independent wall readings while withholding an unsupported split metric."
+      },
+      "deferral_reason": null,
+      "observation": "An unmarked protected-only Windows observation contradicts valid multi-lane measurements or fills their missing runner work with the independent 46-second job runtime. The actual four-lane sum is 2467 seconds."
+    },
+    {
+      "id": "timing-complementary-clocks-exhaust-automatic-capture",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Readiness required one complete source listing even when matching member facts jointly established the mandatory timing intervals.",
+        "correction": "Project capture readiness from reconciled identified members used by elapsed review. Complementary compatible observations can satisfy one attempt together.",
+        "prevention": "test_split_windows_measurement_and_joint_capture_use_the_identified_layout tests complementary listings, recovered Linux and Windows spans, and the resulting ready capture."
+      },
+      "deferral_reason": null,
+      "observation": "A full pair with opposite missing harness completions reconciles to Linux 680 seconds and Windows 760 seconds but stored capture still reports partial and exhausts its retry allowance."
+    },
+    {
+      "id": "timing-producer-role-ignores-native-check-membership",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A producer profile label could supply the expected role even when selected check membership belonged to a different publisher lane.",
+        "correction": "Validate each producer against the committed native publisher lane selection before assigning its job clock or contributing cache evidence.",
+        "prevention": "test_untrusted_split_reports_keep_harness_data_without_hosted_attribution compares a relabeled recovery report with a genuine browser report and checks their different attribution and cache effects."
+      },
+      "deferral_reason": null,
+      "observation": "Renaming a recovery-only market-recovery artifact to the browser profile assigns the browser job clock and classifies the Windows aggregate cache through explicit, discovered and reopened reports."
+    },
+    {
+      "id": "timing-protected-split-clock-attaches-to-wrong-harness-or-arch",
+      "source": "Independent Astra review of f7358c66ea459f0df40102e90620aab73096cbef. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt (SHA-256 8b9d472b3e91f9da250e5138838e6d3bde98a79e15d16f5f11453826ee3b1561).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Protected split full matching omitted the publisher harness identity and Windows x64 from eligibility.",
+        "correction": "Require the publisher-derived split harness and Windows x64 for protected elapsed, while allowing a report's valid standalone harness measurement.",
+        "prevention": "test_untrusted_split_reports_keep_harness_data_without_hosted_attribution checks wrong publisher and architecture on protected reports, keeps harness duration, and withholds hosted wall and budget attribution."
+      },
+      "deferral_reason": null,
+      "observation": "The baseline and reviewed candidate give the split-Windows x64 aggregate job 804 seconds of protected timing to reports that change their own architecture or publisher harness ID."
+    },
+    {
+      "id": "timing-child-profile-relabel-can-claim-platform-scope",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A child report could enter full or records grouping after relabeling, before publisher scope and selected checks identified its real role.",
+        "correction": "Compare the actual check selection with the committed publisher scope before grouping. Leave an independently qualified protected report eligible.",
+        "prevention": "test_native_child_selection_cannot_displace_the_parent_report exercises full and records relabels, both orders, protected indexability and complete capture with the genuine parent."
+      },
+      "deferral_reason": null,
+      "observation": "Relabeling the recovery-only report full or records grants an 804-second protected attribution or transfers lane cache to a platform cohort. The false full claimant also suppresses the independent 35-check report."
+    },
+    {
+      "id": "timing-incompatible-member-contributes-to-aggregate-endpoints",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "A producer whose head differed from the attempt could still enter split endpoint and runner aggregation.",
+        "correction": "Bind each member by attempt, publisher role, layout and job identity before admitting its endpoint and runner observations.",
+        "prevention": "test_only_bound_producer_endpoints_can_complete_split_intervals compares a foreign member with a compatible observation and examines aggregate stages, runner work and capture readiness."
+      },
+      "deferral_reason": null,
+      "observation": "A wrong-head core member fills missing aggregate runner work with 2457 seconds or suppresses a correct 2467-second observation despite the member identity conflict."
+    },
+    {
+      "id": "timing-cross-member-endpoint-union-cannot-complete-capture",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Split intervals were projected from per-listing summaries before compatible UTC endpoints from different members were joined.",
+        "correction": "Join eligible UTC endpoint facts for each identified member before deriving cross-member split setup and execution, and use that projection for readiness.",
+        "prevention": "test_only_bound_producer_endpoints_can_complete_split_intervals checks complementary missing start facts across producer members in both orderings and a ready joined capture."
+      },
+      "deferral_reason": null,
+      "observation": "Two six-job lists omit different producer harness starts. Their joint known endpoints establish the Windows 32-second setup and 760-second harness span, but review leaves them blank and intake exhausts both attempts."
+    },
+    {
+      "id": "timing-partial-legacy-layout-falls-back-to-single-job-coverage",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Incomplete legacy split membership let a protected-only observation masquerade as full aggregate runner and harness coverage.",
+        "correction": "Recognize incomplete split topology before offering single-job fallback and preserve the incomplete-layout diagnostic with independent wall evidence.",
+        "prevention": "test_four_producer_clocks_keep_each_current_job_and_read_legacy_three_producer_history, test_unmarked_split_job_data_cannot_be_recognized_as_complete_legacy, and test_split_windows_measurement_and_joint_capture_use_the_identified_layout cover genuine legacy summaries and incomplete or incompatible layouts."
+      },
+      "deferral_reason": null,
+      "observation": "Two incomplete 45493294184 legacy listings show part of the split membership and a short protected-only view. The single Windows job contributes 37 runner seconds and a five-second step as aggregate coverage despite missing split members."
+    },
+    {
+      "id": "timing-native-selection-omission-claims-platform-coverage",
+      "source": "Independent Astra review of 5ad7581700f56e89abe31487b7356f329e916450. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-5ad75817/final-response.txt (SHA-256 b4ae3604ded9b616a84d97dd855e46f4910f840cd9b5cf90315fc9de78bb12ea).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Platform qualification inferred enough coverage from report scope without checking the exact publisher selection at the bound checkout.",
+        "correction": "Read the committed publishing catalog for the relevant revision and require its expected native check selection before elapsed attribution and indexing.",
+        "prevention": "test_selection_comes_from_committed_publishing_catalog checks omitted and surplus native selections, matching historical catalog evidence, and unavailable committed publishing evidence."
+      },
+      "deferral_reason": null,
+      "observation": "Removing generated-contracts from the authentic 35-check Windows 45546767887 report leaves a 34-check report that claims the 804-second platform sample and index. When both arrive, the invalid sample disputes and suppresses the valid original."
+    },
+    {
+      "id": "timing-job-step-regrouping-changes-clock-qualification",
+      "source": "Independent Astra review of 5ad7581700f56e89abe31487b7356f329e916450. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-5ad75817/final-response.txt (SHA-256 b4ae3604ded9b616a84d97dd855e46f4910f840cd9b5cf90315fc9de78bb12ea).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Repeated job observations were grouped using step ordering or whole row shape instead of the identity of their numbered steps.",
+        "correction": "Reconcile numbered step facts independently of listing and order with the same join before capture and after reopen.",
+        "prevention": "test_numbered_step_facts_are_independent_of_order_and_listing_boundaries verifies reordered observations both inside a listing and across listings and compares capture and reopen."
+      },
+      "deferral_reason": null,
+      "observation": "The same identified browser job with the same numbered steps in a different order retains 645 seconds and Windows runner 2467 seconds in two listings. Appending it to one listing removes both clocks and exhausts intake; reopening repeats the loss."
+    },
+    {
+      "id": "timing-publishing-start-dispute-erases-independent-intervals",
+      "source": "Independent Astra review of b58a530fe38935497719280ddaa35467cf883f87. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-b58a530f/final-response.txt (SHA-256 3de9c03ecb680f9e875493d7a3864bd2086e440d3ce5ab65ebd5e35b67fb65e9).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Projection treated both endpoints of a step as one usability decision, so a disputed start discarded an agreed finish.",
+        "correction": "Project each interval from its own endpoints. Withhold preparation when publishing start is disputed and retain execution and tail from a usable finish and job end.",
+        "prevention": "test_agreed_split_intervals_survive_a_missing_or_contested_step_endpoint and the authentic run 45546767887 replay check the disputed preparation, 760-second execution and 10-second tail through direct and linked review."
+      },
+      "deferral_reason": null,
+      "observation": "Changing the authentic 45546767887 Windows publisher step start from 04:39:18Z to 04:39:19Z makes the preparation interval disputed. Both observations agree on the publishing finish and job end, but direct review, shared capture and linked reopen lose the independent 760-second execution and 10-second tail."
+    },
+    {
+      "id": "timing-disputed-starts-hide-impossible-phase-ordering",
+      "source": "Independent Astra review of f5fd7be52d8f8c289b920c3677e5a91e5d41bd9a. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f5fd7be5/final-response.txt (SHA-256 3011aa62f51503aa3da63e94bc3d90f2f1af688714920e373fffefc9ddaa9862).",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Reducing conflicting start observations to an unknown scalar erased evidence that every start followed the reported finish.",
+        "correction": "Keep bounded UTC endpoint alternatives through grouping and require an admissible order before a known finish qualifies execution, tail or capture completeness.",
+        "prevention": "test_phase_ordering_survives_same_job_and_cross_listing_joins and the independently approved authentic replay cover valid and impossible orders, duplicates, legacy grouped facts, bounded alternatives and linked reopen."
+      },
+      "deferral_reason": null,
+      "observation": "In authentic run 45546767887, two start-only fragments report 04:39:18Z and 04:39:19Z; a third reports finish 04:39:17Z. Neither start can precede this finish. When the start facts are reduced to unknown, direct review, capture and linked reopen claim 746-second execution and 24-second tail and intake incorrectly considers the phase complete."
+    },
+    {
+      "id": "weekly-timing-current-collection-borrows-historic-platform-report",
+      "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 843e97a61010b193fb0146aa1c4242013fa66169. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt (SHA-256 f7cc505f36547b00350e4f58130262b2f1792d9d4ca64a68e6643c22d3d7474c). Original assistant response SHA-256 9f11b2f69e67c95144271a2ae47fa12609f56fd06b9229bd26972d2adce89266.",
+      "observation": "In the public recent timing and verify-maintenance replay of run 45546767887, acquiring only the authentic browser fragment refreshed Windows pull_request when a full platform report remained in retained history. A controlled second attempt also borrowed first-attempt evidence. A fresh full report qualified and a missing download stayed pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-145"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Weekly maintenance inferred current acquisition from a merged platform trend that could include a retained report for the same run.",
+        "correction": "Issue refresh evidence from the reports actually downloaded in the current invocation, tied to their attempts and job observations. Retain eligible history for trend display.",
+        "prevention": "Replay the complete Windows report, a browser fragment, a missing download and a different attempt through both normal recent-collection commands. Reopen the archived output to check the maintenance result."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-shallow-checkout-hides-historic-publishing-catalog",
+      "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 843e97a61010b193fb0146aa1c4242013fa66169. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt (SHA-256 f7cc505f36547b00350e4f58130262b2f1792d9d4ca64a68e6643c22d3d7474c). Original assistant response SHA-256 9f11b2f69e67c95144271a2ae47fa12609f56fd06b9229bd26972d2adce89266.",
+      "observation": "The scheduled workflow uses the default one-commit checkout. With the same authentic 45546767887 inputs, the complete object store produced the Windows 804-second platform sample, while the one-commit object store lacked the historical publishing catalog and withheld the Windows platform attribution.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-145"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The scheduled checkout contained only the tip, so the timing command could not read an earlier publishing catalog required to classify an ordinary historical run.",
+        "correction": "Fetch full history for the weekly timing job and preserve the existing unknown result when the required historical object cannot be obtained.",
+        "prevention": "Compare full-history and shallow object stores on the same archived run. Verify 804 elapsed seconds and 2467 runner-seconds on the eligible input and retain the catalog diagnostic when absent."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-freshness-borrows-native-qualification-from-history",
+      "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 5057e9d6e519c42821c2e65748647d0fee0d5d9d. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-145-5057e9d6/final-response.txt (SHA-256 78cf97f518ed720c44afc03a9947fc9ab25ab77370ae25d0486753e7fa1ba854). Original assistant response SHA-256 fdc96c36af12caf43e34a6538200df717c8dc3a36c77827eceb2e8567d89066a.",
+      "observation": "The public weekly commands credit an invalid current Windows report when matching eligible history exists. On single-job run 45389970933, adding split-job caches makes the original download fail native layout qualification. On run 45546767887, withholding the only applicable retained Git tree proof makes the original download fail historical publishing catalog qualification. In isolation neither download earns freshness. With the matching historical report, the original identity subset lets verify-maintenance advance the Windows pull_request scope.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-145"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The original acquisition identifier described only part of a platform report and permitted qualified history to supply missing layout or catalog proof.",
+        "correction": "Qualify the acquired original with its own attempt jobs and catalog evidence before historical enrichment, and bind its complete compact report digest to the refresh receipt.",
+        "prevention": "On runs 45389970933 and 45546767887, verify that an ineligible original cannot issue a refresh receipt on its own or with eligible history. The fully qualified original issues the same receipt through both CLI modes."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-committed-weekly-publishing-catalog-control",
+      "source": "PR #122 ordinary run 45673372424 attempt 1. The Windows original is archives/runs/windows-change-45673372424-1/test-report.json; the python-contracts-workers log has SHA-256 98cbda7dbec4bb9fc97bb116a67af326c2203c2c29c21420e39da7b7fb609e2f.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "At the expected valid case in test_selection_comes_from_committed_publishing_catalog the native Windows test received a rejection from native_report_issue. Python ran 814 tests with this one failure and 65 skips. The same preview passed the Ubuntu required job; Windows core, recovery and browser producers passed. The positive and rejected samples must be distinguished on both platforms.",
+      "task_ids": [
+        "M0-148"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45673372424-1",
+          "source_commit": "f1c7442f33129951de5d779b06e965bb124efac0",
+          "report_sha256": "dc1627a9659d1d966f36d7b6501ae6c99974efc1eda82747063c6ee28b6789b6"
+        }
+      ],
+      "resolution": {
+        "cause": "Text-mode input to Git plumbing translated the fixture delimiters to CRLF on Windows, storing carriage returns in path names and hiding the committed checks catalog.",
+        "correction": "Write the Git tree fixture inputs as bytes and verify the resulting path, blob and publishing digest before evaluating the weekly sample.",
+        "prevention": "The ordinary Python suite exercises the corrected committed-catalog positive and the missing, extra and incorrect-digest controls. The guarded Windows run executes the case on its native Git implementation."
+      },
+      "deferral_reason": null
     }
   ]
 }

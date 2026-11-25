@@ -25245,6 +25245,652 @@
           "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
         }
       }
+    },
+    {
+      "id": "M0-130",
+      "title": "Preserve producer timing without substituting Windows platform coverage",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-111"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary local discovery and explicit raw or compact reads retain separate Windows producer observations. A single producer uses only its own matching job clocks and remains ineligible for platform capture and timing objectives.",
+        "The authenticated PR 84 aggregate remains eligible alongside its two real producers. Historical scoped core and protected republication preserve their existing scope. Keep genuine conflicts between complete platform reports and explicit malformed input diagnostics.",
+        "Compare aggregate-only, producer-only, mixed, conflicting and malformed controls through project:timing. Retain exact source red and green, run the canonical task, maintain the accepted M0-105 receipt and compare accepted history."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-130-551f0d11168f1236.json",
+          "sha256": "c986cf0bef3eebcaa1530181261b4a316d9c359bc7c39ab0991d3cb7d2a2d6e2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T110041.077240Z-44392ea1 on 3ac0da8bdce7c9e2c836fa5cf9852f1ae66e1cb4 passed both required checks. The exact historical PR 84 artifacts preserve separate browser and recovery jobs and the accepted 28-check Windows aggregate. The scoped records control qualified once. Competing complete platform inputs remained disputed and malformed inputs still refused explicit archive publication.",
+      "plan": {
+        "outcome": "Timing intake identifies full Windows producers from authentic selection identity, retaining their own work without treating them as protected platform outcomes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/ci_artifacts.py",
+          "project/delivery.json",
+          "archives/observations/m0-130-timing-producer-inputs/red-eddceb4/SHA256SUMS"
+        ],
+        "hypotheses": [
+          "The report source already preserves the producer-specific selection profile, but timing coalescing and clock lookup use the platform key alone. The scoped core is intentionally republished unchanged for its exact protected scoped run."
+        ],
+        "risks": [
+          {
+            "failure": "Raw producers either suppress the complete aggregate or acquire its clock and satisfy a required platform. Check browser and recovery independently, together and with the aggregate; require exact producer job identity and missing platform capture for producer-only observations.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New grouping hides corrupt or genuinely conflicting full samples, or drops a legitimate scoped core republication. Exercise explicit malformed input, a controlled complete conflict, compact save and reopen and the authenticated scoped historical control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the bounded timing reader fix if exact full or scoped observations lose their existing qualification. Retain original reports, the controlled conflict, and the independent M0-105 receipt.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Workflow changes, changes to assurance or protected checks, M0-105 task history, and ad-hoc M0-078 timing notes in other worktrees."
+          ],
+          "open_questions": [
+            "Only producer roles present in the recorded profile can be classified without inferring role from mutable local file names."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original raw artifacts, timing archive format, authenticated protected and historic scoped observations, and material conflict checks."
+          ],
+          "change": [
+            "Use the explicit historical Windows producer profiles when coalescing and looking up clocks, and exclude producer-only rows from platform capture and review."
+          ],
+          "data_plan": "Use digest-checked public artifacts and bounded synthetic controls in ignored directories, with independent private manifests.",
+          "cleanup": "Leave historical source files in place and preserve the isolated test artifacts without altering the primary checkout."
+        }
+      }
+    },
+    {
+      "id": "M0-131",
+      "title": "Bind Windows timing roles, partial clocks and cache evidence",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-130"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The public CLI diagnoses invalid Windows producer profiles before report normalization. Only supported platform profiles with matching CI and checkout identities can satisfy protected capture or the linked index.",
+        "Conflicting producer role and job identities have the same diagnostic in either input order. Invalid IDs and mismatched checkout cannot borrow a producer clock. Complementary valid producer job observations retain their own timings in either order, without completing a platform clock.",
+        "Discover matching compact siblings automatically. Preserve known cache evidence when identical raw or compact observations omit it. Contradictory producer or aggregate cache evidence remains visible and cannot drive a cache-dependent timing cohort.",
+        "Replay the original PR 84 full, browser and recovery reports, the historical records scope, a genuine complete conflict and malformed JSON. Preserve the accepted M0-130 and M0-105 records and receipts. Run the canonical task and archive exact evidence."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-131-99ff011ac48bb558.json",
+          "sha256": "d8393fd5905e497642a585073bd7cacbbddfd0c60b007a459dc176bb300fcfe8"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T112248.784943Z-299c3890 on fa4d434594e39c7725f2381440fb5400e2298e36 passed both required checks. The four public timing regressions are closed with exact red and green replay. The authenticated full sample retains 28 of 35 selected passes and 804 seconds, the producers retain their own clocks, and the records scope retains 4 of 4 and 166 seconds. The controlled clock dispute stays disputed after archive reopen, and conflicting cache evidence does not form a cache cohort. The previous M0-105 and M0-130 acceptance records and receipts are preserved.",
+      "plan": {
+        "outcome": "Each ordinary timing observation reflects its recorded scope, matching job identity and defensible cache evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/ci_artifacts.py",
+          "archives/observations/m0-131-timing-producer-identities/astra-timing-inputs-97fedb3.txt"
+        ],
+        "hypotheses": [
+          "Normalization removes malformed scope information. Attempt selection and cache enrichment conflate exact job facts, incomplete observations and platform qualification."
+        ],
+        "risks": [
+          {
+            "failure": "A malformed scope or incomplete job silently fills protected coverage. Verify early diagnostics, real attempt and checkout identity, positive job IDs, exact capture and index qualification, and both input orders.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Merging partial clocks invents aggregate coverage or conflicting cache evidence enters a budget cohort. Check complementary and disputed role evidence, sibling provenance, known plus unknown, contradictions, scoped core republication and real full conflicts.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve exact original evidence and M0-130 acceptance. Revert a correction that weakens protected eligibility or changes legitimate historical scoped treatment.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Workflow, job execution, failure history rewrites, and unrelated checkout input hygiene."
+          ],
+          "open_questions": [
+            "Actions job head identifies the requested commit. The artifact checkout and retained checkout evidence identify the PR merge checkout where the API has no checkout field."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original absorbed inputs and receipts, true full-sample conflicts, malformed input diagnostics, ordinary scoped profiles and full platform authority."
+          ],
+          "change": [
+            "Validate recognized scope and consistent identity, match coherent named producer clocks and combine observed compatible cache facts."
+          ],
+          "data_plan": "Replay retained public first-attempt reports and official clocks, with controlled counterexamples copied into ignored paths.",
+          "cleanup": "Keep red and green artifacts independently, leave sourced reports untouched, and retain only the matching canonical receipt in Git."
+        }
+      }
+    },
+    {
+      "id": "M0-133",
+      "title": "Reconcile timing evidence consistently across capture and review",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-131"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/check.py",
+        "scripts/ci_artifacts.py",
+        "scripts/project.py",
+        "scripts/verification_scope.py",
+        "tests/project/test_verification_scheduling.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A contradictory partial producer observation remains disputed alongside a complete clock after transactional shared capture, linked-index handling and public archive reopen.",
+        "Conflicting internally valid checkout claims within one attempt retain their original reports without attributable timing or protected capture and index qualification.",
+        "A matching known checkout enriches an otherwise identical clock without replacing observed times. Differing known checkout claims remain disputed.",
+        "Known per-producer cache facts enrich unknown facts. Conflicting known facts foreclose cache-dependent cohorts while valid wall duration survives. Preserve real full-sample conflicts, historic records timing, and previously accepted task and receipt history.",
+        "Preserve a real shared-capture red and green replay and a canonical task report on the exact candidate. Keep the corrective task and findings active for independent review.",
+        "Shared capture applies its ordinary reader bound and validates the candidate before atomic publication. A failed read, overflow or invalid update preserves original bytes, existing index and retry state.",
+        "Separate job identity from observed fields. Missing fields enrich from matching known values, two known disagreements affect the dependent result, and independent job and platform observations remain usable.",
+        "A producer dispute does not prevent ordinary protected platform backfill and indexing. An exactly matching producer can supply one unknown component of an existing aggregate cache vector.",
+        "Complete attempt evidence establishes protected membership. All grounded evidence for the same identified job participates in clock reconciliation and dependent producer, platform and budget projections, even when an unrelated job is absent.",
+        "A producer supplies cache evidence only for the matching publisher-derived harness and Windows x64 identity in addition to exact attempt, checkout, input digest and selected result measurements. Preserve independent wall duration.",
+        "Identify measurements by attempt, authenticated job role and platform, and the interval or layout that defines the metric. A single job duration cannot fill an aggregate measurement. Reconciled member facts, including complementary complete listings, govern capture and reopen readiness.",
+        "Use native publisher lane selection for producer qualification, and bind split protected full reports to the publisher harness and Windows x64. Independent valid harness observations remain available.",
+        "Use publisher scope and the actual check selection to separate a resubmitted child from a protected platform report. An unqualified label cannot foreclose a genuine report or claim hosted elapsed or cache.",
+        "Validate attempt, role, layout and job identity before deriving aggregate stages. Merge independent UTC endpoints once across compatible member observations, preserving valid legacy summaries and incomplete-layout diagnostics."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-133-3666436f89823c88.json",
+          "sha256": "f7209fee99a21733329e27f9404771822ed239841b5581322e6371cdae366a10"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved the exact clean source e05d089b5d63a7a852792d44ee82e456afa5af93. The original full local task report passed and binds the report, clock and measurement qualification, bounded capture, linked indexing and reopen regressions to that revision. Independent authentic run 45546767887 replay preserved 804 seconds of Windows wall time, 2467 seconds of runner work and one platform budget sample. Admissible publishing endpoints retained 760 seconds of execution and a 10-second tail. Impossible orderings stayed partial through capture and reopen. Approval is scoped to timing reconciliation. Physical disk replacement, cross-process locking, native verification and new performance acceptance remain outside this closure.",
+      "plan": {
+        "outcome": "A timing observation and any dispute produce the same eligibility and attribution before and after capture, indexing and reopening.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt",
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt",
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-6a7777c.txt",
+          "scripts/ci_artifacts.py",
+          "scripts/verification_scope.py",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-5ad75817/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-b58a530f/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-f5fd7be5/final-response.txt"
+        ],
+        "hypotheses": [
+          "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes.",
+          "Identity and qualification gates should be separate from optional measurement reconciliation. Capture publication and reopening should share validation and byte bounds."
+        ],
+        "risks": [
+          {
+            "failure": "Saving replaces one disputing clock or publishes an index for incompatible checkout evidence. Use authentic first-attempt records with a controlled conflicting producer or checkout and verify real file writes, marker state, reopening and repeated input.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Complementary checkout or cache facts become disputes, or genuine conflicts become qualified. Exercise both orders, duplicate inputs, complementary clock spans and component caches, known contradictions, and unchanged records and full-scope controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A near-boundary candidate or an existing invalid file destroys original data. Test exact limit, one byte over, a formerly readable near-limit capture, invalid or oversized incumbent, reader-visible bytes, retry and lock contention in a private Git common directory.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Conflicting or unqualified facts propagate to unrelated metrics, jobs, cache cohorts or platform requests. In both orders and repeated intake, verify independently expected authentic job totals, exact producer cache provenance, one disputed versus two protected jobs, and real contradictory controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unrelated missing job erases a known disagreement or an aggregate republishes a disputed copied stage. Check bounded input orders, duplicates, same job with independent fields, and the 900-second budget under direct and linked reopen.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Another harness, input set, platform or architecture classifies the Windows aggregate cache. Verify publisher-compatible and mismatched synthetic copies of an actual artifact through ordinary CLI, automatic discovery and captured reopen.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A Windows-only publisher import preempts the ordinary harness recovery boundary. Preserve the original malformed-ledger diagnostic and verify the hosted split publisher path with the existing recovery and scheduling fixtures.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Job identity matches while measurement units, publishing layout, or shard selection differ. Reconcile same-unit facts and enforce publisher identity on all timing read paths. Check two, five and six-job historic shapes and scoped core-only reports, incompatible claims, complementary clocks and bounded persisted restart.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Foreign or incorrectly scoped evidence outranks an authentic report, prevents exact endpoint reconciliation, or turns an incomplete split layout into single-job coverage. Test additive invalid evidence, complementary missing endpoints, legacy incomplete and genuinely unsplit layouts, retry bounds and unchanged history.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Incomplete, extra or unavailable historical publisher selections can qualify or suppress authentic coverage; identical job facts can become disputes when observations are reordered, duplicated or moved between listings. Replay authentic full, scoped, shard and single-job reports; vary a selected member by catalog position, regroup the same numbered steps, vary a known endpoint, and verify direct review, retained capture and linked reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unknown or disputed step timestamp can erase a different interval with known endpoints, or an impossible sequence can acquire a duration. Compare a table of real publishing and producer start/finish variations, including missing values, known contradictions, duplicate/reordered/split listings, and physical capture and reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Reducing a known dispute to absence can make an impossible phase look measured and complete. Compare independently calculated two- and three-fragment missing, feasible and impossible orders through authentic JSON, permutations, duplicate rows, physical capture, index and linked reopen. Retain independent wall and runner clocks and the ordered 760-second/10-second control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/ci_artifacts.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Workflow, runtime product, accepted task records, remote operations and premature M0-133 closure."
+          ],
+          "open_questions": [
+            "Keep the existing archive format; reject a candidate that cannot be read within the shared limit rather than introducing a storage migration.",
+            "Use the attempt and job owner for an exact known-value union; use independently matched checks and digest for cache component authority.",
+            "Compare extending the aggregate reconciler with deriving producer and protected views from one set of normalized job facts. Use complete membership without discarding grounded partial fields, and preserve the current compact archive format.",
+            "Reuse the existing publisher run ID and Windows x64 functions in both publication and retrospective cache attribution.",
+            "For v1 retained clocks, direct job end and tail facts are comparable across lists showing the same job; aggregate stages need positive layout evidence. Keep the archive format and reuse the publisher native lane selector.",
+            "Persist bounded optional per-job endpoint facts for new Actions listings and reuse the same admission and derivation after reopening. Keep historical compact facts only under verified comparable scope.",
+            "Use the publishing revision to resolve the shared selection contract from local committed catalog data. Unknown authority remains diagnostic. Normalize identified step observations before projecting elapsed intervals.",
+            "Retain independent endpoint availability and the existing producer-to-publisher ordering evidence. Separate a missing timestamp from a proved conflict when deriving or replaying each interval.",
+            "Retain bounded observed timestamp choices through every evidence join; an opaque dispute or unavailable ordering must not vote as genuinely absent. Check admissibility without choosing a disputed measurement."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original artifacts, accepted M0-103, M0-105, M0-130 and M0-131 history, protected wall timing and scoped records coverage."
+          ],
+          "change": [
+            "Reconcile exact attempt identity and compatible optional evidence before deriving platform, job, cache and index eligibility.",
+            "Validate and publish one bounded capture transaction under the per-attempt lock while permitting coherent independent platform backfill.",
+            "Give identified job fields one reconciliation owner. Derive dependent platform stages from those facts and share publisher producer identity without migrating retained data.",
+            "Use catalog-derived hosted scope and reconcile comparable Actions job and step facts independently of input grouping."
+          ],
+          "data_plan": "Use authenticated historic snapshots and controlled copies under ignored paths and temporary shared Git storage.",
+          "cleanup": "Keep immutable red and green evidence, remove temporary shared state, and leave the tracked worktree clean with M0-133 active."
+        }
+      }
+    },
+    {
+      "id": "M0-145",
+      "title": "Bind weekly timing freshness to qualified reports received in the current collection",
+      "milestone": "M0",
+      "status": "done",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M0-133",
+        "M0-135"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/maintenance.py",
+        ".github/workflows/review-verification-timing.yml",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Public recent timing and maintenance verification credit only a full protected platform report actually received for the exact eligible repository, event, run, attempt, source and report identity.",
+        "A producer-only, other-attempt or missing download leaves weekly freshness pending while compatible historic full timing remains available for trend review.",
+        "The scheduled timing workflow supplies historic publishing catalog objects to the normal reader. A truly unavailable catalog still withholds Windows attribution.",
+        "Retain the authentic Windows 804-second wall and 2467-second runner controls for run 45546767887, and preserve M0-130, M0-131, M0-133 and M0-135 accepted history and conditional follow-up."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-145-a76fec7c9893390c.json",
+          "sha256": "96bcc3e611375aa17633ef68044711b8d2bb1562508a667db2cc1c628313d5bc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review reproduced the 804-second Windows elapsed and 2467 runner-seconds for run 45546767887 through both recent-collection commands. The three local task checks passed with 814 Python tests and four native-specific skips. An incomplete, differently attempted, incorrectly laid out or unsupported current report could not refresh the weekly scope using valid history. M0-130, M0-131, M0-133 and M0-135 keep their existing acceptance and receipts.",
+      "plan": {
+        "outcome": "A fresh weekly timing claim proves exact report receipt and qualification while historic trends and unavailable-catalog diagnostics retain their established meaning.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/maintenance.py",
+          ".github/workflows/review-verification-timing.yml",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-145-5057e9d6/final-response.txt"
+        ],
+        "hypotheses": [
+          "The collector can reuse the existing protected platform projection and retain an exact identity for the reports actually acquired.",
+          "Full checkout history at the existing workflow entry makes historic publisher catalogs available without weakening qualification.",
+          "Apply the ordinary timing projection to the original acquisition and its current job observations before adding retained history. Carry the full compact input identity through qualification and reopening."
+        ],
+        "risks": [
+          {
+            "failure": "A browser-only or wrong-attempt receipt aliases a retained full sample and produces a false freshness claim.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The actual scheduled checkout cannot resolve historic publishing catalogs or a missing catalog is silently accepted.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New intake changes accepted review facts, native clocks or historic trend definitions.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An acquired report that fails native job layout or publisher catalog qualification can match a retained qualifying report if its receipt binds only a subset of the compact input.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the bounded collection and workflow correction while retaining original observations, accepted receipts and review diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/project.py",
+            ".github/workflows/review-verification-timing.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "New timing objectives or native attribution rules, reevaluation of accepted M0-130 through M0-135 history, hosted dispatch or publication."
+          ],
+          "open_questions": [
+            "Which catalog objects can the exact scheduled workflow read from a normal full checkout, and what diagnosis is emitted when an object really is missing?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Accepted historical facts and receipts, ordinary objective and coverage rules, conditional owners, and independent historic trends."
+          ],
+          "change": [
+            "Bind weekly freshness to acquired, qualified report identity and supply historic catalog objects at the scheduled entry."
+          ],
+          "data_plan": "Replay retained public artifacts and disposable local clones. Keep accepted originals and retain rejected evidence.",
+          "cleanup": "Keep private red and green reports and preserve the independent task branch."
+        }
+      }
+    },
+    {
+      "id": "M0-148",
+      "title": "Verify the committed publishing catalog acceptance control on native Windows",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-145"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/project.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Explain the failure of the original native Windows committed publishing catalog control and demonstrate the first observable difference using the same Git objects or equivalent input bytes.",
+        "Verify that a full Windows sample for its actual publishing checkout qualifies. An omitted or extra check, missing catalog, and mismatched substitute digest must still be rejected. Preserve the existing expired-preview and current collection controls.",
+        "Retain the original Windows failure, independent source review, and a passing original native Windows Python check alongside the matching Linux controls. Preserve the existing M0-145 record and earlier weekly timing decisions."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-148-9c7eb1b6f62bf925.json",
+          "sha256": "19855a19f90f5bd1e7024ff6ba3e6057aa3a28eff8692b5c55936a6358789e9e"
+        },
+        {
+          "path": "project/evidence/M0-148-2a7b17014e8cb017.json",
+          "sha256": "29b71a8546f8114cd2d40ccb9d68e6d231aa733ad1060a966d20b6c31731f0f9"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45673372424-1",
+          "source_commit": "f1c7442f33129951de5d779b06e965bb124efac0",
+          "report_sha256": "dc1627a9659d1d966f36d7b6501ae6c99974efc1eda82747063c6ee28b6789b6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review reconstructed the original native Windows publishing-catalog fixture path and the byte-preserving repair. The guarded native task and the ordinary PR both passed Linux and Windows. The valid catalog was accepted, the rejected catalog controls retained their outcomes, and the previously accepted weekly history was preserved.",
+      "plan": {
+        "outcome": "The same committed publishing catalog and authenticated full sample yield the expected qualification on Linux and native Windows, and invalid samples preserve their rejection.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_timing.py",
+          "scripts/timing.py",
+          "scripts/project.py",
+          "archives/runs/windows-change-45673372424-1/test-report.json"
+        ],
+        "hypotheses": [
+          "With Windows-style stdin bytes, Git preserved the catalog blobs but wrote carriage returns into fixture tree paths. Replaying that input on Linux reproduces the original native failure; binary stdin preserves the paths."
+        ],
+        "risks": [
+          {
+            "failure": "A valid full native publisher is rejected, or a malformed catalog, incorrect digest or partial selection gains attribution.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test-only observation conceals a difference in the normal timing command or changes accepted weekly history.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the failed report and original Git trees, revert a correction that fails either native control and retain the separate weekly timing history.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/project/test_timing.py",
+            "scripts/timing.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changes to timing budgets, CI coverage, historic acceptance or release requirements."
+          ],
+          "open_questions": [
+            "Do both platforms construct and read the same Git tree, exact catalog, input digest and selected check set?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The weekly current-collection qualification, historical trend visibility, full native layout, and earlier accepted receipts."
+          ],
+          "change": [
+            "Correct the observed divergence at its first verified boundary."
+          ],
+          "data_plan": "Use disposable fixture repositories and the exact preserved native CI artifacts. No product profile data is involved.",
+          "cleanup": "Release the fixture repositories after retaining the required red and green observations and native evidence."
+        }
+      }
     }
   ]
 }

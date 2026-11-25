@@ -33,6 +33,15 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         cls.selector = next(step for step in steps if step.get('id') == 'scope')
         cls.narrow = next(step for step in steps if step.get('name', '').endswith(' changes'))
 
+    def test_scheduled_timing_checks_out_publishing_history(self):
+        path = ROOT / '.github/workflows/review-verification-timing.yml'
+        jobs = yaml.safe_load(path.read_bytes())['jobs']
+        checkout, = [step for step in jobs['review']['steps'] if step.get('uses', '').startswith('actions/checkout@')]
+        self.assertEqual(0, checkout['with']['fetch-depth'])
+        self.assertFalse(checkout['with']['persist-credentials'])
+        review, = [step for step in jobs['review']['steps'] if step.get('name') == 'Review recent hosted verification']
+        self.assertIn('python3 scripts/timing.py --recent 12 --github-actions', review['run'])
+
     def test_browser_setup_is_required_without_a_successful_prerequisite_opt_out(self):
         self.assertEqual("steps.build_setup.outputs.skip != 'true' && steps.lane.outputs.skip != 'true' && "
                          "matrix.lane != 'python' && (matrix.lane != 'core' || steps.lane.outputs.split != 'true')",

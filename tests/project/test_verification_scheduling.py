@@ -21,7 +21,7 @@ from scripts import check as harness
 from scripts import ci_artifacts
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
-from scripts.verification_scope import ScopeError, preview
+from scripts.verification_scope import WINDOWS_LANES, ScopeError, preview
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
 
@@ -479,7 +479,7 @@ class WindowsLaneTests(ProjectFixture):
 
     def produce(self, profile=None, *, browser_exit=0, recovery_exit=0):
         reports = {}
-        for lane in ('core',) if profile else harness.WINDOWS_LANES:
+        for lane in ('core',) if profile else WINDOWS_LANES:
             args = ('--profile', profile) if profile else ('--ci-windows-lane', lane)
             expected_exit = {'browser': browser_exit, 'recovery': recovery_exit}.get(lane, 0)
             with patch.dict(os.environ, {'SCOPEHUB_FIXTURE_EXIT': str(expected_exit)}):

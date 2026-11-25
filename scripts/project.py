@@ -21,7 +21,7 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
+    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid, windows_x64
     from .review_tree import CommittedPath
     from .worktree import WorktreeError, git as worktree_git, has_git_metadata
 else:
@@ -30,7 +30,7 @@ else:
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
+    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid, windows_x64
     from review_tree import CommittedPath
     from worktree import WorktreeError, git as worktree_git, has_git_metadata
 
@@ -418,10 +418,6 @@ def validate_graph(edges, label):
         TopologicalSorter(edges).prepare()
     except CycleError as error:
         raise ProjectError(f'{label}: cycle at {error.args[1][0]}') from error
-
-
-def windows_x64(environment):
-    return environment.get('system') == 'Windows' and environment.get('machine', '').lower() in {'amd64', 'x86_64'}
 
 
 def load_project(root=ROOT):

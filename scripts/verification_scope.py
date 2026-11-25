@@ -12,7 +12,60 @@ import subprocess
 import sys
 
 
+def windows_x64(environment):
+    machine = environment.get('machine')
+    return (environment.get('system') == 'Windows' and isinstance(machine, str)
+            and machine.lower() in {'amd64', 'x86_64'})
+
+
+def windows_lanes_run_id(ci):
+    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
+
+
+def windows_lane_report_matches(ci, run_id, environment):
+    return run_id == windows_lanes_run_id(ci) and windows_x64(environment)
+
+
+WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
+                          'local-import-ui', 'market-live-stream', 'market-quality-states',
+                          'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
+                          'desktop-workspace-transport', 'desktop-localization'}
+WINDOWS_LANE_CHECKS = {
+    'browser': WINDOWS_BROWSER_CHECKS,
+    'python': {'python-contracts-workers'},
+    'recovery': {'market-recovery'},
+}
+WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
+LEGACY_WINDOWS_LANES = WINDOWS_LANES[:-1]
+
+
+def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES):
+    if lane not in lanes:
+        return set()
+    if lane == 'core':
+        return selected.difference(*(WINDOWS_LANE_CHECKS[name] for name in lanes if name != 'core'))
+    return selected & WINDOWS_LANE_CHECKS[lane]
+
+
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
+def hosted_check_selection(catalog, profile):
+    if profile:
+        return set(catalog.get('profiles', {}).get(profile, ()))
+    return {check['id'] for check in catalog['checks']
+            if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
+
+
+def windows_published_scope(selected, profile, lanes, catalog):
+    if profile in SCOPED_PROFILES:
+        expected = hosted_check_selection(catalog, profile)
+    else:
+        expected = hosted_check_selection(catalog, None)
+        if profile != 'full':
+            lane = profile.removeprefix('ci-windows-')
+            expected = windows_lane_checks(expected, lane, lanes) if profile.startswith('ci-windows-') else set()
+    return bool(expected) and len(selected) == len(expected) and set(selected) == expected
+
+
 SCOPE_REASONS = {
     'records': 'Only reviewed record paths or approved narrative fields changed.',
     'tooling': 'Only isolated Herdr tooling and eligible records changed.',
