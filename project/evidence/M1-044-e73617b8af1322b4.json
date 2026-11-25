@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M1-044",
+  "task_definition_sha256": "655745eca5f770f151c7fd6f9ea7900c15efb5e715941f20bfcda21306d2800f",
+  "run_id": "20261125T040308.578276Z-325c8d5c",
+  "recorded_at": "2026-11-25T04:06:38.407484+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "c088a5fb92ed5924ba5be1e6b8ec3e9be145663a032f71814d4dd658c1a38236",
+    "file_count": 597,
+    "git_head": "838391c87fd0f851434a51ecf079c7d99dcc143b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "e73617b8af1322b45afcb588217b40107e7882e66bd58b3b0e68fdb5bdd68661",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb8ab813a7d8651316783d4969a57713b55822fc094647b6a95ad56c513d690f"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6d1101cc04e53a24081bfd9e4f24bd2d891c97a065245acb7c2678913239a872"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2d1751900d32d3dbf8380cfacefc11a30254b85460f0536462cc88f6b8c73ef3"
+    },
+    {
+      "id": "market-fixtures",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "-m",
+        "unittest",
+        "tests.integration.test_market_fixtures",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log_sha256": "83b7f21c1b858d613bcf769e0d243dc0f4f3e69409ca2b93c114c150b1af5086"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc2b026befe52033aa13bb6ef33f21e6f73cee6100cb1fc372cf3e5581fc2144"
+    },
+    {
+      "id": "local-api-connection",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-data-integrity/.venv/bin/python",
+        "scripts/check_local_import_publication.py",
+        "local-api"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6689b7feb821b7774259334d60ef0e4ef21f66eb5f457b505f5657878cfe0ccd"
+    }
+  ],
+  "project_definition_sha256": "ea18cfd38f0e73c104ed5395204cdc3167190e9e45e16593208b167e8fb16133",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "57a432e64c45921b5c94e748eddee7bbc6bd2e2943a3af2e36b0cc762739f9ec"
+  ]
+}
