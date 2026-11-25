@@ -22,6 +22,10 @@ PyPI: librt 0.16.0
 Declared license: MIT
 Upstream metadata: https://pypi.org/pypi/librt/0.16.0/json
 
+PyPI: marko 2.2.5
+Declared license: MIT
+Upstream metadata: https://pypi.org/pypi/marko/2.2.5/json
+
 PyPI: mypy 1.20.2
 Declared license: MIT
 Upstream metadata: https://pypi.org/pypi/mypy/1.20.2/json
