@@ -211,6 +211,43 @@ class LocalImportWorkerTests(unittest.TestCase):
                 reply, = self.reply_frames(output.getvalue())
                 self.assertEqual(json.loads(reply), {**FRAME_ID, 'ok': False, 'error': expected})
 
+    def test_frozen_row_reports_every_conflicting_declaration_without_reinterpreting_bytes(self):
+        content = (
+            'Ticker,Date,Open,High,Low,Close,Shares,timeframe,Time Zone,volume-semantics,Vendor\r\n'
+            '000071,2026-01-06,8,10,7,9,200,1d,Asia/Shanghai, Per Bar ,original\r\n'
+            '000071,2026-01-07,8,10,7,9,350,5m,UTC,cumulative,"first\r\nsecond"\r\n'
+        ).encode()
+        for record, expected in (
+            (1, []),
+            (2, [
+                {'column_index': 7, 'field': 'timeframe', 'reviewed_value': '1d'},
+                {'column_index': 8, 'field': 'timezone', 'reviewed_value': 'Asia/Shanghai'},
+                {'column_index': 9, 'field': 'volume_semantics', 'reviewed_value': 'per_bar'},
+            ]),
+        ):
+            with self.subTest(record=record):
+                frames = source_row_request(content, record, review_declarations=True)
+                output = BytesIO()
+                self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output), 0)
+                reply, = self.reply_frames(output.getvalue())
+                result = json.loads(reply)
+                self.assertIs(result['ok'], True, result)
+                row = result['source_row']
+                self.assertEqual(row['declaration_conflicts'], expected)
+                self.assertEqual(row['source_sha256'], sha256(content).hexdigest())
+                if record == 2:
+                    self.assertEqual(row['locator'], {'record_number': 2, 'line_start': 3, 'line_end': 4})
+                    self.assertEqual(row['raw_fields'][7:], ['5m', 'UTC', 'cumulative', 'first\r\nsecond'])
+
+        frames = source_row_request(content, 2, review_declarations=True,
+                                    mapping={**MAPPING, 'timezone': 'Legacy/RemovedZone'})
+        output = BytesIO()
+        self.assertEqual(run(BytesIO(b''.join(map(line, frames))), output), 0)
+        reply, = self.reply_frames(output.getvalue())
+        row = json.loads(reply)['source_row']
+        self.assertIsNone(row['declaration_conflicts'])
+        self.assertEqual(row['raw_fields'][8], 'UTC')
+
     def test_complete_series_holds_late_invalid_or_ambiguous_rows(self):
         content = b'Ticker,Date,Open,High,Low,Close,Shares,Note\n' + b'000071,2026-01-06,8,10,7,9,200,test\n' * 501
         cases = {

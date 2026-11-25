@@ -187,7 +187,7 @@ fn prepared_source_row_requires_current_local_display() {
     let input = read_local_import_source_row_input(
         Actor::LocalUser,
         json!({
-            "version": 1, "revision_id": id, "locator": locator,
+            "version": 1, "revision_id": id, "locator": locator, "review_declarations": true,
         }),
     )
     .unwrap();
@@ -219,22 +219,40 @@ fn prepared_source_row_requires_current_local_display() {
             .unwrap();
         assert_eq!(error.code, ErrorCode::PERMISSIONDENIED);
     }
-    let prepared = registry
-        .prepare_frozen_local_source_row(&access, input)
-        .unwrap();
+    let prepare = || {
+        registry
+            .prepare_frozen_local_source_row(&access, input.clone())
+            .unwrap()
+    };
+    let prepared = prepare();
     assert_eq!(prepared.mapping, mapping);
     assert_eq!(prepared.original, FIRST_CSV);
+    let raw_row = json!({
+        "source_sha256": FIRST_DIGEST, "locator": locator, "header": frozen["header"],
+        "raw_fields": ["2026-01-02", "000001", "4", "6", "3", "5", "retained"],
+    });
+    let mut wrong_column = raw_row.clone();
+    wrong_column["declaration_conflicts"] = json!([
+        {"column_index": 7, "field": "timezone", "reviewed_value": "UTC"},
+    ]);
+    for invalid in [raw_row.clone(), wrong_column] {
+        let error = registry
+            .finish_frozen_local_source_row(&access, prepare(), invalid)
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::OUTPUTINVALID);
+    }
+    let mut reviewed_row = raw_row;
+    reviewed_row["declaration_conflicts"] = json!([]);
+    assert_eq!(
+        registry
+            .finish_frozen_local_source_row(&access, prepare(), reviewed_row.clone())
+            .unwrap()["declaration_conflicts"],
+        json!([])
+    );
 
     let mut peer = profile.open().unwrap();
     assert!(peer.revoke_local_dataset(&id).unwrap());
-    let result = registry.finish_frozen_local_source_row(
-        &access,
-        prepared,
-        json!({
-            "source_sha256": FIRST_DIGEST, "locator": locator, "header": frozen["header"],
-            "raw_fields": ["2026-01-02", "000001", "4", "6", "3", "5", "retained"],
-        }),
-    );
+    let result = registry.finish_frozen_local_source_row(&access, prepared, reviewed_row);
     assert_eq!(result.unwrap_err().code, ErrorCode::PERMISSIONDENIED);
     assert!(peer.read_local_dataset_original(&id).unwrap().is_none());
     assert_eq!(dataset_counts(&peer.connection), (1, 1));

@@ -42,10 +42,20 @@ const INSPECT_LOCAL_IMPORT_SOURCE_ROW: &str = "market.inspectLocalImportSourceRo
 #[derive(Clone, Copy, Serialize)]
 #[serde(untagged)]
 enum Check {
-    Preview { row_limit: u32 },
-    Complete { complete: bool },
-    InspectRefresh { inspect_refresh: bool },
-    ReadSourceRow { record_number: u64 },
+    Preview {
+        row_limit: u32,
+    },
+    Complete {
+        complete: bool,
+    },
+    InspectRefresh {
+        inspect_refresh: bool,
+    },
+    ReadSourceRow {
+        record_number: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        review_declarations: Option<bool>,
+    },
 }
 
 impl Check {
@@ -318,6 +328,7 @@ pub async fn read_source_row(
     sha256: &str,
     mapping: &Value,
     record_number: u64,
+    review_declarations: bool,
     cancelled: impl Future<Output = ()>,
 ) -> Result<Value, Error> {
     if !(1..=MAX_SOURCE_RECORDS).contains(&record_number) {
@@ -328,7 +339,10 @@ pub async fn read_source_row(
         content,
         sha256,
         mapping,
-        Check::ReadSourceRow { record_number },
+        Check::ReadSourceRow {
+            record_number,
+            review_declarations: review_declarations.then_some(true),
+        },
         cancelled,
         None::<fn() -> Result<(), Error>>,
     )
@@ -529,12 +543,19 @@ fn decode(frame: &[u8], request: &Header<'_>) -> Result<Value, Error> {
         {
             Ok(reply.inspection)
         }
-        (Check::ReadSourceRow { record_number }, Response::SourceRow(reply))
-            if reply.version == VERSION
-                && reply.request_id == request.request_id
-                && reply.ok
-                && reply.source_row["source_sha256"].as_str() == Some(request.sha256)
-                && reply.source_row["locator"]["record_number"].as_u64() == Some(record_number) =>
+        (
+            Check::ReadSourceRow {
+                record_number,
+                review_declarations,
+            },
+            Response::SourceRow(reply),
+        ) if reply.version == VERSION
+            && reply.request_id == request.request_id
+            && reply.ok
+            && reply.source_row["source_sha256"].as_str() == Some(request.sha256)
+            && reply.source_row.get("declaration_conflicts").is_some()
+                == review_declarations.is_some()
+            && reply.source_row["locator"]["record_number"].as_u64() == Some(record_number) =>
         {
             Ok(reply.source_row)
         }

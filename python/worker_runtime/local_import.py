@@ -111,9 +111,11 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
     complete = header.keys() == _HEADER_FIELDS | {'complete'} and header['complete'] is True
     inspect_refresh = header.keys() == _HEADER_FIELDS | {'inspect_refresh'} and header['inspect_refresh'] is True
     record_number = header.get('record_number')
+    review_declarations = header.keys() == _HEADER_FIELDS | {'record_number', 'review_declarations'}
     read_row = (
-        header.keys() == _HEADER_FIELDS | {'record_number'}
-        and type(record_number) is int and 1 <= record_number <= MAX_PUBLICATION_RECORDS
+        type(record_number) is int and 1 <= record_number <= MAX_PUBLICATION_RECORDS
+        and (header.keys() == _HEADER_FIELDS | {'record_number'}
+             or (review_declarations and header['review_declarations'] is True))
     )
     row_limit = header.get('row_limit')
     if not (complete or inspect_refresh or read_row) and (
@@ -130,7 +132,7 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
         return {'inspection': inspect_folder_csv(content, mapping)}
     if read_row:
         assert isinstance(record_number, int)
-        return {'source_row': read_csv_source_row(content, mapping, record_number)}
+        return {'source_row': read_csv_source_row(content, mapping, record_number, review_declarations=review_declarations)}
     assert isinstance(row_limit, int)
     return {'preview': preview_csv(content, mapping, row_limit=row_limit)}
 

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type {
-  Bar, FolderRefreshSource, LocalImportPreviewOutput, LocalImportRowLocator, PreviewSeries, ReadLocalFolderRevisionOutput,
+  Bar, CsvDeclarationConflict, FolderRefreshSource, LocalImportPreviewOutput, LocalImportRowLocator,
+  PreviewSeries, ReadLocalFolderRevisionOutput,
 } from '../../../../contracts/generated/protocol';
 import type { ChartStyle, HistoryChartHandle, IndicatorChartLayer } from './chart-adapter/history';
 import { FrozenEvidenceControls, type FrozenChartResult } from './frozen-evidence';
@@ -120,6 +121,7 @@ type OriginalSourceRow = {
   locator: LocalImportRowLocator;
   header: string[];
   raw_fields: string[];
+  declaration_conflicts?: CsvDeclarationConflict[] | null | undefined;
   relativePath?: string;
 };
 
@@ -200,6 +202,16 @@ function OriginalSourceFields({ read }: { read: SourceRowRead | undefined }) {
     <p>{row.relativePath && `${row.relativePath} · `}{t('Record {record} · Source lines {lines}', {
       record: formatNumber(row.locator.record_number, { useGrouping: false }), lines: sourceLines(row.locator),
     })}</p>
+    {row.declaration_conflicts == null ? <p>{t('Declaration review is unavailable for this record.')}</p>
+      : row.declaration_conflicts.length === 0 ? <p>{t('No declaration conflicts in this record.')}</p>
+        : <div className="local-import-error" role="alert">
+          <p>{t('Original declarations conflict with the mapping used for this frozen revision.')}</p>
+          <ul>{row.declaration_conflicts.map(({ column_index, reviewed_value }) => <li key={column_index}>
+            {t('{column} · Reviewed value {value}', {
+              column: row.header[column_index] ?? '', value: reviewed_value ?? t('No applicable value'),
+            })}
+          </li>)}</ul>
+        </div>}
     <div className="local-import-table local-import-source-fields table-scroll" tabIndex={0} role="region" aria-label={t('Scroll original CSV fields')}>
       <table aria-label={t('Original CSV fields')}>
         <thead><tr><th scope="col">{t('Source column')}</th><th scope="col">{t('Value')}</th></tr></thead>
@@ -233,7 +245,7 @@ function FrozenSourceRows({ result, workspace, access }: {
 
   function readSourceRow(locator: LocalImportRowLocator) {
     return inspect(locator.record_number, async requestId => {
-      const row = await readLocalImportSourceRow({ version: 1, revision_id: revisionId, locator }, requestId);
+      const row = await readLocalImportSourceRow({ version: 1, revision_id: revisionId, locator, review_declarations: true }, requestId);
       if (row.revision_id === revisionId && row.source_sha256 === revision.source_sha256 && sameLocator(row.locator, locator)) return row;
     });
   }
@@ -302,10 +314,13 @@ export function FrozenFolderChart({ result, access }: { result: ReadLocalFolderR
 
   function readSourceRow(source: FolderRefreshSource) {
     return inspect(source.record_number, async requestId => {
-      const row = await readLocalFolderSourceRow({ version: 1, revision_id: revisionId, source }, requestId);
+      const row = await readLocalFolderSourceRow({ version: 1, revision_id: revisionId, source, review_declarations: true }, requestId);
       if (row.revision_id === revisionId && row.source.relative_path === source.relative_path
         && row.source.source_sha256 === source.source_sha256 && sameLocator(row.source, source)) {
-        return { locator: row.source, header: row.header, raw_fields: row.raw_fields, relativePath: row.source.relative_path };
+        return {
+          locator: row.source, header: row.header, raw_fields: row.raw_fields,
+          declaration_conflicts: row.declaration_conflicts, relativePath: row.source.relative_path,
+        };
       }
     });
   }

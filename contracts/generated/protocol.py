@@ -1,4 +1,4 @@
-# Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
+# Generated from contracts/schemas/protocol.schema.json; sha256=d06d79219bccb80f70c39ddf5b081522bd5658b9fbf093c27158c212327a5d22. Do not edit.
 from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -2520,10 +2520,15 @@ class ReadLocalImportRevisionOutput(TypedDict):
     bars: list[PublishedLocalImportBar]
 PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError
 ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError
+class CsvDeclarationConflict(TypedDict):
+    column_index: int
+    field: Literal['instrument_kind', 'venue', 'timeframe', 'calendar_id', 'session_scope', 'timezone', 'quantity_unit', 'price_adjustment', 'roll_method', 'record_kind', 'volume_semantics', 'timestamp_convention', 'timestamp_format', 'trading_day_format', 'daily_start_time']
+    reviewed_value: str | None
 class ReadLocalImportSourceRowInput(TypedDict):
     version: int
     revision_id: Uuid
     locator: LocalImportRowLocator
+    review_declarations: NotRequired[bool]
 class ReadLocalImportSourceRowOutput(TypedDict):
     version: int
     revision_id: Uuid
@@ -2531,6 +2536,7 @@ class ReadLocalImportSourceRowOutput(TypedDict):
     locator: LocalImportRowLocator
     header: list[str]
     raw_fields: list[str]
+    declaration_conflicts: NotRequired[list[CsvDeclarationConflict] | None]
 ReadLocalImportSourceRowReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError
 class RevokeLocalImportRevisionInput(TypedDict):
     version: int
@@ -2645,12 +2651,14 @@ class ReadLocalFolderSourceRowInput(TypedDict):
     version: int
     revision_id: Uuid
     source: FolderRefreshSource
+    review_declarations: NotRequired[bool]
 class ReadLocalFolderSourceRowOutput(TypedDict):
     version: int
     revision_id: Uuid
     source: FolderRefreshSource
     header: list[str]
     raw_fields: list[str]
+    declaration_conflicts: NotRequired[list[CsvDeclarationConflict] | None]
 ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError
 RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError
 AcceptedFolderRefreshBar = PublishedLocalImportBar | FolderRefreshAlternative

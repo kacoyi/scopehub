@@ -52,6 +52,7 @@ pub struct FrozenLocalSourceRow<R = ReadLocalImportSourceRowInput> {
     pub original: Vec<u8>,
     pub source_sha256: String,
     pub mapping: CsvMappingV1,
+    pub review_declarations: bool,
     pub(crate) request: R,
     pub(crate) header_sha256: String,
 }
@@ -59,6 +60,7 @@ pub struct FrozenLocalSourceRow<R = ReadLocalImportSourceRowInput> {
 impl<R> FrozenLocalSourceRow<R> {
     pub(crate) fn verify(&self, row: &Value, locator: &LocalImportRowLocator) -> Result<(), Error> {
         let header = row["header"].as_array();
+        let conflicts = row.get("declaration_conflicts");
         if row["source_sha256"] != self.source_sha256
             || row["locator"] != json!(locator)
             || header
@@ -66,8 +68,20 @@ impl<R> FrozenLocalSourceRow<R> {
                 .as_deref()
                 != Some(&self.header_sha256)
             || row["raw_fields"].as_array().map(Vec::len) != header.map(Vec::len)
+            || conflicts.is_some() != self.review_declarations
         {
             return Err(failure(ErrorCode::OUTPUTINVALID));
+        }
+        if let Some(conflicts) = conflicts.and_then(Value::as_array) {
+            let columns = header.map_or(0, |fields| fields.len() as u64);
+            let mut next_column = 0;
+            for conflict in conflicts {
+                let index = conflict["column_index"]
+                    .as_u64()
+                    .filter(|index| (next_column..columns).contains(index))
+                    .ok_or_else(|| failure(ErrorCode::OUTPUTINVALID))?;
+                next_column = index + 1;
+            }
         }
         Ok(())
     }
@@ -76,8 +90,14 @@ impl<R> FrozenLocalSourceRow<R> {
 pub(crate) fn bounded_source_row_output(
     actor: Actor,
     name: &str,
-    output: Value,
+    mut output: Value,
+    mut row: Value,
 ) -> Result<Value, Error> {
+    output["header"] = row["header"].take();
+    output["raw_fields"] = row["raw_fields"].take();
+    if let Some(conflicts) = row.get_mut("declaration_conflicts") {
+        output["declaration_conflicts"] = conflicts.take();
+    }
     if output.to_string().len() > MAX_SOURCE_ROW_BYTES {
         return Err(failure(ErrorCode::RESOURCELIMIT));
     }
@@ -376,6 +396,7 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             original,
             source_sha256: stored.source_sha256,
             mapping: reviewed.mapping,
+            review_declarations: request.review_declarations.unwrap_or_default(),
             request,
             header_sha256: reviewed.header_sha256,
         })
@@ -395,8 +416,9 @@ impl<S: LocalDatasetStore> OperationRegistry<S> {
             READ_LOCAL_IMPORT_SOURCE_ROW,
             json!({
                 "version": 1, "revision_id": revision_id, "source_sha256": source.source_sha256,
-                "locator": source.request.locator, "header": row["header"], "raw_fields": row["raw_fields"],
+                "locator": source.request.locator,
             }),
+            row,
         )?;
         // The parser ran outside the SQLite lane. Check current display authority
         // after it returns, including revocations from another profile connection.

@@ -13689,6 +13689,54 @@
         }
       ]
     },
+    "CsvDeclarationConflict": {
+      "type": "object",
+      "properties": {
+        "column_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        },
+        "field": {
+          "type": "string",
+          "enum": [
+            "instrument_kind",
+            "venue",
+            "timeframe",
+            "calendar_id",
+            "session_scope",
+            "timezone",
+            "quantity_unit",
+            "price_adjustment",
+            "roll_method",
+            "record_kind",
+            "volume_semantics",
+            "timestamp_convention",
+            "timestamp_format",
+            "trading_day_format",
+            "daily_start_time"
+          ]
+        },
+        "reviewed_value": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "column_index",
+        "field",
+        "reviewed_value"
+      ],
+      "additionalProperties": false
+    },
     "ReadLocalImportSourceRowInput": {
       "type": "object",
       "properties": {
@@ -13702,6 +13750,10 @@
         },
         "locator": {
           "$ref": "#/$defs/LocalImportRowLocator"
+        },
+        "review_declarations": {
+          "type": "boolean",
+          "description": "Request a comparison of explicit source declarations with the mapping bound to the frozen revision."
         }
       },
       "required": [
@@ -13747,6 +13799,21 @@
           },
           "minItems": 1,
           "maxItems": 512
+        },
+        "declaration_conflicts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CsvDeclarationConflict"
+              },
+              "maxItems": 512
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present only when requested. Null means the stored mapping could not be reassessed. An empty array means no contradictory declaration was found in this record."
         }
       },
       "required": [
@@ -15570,6 +15637,10 @@
         },
         "source": {
           "$ref": "#/$defs/FolderRefreshSource"
+        },
+        "review_declarations": {
+          "type": "boolean",
+          "description": "Request a comparison of explicit source declarations with the mapping bound to the frozen revision."
         }
       },
       "required": [
@@ -15612,6 +15683,21 @@
           },
           "minItems": 1,
           "maxItems": 512
+        },
+        "declaration_conflicts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CsvDeclarationConflict"
+              },
+              "maxItems": 512
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present only when requested. Null means the stored mapping could not be reassessed. An empty array means no contradictory declaration was found in this record."
         }
       },
       "required": [

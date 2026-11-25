@@ -567,6 +567,7 @@ impl LocalImport {
             &source.source_sha256,
             &mapping,
             record_number,
+            source.review_declarations,
             cancel.cancelled(),
         )
         .await

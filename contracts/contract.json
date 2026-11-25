@@ -526,7 +526,7 @@
       "input": "ReadLocalImportSourceRowInput",
       "output": "ReadLocalImportSourceRowOutput",
       "implementation": "implemented",
-      "implementation_scope": "A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal.",
+      "implementation_scope": "A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. On request, compare explicit declarations with the bound mapping and identify each conflicting source column, or report that the comparison is unavailable. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
@@ -534,7 +534,7 @@
           "output": "ReadLocalImportSourceRowReply11"
         }
       },
-      "schema_requirement": "Protocol 1.1 only. A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal."
+      "schema_requirement": "Protocol 1.1 only. A local human reads one source record for a displayable single-file frozen CSV revision in the active profile. Resolve the exact published locator and parse the retained bytes using the revision's reviewed encoding and delimiter. Return the source digest, locator, and aligned headers and original field values in source order. On request, compare explicit declarations with the bound mapping and identify each conflicting source column, or report that the comparison is unavailable. The successful result is limited to 64 KiB of UTF-8 JSON. This read uses profile storage and remains available after source removal."
     },
     {
       "name": "market.previewLocalFolderRefresh",
@@ -652,7 +652,7 @@
       "input": "ReadLocalFolderSourceRowInput",
       "output": "ReadLocalFolderSourceRowOutput",
       "implementation": "implemented",
-      "implementation_scope": "Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal.",
+      "implementation_scope": "Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. On request, compare explicit declarations with the bound mapping and identify each conflicting source column, or report that the comparison is unavailable. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
@@ -660,7 +660,7 @@
           "output": "ReadLocalFolderSourceRowReply11"
         }
       },
-      "schema_requirement": "Protocol 1.1 only. Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal."
+      "schema_requirement": "Protocol 1.1 only. Read one original CSV record through a displayable frozen folder revision in the active local human profile. Require the exact chosen source path, content digest and record locator in that manifest. Parse retained bytes with the historical reviewed mapping and return aligned headers and original field values. On request, compare explicit declarations with the bound mapping and identify each conflicting source column, or report that the comparison is unavailable. The result is limited to 64 KiB of UTF-8 JSON and remains available after source removal."
     },
     {
       "name": "market.revokeLocalFolderRevision",

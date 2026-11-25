@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=d06d79219bccb80f70c39ddf5b081522bd5658b9fbf093c27158c212327a5d22. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -2921,10 +2921,16 @@ export type ReadLocalImportRevisionOutput = {
 };
 export type PublishLocalImportReply11 = PublishLocalImportResponse | PublishLocalImportError;
 export type ReadLocalImportRevisionReply11 = ReadLocalImportRevisionResponse | ReadLocalImportRevisionError;
+export type CsvDeclarationConflict = {
+  column_index: number;
+  field: "instrument_kind" | "venue" | "timeframe" | "calendar_id" | "session_scope" | "timezone" | "quantity_unit" | "price_adjustment" | "roll_method" | "record_kind" | "volume_semantics" | "timestamp_convention" | "timestamp_format" | "trading_day_format" | "daily_start_time";
+  reviewed_value: (string | null);
+};
 export type ReadLocalImportSourceRowInput = {
   version: number;
   revision_id: Uuid;
   locator: LocalImportRowLocator;
+  review_declarations?: boolean;
 };
 export type ReadLocalImportSourceRowOutput = {
   version: number;
@@ -2933,6 +2939,7 @@ export type ReadLocalImportSourceRowOutput = {
   locator: LocalImportRowLocator;
   header: Array<string>;
   raw_fields: Array<string>;
+  declaration_conflicts?: (Array<CsvDeclarationConflict> | null);
 };
 export type ReadLocalImportSourceRowReply11 = ReadLocalImportSourceRowResponse | ReadLocalImportSourceRowError;
 export type RevokeLocalImportRevisionInput = {
@@ -3069,6 +3076,7 @@ export type ReadLocalFolderSourceRowInput = {
   version: number;
   revision_id: Uuid;
   source: FolderRefreshSource;
+  review_declarations?: boolean;
 };
 export type ReadLocalFolderSourceRowOutput = {
   version: number;
@@ -3076,6 +3084,7 @@ export type ReadLocalFolderSourceRowOutput = {
   source: FolderRefreshSource;
   header: Array<string>;
   raw_fields: Array<string>;
+  declaration_conflicts?: (Array<CsvDeclarationConflict> | null);
 };
 export type ReadLocalFolderSourceRowReply11 = ReadLocalFolderSourceRowResponse | ReadLocalFolderSourceRowError;
 export type RevokeLocalFolderRevisionReply11 = RevokeLocalFolderRevisionResponse | RevokeLocalFolderRevisionError;

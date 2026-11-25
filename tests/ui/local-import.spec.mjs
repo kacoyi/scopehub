@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { painted } from './chart-pixels.mjs';
 import { control, openPanel, watchlistSymbol } from './workspace-controls.mjs';
 
@@ -1145,9 +1146,9 @@ base('built UI publishes all 502 native bars through Rust and discovers, reopens
     await expect(originalFields).toBeVisible();
     await expect(originalFields).toContainText('Record 502 · Source lines 504–505');
     const rawSelection = operations(readSourceRow).at(-1);
-    expect(rawSelection.args.payload).toEqual({ version: 1, revision_id: revision.revision_id, locator: tailLocator });
+    expect(rawSelection.args.payload).toEqual({ version: 1, revision_id: revision.revision_id, locator: tailLocator, review_declarations: true });
     expect(rawSelection.reply.result).toEqual({
-      version: 1, revision_id: revision.revision_id, source_sha256: hash, locator: tailLocator, header, raw_fields: tailRecord,
+      version: 1, revision_id: revision.revision_id, source_sha256: hash, locator: tailLocator, header, raw_fields: tailRecord, declaration_conflicts: [],
     });
     for (const value of ['SettlementPrice', 'PrevSettlementPrice', 'OpenInterest', 'QuantityUnit', '305.00', '307.125', '299.25', '001234']) {
       await expect(originalFields.getByText(value, { exact: true })).toBeVisible();
@@ -2543,8 +2544,10 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
     const source = { relative_path: 'alias.csv', source_sha256: hash, record_number: 2, line_start: 3, line_end: 4 };
     const locator = { version: 1, revision_id: revisionId, source };
     const inspected = operations('readLocalFolderSourceRow').at(-1);
-    expect(inspected.args.payload).toEqual(locator);
-    expect(inspected.reply.result).toEqual({ ...locator, header, raw_fields: selectedRow });
+    expect(inspected.args.payload).toEqual({ ...locator, review_declarations: true });
+    expect(inspected.reply.result).toEqual({ ...locator, header, raw_fields: selectedRow, declaration_conflicts: [] });
+    await expect(originalFields).toContainText('No declaration conflicts in this record.');
+    expect((await run('readLocalFolderSourceRow', locator)).result).toEqual({ ...locator, header, raw_fields: selectedRow });
     const mismatch = await run('readLocalFolderSourceRow', { ...locator, source: { ...source, line_end: 3 } });
     expect(mismatch.error.code).toBe('STALE_CONTEXT');
     expect(mismatch.result).toBeUndefined();
@@ -2561,11 +2564,136 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
     });
     expect(revoked.error.code).toMatch(/PERMISSION_DENIED|SNAPSHOT_UNAVAILABLE/);
     await expect(originalFields).toHaveCount(0);
-    const revokedRow = await run('readLocalFolderSourceRow', locator);
+    const revokedRow = await run('readLocalFolderSourceRow', { ...locator, review_declarations: true });
     expect(revokedRow.error.code).toMatch(/PERMISSION_DENIED|SNAPSHOT_UNAVAILABLE/);
     expect(revokedRow.result).toBeUndefined();
   } finally {
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+base('reviews conflicting declarations in a reopened historical CSV without changing its snapshot', {
+  tag: '@profile-folder-import',
+}, async ({ page }) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-legacy-csv-review-'));
+  const app = join(root, 'profile');
+  const folder = join(root, 'synthetic-csv');
+  const declarations = ['timeframe', 'timezone', 'volume_semantics'];
+  const header = [...future.header, ...declarations, 'Vendor note'];
+  const agreed = ['5m', 'Asia/Shanghai', 'per_bar'];
+  const disputed = ['1m', 'UTC', 'cumulative'];
+  const note = 'Original note\nsecond physical line';
+  const row1 = [...future.rows[0], ...agreed, 'Compatible'];
+  const firstPart = [header, row1].map(row => row.join(',') + '\n').join('');
+  const csv = values => firstPart + [...future.rows[1], ...values, '"' + note + '"'].join(',') + '\n';
+  const current = csv(agreed);
+  const legacy = Buffer.from(csv(disputed));
+  const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+  const oldDigest = sha256(current);
+  const legacyDigest = sha256(legacy);
+  let bridge;
+  const call = (payload, operation) => bridge.request('execute_operation', {
+    operation, requestId: randomUUID(), payload,
+  });
+  const market = async (operation, payload) => {
+    const reply = await call({ version: 1, ...payload }, 'market.' + operation);
+    expect(reply.error).toBeUndefined();
+    return reply.result;
+  };
+  try {
+    await mkdir(folder, { mode: 0o700 });
+    await writeFile(join(folder, 'night.csv'), current);
+    bridge = startLocalImportBridge(binary, app, folder, { workspace: true });
+    const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+    const source = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: oldDigest };
+    const mapping = {
+      version: 1, revision: 'historical-night', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+      ...future.settings, columns: future.columns, timestamp_convention: 'bar_start', volume_semantics: 'per_bar',
+    };
+    const preview = { ...source, mapping, row_limit: 1 };
+    await market('previewLocalImport', preview);
+    const { record } = await market('saveLocalImportMapping', preview);
+    const { revision } = await market('publishLocalImport', { ...source, review_revision: record.review_revision });
+    const revisionId = revision.revision_id;
+    const locator = { record_number: 2, line_start: 3, line_end: 4 };
+    const open = async () => {
+      const reply = await call({ type: 'frozen_chart', revision_id: revisionId, request_id: randomUUID() });
+      expect(reply.error).toBeUndefined();
+      return reply.result;
+    };
+    const original = await open();
+    expect(original.bars[1]).toMatchObject({ bar: { time_ms: Date.parse(future.times[1]), close: 105, volume: 37 }, locators: [locator] });
+
+    await bridge.close();
+    // Emulate the old importer, which copied these columns without comparing them.
+    // Keep the reviewed mapping, normalized bars and committed source locators.
+    const dbPath = join(app, 'workspace-dev', 'workspace.sqlite3');
+    const db = new DatabaseSync(dbPath);
+    try {
+      db.prepare('INSERT INTO local_dataset_source_blobs VALUES (?, ?)').run(legacyDigest, legacy);
+      const changed = db.prepare(`UPDATE local_dataset_revisions
+        SET source_sha256 = ?, content_json = json_set(content_json, '$.file_sha256', ?)
+        WHERE revision_id = ?`).run(legacyDigest, legacyDigest, revisionId);
+      expect(changed.changes).toBe(1);
+    } finally {
+      db.close();
+    }
+    await rename(folder, join(root, 'removed-directory'));
+    bridge = startLocalImportBridge(binary, app, folder, { workspace: true });
+    const beforeReview = await open();
+    expect(beforeReview.snapshot).toEqual(original.snapshot);
+    expect(beforeReview.revision.source_sha256).toBe(legacyDigest);
+    const input = { revision_id: revisionId, locator };
+    const raw = await market('readLocalImportSourceRow', input);
+    expect(raw).toEqual({
+      version: 1, ...input, source_sha256: legacyDigest, header, raw_fields: [...future.rows[1], ...disputed, note],
+    });
+
+    await page.exposeBinding('testNativeInvoke', async (_, command, args) => bridge.request(command, args));
+    await page.addInitScript(() => {
+      window.isTauri = true;
+      window.__TAURI_INTERNALS__ = {
+        async invoke(command, args) {
+          const reply = await window.testNativeInvoke(command, args);
+          if (reply.error) throw reply.error;
+          return reply.result;
+        },
+      };
+    });
+    await page.goto('/');
+    await control(page, 'Open published CSV').last().click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    await dialog.getByRole('button', { name: /Open night\.csv/ }).click();
+    await dialog.getByText('Source rows (2)', { exact: true }).click();
+    const originalFields = dialog.getByRole('region', { name: 'Original CSV fields', exact: true });
+    await control(dialog, 'Inspect record 1').click();
+    await expect(originalFields).toContainText('No declaration conflicts in this record.');
+    await control(dialog, 'Inspect record 2').click();
+    await expect(originalFields).toContainText('Record 2 · Source lines 3–4');
+    await expect(originalFields.getByRole('alert')).toContainText(
+      'Original declarations conflict with the mapping used for this frozen revision.',
+    );
+    await expect(originalFields.getByRole('listitem')).toHaveText(declarations.map((field, index) => `${field} · Reviewed value ${agreed[index]}`));
+    for (const [index, field] of declarations.entries()) {
+      await expect(originalFields.getByRole('row', { name: `${field} ${disputed[index]}`, exact: true })).toBeVisible();
+    }
+    await expect(originalFields.getByRole('row', { name: /Vendor note Original note second physical line/ })).toBeVisible();
+    await expect(dialog.getByRole('region', { name: 'Frozen local CSV chart' }).getByLabel('Selected bar')).toContainText('C 105');
+    expect(await open()).toEqual(beforeReview);
+    await bridge.close();
+    bridge = undefined;
+    const reopened = new DatabaseSync(dbPath, { readOnly: true });
+    try {
+      const row = reopened.prepare('SELECT original_bytes FROM local_dataset_source_blobs WHERE source_sha256 = ?').get(legacyDigest);
+      expect(Buffer.from(row.original_bytes)).toEqual(legacy);
+    } finally {
+      reopened.close();
+    }
+  } finally {
+    await bridge?.close();
+    await rm(root, { recursive: true, force: true });
   }
 });

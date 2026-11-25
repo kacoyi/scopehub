@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M1-041",
   "tasks": [
     {
       "id": "M0-001",
@@ -19979,6 +19979,148 @@
           ],
           "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
           "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
+        }
+      }
+    },
+    {
+      "id": "M1-041",
+      "title": "Review conflicting declarations in frozen native CSV source records",
+      "milestone": "M1",
+      "status": "active",
+      "depends_on": [
+        "M1-035",
+        "M1-038"
+      ],
+      "scope": [
+        "contracts",
+        "python/providers",
+        "python/worker_runtime",
+        "crates/application",
+        "crates/worker-host",
+        "apps/desktop",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Inspect a source record from an authorized frozen single-file or folder revision. Attribute each contradictory explicit declaration to the exact preserved source field and compare it with the mapping version bound to the revision.",
+        "Keep original bytes, source locators, previously published bars, dataset IDs and chart hashes unchanged. A denied, revoked, missing or unverifiable source cannot yield a successful review. A client that requests raw fields alone retains the existing response.",
+        "Verify a synthetic pre-admission revision, an unaffected record, multiline records, an independently revoked folder, and reopening with no live source-folder grant."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "market-workflow",
+        "python-types",
+        "generated-contracts",
+        "typescript-contracts",
+        "architecture",
+        "rust-contracts-workers",
+        "ui-build",
+        "desktop-localization",
+        "rust-format",
+        "rust-lints",
+        "local-import-publication",
+        "local-folder-import"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the missing declaration comparison in the existing source row path, then attach a bounded review to that read.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The existing original-row view shows conflicts with the exact mapping under which a historical bar was published.",
+        "change_types": [
+          "market-fixtures",
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-23-continuity-audit.json",
+          "python/providers/csv_bar_mapping.py",
+          "crates/application/src/local_publication.rs",
+          "crates/application/src/folder_publication.rs",
+          "apps/desktop/ui/src/local-preview-chart.tsx"
+        ],
+        "hypotheses": [
+          "Reuse the current admission rule for explicit declarations while parsing the selected logical record from retained source bytes. An opt-in response preserves earlier raw-read clients."
+        ],
+        "risks": [
+          {
+            "failure": "The shared process supervisor breaks worker type verification or changes process cleanup behavior.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Legacy conflicts are missed, or newer mapping drafts are compared with previously frozen source rows.",
+            "checks": [
+              "python-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A review leaks another revision or mutates bars, original bytes or snapshot identity.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "The new wire reply is ambiguous, rejects raw-only callers or loses readable diagnostics.",
+            "checks": [
+              "generated-contracts",
+              "typescript-contracts",
+              "ui-build",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Revert the read-path addition. Existing data and mapping versions require no migration.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host",
+            "providers",
+            "worker-runtime",
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "crates/application/src/local_publication.rs",
+            "crates/application/src/folder_publication.rs",
+            "apps/desktop/ui/src/local-preview-chart.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/refresh_conflicts"
+            }
+          ],
+          "non_goals": [
+            "Automatic repair, bulk scan, Parquet selection, source rebind and dated evidence admission."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Historical mapping versions, byte hashes, source locators, frozen chart identity and profile-scoped display permission."
+          ],
+          "change": [
+            "Add opt-in declaration comparison for one linked frozen source record."
+          ],
+          "data_plan": "Read immutable bytes through the existing entitled operations. Use synthetic historical fixtures and preserve the original bytes even if they conflict.",
+          "cleanup": "Share one declaration comparison with live admission. No persistent cache or secondary source store."
         }
       }
     }

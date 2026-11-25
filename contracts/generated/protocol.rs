@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=d06d79219bccb80f70c39ddf5b081522bd5658b9fbf093c27158c212327a5d22. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -4808,10 +4808,19 @@ pub enum ReadLocalImportRevisionReply11 {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct CsvDeclarationConflict {
+    pub column_index: u64,
+    pub field: CsvDeclarationConflictField,
+    pub reviewed_value: Option<String>,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReadLocalImportSourceRowInput {
     pub version: u64,
     pub revision_id: Uuid,
     pub locator: LocalImportRowLocator,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_declarations: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -4822,6 +4831,12 @@ pub struct ReadLocalImportSourceRowOutput {
     pub locator: LocalImportRowLocator,
     pub header: Vec<String>,
     pub raw_fields: Vec<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_nullable"
+    )]
+    pub declaration_conflicts: Option<Option<Vec<CsvDeclarationConflict>>>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
@@ -5043,6 +5058,8 @@ pub struct ReadLocalFolderSourceRowInput {
     pub version: u64,
     pub revision_id: Uuid,
     pub source: FolderRefreshSource,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_declarations: Option<bool>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -5052,6 +5069,12 @@ pub struct ReadLocalFolderSourceRowOutput {
     pub source: FolderRefreshSource,
     pub header: Vec<String>,
     pub raw_fields: Vec<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_nullable"
+    )]
+    pub declaration_conflicts: Option<Option<Vec<CsvDeclarationConflict>>>,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
@@ -11196,6 +11219,60 @@ impl DecisionNoteRestoreBackupReply11Type {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "response",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum CsvDeclarationConflictField {
+    #[serde(rename = "instrument_kind")]
+    InstrumentKind,
+    #[serde(rename = "venue")]
+    Venue,
+    #[serde(rename = "timeframe")]
+    Timeframe,
+    #[serde(rename = "calendar_id")]
+    CalendarId,
+    #[serde(rename = "session_scope")]
+    SessionScope,
+    #[serde(rename = "timezone")]
+    Timezone,
+    #[serde(rename = "quantity_unit")]
+    QuantityUnit,
+    #[serde(rename = "price_adjustment")]
+    PriceAdjustment,
+    #[serde(rename = "roll_method")]
+    RollMethod,
+    #[serde(rename = "record_kind")]
+    RecordKind,
+    #[serde(rename = "volume_semantics")]
+    VolumeSemantics,
+    #[serde(rename = "timestamp_convention")]
+    TimestampConvention,
+    #[serde(rename = "timestamp_format")]
+    TimestampFormat,
+    #[serde(rename = "trading_day_format")]
+    TradingDayFormat,
+    #[serde(rename = "daily_start_time")]
+    DailyStartTime,
+}
+impl CsvDeclarationConflictField {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::InstrumentKind => "instrument_kind",
+            Self::Venue => "venue",
+            Self::Timeframe => "timeframe",
+            Self::CalendarId => "calendar_id",
+            Self::SessionScope => "session_scope",
+            Self::Timezone => "timezone",
+            Self::QuantityUnit => "quantity_unit",
+            Self::PriceAdjustment => "price_adjustment",
+            Self::RollMethod => "roll_method",
+            Self::RecordKind => "record_kind",
+            Self::VolumeSemantics => "volume_semantics",
+            Self::TimestampConvention => "timestamp_convention",
+            Self::TimestampFormat => "timestamp_format",
+            Self::TradingDayFormat => "trading_day_format",
+            Self::DailyStartTime => "daily_start_time",
         }
     }
 }

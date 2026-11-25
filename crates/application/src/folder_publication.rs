@@ -268,6 +268,7 @@ impl<S: FolderManifestStore + LocalDatasetStore> OperationRegistry<S> {
             original,
             source_sha256: target.source_sha256.clone(),
             mapping: reviewed.mapping,
+            review_declarations: request.review_declarations.unwrap_or_default(),
             request,
             header_sha256: reviewed.header_sha256,
         })
@@ -294,10 +295,8 @@ impl<S: FolderManifestStore + LocalDatasetStore> OperationRegistry<S> {
         let output = bounded_source_row_output(
             access.actor,
             READ_LOCAL_FOLDER_SOURCE_ROW,
-            json!({
-                "version": 1, "revision_id": id, "source": target,
-                "header": row["header"], "raw_fields": row["raw_fields"],
-            }),
+            json!({"version": 1, "revision_id": id, "source": target}),
+            row,
         )?;
         // Source parsing runs outside the SQLite lane, so display may have changed.
         self.port
