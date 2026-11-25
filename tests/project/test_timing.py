@@ -587,9 +587,10 @@ class HostedTimingTests(unittest.TestCase):
             else:
                 skip_step.append(job)
                 shorter_step.append(job)
-        for variant, expected_step in ((skip_step, 30), (shorter_step, None)):
+        missing_core = lambda jobs: [job for job in jobs if job['name'] != timing.WINDOWS_PRODUCERS['core']]
+        for variant, expected_step in ((skip_step, 30), (shorter_step, None),
+                                       (missing_core(skip_step), 30), (missing_core(shorter_step), None)):
             other = timing.hosted_timing(run, variant[::-1])
-            self.assertTrue(timing.clock_complete(other))
             for evidence in ([first, other, first], [other, first, other]):
                 with self.subTest(step=expected_step, reverse=evidence[0] is other):
                     view = timing.timing_view([full, browser], hosted=evidence)
@@ -604,11 +605,48 @@ class HostedTimingTests(unittest.TestCase):
                                       (None, timing.WINDOWS_PRODUCERS['browser'], ('browser_step',))}
                                      if expected_step is None else set(), scopes)
 
+    def test_protected_job_uses_known_facts_from_partial_membership(self):
+        jobs = self.split_windows_jobs()
+        run = hosted_run()
+        full_clock = timing.hosted_timing(run, jobs)
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(full_clock))), 'checkout_sha': 'a' * 40}
+        linux = timing.report_sample(report)
+        windows = dict(linux, platform='Windows')
+        original_jobs = [job for job in jobs if job['name'] != timing.WINDOWS_PRODUCERS['core']]
+        late_jobs = [dict(job, completed_at='2026-11-20T00:16:30Z') if job['id'] == 31 else job
+                     for job in original_jobs]
+        blank_jobs = [dict(job, completed_at=None) if job['id'] == 31 else job for job in jobs]
+        partial = timing.hosted_timing(run, original_jobs)
+        late = timing.hosted_timing(run, late_jobs)
+        blank = timing.hosted_timing(run, blank_jobs)
+        self.assertEqual(2, len(blank['jobs']))
+        self.assertEqual(510, partial['jobs'][0]['seconds']['total'])
+        self.assertEqual(990, late['jobs'][0]['seconds']['total'])
+        for claims, expected in (([full_clock, partial], 510), ([blank, partial], 510),
+                                 ([blank, late], 990), ([full_clock, late], None)):
+            for evidence in ([*claims, claims[0]], [*reversed(claims), claims[1]]):
+                with self.subTest(expected=expected, reversed=evidence[0] is claims[1]):
+                    view = timing.timing_view([linux, windows], hosted=evidence)
+                    rows = {row['platform']: row for row in view['samples']}
+                    self.assertEqual((expected, 765), (rows['Linux']['seconds']['total'], rows['Windows']['seconds']['total']))
+                    self.assertEqual((10, 40), (rows['Linux']['seconds']['queue'], rows['Linux']['seconds']['setup']))
+                    budget = {row['platform']: row for row in view['objective_reviews']}
+                    self.assertEqual((int(expected is not None), int(expected == 990)),
+                                     (budget['Linux']['sample_count'], budget['Linux']['recent_objective_breaches']))
+                    self.assertEqual(1, budget['Windows']['sample_count'])
+                    issues = [note for note in view['input_issues'] if note.get('platform') == 'Linux']
+                    self.assertEqual(expected is None, bool(issues))
+                    if issues:
+                        self.assertIn('total', issues[0]['fields'])
+
     def test_matched_lane_can_fill_only_its_existing_aggregate_cache_field(self):
         clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
         report = fast_report(20, 675)
         report['selection']['profile'] = 'full'
-        report['environment']['system'] = 'Windows'
+        report['environment'].update(system='Windows', machine='AMD64')
+        report['run_id'] = 'windows-change-11-1'
         report['source']['sha256'] = 'c' * 64
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         caches = dict(core='partial', browser='unknown', python='not_requested', recovery='partial')
@@ -617,6 +655,9 @@ class HostedTimingTests(unittest.TestCase):
         browser.update(profile='ci-windows-browser', cache='partial', selected=full['selected'][:1])
         variants = (
             ([browser], 'partial', False),
+            ([dict(browser, arch='x86_64')], 'partial', False),
+            ([dict(browser, arch='ARM64')], 'unknown', False),
+            ([dict(browser, run_id=fast_report(19, 675)['run_id'])], 'unknown', False),
             ([dict(browser, inputs_sha256='e' * 64)], 'unknown', False),
             ([dict(browser, checks=[{**row, 'duration_seconds': 17} for row in browser['checks']])], 'unknown', False),
             ([dict(browser, checks=[*browser['checks'], browser['checks'][0]])], 'unknown', False),
@@ -636,7 +677,8 @@ class HostedTimingTests(unittest.TestCase):
         clock = timing.hosted_timing(hosted_run(), [*siblings, aggregate])
         report = fast_report(20, 675)
         report['selection']['profile'] = 'full'
-        report['environment']['system'] = 'Windows'
+        report['environment'].update(system='Windows', machine='AMD64')
+        report['run_id'] = 'windows-change-11-1'
         report['source']['sha256'] = 'c' * 64
         report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
         full = timing.report_sample(report, cache='warm')

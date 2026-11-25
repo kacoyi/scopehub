@@ -12,6 +12,20 @@ import subprocess
 import sys
 
 
+def windows_x64(environment):
+    machine = environment.get('machine')
+    return (environment.get('system') == 'Windows' and isinstance(machine, str)
+            and machine.lower() in {'amd64', 'x86_64'})
+
+
+def windows_lanes_run_id(ci):
+    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
+
+
+def windows_lane_report_matches(ci, run_id, environment):
+    return run_id == windows_lanes_run_id(ci) and windows_x64(environment)
+
+
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
 SCOPE_REASONS = {
     'records': 'Only reviewed record paths or approved narrative fields changed.',

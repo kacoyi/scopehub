@@ -11,7 +11,7 @@ import tempfile
 
 if __package__:
     from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
-                        windows_lane_checks, windows_lanes_run_id)
+                        windows_lane_checks)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
     from .timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
@@ -22,10 +22,12 @@ if __package__:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from .verification_scope import (
+        SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor, windows_lane_report_matches, windows_lanes_run_id,
+    )
 else:
     from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
-                       windows_lane_checks, windows_lanes_run_id)
+                       windows_lane_checks)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
     from timing import (TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample,
@@ -36,7 +38,9 @@ else:
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
-    from verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
+    from verification_scope import (
+        SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor, windows_lane_report_matches, windows_lanes_run_id,
+    )
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE_FILE = 'verification-scope.json'
@@ -427,7 +431,8 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
             if lane == 'core':
                 core = report
             if not profile:
-                if (report['run_id'] != run_id or report['environment']['python_executable'] !=
+                if (not windows_lane_report_matches(ci, report['run_id'], report['environment'])
+                        or report['environment']['python_executable'] !=
                         core['environment']['python_executable']):
                     raise PublicationError(f'Windows {lane} lane has another report identity or Python executable.')
                 started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])

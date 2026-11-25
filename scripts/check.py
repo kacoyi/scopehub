@@ -33,6 +33,7 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from .storage import maintain_automatically
+        from .verification_scope import windows_lanes_run_id
         from .verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
             integration_validation, redacted_check_log, release_artifacts,
@@ -46,6 +47,7 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from storage import maintain_automatically
+        from verification_scope import windows_lanes_run_id
         from verification_evidence import (
             FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
             integration_validation, redacted_check_log, release_artifacts,
@@ -141,10 +143,6 @@ def windows_lane_checks(selected, lane):
     if lane == 'core':
         return selected.difference(*WINDOWS_LANE_CHECKS.values())
     return selected & WINDOWS_LANE_CHECKS[lane]
-
-
-def windows_lanes_run_id(ci):
-    return f"windows-change-{ci['run_id']}-{ci['run_attempt']}"
 
 
 def build_window(catalog, selected, environment, index):
