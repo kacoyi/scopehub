@@ -24560,7 +24560,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Validate the five independent lifecycle findings on the combined source, then return the exact repaired candidate for Astra Standard review.",
+      "next_action": "Replay hosted observations across admitted history and same-day branch dispositions across verified default-branch revisions, then return the exact candidate for Astra Standard review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24613,6 +24613,12 @@
           },
           {
             "failure": "A due transfer loses its calendar obligation, fresh standalone fast runs are mistaken for a replay, or partially traced branch tips cannot progress without hiding adverse evidence. A bounded handoff can also omit retained failures, and weekly summary I/O can suppress product verification.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A hosted run can advance the calendar again after an intervening scope, or a same-day inventory rejects exact branch progress after verified main ancestry advances. Exercise overlap, replay, reversal, independent protection and unrelated histories.",
             "checks": [
               "python-contracts-workers"
             ]

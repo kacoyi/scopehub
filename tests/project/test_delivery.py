@@ -321,6 +321,131 @@ class DeliveryTests(ProjectFixture):
         adverse = propose('simultaneous-adverse', 8, [branches[0], *traced], deletes=False)
         self.assertIn('canonical feedback', adverse['error'])
 
+    def test_timing_review_freshness_uses_all_admitted_scopes_and_accepts_new_overlap(self):
+        path, delivery = self.periodic_fixture()
+        baseline = self.commit_fixture()
+        row = delivery['scaffold_maintenance']['periodic_reviews'][1]
+        self.review_day = 29
+
+        def attach(day, event, runs=None):
+            raw = self.timing_review(f'2026-11-{day}T08:00:00Z')
+            cohorts = [item for item in raw['objective_reviews'] if (item['platform'], item['event']) == ('Linux', event)]
+            identity = cohorts[0]['recent_runs']
+            if runs is not None:
+                identity[:] = runs
+            raw['objective_reviews'] = cohorts
+            raw['recent_collection']['collected_samples'] = [
+                {'run_id': run, 'platform': 'Linux', 'event': event} for run in identity]
+            self.add_periodic_record(row, raw)
+            path.write_bytes(json_bytes(delivery))
+            return identity
+
+        pr_runs = attach(24, 'pull_request')
+        self.commit_fixture()
+        push_runs = attach(25, 'push')
+        self.assertEqual('passed', self.project_command('check')['status'])
+        accepted = self.commit_fixture()
+        saved = read_json(path)['scaffold_maintenance']['periodic_reviews'][1]
+        attach(26, 'pull_request', list(reversed(pr_runs)))
+        for args in (('check',), ('history', '--base', accepted), ('history', '--base', baseline)):
+            self.assertIn('fresh comparable observation', self.project_command(*args)['error'])
+        self.assertEqual('evidence_invalid', self.project_command('status')['periodic_reviews'][1]['state'])
+
+        row.clear()
+        row.update(saved)
+        attach(27, 'pull_request', [pr_runs[1], pr_runs[0], '45556290000'])
+        for args in (('check',), ('history', '--base', accepted), ('history', '--base', baseline)):
+            self.assertEqual('passed', self.project_command(*args)['status'])
+        accepted = self.commit_fixture()
+        attach(28, 'push', list(reversed(push_runs)))
+        for args in (('check',), ('history', '--base', accepted), ('history', '--base', baseline)):
+            self.assertIn('fresh comparable observation', self.project_command(*args)['error'])
+
+    def test_same_day_branch_progress_follows_ancestry_and_binds_each_protection_revision(self):
+        path, delivery = self.periodic_fixture()
+        initial = self.commit_fixture()
+        tree = project_cli.feedback_git(self.root, 'rev-parse', f'{initial}^{{tree}}').stdout.decode().strip()
+
+        def checkpoint(message, *parents):
+            args = [arg for parent in parents for arg in ('-p', parent)]
+            return subprocess.check_output(
+                ['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                 '-c', 'commit.gpgsign=false', 'commit-tree', tree, *args, '-m', message],
+                cwd=self.root, text=True).strip()
+
+        old = checkpoint('Original default tip', initial)
+        advanced = checkpoint('Normal default-branch integration', old)
+        unrelated = checkpoint('Unrelated lineage from the common base', initial)
+        # A review checkout can contain valid observations from both lines. The transition still needs ancestry.
+        joined = checkpoint('Fixture holding both revisions', advanced, unrelated)
+        subprocess.run(['git', 'checkout', '--detach', joined], cwd=self.root, check=True, capture_output=True)
+
+        row = delivery['scaffold_maintenance']['periodic_reviews'][2]
+        raw, protection = (self.root / '.reports' / name for name in ('branches.json', 'protection.json'))
+        raw.parent.mkdir(exist_ok=True)
+        settings = read_json(self.root / 'project/branch-protection.json')['configuration']
+        for key in ('enforce_admins', 'allow_force_pushes', 'allow_deletions', 'required_conversation_resolution'):
+            settings[key] = {'enabled': settings[key]}
+        names = ('alpha', 'beta', 'gamma')
+
+        def attach(label, hour, source, traced, protection_source):
+            clock = f'2026-11-25T{hour:02}:00:00Z'
+            branches = [{'name': 'main', 'sha': source, 'status': 'default', 'protected': True}]
+            for index, name in enumerate(names, 1):
+                entry = {'name': name, 'sha': f'{index:040x}', 'status': 'unique_history'}
+                if index <= traced:
+                    entry.update(status='in_use', open_pr_heads=[index])
+                branches.append(entry)
+            capture = {'observed_at': clock, 'repository': 'kacoyi/scopehub',
+                       'default_branch': {'name': 'main', 'sha': source}, 'delete_branch_on_merge': True,
+                       'errors': [], 'branches': branches, 'open_pull_requests': []}
+            raw.write_bytes(json_bytes(capture))
+            protection.write_bytes(json_bytes({'repository': capture['repository'], 'branch': 'main',
+                                               'branch_sha': protection_source, 'observed_at': clock,
+                                               'observed': settings}))
+            record = self.project_command('observe-maintenance', row['id'], '--report', str(raw),
+                                          '--report', str(protection))
+            self.assertEqual(source, record['source_commit'])
+            relative = f'contracts/reviews/branch-progress-{label}.json'
+            proposed = self.root / relative
+            proposed.parent.mkdir(exist_ok=True)
+            proposed.write_bytes(json_bytes(record))
+            subprocess.run(['git', 'add', '--', relative], cwd=self.root, check=True)
+            self.protect_observation(proposed, raw, protection)
+            row.update(reviewed_on='2026-11-25', review_record=relative)
+            path.write_bytes(json_bytes(delivery))
+            return record
+
+        first = attach('first', 6, old, 0, old)
+        self.assertTrue(first['evidence']['protection_observed'])
+        self.assertEqual(3, len(first['evidence']['untraced_tips']))
+        original_path = self.root / row['review_record']
+        original_bytes = original_path.read_bytes()
+        accepted = self.commit_fixture()
+        row['review_history'] = [row['review_record']]
+
+        wrong = attach('misbound', 7, advanced, 1, old)
+        self.assertFalse(wrong['evidence']['protection_observed'])
+        self.assertIn('later same-day', self.project_command('check')['error'])
+        attach('unrelated', 7, unrelated, 1, unrelated)
+        self.assertIn('same-day', self.project_command('history', '--base', accepted)['error'])
+
+        progress = attach('descendant', 8, advanced, 1, advanced)
+        self.assertTrue(progress['evidence']['protection_observed'])
+        self.assertEqual(2, len(progress['evidence']['untraced_tips']))
+        self.assertLess(set(progress['evidence']['untraced_tips']), set(first['evidence']['untraced_tips']))
+        for args in (('check',), ('history', '--base', accepted), ('history', '--base', initial)):
+            self.assertEqual('passed', self.project_command(*args)['status'])
+        self.assertEqual('checks_needed', self.project_command('status')['periodic_reviews'][2]['state'])
+        self.assertEqual(original_bytes, original_path.read_bytes())
+
+        accepted = self.commit_fixture()
+        row['review_history'].append(row['review_record'])
+        attach('reversal', 9, old, 2, old)
+        for args in (('check',), ('history', '--base', accepted), ('history', '--base', initial)):
+            self.assertIn('same-day', self.project_command(*args)['error'])
+        self.assertEqual('evidence_invalid', self.project_command('status')['periodic_reviews'][2]['state'])
+
     def test_periodic_observation_assigns_real_followup_and_reopens_on_changed_occurrence(self):
         path, delivery = self.periodic_fixture()
         base = self.commit_fixture()

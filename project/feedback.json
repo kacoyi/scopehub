@@ -6751,6 +6751,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "periodic-timing-recounts-admitted-hosted-runs",
+      "observation": "Three retained Linux PR runs were accepted on November 25, and a distinct Linux push cohort was accepted on December 2. A December 9 replay of the original PR runs then passed ordinary project and history checks and advanced the review even though every PR run had already been admitted.",
+      "source": "Independent Astra Standard changes requested on 27478e862115a1f6b33e21d2bcdb832655fb32ca. Verified original manifest SHA-256 3dd9f6160a5a8ae38e900896814e1329769e3e6347681926fd452b31ea85f38e. Original retained privately.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "same-day-branch-review-rejects-verified-default-descendant",
+      "observation": "Two retained same-day inventories on 6cf0d0dc and its verified default-branch descendant 87dd0796 both contained nine unique tips. An exact recoverable disposition verified against the later inventory reduced the pending set to eight. The same-source control was accepted, but ordinary project, history and startup rejected the verified descendant observation.",
+      "source": "Independent Astra Standard changes requested on 27478e862115a1f6b33e21d2bcdb832655fb32ca. Verified original manifest SHA-256 3dd9f6160a5a8ae38e900896814e1329769e3e6347681926fd452b31ea85f38e. Original retained privately.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -367,8 +367,8 @@ def local_fast_identity(row):
     return ('local-fast', row['source_commit'], row['run_id'])
 
 
-def has_fresh_timing(previous, current_evidence, accepted, proposed):
-    fresh = proposed - accepted
+def has_fresh_timing(previous, current_evidence, admitted_runs, proposed):
+    fresh = proposed - admitted_runs
     if local := current_evidence['local_fast']:
         if utc(local['recorded_at']) <= utc(previous['observed_at']):
             fresh.discard(local_fast_identity(local))
@@ -392,8 +392,7 @@ def branch_obligation_tips(pending, facts):
 
 def same_day_progress(key, previous, current, old_evidence, new_evidence, adverse, previously_adverse,
                       inputs, added_finding, branch_tips):
-    if (previous['source_commit'] != current['source_commit']
-            or utc(previous['observed_at']).date() != utc(current['observed_at']).date()
+    if (utc(previous['observed_at']).date() != utc(current['observed_at']).date()
             or not inputs or observation_clock(current).date() != utc(current['observed_at']).date()):
         return False
     later = observation_clock(current) > observation_clock(previous)

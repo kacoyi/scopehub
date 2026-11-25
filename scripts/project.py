@@ -1121,9 +1121,21 @@ def accepted_review_paths(root, old, candidate, base):
     return paths[len(prior_paths):]
 
 
-def validate_review_progress(root, key, previous, current, feedback, branch_tips):
+def comparable_same_day_source(root, key, previous, current):
+    before, after = previous['source_commit'], current['source_commit']
+    if before == after:
+        return True
+    if key != 'branches-and-pull-requests':
+        return False
+    return (all(previous['facts'][field] == current['facts'][field] for field in ('repository', 'branch'))
+            and feedback_git(root, 'merge-base', '--is-ancestor', before, after).returncode == 0)
+
+
+def validate_review_progress(root, key, previous, current, feedback, *, branch_tips, admitted_timing):
     old_evidence, old_identity, old_adverse, old_inputs = periodic_record_facts(root, key, previous)
     new_evidence, new_identity, new_adverse, new_inputs = periodic_record_facts(root, key, current)
+    if key == 'verification-timing':
+        admitted_timing.update(old_identity)
     old_clock = maintenance.utc(previous['observed_at'])
     new_clock = maintenance.utc(current['observed_at'])
     new_links = {link['id']: link['fingerprint'] for link in current['findings']}
@@ -1131,11 +1143,13 @@ def validate_review_progress(root, key, previous, current, feedback, branch_tips
     if not required.issubset(new_links):
         raise ValueError('Follow through on the previously observed findings.')
     if new_clock.date() > old_clock.date():
-        fresh = (maintenance.has_fresh_timing(previous, new_evidence, old_identity, new_identity)
+        fresh = (maintenance.has_fresh_timing(previous, new_evidence, admitted_timing, new_identity)
                  if key == 'verification-timing' else new_identity != old_identity)
         if not fresh or current['report_sha256'] == previous['report_sha256']:
             raise ValueError('The new date needs a fresh comparable observation.')
         return
+    if not comparable_same_day_source(root, key, previous, current):
+        raise ValueError('A same-day observation needs the same source or a verified descendant of the same default branch.')
     inputs = set(new_inputs) - set(old_inputs)
     previous_links = {link['id']: link['fingerprint'] for link in previous['findings']}
     added_finding = any(
@@ -1183,6 +1197,24 @@ def require_retirement_calendar(root, old, candidate, result, today):
         raise ValueError(f'Transfer the scheduled observation with retired_due_on set to {due.isoformat()}.')
 
 
+def validate_review_chain(root, project, key, admitted_paths, appended_paths, current, feedback):
+    chain = [historical_review(root, project, key, path) for path in appended_paths]
+    chain.append(current)
+    branch_tips, admitted_timing = set(), set()
+    for path in admitted_paths:
+        if key in {'branches-and-pull-requests', 'verification-timing'}:
+            record, _ = read_review_report(local_path(root, path), 64 * 1024)
+            if key == 'branches-and-pull-requests':
+                branch_tips = maintenance.branch_obligation_tips(branch_tips, record['facts'])
+            else:
+                admitted_timing.update(periodic_record_facts(root, key, record)[1])
+    for before, after in zip(chain, chain[1:]):
+        if key == 'branches-and-pull-requests':
+            branch_tips = maintenance.branch_obligation_tips(branch_tips, before['facts'])
+        validate_review_progress(root, key, before, after, feedback,
+                                 branch_tips=branch_tips, admitted_timing=admitted_timing)
+
+
 def require_periodic_transition(root, project, base, only=None):
     prior = feedback_git(root, 'show', f'{base}:project/delivery.json')
     if prior.returncode:
@@ -1207,17 +1239,7 @@ def require_periodic_transition(root, project, base, only=None):
             pending = review_obligations(root, key, candidate, result)
             changed = prior_path != candidate.get('review_record')
             if changed and result:
-                chain = [historical_review(root, project, key, path) for path in extra_paths]
-                chain.append(result[0])
-                branch_tips = set()
-                if key == 'branches-and-pull-requests' and old.get('review_history'):
-                    for path in old['review_history']:
-                        prior, _ = read_review_report(local_path(root, path), 64 * 1024)
-                        branch_tips = maintenance.branch_obligation_tips(branch_tips, prior['facts'])
-                for before, after in zip(chain, chain[1:]):
-                    if key == 'branches-and-pull-requests':
-                        branch_tips = maintenance.branch_obligation_tips(branch_tips, before['facts'])
-                    validate_review_progress(root, key, before, after, feedback, branch_tips)
+                validate_review_chain(root, project, key, old.get('review_history', []), extra_paths, result[0], feedback)
             if date_advanced and key == 'compatibility-and-recovery':
                 accepted_source = compatibility_initial_base(root, base)
                 if prior_path:
