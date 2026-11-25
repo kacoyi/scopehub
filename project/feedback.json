@@ -6676,6 +6676,29 @@
       ],
       "resolution": null,
       "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
+    },
+    {
+      "id": "linux-browser-check-retains-preview-server-after-timeout",
+      "source": "archives/runs/20261125T144154.618344Z-990d4693/test-report.json and archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/resumed-browser-processes-87dd079.json (SHA-256 4eef9030afd8ef2525a1aea1c779d0d2386d03b8b6c90d87ba1cb3885a591a2c).",
+      "severity": "major",
+      "status": "open",
+      "observation": "On protected main, desktop-localization timed out after 900.733 seconds. Well after the run finished, seven shell, pnpm and Vite processes still carried its exact SCOPEHUB_RUN_DIR and private temporary path across several sessions. The Vite process still held 127.0.0.1:1472. The cleanup failure is distinct from the cause of the original timeouts.",
+      "task_ids": [
+        "M0-138"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "desktop-localization"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T144154.618344Z-990d4693",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "555ee0b8ec281ecde392cbd5db6d656a8b673862b23e3d5d688444731eb0d1d9"
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-138",
   "tasks": [
     {
       "id": "M0-001",
@@ -24520,6 +24520,119 @@
           "cleanup": "Keep experimental code and experimental verification evidence only in private recovery history."
         }
       }
+    },
+    {
+      "id": "M0-138",
+      "title": "Reap browser verification servers when their check ends",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-010"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/processes.py",
+        "scripts/process_tree.py",
+        "tests/project/test_processes.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Exercise the ordinary check execution entry with a detached listener and a distinct unowned listener. After normal exit, failure, cancellation and timeout, the owned listener can be rebound, the unrelated listener still replies and the original outcome is retained.",
+        "Run the ordinary desktop localization check with the repository deadlines and a fresh port. Retain the original failed Linux report and the ownership and port observations.",
+        "Verify the task checks and preserve the existing Linux market supervisor and Windows job behavior through the same public execution entry."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "desktop-localization"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T144154.618344Z-990d4693",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "555ee0b8ec281ecde392cbd5db6d656a8b673862b23e3d5d688444731eb0d1d9"
+        }
+      ],
+      "plan": {
+        "outcome": "An ordinary Linux browser check releases every process in its own server tree and its port when verification finishes, including when the check times out.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/processes.py",
+          "scripts/process_tree.py",
+          "tests/project/test_processes.py",
+          "tests/localization/desktop.config.mjs"
+        ],
+        "hypotheses": [
+          "Only the market recovery check requests the Linux subreaper. The ordinary localization launcher starts descendants in separate sessions, which survive process-group cleanup."
+        ],
+        "risks": [
+          {
+            "failure": "A browser command or indirect browser launcher can again outlive its check or occupy a later check port.",
+            "checks": [
+              "python-contracts-workers",
+              "desktop-localization"
+            ]
+          },
+          {
+            "failure": "A cleanup operation reaches an unrelated process or masks a real timeout, command failure or cleanup failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the failed original and port observation. If the shared supervisor changes existing exit semantics, restore the previous path and retain the active finding until a bounded repair passes.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/processes.py",
+            "scripts/process_tree.py",
+            "tests/project/test_processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Product data and market worker behavior, individual test deadlines, user-managed servers and release qualification."
+          ],
+          "open_questions": [
+            "Which registered check commands own detachable process trees, and can one shared execution rule cover future additions?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original per-check output, exit codes, genuine timeouts, independent verification processes and Windows job ownership."
+          ],
+          "change": [
+            "Apply process-tree lifetime ownership at the Linux verification boundary that runs the affected commands."
+          ],
+          "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
+          "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
+        }
+      },
+      "closure_reason": null,
+      "next_action": "Prove the scoped lifecycle failure at the public executor and verify its repair with real listener ownership and the ordinary browser check.",
+      "blocker": null,
+      "evidence": []
     }
   ]
 }
