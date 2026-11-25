@@ -21,6 +21,15 @@
       },
       "supersedes": null,
       "evidence_sha256": "70dbea56a84effbcd4a6944761e333f6919d24605bdba9e5e0635dd47e194cb2"
+    },
+    {
+      "kind": "request",
+      "source_commit": "335a42fb02c8027af2550e05230a04f62d4c236c",
+      "scope": "Recheck the previously rejected owned worker selection and the default Rust consumer boundary, including a stale enumerated child with two live siblings, denied identity, finite replay, the feature-selected bridge and both actual browser journeys. Review the combined source with the accepted observer recovery and the difference between Linux and Windows evidence.",
+      "supersedes": "536205346579327a5fe5507d9f086f58a06ceb1a0c76a1df10814d713625ba84",
+      "requested_at": "2026-11-25T21:15:17.656493+00:00",
+      "request_id": "3b4ab6e1b65345ba6408d5be84c560e3e8dc4e8260e4299a19ac06211daea08c",
+      "evidence_sha256": "64eefadb7b8aa1bf536f7ccfd5eae468a1579b9929a149ec9b32a6a17603d5e6"
     }
   ]
 }
