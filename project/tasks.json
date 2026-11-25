@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-046",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20273,7 +20273,7 @@
       "id": "M1-046",
       "title": "Preserve exhaustive Rust callers of the public wire decoder",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-045"
       ],
@@ -20308,10 +20308,15 @@
         "python-types-win32",
         "local-folder-import"
       ],
-      "evidence": [],
-      "next_action": "Compile the historical exhaustive consumer against the reviewed candidate, then split typed decoding for opt-in review frames.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-046-cae142cb2b6dddd4.json",
+          "sha256": "513ec44e43bd0c48389adf79f48773d998e9cbb8816f7fbcaa36d3fcaa0fc1d2"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The unchanged external consumer compiled and ran against the 87-variant public decoder on main, the previous published candidate, and the repaired source. Shared vectors and typed import and folder review responses exercised the separate decoder, including the exact 64 KiB boundary, unknown frames, and rejected legacy review input. The CSV worker retained explicit capability negotiation. The other original generated Rust enum and struct declarations and affected public signatures matched main.",
       "plan": {
         "outcome": "An unchanged exhaustive Rust caller builds and runs while explicit opt-in callers can validate and decode typed CSV review messages.",
         "change_types": [

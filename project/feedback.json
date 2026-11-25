@@ -5243,7 +5243,7 @@
       "id": "frozen-csv-public-message-exhaustive-compatibility",
       "source": "Independent Astra Standard review of PR 92 at d9015bda42d60a40cfd4b6abf4299d658aaf3364. The failing pre-repair consumer compilation is retained in .reports/m1-046-red-exhaustive.log (SHA-256 a5e58eaf4fcf56ee1ec01e2eb2966d55de486dc73a42d848629f1af022c80887).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The same source that exhaustively matches the 87 original Rust Message variants compiles on main and 638c8dd. The public decode_line return type on d9015bd exposes four additional review variants and the unchanged caller fails with E0004.",
       "task_ids": [
         "M1-046"
@@ -5251,7 +5251,11 @@
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Review request and response members were added to the exhaustive public Message enum returned by the original Rust decoder.",
+        "correction": "Restore the original canonical Message definition and public decoder signature. Route opt-in review envelopes through a separate generated union and decoder with the common framing checks. Retain capability negotiation in the CSV host.",
+        "prevention": "Compile and run the unchanged 87-variant public consumer. Run shared positive and negative wire vectors through both Rust entries, check typed review responses and frame limits, and retain private capability and original row constructor cases."
+      },
       "deferral_reason": null
     }
   ]
