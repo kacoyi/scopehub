@@ -1392,16 +1392,9 @@ def task_review_status(root, project, *, base=None, local=False, enforce=False):
         explicit = feedback_commit(root, os.environ.get('SCOPEHUB_REVIEW_BASE')) if local else None
         complete = git(root, 'rev-parse', '--is-shallow-repository').strip() == b'false'
         protected = protected_feedback_base(root, head).get('commit') if complete else None
-        # Comparing an observed protected head to a prior revision inherits
-        # acceptance from that ancestor, while checking this latest transition.
-        prior = base or explicit
-        if protected == head and prior and prior != head:
-            try:
-                require_ancestor(root, prior, head)
-            except ScopeError:
-                protected = None
-            else:
-                protected = prior
+        # The tracked protected merge base can certify acceptance even when
+        # HEAD is itself protected and history compares it to an older base.
+        # Explicit comparison inputs alone never certify that acceptance.
         trusted = {protected} if protected else set()
         for revision in (base, explicit):
             if not complete or not revision or revision == head:

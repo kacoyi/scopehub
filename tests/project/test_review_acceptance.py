@@ -167,6 +167,19 @@ class TaskReviewTests(ProjectFixture):
         self.commit()
         self.assertEqual('passed', self.command('history', '--base', base)['status'])
 
+    def test_protected_tip_preserves_old_acceptance_when_compared_to_parent(self):
+        base, _ = self.open_review()
+        self.finish()
+        protected = self.commit()
+        self.command('history', '--base', base, error='is pending')
+        self.git('update-ref', 'refs/remotes/origin/main', protected)
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        opened = self.command('review', TASK, '--source', protected, '--request', 'Recheck retrieval after reopening.')
+        handoff = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertEqual('pending', handoff['status'])
+        self.assertEqual(opened['request']['request_id'], handoff['current_entry_id'])
+        self.command('history', '--base', base, error='is pending')
+
     def test_an_arbitrary_checkpoint_cannot_license_changed_material(self):
         _, source = self.open_review()
         self.review(source)
