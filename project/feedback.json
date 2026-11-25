@@ -5246,6 +5246,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "actions-timing-save-publishes-invalid-clock",
+      "source": "Independent Astra Standard exact PR 96 review at 0e446e3d633154c7137a8df34a86ccd3591cbf25. Original copy .reports/audit-engineering-health/m0-111-final-review/astra-pr84-f0be71a-pr96-0e446e3.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819).",
+      "observation": "An explicit Actions run with an object-valued repository.full_name generated an invalid clock. The current view dropped the clock but the archive saved it. Reopening that archive as explicit input rejected the clock. Require the run repository identity and generated clock to pass the archive contract before publishing.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-archive-resave-loses-resolved-collection-history",
+      "source": "Independent Astra Standard exact PR 96 review at 0e446e3d633154c7137a8df34a86ccd3591cbf25. Original copy .reports/audit-engineering-health/m0-111-final-review/astra-pr84-f0be71a-pr96-0e446e3.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819).",
+      "observation": "The original 564-sample and 56-clock archive carries complete failure observations for run 45438134397. Adding earlier missing-clock and missing-compact findings alongside an independent note showed that resaving lost the first two observations. The current view may suppress those resolved findings. The persisted archive must retain each sanitized original observation.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

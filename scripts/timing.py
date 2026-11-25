@@ -911,6 +911,7 @@ def timing_view(samples, *, hosted=(), issues=None):
                            'platform': platform, 'arch': arch, **objective_review(rows, metric, budget)})
     return {'samples': merged, 'hosted': hosted, 'reviews': reviews, 'objective_reviews': objectives,
             'pr_main_comparisons': list(pr_main_comparisons(merged)),
+            'input_issues': current_collection_issues(issues, samples, hosted),
             'next_action': ('Review objective breaches and material growth, then collect missing comparable observations.'
                             if reviews else 'Retain a measured fast run or a hosted change report with matching Actions jobs.')}
 
@@ -1282,14 +1283,15 @@ def sanitize_legacy_file_error(error):
 
 
 def collection_issue(note, label):
-    issue = {**note, 'file': label, 'error': sanitize_legacy_file_error(note['error'])}
-    # Older manual archives may have saved the writer's absolute input path.
+    issue = {**note, 'error': sanitize_legacy_file_error(note['error'])}
+    # Keep the original source label after sanitizing it, including on resave.
     for field in ('path', 'file'):
         if isinstance(location := note.get(field), str) and location:
             name = timing_filename(location)
             issue['error'] = issue['error'].replace(location, name)
-            if field == 'path':
-                issue[field] = name
+            issue[field] = name
+    if not isinstance(issue.get('file'), str) or not issue['file']:
+        issue['file'] = label
     return issue
 
 
@@ -1301,12 +1303,19 @@ def archive_inputs(data, label, issues, *, collection_issues=True, validation_is
         notes = admitted_records(data.get('input_issues', []),
                                  lambda note: labels(note, ('error',)) and isinstance(note['error'], str),
                                  f'collection issue in {label}', invalid)
-        failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success' and clock_capture_complete(clock)
-                  and failed_capture_is_complete(clock, samples, hosted)}
-        issues.extend(collection_issue(note, label) for note in notes
-                      if not (isinstance(note.get('run_id'), str) and note['run_id'] in failed
-                              and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}))
+        issues.extend(collection_issue(note, label) for note in notes)
     return samples, hosted
+
+
+def current_collection_issues(issues, samples, hosted):
+    def missing_capture(note):
+        return isinstance(note.get('run_id'), str) and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}
+
+    incomplete = {note['run_id'] for note in issues if missing_capture(note)}
+    complete = {clock['run_id'] for clock in hosted
+                if clock['run_id'] in incomplete and clock['conclusion'] != 'success'
+                and clock_capture_complete(clock) and failed_capture_is_complete(clock, samples, hosted)}
+    return [note for note in issues if not (missing_capture(note) and note['run_id'] in complete)]
 
 
 def retained_failures_for_clocks(directories, hosted, already_read, issues):
@@ -1389,7 +1398,7 @@ def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
                 for group in view['reviews'] for metric in group['metrics']
                 if metric['objective_seconds'] is not None
             ],
-            'input_issues': issues,
+            'input_issues': view.get('input_issues', issues),
             'timing_command': 'pnpm project:timing'}
 
 
@@ -1726,7 +1735,20 @@ def review_summary(view):
     return '\n'.join(lines) + '\n'
 
 
+def require_review_archive_shape(archive):
+    if not isinstance(archive.get('samples'), list) or not isinstance(archive.get('hosted'), list):
+        raise TimingError('Expected a timing archive with sample and clock lists.')
+    if archive.get('recent_collection') is not None and not isinstance(archive['recent_collection'], dict):
+        raise TimingError('Expected a timing archive collection record.')
+
+
 def save_review_archive(path, archive):
+    require_review_archive_shape(archive)
+    invalid, notes = [], []
+    archive_inputs(archive, path.name, notes, validation_issues=invalid)
+    if invalid:
+        raise TimingError(invalid[0]['error'])
+    archive = {**archive, 'input_issues': notes}
     path.parent.mkdir(parents=True, exist_ok=True)
     encoder = json.JSONEncoder(separators=(',', ':'), allow_nan=False)
     with TemporaryDirectory(prefix='.scopehub-timing-', dir=path.parent) as folder:
@@ -1762,6 +1784,10 @@ def validate_actions_run(run):
             or any(run.get(key) is not None and not isinstance(run[key], str)
                    for key in ('event', 'head_sha', 'html_url', 'status', 'conclusion'))):
         raise TimingError('Expected an Actions run record.')
+    repository = run.get('repository', {}).get('full_name')
+    if repository is not None and (not isinstance(repository, str)
+                                   or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository)):
+        raise TimingError('Expected an Actions repository full_name in owner/name form.')
     require_verification_workflow(run)
 
 
@@ -1812,10 +1838,7 @@ def main():
                 if not isinstance(data, dict):
                     raise TimingError('Expected a timing report, sample or saved archive.')
                 if data.get('kind') == ARCHIVE_KIND:
-                    if not isinstance(data.get('samples'), list) or not isinstance(data.get('hosted'), list):
-                        raise TimingError('Expected a timing archive with sample and clock lists.')
-                    if data.get('recent_collection') is not None and not isinstance(data['recent_collection'], dict):
-                        raise TimingError('Expected a timing archive collection record.')
+                    require_review_archive_shape(data)
                     invalid = []
                     archive_samples, archive_hosted = archive_inputs(data, path.name, issues, validation_issues=invalid)
                     if invalid:
@@ -1849,7 +1872,10 @@ def main():
                 validate_actions_run(run)
                 path = jobs_path
                 jobs = actions_jobs(read_bounded_timing(jobs_path, budget=read_budget))
-                workflows.append(hosted_timing(run, jobs))
+                clock = hosted_timing(run, jobs)
+                if not valid_clock(clock):
+                    raise TimingError('Invalid attempt clock derived from Actions input.')
+                workflows.append(clock)
             except (OSError, *TIMING_INPUT_ERRORS) as error:
                 explicit_input_failed = True
                 issues.append({'file': path.name, 'error': input_error(error)})
@@ -1865,10 +1891,10 @@ def main():
                 workflows.append(inspect_hosted(run, args.attempt, repository, samples))
         if args.recent is not None:
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
-        view = timing_view(samples, hosted=workflows, issues=issues)
+        view = timing_view(samples, hosted=workflows, issues=list(issues))
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
-        view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
+        view.update(weekly_review=weekly_review(), recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
         archive_identity = None
         if args.save:

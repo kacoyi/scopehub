@@ -944,6 +944,87 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual("[WinError 2] Missing original input: 'run-details.json'", windows_retained['error'])
         self.assertEqual([timing.hosted_timing(hosted_run(), [])], stored['hosted'])
 
+    def test_actions_save_validates_repository_and_generated_clock_before_publication(self):
+        run = hosted_run()
+        linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50')
+        windows = hosted_job(32, 'windows', '00:20', '06:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '05:20')
+        with (tempfile.TemporaryDirectory() as directory,
+              patch.object(timing, 'local_paths', return_value=[])):
+            root = Path(directory)
+            run_path, jobs_path, archive, resaved = (
+                root / name for name in ('run.json', 'jobs.json', 'timing.json', 'resaved.json')
+            )
+            run_path.write_bytes(timing.json_bytes(run))
+            jobs_path.write_bytes(timing.json_bytes({'jobs': [linux, windows]}))
+            self.invoke_timing('--actions', run_path, jobs_path, '--save', archive)
+            original = archive.read_bytes()
+            self.invoke_timing('--report', archive, '--save', resaved)
+            self.assertEqual(original, resaved.read_bytes())
+            clock, = json.loads(original)['hosted']
+            self.assertTrue(timing.clock_capture_complete(clock))
+            for label, bad_run, bad_jobs, filename in (
+                ('object-valued name', dict(run, repository={'full_name': {'wrong': 'shape'}}),
+                 [linux, windows], run_path),
+                ('malformed name', dict(run, repository={'full_name': 'missing-owner'}), [linux, windows], run_path),
+                ('invalid derived job', run, [linux, dict(windows, conclusion={})], jobs_path),
+            ):
+                with self.subTest(case=label, input=filename.name):
+                    run_path.write_bytes(timing.json_bytes(bad_run))
+                    jobs_path.write_bytes(timing.json_bytes(bad_jobs))
+                    rejected = root / 'rejected.json'
+                    for destination in (rejected, archive):
+                        result = self.invoke_timing('--actions', run_path, jobs_path, '--save', destination,
+                                                    expected_exit=1)
+                        self.assertEqual([filename.name], [note['file'] for note in result['input_issues']])
+                    self.assertFalse(rejected.exists())
+                    self.assertEqual(original, archive.read_bytes())
+
+    def test_resolved_collection_history_survives_save_load_save(self):
+        run_id = 45438134397
+        run = dict(hosted_run(run_id=run_id), conclusion='failure')
+        linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50', run_id=run_id)
+        windows = hosted_job(32, 'windows', '00:20', '06:00',
+                             'Run uv run python scripts/check.py --require-windows', '00:50', '05:20', run_id=run_id)
+        windows['conclusion'] = 'failure'
+        clock = timing.hosted_timing(run, [linux, windows])
+        samples = []
+        for platform in ['Linux', 'Windows']:
+            report = historical_report()
+            report.update(status='failed', environment={'system': platform, 'machine': 'x86_64'})
+            report['ci'] = {'repository': 'fixture/scopehub', 'run_id': str(run_id), 'run_attempt': '1',
+                            'event': 'pull_request', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40}
+            samples.append(timing.report_sample(report))
+        self.assertTrue(timing.failed_capture_is_complete(clock, samples, [clock]))
+        private = '/private/review/old-jobs.json'
+        notes = [
+            {'run_id': str(run_id), 'error': timing.MISSING_CLOCK},
+            {'run_id': str(run_id), 'error': timing.MISSING_COMPACT},
+            {'run_id': str(run_id), 'path': private, 'file': private,
+             'error': f'Independent collection issue in {private}.'},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            earlier, recovered, archive, again = (
+                root / name for name in ('earlier.json', 'recovered.json', 'saved.json', 'again.json')
+            )
+            earlier.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': [],
+                                                   'input_issues': notes}))
+            recovered.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': samples,
+                                                     'hosted': [clock]}))
+            before = self.invoke_timing('--report', earlier)
+            self.assertEqual(3, len(before['input_issues']))
+            current = self.invoke_timing('--report', earlier, '--report', recovered, '--save', archive)
+            reopened = self.invoke_timing('--report', archive, '--save', again)
+            saved = json.loads(archive.read_bytes())
+            self.assertEqual(samples, saved['samples'])
+            self.assertEqual([clock], saved['hosted'])
+            self.assertEqual(archive.read_bytes(), again.read_bytes())
+            self.assertEqual(before['input_issues'], saved['input_issues'])
+            self.assertEqual([saved['input_issues'][2]], current['input_issues'])
+            self.assertEqual(current, reopened)
+            self.assertNotIn(private, archive.read_text(encoding='utf-8'))
+
     def test_failed_save_does_not_append_to_a_summary_alias_or_existing_output(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

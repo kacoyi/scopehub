@@ -20019,7 +20019,7 @@
           "sha256": "3096c005cc95c29f62384616712be9ff68d274cc5ce19207d6027a3d8160a32c"
         }
       ],
-      "next_action": "Review the supplemental candidate and matching Linux receipt. Preserve the previous Windows and Linux observations at their original scope and obtain protected Windows evidence for all three supplemental findings.",
+      "next_action": "Review the exact Actions and collection-history correction with matching M0-111 evidence. Confirm a generated clock reopens, invalid explicit input cannot publish, and the 564 samples, 56 clocks and sanitized historical findings survive repeated saves. Earlier receipts keep their original scope.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20036,6 +20036,12 @@
           "A separate bounded manual archive reader and matching writer can retain full v1 data without relaxing automatic capture limits."
         ],
         "risks": [
+          {
+            "failure": "The Actions path creates a clock the archive reader rejects, or a resolved current finding is suppressed in the durable history. Verify rejected repositories and job rows, a complete Actions save and reopen, and lossless repeated saves with failed-run collection findings.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
           {
             "failure": "A file written by the tool cannot be read back, or flattening and deduplication change observation or error identities.",
             "checks": [
