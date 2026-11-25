@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-154",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "232d0902bd5013392c5edd9ccacd7a875d655d12",
+      "scope": "Review the bounded cold sample navigation and chart diagnostics at the real repair entry. Compare the DOMContentLoaded failure and same-tree passed control with absent or delayed document, deferred module, mounted sample, catalog and history and existing chart repair expectations. Check the original deadline, truthful last stage, disposal and request bounds. Distinguish synthetic browser controls, native Windows acceptance and any unknown original cause.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T22:54:00.492634+00:00",
+      "request_id": "3ad4bfce72435d6675cdc16ba6744f79a70696011146c4430e03c217f69beba7",
+      "evidence_sha256": "e54c1dd466302db96b8cf918c4858a76fd1f9ecc952239a012df23eb5c59f036"
+    }
+  ]
+}
