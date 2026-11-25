@@ -23499,8 +23499,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Retain the failing regression, verify the diagnostic offline, and obtain exact-source review and the ordinary task receipt.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-126-b5bb1ae9c69f1412.json",
+          "sha256": "0597e370afc519a8f79134c4c9024cdcc0dfef9d0de6b4c4897b2c7c8568e676"
+        }
+      ],
+      "next_action": "Complete independent Astra Standard review of 2b0e9b44870c02571352337c69e3eda18f1895ce. The required ordinary task receipt is retained.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
