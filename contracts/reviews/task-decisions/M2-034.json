@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M2-034",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "29e5caeedfe37bc557bb71e3901b20efa3821f9e",
+      "scope": "Independently verify the frozen access refresh admission, retained selection, bounded requests and typed outcomes on the current combined implementation, including retained native and browser controls and interaction with focus recovery.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:18:08.388435+00:00",
+      "request_id": "d633f91c6d5e4c6e238ed2953a5cb0f2badc9835b52f1df92858df8c380acce1",
+      "evidence_sha256": "3da245ffad9be59ba35d484f8b15eefed660c887983360d951245a9b1392fb7d"
+    }
+  ]
+}
