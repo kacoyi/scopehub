@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-149",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-149 2738fa7edc800b37ba3eb3d4196eb86908e36104",
+      "scope": "CHANGES_REQUESTED M0-149 2738fa7edc800b37ba3eb3d4196eb86908e36104",
+      "observation": "In an in-memory replay of the candidate’s status loop, an HTTP 200 BUSY stopped after one read, while a native BUSY returned after admission caused a second read of the same task.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "3105f8f2892adc939861ba04b339cb5c2a52b5d4b43afb8d49f9ea408eb231fd",
+      "response_id": "d368394b8f75360b9dfdc70478254f64101980bf1d66c86ef99977e7476013bf",
+      "response_sha256": "8d4fe28655b191562d7f49da93fd8c2ecffa45d085b1862246d027b44a9147a7",
+      "legacy_response_sha256": "599b3d776f59bb14d11dcb751a0aaf978004010b132b7001f71fd13d43999701",
+      "observation_body_sha256": "8c3466f054b7108f1d117e17bab710bcb35b6a5d697584739104df8333632407",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b073d2fb7fc87d087b5f4de9065dea0",
+        "timestamp": "2026-11-25T19:55:41.431Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "cc0a8e0b8d4262ddd3b6afe02e0e1dcb874c6e36c0e4844788ffa8229bb65d1f"
+    }
+  ]
+}
