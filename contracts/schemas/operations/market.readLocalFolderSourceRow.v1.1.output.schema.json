@@ -2,5 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:scopehub:market.readLocalFolderSourceRow:output:1.1:envelope",
   "$comment": "Generated projection; edit protocol.schema.json.",
-  "$ref": "urn:scopehub:protocol:1.1#/$defs/ReadLocalFolderSourceRowReply11"
+  "$ref": "urn:scopehub:protocol:1.1#/$defs/ReadLocalFolderSourceRowWireReply11"
 }

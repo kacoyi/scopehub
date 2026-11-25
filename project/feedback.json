@@ -3609,17 +3609,28 @@
     },
     {
       "id": "frozen-csv-semantic-reassessment",
-      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations. The local regression reproduced INVALID_ARGUMENT for both selected rows before the worker repair. See .reports/runs/20261125T034911.580741Z-d1bc21fc/test-report.json. The harness also recorded sandboxed loopback failures and a changed working tree at the end of the run.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T034911.580741Z-d1bc21fc",
+          "source_commit": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+          "report_sha256": "293d48960e0bb6726a92a516acf795e85284d54931df4db555f13ac0959b2fd1"
+        }
+      ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The synthetic published revision retains original raw timezone, timeframe and volume declarations that conflict with its normalized bars. Correcting admission for new data leaves older frozen revisions and any analyses pinned to them in need of an attributable review path.",
       "task_ids": [
-        "M1-029"
+        "M1-041"
       ],
       "regression_checks": [
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Frozen source-row reads used the stored encoding and locator but omitted comparison with the bound historical mapping.",
+        "correction": "An opt-in local source record review identifies each conflicting original column and the reviewed value. The worker and current import use the same comparison rules, while the readback retains the historical revision, source bytes and chart hash.",
+        "prevention": "A synthetic historical revision is reopened through the desktop operation and browser without its source folder. Checks verify all semantic fields, exact raw values, quoted multiline locators, denied and revoked reads, raw-only compatibility and stable snapshot identity."
+      },
       "deferral_reason": null
     },
     {
@@ -5929,6 +5940,226 @@
         "cause": "The writer used the current view after resolved collection warnings were filtered.",
         "correction": "Persist the sanitized original diagnostics independently from the current display.",
         "prevention": "Resave complete retained failure observations with original missing-clock and missing-compact notes and an independent note."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "shared-worker-process-types",
+      "source": "Local Python 3.12 mypy run during the M1-041 audit at 9180963. The reproducible failure is retained in .reports/m1-041-red-python-types.log.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "The worker type check follows the trusted indicator guard into scripts/process_tree.py and reports eight strict type errors in the shared cleanup module.",
+      "task_ids": [
+        "M1-041"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The typed indicator guard imports the shared Linux supervisor and stop helper. The supervisor expansion left their published Python signatures incomplete.",
+        "correction": "Type the shared process entry points and guard Linux-only process constants on their supported platform.",
+        "prevention": "The local worker type suite and process-supervision regressions passed. A separate mypy run under the Windows type model also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-review-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at 638c8dd29ad122e86755b2d1f7b0697e36c67f93. Local pre-repair observations are retained in .reports/m1-045-red-rust-caller.log (SHA-256 62c695e54e35def6acb3bf43bb1fe26b47389a3b44ee596e691fb4aadebd6644), .reports/m1-045-red-worker.log (SHA-256 b32dc3e2e3b4d2999d5852d63ce59da4f2acec75cb0e57a1215adbdb27693f5c), .reports/m1-045-red-browser.log (SHA-256 71a8e67b6034ab8c18c682abac5d0e138321d1ee20e39886da4c1ddbe6dc038e).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Optional review metadata makes otherwise valid frozen CSV rows exceed the response budget in both dialogs. The UI collapses meaningful mapping whitespace. The public Rust row signature and original request constructors changed, and older workers reject the unnegotiated option.",
+      "task_ids": [
+        "M1-045"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory desktop review request consumed extra space, used the original worker capability, and conflated review metadata with stable Rust types. The review list collapsed whitespace.",
+        "correction": "Negotiate the distinct worker feature, retain the original Rust types and entry point, and use a fresh, reauthorized raw read on the two recoverable review failures. Show conflicting columns in an aligned table with literal whitespace.",
+        "prevention": "Exercise the 64 KiB boundary and an oversized original, permission revocation between review and retry, and literal whitespace in both dialogs. Compile a separate old caller and verify positive and negative private capability paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-message-exhaustive-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at d9015bda42d60a40cfd4b6abf4299d658aaf3364. The failing pre-repair consumer compilation is retained in .reports/m1-046-red-exhaustive.log (SHA-256 a5e58eaf4fcf56ee1ec01e2eb2966d55de486dc73a42d848629f1af022c80887).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The same source that exhaustively matches the 87 original Rust Message variants compiles on main and 638c8dd. The public decode_line return type on d9015bd exposes four additional review variants and the unchanged caller fails with E0004.",
+      "task_ids": [
+        "M1-046"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Review request and response members were added to the exhaustive public Message enum returned by the original Rust decoder.",
+        "correction": "Restore the original canonical Message definition and public decoder signature. Route opt-in review envelopes through a separate generated union and decoder with the common framing checks. Retain capability negotiation in the CSV host.",
+        "prevention": "Compile and run the unchanged 87-variant public consumer. Run shared positive and negative wire vectors through both Rust entries, check typed review responses and frame limits, and retain private capability and original row constructor cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-python-decoder-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at b76ed015fcbdf5a9e0679d7ad56fec6b24313f29. The same consumer and four envelope comparisons before repair are retained in .reports/m1-047-before-repair.log (SHA-256 eb49fe78aeed336c26533966edafc2c517d441ca7d1a93969bce85d1f3039012).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The established Python protocol module no longer exports Message, and decode_line widens its return type and admits four opt-in CSV review envelope types. Existing typed callers require the original Message and frame acceptance.",
+      "task_ids": [
+        "M1-047"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The Python protocol module used the extended schema root as its only validator and replaced the public Message import and decoder return type with ExtendedMessage.",
+        "correction": "Explicitly re-export Message and select the original canonical schema union for the legacy codec. Expose the extended union through separate codec entries that reuse the same framing and syntax checks.",
+        "prevention": "Run the unchanged typed consumer through strict mypy and runtime tests. Check both decoder entries against all shared vectors, verify the four review envelopes and exact frame budget, and retain real normal and negotiated worker tests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-used-unrelated-unmerged-stack",
+      "source": "Authenticated manual task workflow 45488642757 and both original reports retained in archives/runs. Its independently verified sources, terminal clock and source comparison are indexed at archives/observations/m1-040-integrated-task-45488642757/index.json (SHA-256 e75ef6ffa30803404ad81b8b246dc746930973b56e92e52df5748ccc620e2c72).",
+      "observation": "M1-040 was independently reviewed at 89143f000974b8d79720878e3c19f88d17ea7cb1 on protected main c4f07b38ad8040de9ffc950b8e98de315d956958. The coordinator dispatched the task at 484d684e0ba996643f4af5899f0aa2149e0ba6f8 on the unrelated unmerged PR 84 stack. Both jobs passed for that stack, consuming 1535 seconds wall and 1987 runner-seconds. The execution and project definition fingerprints differ on the intended independent product source, so those receipts cannot validate its delivery. Existing checkout and dispatch commands did not check the reviewed task source and intended base together before submitting.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "resolution": {
+        "cause": "Dispatch did not compare the checkout to the reviewed task and intended integration.",
+        "correction": "Compare the exact reviewed tree and base before an authenticated dispatch attempt.",
+        "prevention": "Replay the historical wrong M1-040 stack and the accepted independent source. Verify the admitted head and artifact checkouts in run 45554455415."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-preflight-history-error-without-result",
+      "source": "Independent read-only Astra Standard review of fc2d22a464453a9082de7211f207de674b888bc8. Full transcript at archives/observations/m0-106-dispatch-review/astra-fc2d22a.txt (SHA-256 0ec04a979009bc1d3552f46a64d24085fe12631fcdc1e5381547a07c5cda4d54).",
+      "observation": "An unavailable named dependency or an existing dependency outside the protected ancestry caused the local task dispatch CLI to exit with a traceback and no structured result. A shallow history check also escaped the same reporting boundary. None submitted a workflow.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Missing commits and unverifiable ancestry escaped the preflight error boundary.",
+        "correction": "Report invalid or unavailable revisions and shallow history as structured local failures.",
+        "prevention": "Exercise missing dependency objects, mismatched ancestry and shallow history before any authenticated call."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-ref-moves-after-preflight",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The authenticated ref reads and GitHub's branch resolution are separate operations.",
+        "correction": "Include the expected head and base in the request. Gate the matrix on the event commit and a fresh protected base observation, then pin checkout and evidence to the expected head.",
+        "prevention": "Move the ref after the final GET in the dispatch regression. Confirm the guard and both pinned jobs passed for dispatch ID 1e59bf0010ca4bea9fca87fd92e12988 in run 45554455415."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-unbound-dependency-id",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "Membership in the task ledger did not attribute the changes in an explicit stack.",
+        "correction": "Require scoped changes and a distinct committed task definition or a legitimate declared dependency.",
+        "prevention": "Replay the mismatched M0-002 pairing and the legitimate explicit pairing at the same Git source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-lost-response-obscures-acceptance",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The CLI treated a lost POST response as ordinary failure and discarded response details.",
+        "correction": "Expose an unknown outcome and a correlation ID without retrying. Retain the returned run ID and isolate guarded dispatch concurrency.",
+        "prevention": "Drop a response after one accepted POST, verify successful response handling, and correlate run 45554455415 with its dispatch ID and reviewed source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-completed-dependency-scope-overlap",
+      "source": "Second independent Astra Standard review of PR 91 at a3111a7154d20f371e8360289ab446b3ded0ae20. Retained transcript SHA-256 9cac411231a930422335e887a982dd02fd66c556ee7c52fdcaca462160fa0d9d.",
+      "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "Shared scope and an older completed declaration could attribute unrelated changes to a stack.",
+        "correction": "Require a supplementary receipt for an already completed dependency and check that it covers the proposed source.",
+        "prevention": "Replay the M2-002 and M1-039 wrong associations and the matching single and stacked receipt cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dependency-receipt-source-identity-unverified",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "A receipt file digest authenticated its bytes without recomputing its recorded source from Git.",
+        "correction": "Recompute the execution-input digest and file count from the receipt's own commit and historical snapshot rules.",
+        "prevention": "Reject a replaced digest, altered count, incorrect exclusions or a missing commit before remote access. Preserve real M0-074, M0-082 and M0-083 controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-cancelled-dependency-accepted",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The dependency preflight treated a cancelled record as unfinished.",
+        "correction": "Reject cancelled dependencies on the protected base or the proposed base.",
+        "prevention": "Exercise the lifecycle transitions at the CLI boundary, including the cancelled cases with zero authenticated calls."
       },
       "deferral_reason": null
     },

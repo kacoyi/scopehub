@@ -20,7 +20,7 @@ pub use folder_publication::{
     READ_LOCAL_FOLDER_REVISION, READ_LOCAL_FOLDER_SOURCE_ROW, REVOKE_LOCAL_FOLDER_REVISION,
     folder_prepare_input, list_local_folder_revisions_input, publish_folder_refresh_input,
     read_local_folder_revision_input, read_local_folder_source_row_input,
-    revoke_local_folder_revision_input,
+    read_local_folder_source_row_request, revoke_local_folder_revision_input,
 };
 pub use folder_refresh::{
     FolderRefreshBase, FolderRefreshCheck, FolderRefreshFile, MAX_STAGED_RECORDS,
@@ -36,7 +36,8 @@ pub use local_publication::{
     PUBLISH_LOCAL_IMPORT, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
     REVOKE_LOCAL_IMPORT_REVISION, StoredLocalDataset, list_local_import_revisions_input,
     local_mapping_fingerprint, publish_local_import_input, read_local_import_revision_input,
-    read_local_import_source_row_input, revoke_local_import_revision_input,
+    read_local_import_source_row_input, read_local_import_source_row_request,
+    revoke_local_import_revision_input,
 };
 pub use replay::{SUBSCRIBE, SubscriptionFuture, SubscriptionPort};
 pub use reviewed_mapping::{
