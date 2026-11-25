@@ -25278,7 +25278,7 @@
         "rust-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Distinguish the two witness calls and their child lifecycles, retain a controlled failure and the corresponding passing control, then qualify the corrected check on native Windows.",
+      "next_action": "Review the staged witness and qualify the legacy and directly owned interpreter on exact-source Windows with the existing five-second witness window. The original Windows phase remains unidentified.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25293,7 +25293,8 @@
           "archives/observations/repo-hygiene-20261125/m0-152-windows-interpreter-45692536863/observations.json"
         ],
         "hypotheses": [
-          "The shared wait reports the same error before either launch has delivered a complete witness. Child startup, process exit, metadata preparation, a pending write and content validation are distinct observations. The original report alone cannot select one."
+          "The shared wait reports the same error before either launch has delivered a complete witness. Child startup, process exit, metadata preparation, a pending write and content validation are distinct observations. The original report alone cannot select one.",
+          "Test-owned pinned interpreter controls reproduce the same old elapsed result for an exited child, a live silent child and an incomplete record. They do not identify the historical Windows failure."
         ],
         "risks": [
           {
@@ -25333,7 +25334,7 @@
             "Changing CSV data, field mappings, publication, user authorization or the accepted recovery deadlines."
           ],
           "open_questions": [
-            "Which call and observable process or file state account for the failure? Which phases can be distinguished portably before native observation?"
+            "Use the matching Windows host to observe legacy launch, module entry, ownership, locked runtime, teardown and equivalence at the ordinary Rust entry."
           ]
         },
         "evolution": {
