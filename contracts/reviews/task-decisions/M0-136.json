@@ -238,6 +238,15 @@
       },
       "supersedes": "5dbfb798d7373a9ee941d869f24cb8ecf946e337a2d890b4d6896018b661bcbf",
       "evidence_sha256": "e7a8be0ca578551b98c1071c135d377e765cfa975bfa29946bf308d95ed052a5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "scope": "Recheck complete terminal answer boundaries and cross-format deduplication on the corrected source, all earlier genuine requests and decisions, and the exact composition of independent maintenance policy and review tooling.",
+      "supersedes": "bf1203eb0e89006633461d1515dbf519d436b1f18b4b5405076e005782be1e2c",
+      "requested_at": "2026-11-25T19:02:55.098681+00:00",
+      "request_id": "81f4bf51aff40fa0c22fee23898e5fa5c0573bcae5630d97d00e16da9db98177",
+      "evidence_sha256": "70570c873840f86fd2297d274f75e289af7b32600914750dfbc06628f39ab647"
     }
   ]
 }
