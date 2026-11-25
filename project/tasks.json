@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-129",
   "tasks": [
     {
       "id": "M0-001",
@@ -23923,6 +23923,113 @@
           ],
           "data_plan": "Keep only fixed diagnostic labels and bounded numeric codes. Use synthetic subprocess inputs and retain archived original logs privately.",
           "cleanup": "Keep the original report unchanged and discard raw child output and failure objects at the runner boundary."
+        }
+      }
+    },
+    {
+      "id": "M0-129",
+      "title": "Observe Windows Cargo cache composition on ordinary verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-094"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/cache_composition.py",
+        "tests/project/test_cache_composition.py",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Use the existing ordinary full Windows core and browser producers on the designated reviewed internal pull request first attempt. Preserve check coverage, protected results, cache use and action pins.",
+        "Emit only bounded aggregate counts with exact run, source, lane, match and collection phase provenance. Keep logical file-path bytes, exclusions and incomplete observations explicit.",
+        "Independently verify a real complete native composition observation from each producer against official job, selection and cache evidence. Evaluate whether a specific payload merits a private native A/B. Keep hosted timing recovery separate.",
+        "Preserve the exact probed Git revision and authenticated raw native results. Remove the temporary workflow steps and any now-unused helper and tests before final integration unless native findings support a separately reviewed lasting use."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Review the bounded read-only collector and its controls. Collect and independently authenticate first-attempt native core and browser observations on the designated ordinary internal PR. Preserve the probed revision and results, decide whether a reusable-output experiment is warranted, then remove the one-shot probe from the final candidate.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A verifiable sample of real ordinary Windows Cargo cache composition supports a concrete payload experiment decision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/verification_scope.py",
+          "scripts/timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Fixed-root metadata counts and separate restored and post-check observations can show which components dominate and whether an inherited payload warrants further investigation.",
+          "The private replay found 26 hardlink aliases, so path-byte totals cannot quantify stored or removable bytes."
+        ],
+        "risks": [
+          {
+            "failure": "The probe exports filenames, traverses links, or reuses a wrong source, event, scope, lane or cache class.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The diagnostic runs outside the intended PR, affects protected results, or changes cache or verification behavior.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stopped scan or a filesystem size proxy is mistaken for complete native proof or hosted timing recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Remove the temporary measurement steps or skip incomplete measurements. Preserve the original verification and cached state.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No additional jobs, permissions, artifact uploads, cache mutations, forced misses, key or retention changes, externally triggered runs, or hosted timing closure."
+          ],
+          "open_questions": [
+            "Can both existing producers emit complete measurements within the bound? Does either expose a specific reusable-output experiment worth testing natively?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing producer and aggregate verification, check selection, runner clocks, cache trust and all cache policies."
+          ],
+          "change": [
+            "Measure matching cache roots with a bounded opted-in diagnostic in the two designated Windows producers."
+          ],
+          "data_plan": "Keep only fixed aggregate observations in the diagnostic log; authenticate and archive original evidence in the private project archive.",
+          "cleanup": "Preserve the exact probed commit and authenticated raw native results privately. Remove both workflow steps and any unused collector and tests from the final merge candidate. A lasting use requires concrete native evidence and separate review."
         }
       }
     }
