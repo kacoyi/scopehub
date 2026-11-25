@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-143",
   "tasks": [
     {
       "id": "M0-001",
@@ -24667,6 +24667,109 @@
           ],
           "data_plan": "Read canonical task receipts and feedback. Compare changed consumer boundaries from accepted Git history and retain unverified scopes. Leave the historic baseline unchanged and keep controls in private validation outputs.",
           "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."
+        }
+      }
+    },
+    {
+      "id": "M0-143",
+      "title": "Reduce repeated Git reads in periodic maintenance verification",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-135"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An unchanged small fixture and ordinary maintenance verification entry show fewer redundant immutable Git lookups on the candidate than on the exact reviewed source, with matching positive and rejected results.",
+        "Retain candidate and accepted provenance, freshness across invocations, working-tree inputs, ref and symbolic-link handling, rejected ancestry and recovery. Keep required verification and native coverage.",
+        "Record authenticated PR and protected-main Windows baselines separately from controlled local measurements. Native candidate timing remains a separately observed outcome."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Measure the identical public maintenance command at the reviewed source and candidate, preserve verdict and lookup counts, and obtain independent review of the clean verified candidate.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Ordinary maintenance verification produces the same decisions with fewer Git children for identical immutable input.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "Reviewed maintenance source and closure 3144e2e82313716664873ac559e36cd921874d9c.",
+          "scripts/project.py",
+          "tests/project/test_delivery.py",
+          "archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/pr115-periodic-transition-process-cost.json"
+        ],
+        "hypotheses": [
+          "Status resolves exact comparison commits, then reads the same committed delivery policy to find missing rules and again to validate each rule. Historical policy and observation paths may have separate repeated exact-commit reads.",
+          "The matched public interaction can distinguish subprocesses spent in validation from fixture setup. Windows common-case slowdown is a separate observation."
+        ],
+        "risks": [
+          {
+            "failure": "Reuse a mutable ref, ancestry result, working-tree file or candidate input across changing checkouts, or lose verified and rejected maintenance outcomes.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Trade correctness or required coverage for fewer calls, obscure a missing file or recovery path, or attribute unrelated Windows timing changes to the measured optimization.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the read reuse and retain the timing finding and exact original observations.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py status",
+            "scripts/project.py history",
+            "scripts/project.py observe-maintenance"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "No required-check selection or native workflow changes, replacement for Git, or inferred hosted recovery."
+          ],
+          "open_questions": [
+            "Which duplicate reads dominate a fixed public invocation and can be shared without reusing mutable inputs?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Required coverage and all original evidence, candidate and approved source distinctions, ref resolution, dirty paths, ancestry direction and recovery."
+          ],
+          "change": [
+            "Share only demonstrated immutable exact-commit inputs within a single verification invocation."
+          ],
+          "data_plan": "Retain exact sources, fixed fixture identities, command counts and matching verdicts with original raw results.",
+          "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
         }
       }
     }
