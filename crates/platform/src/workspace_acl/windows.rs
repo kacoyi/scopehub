@@ -336,7 +336,21 @@ fn decode_ace(bytes: &[u8], acl_revision: u32) -> Result<DecodedAce<'_>, u8> {
         return Err(27);
     }
     let sid_size = 8 + usize::from(*count) * size_of::<u32>();
-    if matches!(layout, AceLayout::Compound) && sid_size != sid_and_data.len() {
+    let opaque_size = sid_and_data.len() - sid_size;
+    // The managed qualified ACE constructors reserve space for the largest
+    // possible SID and GUID fields even when this entry has a shorter layout.
+    const COMMON_MAX_OPAQUE: usize = u16::MAX as usize
+        - size_of::<ACE_HEADER>()
+        - size_of::<u32>()
+        - SECURITY_MAX_SID_SIZE as usize;
+    const OBJECT_MAX_OPAQUE: usize =
+        COMMON_MAX_OPAQUE - size_of::<u32>() - 2 * size_of::<windows_sys::core::GUID>();
+    let max_opaque = match layout {
+        AceLayout::Common => COMMON_MAX_OPAQUE,
+        AceLayout::Object => OBJECT_MAX_OPAQUE,
+        AceLayout::Compound => 0,
+    };
+    if opaque_size > max_opaque || !opaque_size.is_multiple_of(size_of::<u32>()) {
         return Err(27);
     }
     // Common and object ACEs can carry opaque data after the complete SID.

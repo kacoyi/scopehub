@@ -15,7 +15,7 @@
   "evaluation_stages": [
     {
       "stage": "descriptor_and_layout",
-      "rule": "Require the native descriptor, owner, DACL, complete aligned ACE and bounded valid SID. Object layouts require ACL_REVISION_DS, two documented object flag bits and exactly the GUID fields those bits select before the SID. Compound impersonation uses a known subtype, zero reserved field and an exact SID extent. Opaque data in known qualified layouts stays inside the advertised record."
+      "rule": "Require the native descriptor, owner, DACL, complete aligned ACE and bounded valid SID. Object layouts require ACL_REVISION_DS, two documented object flag bits and exactly the GUID fields those bits select before the SID. Compound impersonation uses a known subtype, zero reserved field and an exact SID extent. Opaque data in known qualified layouts stays inside the advertised record and is checked before normalization against the managed layout limit."
     },
     {
       "stage": "normalization",
@@ -26,6 +26,12 @@
       "rule": "Refuse remaining callbacks, object permissions and compound permissions. Only ordinary allows can supply private owner access and child coverage. The directory compaction retains the existing canonical order and one adjacent merge pass. Ordinary deny entries supply no grants. Unknown types, invalid selectors, invalid revisions and malformed extents fail closed."
     }
   ],
+  "opaque_length_boundaries": {
+    "common": {"managed_maximum": 65459, "greatest_aligned": 65456, "first_excess_aligned": 65460},
+    "object": {"managed_maximum": 65423, "greatest_aligned": 65420, "first_excess_aligned": 65424},
+    "scope": "Both managed maxima reserve a maximum-length SID. The object limit also reserves both GUIDs. Neither limit depends on callback state or on the SID and GUIDs actually present. Compound entries use an exact SID extent. Opaque CustomAce remains unsupported.",
+    "coverage": "Aligned lengths immediately below, at, and above each boundary on common and object callback and non-callback inputs. Compare the native decoder to the Windows managed binary factory before zero-mask normalization on files and directories."
+  },
   "layouts": [
     {
       "types": ["AccessAllowed", "AccessDenied"],

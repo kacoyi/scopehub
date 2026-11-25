@@ -5698,6 +5698,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-acl-managed-opaque-length-boundaries",
+      "source": "Astra Standard exact PR 84 review at f0be71a2226185114f8e738e4dd02b7c49aec991. Original copy .reports/m0-105-opaque-ace/astra-pr84-f0be71a.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819). Microsoft reference source QualifiedAce.SetOpaque and CommonAce/ObjectAce.MaxOpaqueLength.",
+      "observation": "The bounded native decoder accepted trailing data past the managed layout-specific limit and could discard such an entry as inert. In the managed path construction of the qualified ACE rejects that length before DACL normalization, even when its access mask is zero. The exact aligned maxima are 65456 bytes for CommonAce and 65420 for ObjectAce with either callback setting. This is a source-confirmed difference pending native execution.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

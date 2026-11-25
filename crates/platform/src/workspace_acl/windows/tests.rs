@@ -204,6 +204,43 @@ fn decodes_managed_known_layouts_and_each_object_guid_combination() {
     );
 }
 
+fn opaque_boundary_cases() -> Vec<(Vec<u8>, bool)> {
+    let mut cases = Vec::new();
+    for (ace_type, max_aligned, fields) in [
+        (ACCESS_ALLOWED_ACE_TYPE, 65_456, Vec::new()),
+        (ACCESS_DENIED_CALLBACK_ACE_TYPE, 65_456, Vec::new()),
+        (ACCESS_ALLOWED_OBJECT_ACE_TYPE, 65_420, object_fields(3)),
+        (
+            ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE,
+            65_420,
+            object_fields(0),
+        ),
+    ] {
+        for length in [max_aligned - 4, max_aligned, max_aligned + 4] {
+            let bytes = fixture_ace(ace_type, 0, 0, &fields, &vec![0; length]);
+            cases.push((bytes, length <= max_aligned));
+        }
+    }
+    cases
+}
+
+#[test]
+fn enforces_managed_opaque_lengths_before_inert_entry_normalization() {
+    for (bytes, admitted) in opaque_boundary_cases() {
+        for kind in [Entry::Profile, Entry::StorageFile] {
+            let result =
+                decode_ace(&bytes, ACL_REVISION_DS).and_then(|ace| normalized_access(kind, &ace));
+            assert_eq!(
+                result,
+                if admitted { Ok(None) } else { Err(27) },
+                "ACE type {} with length {}",
+                bytes[0],
+                bytes.len()
+            );
+        }
+    }
+}
+
 #[test]
 fn managed_principal_order_preserves_order_dependent_pairs() {
     let user = user_order("S-1-5-21-10-20-30-1001").unwrap();
@@ -664,6 +701,19 @@ fn native_storage_matches_managed_access_rules() {
         assert_eq!(actual, expected.map(|()| None), "descriptor {bytes:?}");
     }
 
+    // Use files for the large synthetic buffers to keep command environment
+    // values below Windows limits. They are never installed as filesystem ACLs.
+    let boundaries = opaque_boundary_cases();
+    let boundary_paths: Vec<_> = boundaries
+        .iter()
+        .enumerate()
+        .map(|(index, (bytes, _))| {
+            let path = scratch.0.join(format!("opaque-boundary-{index}.bin"));
+            fs::write(&path, bytes).unwrap();
+            path
+        })
+        .collect();
+
     // The retired check used DirectorySecurity or FileSecurity's managed export.
     // Observe that exact predicate once after the managed export's normalization.
     let powershell = PathBuf::from(env::var_os("SystemRoot").unwrap())
@@ -708,6 +758,30 @@ fn native_storage_matches_managed_access_rules() {
                 }
                 return 'admitted'
             }
+            function Confirm-InMemory([byte[]]$bytes, [bool]$directory) {
+                $user = [Security.Principal.SecurityIdentifier]::new('S-1-5-21-1-2-3-1000')
+                $privatePrincipals = @($user.Value, 'S-1-5-18', 'S-1-5-32-544')
+                $dacl = [Security.AccessControl.RawAcl]::new([byte]4, 2)
+                $flags = [Security.AccessControl.AceFlags] $(if ($directory) { 3 } else { 0 })
+                $allow = [Security.AccessControl.AceQualifier]::AccessAllowed
+                $dacl.InsertAce(0, [Security.AccessControl.CommonAce]::new($flags, $allow, $full, $user, $false, $null))
+                try {
+                    $ace = [Security.AccessControl.GenericAce]::CreateFromBinaryForm($bytes, 0)
+                } catch {
+                    $cause = $_.Exception.GetBaseException()
+                    if ($cause -is [ArgumentOutOfRangeException] -and $cause.ParamName -eq 'opaque') {
+                        return 'acl-read'
+                    }
+                    throw
+                }
+                $dacl.InsertAce(1, $ace)
+                $present = [Security.AccessControl.ControlFlags]::DiscretionaryAclPresent
+                $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($present, $user, $null, $null, $dacl)
+                $managed = [Security.AccessControl.CommonSecurityDescriptor]::new($directory, $false, $descriptor)
+                $export = New-Object byte[] $managed.BinaryLength
+                $managed.GetBinaryForm($export, 0)
+                return (Confirm-Private ([Security.AccessControl.RawSecurityDescriptor]::new($export, 0)) $directory)
+            }
             for ($index = 0; $index -lt [int]$env:SCOPEHUB_ACL_CASES; $index++) {
                 $path = [Environment]::GetEnvironmentVariable('SCOPEHUB_ACL_CASE_' + $index)
                 $directory = [IO.Directory]::Exists($path)
@@ -723,22 +797,20 @@ fn native_storage_matches_managed_access_rules() {
                 for ($offset = 0; $offset -lt $bytes.Length; $offset++) {
                     $bytes[$offset] = [Convert]::ToByte($encoded.Substring($offset * 2, 2), 16)
                 }
-                $dacl = [Security.AccessControl.RawAcl]::new([byte]4, 2)
-                $flags = [Security.AccessControl.AceFlags] $(if ($directory) { 3 } else { 0 })
-                $allow = [Security.AccessControl.AceQualifier]::AccessAllowed
-                $dacl.InsertAce(0, [Security.AccessControl.CommonAce]::new($flags, $allow, $full, $user, $false, $null))
-                $dacl.InsertAce(1, [Security.AccessControl.GenericAce]::CreateFromBinaryForm($bytes, 0))
-                $present = [Security.AccessControl.ControlFlags]::DiscretionaryAclPresent
-                $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($present, $user, $null, $null, $dacl)
-                $managed = [Security.AccessControl.CommonSecurityDescriptor]::new($directory, $false, $descriptor)
-                $export = New-Object byte[] $managed.BinaryLength
-                $managed.GetBinaryForm($export, 0)
-                [Console]::WriteLine((Confirm-Private ([Security.AccessControl.RawSecurityDescriptor]::new($export, 0)) $directory))
+                [Console]::WriteLine((Confirm-InMemory $bytes $directory))
+            }
+            for ($index = 0; $index -lt [int]$env:SCOPEHUB_ACL_BOUNDARY_CASES; $index++) {
+                $path = [Environment]::GetEnvironmentVariable('SCOPEHUB_ACL_BOUNDARY_' + $index)
+                $bytes = [IO.File]::ReadAllBytes($path)
+                foreach ($directory in @($true, $false)) {
+                    [Console]::WriteLine((Confirm-InMemory $bytes $directory))
+                }
             }
             ",
         ])
         .env("SCOPEHUB_ACL_CASES", roots.len().to_string())
-        .env("SCOPEHUB_ACL_MEMORY_CASES", memory.len().to_string());
+        .env("SCOPEHUB_ACL_MEMORY_CASES", memory.len().to_string())
+        .env("SCOPEHUB_ACL_BOUNDARY_CASES", boundaries.len().to_string());
     for (index, (path, _, _)) in roots.iter().enumerate() {
         comparison.env(format!("SCOPEHUB_ACL_CASE_{index}"), path);
     }
@@ -750,6 +822,10 @@ fn native_storage_matches_managed_access_rules() {
             write!(encoded, "{byte:02x}").unwrap();
         }
         comparison.env(format!("SCOPEHUB_ACL_MEMORY_{index}"), encoded);
+    }
+
+    for (index, path) in boundary_paths.iter().enumerate() {
+        comparison.env(format!("SCOPEHUB_ACL_BOUNDARY_{index}"), path);
     }
 
     let mut child = comparison
@@ -779,6 +855,11 @@ fn native_storage_matches_managed_access_rules() {
         .iter()
         .map(|(_, _, refusal)| refusal.unwrap_or("admitted"))
         .chain(memory.iter().map(|(_, _, expected, _)| *expected))
+        .chain(
+            boundaries
+                .iter()
+                .flat_map(|(_, admitted)| [if *admitted { "admitted" } else { "acl-read" }; 2]),
+        )
         .collect();
     assert_eq!(observations.lines().collect::<Vec<_>>(), expected);
     eprintln!("The legacy managed descriptors gave the same directory and file decisions.");
