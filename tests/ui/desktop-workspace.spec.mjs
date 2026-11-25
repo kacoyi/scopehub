@@ -1121,9 +1121,11 @@ for (const scenario of [
 
         const selectedBar = view => view.locator('.plot-workspace [aria-label="Selected bar"]');
         const dialog = view => view.getByRole('dialog', { name: 'Open published CSV' });
-        const prepare = async (view, id, close) => {
-          await openPanel(view, 'Data sources');
-          await control(view.getByRole('complementary', { name: 'Data sources' }), 'Open published CSV').click();
+        const prepare = async (view, id, close, sourceFree = false) => {
+          if (!sourceFree) await openPanel(view, 'Data sources');
+          const entry = sourceFree ? view.getByRole('region', { name: 'Price chart' })
+            : view.getByRole('complementary', { name: 'Data sources' });
+          await control(entry, 'Open published CSV').click({ timeout: 8000 });
           const drawer = dialog(view);
           await drawer.getByLabel('Revision ID').fill(id);
           await control(drawer, 'Open frozen chart').click();
@@ -1144,7 +1146,7 @@ for (const scenario of [
           await nativeTransport(peer, { optedIn: true }, transport('peer'));
           await page.goto('/');
           if (scenario.startsWithA) await expect.poll(() => reopened).toBe(true);
-          await (await prepare(page, a, 44)).click();
+          await (await prepare(page, a, 44, !scenario.startsWithA)).click();
           await expect.poll(() => writes.find(write => write.window === 'first')).toMatchObject({
             request: { expected_selection_revision: originalRevision, source: { revision_id: a } },
             result: { selection_revision: savedRevision },
