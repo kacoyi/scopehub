@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-125",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -23175,7 +23175,7 @@
       "id": "M0-125",
       "title": "Identify Windows handoff probe subprocess failures safely",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-121"
       ],
@@ -23201,7 +23201,20 @@
         "python-contracts-workers",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-125-b0547bf45da97d68.json",
+          "sha256": "55bebd5496d2958908610eb5a8470653d8978f22702c0acc61f5e03b909e9569"
+        },
+        {
+          "path": "project/evidence/M0-125-ea92b5d99d5bcfa2.json",
+          "sha256": "59f4049b42b3de6117e0eaa4191674019887d2bc8c679947e52b823f8ac7341e"
+        },
+        {
+          "path": "project/evidence/M0-125-9d255cf982f84023.json",
+          "sha256": "fb58eb29c61f4440b81cb394c493ccb106ef8034632fea16f9587a45b932944b"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45579441190-1",
@@ -23209,9 +23222,9 @@
           "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
         }
       ],
-      "next_action": "Retain the reviewed regression, run canonical local verification, and hand the exact source to the coordinator for native Windows qualification.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Guarded attempt 1 of run 45585469848 passed all M0-125 checks on 42c420f against protected base 25b4ac9. Ubuntu passed 71 workspace cases, including all eleven subprocess controls. Native Windows passed 70 workspace cases, including the private handoff ACL probe, both unsafe handoff fixtures, the profile pool ACL case, and ten subprocess controls. The POSIX child-signal control and POSIX CLI SIGINT/SIGTERM rehearsal were the two platform skips. The authentic local ae3e770 receipt remains supplementary evidence. The original c678d0e PowerShell execution failure remains unclassified. On an actual recurrence, preserve the original run, bounded diagnostic and stage before retry, then reopen the incident with the new evidence.",
       "plan": {
         "outcome": "A failed test-owned Windows handoff probe explains its observed subprocess disposition without exposing process inputs.",
         "change_types": [
