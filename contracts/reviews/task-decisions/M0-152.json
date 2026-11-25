@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-152",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "5617cc17147e3583528d2f2e4a056e70b9924fa6",
+      "scope": "Independently verify the five-second test-owned local import interpreter handshake, exact caller and child identity, pinned runtime equivalence and cleanup before native Windows calibration.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T20:57:48.190845+00:00",
+      "request_id": "170d6b5c2f30a32d9fe35fa485f2d85db919a7bee9ad40bf72a3d0ac5d3ab2b9",
+      "evidence_sha256": "e17fc2f57647d38fdb90246f50661ebabcc3f85266457c88dd059e75289050af"
+    }
+  ]
+}
