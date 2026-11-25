@@ -520,6 +520,13 @@ class DeliveryTests(ProjectFixture):
             self.assertEqual([], both['evidence']['pending'])
             self.assertEqual(480, both['evidence']['product_delivery']['work_to_usable_median_seconds'])
             self.assertEqual(180, both['evidence']['product_delivery']['pr_to_verified_main_median_seconds'])
+            local_only = {**timing, 'recent_collection': None, 'objective_reviews': []}
+            raw.write_bytes(json_bytes(local_only))
+            local_capture = self.project_command(*args)
+            self.assertIsNone(local_capture['source_commit'])
+            self.assertEqual('synthetic-local-fast', local_capture['evidence']['local_fast']['run_id'])
+            self.assertIn('Windows push', local_capture['evidence']['pending'])
+            raw.write_bytes(json_bytes(timing))
             product['slices'][0]['verified_main_receipt'] = product['slices'][1]['verified_main_receipt']
             supplement.write_bytes(json_bytes(product))
             self.assertIn('same slice', self.project_command(*args, '--report', str(supplement))['error'])

@@ -1353,7 +1353,7 @@ def observe_maintenance(root, project, key, reports, finding_ids, *, staging=Non
                     protection = supplement
                 else:
                     product_timing = product_delivery_observation(root, project, supplement,
-                        maintenance.utc(data['recent_collection']['collected_at']))
+                        maintenance.timing_observation_clock(data))
             if key == 'branches-and-pull-requests':
                 source = data['default_branch']['sha']
                 traced_tips, disposition_sha = traced_branch_tips(root, data, dispositions)
@@ -1364,7 +1364,7 @@ def observe_maintenance(root, project, key, reports, finding_ids, *, staging=Non
             elif key == 'weekly-regression-continuity':
                 source = (data['weekly_regression']['run'] or {}).get('head_sha') or data['head_sha']
             elif key == 'verification-timing':
-                source = data['recent_collection'].get('capture_source')
+                source = (data.get('recent_collection') or {}).get('capture_source')
             if not observation_source_available(root, key, source):
                 raise ValueError('The capture source from the original is unavailable in local accepted history.')
             stage = None

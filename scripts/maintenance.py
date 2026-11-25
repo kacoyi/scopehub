@@ -130,25 +130,39 @@ def tip_identity(repository, sha):
     return hashlib.sha256(f'{repository}:{sha}'.encode('ascii')).hexdigest()
 
 
-def local_fast_observation(data, observed):
-    for row in reversed(data.get('samples', [])):
+def eligible_local_fast(data):
+    for row in data.get('samples', []):
         if (row.get('ci') is not None or row.get('profile') != 'fast' or
                 row.get('report_status') != 'passed' or row.get('review_exclusion', True) is not None
                 or row.get('working_tree_dirty') is not False or not git_commit(row.get('source_commit'))):
             continue
         elapsed = row['seconds']['harness']
-        recorded = utc(row['recorded_at'])
-        if type(elapsed) in {float, int} and 0 <= elapsed < 86400 and timedelta(0) <= observed - recorded <= timedelta(days=7):
-            if re.fullmatch(r'[a-zA-Z0-9._-]{1,100}', row['run_id']):
-                return {name: row[name] for name in ('run_id', 'source_commit', 'recorded_at')} | {'seconds': elapsed}
-    return None
+        if (type(elapsed) in {float, int} and 0 <= elapsed < 86400
+                and re.fullmatch(r'[a-zA-Z0-9._-]{1,100}', row['run_id'])):
+            yield {name: row[name] for name in ('run_id', 'source_commit', 'recorded_at')} | {'seconds': elapsed}
+
+
+def timing_observation_clock(data):
+    recorded_at = (data.get('recent_collection') or {}).get('collected_at')
+    if recorded_at:
+        return utc(recorded_at)
+    clocks = [utc(row['recorded_at']) for row in eligible_local_fast(data)]
+    if not clocks:
+        raise ValueError('Expected a dated hosted collection or passing local fast producer observation.')
+    return max(clocks)
+
+
+def local_fast_observation(data, observed):
+    eligible = [row for row in eligible_local_fast(data)
+                if timedelta(0) <= observed - utc(row['recorded_at']) <= timedelta(days=7)]
+    return max(eligible, key=lambda row: utc(row['recorded_at']), default=None)
 
 
 def prepare_facts(key, data, source, input_digests, policy, protection=None, staging=None,
                   product_timing=None, traced_tips=()):
     """Retain only the source observations needed to independently derive the public claim."""
-    clock = data['recent_collection']['collected_at'] if key == 'verification-timing' else data['observed_at']
-    facts = {'observed_at': utc(clock).isoformat(), 'source_commit': source, 'input_sha256': input_digests}
+    clock = timing_observation_clock(data) if key == 'verification-timing' else utc(data['observed_at'])
+    facts = {'observed_at': clock.isoformat(), 'source_commit': source, 'input_sha256': input_digests}
     if key == 'weekly-regression-continuity':
         weekly = data['weekly_regression']
         run = weekly['run']
@@ -162,8 +176,8 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None, sta
                              if item['event'] in {'pull_request', 'push'} and item['profile'] == 'full'
                              and item['sample_count'] >= 3],
                      captured_samples=[{name: row[name] for name in ('run_id', 'platform', 'event')}
-                                       for row in data['recent_collection'].get('collected_samples', [])],
-                     local_fast=local_fast_observation(data, utc(clock)), product_delivery=product_timing,
+                                       for row in (data.get('recent_collection') or {}).get('collected_samples', [])],
+                     local_fast=local_fast_observation(data, clock), product_delivery=product_timing,
                      input_complete=not data['input_issues'],
                      adverse=bool(data['budget_follow_up']['repeated_breaches'] or data['budget_follow_up']['sustained_growth']))
     elif key == 'branches-and-pull-requests':
