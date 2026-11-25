@@ -7,6 +7,7 @@ import {
   type NoteIntent, type PreparedNote, type PreparedRestore,
 } from './decision-note-transport';
 import { formatNumber, message, t, useLocale, type Message } from './i18n';
+import { withReplyDeadline } from './reply-deadline';
 import { readWorkspaceSnapshot, type LocalWorkspace } from './use-local-workspace';
 import { WorkspaceIcon } from './workspace-icons';
 
@@ -16,6 +17,8 @@ type OutcomeDraft = { noteId: string; observed_on: string; outcome: string };
 type PendingAction = { kind: 'note'; note: PreparedNote } | { kind: 'restore'; restore: PreparedRestore };
 type NoteFailure = { code: unknown; description: Message };
 
+// Leave room for the transport's four-second admission retry inside the full fallback.
+const fallbackReplyDeadlineMs = 5_000;
 const listRefreshFailure = message('The decision-note list could not be refreshed.');
 
 const actions = {
@@ -37,6 +40,7 @@ function failureMessage(code: unknown) {
     case 'DATA_UNAVAILABLE': return message('This decision note is unavailable.');
     case 'PERMISSION_DENIED': return message('This decision note action is no longer authorized.');
     case 'BUSY': return message('The local workspace is busy. Try again.');
+    case 'TIMEOUT': return message('The decision-note request timed out.');
     case 'RESOURCE_LIMIT': return message('This action exceeds the size or record limit for a complete decision-note backup.');
     case 'INVALID_ARGUMENT': return message('Check the dates and text. A later outcome needs a date after the original decision.');
     case 'CANCELLED': return message('The action was cancelled.');
@@ -202,7 +206,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       await work(controller.signal);
     })().catch(fault => {
       if (!controller.signal.aborted) {
-        const code = noteErrorCode(fault);
+        const code = fault instanceof DOMException && fault.name === 'TimeoutError' ? 'TIMEOUT' : noteErrorCode(fault);
         setError({ code, description: describe(code) });
       }
     }).finally(() => {
@@ -230,8 +234,11 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       } else if (noteId !== null && noteErrorCode(fault) === 'DATA_UNAVAILABLE') {
         discardPage();
         clearSelection();
-        const revision = (await readWorkspaceSnapshot(signal)).workspace.revision;
-        const data = await readNotes(workspaceId, null, 0, signal, { waitForAdmission: true });
+        const { revision, data } = await withReplyDeadline(fallbackReplyDeadlineMs, async deadline => {
+          const revision = (await readWorkspaceSnapshot(deadline)).workspace.revision;
+          const data = await readNotes(workspaceId, null, 0, deadline, { waitForAdmission: true });
+          return { revision, data };
+        }, signal);
         if (!signal.aborted) setPage({ noteId: null, offset: 0, revision, epoch: ++pageEpoch.current, data });
       }
       throw fault;

@@ -3024,7 +3024,8 @@ for (const holdPeer of [false, true]) {
   });
 }
 
-for (const scenario of ['recovers', 'nonretryable', 'exhausts', 'aborts']) {
+for (const scenario of ['recovers', 'nonretryable', 'denied', 'exhausts', 'aborts',
+  'times out and reloads', 'times out and reopens', 'times out reading the fallback revision']) {
   test(`observer fallback list ${scenario} after its peer deletes the selected note`, async ({ browser }, testInfo) => {
     const profile = await makeProfile();
     const retained = [
@@ -3056,13 +3057,43 @@ for (const scenario of ['recovers', 'nonretryable', 'exhausts', 'aborts']) {
               await control(peer, 'Decision notes').click();
               const url = server.url + endpoint;
               const release = Promise.withResolvers();
+              const timesOut = scenario.startsWith('times out');
+              const holdsSnapshot = scenario === 'times out reading the fallback revision';
+              const reopens = scenario === 'times out and reopens';
+              const denied = scenario === 'denied';
+              const refusalHttp = denied ? 403 : 429;
+              const refusalError = denied ? { code: 'PERMISSION_DENIED', retryable: false }
+                : { ...busy.error, retryable: scenario !== 'nonretryable' };
               let missingDetail = false;
+              let snapshotHeld = false;
               let firstRefusal;
               let attempts = 0;
               const fallbackReplies = () => observation.events.filter(row => row.stage === 'response'
                 && row.requestId === observation.fallbackId);
+              const holdReply = async (route, kind) => {
+                const response = await route.fetch();
+                try {
+                  const { result } = await response.json();
+                  observation.heldReply = {
+                    kind, http: response.status(), workspaceRevision: result?.workspace?.revision,
+                    readyMs: performance.now() - baseline,
+                    list: result?.outcome?.result?.notes?.map(note => note.note_id),
+                  };
+                  await release.promise;
+                  try {
+                    await route.fulfill({ response });
+                    observation.lateDelivery = 'released';
+                  } catch {
+                    observation.lateDelivery = 'disconnected';
+                  }
+                } finally { await response.dispose(); }
+              };
               const injectAdmission = async route => {
                 const request = route.request().postDataJSON();
+                if (holdsSnapshot && missingDetail && request?.type === 'snapshot' && !snapshotHeld) {
+                  snapshotHeld = true;
+                  return holdReply(route, 'snapshot');
+                }
                 const intent = request?.intent;
                 if (intent?.operation !== 'decisionNote.read') return route.continue();
                 if (!missingDetail && intent.arguments.note_id === removedId) {
@@ -3072,19 +3103,20 @@ for (const scenario of ['recovers', 'nonretryable', 'exhausts', 'aborts']) {
                     return await route.fulfill({ response });
                   } finally { await response.dispose(); }
                 }
-                if (!missingDetail || intent.arguments.note_id !== null) return route.continue();
+                if (holdsSnapshot || !missingDetail || intent.arguments.note_id !== null) return route.continue();
                 observation.fallbackId ??= request.request_id;
                 if (request.request_id !== observation.fallbackId) return route.continue();
                 attempts += 1;
                 firstRefusal ??= performance.now();
-                if (scenario === 'aborts' && attempts === 2) {
+                if (timesOut && !holdsSnapshot && attempts === 2) {
+                  await holdReply(route, 'list');
+                } else if (scenario === 'aborts' && attempts === 2) {
                   await release.promise;
                   await route.abort().catch(() => {}); // The original document has already been replaced.
                 } else if (scenario === 'recovers' && attempts > 1) {
                   await route.continue();
                 } else {
-                  const json = scenario === 'nonretryable' ? { ...busy, error: { ...busy.error, retryable: false } } : busy;
-                  await route.fulfill({ status: 429, json });
+                  await route.fulfill({ status: refusalHttp, json: { ok: false, error: refusalError } });
                 }
               };
               async function assertCurrentList() {
@@ -3095,24 +3127,92 @@ for (const scenario of ['recovers', 'nonretryable', 'exhausts', 'aborts']) {
                 await expect(notes.getByText(removed.outcomes[0].body)).toHaveCount(0);
               }
 
+              if (reopens) {
+                // Keep just the old retry's HTTP delivery alive when the caller stops waiting.
+                await observer.evaluate(path => {
+                  const send = window.fetch.bind(window);
+                  let firstListId;
+                  let detached = false;
+                  window.fetch = async (input, options) => {
+                    if (!detached && input === path && typeof options?.body === 'string') {
+                      const request = JSON.parse(options.body);
+                      if (request.intent?.operation === 'decisionNote.read' && request.intent.arguments.note_id === null) {
+                        if (firstListId === request.request_id) {
+                          detached = true;
+                          const response = await send(input, { ...options, signal: undefined });
+                          const json = response.json.bind(response);
+                          response.json = async () => {
+                            const result = await json();
+                            document.documentElement.dataset.lateNoteReply = request.request_id;
+                            return result;
+                          };
+                          return response;
+                        }
+                        firstListId ??= request.request_id;
+                      }
+                    }
+                    return send(input, options);
+                  };
+                }, endpoint);
+              }
               await observer.route(url, injectAdmission);
               try {
                 await deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), removed.date);
                 await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
-                await expect.poll(() => fallbackReplies()[0]).toMatchObject({
-                  operation: 'decisionNote.read', noteId: null, http: 429, code: 'BUSY', retryable: scenario !== 'nonretryable',
-                });
+                if (!holdsSnapshot) {
+                  await expect.poll(() => fallbackReplies()[0]).toMatchObject({
+                    operation: 'decisionNote.read', noteId: null, http: refusalHttp, ...refusalError,
+                  });
+                }
                 const events = observation.events;
-                const unavailable = events.findIndex(row => row.window === 'observer'
-                  && row.stage === 'response' && row.noteId === removedId && row.code === 'DATA_UNAVAILABLE');
-                expect(unavailable).toBeGreaterThan(0);
-                expect(events.slice(0, unavailable)).toContainEqual(expect.objectContaining({
-                  window: 'observer', stage: 'response', operation: 'snapshot', workspaceRevision: 5,
-                }));
+                await expect.poll(() => {
+                  const unavailable = events.findIndex(row => row.window === 'observer'
+                    && row.stage === 'response' && row.noteId === removedId && row.code === 'DATA_UNAVAILABLE');
+                  return unavailable > 0 && events.slice(0, unavailable).some(row => row.window === 'observer'
+                    && row.stage === 'response' && row.operation === 'snapshot' && row.workspaceRevision === 5);
+                }, { message: 'The observer sees revision 5 before the deleted detail becomes unavailable.' }).toBe(true);
                 await expect(notes.getByText(removed.thesis)).toHaveCount(0);
                 await expect(notes.getByText(removed.outcomes[0].body)).toHaveCount(0);
 
-                if (scenario === 'recovers') {
+                if (timesOut) {
+                  await expect.poll(() => observation.heldReply).toMatchObject(holdsSnapshot
+                    ? { kind: 'snapshot', http: 200, workspaceRevision: 5 }
+                    : { kind: 'list', http: 200, list: expect.arrayContaining(remainingIds) });
+                  const reload = notes.getByRole('button', { name: 'Reload decision notes' });
+                  const close = notes.getByRole('button', { name: 'Close decision notes' });
+                  await expect(close).toBeDisabled();
+                  observation.beforeDeadline = await decisionNoteMode(observer);
+                  await expect(reload).toBeVisible({ timeout: 8_000 });
+                  await expect(close).toBeEnabled();
+                  await expect(notes.getByRole('alert')).toHaveText('The decision-note request timed out.');
+                  observation.afterDeadline = await decisionNoteMode(observer);
+                  observation.heldUntilRecoveryMs = performance.now() - baseline - observation.heldReply.readyMs;
+                  if (reopens) {
+                    await close.click();
+                    await expect(notes).toHaveCount(0);
+                    await control(observer, 'Decision notes').click();
+                  } else {
+                    if (!holdsSnapshot) {
+                      await expect.poll(() => events.some(row => row.stage === 'failed-delivery'
+                        && row.requestId === observation.fallbackId)).toBe(true);
+                    }
+                    await reload.click();
+                  }
+                  await assertCurrentList();
+                  await assertBackupTestNote(notes, retained[1]);
+                  observation.beforeRelease = await decisionNoteMode(observer);
+                  release.resolve();
+                  await expect.poll(() => observation.lateDelivery).toBeTruthy();
+                  if (reopens) {
+                    expect(observation.lateDelivery).toBe('released');
+                    await expect(observer.locator('html')).toHaveAttribute('data-late-note-reply', observation.fallbackId);
+                    await expect.poll(() => fallbackReplies()[1]?.list?.toSorted()).toEqual(remainingIds);
+                    expect(fallbackReplies().map(row => row.http)).toEqual([429, 200]);
+                  } else if (!holdsSnapshot) {
+                    expect(fallbackReplies().map(row => row.http)).toEqual([429]);
+                  }
+                  expect(attempts).toBe(holdsSnapshot ? 0 : 2);
+                } else if (scenario === 'recovers') {
                   await assertCurrentList();
                   expect(fallbackReplies()).toMatchObject([{ http: 429 }, { http: 200 }]);
                   await expect.poll(() => fallbackReplies()[1]?.list?.toSorted()).toEqual(remainingIds);
@@ -3131,7 +3231,8 @@ for (const scenario of ['recovers', 'nonretryable', 'exhausts', 'aborts']) {
                   const reload = notes.getByRole('button', { name: 'Reload decision notes' });
                   await expect(reload).toBeVisible({ timeout: 8_000 });
                   observation.untilReloadMs = performance.now() - firstRefusal;
-                  await expect(notes.getByRole('alert')).toHaveText('The local workspace is busy. Try again.');
+                  await expect(notes.getByRole('alert')).toHaveText(denied
+                    ? 'This decision note action is no longer authorized.' : 'The local workspace is busy. Try again.');
                   if (scenario === 'exhausts') {
                     expect(attempts).toBeGreaterThan(1);
                     expect(observation.untilReloadMs).toBeGreaterThanOrEqual(3_500);
@@ -3139,7 +3240,7 @@ for (const scenario of ['recovers', 'nonretryable', 'exhausts', 'aborts']) {
                     expect(attempts).toBe(1);
                   }
                   const terminalAttempts = attempts;
-                  expect(fallbackReplies().map(row => row.http)).toEqual(Array(terminalAttempts).fill(429));
+                  expect(fallbackReplies().map(row => row.http)).toEqual(Array(terminalAttempts).fill(refusalHttp));
                   await reload.click();
                   await assertCurrentList();
                   await assertBackupTestNote(notes, retained[1]);
