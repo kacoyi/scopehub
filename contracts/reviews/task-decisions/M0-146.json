@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-146",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "fc1027eb769fdf385d5a0fd7752d371b05a0a5b6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 fc1027eb769fdf385d5a0fd7752d371b05a0a5b6",
+      "scope": "CHANGES_REQUESTED M0-146 fc1027eb769fdf385d5a0fd7752d371b05a0a5b6",
+      "observation": "I reproduced a valid scoped Windows report being rejected and a full aggregate being published as passed while its Python producer report said failed.",
+      "reviewer": "Independent Astra Standard (t10d)",
+      "original_sha256": "fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca",
+      "response_id": "8c4996ac74773cda44ad24b8bd6e62f20ce124758c50215ac543d5e1e83c2d09",
+      "response_sha256": "2059bf22206ec9567504065ed7b8722d3364d97ff955758f2a66a61fafe2b014",
+      "legacy_response_sha256": "7753722fabebfec3b40a6079cc8081e41b2ddad731e1e6594aa0af9104a0c47c",
+      "observation_body_sha256": "7deca8b2e16cc185919822258de79f1f819c305c791519bfdcbf337e661fa2bc",
+      "event": {
+        "id": "msg_0009ccfe113b430d016b074bc0c81487d08f9ccfbfb8b18cfa",
+        "timestamp": "2026-11-25T20:58:03.804Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "0a89cbb4644e54c39ae4567d26a0576a0c189de4eaf236e730f1da672994a6cb"
+    }
+  ]
+}
