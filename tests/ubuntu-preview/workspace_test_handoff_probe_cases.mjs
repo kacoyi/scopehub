@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { inspect } from 'node:util';
-import { assertWindowsPrivateHandoff, runHandoffProbe } from './workspace_test_handoff_acl.mjs';
+import { assertWindowsLeafAclMatrix, assertWindowsPrivateHandoff, runHandoffProbe } from './workspace_test_handoff_acl.mjs';
 
 const sentinel = 'synthetic-handoff-private-marker';
 const sid = 'S-1-5-21-123-456-789-1011';
@@ -95,7 +95,66 @@ async function runPrivateHandoffWitness(exit) {
   });
 }
 
+async function verifyLeafCalibrationDiagnostics() {
+  await withProbeMarker(async marker => {
+    const profile = dirname(marker);
+    // Expected results for these synthetic controls are independent of the
+    // script's supplied expectedStage or diagnostic strings.
+    const effective = {
+      allow: 58, deny: 55, 'callback-allow': 54, 'callback-deny': 54,
+      'object-allow': 54, 'object-deny': 54, 'object-callback-allow': 54, 'object-callback-deny': 54,
+    };
+    const expected = new Map(Object.entries(effective).flatMap(([layout, stage]) => [
+      [join(profile, `synthetic-acl-${layout}-zero-mask.txt`), 0],
+      [join(profile, `synthetic-acl-${layout}-inherit-only.txt`), 0],
+      [join(profile, `synthetic-acl-${layout}-effective.txt`), stage],
+    ]));
+    const calls = [];
+    const launch = (executable, args, options) => {
+      const path = options.env.SCOPEHUB_TEST_HANDOFF;
+      assert.ok(expected.has(path));
+      calls.push(path);
+      return runHandoffProbe(process.execPath, ['-e', `process.exit(${expected.get(path)})`], options);
+    };
+    const prepare = (record, code) => async (check, root, fixture, exitStages) => {
+      assert.equal(root, profile);
+      const { controls } = JSON.parse(fixture);
+      assert.deepEqual(new Map(controls.map(({ path, expectedStage }) => [path, expectedStage])), expected);
+      assert.equal(controls.length, 24);
+      assert.equal((await readdir(profile)).length, controls.length);
+      const body = 'process.stdout.write(process.argv[1]);'
+        + 'process.stderr.write(process.argv[2]);process.exit(Number(process.argv[3]));';
+      return runHandoffProbe(process.execPath, ['-e', body, sid, record, String(code)], { exitStages });
+    };
+
+    await assertWindowsLeafAclMatrix(profile, { prepareFixture: prepare('', 0), launch });
+    assert.deepEqual(calls, [...expected.keys()]);
+    assert.deepEqual(await readdir(profile), []);
+
+    const unavailable = 'synthetic leaf ACL calibration diagnostic unavailable';
+    const refused = [
+      ['SCOPEHUB_ACL_FIXTURE 19 raw-revision\r\n', 'case object-callback-allow-inherit-only: stored ACL revision differs'],
+      ['SCOPEHUB_ACL_FIXTURE 0 raw-flags\n', 'case allow-zero-mask: stored ACE flags differ'],
+      ['SCOPEHUB_ACL_FIXTURE 23 legacy-stage-0\n', 'case object-callback-deny-effective: legacy managed stage differs (expected 54, observed 0)'],
+      ['SCOPEHUB_ACL_FIXTURE 24 raw-type\n', unavailable],
+      ['SCOPEHUB_ACL_FIXTURE 0 unknown-reason\n', unavailable],
+      [`SCOPEHUB_ACL_FIXTURE 0 raw-flags\n${marker} ${sid}\n`, unavailable],
+    ];
+    for (const [record, disposition] of refused) {
+      const blocked = assertWindowsLeafAclMatrix(profile, {
+        prepareFixture: prepare(record, 4),
+        launch: () => assert.fail('Failed preparation must stop before any witness launch.'),
+      });
+      await assert.rejects(blocked, {
+        message: `Could not verify the synthetic leaf ACL matrix (${disposition}).`,
+      });
+      assert.deepEqual(await readdir(profile), []);
+    }
+  });
+}
+
 export const handoffProbeCases = [
+  { name: 'bounded synthetic leaf matrix calibration and fixture cleanup', run: verifyLeafCalibrationDiagnostics },
   { name: 'the independent private handoff witness accepts and rejects through the bounded launcher', run: async () => {
     await runPrivateHandoffWitness(0);
     await runPrivateHandoffWitness(58);

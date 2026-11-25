@@ -25,7 +25,8 @@ const startupCodes = new Set(['EACCES', 'EAGAIN', 'EINVAL', 'EMFILE', 'ENFILE', 
 function probeFailure(error, child, exitStages) {
   if (error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') return 'subprocess output limit exceeded';
   if (Number.isInteger(error.code)) {
-    return exitStages[error.code] ?? `subprocess exited with code ${error.code}`;
+    const stage = exitStages[error.code];
+    return typeof stage === 'function' ? stage(error.stderr) : stage ?? `subprocess exited with code ${error.code}`;
   }
   // Node can set error.killed when a deadline only closes inherited pipes.
   // child.killed means a signal was actually sent to the direct child.
@@ -51,13 +52,15 @@ export async function runHandoffProbe(executable, args, { timeout = 10_000, maxB
   }
 }
 
-function prepareAclFixture(check, handoff, fixture) {
+function prepareAclFixture(check, handoff, fixture, exitStages = {
+  1: 'fixture preparation', 2: 'raw ACE readback', 3: 'legacy managed descriptor',
+}) {
   const systemRoot = process.env.SystemRoot;
   if (!systemRoot) throw new Error('subprocess startup failed (missing system root)');
   const powershell = join(systemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   return runHandoffProbe(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
     env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture },
-    exitStages: { 1: 'fixture preparation', 2: 'raw ACE readback', 3: 'legacy managed descriptor' },
+    exitStages,
   });
 }
 
@@ -69,8 +72,8 @@ export async function assertWindowsPrivateHandoff(handoff, launch = runHandoffPr
   }
 }
 
-function assertRejectedHandoff(path, stage) {
-  return assert.rejects(assertWindowsPrivateHandoff(path), {
+function assertRejectedHandoff(path, stage, launch) {
+  return assert.rejects(assertWindowsPrivateHandoff(path, launch), {
     message: `Private handoff ACL verification failed (${stages[stage]}).`,
   });
 }
@@ -124,7 +127,43 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
   }
 }
 
-export async function assertWindowsLeafAclMatrix(profile) {
+const leafFailureReasons = {
+  'fixture-start': 'could not read or construct the starting descriptor',
+  'fixture-write': 'could not write the synthetic DACL',
+  'raw-read': 'could not read the stored descriptor',
+  'raw-parse': 'could not parse the stored descriptor',
+  'raw-dacl': 'stored descriptor has no DACL',
+  'raw-revision': 'stored ACL revision differs',
+  'raw-compare': 'could not compare the stored ACE',
+  'raw-duplicate': 'stored DACL contains more than one exact fixture ACE',
+  'raw-absent': 'stored DACL has no ACE for the fixture trustee',
+  'raw-ambiguous': 'stored ACE could not be isolated from the fixture trustee candidates',
+  'raw-type': 'stored ACE type differs',
+  'raw-flags': 'stored ACE flags differ',
+  'raw-mask': 'stored ACE mask differs',
+  'raw-object': 'stored ACE object fields differ',
+  'raw-bytes': 'stored ACE binary form differs',
+  'legacy-read': 'could not compare the legacy managed descriptor',
+};
+
+function leafFailure(controls, stderr) {
+  // Decode only the entire bounded line. Never include the child's text or
+  // accept a case label from the child.
+  const marker = /^SCOPEHUB_ACL_FIXTURE ([0-9]{1,2}) ([a-z0-9-]{1,24})\r?\n?$/u.exec(stderr);
+  const fallback = 'synthetic leaf ACL calibration diagnostic unavailable';
+  if (!marker || marker[0] !== stderr) return fallback;
+  const control = controls[Number(marker[1])];
+  if (!control) return fallback;
+  const reason = marker[2];
+  if (Object.hasOwn(leafFailureReasons, reason)) return `case ${control.name}: ${leafFailureReasons[reason]}`;
+  const legacyStage = /^legacy-stage-(0|53|54|55|58)$/u.exec(reason);
+  if (!legacyStage) return fallback;
+  return `case ${control.name}: legacy managed stage differs (expected ${control.expectedStage}, observed ${legacyStage[1]})`;
+}
+
+export async function assertWindowsLeafAclMatrix(profile, {
+  prepareFixture = prepareAclFixture, launch = runHandoffProbe,
+} = {}) {
   const prepare = await readFile(new URL('./workspace_test_handoff_leaf_acl.ps1', import.meta.url), 'utf8');
   const layouts = [
     { name: 'allow', effective: 58 },
@@ -149,14 +188,16 @@ export async function assertWindowsLeafAclMatrix(profile) {
       owned.push(path);
     }
     try {
-      await prepareAclFixture(prepare, profile, JSON.stringify({ controls }));
+      await prepareFixture(prepare, profile, JSON.stringify({ controls }), {
+        1: 'fixture preparation', 4: stderr => leafFailure(controls, stderr),
+      });
     } catch (error) {
       throw new Error(`Could not verify the synthetic leaf ACL matrix (${error.message}).`);
     }
     for (const { name, path, expectedStage } of controls) {
       try {
-        if (expectedStage === 0) await assertWindowsPrivateHandoff(path);
-        else await assertRejectedHandoff(path, expectedStage);
+        if (expectedStage === 0) await assertWindowsPrivateHandoff(path, launch);
+        else await assertRejectedHandoff(path, expectedStage, launch);
       } catch (error) {
         // A mismatched native result must not obscure the isolated fixture.
         // The expected stage is fixed and the observed output is bounded.

@@ -1,6 +1,6 @@
 # Prepare the raw leaf ACL matrix and compare each file to the former managed witness.
 $ErrorActionPreference = 'Stop'
-$failure = 1
+$caseIndex = -1
 try {
   Add-Type -TypeDefinition @'
 using System;
@@ -41,7 +41,7 @@ public static class HandoffFixtureAcl
 }
 '@
   $matrix = ConvertFrom-Json $env:SCOPEHUB_TEST_ACL_FIXTURE
-  if ($matrix.controls.Count -eq 0) { exit $failure }
+  if ($matrix.controls.Count -ne 24) { exit 1 }
   $world = [Security.Principal.SecurityIdentifier]::new('S-1-1-0')
   $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
   $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
@@ -79,8 +79,30 @@ public static class HandoffFixtureAcl
     return 0
   }
 
+  function Get-RawAceDifference($stored, $entry, $hadFixtureTrustee) {
+    # A same-trustee candidate is informative only when the original fixture
+    # had no such entry and the readback supplies exactly one.
+    $candidates = @($stored | Where-Object {
+      $_ -is [Security.AccessControl.KnownAce] -and $_.SecurityIdentifier.Equals($world)
+    })
+    if ($candidates.Count -eq 0) { return 'raw-absent' }
+    if ($hadFixtureTrustee -or $candidates.Count -ne 1) { return 'raw-ambiguous' }
+    $observed = $candidates[0]
+    if ($observed.AceType -ne $entry.AceType) { return 'raw-type' }
+    if ($observed.AceFlags -ne $entry.AceFlags) { return 'raw-flags' }
+    if ($observed.AccessMask -ne $entry.AccessMask) { return 'raw-mask' }
+    if ($entry -is [Security.AccessControl.ObjectAce]) {
+      $flags = [int]$entry.ObjectAceFlags
+      if ($observed -isnot [Security.AccessControl.ObjectAce] -or $observed.ObjectAceFlags -ne $entry.ObjectAceFlags -or
+          (($flags -band 1) -and $observed.ObjectAceType -ne $entry.ObjectAceType) -or
+          (($flags -band 2) -and $observed.InheritedObjectAceType -ne $entry.InheritedObjectAceType)) { return 'raw-object' }
+    }
+    return 'raw-bytes'
+  }
+
   foreach ($control in $matrix.controls) {
-    $failure = 1
+    $caseIndex += 1
+    $reason = 'fixture-start'
     $flags = [Security.AccessControl.AceFlags]::None
     if ($control.mode -eq 'inherit-only') {
       $flags = [Security.AccessControl.AceFlags]'ObjectInherit, InheritOnly'
@@ -91,6 +113,9 @@ public static class HandoffFixtureAcl
     $opaque = $null
     if ($callback) { $opaque = $condition }
     $raw = [Security.AccessControl.RawSecurityDescriptor]::new([HandoffFixtureAcl]::Read($control.path), 0)
+    $hadFixtureTrustee = @($raw.DiscretionaryAcl | Where-Object {
+      $_ -is [Security.AccessControl.KnownAce] -and $_.SecurityIdentifier.Equals($world)
+    }).Count -ne 0
     if ($null -eq $control.objectFlags) {
       $entry = [Security.AccessControl.CommonAce]::new($flags, $qualifier, $mask, $world, $callback, $opaque)
       $dacl = $raw.DiscretionaryAcl
@@ -106,15 +131,38 @@ public static class HandoffFixtureAcl
     }
     $bytes = [byte[]]::new($dacl.BinaryLength)
     $dacl.GetBinaryForm($bytes, 0)
+    $reason = 'fixture-write'
     [HandoffFixtureAcl]::Write($control.path, $bytes)
 
-    $failure = 2
-    $stored = [Security.AccessControl.RawSecurityDescriptor]::new([HandoffFixtureAcl]::Read($control.path), 0)
+    $reason = 'raw-read'
+    $storedBytes = [HandoffFixtureAcl]::Read($control.path)
+    $reason = 'raw-parse'
+    $stored = [Security.AccessControl.RawSecurityDescriptor]::new($storedBytes, 0)
+    $reason = 'raw-dacl'
+    if ($null -eq $stored.DiscretionaryAcl) { throw 'Fixture DACL missing.' }
+    $reason = 'raw-revision'
+    if ($stored.DiscretionaryAcl.Revision -ne $dacl.Revision) { throw 'Fixture DACL revision differs.' }
+    $reason = 'raw-compare'
     $same = @($stored.DiscretionaryAcl | Where-Object { $_.Equals($entry) })
-    if ($same.Count -ne 1 -or $stored.DiscretionaryAcl.Revision -ne $dacl.Revision) { exit $failure }
+    if ($same.Count -gt 1) {
+      $reason = 'raw-duplicate'
+      throw 'Fixture ACE duplicated.'
+    }
+    if ($same.Count -eq 0) {
+      $reason = Get-RawAceDifference $stored.DiscretionaryAcl $entry $hadFixtureTrustee
+      throw 'Fixture ACE differs.'
+    }
 
-    $failure = 3
-    if ((Get-LegacyHandoffStage $control.path) -ne $control.expectedStage) { exit $failure }
+    $reason = 'legacy-read'
+    $observedStage = Get-LegacyHandoffStage $control.path
+    if ($observedStage -ne $control.expectedStage) {
+      $reason = "legacy-stage-$observedStage"
+      throw 'Legacy fixture verdict differs.'
+    }
   }
   exit 0
-} catch { exit $failure }
+} catch {
+  if ($caseIndex -lt 0) { exit 1 }
+  [Console]::Error.WriteLine(('SCOPEHUB_ACL_FIXTURE {0} {1}' -f $caseIndex, $reason))
+  exit 4
+}
