@@ -25247,6 +25247,198 @@
       }
     },
     {
+      "id": "M0-136",
+      "title": "Require independent evidence when accepting consequential work",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts/project.py",
+        "scripts/review_acceptance.py",
+        "scripts/development.py",
+        "contracts/schemas/project.schema.json",
+        "contracts/reviews/task-decisions",
+        "tests/project/test_review_acceptance.py",
+        "scripts/verification_scope.py",
+        "tests/project/test_verification_scope.py",
+        "project/development.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "package.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary project check, accepted-history comparison and integration reject completion of a new consequential task or confirmed major correction when the ordinary harness is green but its independent decision is missing, requests changes, or belongs to different source, task, scope or material inputs.",
+        "A genuine approval and its independently observed outcome can qualify its exact reviewed task after receipt-only administration and a disjoint protected integration. Pending, changed-risk, cancellation and superseding work remain recoverable. Preserve recognized accepted history and keep routine tasks inexpensive.",
+        "Expose the selected task evolution, retained observation and next action through the normal implementation intake. Replay actual approved and rejected reviews and a mundane control, preserving the limits of local provenance."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-136-9ff424bfcf950821.json",
+          "sha256": "e2d0704ff449aea4ac06b16b01d6f79260fd794bb73b3cfb467bfeaac2523449"
+        },
+        {
+          "path": "project/evidence/M0-136-db6638b5a498be4a.json",
+          "sha256": "f9a73c583a3bbd902b1564e75ea327c9860ded320d2e4e4440481af0bd361801"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The normal project, history and integration entries now require applicable independent decisions for consequential changes. The actual independent reviewer approved the source and its full observed response was recorded against the pending request. Native task receipts, the original corrective decisions and the separately retained local timeout and controls preserve the verification history.",
+      "plan": {
+        "outcome": "Administrative completion of consequential work keeps an independent decision tied to the reviewed task, scope, source and observed behavior.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/integration.py",
+          "project/delivery.json",
+          "project/development.json",
+          "project/feedback.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-d29a74cb/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-bce7aece/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-4481eab5/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-d4c2ed99/final-response.txt",
+          "tests/project/test_review_acceptance.py",
+          "archives/runs/windows-change-45686340341-1/test-report.json"
+        ],
+        "hypotheses": [
+          "The prior closure qualified engineering execution correctly. The missing link is independent review at task acceptance, so the same green report cannot qualify the new transition by itself.",
+          "Canonical task scope, feedback occurrence, Git changes and one retained decision can qualify the transition without granting authenticity to an untrusted transcript or requiring re-review of administrative receipts.",
+          "Use established permission and model recipient change types for initial review selection. Treat the final response as the sole decision subject, retain its stable identity and public projection digest, and separate trusted comparison history from candidate HEAD.",
+          "The existing focused review navigation can convey the importable reply without a second review process or translating the original. Keep owner explanations in Chinese and select the verbatim English observation for the public receipt.",
+          "An observation selected from a full post-verdict passage, a request in the same append-only history as decisions, and a declared durable data effect distinguish the three observed false acceptances. Use an observed protected ancestor for established acceptance even when main itself is under comparison.",
+          "Require an authored prose sentence with structural boundaries. Replacing the source of a request creates a new pending obligation whose approval must independently match that new source."
+        ],
+        "risks": [
+          {
+            "failure": "Ordinary or hosted acceptance accepts absent, rejected, stale, unrelated or unverifiable independent evidence, or loses it on invalidation.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The transition demands approvals of old receipts, recurring routine edits, cancelled work or an unrelated protected change.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Review intake invents authenticity or requires private transcript bytes or a network lookup on ordinary project checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A first authority change escapes review, an old or unrelated reply authorizes closure, or a claimed original remains attached to a changed public observation.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A folded replay hash can equate literal filenames or allow an old response to approve a fresh request. Verify plain and structured responses in both orders, exact replays, newly observed outcomes, alternate selected passages, Unicode code whitespace, and ambiguous historical digests against the actual M0-103 intake, closure checks and immutable ledger.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An old approval and quoted observation in a terminal example replace the actual decision in a plain-text review. Reproduce first import on M0-103, check rejected examples and compare the selected verdict, literal observation and replay identity across ordinary replies, real terminal envelopes and structured final replies.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A bulleted documentation heading turns quoted terminal examples into an independent decision. Exercise the first public M0-103 import, top-level and nested Markdown examples, genuine clipped terminal approvals and rejections, equivalent structured and plain replies, exact replay and pending-request chronology.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An authored line beginning with terminal status words truncates the actual final answer, refuses later evidence and makes the same reply look new across formats. Reproduce both effects through public M0-103 import. Check prose at the beginning and middle, a clock-shaped body example, the actual formatted footer, a following prompt, exact reply identity and genuine retained terminal imports.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A native text-mode fixture translates LF to CRLF and compares the receipt with unsaved bytes. Exercise the affected public review command with deliberately written LF and CRLF files, check the raw digest separately from response identity, and preserve rejection of altered observation text and distinction of literal whitespace.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the acceptance addition and retain original independently observed decisions and the known early-closure reproduction.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/integration.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Herdr routing and immutable source projection, review cadence, product runtime, policy for external approval systems or prior accepted record changes."
+          ],
+          "open_questions": [
+            "Which material source changes after review require a second decision, and which administrative or protected changes retain the original scope?",
+            "Keep the accepted ledger prefix immutable. Derive current response content identity from the same extracted Markdown source as the observation and use the stable event identity and available historical fingerprints.",
+            "Which opening structural markers identify the retained terminal envelopes? Bind the decision and observation to one extracted response regardless of terminal examples in the body.",
+            "Use document structure to identify authored decision and exchange boundaries. Keep one selected final response for the heading, observation and replay digest, and verify the same result on retained genuine terminal captures.",
+            "Keep actual terminal chrome separate from authored content using the complete formatted marker and its place in the selected exchange. Reuse the same final response for verdict, observation and replay identity."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing passing harness receipts and their identity, append-only accepted history, ordinary local and hosted task verification, cancellation and handoff."
+          ],
+          "change": [
+            "Require evidence of independent disposition at new consequential completion. Carry the evolution facts already authored in the task plan into review selection and handoff."
+          ],
+          "data_plan": "Keep reviewed Git identity, exact task scope and a bounded reviewer-owned observation plus digest-checked provenance. Keep raw local transcripts private.",
+          "cleanup": "Retain independently rejected decisions for recovery and keep source changes visibly pending until an independent approval matches. Review only the amended outcome if the task changes."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686340341-1",
+          "source_commit": "ff2167962e02d8bf919b8ce8e3d5d098bffe650d",
+          "report_sha256": "980f9b48c34cf1db47f964de8a614aa5d8afe442f15681adf06b4c60d0da9594"
+        }
+      ]
+    },
+    {
       "id": "M0-151",
       "title": "Synchronize the owned market worker interruption witness",
       "milestone": "M0",
