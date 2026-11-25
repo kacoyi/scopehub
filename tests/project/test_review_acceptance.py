@@ -387,6 +387,83 @@ class TaskReviewTests(ProjectFixture):
         self.assertFalse(self.command(*args)['recorded'])
         self.assertEqual('approved', self.command('context', TASK)['independent_review']['status'])
 
+    def test_review_markup_cannot_supply_an_observation(self):
+        base, source = self.open_review()
+        trace = self.root / '.reports/review-markup.txt'
+        trace.parent.mkdir()
+        short = 'Reopen: `BUSY`.'
+        markdown = (
+            '### A heading.\n\n'
+            'A setext heading.\n---\n\n'
+            '- **A list title.** The saved value reopened at version two.\n\n'
+            '[A citation.](https://example.test/review(v2))\n\n'
+            '> A quoted claim.\n\n'
+            '~~~text\nA reported command output.\n\nStill inside the same command output.\n~~~\n\n'
+        )
+        trace.write_text(f'APPROVE {TASK} {source}\n\n{markdown}{short}\n', encoding='utf-8')
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer')
+        for observed in ('A heading.', 'A setext heading.', 'A list title.', 'A citation.',
+                         '[A citation.](https://example.test/review(v2))', 'A quoted claim.',
+                         'A reported command output.', 'Still inside the same command output.'):
+            with self.subTest(observed=observed):
+                self.command(*args, '--observation', observed, error='post-verdict body')
+        real = self.command(*args, '--observation', short)
+        self.finish()
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        file = self.root / real['path']
+        receipt = json.loads(file.read_bytes())
+        for non_prose in ('Citation caption', '### A heading.', '[A citation.]', '> A quote.'):
+            with self.subTest(non_prose=non_prose):
+                retained = receipt['events'][0]
+                retained['observation'] = non_prose
+                retained['evidence_sha256'] = review_acceptance.evidence_digest(TASK, retained)
+                file.write_bytes(project.json_bytes(receipt))
+                self.command('check', error='Unusable independent decision or observation')
+
+    def test_replacing_closed_request_on_sibling_requires_a_fresh_approval(self):
+        base, original = self.open_review()
+        scope = 'Verify the persisted value and its selection in the original worktree.'
+        old = self.command('review', TASK, '--source', original, '--request', scope)['request']
+        time = datetime.fromisoformat(old['requested_at'])
+        initial = self.review(original, 'CHANGES_REQUESTED', supersedes=old['request_id'],
+                              event=('msg_first_scope', (time + timedelta(seconds=1)).isoformat()))['decision']
+        ledger = self.ledger()
+        self.git('checkout', '--detach', base)
+        plan = task_by_id(ledger, TASK)['plan']
+        plan['evolution']['change'].append('Cover restoration after selecting a different source.')
+        self.save_ledger(ledger)
+        # Commit only the replacement task definition, then carry the original review record.
+        path = self.root / f'{review_acceptance.DIRECTORY}/{TASK}.json'
+        history = path.read_bytes()
+        path.unlink()
+        replacement = self.commit()
+        path.write_bytes(history)
+        self.assertEqual(base, self.git('merge-base', original, replacement))
+        view = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertEqual('stale', view['status'])
+        self.assertEqual(original, view['current_entry_source'])
+        self.assertEqual(replacement, view['candidate_source'])
+        self.assertIn(f'--supersedes {initial["response_id"]}', view['coordination_command'])
+        self.review(replacement, supersedes=initial['response_id'],
+                    event=('msg_wrong_order', (time + timedelta(seconds=2)).isoformat()),
+                    error='Open a new independent review request')
+        with patch.object(review_acceptance, 'datetime', wraps=datetime) as clock:
+            clock.now.return_value = time + timedelta(seconds=2)
+            next_request = self.command('review', TASK, '--source', replacement, '--request',
+                                        'Verify selection and restoration on the replacement worktree.',
+                                        '--supersedes', initial['response_id'])['request']
+        self.assertEqual('pending', self.command('context', TASK)['independent_review']['status'])
+        self.finish()
+        self.command('history', '--base', base, error='is pending')
+        self.review(replacement, supersedes=next_request['request_id'],
+                    event=('msg_replacement', (time + timedelta(seconds=3)).isoformat()))
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        events = json.loads(path.read_bytes())['events']
+        self.assertEqual([original, original, replacement, replacement],
+                         [row['source_commit'] for row in events])
+
+
     def test_data_effect_distinguishes_destructive_unclassified_and_additive_changes(self):
         delivery = project.read_json(self.root / 'project/delivery.json')
         delivery['change_types'].append({'id': 'persistence', 'triggers': ['Durable data effects.'],

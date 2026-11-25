@@ -795,7 +795,8 @@ def review_context(project, task, review):
         action = (f'{intake} --source {request["source_commit"]} --supersedes {follow_up} '
                   '--transcript <final-assistant-export> --reviewer <reviewer> --observation "<body sentence>"')
     else:
-        action = f'{intake} --source <full-clean-reviewed-commit> --request "<scope>"'
+        candidate = review.get('candidate_source') or '<full-clean-reviewed-commit>'
+        action = f'{intake} --source {candidate} --request "<scope>"'
         if follow_up:
             action += f' --supersedes {follow_up}'
     return {**review, 'coordination_command': action,
@@ -821,7 +822,8 @@ def attach_review_context(result, project, task, review, source_commit):
     reply = {
         'first_line': [f'APPROVE {subject}', f'CHANGES_REQUESTED {subject}'],
         'observation': 'After the single verdict line, give one short standalone factual English sentence '
-                       'stating what you independently observed. The coordinator uses that sentence verbatim '
+                       'stating what you independently observed. Use a plain paragraph and put citations below it. '
+                       'The coordinator uses that sentence verbatim '
                        'for project:review --observation.',
         'owner_communication': 'Write the additional explanation and limits for the owner in Chinese.',
     }
@@ -1753,11 +1755,11 @@ def main():
     review.add_argument('--source', required=True, metavar='COMMIT')
     review_input = review.add_mutually_exclusive_group(required=True)
     review_input.add_argument('--transcript', type=Path, help='Retained final assistant export, final response, or rendered terminal transcript')
-    review_input.add_argument('--request', metavar='SCOPE', help='Open a durable independent review request before dispatch')
+    review_input.add_argument('--request', metavar='SCOPE', help='Open a durable independent review request for this exact source before dispatch')
     review.add_argument('--reviewer', help='Independently observed reviewer or session identity')
     review.add_argument('--scope', help='Verbatim transcript excerpt naming the task if the verdict line omits it')
-    review.add_argument('--observation', help='Complete verbatim factual sentence from the post-verdict body')
-    review.add_argument('--supersedes', help='Current decision or request ID when appending a subsequent entry')
+    review.add_argument('--observation', help='Complete verbatim prose sentence from the post-verdict body. Keep citations separate.')
+    review.add_argument('--supersedes', help='Current entry ID, including when replacing the source of an open review request')
 
     diagnostic = sub.add_parser('diagnostic', help='Identify or explicitly verify a retained diagnostic')
     diagnostic_commands = diagnostic.add_subparsers(dest='diagnostic_command', required=True)

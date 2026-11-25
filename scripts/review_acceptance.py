@@ -15,8 +15,15 @@ DIRECTORY = 'contracts/reviews/task-decisions'
 TASK_ID = re.compile(r'M[0-9]+-[0-9]{3}')
 SUBJECT_TASK = re.compile(r'(?<![\w-])M[0-9]+-[0-9]{3}(?![\w-])')
 BOUNDARY_TYPES = {'permissions', 'model-connection'}
-DECISION = re.compile(r'^(?:• )?(APPROVED?|CHANGES[_ ]REQUESTED)\b')
+DECISION = re.compile(r'^(?:• )?(\*\*(?:APPROVED?|CHANGES[_ ]REQUESTED)\*\*|(?:APPROVED?|CHANGES[_ ]REQUESTED)\b)')
 COMMIT = re.compile(r'(?<![a-f0-9])(?:[a-f0-9]{64}|[a-f0-9]{40})(?![a-f0-9])')
+SENTENCE_END = re.compile(r'[。！？]|[.!?](?=\s|$)')
+LIST_ITEM = re.compile(r'^(?:[•*+-]|[0-9]+[.)])[ \t]+')
+BLOCK_BOUNDARY = re.compile(r'^(?:#{1,6}(?:\s|$)|[>|<]|(?:[-=_*]\s*){3,}$|\[[^\]]+\]:)')
+FENCE = re.compile(r'^(`{3,}|~{3,})')
+CODE_SPAN = re.compile(r'`+[^`]+`+')
+INLINE_BOUNDARY = re.compile(r'[\[\]<>|]')
+LIST_TITLE = re.compile(r'^(?:\*\*[^*]+\*\*|__[^_]+__)\s*')
 TRANSCRIPT_LIMIT = 4 * 1024 * 1024
 TASK_ADMIN = {'status', 'evidence', 'next_action', 'blocker', 'closure_reason'}
 FEEDBACK_ADMIN = {'status', 'resolution', 'deferral_reason'}
@@ -31,7 +38,7 @@ def heading_subject(heading):
     source = COMMIT.search(heading)
     if not marker or not source:
         return None, None, []
-    verdict = 'approved' if marker[1].startswith('APPROVE') else 'changes_requested'
+    verdict = 'approved' if marker[1].strip('*').startswith('APPROVE') else 'changes_requested'
     return verdict, source[0], SUBJECT_TASK.findall(heading[marker.end():source.start()])
 
 
@@ -182,13 +189,13 @@ def final_response(text):
             identity = message['id']
             if not isinstance(identity, str) or not identity.startswith('msg_'):
                 raise ValueError('Expected a stable final assistant message identity.')
-            return '\n'.join(part['text'] for part in parts), {'id': identity, 'timestamp': event['timestamp']}
+            return '\n'.join(part['text'] for part in parts), {'id': identity, 'timestamp': event['timestamp']}, False
         except (KeyError, TypeError, ValueError) as error:
             raise ReviewError('Expected one retained completed final assistant export.') from error
 
     lines = text.splitlines()
     if not any(line.startswith(('› ', '• ')) for line in lines):
-        return text, None
+        return text, None, False
     turns = [index for index, line in enumerate(lines)
              if line.startswith('› ') and line.strip() != '› Ask Codex to do anything']
     start = turns[-1] + 1 if turns else 0
@@ -197,25 +204,63 @@ def final_response(text):
         raise ReviewError('The last terminal exchange has no final independent verdict.')
     end = next((index for index in range(final + 1, len(lines))
                 if lines[index].startswith(('› ', '  Worked for '))), len(lines))
-    return '\n'.join([lines[final].removeprefix('• '), *lines[final + 1:end]]), None
+    return '\n'.join([lines[final].removeprefix('• '), *lines[final + 1:end]]), None, True
 
 
 def observed_statement(text, heading, scope):
     plain = text.strip(' `*_#>•.!?。！？')
     return (bool(plain) and any(character.isalpha() for character in plain)
+            and text.endswith(('.', '!', '?', '。', '！', '？'))
+            and not (BLOCK_BOUNDARY.match(text) or LIST_ITEM.match(text))
+            and not INLINE_BOUNDARY.search(CODE_SPAN.sub('', text))
             and not (COMMIT.fullmatch(plain) or SUBJECT_TASK.fullmatch(plain))
             and plain.casefold() not in heading.casefold()
             and text != scope)
 
 
-def body_passages(body):
-    # Keep standalone paragraphs and complete sentences, including rendered
-    # line wraps and sentence punctuation used in Chinese and English replies.
-    for paragraph in re.split(r'\n\s*\n', body):
-        text = compact(paragraph).removeprefix('• ').removeprefix('- ')
-        for sentence in re.split(r'(?<=[。！？])|(?<=[.!?])(?:\s+|$)', text):
-            if sentence.strip():
-                yield sentence.strip()
+def prose_blocks(body):
+    """Read the review prose subset of Markdown and rendered terminal replies."""
+    lines = []
+    fence = None
+    for line in body.splitlines():
+        text = line.strip()
+        marker = FENCE.match(text)
+        if fence:
+            if text and not text.strip(fence[0]) and len(text) >= len(fence):
+                fence = None
+            continue
+        if marker or not text or LIST_ITEM.match(text) or BLOCK_BOUNDARY.match(text):
+            # An adjacent underline makes the preceding lines a title.
+            if lines and not re.fullmatch(r'(?:=+|-+)', text):
+                yield compact(' '.join(lines))
+            lines = []
+            if marker:
+                fence = marker[1]
+            elif LIST_ITEM.match(text):
+                lines.append(text)
+            continue
+        lines.append(text)
+    if lines:
+        yield compact(' '.join(lines))
+
+
+def body_passages(body, *, rendered):
+    for block in prose_blocks(body):
+        item = LIST_ITEM.match(block)
+        text = block[item.end():] if item else block
+        if item and not rendered:
+            text = LIST_TITLE.sub('', text)
+        # Only prose before the first citation or inline markup is eligible.
+        # Preserve offsets across code spans and ignore incomplete rendered tails.
+        masked = CODE_SPAN.sub(lambda match: '\0' * len(match[0]), text)
+        if markup := INLINE_BOUNDARY.search(masked):
+            masked = masked[:markup.start()]
+        start = 0
+        for index, boundary in enumerate(SENTENCE_END.finditer(masked)):
+            stop = boundary.end()
+            if not (rendered and item and index == 0):
+                yield text[start:stop].strip()
+            start = stop
 
 
 def create_decision(root, task, source, transcript, reviewer, scope, observation, supersedes=None):
@@ -224,7 +269,7 @@ def create_decision(root, task, source, transcript, reviewer, scope, observation
         data = stream.read(TRANSCRIPT_LIMIT + 1)
     if len(data) > TRANSCRIPT_LIMIT:
         raise ReviewError('The independent response exceeds the intake limit.')
-    response, event = final_response(data.decode('utf-8'))
+    response, event, rendered = final_response(data.decode('utf-8'))
     lines = response.strip().splitlines()
     heading = lines[0].strip() if lines else ''
     consumed = 1
@@ -241,7 +286,7 @@ def create_decision(root, task, source, transcript, reviewer, scope, observation
     if not verdict:
         raise ReviewError('The final independent verdict must identify this task and exact full source in its heading.')
     if (scope not in whole or not observed_statement(observation, heading, scope)
-            or observation not in body_passages(body)):
+            or observation not in body_passages(body, rendered=rendered)):
         raise ReviewError('Select a complete factual observation from the post-verdict body, separate from the heading.')
     response_hash = hashlib.sha256(whole.encode('utf-8')).hexdigest()
     decision = dict(kind='decision', source_commit=source, verdict=verdict, decision=heading, scope=scope,
@@ -276,12 +321,11 @@ def append_entry(root, entries, entry):
         return previous, False
     latest = entries[-1] if entries else None
     validate_successor(latest, entry)
-    if (latest and latest['source_commit'] != entry['source_commit']
-            and (entry['kind'] == 'request' or not (event_time(latest) and event_time(entry)))):
+    if latest and entry['kind'] == 'decision' and latest['source_commit'] != entry['source_commit']:
         try:
             require_ancestor(root, latest['source_commit'], entry['source_commit'])
         except ScopeError as error:
-            raise ReviewError('A rendered response can only supersede an entry on an ancestor source.') from error
+            raise ReviewError('Open a new independent review request before importing a decision on a replacement source.') from error
     return entry, True
 
 
@@ -307,7 +351,8 @@ def material(path):
 
 
 def source_matches(root, reviewed, head, protected):
-    require_ancestor(root, reviewed, head)
+    if reviewed != head and git(root, 'merge-base', '--all', reviewed, head).decode('ascii').splitlines() != [reviewed]:
+        return False
     untracked = inspect_index(root, include_untracked=True)
     if any(material(path) for path in untracked):
         return False
@@ -350,10 +395,10 @@ def disposition(root, task, feedback, entry, head, protected):
         return 'unavailable'
 
 
-def review_view(key, status, finding, entries):
+def review_view(key, status, finding, entries, head):
     path = f'{DIRECTORY}/{key}.json'
     result = {'status': status, 'feedback_ids': sorted(finding), 'reviewed_source': None,
-              'reviewer': 'Independent review role assigned by the coordinator'}
+              'reviewer': 'Independent review role assigned by the coordinator', 'candidate_source': head}
     for index in range(len(entries) - 1, -1, -1):
         decision = entries[index]
         if decision['kind'] != 'decision':
@@ -367,6 +412,7 @@ def review_view(key, status, finding, entries):
     if entries:
         latest = entries[-1]
         result['current_entry_id'] = entry_id(latest)
+        result['current_entry_source'] = latest['source_commit']
         if latest['kind'] == 'request':
             result['pending_request'] = {**latest, 'path': path, 'pointer': f'/events/{len(entries) - 1}'}
     if status == 'unavailable':
@@ -415,14 +461,14 @@ def assess(root, project, records, head, bases, *, accepted, protected, trusted,
             prefix = task['evidence'][:len(original['evidence'])] == original['evidence']
             if same and prefix and entries == protected_entries.get(key, []):
                 if entries:
-                    states[key] = review_view(key, 'accepted_history', finding, entries)
+                    states[key] = review_view(key, 'accepted_history', finding, entries, head)
                 continue
         if not trusted and task['status'] == 'done':
             state = 'unavailable'
         else:
             state = disposition(root, task, finding if automatic else None,
                                 entries[-1] if entries else None, head, protected)
-        states[key] = review_view(key, state, finding, entries)
+        states[key] = review_view(key, state, finding, entries, head)
         if enforce and task['status'] == 'done' and state != 'approved':
             raise ReviewError(f'Independent review for {key} is {state}. '
                               + states[key]['review_next_action'] + ' Use pnpm project:review for decision intake.')
