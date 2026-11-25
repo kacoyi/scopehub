@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M1-047",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20392,7 +20392,7 @@
       "id": "M1-047",
       "title": "Preserve the public Python worker wire decoder",
       "milestone": "M1",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-046"
       ],
@@ -20422,10 +20422,15 @@
         "rust-contracts-workers",
         "architecture"
       ],
-      "evidence": [],
-      "next_action": "Run the same typed client against main and the reviewed candidate before correcting the Python entry.",
+      "evidence": [
+        {
+          "path": "project/evidence/M1-047-718aafc50ed7769d.json",
+          "sha256": "abb1c65b96f9cf38e464a6d66dfc908a5471e16ec93874a35166f4f7bc873bdd"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The unchanged typed client ran and passed strict mypy, and the protocol module exported Message. The legacy codec rejected all four optional review envelopes, while the explicit codec round-tripped those envelopes and rejected malformed, unknown and over-limit frames. Real worker tests retained the CSV review negotiation, raw byte limit and ordinary protocol behavior.",
       "plan": {
         "outcome": "Old Python wire clients retain their import, typing and frame acceptance while explicit callers can use the CSV review envelopes.",
         "change_types": [

@@ -5262,7 +5262,7 @@
       "id": "frozen-csv-public-python-decoder-compatibility",
       "source": "Independent Astra Standard review of PR 92 at b76ed015fcbdf5a9e0679d7ad56fec6b24313f29. The same consumer and four envelope comparisons before repair are retained in .reports/m1-047-before-repair.log (SHA-256 eb49fe78aeed336c26533966edafc2c517d441ca7d1a93969bce85d1f3039012).",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The established Python protocol module no longer exports Message, and decode_line widens its return type and admits four opt-in CSV review envelope types. Existing typed callers require the original Message and frame acceptance.",
       "task_ids": [
         "M1-047"
@@ -5271,7 +5271,11 @@
         "python-types",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The Python protocol module used the extended schema root as its only validator and replaced the public Message import and decoder return type with ExtendedMessage.",
+        "correction": "Explicitly re-export Message and select the original canonical schema union for the legacy codec. Expose the extended union through separate codec entries that reuse the same framing and syntax checks.",
+        "prevention": "Run the unchanged typed consumer through strict mypy and runtime tests. Check both decoder entries against all shared vectors, verify the four review envelopes and exact frame budget, and retain real normal and negotiated worker tests."
+      },
       "deferral_reason": null
     }
   ]
