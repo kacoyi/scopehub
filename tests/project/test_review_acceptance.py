@@ -54,17 +54,28 @@ class TaskReviewTests(ProjectFixture):
         self.save_ledger(ledger)
         return baseline, self.commit()
 
-    def review(self, source, verdict='APPROVE', *, observation=OUTCOME, task=TASK, use_later_verdict=False, error=None):
+    def review(self, source, verdict='APPROVE', *, observation=OUTCOME, task=TASK,
+               supersedes=None, event=None, suffix='', error=None):
         trace = self.root / '.reports/independent.txt'
         trace.parent.mkdir(exist_ok=True)
-        earlier = f'• APPROVE — earlier review of {task} at {source}.\nHistorical outcome.\n' if use_later_verdict else ''
-        trace.write_text(f'{earlier}› Report APPROVE or CHANGES_REQUESTED for {task} at {source}.\n'
-                         f'• Ran git show historical-output\n  └ APPROVE — quoted {source}\n'
-                         f'• {verdict} — independent decision for {task} at {source}.\n'
-                         f'  {observation}\n  Worked for 1m • today\n',
-                         encoding='utf-8')
-        return self.command('review', TASK, '--source', source, '--transcript', str(trace),
-                            '--reviewer', 'Synthetic independent reviewer', '--observation', observation, error=error)
+        if event:
+            identity, time = event
+            content = f'{verdict} {task} {source}\n\n{observation}'
+            body = json.dumps({'type': 'response_item', 'timestamp': time, 'payload': {
+                'type': 'message', 'phase': 'final_answer', 'role': 'assistant', 'status': 'completed',
+                'id': identity, 'content': [{'type': 'output_text', 'text': content}],
+            }})
+        else:
+            body = (f'› Report APPROVE or CHANGES_REQUESTED for {task} at {source}.\n'
+                    f'• Ran git show historical-output\n  └ APPROVE — quoted {source}\n'
+                    f'• {verdict} — independent decision for {task} at\n'
+                    f'  {source}.\n\n  {observation}\n  Worked for 1m • today\n')
+        trace.write_text(body + suffix, encoding='utf-8')
+        args = ['review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer', '--observation', observation]
+        if supersedes:
+            args.extend(['--supersedes', supersedes])
+        return self.command(*args, error=error)
 
     def finish(self):
         path = self.report()
@@ -86,17 +97,19 @@ class TaskReviewTests(ProjectFixture):
         with self.assertRaisesRegex(project.ProjectError, 'Independent review for M0-001 is pending'):
             delivery_scope(self.root, project.load_project(self.root), base)
 
-        rejected = self.review(source, 'CHANGES_REQUESTED', use_later_verdict=True)
+        rejected = self.review(source, 'CHANGES_REQUESTED', event=('msg_rejected', '2026-11-25T13:00:00Z'))
         self.assertEqual('changes_requested', rejected['decision']['verdict'])
         self.command('check', error='changes_requested')
-        self.review(source, observation='The same independent reader preserved the value through reopen and restart.')
+        self.review(source, observation='The same independent reader preserved the value through reopen and restart.',
+                    supersedes=rejected['decision']['response_id'],
+                    event=('msg_approved', '2026-11-25T13:15:00Z'))
         self.assertEqual('passed', self.command('check')['status'])
         self.assertEqual('passed', self.command('history', '--base', base)['status'])
         self.assertEqual([TASK], delivery_scope(self.root, project.load_project(self.root), base)['completed_task_ids'])
 
     def test_other_task_or_only_an_assignment_cannot_supply_a_decision(self):
         _, source = self.open_review()
-        self.review(source, task='M0-002', error='identifying the reviewed task')
+        self.review(source, task='M0-002', error='identify this task')
         trace = self.root / '.reports/independent.txt'
         trace.write_text(f'› Report APPROVE or CHANGES_REQUESTED for {TASK} at {source}.\n'
                          f'• Ran rg approval\n  └ APPROVE — {TASK} at {source}.\n',
@@ -181,8 +194,10 @@ class TaskReviewTests(ProjectFixture):
     def test_recorded_rejection_cannot_be_removed_or_replayed_over_a_new_verdict(self):
         base, source = self.open_review()
         old = self.review(source)
-        self.review(source, 'CHANGES_REQUESTED', observation='The later independent reading found a discrepancy after reopen.')
-        self.review(source)  # Re-intaking the same original is idempotent.
+        self.review(source, 'CHANGES_REQUESTED', observation='The later independent reading found a discrepancy after reopen.',
+                    supersedes=old['decision']['response_id'])
+        copied = self.review(source, suffix='\n')  # Same rendered response despite changed trailing bytes.
+        self.assertEqual(old['decision'], copied['decision'])
         self.assertEqual('changes_requested', self.command('context', TASK)['independent_review']['status'])
         self.commit()
         current = self.git('rev-parse', 'HEAD')
@@ -191,3 +206,90 @@ class TaskReviewTests(ProjectFixture):
         record['decisions'].pop()
         path.write_text(json.dumps(record), encoding='utf-8')
         self.command('history', '--base', current, error='decision history changed')
+
+    def test_first_authority_boundary_and_adjacent_routine_activation(self):
+        ledger = self.ledger()
+        plan = task_by_id(ledger, TASK)['plan']
+        plan['change_types'] = ['tooling', 'permissions']
+        delivery = project.read_json(self.root / 'project/delivery.json')
+        delivery['change_types'].append({'id': 'permissions', 'triggers': ['Changes to the authorized recipient.'],
+                                         'checks': ['project-state']})
+        (self.root / 'project/delivery.json').write_bytes(project.json_bytes(delivery))
+        self.save_ledger(ledger)
+        (self.root / 'project/branch-protection.json').write_text('{"branch":"main"}', encoding='utf-8')
+        prior = self.commit()
+        self.git('update-ref', 'refs/remotes/origin/main', prior)
+        focus = task_by_id(ledger, TASK)
+        focus['status'] = 'active'
+        self.save_ledger(ledger)
+        for phase in ('implement', 'verify', 'handoff'):
+            view = self.command('context', TASK, '--phase', phase)['independent_review']
+            self.assertEqual('pending', view['status'])
+            self.assertIn('coordinator', view['reviewer'])
+        self.assertNotIn('independent_review', self.command('context', 'M0-002'))
+        self.finish()
+        self.command('history', '--base', prior, error='Independent review for M0-001 is pending')
+
+    def test_transcript_mentions_and_later_unresolved_reply_cannot_approve(self):
+        _, source = self.open_review()
+        self.review(source, task='M0-002', observation=f'{TASK} remains planned; no acceptance was requested.',
+                    error='identify this task')
+        self.review(source, suffix='\n› Reopen the result.\n\n• The original outcome now disagrees on reopen.\n',
+                    error='The final independent verdict')
+
+    def test_stale_predecessor_and_reordered_event_cannot_replace_rejection(self):
+        _, source = self.open_review()
+        first = self.review(source, event=('msg_first', '2026-11-25T11:00:00Z'))
+        rejected = self.review(source, 'CHANGES_REQUESTED', event=('msg_second', '2026-11-25T13:00:00Z'),
+                               supersedes=first['decision']['response_id'])
+        self.review(source, event=('msg_concurrent', '2026-11-25T13:10:00Z'),
+                    supersedes=first['decision']['response_id'], error='must supersede')
+        self.review(source, event=('msg_reordered', '2026-11-25T12:59:00Z'),
+                    supersedes=rejected['decision']['response_id'], error='predates or equals')
+        self.review(source, event=('msg_first', '2026-11-25T11:00:00Z'), suffix='\n\n')
+        self.assertEqual('changes_requested', self.command('context', TASK)['independent_review']['status'])
+
+    def test_public_projection_is_verified_and_available_in_each_focused_phase(self):
+        base, source = self.open_review()
+        result = self.review(source)
+        for phase in ('implement', 'verify', 'handoff'):
+            view = self.command('context', TASK, '--phase', phase)['independent_review']
+            self.assertEqual(OUTCOME, view['observation'])
+            self.assertEqual(source, view['reviewed_source'])
+            self.assertEqual('Synthetic independent reviewer', view['reviewer'])
+            self.assertEqual(result['path'], view['source']['path'])
+        self.finish()
+        file = self.root / result['path']
+        record = json.loads(file.read_bytes())
+        record['decisions'][0]['observation'] = 'Changed local projection with unchanged original SHA.'
+        file.write_bytes(project.json_bytes(record))
+        self.command('check', error='public evidence digest mismatch')
+        self.command('history', '--base', base, error='public evidence digest mismatch')
+
+    def test_missing_or_shallow_history_cannot_accept_its_own_completion(self):
+        base, source = self.open_review()
+        self.review(source)
+        self.finish()
+        head = self.commit()
+        self.assertEqual('passed', self.command('check')['status'])
+        self.git('update-ref', '-d', 'refs/remotes/origin/main')
+        self.command('check', error='is unavailable')
+        self.command('history', '--base', head, error='is unavailable')
+        self.assertEqual('passed', self.command('history', '--base', base)['status'])
+        self.git('update-ref', 'refs/remotes/origin/main', base)
+        shallow = self.root / '.git/shallow'
+        shallow.write_text(head + '\n', encoding='utf-8')
+        self.command('check', error='is unavailable')
+        snapshot = self.command('context', TASK)['independent_review']
+        self.assertIn('Restore the local protected', snapshot['review_next_action'])
+        shallow.unlink()
+        self.assertEqual('passed', self.command('check')['status'])
+
+    def test_local_closure_checkpoint_cannot_substitute_for_protected_acceptance(self):
+        self.open_review()
+        self.finish()
+        closed = self.commit()
+        self.git('update-ref', '-d', 'refs/remotes/origin/main')
+        (self.root / 'separate_input.py').write_bytes(b'outcome = True\n')
+        self.commit()
+        self.command('history', '--base', closed, error='Independent review for M0-001 is pending')

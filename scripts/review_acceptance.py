@@ -1,5 +1,6 @@
 """Qualify independent review at task acceptance using local Git and retained decisions."""
 
+from datetime import datetime
 import hashlib
 import json
 import re
@@ -12,6 +13,8 @@ else:
 
 DIRECTORY = 'contracts/reviews/task-decisions'
 TASK_ID = re.compile(r'M[0-9]+-[0-9]{3}')
+SUBJECT_TASK = re.compile(r'(?<![\w-])M[0-9]+-[0-9]{3}(?![\w-])')
+BOUNDARY_TYPES = {'permissions', 'model-connection'}
 DECISION = re.compile(r'^(?:• )?(APPROVED?|CHANGES[_ ]REQUESTED)\b')
 COMMIT = re.compile(r'(?<![a-f0-9])(?:[a-f0-9]{64}|[a-f0-9]{40})(?![a-f0-9])')
 TRANSCRIPT_LIMIT = 4 * 1024 * 1024
@@ -23,16 +26,76 @@ class ReviewError(ValueError):
     """A consequential acceptance or its independent decision is unsupported."""
 
 
-def task_decision(line, source):
-    match = DECISION.match(line)
-    subject = COMMIT.search(line)
-    if not match or not subject or subject[0] != source:
+def heading_subject(heading):
+    marker = DECISION.match(heading)
+    source = COMMIT.search(heading)
+    if not marker or not source:
+        return None, None, []
+    verdict = 'approved' if marker[1].startswith('APPROVE') else 'changes_requested'
+    return verdict, source[0], SUBJECT_TASK.findall(heading[marker.end():source.start()])
+
+
+def bound_decision(heading, task, source, scope):
+    verdict, exact_source, subjects = heading_subject(heading)
+    if exact_source != source:
         return None
-    return 'approved' if match[1].startswith('APPROVE') else 'changes_requested'
+    if subjects == [task]:
+        return verdict
+    # Some retained terminal rejections predate task-qualified headings. A scope
+    # excerpt from their final response can retain the blocker without granting approval.
+    if not subjects and verdict == 'changes_requested' and task in SUBJECT_TASK.findall(scope):
+        return verdict
+    return None
 
 
-def names_task(text, task):
-    return re.search(rf'(?<![\w-]){task}(?![\w-])', text) is not None
+def compact(text):
+    return ' '.join(text.split())
+
+
+def response_identity(event, response_hash):
+    return hashlib.sha256(event['id'].encode('utf-8')).hexdigest() if event else response_hash
+
+
+def evidence_digest(task, value):
+    fields = {key: item for key, item in value.items() if key != 'evidence_sha256'}
+    data = json.dumps([task, fields], ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(data).hexdigest()
+
+
+def event_time(value):
+    if value['event'] is None:
+        return None
+    stamp = datetime.fromisoformat(value['event']['timestamp'])
+    if stamp.utcoffset() is None:
+        raise ReviewError('Independent response timestamps require an offset.')
+    return stamp
+
+
+def validate_successor(previous, decision):
+    expected = previous['response_id'] if previous else None
+    if decision['supersedes'] != expected:
+        raise ReviewError(f'Independent response must supersede {expected or "no previous response"}.')
+    new_time = event_time(decision)
+    if previous:
+        old_time = event_time(previous)
+        if old_time and new_time and new_time <= old_time:
+            raise ReviewError('Independent response predates or equals the retained decision.')
+        if (decision['source_commit'] == previous['source_commit']
+                and previous['verdict'] == 'changes_requested' and decision['verdict'] == 'approved'
+                and not (old_time and new_time)):
+            raise ReviewError('Replacing a same-source rejection requires ordered final assistant exports.')
+
+
+def repeated_response(decisions, candidate):
+    for earlier in decisions:
+        if earlier['response_id'] == candidate['response_id']:
+            if earlier['response_sha256'] != candidate['response_sha256']:
+                raise ReviewError('The retained assistant response identity has different content.')
+            return earlier
+        if (earlier['response_sha256'] == candidate['response_sha256']
+                and (earlier['event'] is None or candidate['event'] is None)):
+            return earlier
+    return None
 
 
 def load_records(root, validate):
@@ -52,16 +115,20 @@ def load_records(root, validate):
         validate('TaskReviewDecisions', record)
         if record['task_id'] != path.stem:
             raise ReviewError(f'Independent review file belongs to another task: {path.name}')
+        verified = []
         for value in record['decisions']:
-            if (task_decision(value['decision'], value['source_commit']) != value['verdict']
-                    or not names_task(value['scope'], path.stem)
+            if evidence_digest(path.stem, value) != value['evidence_sha256']:
+                raise ReviewError(f'Independent public evidence digest mismatch for {path.stem}.')
+            if (response_identity(value['event'], value['response_sha256']) != value['response_id']
+                    or bound_decision(value['decision'], path.stem, value['source_commit'], value['scope']) != value['verdict']
                     or value['observation'].strip() in {'', value['scope'].strip(), value['decision'].strip()}
                     or not value['reviewer'].strip()):
                 raise ReviewError(f'Unusable independent decision for {path.stem}.')
-        identities = {(entry['source_commit'], entry['original_sha256']) for entry in record['decisions']}
-        if len(identities) != len(record['decisions']):
-            raise ReviewError(f'The same original independent decision was recorded twice for {path.stem}.')
-        records[path.stem] = record['decisions']
+            if repeated_response(verified, value):
+                raise ReviewError(f'The same independent response was recorded twice for {path.stem}.')
+            validate_successor(verified[-1] if verified else None, value)
+            verified.append(value)
+        records[path.stem] = verified
     return records
 
 
@@ -76,30 +143,84 @@ def prior_records(root, commit, task):
     return []
 
 
-def create_decision(root, task, source, transcript, reviewer, scope, observation):
+def final_response(text):
+    if text.lstrip().startswith('{'):
+        try:
+            event = json.loads(text)
+            message = event['payload']
+            if (event['type'] != 'response_item' or message['type'] != 'message'
+                    or message['role'] != 'assistant' or message['phase'] != 'final_answer'
+                    or message['status'] != 'completed'
+                    or event.get('metadata', {}).get('client_authored') is True):
+                raise ValueError('Expected a completed final assistant message.')
+            parts = message['content']
+            if not parts or any(part['type'] != 'output_text' for part in parts):
+                raise ValueError('Expected final assistant text.')
+            identity = message['id']
+            if not isinstance(identity, str) or not identity.startswith('msg_'):
+                raise ValueError('Expected a stable final assistant message identity.')
+            return '\n'.join(part['text'] for part in parts), {'id': identity, 'timestamp': event['timestamp']}
+        except (KeyError, TypeError, ValueError) as error:
+            raise ReviewError('Expected one retained completed final assistant export.') from error
+
+    lines = text.splitlines()
+    if not any(line.startswith(('› ', '• ')) for line in lines):
+        return text, None
+    turns = [index for index, line in enumerate(lines)
+             if line.startswith('› ') and line.strip() != '› Ask Codex to do anything']
+    start = turns[-1] + 1 if turns else 0
+    final = next((index for index in range(len(lines) - 1, start - 1, -1) if lines[index].startswith('• ')), None)
+    if final is None:
+        raise ReviewError('The last terminal exchange has no final independent verdict.')
+    end = next((index for index in range(final + 1, len(lines))
+                if lines[index].startswith(('› ', '  Worked for '))), len(lines))
+    return '\n'.join([lines[final].removeprefix('• '), *lines[final + 1:end]]), None
+
+
+def create_decision(root, task, source, transcript, reviewer, scope, observation, supersedes=None):
     source = exact_commit(root, source)
     with transcript.open('rb') as stream:
         data = stream.read(TRANSCRIPT_LIMIT + 1)
     if len(data) > TRANSCRIPT_LIMIT:
-        raise ReviewError('The independent transcript exceeds the intake limit.')
-    lines = data.decode('utf-8').splitlines()
-    herdr = any(line.startswith(('› ', '• ')) for line in lines)
-    final = next((index for index in range(len(lines) - 1, -1, -1)
-                  if (not herdr or lines[index].startswith('• ')) and DECISION.match(lines[index])), None)
-    verdict = task_decision(lines[final], source) if final is not None else None
+        raise ReviewError('The independent response exceeds the intake limit.')
+    response, event = final_response(data.decode('utf-8'))
+    lines = response.strip().splitlines()
+    # Only the first paragraph can state the reviewed subject. Terminal wrapping
+    # may move the full SHA onto a continuation line.
+    heading = lines[0].strip() if lines else ''
+    for line in lines[1:4]:
+        if COMMIT.search(heading) or not line.startswith('  ') or not line.strip() or line.lstrip().startswith('•'):
+            break
+        heading = compact(heading + ' ' + line)
+    scope = compact(scope) if scope else heading
+    observation = compact(observation)
+    whole = compact(response)
+    verdict = bound_decision(heading, task, source, scope)
     if not verdict:
-        raise ReviewError('The final independent verdict must name the exact full reviewed source.')
-    end = next((index for index in range(final + 1, len(lines))
-                if lines[index].startswith(('› ', '  Worked for '))), len(lines))
-    response = '\n'.join(lines[final:end])
-    decision = lines[final].strip()
-    scope = scope or decision
-    if not names_task(scope, task) or scope not in response:
-        raise ReviewError('Select an excerpt from the final independent response identifying the reviewed task.')
-    if observation not in response or observation.strip() in {'', scope.strip(), decision.strip()}:
-        raise ReviewError('Select a distinct observation verbatim from the final independent response.')
-    return dict(source_commit=source, verdict=verdict, decision=decision, scope=scope,
-                observation=observation, reviewer=reviewer, original_sha256=hashlib.sha256(data).hexdigest())
+        raise ReviewError('The final independent verdict must identify this task and exact full source in its heading.')
+    if scope not in whole or observation not in whole or observation in {'', scope, heading}:
+        raise ReviewError('Select a distinct observation and any scope excerpt from the final independent response.')
+    response_hash = hashlib.sha256(whole.encode('utf-8')).hexdigest()
+    identity = response_identity(event, response_hash)
+    decision = dict(source_commit=source, verdict=verdict, decision=heading, scope=scope,
+                    observation=observation, reviewer=reviewer, original_sha256=hashlib.sha256(data).hexdigest(),
+                    response_id=identity, response_sha256=response_hash, event=event, supersedes=supersedes)
+    decision['evidence_sha256'] = evidence_digest(task, decision)
+    return decision
+
+
+def append_decision(root, decisions, decision):
+    if previous := repeated_response(decisions, decision):
+        return previous, False
+    latest = decisions[-1] if decisions else None
+    validate_successor(latest, decision)
+    if (latest and latest['source_commit'] != decision['source_commit']
+            and not (event_time(latest) and event_time(decision))):
+        try:
+            require_ancestor(root, latest['source_commit'], decision['source_commit'])
+        except ScopeError as error:
+            raise ReviewError('A rendered response can only supersede a decision on an ancestor source.') from error
+    return decision, True
 
 
 def qualifying_items(items, key, previous=()):
@@ -157,7 +278,25 @@ def disposition(root, task, feedback, decision, head, protected):
         return 'unavailable'
 
 
-def assess(root, project, records, head, bases, *, accepted, protected, enforce):
+def review_view(key, status, finding, decisions):
+    result = {'status': status, 'feedback_ids': sorted(finding), 'reviewed_source': None}
+    if decisions:
+        decision = decisions[-1]
+        result.update(reviewed_source=decision['source_commit'], last_verdict=decision['verdict'],
+                      reviewer=decision['reviewer'], observation=decision['observation'],
+                      response_id=decision['response_id'],
+                      source={'path': f'{DIRECTORY}/{key}.json', 'pointer': f'/decisions/{len(decisions) - 1}',
+                              'evidence_sha256': decision['evidence_sha256']})
+    else:
+        result['reviewer'] = 'Independent review role assigned by the coordinator'
+    if status == 'unavailable':
+        result['review_next_action'] = 'Restore the local protected comparison history or the named review source, then recheck.'
+    elif status in {'pending', 'stale', 'changes_requested'}:
+        result['review_next_action'] = 'Keep the task unfinished and obtain an independent final decision on the clean source.'
+    return result
+
+
+def assess(root, project, records, head, bases, *, accepted, protected, trusted, enforce):
     """Check only new acceptances and expose pending work through the same rules."""
     baselines = []
     for base, tasks, feedback in bases:
@@ -182,28 +321,28 @@ def assess(root, project, records, head, bases, *, accepted, protected, enforce)
         if task['status'] == 'cancelled':
             continue
         previous = [(tasks.get(key, {}), feedback) for _, tasks, feedback in baselines]
-        if task['status'] == 'done':
-            original = accepted.get(key)
-            if original and original['status'] == 'done':
-                same = dict(task, evidence=original['evidence']) == original
-                prefix = task['evidence'][:len(original['evidence'])] == original['evidence']
-                if same and prefix:
-                    continue
-            if previous and all(old.get('status') == 'done' for old, _ in previous):
-                continue
         finding = qualifying_items(items, key, (row for _, feedback in previous for row in feedback)) if automatic else {}
-        selected = (task.get('plan', {}).get('independent_review', False)
-                    or any(old.get('plan', {}).get('independent_review', False) for old, _ in previous))
-        if not (selected or finding):
-            continue
+        plans = (record.get('plan', {}) for record in (task, *(old for old, _ in previous)))
+        selected = any(plan.get('independent_review') or BOUNDARY_TYPES.intersection(plan.get('change_types', []))
+                       for plan in plans)
         decisions = records.get(key, [])
-        decision = decisions[-1] if decisions else None
-        state = disposition(root, task, finding if automatic else None, decision, head, protected)
-        states[key] = {'status': state, 'feedback_ids': sorted(finding),
-                       'reviewed_source': decision['source_commit'] if decision else None}
-        if decision:
-            states[key]['last_verdict'] = decision['verdict']
+        if not (selected or finding or decisions):
+            continue
+        original = accepted.get(key)
+        if task['status'] == 'done' and original and original['status'] == 'done':
+            same = dict(task, evidence=original['evidence']) == original
+            prefix = task['evidence'][:len(original['evidence'])] == original['evidence']
+            if same and prefix:
+                if decisions:
+                    states[key] = review_view(key, 'accepted_history', finding, decisions)
+                continue
+        if not trusted and task['status'] == 'done':
+            state = 'unavailable'
+        else:
+            state = disposition(root, task, finding if automatic else None,
+                                decisions[-1] if decisions else None, head, protected)
+        states[key] = review_view(key, state, finding, decisions)
         if enforce and task['status'] == 'done' and state != 'approved':
-            raise ReviewError(f'Independent review for {key} is {state}. Keep the task unfinished until a matching '
-                              'approval is recorded with pnpm project:review.')
+            raise ReviewError(f'Independent review for {key} is {state}. '
+                              + states[key]['review_next_action'] + ' Use pnpm project:review for decision intake.')
     return states

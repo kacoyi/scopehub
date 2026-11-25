@@ -65,7 +65,7 @@
     "review": [
       "Before completion inspect responsibility cohesion, dependency direction, public surface, business/data ownership, failure cleanup, protected behavior and transition removal.",
       "Review tests for independent expectations and real failure detection. Explain remaining limits and actual owner feedback without inventing product acceptance.",
-      "Set plan.independent_review for consequential work using its existing evolution and risks. Confirmed major and critical corrections enter independent review through feedback. Record the reviewer's exact-source decision and observation before accepting the work.",
+      "Permission and model-connection changes enter independent review from their existing plan change types. Set plan.independent_review for other consequential work using its evolution and risks. Confirmed major and critical corrections enter review through feedback. Retain the final exact-source decision and observation before accepting the work.",
       "Address concrete debt in the current slice or attach a bounded successor task with a trigger; avoid unrelated cleanup and speculative frameworks."
     ],
     "feedback_loop": [
