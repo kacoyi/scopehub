@@ -6676,6 +6676,21 @@
       ],
       "resolution": null,
       "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
+    },
+    {
+      "id": "recurring-main-push-handoff-blocks-next-observation",
+      "source": "Canonical offline integration scope at cb81c752f91b5c611cb258879bcf83e658b7323a against 87dd07963b5dfbc648473e8a4f021ff5b8384203. The Windows push controls are indexed by windows-warm-push-intake.json, SHA-256 d6240590f7a24af345059e69000ebe256cc0c85d5aafbd8c64aae64007c441a5.",
+      "observation": "The 886, 938 and 913 second warm full Windows main controls have the same 35 outcomes. Canonical scope blocks the repair candidate for unfinished delivery and the open major finding. The next qualifying push cannot occur before integration, and the protected rule names only the historical M0-087/M0-091 records.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-142"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

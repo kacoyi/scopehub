@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-142",
   "tasks": [
     {
       "id": "M0-001",
@@ -24518,6 +24518,94 @@
           ],
           "data_plan": "Use the existing privately retained raw observations and rejected source by digest.",
           "cleanup": "Keep experimental code and experimental verification evidence only in private recovery history."
+        }
+      }
+    },
+    {
+      "id": "M0-142",
+      "title": "Gate recurring main-push budget handoffs on protected evidence",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-091"
+      ],
+      "scope": [
+        "scripts/integration.py",
+        "tests/project/test_integration.py",
+        "contracts/schemas/project.schema.json",
+        "project/delivery.json",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the original M0-087/M0-091 handoff. Adopt the distinct recurring Windows push binding independently on protected main before any repair can use it.",
+        "A completed reviewed repair with bound regression evidence, authentic comparable push controls, exact successful full native PR evidence and a distinct planned M0-141 can hand off only the named open observation.",
+        "Close that observation only with a subsequent successful comparable protected main push containing the repair and its original observation receipt. Reject changed source, evidence, scope, planned-only delivery and other applicable findings."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Validate the evidence-bound handoff and closure locally, then return the exact source for independent review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A reviewed Windows warm-main repair can pass pre-integration verification while the post-integration elapsed observation has its own open owner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/integration.py",
+          "scripts/timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The existing one-off rule does not govern the 886, 938 and 913 second cohort. Its receipt and protected-history checks can be reused."
+        ],
+        "risks": [
+          {
+            "failure": "A candidate grants itself an exception, substitutes the observed source or unrelated evidence, skips a required native job, or closes the main observation prematurely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the legacy rule and retain the unresolved recurrence and original built reports. Remove the unused extension under separate reviewed policy if it cannot qualify the actual delivery.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            }
+          ],
+          "non_goals": [
+            "Changing required checks, approving a merge, resetting the latency objective, or changing product behavior."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve original task and finding IDs and the M0-087/M0-091 rule."
+          ],
+          "change": [
+            "Add a separate protected binding for an evidence-bound recurring push handoff."
+          ],
+          "data_plan": "Reuse the existing task, feedback, timing and receipt records. Preserve raw observations and their exact locators.",
+          "cleanup": "Retain a planned M0-141 until the first eligible ordinary protected main push is independently verified."
         }
       }
     }
