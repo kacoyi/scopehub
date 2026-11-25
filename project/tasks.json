@@ -25119,7 +25119,7 @@
           ],
           "entrypoints": [
             "crates/platform/examples/windows_handoff_probe.rs",
-          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
             "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
             "tests/ubuntu-preview/workspace.spec.mjs"
           ],
