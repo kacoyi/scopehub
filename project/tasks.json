@@ -25922,7 +25922,7 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
       ],
-      "next_action": "Review the source-bound producer assignment and verified PR116 integration control independently, then obtain matching hosted verification on the reviewed candidate.",
+      "next_action": "Repair the two independently reproduced publisher qualification gaps. Verify a single authentic producer clock, incomplete and conflicting layouts, and unsupported later assignment mutations at the public timing entry. Retain the original inputs and seek independent review of the exact correction.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -25955,6 +25955,18 @@
             "failure": "The current publishing and historical reading code diverge, a prior legitimate layout is lost or an unknown layout establishes comparative cache timing.",
             "checks": [
               "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An incomplete Actions job listing is treated as the legacy producer width and erases an otherwise proved historical browser clock and cache. Exercise authentic PR 121 and PR 116 browser-only captures, then add recovery and check that the browser observation stays the same.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A source parser sees a supported initial lane declaration but misses later lane mutation, allowing a stale check selection to qualify aggregate cache. Exercise augmented and other unsupported writes, matched input digests, and a supported assignment control.",
+            "checks": [
               "python-contracts-workers"
             ]
           }
@@ -25993,7 +26005,8 @@
             "Exact native provenance, cache classes, aggregate coverage and previously accepted historical layouts."
           ],
           "change": [
-            "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary."
+            "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary.",
+            "Keep independent producer qualification separate from incomplete aggregate topology and reject source assignments whose final ownership cannot be established."
           ],
           "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections.",
           "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic."
