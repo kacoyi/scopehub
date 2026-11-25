@@ -1832,6 +1832,10 @@
                 "type": "string",
                 "pattern": "^M[0-9]+-[0-9]{3}$"
               },
+              "retired_due_on": {
+                "type": "string",
+                "format": "date"
+              },
               "review_history": {
                 "type": "array",
                 "uniqueItems": true,

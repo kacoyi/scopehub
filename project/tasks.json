@@ -24442,7 +24442,9 @@
         ".github/workflows/verify.yml",
         "scripts/ci.py",
         "scripts/timing.py",
-        "scripts/worktree_retirement.py"
+        "scripts/worktree_retirement.py",
+        "tests/project/test_retained_failures.py",
+        "tests/project/test_verify_browser_setup.py"
       ],
       "decision_refs": [
         "0004",
@@ -24458,7 +24460,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Replay the five independent rejection cases and continue review on the protected integration basis selected by the coordinator.",
+      "next_action": "Validate the five independent lifecycle findings on the combined source, then return the exact repaired candidate for Astra Standard review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24508,6 +24510,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A due transfer loses its calendar obligation, fresh standalone fast runs are mistaken for a replay, or partially traced branch tips cannot progress without hiding adverse evidence. A bounded handoff can also omit retained failures, and weekly summary I/O can suppress product verification.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the gate and compact navigation together. Retain the historical date and original calibration.",
@@ -24539,7 +24547,8 @@
             "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations.",
             "Review completeness and subsequent recovery are separate claims. Keep unsupported dimensions and both urgent and calendar follow-through visible.",
             "Separate original verification from protected acceptance of minimized records. Admit named staging and source-qualified later timing, retain monotone supplements, and expose stable read-only navigation.",
-            "Separate observation identity from checkout context and preserve independent pending scopes and assignment routes through capture, transfer, confirmation and closure."
+            "Separate observation identity from checkout context and preserve independent pending scopes and assignment routes through capture, transfer, confirmation and closure.",
+            "Keep transferred calendar and exact observation identities until verified follow-through. Expose a bounded retained-failure route and keep the scheduled product verdict independent of summary publication."
           ],
           "data_plan": "Read canonical task receipts and feedback. Compare changed consumer boundaries from accepted Git history and retain unverified scopes. Leave the historic baseline unchanged and keep controls in private validation outputs.",
           "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."

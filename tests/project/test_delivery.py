@@ -162,6 +162,165 @@ class DeliveryTests(ProjectFixture):
         path.write_bytes(json_bytes(delivery))
         self.assertIn('postpone', self.project_command('history', '--base', overdue)['error'])
 
+    def test_due_retirement_transfers_the_missed_cycle_until_post_due_observation(self):
+        path, delivery = self.periodic_fixture()
+        tasks = self.ledger()
+        owner = task_by_id(tasks, 'M0-001')
+        owner['scope'].append('project/delivery.json')
+        self.save_ledger(tasks)
+        base = self.commit_fixture()
+        item = delivery['scaffold_maintenance']['periodic_reviews'][2]
+        item['interval_days'] = 1
+        observed = {'observed_at': '2026-11-24T08:00:00Z', 'repository': 'kacoyi/scopehub',
+                    'default_branch': {'name': 'main', 'sha': base}, 'delete_branch_on_merge': True,
+                    'errors': [], 'branches': [{'name': 'main', 'sha': base, 'status': 'default', 'protected': True}],
+                    'open_pull_requests': []}
+        settings = read_json(self.root / 'project/branch-protection.json')['configuration']
+        for key in ('enforce_admins', 'allow_force_pushes', 'allow_deletions', 'required_conversation_resolution'):
+            settings[key] = {'enabled': settings[key]}
+        raw, protection = (self.root / '.reports' / name for name in ('branches.json', 'protection.json'))
+        raw.parent.mkdir(exist_ok=True)
+        args = ('observe-maintenance', item['id'], '--report', str(raw), '--report', str(protection))
+
+        def capture(day):
+            observed['observed_at'] = f'2026-11-{day}T08:00:00Z'
+            raw.write_bytes(json_bytes(observed))
+            protection.write_bytes(json_bytes({'repository': 'kacoyi/scopehub', 'branch': 'main', 'branch_sha': base,
+                                               'observed_at': observed['observed_at'], 'observed': settings}))
+            record = self.project_command(*args)
+            self.assertEqual([], record['evidence']['pending'])
+            relative = f'contracts/reviews/branch-{day}.json'
+            written = self.root / relative
+            written.parent.mkdir(exist_ok=True)
+            written.write_bytes(json_bytes(record))
+            subprocess.run(['git', 'add', '--', relative], cwd=self.root, check=True)
+            self.protect_observation(written, raw, protection)
+            if item.get('review_record'):
+                item['review_history'] = [item['review_record']]
+            item.update(reviewed_on=f'2026-11-{day}', review_record=relative)
+            path.write_bytes(json_bytes(delivery))
+            return written
+
+        original = capture(24)
+        unchanged = original.read_bytes()
+        active = self.commit_fixture()
+        self.assertEqual('due', self.project_command('status')['periodic_reviews'][2]['state'])
+        item.update(retired_reason='Move overdue work to its scoped owner.', follow_through_task=owner['id'])
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('retired_due_on set to 2026-11-25', self.project_command('history', '--base', active)['error'])
+        item['retired_due_on'] = '2026-11-25'
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('check')['status'])
+        retired = self.commit_fixture()
+        for day in (25, 26):
+            self.review_day = day
+            status = self.project_command('status')['periodic_reviews'][2]
+            self.assertEqual(('owned_action', '2026-11-25'), (status['state'], status['next_review_by']))
+            context = self.project_command('context', owner['id'], '--phase', 'verify')
+            self.assertIn('scheduled observation due 2026-11-25', context['transferred_reviews'][0]['obligations'])
+        item['retired_due_on'] = '2026-11-24'
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('accepted retirement calendar cutoff', self.project_command('history', '--base', retired)['error'])
+        item['retired_due_on'] = '2026-11-25'
+        capture(25)
+        for compared in (active, retired):
+            self.assertEqual('passed', self.project_command('history', '--base', compared)['status'])
+        self.assertEqual('retired', self.project_command('status')['periodic_reviews'][2]['state'])
+        self.assertFalse(self.project_command('context', owner['id'], '--phase', 'verify')['transferred_reviews'])
+        self.assertEqual(unchanged, original.read_bytes())
+
+    def test_standalone_local_timing_progress_uses_run_and_source_not_hosted_scopes(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        row = delivery['scaffold_maintenance']['periodic_reviews'][1]
+        report = {'samples': [], 'objective_reviews': [], 'input_issues': [],
+                  'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
+
+        def sample(source, run, day, seconds):
+            return {'run_id': run, 'source_commit': source, 'recorded_at': f'2026-11-{day}T08:00:00Z',
+                    'ci': None, 'profile': 'fast', 'report_status': 'passed', 'review_exclusion': None,
+                    'working_tree_dirty': False, 'seconds': {'harness': seconds}}
+
+        first = sample(base, 'local-first', 24, 80.812)
+        report['samples'] = [first]
+        self.add_periodic_record(row, report)
+        path.write_bytes(json_bytes(delivery))
+        accepted = self.commit_fixture()
+        second = sample(accepted, 'local-next', 25, 105.207)
+        report['samples'] = [second]
+        latest = self.add_periodic_record(row, report)
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('check')['status'])
+        self.assertEqual('passed', self.project_command('history', '--base', accepted)['status'])
+        evidence = read_json(latest)['evidence']
+        self.assertEqual(second['run_id'], evidence['local_fast']['run_id'])
+        self.assertEqual({'Linux pull_request', 'Linux push', 'Windows pull_request', 'Windows push',
+                          project_cli.maintenance.PRODUCT_TIMING}, set(evidence['pending']))
+        accepted = self.commit_fixture()
+        self.review_day = 26
+        # A later hosted collection clock does not make a repeated or older local run new.
+        for replay in (second, sample(base, 'uncaptured-older-run', 24, 81.0)):
+            with self.subTest(run=replay['run_id']):
+                report.update(samples=[replay], recent_collection={'collected_at': '2026-11-26T08:00:00Z',
+                                                                    'collected_samples': []})
+                self.add_periodic_record(row, report)
+                path.write_bytes(json_bytes(delivery))
+                self.assertIn('fresh comparable observation', self.project_command('history', '--base', accepted)['error'])
+                row['review_record'] = row['review_history'].pop()
+                row['reviewed_on'] = '2026-11-25'
+
+    def test_same_day_branch_progress_preserves_exact_outstanding_tips_and_adverse_review(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        key = 'branches-and-pull-requests'
+        item = delivery['scaffold_maintenance']['periodic_reviews'][2]
+        tips = [f'{index:040x}' for index in range(1, 10)]
+        branches = [{'name': 'main', 'sha': base, 'status': 'default', 'protected': True}]
+        branches.extend({'name': f'topic-{index}', 'sha': tip, 'status': 'unique_history'}
+                        for index, tip in enumerate(tips))
+        raw = {'observed_at': '2026-11-25T06:00:00Z', 'repository': 'kacoyi/scopehub',
+               'default_branch': {'name': 'main', 'sha': base}, 'delete_branch_on_merge': True,
+               'errors': [], 'branches': branches, 'open_pull_requests': []}
+        original = self.add_periodic_record(item, raw)
+        before = original.read_bytes()
+        path.write_bytes(json_bytes(delivery))
+        accepted = self.commit_fixture()
+        raw_path = self.root / '.reports/observation.json'
+
+        def propose(label, hour, rows, *, deletes=True, finding=None):
+            raw_path.write_bytes(json_bytes({**raw, 'observed_at': f'2026-11-25T{hour:02}:00:00Z',
+                                            'branches': rows, 'delete_branch_on_merge': deletes}))
+            extra = ('--finding', finding) if finding else ()
+            record = self.project_command('observe-maintenance', key, '--report', str(raw_path), *extra)
+            if 'error' in record:
+                return record
+            relative = f'contracts/reviews/branch-{label}.json'
+            supplement = self.root / relative
+            supplement.write_bytes(json_bytes(record))
+            subprocess.run(['git', 'add', '--', relative], cwd=self.root, check=True)
+            self.protect_observation(supplement, raw_path)
+            item.update(review_history=[original.relative_to(self.root).as_posix()], review_record=relative)
+            path.write_bytes(json_bytes(delivery))
+            return record
+
+        traced = [{**branches[1], 'status': 'in_use', 'open_pr_heads': [12]}, *branches[2:]]
+        unchanged = propose('unchanged', 7, branches[:1] + branches[2:])
+        self.assertEqual(8, len(unchanged['evidence']['untraced_tips']))
+        self.assertIn('later same-day', self.project_command('history', '--base', accepted)['error'])
+        propose('old-clock', 6, [branches[0], *traced])
+        self.assertIn('later same-day', self.project_command('check')['error'])
+        replacement = {**branches[2], 'sha': 'f' * 40}
+        propose('rewritten', 7, [branches[0], traced[0], replacement, *branches[3:]])
+        self.assertIn('later same-day', self.project_command('check')['error'])
+        progress = propose('one-traced', 7, [branches[0], *traced])
+        expected = sorted(project_cli.maintenance.tip_identity('kacoyi/scopehub', tip) for tip in tips[1:])
+        self.assertEqual(expected, progress['evidence']['untraced_tips'])
+        self.assertEqual('passed', self.project_command('history', '--base', accepted)['status'])
+        self.assertIn(project_cli.maintenance.BRANCH_TRACE, self.project_command('status')['periodic_reviews'][2]['problem'])
+        self.assertEqual(before, original.read_bytes())
+        adverse = propose('simultaneous-adverse', 8, [branches[0], *traced], deletes=False)
+        self.assertIn('canonical feedback', adverse['error'])
+
     def test_periodic_observation_assigns_real_followup_and_reopens_on_changed_occurrence(self):
         path, delivery = self.periodic_fixture()
         base = self.commit_fixture()

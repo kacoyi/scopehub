@@ -1,7 +1,7 @@
 """Project periodic observations onto the facets they can actually establish."""
 
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import PurePosixPath
@@ -285,7 +285,10 @@ def project_facts(key, facts, policy, protection_violations):
         if not facts['product_delivery']:
             pending.append(PRODUCT_TIMING)
         adverse = facts['adverse'] or any(item['recent_objective_breaches'] >= 2 for item in scopes)
-        identity = sorted({str(run) for item in scopes for run in item['recent_runs']})
+        qualified = {(str(run), item['platform'], item['event']) for item in scopes for run in item['recent_runs']}
+        identity = {(platform, event, run) for run, platform, event in collected & qualified}
+        if local := facts['local_fast']:
+            identity.add(local_fast_identity(local))
         evidence = {'objective_reviews': scopes, 'local_fast': facts['local_fast'],
                     'product_delivery': facts['product_delivery']}
     elif key == 'branches-and-pull-requests':
@@ -360,7 +363,35 @@ def observation_clock(record):
     return max(clocks)
 
 
-def same_day_progress(previous, current, old_evidence, new_evidence, adverse, previously_adverse, inputs, added_finding):
+def local_fast_identity(row):
+    return ('local-fast', row['source_commit'], row['run_id'])
+
+
+def has_fresh_timing(previous, current_evidence, accepted, proposed):
+    fresh = proposed - accepted
+    if local := current_evidence['local_fast']:
+        if utc(local['recorded_at']) <= utc(previous['observed_at']):
+            fresh.discard(local_fast_identity(local))
+    return bool(fresh)
+
+
+def review_due_on(item):
+    return date.fromisoformat(item['reviewed_on']) + timedelta(days=item['interval_days'])
+
+
+def outstanding_calendar_review(item, record):
+    cutoff = item.get('retired_due_on')
+    if cutoff and (record is None or utc(record['observed_at']).date() < date.fromisoformat(cutoff)):
+        return cutoff
+    return None
+
+
+def branch_obligation_tips(pending, facts):
+    return (pending | set(facts['unique_tips'])) - set(facts['traced_tips'])
+
+
+def same_day_progress(key, previous, current, old_evidence, new_evidence, adverse, previously_adverse,
+                      inputs, added_finding, branch_tips):
     if (previous['source_commit'] != current['source_commit']
             or utc(previous['observed_at']).date() != utc(current['observed_at']).date()
             or not inputs or observation_clock(current).date() != utc(current['observed_at']).date()):
@@ -370,6 +401,23 @@ def same_day_progress(previous, current, old_evidence, new_evidence, adverse, pr
         return later
     pending = set(new_evidence.get('pending') or new_evidence.get('unverified_boundaries') or ())
     previous_pending = set(old_evidence.get('pending') or old_evidence.get('unverified_boundaries') or ())
+    if key == 'branches-and-pull-requests':
+        old_facts, new_facts = previous['facts'], current['facts']
+        fields = ('protected', 'delete_branch_on_merge')
+        old_settings = (old_facts['protection'] or {}).get('settings') if old_evidence['protection_observed'] else None
+        new_settings = (new_facts['protection'] or {}).get('settings') if new_evidence['protection_observed'] else None
+        if adverse and (not previously_adverse or old_settings != new_settings
+                        or any(old_facts[field] != new_facts[field] for field in fields)):
+            return False
+        remaining = branch_obligation_tips(branch_tips, new_facts)
+        if not remaining <= branch_tips:
+            return False
+        pending.discard(BRANCH_TRACE)
+        previous_pending.discard(BRANCH_TRACE)
+        if later and remaining < branch_tips and pending <= previous_pending:
+            return True
+    elif adverse and not previously_adverse:
+        return False
     retained = set(previous.get('facts', {}).get('input_sha256', ())) <= set(
         current.get('facts', {}).get('input_sha256', ()))
     return bool((pending < previous_pending and (later or retained))

@@ -6713,6 +6713,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "maintenance-lifecycle-and-verification-independence",
+      "source": "Independent Astra Standard changes requested on adfa09a1f9143e2a82eccdf09540a3d9852e219a against protected 21bb9dcf89b1044341cc0d37f40d537481286987. Original review manifest SHA-256 49077b8cb2fca7980c10919e3bc896d286cfd42632e193436071f31d8410ca51. The separate product calibration manifest SHA-256 3366d36f0626905cdf7936e63c5dc88f85507e805056b57f564f104db1b3edea and source-matched runs are retained privately.",
+      "observation": "A calendar-due branch review disappeared on retirement with a successor. Two verified local fast reports on successive days were considered the same observation. A new exact disposition reduced nine outstanding branch tips to eight but was rejected. Cold startup counted both matching failed checks after a narrower pass but exposed only the newest failure path. A failing weekly summary destination stopped the independent Linux product check.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

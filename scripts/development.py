@@ -518,6 +518,7 @@ def project_overview(state, *, read_only=False):
         'invalid' if verification['report_error'] else 'stale' if verification['report_available'] else 'unobserved')
     retained = state.get('retained_failures', {})
     retained_count = retained.get('matching_inputs', {}).get('count')
+    scan_coverage = retained.get('scan', {}).get('coverage')
     reviews = [review for review in state['periodic_reviews'] if review.get('state')]
     attention = ['evidence_missing', 'evidence_invalid', 'intake_needed', 'recheck_needed', 'owned_action', 'checks_needed',
                  'policy_needed', 'due']
@@ -570,7 +571,7 @@ def project_overview(state, *, read_only=False):
     if retained_count:
         original = next(iter(retained['matching_inputs'].get('items', [])), {})
         failure = {'owner': 'development AI', 'state': 'retained_failure',
-                   'trigger': 'Retained failure on matching inputs', 'command': navigation('status', '--detail')}
+                   'trigger': 'Retained failure on matching inputs', 'command': navigation('status', '--retained-failures')}
         if report := original.get('report'):
             failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
     missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
@@ -600,7 +601,9 @@ def project_overview(state, *, read_only=False):
             'current_check_counts': counts or None,
             'historical_task_receipts': len(evidence['historical_task_evidence']),
             'retained_failures_on_matching_inputs': retained_count,
-            'retained_failure_scan': retained.get('scan', {}).get('coverage'),
+            'retained_failure_scan': scan_coverage,
+            **({'retained_failures_lookup': navigation('status', '--retained-failures')}
+               if retained_count or scan_coverage == 'incomplete' else {}),
         },
         'gates': {'hosted': 'pnpm project:ci',
                   'product_release_and_native': navigation('readiness'),
@@ -618,6 +621,34 @@ def project_overview(state, *, read_only=False):
                     'status': navigation('status'), 'receipts': navigation('status', '--detail'),
                     'modules': navigation('source', 'project/development.json', '/modules')},
     }
+
+
+def retained_failure_page(retained, *, after=None, read_only=False):
+    matching = retained['matching_inputs']
+    items = matching['items']
+    start = 0
+    if after is not None:
+        for index, row in enumerate(items):
+            if after == f"{row['run_id']}/{row['check_id']}":
+                start = index + 1
+                break
+        else:
+            raise ValueError('That matching failure is no longer pending. Restart the retained failure lookup.')
+    page = items[start:start + 5]
+    result = {
+        'basis': retained['basis'], 'scan_coverage': retained['scan']['coverage'],
+        'matching_count': matching['count'], 'other_or_unverified_count': retained['other_or_unverified_inputs']['count'],
+        'items': [
+            {'check_id': row['check_id'], 'run_id': row['run_id'], 'report': row['report'],
+             'command': project_navigation('diagnostic', 'identify', row['report'], read_only=read_only)}
+            for row in page
+        ],
+    }
+    if start + len(page) < len(items):
+        last = page[-1]
+        cursor = f"{last['run_id']}/{last['check_id']}"
+        result['more'] = project_navigation('status', '--retained-failures', '--after', cursor, read_only=read_only)
+    return result
 
 
 def status_view(state, *, detail=False, overview=False, read_only=False):

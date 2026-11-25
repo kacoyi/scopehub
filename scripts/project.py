@@ -1077,19 +1077,21 @@ def outstanding_branch_tips(root, item, record):
     for path in [*item.get('review_history', []), item['review_record']]:
         observation = record if path == item['review_record'] else read_review_report(local_path(root, path), 64 * 1024)[0]
         facts = observation['facts']
-        pending.update(facts['unique_tips'])
-        pending.difference_update(facts['traced_tips'])
+        pending = maintenance.branch_obligation_tips(pending, facts)
     return pending
 
 
 def review_obligations(root, key, item, result):
+    calendar_due = maintenance.outstanding_calendar_review(item, result[0] if result else None)
+    pending = [f'scheduled observation due {calendar_due}'] if calendar_due else []
     if not result:
-        pending = [f'{key} scheduled observation']
+        if not pending:
+            pending.append(f'{key} scheduled observation')
         if key == 'worktrees-and-evidence':
             pending.append(maintenance.EXTERNAL_STAGING)
         return pending
     record, _, adverse, found = result
-    pending = list(record['evidence'].get('pending') or record['evidence'].get('unverified_boundaries') or ())
+    pending.extend(record['evidence'].get('pending') or record['evidence'].get('unverified_boundaries') or ())
     if key == 'branches-and-pull-requests' and outstanding_branch_tips(root, item, record) and maintenance.BRANCH_TRACE not in pending:
         pending.append(maintenance.BRANCH_TRACE)
     if adverse:
@@ -1119,7 +1121,7 @@ def accepted_review_paths(root, old, candidate, base):
     return paths[len(prior_paths):]
 
 
-def validate_review_progress(root, key, previous, current, feedback):
+def validate_review_progress(root, key, previous, current, feedback, branch_tips):
     old_evidence, old_identity, old_adverse, old_inputs = periodic_record_facts(root, key, previous)
     new_evidence, new_identity, new_adverse, new_inputs = periodic_record_facts(root, key, current)
     old_clock = maintenance.utc(previous['observed_at'])
@@ -1129,7 +1131,9 @@ def validate_review_progress(root, key, previous, current, feedback):
     if not required.issubset(new_links):
         raise ValueError('Follow through on the previously observed findings.')
     if new_clock.date() > old_clock.date():
-        if new_identity == old_identity or current['report_sha256'] == previous['report_sha256']:
+        fresh = (maintenance.has_fresh_timing(previous, new_evidence, old_identity, new_identity)
+                 if key == 'verification-timing' else new_identity != old_identity)
+        if not fresh or current['report_sha256'] == previous['report_sha256']:
             raise ValueError('The new date needs a fresh comparable observation.')
         return
     inputs = set(new_inputs) - set(old_inputs)
@@ -1138,8 +1142,8 @@ def validate_review_progress(root, key, previous, current, feedback):
         previous_links.get(identity) != fingerprint and fingerprint == feedback_fingerprint(feedback[identity])
         and any(observation_linked(sha, feedback[identity]) for sha in inputs)
         for identity, fingerprint in new_links.items())
-    if not maintenance.same_day_progress(previous, current, old_evidence, new_evidence,
-                                         new_adverse, old_adverse, inputs, added_finding):
+    if not maintenance.same_day_progress(key, previous, current, old_evidence, new_evidence,
+                                         new_adverse, old_adverse, inputs, added_finding, branch_tips):
         raise ValueError('Keep the accepted observation or add a later same-day improvement or bound adverse finding.')
 
 
@@ -1147,6 +1151,36 @@ def historical_review(root, project, key, path):
     record, _ = read_review_report(local_path(root, path), 64 * 1024)
     day = maintenance.utc(record['observed_at']).date().isoformat()
     return review_record(root, project, {'id': key, 'review_record': path, 'reviewed_on': day})[0]
+
+
+def require_retirement_calendar(root, old, candidate, result, today):
+    accepted = old.get('retired_due_on')
+    cutoff = candidate.get('retired_due_on')
+    if old.get('retired_reason'):
+        if cutoff != accepted:
+            raise ValueError('Keep the accepted retirement calendar cutoff.')
+        return
+    due = maintenance.review_due_on(old)
+    retired = candidate.get('retired_reason')
+    observed = result and maintenance.utc(result[0]['observed_at']).date()
+    if cutoff:
+        cutoff_day = date.fromisoformat(cutoff)
+        if not retired or not candidate.get('follow_through_task') or cutoff_day > today:
+            raise ValueError('Only an outstanding due review can transfer a calendar cutoff.')
+        if cutoff_day != due:
+            # A broader comparison can predate the last admitted observation and its schedule.
+            observations = [observed] if observed else []
+            for path in candidate.get('review_history', []):
+                record, _ = read_review_report(local_path(root, path), 64 * 1024)
+                observations.append(maintenance.utc(record['observed_at']).date())
+            anchor = max((day for day in observations if day < cutoff_day), default=date.min)
+            if (anchor <= date.fromisoformat(old['reviewed_on'])
+                    or cutoff_day != anchor + timedelta(days=candidate['interval_days'])):
+                raise ValueError(f'Transfer the scheduled observation with retired_due_on set to {due.isoformat()}.')
+    elif retired and today >= due and (not observed or observed < due):
+        if not candidate.get('follow_through_task'):
+            raise ValueError('A policy change cannot postpone an overdue review.')
+        raise ValueError(f'Transfer the scheduled observation with retired_due_on set to {due.isoformat()}.')
 
 
 def require_periodic_transition(root, project, base, only=None):
@@ -1175,8 +1209,15 @@ def require_periodic_transition(root, project, base, only=None):
             if changed and result:
                 chain = [historical_review(root, project, key, path) for path in extra_paths]
                 chain.append(result[0])
+                branch_tips = set()
+                if key == 'branches-and-pull-requests' and old.get('review_history'):
+                    for path in old['review_history']:
+                        prior, _ = read_review_report(local_path(root, path), 64 * 1024)
+                        branch_tips = maintenance.branch_obligation_tips(branch_tips, prior['facts'])
                 for before, after in zip(chain, chain[1:]):
-                    validate_review_progress(root, key, before, after, feedback)
+                    if key == 'branches-and-pull-requests':
+                        branch_tips = maintenance.branch_obligation_tips(branch_tips, before['facts'])
+                    validate_review_progress(root, key, before, after, feedback, branch_tips)
             if date_advanced and key == 'compatibility-and-recovery':
                 accepted_source = compatibility_initial_base(root, base)
                 if prior_path:
@@ -1189,6 +1230,7 @@ def require_periodic_transition(root, project, base, only=None):
                     root, result[0]['source_commit'], feedback_commit(root, 'HEAD')))
                 if relevant:
                     raise ValueError('The compatibility observation predates relevant source changes.')
+            require_retirement_calendar(root, old, candidate, result, today)
             successor = retirement_successor(project, candidate, pending)
             if old.get('retired_reason') and (not candidate.get('retired_reason') or old.get('follow_through_task') != successor):
                 raise ValueError('Keep the accepted retirement and its successor identity.')
@@ -1199,7 +1241,7 @@ def require_periodic_transition(root, project, base, only=None):
                 if not review_obligations(root, key, old, old_result):
                     raise ValueError('The transferred review was already discharged at its accepted observation.')
             if not date_advanced and not old.get('retired_reason'):
-                previous_due = date.fromisoformat(old['reviewed_on']) + timedelta(days=old['interval_days'])
+                previous_due = maintenance.review_due_on(old)
                 postpones = candidate['interval_days'] > old['interval_days'] or candidate.get('retired_reason')
                 if postpones and previous_due <= today and not successor:
                     raise ValueError('A policy change cannot postpone an overdue review.')
@@ -1262,7 +1304,8 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
             if result:
                 item.update(observed_at=result[0]['observed_at'], report_sha256=result[0]['report_sha256'])
             if successor and obligations:
-                item.update(state='owned_action', review_due=True, owner='development AI', next_review_by=None,
+                item.update(state='owned_action', review_due=True, owner='development AI',
+                            next_review_by=maintenance.outstanding_calendar_review(item, result[0] if result else None),
                             problem='Transferred obligations: ' + ', '.join(obligations),
                             trigger='Assess the inherited review scope at the next matching observation',
                             command=f'pnpm project:context {successor} --phase verify')
@@ -1443,7 +1486,7 @@ def periodic_reviews(delivery, today=None):
     today = today or datetime.now(timezone.utc).date()
     reviews = []
     for item in delivery['scaffold_maintenance']['periodic_reviews']:
-        due = date.fromisoformat(item['reviewed_on']) + timedelta(days=item['interval_days'])
+        due = maintenance.review_due_on(item)
         reviews.append({**item, 'next_review_by': due.isoformat(), 'review_due': today >= due})
     return reviews
 
@@ -2395,6 +2438,8 @@ def main():
     status_format = status.add_mutually_exclusive_group()
     status_format.add_argument('--detail', action='store_true', help='Expand focus plans and individual evidence receipts')
     status_format.add_argument('--overview', action='store_true', help='Show a bounded project outlook and next follow-through')
+    status_format.add_argument('--retained-failures', action='store_true', help='Page local retained failures on current inputs')
+    status.add_argument('--after', help='Continue a retained failure page after its last run and check')
     status.add_argument('--read-only', action='store_true', help='Render local navigation using pinned Python')
     observe = sub.add_parser('observe-maintenance', help='Project an existing review into a compact record')
     observe.add_argument('review')
@@ -2456,11 +2501,16 @@ def main():
                       'checks': len(project['checks']), 'feedback_history': feedback_history}
         elif args.command == 'status':
             if __package__:
-                from .development import status_view
+                from .development import retained_failure_page, status_view
             else:
-                from development import status_view
-            result = status_view(workfront(ROOT, retained_detail=args.detail), detail=args.detail,
-                                 overview=args.overview, read_only=args.read_only)
+                from development import retained_failure_page, status_view
+            if args.after is not None and not args.retained_failures:
+                raise ValueError('Use --after only with --retained-failures.')
+            state = workfront(ROOT, retained_detail=args.detail or args.retained_failures)
+            if args.retained_failures:
+                result = retained_failure_page(state['retained_failures'], after=args.after, read_only=args.read_only)
+            else:
+                result = status_view(state, detail=args.detail, overview=args.overview, read_only=args.read_only)
         elif args.command == 'observe-maintenance':
             result = observe_maintenance(ROOT, load_project(ROOT), args.review, args.report, args.finding,
                                          staging=args.staging, staging_digest=args.staging_digest,
