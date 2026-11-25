@@ -6340,7 +6340,7 @@
     },
     {
       "id": "local-publisher-advisory-403-drops-confirmed-quota",
-      "source": "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json (SHA-256 ca812dcd5b0e98a62c3f2378efea97d9343435a93bd7156345b8072cc21b6d2e). The 486b674 original log is .reports/runs/20261125T095828.866735Z-186642bb/dependency-review.log in the coordinator checkout (SHA-256 ff4a3df0716c6864661ea36b29d1b9558b58e76c30067df61e3ca282a533fe08).",
+      "source": "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json (SHA-256 ca812dcd5b0e98a62c3f2378efea97d9343435a93bd7156345b8072cc21b6d2e). The 486b674 original report is archives/runs/20261125T095828.866735Z-186642bb/test-report.json. The canonical archive verified 27 bound logs and dependency-review was the sole failed check (log SHA-256 ff4a3df0716c6864661ea36b29d1b9558b58e76c30067df61e3ca282a533fe08).",
       "observation": "Both original local reviews retained a generic HTTP 403 after validating 587 packages. The originals alone do not establish their cause. A separate 486b674 observation at 10:02:04 UTC proved anonymous exhaustion with zero remaining and reset at 10:14:58 UTC. A subsequent anonymous 200 and passing same-source review on 5d93d80 establish recovery there. Offline replays of the ordinary command on both sources produce the same failed report and exit for confirmed quota headers and a plain 403 because the publisher transport discards non-200 headers.",
       "severity": "major",
       "status": "open",
@@ -6364,6 +6364,11 @@
           "run_id": "20261125T091948.282573Z-25b5ae6c",
           "source_commit": "5d93d80a9393830cf9779bcb6495d1c2af4c9180",
           "report_sha256": "dd58004bdd84b2a3396a9683a421a69facbfad7de3c5649e3af010cfbb1952c6"
+        },
+        {
+          "run_id": "20261125T095828.866735Z-186642bb",
+          "source_commit": "486b674755033668b7e41d9d6d095599b627687b",
+          "report_sha256": "b91ae510e3e1940ba86307a734aca9303ff65919654b2a238fa26f72111bc013"
         }
       ]
     }
