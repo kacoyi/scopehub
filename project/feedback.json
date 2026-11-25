@@ -7166,6 +7166,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "folder-stage-single-revision-timeout-drops-supported-work",
+      "source": "Coordinator source review of 82d63f5913d81d79d2814e816c600a68fa9c352f and the isolated genuine Rust comparison in .reports/m2-039-native-followup/capacity-original-comparison.json (SHA-256 8b3fd39bff1be6f43c194f5965fc9644335858313c70592871a707ef1342d571).",
+      "observation": "An ordinary published CSV folder staged 64 distinct compatible synthetic files via one native operation in both sources. With valid delivery held 15,100 ms on the UI clock, ee5458f rendered the native comparison and 82d63f5 discarded it. The stage owns serial per-file worker checks and a cancellable admission slot. It has no aggregate 15-second contract.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
