@@ -2,16 +2,21 @@
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, wait
+from contextlib import contextmanager
+from contextvars import ContextVar, copy_context
 from datetime import datetime, timezone
+from io import UnsupportedOperation
 import json
 import os
 from pathlib import Path
 import platform
+import select
 import shutil
 import signal
+import stat
 import subprocess
 import sys
-from threading import Event, Lock
+from threading import Event, Lock, current_thread, main_thread
 import time
 from uuid import uuid4
 
@@ -26,7 +31,7 @@ else:
 try:
     if __package__:
         from .doctor import tool_version
-        from .processes import log_tail, run_logged
+        from .processes import log_tail, run_logged, seal_unconfirmed_log
         from .project import (
             ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project,
             local_feedback_history, product_progress, project_definition_hash, release_checks, source_identity,
@@ -39,7 +44,7 @@ try:
         )
     else:
         from doctor import tool_version
-        from processes import log_tail, run_logged
+        from processes import log_tail, run_logged, seal_unconfirmed_log
         from project import (
             ProjectError, checkout_git_environment, feedback_fingerprint, file_digest, load_project,
             local_feedback_history, product_progress, project_definition_hash, release_checks, source_identity,
@@ -79,13 +84,117 @@ STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
 CHECK_OUTPUT_LOCK = Lock()
+CHECK_CONSOLE = ContextVar('check_console', default=None)
+
+
+class CheckConsole:
+    def __init__(self):
+        self.interrupted = False
+        self.muted = False
+        self.cooperative = False
+
+    def write_line(self, line):
+        if sys.platform == 'linux':
+            try:
+                fd = sys.stdout.fileno()
+            except (AttributeError, UnsupportedOperation):
+                pass
+            else:
+                self.write_linux_line(fd, line)
+                return
+        print(line, flush=True)
+
+    def write_linux_line(self, fd, line):
+        owned = None
+        try:
+            if self.cooperative or self.interrupted:
+                original = os.fstat(fd)
+                if stat.S_ISFIFO(original.st_mode):
+                    # Reopen the pipe with a separate file description. dup()
+                    # would share flags with the caller and other writers.
+                    owned = os.open(f'/proc/self/fd/{fd}', os.O_WRONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+                    if not os.path.samestat(original, os.fstat(owned)):
+                        raise OSError('Console pipe changed while reopening it')
+                    fd = owned
+
+            # Write directly so shutdown cannot retry a buffered console write.
+            pending = memoryview((line + '\n').encode('ascii'))
+            writable = select.poll()
+            writable.register(fd, select.POLLOUT)
+            while pending and not self.muted:
+                if (self.cooperative or self.interrupted) and not writable.poll(0 if self.interrupted else 50):
+                    if self.interrupted:
+                        self.muted = True
+                    continue
+                try:
+                    written = os.write(fd, pending[:select.PIPE_BUF])
+                except BlockingIOError:
+                    if owned is None:
+                        raise
+                    # Readiness is not a reservation. Another writer can fill
+                    # the pipe before write; wait again only while uncancelled.
+                    if self.interrupted:
+                        self.muted = True
+                    continue
+                if not written:
+                    raise OSError('Console write made no progress')
+                pending = pending[written:]
+        finally:
+            if owned is not None:
+                os.close(owned)
+
+    def emit(self, record):
+        try:
+            with CHECK_OUTPUT_LOCK:
+                if not self.muted:
+                    self.write_line(json.dumps(record))
+        except KeyboardInterrupt:
+            self.interrupted = self.muted = True
+        except OSError:
+            # The console is optional. Run evidence is written separately.
+            self.muted = True
+        return self.muted and self.interrupted
+
+
+@contextmanager
+def check_console():
+    if CHECK_CONSOLE.get() is not None:
+        yield
+        return
+    token = CHECK_CONSOLE.set(CheckConsole())
+    try:
+        yield
+    finally:
+        CHECK_CONSOLE.reset(token)
 
 
 def print_check(record):
-    with CHECK_OUTPUT_LOCK:
-        print(json.dumps(record), flush=True)
+    console = CHECK_CONSOLE.get() or CheckConsole()
+    return console.emit(record)
 
 
+@contextmanager
+def defer_finalization_sigint():
+    interrupted = False
+
+    def request_stop(_signum, _frame):
+        nonlocal interrupted
+        interrupted = True
+
+    # Overlapped runs already deliver signals through their cancellation
+    # callback. Preserve other callers' dispositions and worker threads.
+    own_handler = (current_thread() is main_thread()
+                   and signal.getsignal(signal.SIGINT) == signal.default_int_handler)
+    if own_handler:
+        signal.signal(signal.SIGINT, request_stop)
+    try:
+        yield lambda: interrupted
+    finally:
+        if own_handler:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+
+
+@check_console()
 def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     started = time.monotonic()
     executable = shutil.which(argv[0])
@@ -93,28 +202,46 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
         return {'id': name, 'status': 'blocked', 'command': argv, 'reason_code': 'executable_unavailable',
                 'reason': f'Executable unavailable: {argv[0]}'}
     log_path = run_dir / f'{name}.log'
-    print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout})
+    console = CHECK_CONSOLE.get()
+    if print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout}):
+        cancel = lambda: True
     private = name in PRIVATE_CHECK_LOGS
-    # Playwright, pnpm and the history bridge can leave the initial Linux group.
-    containment = {'contain_linux_tree': True} if sys.platform == 'linux' and name == 'market-recovery' else {}
+    # Check launchers can leave the initial process group on Linux.
     exit_code, reason = run_logged([executable, *argv[1:]], cwd=ROOT, env=env,
                                   log_path=os.devnull if private else log_path, timeout=timeout, cancel=cancel,
-                                  **containment)
-    if private:
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        log_path.write_bytes(redacted_check_log(exit_code))
+                                  contain_linux_tree=True)
+    with defer_finalization_sigint() as interrupted:
+        if private:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path.write_bytes(redacted_check_log(exit_code))
+        elif reason == 'cleanup_failed' and sys.platform == 'linux':
+            seal_unconfirmed_log(log_path)
+        log_sha256 = file_digest(log_path)
+        tail = log_tail(log_path) if exit_code != 0 or reason is not None or interrupted() else None
+    interrupted_finalization = interrupted() or (
+        reason not in STOP_REASONS and cancel is not None and cancel())
+    if interrupted_finalization and reason not in STOP_REASONS:
+        reason = 'interrupted'
     status = 'passed' if exit_code == 0 and reason is None else 'failed'
     if exit_code == 77 and reason is None and name in (RUN_OBSERVATION_CHECKS | FIELD_ACTIONS.keys()):
         status = 'blocked'
         reason = 'observation_unavailable'
     record = {'id': name, 'status': status, 'command': argv, 'exit_code': exit_code,
               'duration_seconds': round(time.monotonic() - started, 3), 'log': log_path.relative_to(ROOT).as_posix(),
-              'log_sha256': file_digest(log_path)}
+              'log_sha256': log_sha256}
     if reason:
         record['reason_code'] = reason
-    print_check(record)
-    if status == 'failed':
-        print_check({'id': name, 'log_tail': log_tail(log_path)})
+    if interrupted_finalization:
+        record['reason'] = 'Interrupted while finalizing check diagnostics.'
+    if reason == 'interrupted' or interrupted():
+        console.interrupted = True
+    output_interrupted = print_check(record)
+    if not output_interrupted and status == 'failed' and tail is not None:
+        output_interrupted = print_check({'id': name, 'log_tail': tail})
+    if output_interrupted:
+        if reason != 'cleanup_failed':
+            record.update(status='failed', reason_code='interrupted')
+        record.setdefault('reason', 'Interrupted while publishing check output.')
     return record
 
 
@@ -142,6 +269,7 @@ def build_window(catalog, selected, environment, index):
 
 def run_overlapped(checks, env, run_dir, *, system):
     cancel = Event()
+    console = CHECK_CONSOLE.get() or CheckConsole()
     interrupted = False
 
     def request_stop(_signum, _frame):
@@ -149,6 +277,7 @@ def run_overlapped(checks, env, run_dir, *, system):
         # Let each lane observe the request inside its normal cleanup path.
         nonlocal interrupted
         interrupted = True
+        console.interrupted = True
 
     def cancelled():
         return interrupted or cancel.is_set()
@@ -166,9 +295,11 @@ def run_overlapped(checks, env, run_dir, *, system):
 
     results = {}
     handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
+    token = CHECK_CONSOLE.set(console)
+    console.cooperative = True
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            python = executor.submit(run, checks[0])
+            python = executor.submit(copy_context().run, run, checks[0])
 
             def wait_for_python():
                 # Service the main-thread signal handler even after the other check has returned.
@@ -194,6 +325,8 @@ def run_overlapped(checks, env, run_dir, *, system):
         if interrupted and not any(result.get('reason_code') in STOP_REASONS for result in results.values()):
             raise KeyboardInterrupt
     finally:
+        console.cooperative = False
+        CHECK_CONSOLE.reset(token)
         for signum, handler in handlers.items():
             signal.signal(signum, handler)
     return results
@@ -250,6 +383,7 @@ def checked_session(project, run_dir, key, source):
     return observation
 
 
+@check_console()
 def main():
     started = time.monotonic()
     parser = argparse.ArgumentParser()
@@ -459,28 +593,35 @@ def main():
         ).stdout.splitlines()
     validate_model(ROOT, 'HarnessReport', report)
     contents = json.dumps(report, indent=2) + '\n'
-    original = run_dir / 'test-report.tmp'
-    original.write_text(contents, encoding='utf-8')
-    original.replace(run_dir / 'test-report.json')
-    latest = REPORTS / f'{run_id}.tmp'
-    latest.write_text(contents, encoding='utf-8')
-    latest.replace(REPORTS / 'test-report.json')
-    print(json.dumps({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
-                      'status': report['status'], 'source_unchanged': source_unchanged,
-                      'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')}), flush=True)
+    # Complete both disk publications before attempting final notification.
+    # Limit deferral to disk I/O, so the console can always be interrupted.
+    with defer_finalization_sigint() as interrupted_publication:
+        original = run_dir / 'test-report.tmp'
+        original.write_text(contents, encoding='utf-8')
+        original.replace(run_dir / 'test-report.json')
+        latest = REPORTS / f'{run_id}.tmp'
+        latest.write_text(contents, encoding='utf-8')
+        latest.replace(REPORTS / 'test-report.json')
+    console = CHECK_CONSOLE.get()
+    if interrupted_publication():
+        console.interrupted = True
+    print_check({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
+                 'status': report['status'], 'source_unchanged': source_unchanged,
+                 'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')})
     local_blocked = any(r['status'] == 'blocked' and project['checks'][r['id']]['platforms'] == 'all' for r in implemented)
     selection_blocked = bool(args.task or args.profile) and any(r['status'] != 'passed' for r in results if r['id'] in selected)
     exit_code = 1 if failed or local_blocked or selection_blocked or native_blocked or integration_blocked else 0
     if exit_code:
         recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
-        print(json.dumps({'recovery_command': recovery_command,
-                          'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()}), flush=True)
-    raise SystemExit(exit_code)
+        print_check({'recovery_command': recovery_command,
+                     'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()})
+    raise SystemExit(exit_code or int(console.interrupted))
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as error:
-        capture_failure(ROOT, error, 'verification', argv=sys.argv[1:])
-        raise SystemExit(1) from error
+    with check_console():
+        try:
+            main()
+        except Exception as error:
+            capture_failure(ROOT, error, 'verification', argv=sys.argv[1:], emit=print_check)
+            raise SystemExit(1) from error

@@ -972,94 +972,313 @@ time.sleep(30)
         );
     }
 
-    #[cfg(windows)]
-    #[tokio::test]
-    async fn windows_venv_reaps_owned_leaf_before_recovery() {
-        let fixture = Fixture::new(
-            r#"import json, os, pathlib, site, sys, time
+    const WITNESS_WAIT: Duration = Duration::from_secs(5);
+    const WITNESS_RECORD_BYTES: usize = 64 * 1024;
+    const RUNTIME_WITNESS: &str = r#"import json, os, site, sys, time
+from threading import Thread
+
+def release_on_eof():
+    # The legacy launcher inherits this pipe into its interpreter. Closing the
+    # Rust-owned input also ends this fixture when its facts cannot be read.
+    if os.read(0, 1) == b'':
+        os._exit(0)
+
+Thread(target=release_on_eof, daemon=True).start()
+print(json.dumps([os.getpid(), os.getppid()]), flush=True)
 from importlib.metadata import version
 from zoneinfo import ZoneInfo
+
 def normalize(path):
     return os.path.normcase(os.path.realpath(path))
+
 runtime = dict(version=sys.version, libraries=[version('jsonschema'), version('tzdata')],
                paths=[normalize(path) for path in [sys.executable, sys._base_executable,
                       sys.prefix, sys.base_prefix, *site.getsitepackages(), *sys.path]],
                timezone=ZoneInfo('Asia/Shanghai').key)
-pathlib.Path('owned').write_text(json.dumps([os.getpid(), os.getppid(), runtime]), encoding='ascii')
-deadline = time.monotonic() + 15
-while not pathlib.Path('release').exists() and time.monotonic() < deadline:
-    time.sleep(0.02)
-"#,
-        );
-        async fn witness(path: &std::path::Path) -> (u32, u32, Value) {
-            tokio::time::timeout(Duration::from_secs(5), async {
-                loop {
-                    if let Ok(data) = fs::read_to_string(path)
-                        && let Ok(facts) = serde_json::from_str(&data)
-                    {
-                        return facts;
-                    }
-                    tokio::time::sleep(Duration::from_millis(10)).await;
-                }
-            })
-            .await
-            .expect("the actual interpreter must report its PID and locked environment")
-        }
-        let owned = fixture.0.root.join("owned");
-        let release = fixture.0.root.join("release");
+print(json.dumps(runtime), flush=True)
+time.sleep(15)
+raise SystemExit(124)
+"#;
 
-        let mut launcher = fixture
-            .0
-            .python_command()
-            .env("PYTHONTZPATH", "")
-            .args(["-m", "worker_runtime.local_import"])
-            .stdout(Stdio::null())
+    #[derive(Debug, Deserialize, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct InterpreterRuntime {
+        version: String,
+        libraries: [String; 2],
+        paths: Vec<String>,
+        timezone: String,
+    }
+
+    fn spawn_witness(command: &mut Command, caller: &str) -> Result<Child, String> {
+        let start = Instant::now();
+        let child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .kill_on_drop(true)
             .spawn()
-            .unwrap();
-        let launcher_pid = launcher.id().unwrap();
-        let (old_leaf, old_parent, old_runtime) = witness(&owned).await;
-        assert_eq!(old_parent, launcher_pid);
-        assert_ne!(
-            old_leaf, launcher_pid,
-            "the old Windows launcher must have a distinct leaf"
+            .map_err(|error| format!("caller={caller} phase=spawn error={error}"))?;
+        eprintln!(
+            "caller={caller} phase=spawn child_pid={:?} elapsed_ms={}",
+            child.id(),
+            start.elapsed().as_millis()
         );
-        fs::write(&release, "").unwrap();
-        assert!(
-            tokio::time::timeout(Duration::from_secs(5), launcher.wait())
-                .await
-                .unwrap()
-                .unwrap()
-                .success()
+        Ok(child)
+    }
+
+    async fn witness_record<T: serde::de::DeserializeOwned>(
+        output: &mut BufReader<tokio::process::ChildStdout>,
+        deadline: Instant,
+        phase: &str,
+    ) -> Result<T, String> {
+        use tokio::io::AsyncReadExt;
+
+        let mut frame = Vec::new();
+        let read = timeout_at(
+            deadline,
+            output
+                .take((WITNESS_RECORD_BYTES + 1) as u64)
+                .read_until(b'\n', &mut frame),
+        )
+        .await;
+        let bytes = frame.len();
+        let terminal = match read {
+            Err(_) => "deadline",
+            Ok(Err(error)) => {
+                return Err(format!(
+                    "phase={phase} terminal=pipe-error bytes={bytes} kind={:?} os_error={:?}",
+                    error.kind(),
+                    error.raw_os_error()
+                ));
+            }
+            Ok(Ok(_)) if bytes > WITNESS_RECORD_BYTES => "oversized-record",
+            Ok(Ok(0)) => "stdout-closed",
+            Ok(Ok(_)) if !frame.ends_with(b"\n") => "incomplete-at-eof",
+            Ok(Ok(_)) => {
+                return serde_json::from_slice(&frame)
+                    .map_err(|_| format!("phase={phase} terminal=invalid-record bytes={bytes}"));
+            }
+        };
+        Err(format!("phase={phase} terminal={terminal} bytes={bytes}"))
+    }
+
+    async fn read_interpreter_witness(
+        child: &mut Child,
+        caller: &str,
+        direct: bool,
+    ) -> Result<InterpreterRuntime, String> {
+        let child_pid = child.id().expect("owned test child");
+        let start = Instant::now();
+        let deadline = start + WITNESS_WAIT;
+        let mut output = BufReader::new(child.stdout.take().expect("piped witness stdout"));
+        let result = async {
+            let hello: Value = witness_record(&mut output, deadline, "worker-hello").await?;
+            if hello["type"] != "hello" || hello["role"] != "market" {
+                return Err("phase=worker-hello terminal=unexpected-hello".into());
+            }
+            eprintln!("caller={caller} phase=worker-hello elapsed_ms={}", start.elapsed().as_millis());
+            let (pid, parent): (u32, u32) =
+                witness_record(&mut output, deadline, "interpreter-identity").await?;
+            eprintln!(
+                "caller={caller} phase=interpreter-identity pid={pid} parent={parent} elapsed_ms={}",
+                start.elapsed().as_millis()
+            );
+            let matches = if direct {
+                pid == child_pid && parent == std::process::id()
+            } else {
+                pid != 0 && pid != child_pid && parent == child_pid
+            };
+            if !matches {
+                return Err(format!("phase=interpreter-identity terminal=unexpected-identity pid={pid} parent={parent}"));
+            }
+            let runtime: InterpreterRuntime =
+                witness_record(&mut output, deadline, "locked-runtime").await?;
+            if runtime.version.is_empty()
+                || runtime.libraries.iter().any(String::is_empty)
+                || runtime.paths.len() < 4
+                || runtime.timezone != "Asia/Shanghai"
+            {
+                return Err("phase=locked-runtime terminal=unexpected-runtime".into());
+            }
+            eprintln!(
+                "caller={caller} phase=locked-runtime paths={} packages={:?} timezone={} elapsed_ms={}",
+                runtime.paths.len(),
+                runtime.libraries,
+                runtime.timezone,
+                start.elapsed().as_millis()
+            );
+            Ok(runtime)
+        }
+        .await;
+
+        let state = child.try_wait();
+        match (result, state) {
+            (Ok(runtime), Ok(None)) => Ok(runtime),
+            (Ok(_), state) => Err(format!(
+                "caller={caller} child_pid={child_pid} phase=qualification terminal=not-observed-alive child_state={state:?}"
+            )),
+            (Err(error), state) => Err(format!(
+                "caller={caller} child_pid={child_pid} {error} child_state={state:?} elapsed_ms={}",
+                start.elapsed().as_millis()
+            )),
+        }
+    }
+
+    #[tokio::test]
+    async fn interpreter_witness_distinguishes_live_partial_records_exit_and_wrong_identity() {
+        for (name, script, expected) in [
+            (
+                "exit",
+                "import sys\nraise SystemExit(9)\n",
+                "phase=interpreter-identity terminal=stdout-closed bytes=0",
+            ),
+            (
+                "partial",
+                "import os, sys, time\nprint([os.getpid(), os.getppid()], flush=True)\nsys.stdout.write('{')\nsys.stdout.flush()\ntime.sleep(15)\n",
+                "phase=locked-runtime terminal=deadline bytes=1",
+            ),
+            (
+                "wrong-identity",
+                "import os, time\nprint([os.getpid(), 0], flush=True)\ntime.sleep(15)\n",
+                "phase=interpreter-identity terminal=unexpected-identity",
+            ),
+            ("ordinary", RUNTIME_WITNESS, ""),
+        ] {
+            let fixture = Fixture::new(script);
+            let (mut python, _) = command(&fixture.0);
+            let mut child = spawn_witness(&mut python, name).unwrap();
+            let observation = read_interpreter_witness(&mut child, name, true).await;
+            if name == "exit" {
+                let status = tokio::time::timeout(WITNESS_WAIT, child.wait())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert_eq!(status.code(), Some(9));
+                eprintln!("caller={name} phase=cleanup natural_exit_code=9");
+            } else {
+                drop(child.stdin.take()); // Release the positive witness through its own pipe.
+                if name == "ordinary" {
+                    let status = tokio::time::timeout(WITNESS_WAIT, child.wait())
+                        .await
+                        .unwrap()
+                        .unwrap();
+                    assert!(status.success(), "{name}: {status}");
+                } else {
+                    tokio::time::timeout(WITNESS_WAIT, reap(&mut child))
+                        .await
+                        .unwrap()
+                        .unwrap();
+                }
+                assert!(child.try_wait().unwrap().is_some());
+                eprintln!("caller={name} phase=cleanup reaped=true");
+            }
+            if expected.is_empty() {
+                assert!(observation.is_ok(), "{name}: {observation:?}");
+            } else {
+                let error = observation.unwrap_err();
+                eprintln!("{error}");
+                assert!(error.contains(expected), "{error}");
+            }
+        }
+    }
+
+    async fn observe_legacy_witness(command: &mut Command) -> Result<InterpreterRuntime, String> {
+        let mut launcher = spawn_witness(command, "legacy-launcher")?;
+        let witness = read_interpreter_witness(&mut launcher, "legacy-launcher", false).await;
+        drop(launcher.stdin.take());
+        let released = tokio::time::timeout(WITNESS_WAIT, launcher.wait()).await;
+        if !matches!(&released, Ok(Ok(status)) if status.success()) {
+            // The input pipe is already closed. Reap only the handle we own,
+            // even when the leaf did not report its identity or failed to exit.
+            let grace =
+                Duration::from_millis(POLICY["cancel_grace_ms"].as_u64().expect("cancel grace"));
+            let fallback = tokio::time::timeout(grace, reap(&mut launcher)).await;
+            return Err(format!(
+                "caller=legacy-launcher phase=cleanup release={released:?} fallback={fallback:?} witness_error={:?}",
+                witness.as_ref().err()
+            ));
+        }
+        eprintln!("caller=legacy-launcher phase=cleanup released=true");
+        witness
+    }
+
+    #[cfg(not(windows))]
+    #[tokio::test]
+    async fn interpreter_witness_releases_a_legacy_fixture_after_success_and_rejection() {
+        // Exercise the two-process stdio lifetime portably. The Windows test
+        // below exercises the actual CPython redirector and compares runtime facts.
+        let malformed = RUNTIME_WITNESS.replace(
+            "print(json.dumps(runtime), flush=True)",
+            "print('{}', flush=True)",
         );
-        fs::remove_file(&owned).unwrap();
-        fs::remove_file(&release).unwrap();
+        for (script, valid) in [(RUNTIME_WITNESS, true), (malformed.as_str(), false)] {
+            let fixture = Fixture::new(script);
+            let observed =
+                observe_legacy_witness(fixture.0.python_command().env("PYTHONTZPATH", "").args([
+                    "-c",
+                    "import subprocess, sys
+raise SystemExit(subprocess.run([sys.executable, '-m', 'worker_runtime.local_import']).returncode)",
+                ]))
+                .await;
+            if valid {
+                assert!(observed.is_ok(), "{observed:?}");
+            } else {
+                let error = observed.unwrap_err();
+                eprintln!("{error}");
+                assert!(
+                    error.contains("phase=locked-runtime terminal=invalid-record"),
+                    "{error}"
+                );
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn windows_venv_reaps_owned_leaf_before_recovery() {
+        let fixture = Fixture::new(RUNTIME_WITNESS);
+
+        let old_runtime = observe_legacy_witness(
+            fixture
+                .0
+                .python_command()
+                .env("PYTHONTZPATH", "")
+                .args(["-m", "worker_runtime.local_import"]),
+        )
+        .await
+        .unwrap_or_else(|error| panic!("{error}"));
 
         let (mut command, owns_interpreter) = command(&fixture.0);
         assert!(
             owns_interpreter,
-            "the normal pinned Windows interpreter must qualify"
+            "caller=direct-interpreter phase=launch-qualification unqualified"
         );
-        let child = command.spawn().unwrap();
-        let child_pid = child.id().unwrap();
+        let permit = worker_slot().expect("caller=direct-interpreter phase=admission");
+        let child = spawn_witness(&mut command, "direct-interpreter")
+            .unwrap_or_else(|error| panic!("{error}"));
         let mut process = Process {
             runtime: Handle::current(),
-            child: Some((child, worker_slot().unwrap())),
+            child: Some((child, permit)),
             terminal_error: None,
         };
-        let (worker, parent, runtime) = witness(&owned).await;
-        assert_eq!(
-            worker, child_pid,
-            "the Rust-owned child must be the actual interpreter"
-        );
-        assert_eq!(parent, std::process::id());
+        let (child, _) = process.child.as_mut().expect("owned test child");
+        let direct = read_interpreter_witness(child, "direct-interpreter", true).await;
+        // Keep stdin open. The existing recovery cleanup must reap the exact
+        // live interpreter handle. It may not infer exit from PID or a pipe.
+        let reaped = process.reclaim().unwrap().wait().await;
         assert!(
-            runtime == old_runtime,
-            "the locked venv runtime and package environment changed"
+            reaped.is_ok(),
+            "caller=direct-interpreter phase=cleanup reap={reaped:?} witness_error={:?}",
+            direct.as_ref().err()
         );
-        process.reclaim().unwrap().wait().await.unwrap();
+        eprintln!("caller=direct-interpreter phase=cleanup reaped=true");
         assert!(process.child.is_none());
+        let direct_runtime = direct.unwrap_or_else(|error| panic!("{error}"));
+        assert!(
+            direct_runtime == old_runtime,
+            "caller=direct-interpreter phase=runtime-equivalence locked runtime changed"
+        );
+        eprintln!("caller=direct-interpreter phase=runtime-equivalence matched=true");
     }
 
     #[tokio::test]
