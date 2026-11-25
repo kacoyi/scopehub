@@ -1,6 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { EventEmitter, once } from 'node:events';
+import { EventEmitter, getEventListeners, once } from 'node:events';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
@@ -1453,12 +1453,12 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
             const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async ({ tag }) => {
               output = await readIndicatorAfterAdmission(server, outputRequest(), {
                 timeout: 3_000,
-                async observe(attempt) {
+                async observe(attempt, signal) {
                   if (undoStages.busy_output) return;
                   undoStages.busy_output = attempt;
                   expect(attempt).toMatchObject({ http: 429, body: busy });
                   tag.release();
-                  await tag.wait('drained');
+                  await tag.wait('drained', signal);
                 },
               });
             });
@@ -1729,12 +1729,12 @@ async function exerciseObsoleteIndicator(browser, testInfo, {
             expect(observation.cancelledStatus).toMatchObject([{ http: 429, body: busy }]);
 
             terminal = await readIndicatorAfterAdmission(server, obsolete, {
-              async observe(frame) {
+              async observe(frame, signal) {
                 observation.statusProbes.push(frame);
                 if (observation.statusProbes.length !== 1) return;
                 expect(frame).toMatchObject({ http: 429, body: busy });
                 holder.release();
-                observation.snapshotDrained = await holder.wait('drained');
+                observation.snapshotDrained = await holder.wait('drained', signal);
                 expect(observation.snapshotDrained).toMatchObject({
                   request_id: observation.snapshotWritten.request_id, ok: true, revision: 1,
                 });
@@ -1929,6 +1929,115 @@ test('indicator-preview probe explains persistent admission refusal without retr
     }, { snapshotGate: true });
   } finally {
     await profile.close();
+  }
+});
+
+test('indicator-preview probe bounds a pending snapshot observer', async ({}, testInfo) => {
+  const refused = { http: 429, body: busy };
+  const admitted = { http: 200, body: { ok: true, result: { version: 'kept' } } };
+  const denied = { http: 429, body: { ok: false, error: { code: 'BUSY', retryable: false } } };
+  const replies = new Map([
+    ['late', refused], ['withheld', refused], ['cancelled', refused],
+    ['admitted', admitted], ['denied', denied], ['exception', refused],
+  ]);
+  const reads = new Map();
+  const listener = createHttpServer((request, response) => {
+    const scenario = request.url.split('/')[1];
+    reads.set(scenario, (reads.get(scenario) ?? 0) + 1);
+    const frame = replies.get(scenario);
+    request.resume();
+    response.writeHead(frame.http, { 'content-type': 'application/json' }).end(JSON.stringify(frame.body));
+  });
+  const witness = {};
+  try {
+    await once(listener.listen(0, '127.0.0.1'), 'listening');
+    const server = scenario => ({ url: `http://127.0.0.1:${listener.address().port}/${scenario}` });
+    const request = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: randomUUID() });
+    const timeout = 500;
+    const diagnostic = 'Indicator read did not obtain workspace admission after 1 attempts: last HTTP 429, code BUSY, retryable true.';
+    const pendingDrain = async scenario => {
+      const child = new EventEmitter();
+      const tag = observeSnapshotGate(child)();
+      const caller = new AbortController();
+      const reason = new Error('caller cancelled the pending drain');
+      const result = { reads: 0, observed: [], reachedDrain: false };
+      const started = performance.now();
+      let late;
+      try {
+        await readIndicatorAfterAdmission(server(scenario), request(), {
+          timeout, signal: caller.signal,
+          async observe(frame, signal) {
+            result.observed.push(frame.http);
+            const before = signal ? getEventListeners(signal, 'abort') : [];
+            const wait = tag.wait('drained', signal);
+            const added = signal ? getEventListeners(signal, 'abort').filter(callback => !before.includes(callback)) : [];
+            result.waitListeners = added.length;
+            if (scenario === 'late') {
+              late = delay(2 * timeout).then(() => {
+                result.drainDelivered = true;
+                child.emit('message', { snapshotGate: { id: tag.id, stage: 'drained' } });
+              });
+            }
+            if (scenario === 'cancelled') queueMicrotask(() => caller.abort(reason));
+            try {
+              await wait;
+              result.reachedDrain = true;
+            } finally {
+              result.observerFinished = true;
+              result.remainingWaitListeners = signal
+                ? getEventListeners(signal, 'abort').filter(callback => added.includes(callback)).length
+                : null;
+            }
+          },
+        });
+      } catch (error) {
+        result.error = { name: error.name, message: error.message, originalCallerReason: error === reason };
+      } finally {
+        result.elapsedMs = Math.round(performance.now() - started);
+        result.settledBeforeDrain = !result.drainDelivered;
+        await late;
+      }
+      result.reads = reads.get(scenario);
+      return result;
+    };
+    const [late, withheld, cancelled] = await Promise.all(['late', 'withheld', 'cancelled'].map(pendingDrain));
+    Object.assign(witness, { late, withheld, cancelled });
+    for (const scenario of ['admitted', 'denied']) {
+      const frame = await readIndicatorAfterAdmission(server(scenario), request(), { timeout });
+      witness[scenario] = { http: frame.http, body: frame.body, reads: reads.get(scenario) };
+    }
+    const caller = new AbortController();
+    const reason = new Error('observer control cancellation');
+    const unexpected = new Error('observer assertion failed', { cause: reason });
+    try {
+      await readIndicatorAfterAdmission(server('exception'), request(), {
+        timeout, signal: caller.signal,
+        observe() {
+          caller.abort(reason);
+          throw unexpected;
+        },
+      });
+    } catch (error) {
+      witness.exception = { original: error === unexpected, message: error.message, reads: reads.get('exception') };
+    }
+    for (const result of [late, withheld, cancelled]) {
+      expect(result).toMatchObject({
+        reads: 1, observed: [429], reachedDrain: false, observerFinished: true,
+        settledBeforeDrain: true, waitListeners: 1, remainingWaitListeners: 0,
+      });
+    }
+    expect(late.drainDelivered).toBe(true);
+    expect(late.error.message).toBe(diagnostic);
+    expect(withheld.error.message).toBe(diagnostic);
+    expect(cancelled.error.originalCallerReason).toBe(true);
+    expect(witness.admitted).toEqual({ ...admitted, reads: 1 });
+    expect(witness.denied).toEqual({ ...denied, reads: 1 });
+    expect(witness.exception).toEqual({ original: true, message: unexpected.message, reads: 1 });
+  } finally {
+    await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
+    await testInfo.attach('indicator-observer-deadline', {
+      contentType: 'application/json', body: JSON.stringify(witness),
+    });
   }
 });
 
@@ -4561,14 +4670,18 @@ async function readIndicatorAfterAdmission(server, request, { timeout = 10_000, 
       const refused = frame.http === 429 && frame.body?.ok === false
         && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
       if (refused) lastRefusal = 'last HTTP 429, code BUSY, retryable true';
-      await observe?.(frame);
+      await observe?.(frame, reading);
       reading.throwIfAborted();
       if (!refused) return frame;
       await delay(intervals[Math.min(attempts - 1, intervals.length - 1)], undefined, { signal: reading });
     }
   } catch (error) {
-    if (signal?.aborted && (error === signal.reason || error?.cause === signal.reason)) throw signal.reason;
-    if (!deadline.aborted || (error !== deadline.reason && error?.cause !== deadline.reason)) throw error;
+    const reason = reading.reason;
+    // Node's event and timer waits wrap the signal reason in an AbortError.
+    const aborted = reading.aborted && (Object.is(error, reason)
+      || (error?.code === 'ABORT_ERR' && Object.is(error.cause, reason)));
+    if (!aborted) throw error;
+    if (!deadline.aborted || !Object.is(reason, deadline.reason)) throw reason;
     throw new Error(`Indicator read did not obtain workspace admission after ${attempts} attempts: ${lastRefusal ?? 'no refusal received'}.`,
       { cause: error });
   }
