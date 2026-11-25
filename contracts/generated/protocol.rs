@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
 // Structural types and literal discriminators: validate schema refinements before deserializing.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -3819,11 +3819,18 @@ pub struct LocalApiConnectionTrialInput {
     pub id: Uuid,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionDisconnectInput {
+    pub action: LocalApiConnectionDisconnectInputAction,
+    pub id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum LocalApiConnectionInput {
     LocalApiConnectionStatusInput(Box<LocalApiConnectionStatusInput>),
     LocalApiConnectionSaveInput(Box<LocalApiConnectionSaveInput>),
     LocalApiConnectionTrialInput(Box<LocalApiConnectionTrialInput>),
+    LocalApiConnectionDisconnectInput(Box<LocalApiConnectionDisconnectInput>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -3845,11 +3852,18 @@ pub struct LocalApiConnectionTrialOutput {
     pub sample: LocalApiSample,
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalApiConnectionDisconnectOutput {
+    pub action: LocalApiConnectionDisconnectOutputAction,
+    pub id: Uuid,
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum LocalApiConnectionOutput {
     LocalApiConnectionStatusOutput(Box<LocalApiConnectionStatusOutput>),
     LocalApiConnectionSaveOutput(Box<LocalApiConnectionSaveOutput>),
     LocalApiConnectionTrialOutput(Box<LocalApiConnectionTrialOutput>),
+    LocalApiConnectionDisconnectOutput(Box<LocalApiConnectionDisconnectOutput>),
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -10124,6 +10138,18 @@ impl LocalApiConnectionTrialInputAction {
     }
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionDisconnectInputAction {
+    #[serde(rename = "disconnect")]
+    Value,
+}
+impl LocalApiConnectionDisconnectInputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "disconnect",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum LocalApiConnectionStatusOutputAction {
     #[serde(rename = "status")]
     Value,
@@ -10156,6 +10182,18 @@ impl LocalApiConnectionTrialOutputAction {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Value => "trial",
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LocalApiConnectionDisconnectOutputAction {
+    #[serde(rename = "disconnect")]
+    Value,
+}
+impl LocalApiConnectionDisconnectOutputAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Value => "disconnect",
         }
     }
 }

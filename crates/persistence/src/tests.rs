@@ -177,29 +177,29 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
         .unwrap();
     drop(writer);
 
-    let before = fs::read(profile.db()).unwrap();
+    let database = profile.db();
+    let before = fs::read(&database).unwrap();
     let wal_bytes = fs::read(&wal).unwrap();
+    assert!(!wal_bytes.is_empty());
     let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
-    let status = std::process::Command::new(&icacls)
-        .arg(&wal)
-        .args(["/grant", "*S-1-1-0:(R)"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .unwrap()
-        .status;
-    assert!(status.success());
-    assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
-    assert_eq!(fs::read(profile.db()).unwrap(), before);
-    assert_eq!(fs::read(&wal).unwrap(), wal_bytes);
-
-    let status = std::process::Command::new(&icacls)
-        .arg(&wal)
-        .args(["/remove:g", "*S-1-1-0"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .unwrap()
-        .status;
-    assert!(status.success());
+    let change_acl = |path: &Path, action, grant| {
+        let output = std::process::Command::new(&icacls)
+            .arg(path)
+            .args([action, grant])
+            .creation_flags(0x0800_0000)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+    };
+    for shared in [&database, &wal] {
+        change_acl(shared, "/grant", "*S-1-1-0:(R)");
+        let refusal = storage::open_path(&profile.0).unwrap_err();
+        assert_eq!(refusal.to_string(), "shared-access");
+        assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
+        assert_eq!(fs::read(&database).unwrap(), before);
+        assert_eq!(fs::read(&wal).unwrap(), wal_bytes);
+        change_acl(shared, "/remove:g", "*S-1-1-0");
+    }
     assert_eq!(
         profile
             .open()
@@ -212,14 +212,7 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     );
 
     let before = fs::read(profile.db()).unwrap();
-    let status = std::process::Command::new(&icacls)
-        .arg(&profile.0)
-        .args(["/grant", "*S-1-1-0:(RX)"])
-        .creation_flags(0x0800_0000)
-        .output()
-        .unwrap()
-        .status;
-    assert!(status.success());
+    change_acl(&profile.0, "/grant", "*S-1-1-0:(RX)");
     assert!(SqliteWorkspace::prepare_profile_root(&profile.0).is_err());
     assert!(profile.open().is_err());
     assert_eq!(fs::read(profile.db()).unwrap(), before);

@@ -421,7 +421,7 @@
       "input": "LocalApiConnectionInput",
       "output": "LocalApiConnectionOutput",
       "implementation": "implemented",
-      "implementation_scope": "Native local profile settings and explicit fixed-rule trial of one unauthenticated numeric loopback API.",
+      "implementation_scope": "Native local profile settings, identity-checked disconnection, and explicit fixed-rule trial of one unauthenticated numeric loopback API.",
       "wire_since": "1.1",
       "wire_bindings": {
         "1.1": {
@@ -429,7 +429,7 @@
           "output": "LocalApiConnectionReply11"
         }
       },
-      "schema_requirement": "Local human only. Require a reviewed versioned loopback GET rule, a current connection ID at admission and result delivery, no credentials, and a bounded typed result. Preserve the provider's JSON number token as text in the trial result."
+      "schema_requirement": "Local human only. Require a reviewed versioned loopback GET rule, a current connection ID at admission and result delivery, no credentials, and a bounded typed result. Validate the exact provider observation token as an in-range whole millisecond before conversion. Preserve the provider's quote value JSON number token as text in the trial result. Disconnect only the matching saved ID without contacting the provider."
     },
     {
       "name": "market.loadLocalImportMapping",

@@ -1,4 +1,4 @@
-// Generated from contracts/schemas/protocol.schema.json; sha256=f29909cc70edcd1da166dceedbfa22c7c36d49ec0f06dcad566bfb358fa4af87. Do not edit.
+// Generated from contracts/schemas/protocol.schema.json; sha256=2942c1ec1054ecfdb6200e11250e1fc15f8311a0877ab5ba4aad445fead20464. Do not edit.
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type OpaqueId = string;
 export type Uuid = string;
@@ -2276,7 +2276,11 @@ export type LocalApiConnectionTrialInput = {
   action: "trial";
   id: Uuid;
 };
-export type LocalApiConnectionInput = LocalApiConnectionStatusInput | LocalApiConnectionSaveInput | LocalApiConnectionTrialInput;
+export type LocalApiConnectionDisconnectInput = {
+  action: "disconnect";
+  id: Uuid;
+};
+export type LocalApiConnectionInput = LocalApiConnectionStatusInput | LocalApiConnectionSaveInput | LocalApiConnectionTrialInput | LocalApiConnectionDisconnectInput;
 export type LocalApiConnectionStatusOutput = {
   action: "status";
   connection: (SavedLocalApiConnection | null);
@@ -2290,7 +2294,11 @@ export type LocalApiConnectionTrialOutput = {
   connection: SavedLocalApiConnection;
   sample: LocalApiSample;
 };
-export type LocalApiConnectionOutput = LocalApiConnectionStatusOutput | LocalApiConnectionSaveOutput | LocalApiConnectionTrialOutput;
+export type LocalApiConnectionDisconnectOutput = {
+  action: "disconnect";
+  id: Uuid;
+};
+export type LocalApiConnectionOutput = LocalApiConnectionStatusOutput | LocalApiConnectionSaveOutput | LocalApiConnectionTrialOutput | LocalApiConnectionDisconnectOutput;
 export type LocalApiConnectionRequest = {
   protocol_version: "1.1";
   message_id: Uuid;

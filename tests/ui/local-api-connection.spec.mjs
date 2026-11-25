@@ -1,11 +1,36 @@
+import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { control } from './workspace-controls.mjs';
+
+async function installDesktopBridge(page, dispatch) {
+  await page.exposeFunction('dispatchNativeApi', dispatch);
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.dispatchNativeApi(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+}
+
+async function openApi(page) {
+  const panel = page.getByRole('dialog', { name: 'Settings' });
+  await control(page, 'Settings').click();
+  await control(panel, 'Data sources').click();
+  await control(panel, 'My data sources').click();
+  await expect(control(panel, 'Choose local CSV folder')).toBeVisible();
+  await control(panel, 'Local API connection').click();
+  return panel;
+}
 
 test('a named local API survives reopen and reads only on explicit trial @profile-local-api', async ({ page, baseURL }, testInfo) => {
   const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
@@ -48,7 +73,7 @@ test('a named local API survives reopen and reads only on explicit trial @profil
   page.on('request', request => {
     if (new URL(request.url()).origin !== baseURL) unexpected.push(request.url());
   });
-  await page.exposeFunction('dispatchNativeApi', async (command, args) => {
+  await installDesktopBridge(page, async (command, args) => {
     const action = args?.operation === 'market.localApiConnection' && args.payload.action;
     if (action === 'status' && rejectNextStatus) {
       rejectNextStatus = false;
@@ -58,28 +83,11 @@ test('a named local API survives reopen and reads only on explicit trial @profil
     if (action === 'trial') lastTrialReply = reply;
     return reply;
   });
-  await page.addInitScript(() => {
-    window.isTauri = true;
-    window.__TAURI_INTERNALS__ = {
-      async invoke(command, args) {
-        const reply = await window.dispatchNativeApi(command, args);
-        if (reply.error) throw reply.error;
-        return reply.result;
-      },
-    };
-  });
   const panel = page.getByRole('dialog', { name: 'Settings' });
-  async function openApi() {
-    await control(page, 'Settings').click();
-    await control(panel, 'Data sources').click();
-    await control(panel, 'My data sources').click();
-    await expect(control(panel, 'Choose local CSV folder')).toBeVisible();
-    await control(panel, 'Local API connection').click();
-  }
 
   try {
     await page.goto('/');
-    await openApi();
+    await openApi(page);
     await expect(panel.getByText('No local API connection saved.')).toBeVisible();
     await expect(panel.getByLabel('Local API origin')).toHaveAttribute('placeholder', 'http://127.0.0.1:8080');
     await panel.getByLabel('Connection name').fill('My synthetic market API');
@@ -95,7 +103,7 @@ test('a named local API survives reopen and reads only on explicit trial @profil
     await bridge.close();
     bridge = startLocalImportBridge(binary, join(root, 'profile'), root);
     await page.reload();
-    await openApi();
+    await openApi(page);
     await expect(panel.getByLabel('Connection name')).toHaveValue('My synthetic market API');
     await expect(panel.getByLabel('Local API origin')).toHaveValue(origin);
     await expect(panel.getByText('GET ' + origin + '/market-sample', { exact: true })).toBeVisible();
@@ -200,6 +208,236 @@ test('a named local API survives reopen and reads only on explicit trial @profil
   } finally {
     peer.closeAllConnections();
     try { await Promise.all([bridge.close(), otherWindow?.close()]); }
+    finally {
+      await new Promise((resolve, reject) => peer.close(error => error ? reject(error) : resolve()));
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
+async function publishIndependentCsv(bridge, folder) {
+  const csv = 'Contract,Start,TradeDate,Open,High,Low,Close,Contracts\n'
+    + 'CU2605,2026-04-14 21:05,2026-04-15,100,106,96,102,31\n'
+    + 'CU2605,2026-04-14 21:10,2026-04-15,102,108,101,105,37\n';
+  await writeFile(join(folder, 'independent.csv'), csv);
+  const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+  const file = {
+    folder_id: catalog.folder_id, file_id: catalog.files[0].file_id,
+    expected_sha256: createHash('sha256').update(csv).digest('hex'),
+  };
+  const mapping = {
+    version: 1, revision: 'night-session', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+    timestamp_convention: 'bar_start', volume_semantics: 'per_bar',
+    instrument_kind: 'dated_future', venue: 'TEST-FU', timeframe: '5m', calendar_id: 'synthetic-futures-v1',
+    session_scope: 'night', timezone: 'Asia/Shanghai', quantity_unit: 'contracts', price_adjustment: 'raw',
+    timestamp_format: '%Y-%m-%d %H:%M', trading_day_format: '%Y-%m-%d',
+    columns: { symbol: 'Contract', timestamp: 'Start', trading_day: 'TradeDate',
+      open: 'Open', high: 'High', low: 'Low', close: 'Close', volume: 'Contracts' },
+  };
+  const preview = { ...file, mapping, row_limit: 1 };
+  const issue = (operation, payload) => bridge.request('execute_operation', {
+    operation, requestId: randomUUID(), payload: { version: 1, ...payload },
+  });
+  expect((await issue('market.previewLocalImport', preview)).result.preview.rows[0].symbol).toBe('CU2605');
+  const { result: { record } } = await issue('market.saveLocalImportMapping', preview);
+  const { result: { revision } } = await issue('market.publishLocalImport', { ...file, review_revision: record.review_revision });
+  return revision;
+}
+
+test('disconnects the named local API, rejects stale actions, and reopens with an independent CSV @profile-local-api', async ({ page, context, baseURL }, testInfo) => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  expect(binary).toBeTruthy();
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-api-disconnect-'));
+  const folder = join(root, 'csv');
+  const profile = join(root, 'profile');
+  const traffic = [];
+  const reads = [];
+  const unrelatedRequests = [];
+  const held = Promise.withResolvers();
+  const sample = (instrument, value) => ({ instrument, observed_at_ms: 1770076800000, value, unit: 'USD' });
+  const oldSample = sample('OLD-FUT', 47.25);
+  const replacement = sample('REPLACEMENT-FUT', 63.5);
+  let owner, peer, oldWindow;
+
+  async function fixture(name, handle) {
+    const server = createServer((request, response) => {
+      traffic.push([name, request.method, request.url, request.headers.authorization ?? null, request.headers.cookie ?? null]);
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      handle(response);
+    }).listen(0, '127.0.0.1');
+    reads.push(server);
+    await once(server, 'listening');
+    return 'http://127.0.0.1:' + server.address().port;
+  }
+
+  function observeTraffic(view) {
+    view.on('request', request => {
+      if (new URL(request.url()).origin !== baseURL) unrelatedRequests.push(request.url());
+    });
+  }
+  async function save(panel, name, origin) {
+    await panel.getByLabel('Connection name').fill(name);
+    await panel.getByLabel('Local API origin').fill(origin);
+    await control(panel, 'Save connection').click();
+    await expect(panel.getByText('Saved connection.')).toBeVisible();
+  }
+
+  try {
+    await mkdir(folder, { mode: 0o700 });
+    const oldOrigin = await fixture('primary', response => held.resolve(response));
+    const newOrigin = await fixture('replacement', response => response.end(JSON.stringify(replacement)));
+    owner = startLocalImportBridge(binary, profile, folder);
+    const csv = await publishIndependentCsv(owner, folder);
+    peer = startLocalImportBridge(binary, profile, folder);
+    oldWindow = await context.newPage();
+    observeTraffic(page);
+    observeTraffic(oldWindow);
+    await installDesktopBridge(page, (command, args) => owner.request(command, args));
+    const rejected = [];
+    await installDesktopBridge(oldWindow, async (command, args) => {
+      const reply = await peer.request(command, args);
+      if (reply.error) rejected.push([args.payload.action, reply.error.code]);
+      return reply;
+    });
+
+    const started = performance.now();
+    await page.goto('/');
+    const panel = await openApi(page);
+    await expect(panel.getByText('No local API connection saved.')).toBeVisible();
+    await save(panel, 'Primary loopback', oldOrigin);
+    await oldWindow.goto('/');
+    const oldPanel = await openApi(oldWindow);
+    await expect(oldPanel.getByLabel('Connection name')).toHaveValue('Primary loopback');
+    expect(traffic).toEqual([]);
+
+    await control(oldPanel, 'Test read').click();
+    await expect.poll(() => traffic.length).toBe(1);
+    const response = await held.promise;
+    const actionStarted = performance.now();
+    try {
+      await control(panel, 'Disconnect Primary loopback').click();
+      await expect(panel.getByRole('status')).toHaveText('Local API connection disconnected.');
+    } finally {
+      response.end(JSON.stringify(oldSample));
+    }
+    const firstVisible = { at: new Date().toISOString(), since_navigation_ms: Math.round(performance.now() - started),
+      since_disconnect_action_ms: Math.round(performance.now() - actionStarted),
+      displayed: await panel.getByRole('status').innerText(), traffic: [...traffic],
+    };
+    console.info('Local API first visible disconnect', JSON.stringify(firstVisible));
+    await testInfo.attach('first-visible-disconnect', { body: JSON.stringify(firstVisible), contentType: 'application/json' });
+    await expect(panel.getByLabel('Connection name')).toBeFocused();
+    await expect(panel.getByLabel('Connection name')).toHaveValue('');
+    await expect(panel.getByLabel('Local API origin')).toHaveValue('');
+    await expect(control(panel, 'Test read')).toBeDisabled();
+    await expect(control(panel, 'Disconnect Primary loopback')).toHaveCount(0);
+    await expect(oldPanel.getByRole('alert')).toHaveText('The saved connection changed. Reopen the form to load it.');
+    await expect(oldPanel.getByRole('region', { name: 'Verified sample' })).toHaveCount(0);
+
+    await owner.close();
+    owner = startLocalImportBridge(binary, profile, folder);
+    await page.reload();
+    await openApi(page);
+    await expect(panel.getByText('No local API connection saved.')).toBeVisible();
+    await expect(control(panel, 'Test read')).toBeDisabled();
+    expect(traffic).toEqual([['primary', 'GET', '/market-sample', null, null]]);
+    await save(panel, 'Replacement loopback', newOrigin);
+    await control(oldPanel, 'Disconnect Primary loopback').click();
+    await expect.poll(() => rejected).toEqual([['trial', 'STALE_CONTEXT'], ['disconnect', 'STALE_CONTEXT']]);
+    await expect(oldPanel.getByRole('alert')).toHaveText('The saved connection changed. Reopen the form to load it.');
+    await expect(oldPanel.getByLabel('Connection name')).toHaveValue('Primary loopback');
+    expect(traffic).toEqual([['primary', 'GET', '/market-sample', null, null]]);
+    const stale = { rejected, displayed: await oldPanel.getByRole('alert').innerText(), traffic: [...traffic] };
+    await testInfo.attach('stale-window-rejection', { body: JSON.stringify(stale), contentType: 'application/json' });
+
+    await control(panel, 'Back to my data sources').click();
+    await expect(control(panel, 'Local API connection')).toBeFocused();
+    await control(panel, 'Local API connection').click();
+    await expect(panel.getByLabel('Connection name')).toHaveValue('Replacement loopback');
+    await expect(panel.getByLabel('Local API origin')).toHaveValue(newOrigin);
+    await control(panel, 'Test read').click();
+    await expect(panel.getByRole('region', { name: 'Verified sample' })).toContainText('REPLACEMENT-FUT · 63.5 USD');
+    await testInfo.attach('replacement-loopback-sample', { body: await panel.screenshot(), contentType: 'image/png' });
+
+    await control(panel, 'Close').click();
+    await control(page, 'Open published CSV').click();
+    const library = page.getByRole('dialog', { name: 'Open published CSV' });
+    await library.getByRole('button', { name: /Open independent\.csv.*Final close 105/ }).click();
+    await expect(library.getByLabel('Selected bar')).toContainText('C 105');
+    await expect(library.getByText(csv.revision_id, { exact: true }).first()).toBeVisible();
+    await control(library, 'Close').click();
+    await control(page, 'Language settings').click();
+    await page.getByRole('combobox', { name: 'Interface language' }).selectOption('zh-Hans');
+    await page.keyboard.press('Escape');
+    const chinese = page.getByRole('dialog', { name: '设置', exact: true });
+    await control(page, '设置').click();
+    await control(chinese, '数据源').click();
+    await control(chinese, '我的数据源').click();
+    await control(chinese, '本地 API 连接').click();
+    await expect(control(chinese, '断开 Replacement loopback')).toBeVisible();
+    expect(traffic).toEqual([['primary', 'GET', '/market-sample', null, null], ['replacement', 'GET', '/market-sample', null, null]]);
+    expect(unrelatedRequests).toEqual([]);
+    await testInfo.attach('disconnect-journey', { body: JSON.stringify({ firstVisible, stale, csv, traffic }), contentType: 'application/json' });
+  } finally {
+    for (const server of reads) server.closeAllConnections();
+    await oldWindow?.close();
+    try { await Promise.all([owner?.close(), peer?.close()]); }
+    finally {
+      await Promise.all(reads.map(server => new Promise(resolve => server.close(resolve))));
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('validates the exact provider observation time before accepting a local API sample @profile-local-api', async () => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  expect(binary).toBeTruthy();
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-api-exact-time-'));
+  const price = '9007199254740993.000';
+  let token = '0';
+  const peer = createServer((_, response) => {
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(`{"instrument":"FUT-TEST","observed_at_ms":${token},"value":${price},"unit":"USD"}`);
+  }).listen(0, '127.0.0.1');
+  let bridge;
+  try {
+    await once(peer, 'listening');
+    bridge = startLocalImportBridge(binary, join(root, 'profile'), root);
+    const call = payload => bridge.request('execute_operation', {
+      operation: 'market.localApiConnection', payload, requestId: randomUUID(),
+    });
+    const saved = await call({
+      action: 'save', expected_id: null, name: 'Synthetic timestamp samples',
+      origin: 'http://127.0.0.1:' + peer.address().port,
+    });
+    expect(saved.error).toBeUndefined();
+    const id = saved.result.connection.id;
+    for (const [sourceTime, acceptedTime] of [
+      ['1770076800000', 1770076800000],
+      ['1.7700768000000e12', 1770076800000],
+      ['8640000000000000.0', 8640000000000000],
+      ['-0e+99999', 0],
+      ['1770076800000.00001', undefined],
+      ['1e-999', undefined],
+      ['-1e-999', undefined],
+      ['8640000000000000.1', undefined],
+      ['8640000000000001', undefined],
+      ['"1770076800000"', undefined],
+    ]) {
+      token = sourceTime;
+      const reply = await call({ action: 'trial', id });
+      if (acceptedTime === undefined) {
+        expect.soft(reply.error?.code, token).toBe('OUTPUT_INVALID');
+        expect.soft(reply.result, token).toBeUndefined();
+      } else {
+        expect.soft(reply.result?.sample, token).toEqual({
+          instrument: 'FUT-TEST', observed_at_ms: acceptedTime, value: price, unit: 'USD',
+        });
+      }
+    }
+  } finally {
+    peer.closeAllConnections();
+    try { await bridge?.close(); }
     finally {
       await new Promise((resolve, reject) => peer.close(error => error ? reject(error) : resolve()));
       await rm(root, { recursive: true, force: true });

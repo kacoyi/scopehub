@@ -102,15 +102,37 @@ fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
     fs::create_dir(&outer).unwrap();
     let outer = Profile(outer);
     let pool = outer.0.join("profiles");
-    let bridge_exe = env!("CARGO_BIN_EXE_workspace_bridge");
+    let bridge_exe = PathBuf::from(env!("CARGO_BIN_EXE_workspace_bridge"));
+    #[cfg(windows)]
+    let bridge_exe = {
+        let relocated = outer.0.join("workspace_bridge.exe");
+        fs::copy(&bridge_exe, &relocated).unwrap();
+        relocated
+    };
     let prepare = |count| {
-        Command::new(bridge_exe)
+        Command::new(&bridge_exe)
             .arg("--prepare-profile-pool")
             .arg(&pool)
             .arg(count)
+            .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
             .output()
             .unwrap()
     };
+
+    #[cfg(windows)]
+    {
+        let before = outer.0.join("invalid-profile-parent");
+        let refused = Command::new(&bridge_exe)
+            .arg("--prepare-profile-root")
+            .arg(before.join("ambiguous."))
+            .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        let summary = String::from_utf8_lossy(&refused.stderr);
+        assert!(summary.contains("(prepare, local-path)"), "{summary}");
+        assert!(!before.exists());
+    }
 
     let started = Instant::now();
     let prepared = prepare("2");
@@ -123,6 +145,39 @@ fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
         "Prepared two explicit private profiles in {:?}",
         started.elapsed()
     );
+    #[cfg(windows)]
+    {
+        let phases = String::from_utf8_lossy(&prepared.stderr);
+        assert!(phases.contains("spawn-to-ready-ms=Some("), "{phases}");
+        assert!(phases.contains("phase=complete"), "{phases}");
+        eprintln!("{phases}");
+        let forbidden = outer.0.join("ungranted");
+        let refused = Command::new(&bridge_exe)
+            .arg("--scopehub-workspace-acl")
+            .env("SCOPEHUB_STORAGE_PATH", &forbidden)
+            .env("SCOPEHUB_STORAGE_ACTION", "prepare")
+            .env("SCOPEHUB_STORAGE_PROFILE_COUNT", "0")
+            .stdin(Stdio::null())
+            .output()
+            .unwrap();
+        assert_eq!(refused.status.code(), Some(35));
+        assert!(!forbidden.exists());
+
+        let mut expired = Command::new(&bridge_exe);
+        let expired = expired
+            .arg("--scopehub-workspace-acl")
+            .env("SCOPEHUB_STORAGE_PATH", &forbidden)
+            .env("SCOPEHUB_STORAGE_ACTION", "prepare")
+            .env("SCOPEHUB_STORAGE_PROFILE_COUNT", "0")
+            .env("SCOPEHUB_STORAGE_DEADLINE_MS", "0")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
+        let mut child = expired.spawn().unwrap();
+        child.stdin.take().unwrap().write_all(b"1").unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert_eq!(output.status.code(), Some(36));
+        assert!(!forbidden.exists());
+    }
     let first = Profile(pool.join("profile-0"));
     let second = Profile(pool.join("profile-1"));
     for profile in [&first, &second] {
@@ -133,7 +188,26 @@ fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
     let opened = frames(bridge(&first, PROFILE_ID, &[set(0, "5m", Uuid::new_v4())]));
     assert_snapshot(&opened[0], 0, "1m");
     assert_committed(&opened[1], 1, "5m");
-    assert_snapshot(&frames(bridge(&second, PROFILE_ID, &[]))[0], 0, "1m");
+    let ordinary_open = Command::new(&bridge_exe)
+        .arg(&second.0)
+        .args([PROFILE_ID, WORKSPACE_ID])
+        .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(
+        ordinary_open.status.success(),
+        "{}",
+        String::from_utf8_lossy(&ordinary_open.stderr)
+    );
+    #[cfg(windows)]
+    assert!(
+        String::from_utf8_lossy(&ordinary_open.stderr).contains("(open) spawn-to-ready-ms=Some(")
+    );
+    let reply: Value = serde_json::from_slice(&ordinary_open.stdout).unwrap();
+    assert_eq!(reply["ok"], true);
+    assert_eq!(reply["private_profile"], true);
+    assert_snapshot(&reply["result"], 0, "1m");
 
     #[cfg(unix)]
     {
@@ -161,7 +235,7 @@ fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
     assert!(!refused.status.success());
     #[cfg(windows)]
     assert!(String::from_utf8_lossy(&refused.stderr).contains("(prepare, shared-access)"));
-    let refused = Command::new(bridge_exe)
+    let refused = Command::new(&bridge_exe)
         .arg(&second.0)
         .args([PROFILE_ID, WORKSPACE_ID])
         .output()

@@ -143,5 +143,120 @@
       },
       "error": null
     }
+  },
+  {
+    "name": "disconnect input binds the saved connection identity",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "disconnect",
+        "id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1"
+      }
+    }
+  },
+  {
+    "name": "reject disconnect input without a saved connection identity",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "disconnect"
+      }
+    }
+  },
+  {
+    "name": "reject disconnect input with a null identity",
+    "operation": "market.localApiConnection",
+    "direction": "input",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "request",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "task_id": null,
+      "operation": "market.localApiConnection",
+      "payload": {
+        "action": "disconnect",
+        "id": null
+      }
+    }
+  },
+  {
+    "name": "disconnect output binds the saved connection identity",
+    "operation": "market.localApiConnection",
+    "direction": "output",
+    "valid": true,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "response",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "operation": "market.localApiConnection",
+      "ok": true,
+      "result": {
+        "action": "disconnect",
+        "id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1"
+      },
+      "error": null
+    }
+  },
+  {
+    "name": "reject disconnect output without a saved connection identity",
+    "operation": "market.localApiConnection",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "response",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "operation": "market.localApiConnection",
+      "ok": true,
+      "result": {
+        "action": "disconnect"
+      },
+      "error": null
+    }
+  },
+  {
+    "name": "reject disconnect output with a null identity",
+    "operation": "market.localApiConnection",
+    "direction": "output",
+    "valid": false,
+    "message": {
+      "protocol_version": "1.1",
+      "type": "response",
+      "message_id": "b3a634d7-0a82-4fe7-aa2d-bf82b56a297b",
+      "request_id": "cdfa0615-eeb2-40ee-b67c-391bb77547f1",
+      "timestamp_ms": 1770076800000,
+      "operation": "market.localApiConnection",
+      "ok": true,
+      "result": {
+        "action": "disconnect",
+        "id": null
+      },
+      "error": null
+    }
   }
 ]
