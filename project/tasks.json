@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-127",
   "tasks": [
     {
       "id": "M0-001",
@@ -23797,6 +23797,242 @@
           ],
           "data_plan": "Use loopback HTTP with synthetic replies and controlled IPC notifications for the shortest regression. Run the existing real Rust and Chromium scenarios on the exact candidate.",
           "cleanup": "Verify listener disposal before attempting late notification, close the loopback listener, and preserve original and passing reports."
+        }
+      }
+    },
+    {
+      "id": "M0-127",
+      "title": "Reduce Windows ordinary main verification cache-save cost",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-094"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the exact successful ordinary full partial-cache Windows main pushes 45560649687 and 45589767633, including stages, runner work, cache provenance, selected checks and log identities. Diagnose reducible critical-path cache work from the actual producer steps and representative artifacts.",
+        "Apply a bounded correction only when controlled comparisons of representative cache artifacts show a material save or critical-path benefit and preserve warm reuse. Measure the before and after cost, restored build effect and any runner-work tradeoff, and record the limitations of replayed timings.",
+        "Exercise the ordinary Windows cache and protected result routing and its exact-hit, partial-hit, cold, unsuccessful and skipped controls. Preserve all required native checks, existing action pins and permissions, task, release and manual configurations, downstream cache reuse, and separate Windows and Linux accounting.",
+        "Record the reviewed corrective commit if delivered. Keep hosted recovery pending until a naturally occurring successful comparable ordinary full partial-cache Windows main push including it meets the existing 900-second objective. Inspect succeeding ordinary exact-hit reuse. If the evidence does not justify correction or recovery, retain the originals and give the concrete next action."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45560649687-1",
+          "source_commit": "11c75525871bdac2b12c0785b781892a4e1f5004",
+          "report_sha256": "5caa48dcf7ee2e98993e3d04b250fdf939b2b954a86b8b90b15ce3abdfb40007"
+        },
+        {
+          "run_id": "windows-change-45589767633-1",
+          "source_commit": "486b674755033668b7e41d9d6d095599b627687b",
+          "report_sha256": "87d66e0a3b5a30873da2f85541b3f85dccffa894d95a7dbcb63e4899f0f327e3"
+        }
+      ],
+      "evidence": [],
+      "next_action": "Retained save-cost and restore replays in archives/observations/repo-hygiene-20261125/m0-127-cache-cost-20261125.2UlyKy/SHA256SUMS (SHA-256 c6d9716349abec57146c10bd7e3d1e8a72aae42b05bff4d031d5af8dc10bcead). The larger controlled replay did not support faster compression and hosted verification disables incremental compilation. At the next natural Windows ordinary full partial-cache main push, inspect which producer is critical and collect read-only cache payload composition when available. Require native restore and warm-build evidence before changing the retained payload. Keep the 900-second hosted recovery pending.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A reviewed, measured reduction in critical-path Windows partial-cache main verification cost preserves required native checks and the cache usable by subsequent ordinary verification.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/timing.py",
+          "project/feedback.json",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The two ordinary full partial-cache Windows main pushes took 1078 and 1284 seconds. The critical core and browser cache-save steps consumed 288 and 356 seconds respectively. The latest core save took 274 seconds concurrently. A measured reduction in redundant archive work or an overlap with already eligible independent work can lower this contribution.",
+          "Removing the critical saves in a fixed-clock projection yields 790 and 928 seconds. The latest projection still exceeds the 900-second objective, so a measured cache improvement alone does not establish hosted recovery."
+        ],
+        "risks": [
+          {
+            "failure": "The change changes required check selection, reuses stale verification evidence, affects the protected result or widens cache-save eligibility or permissions.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A smaller or rescheduled save causes a subsequent exact-hit compile regression, abandons usable cache seeding, or substitutes an incompatible Cargo artifact.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A projection or artifact replay is credited as an actual hosted improvement, concurrent stage times replace workflow elapsed, or a warm or PR observation satisfies a partial-cache main finding.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain pre-change archive and verification evidence. Discard a candidate that fails reuse, coverage or measured-benefit comparisons. If an integrated correction harms cache reuse, restore the original save behavior and keep the timing finding open.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/timing.py",
+            "project/feedback.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No action-pin, workflow-permission, check-coverage or objective changes, unnecessary paid jobs, manufactured key churn, or remote publication or dispatch from this lane.",
+            "No Linux M0-104, warm Windows M0-103, or independent PR partial-cache recovery work."
+          ],
+          "open_questions": [
+            "Which measured save inputs or required-path sequencing can be reduced without degrading usable Windows build reuse?",
+            "Will the first comparable ordinary partial main push containing a correction meet the existing 900-second objective?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing verification and aggregate results, cache trust boundaries, check selection, traceability and adopted Cargo reuse for subsequent PRs.",
+            "Ordinary Linux, warm Windows, scoped and native task, release and manual configurations."
+          ],
+          "change": [
+            "Reduce only the measured reducible Windows ordinary main partial-cache save cost."
+          ],
+          "data_plan": "Retain original authenticated reports and provenance privately. Compare cache bytes, save durations, restored builds and runner occupancy with matched inputs. Keep derived timings identified as measurements or projections according to their source.",
+          "cleanup": "Retain the canonical original and comparative evidence. Retire rejected local experiments from the candidate and do not close the budget finding without comparable ordinary hosted recovery."
+        }
+      }
+    },
+    {
+      "id": "M0-128",
+      "title": "Follow up on comparable ordinary Windows partial-cache PR timing",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-094"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain authenticated first attempts 45587200035 and 45589849179, matching ordinary full Windows check coverage, their common Cargo key transition and their distinct critical producer timings.",
+        "Observe naturally occurring successful full Windows PR first attempts with matching selection and partial-cache class, including an independent Cargo transition when available. Track exact-hit PRs separately as controls. Record run IDs, source, matched key, coverage, elapsed time, runner work and attributable stage costs.",
+        "A comparable successful ordinary partial-cache Windows PR with the recorded correction must establish the existing 900-second objective before recovery is credited. Until a specific controllable bottleneck or recovery is evident, retain the open finding and the exact next observation. Push, warm, scoped, re-run and manual timing cannot establish PR partial-cache recovery."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45587200035-1",
+          "source_commit": "838c479386092dbc98f97bd47b5baf3144a28fcb",
+          "report_sha256": "ea61d3df2ebebab5a47d005685831efa076c1fe8a13eb522d8ca6802731f7af8"
+        },
+        {
+          "run_id": "windows-change-45589849179-1",
+          "source_commit": "c1ecb69dd3896a9b047501fb469821d4a241efca",
+          "report_sha256": "f461303d4fb42a167ed82133cd844274579c2009bdd7514330c1f35fc200960e"
+        }
+      ],
+      "evidence": [],
+      "next_action": "At ordinary PR verification intake, compare the next naturally occurring first-attempt full partial-cache Windows PR, preferably from a different Cargo key transition, and exact-hit controls under the same coverage. Assign a correction only if a repeatable controllable stage is identified.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "An owned PR timing follow-up distinguishes repeated Windows partial-cache costs from the observed one-transition overlap and identifies evidence-supported remediation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "project/delivery.json",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The two Windows PR breaches share one Cargo key transition. Core and browser were critical on different runs. The latter began before the main seed completed. Neither PR synchronously saved a Windows Cargo cache.",
+          "A naturally occurring independently comparable partial-cache PR can distinguish a repeatable cause from ordinary variation around a cache transition."
+        ],
+        "risks": [
+          {
+            "failure": "A main-push, exact-hit, scoped, rerun or prior recovery observation is counted as recovery of an ordinary full partial-cache Windows PR.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The narrow excess is attributed to cache save or another single stage without comparable PR producer evidence.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original diagnostics and open finding if timing is unavailable, inconclusive or still over budget. Defer a new engineering change until a repeatable attributable PR cost is observed.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "project/feedback.json"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No forced lockfile transition, additional runs, main-push cache-save repair or change to M0-103, M0-104 or the reviewed PR 107."
+          ],
+          "open_questions": [
+            "Does an independent comparable full partial-cache Windows PR exceed the budget and exhibit a removable cost?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The existing timing policy, cache and event classifications, and the original evidence for the two PR attempts."
+          ],
+          "change": [
+            "Assign subsequent naturally occurring Windows PR first-attempt observations and an event-specific decision."
+          ],
+          "data_plan": "Keep exact timing captures and original successful reports with provenance in private archives and reference their canonical digests. Keep comparable main and PR observations distinct.",
+          "cleanup": "Leave recovery pending until the PR-specific evidence qualifies. Continue regular verification intake without creating a trigger for extra work."
         }
       }
     }
