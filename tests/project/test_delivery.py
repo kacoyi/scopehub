@@ -247,6 +247,7 @@ class DeliveryTests(ProjectFixture):
         del item['review_record']
         delivery_path.write_bytes(json_bytes(delivery))
         historical.write_bytes(json_bytes({'baseline': {'main': 'a' * 40}}))
+        self.commit_fixture()
         self.assertIn('comparable accepted', self.project_command(*args)['error'])
         self.assertIn(key, self.project_command('history', '--base', baseline)['error'])
 

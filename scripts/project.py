@@ -729,13 +729,20 @@ def compatibility_boundaries(project, paths):
     return maintenance.compatibility_boundaries(paths, project.get('development') or {}, project['delivery'])
 
 
-def compatibility_base(root, item):
+def compatibility_initial_base(root, revision):
+    captured = feedback_git(root, 'show', f'{revision}:{maintenance.COMPATIBILITY_BASELINE}')
+    if captured.returncode:
+        raise ValueError('The accepted compatibility baseline is unavailable.')
+    return json.loads(captured.stdout)['baseline']['main']
+
+
+def compatibility_base(root, item, revision='HEAD'):
     if item.get('review_record'):
         record, _ = read_review_report(local_path(root, item['review_record']), 64 * 1024)
         if record['evidence'].get('unverified_boundaries'):
             return record['evidence']['compared_from']
         return record['source_commit']
-    return read_json(root / maintenance.COMPATIBILITY_BASELINE)['baseline']['main']
+    return compatibility_initial_base(root, revision)
 
 
 def compatibility_claim(root, project, receipts, before, through, observed_at):
@@ -932,7 +939,7 @@ def require_periodic_transition(root, project, base, only=None):
                 accepted_source = ((old_record['evidence']['compared_from']
                                     if old_record['evidence']['unverified_boundaries'] else old_record['source_commit'])
                                    if previous_path else
-                                   read_json(root / maintenance.COMPATIBILITY_BASELINE)['baseline']['main'])
+                                   compatibility_initial_base(root, base))
                 if from_source != accepted_source:
                     raise ValueError('Compare compatibility from the last fully reviewed source.')
                 relevant = compatibility_boundaries(project, compatibility_changes(
@@ -950,7 +957,7 @@ def require_periodic_transition(root, project, base, only=None):
                                or result[0]['evidence'].get('pending') or result[3]):
                     raise ValueError('Resolve or keep the recorded follow-through under its existing identity.')
                 if key == 'compatibility-and-recovery' and compatibility_boundaries(
-                        project, compatibility_changes(root, compatibility_base(root, candidate),
+                        project, compatibility_changes(root, compatibility_base(root, candidate, base),
                                                        feedback_commit(root, 'HEAD'))):
                     raise ValueError('Retain the compatibility review until changed consumers are assessed.')
         except REVIEW_ERRORS as error:
