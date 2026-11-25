@@ -6999,6 +6999,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-witness-rejects-ineffective-callback-layout",
+      "source": "Independent Astra Standard t10c at a5b94b98ab0ed7446787dfbee899c63cc731d2a2. Archives/observations/repo-hygiene-20261125/independent-final-m0-147-a5b94b98/final-response.txt SHA-256 ccc7058df47dfc3c8f22ca01d8ec4854e658952de6a51c3f844aa35bfeb1d0be; original response line SHA-256 a00f5e9e6148b308c5172ad8dc57cbace827d2eb35d8a12a6838fcd23fb27290.",
+      "observation": "The independent handoff witness returns 54 for a callback allow by type before checking its mask or applicability. The retained native regular-file matrix shows that the previous managed leaf projection drops structurally valid zero-mask and inherit-only callbacks. An effective callback remains unsupported. The current result does not explain the original subprocess deadline.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
