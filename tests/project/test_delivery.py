@@ -32,9 +32,9 @@ class DeliveryTests(ProjectFixture):
         class ReviewClock(datetime):
             @classmethod
             def now(cls, tz=None):
-                return cls(2026, 11, 25, self.review_hour, tzinfo=tz)
+                return cls(2026, 11, self.review_day, self.review_hour, tzinfo=tz)
 
-        self.review_hour = 10
+        self.review_day, self.review_hour = 25, 10
         self.enterContext(patch.object(project_cli, 'datetime', ReviewClock))
         path = self.root / 'project/delivery.json'
         delivery = read_json(path)
@@ -170,6 +170,33 @@ class DeliveryTests(ProjectFixture):
         entry.update(status='open', deferral_reason=None, occurrence=2)
         feedback_path.write_bytes(json_bytes(feedback))
         self.assertEqual('recheck_needed', self.project_command('status', '--overview')['next']['state'])
+
+    def test_clean_checkout_ages_into_due_and_keeps_owned_critical_feedback_visible(self):
+        self.periodic_fixture()
+        base = self.commit_fixture()
+        quiet = self.project_command('status', '--overview')
+        self.assertEqual(0, quiet['maintenance']['periodic_attention'])
+        self.assertIsNone(quiet['maintenance']['follow_through'])
+        self.review_day = 29
+        late = self.project_command('status', '--overview')
+        self.assertEqual('due', late['next']['state'])
+        self.assertEqual('coordinator', late['next']['owner'])
+        self.assertEqual('pnpm project:timing --recent 12', late['next']['command'])
+        self.assertEqual('passed', self.project_command('check')['status'])
+        self.assertEqual('passed', self.project_command('history', '--base', base)['status'])
+        subprocess.run(['git', 'diff', '--exit-code', 'HEAD'], cwd=self.root, check=True)
+
+        # The view consumes the same active work and unresolved feedback already
+        # selected by workfront. The calendar signal still has an actionable slot.
+        from scripts.development import status_view
+        state = workfront(self.root)
+        state['active_task_ids'] = ['M0-001']
+        state['unresolved_feedback'].append({'severity': 'critical', 'status': 'open',
+                                             'task_ids': state['active_task_ids'],
+                                             'id': 'synthetic-critical-followup'})
+        overview = status_view(state, overview=True)
+        self.assertEqual('synthetic-critical-followup', overview['next']['id'])
+        self.assertEqual('verification-timing', overview['maintenance']['follow_through']['id'])
 
     def test_compatibility_intake_distinguishes_unchanged_changed_and_unavailable(self):
         delivery_path, delivery = self.periodic_fixture()

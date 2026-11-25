@@ -24046,6 +24046,7 @@
         "project/tasks.json",
         "project/feedback.json",
         "scripts/maintenance.py",
+        ".github/workflows/verify.yml",
         "scripts/ci.py",
         "scripts/timing.py",
         "scripts/worktree_retirement.py"
@@ -24057,7 +24058,7 @@
       "acceptance": [
         "Ordinary startup provides a bounded whole-project outlook and identifies overdue, unsupported or actionable periodic reviews without changing authoritative detailed output.",
         "Existing protected history rejects date-only clearance for each of the five lanes while preserving the inherited baseline and type-appropriate review observations.",
-        "Exercise the five calibrated negative cases, genuine observations in multiple categories, removal and cross-category replay, and current feedback follow-through."
+        "Exercise the five calibrated negative cases, genuine scoped observations, removal and cross-category replay, and a quiet week that becomes due in ordinary startup and the existing scheduled Linux summary."
       ],
       "checks": [
         "project-state",
@@ -24068,7 +24069,7 @@
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "A single evidence-bound invariant protects all five periodic reviews at startup and in protected history.",
+        "outcome": "A single evidence-bound invariant protects all five periodic reviews at startup and in protected history. The existing weekly Linux run retains the startup attention without changing product-result semantics.",
         "change_types": [
           "tooling"
         ],

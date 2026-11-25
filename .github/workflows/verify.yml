@@ -156,6 +156,20 @@ jobs:
           components: ${{ (matrix.lane == 'python' || matrix.lane == 'recovery') && 'rustfmt' || 'rustfmt, clippy' }}
       - run: uv sync --locked
         if: steps.lane.outputs.skip != 'true'
+      - name: Summarize weekly maintenance follow-through
+        if: ${{ !cancelled() && github.event_name == 'schedule' && runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          if ! overview="$(uv run --no-sync python scripts/project.py status --overview)"; then
+            printf '### Weekly maintenance follow-through unavailable\n\nSee the scheduled Linux step log.\n' | tee -a "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$overview"
+            exit 1
+          fi
+          {
+            printf '### Weekly maintenance follow-through\n\n'
+            printf 'Source `%s`. Attention below requests follow-up in the next development session.\n\n' "$GITHUB_SHA"
+            printf '```json\n%s\n```\n' "$overview"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
       - run: pnpm install --frozen-lockfile
         if: *windows_web_tools
       - name: Check browser and build-output prerequisites

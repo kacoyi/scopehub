@@ -337,11 +337,27 @@ def project_overview(state):
     first = next((review for status in attention for review in reviews if review['state'] == status), None)
     if first is None:
         first = next((review for review in reviews if review['review_due']), None)
+
+    def action(review):
+        return {key: review[key] for key in
+                ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
+                 'problem', 'report_sha256') if key in review}
+
     context = f'pnpm project:context {focus["id"]}' if focus else 'pnpm project:brief'
-    if first:
-        next_action = {key: first[key] for key in
-                       ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
-                        'problem', 'report_sha256') if key in first}
+    actionable_tasks = set(state['active_task_ids'])
+    owned = next(((finding, task) for severity in ('critical', 'major')
+                  for finding in state['unresolved_feedback']
+                  if finding['severity'] == severity and finding['status'] == 'open'
+                  for task in finding['task_ids'] if task in actionable_tasks), None)
+    if first and first['state'] in {'evidence_missing', 'evidence_invalid'}:
+        next_action = action(first)
+    elif owned:
+        finding, task = owned
+        next_action = {'id': finding['id'], 'state': 'owned_action', 'owner': 'development AI',
+                       'trigger': 'Open assigned ' + finding['severity'] + ' feedback',
+                       'command': f'pnpm project:context {task} --phase verify'}
+    elif first:
+        next_action = action(first)
     elif retained_count:
         next_action = {'owner': 'development AI', 'trigger': 'Retained failure on matching inputs',
                        'command': 'pnpm project:status'}
@@ -350,6 +366,11 @@ def project_overview(state):
                        'trigger': 'Unassigned feedback', 'command': 'pnpm project:status'}
     else:
         next_action = {'owner': 'development AI', 'command': context}
+    calendar = next((review for review in reviews if review['review_due']
+                     and review['state'] not in {'evidence_missing', 'evidence_invalid'}), None)
+    maintenance_action = first if first and first['id'] != next_action.get('id') else calendar
+    additional = (action(maintenance_action) if maintenance_action
+                  and maintenance_action['id'] != next_action.get('id') else None)
     return {
         'purpose': state.get('purpose'),
         'focus': {key: focus[key] for key in ('id', 'title', 'status')} if focus else None,
@@ -371,7 +392,8 @@ def project_overview(state):
         'maintenance': {'periodic_attention': sum(review['review_due'] or review['state'] in attention
                                                   for review in reviews),
                         'waiting_for_event': sum(review['state'] == 'waiting_for_event' for review in reviews),
-                        'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due')},
+                        'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due'),
+                        'follow_through': additional},
         'next': next_action,
         'details': {'delivery': 'pnpm project:brief', 'focused_work': context,
                     'status': 'pnpm project:status', 'receipts': 'pnpm project:status --detail'},
