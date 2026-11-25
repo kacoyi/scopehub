@@ -21416,6 +21416,526 @@
           "cleanup": "Stage saves in the destination directory and remove staging files when publication succeeds or fails."
         }
       }
+    },
+    {
+      "id": "M1-041",
+      "title": "Review conflicting declarations in frozen native CSV source records",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-035",
+        "M1-038"
+      ],
+      "scope": [
+        "contracts",
+        "python/providers",
+        "python/worker_runtime",
+        "crates/application",
+        "crates/worker-host",
+        "apps/desktop",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Inspect a source record from an authorized frozen single-file or folder revision. Attribute each contradictory explicit declaration to the exact preserved source field and compare it with the mapping version bound to the revision.",
+        "Keep original bytes, source locators, previously published bars, dataset IDs and chart hashes unchanged. A denied, revoked, missing or unverifiable source cannot yield a successful review. A client that requests raw fields alone retains the existing response.",
+        "Verify a synthetic pre-admission revision, an unaffected record, multiline records, an independently revoked folder, and reopening with no live source-folder grant."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "market-workflow",
+        "python-types",
+        "generated-contracts",
+        "typescript-contracts",
+        "architecture",
+        "rust-contracts-workers",
+        "ui-build",
+        "desktop-localization",
+        "rust-format",
+        "rust-lints",
+        "local-import-publication",
+        "local-folder-import"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-041-a51fdc4738047663.json",
+          "sha256": "645ccd67b60e3cd3e5f3a6b761059517bb693bb947cade597b1e66a3b227d0b7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "A controlled historical futures revision exposed every contradictory declaration at the exact source record. The native bridge and built browser reopened it without the original directory, preserved its complete snapshot and retained raw bytes, and kept raw-only reads compatible. Folder and single-file revocation checks passed. The attached Linux task receipt covers the delivered scope.",
+      "plan": {
+        "outcome": "The existing original-row view shows conflicts with the exact mapping under which a historical bar was published.",
+        "change_types": [
+          "market-fixtures",
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-23-continuity-audit.json",
+          "python/providers/csv_bar_mapping.py",
+          "crates/application/src/local_publication.rs",
+          "crates/application/src/folder_publication.rs",
+          "apps/desktop/ui/src/local-preview-chart.tsx"
+        ],
+        "hypotheses": [
+          "Reuse the current admission rule for explicit declarations while parsing the selected logical record from retained source bytes. An opt-in response preserves earlier raw-read clients."
+        ],
+        "risks": [
+          {
+            "failure": "The shared process supervisor breaks worker type verification or changes process cleanup behavior.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Legacy conflicts are missed, or newer mapping drafts are compared with previously frozen source rows.",
+            "checks": [
+              "python-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A review leaks another revision or mutates bars, original bytes or snapshot identity.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "The new wire reply is ambiguous, rejects raw-only callers or loses readable diagnostics.",
+            "checks": [
+              "generated-contracts",
+              "typescript-contracts",
+              "ui-build",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Revert the read-path addition. Existing data and mapping versions require no migration.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host",
+            "providers",
+            "worker-runtime",
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "crates/application/src/local_publication.rs",
+            "crates/application/src/folder_publication.rs",
+            "apps/desktop/ui/src/local-preview-chart.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/refresh_conflicts"
+            }
+          ],
+          "non_goals": [
+            "Automatic repair, bulk scan, Parquet selection, source rebind and dated evidence admission."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Historical mapping versions, byte hashes, source locators, frozen chart identity and profile-scoped display permission."
+          ],
+          "change": [
+            "Add opt-in declaration comparison for one linked frozen source record."
+          ],
+          "data_plan": "Read immutable bytes through the existing entitled operations. Use synthetic historical fixtures and preserve the original bytes even if they conflict.",
+          "cleanup": "Share one declaration comparison with live admission. No persistent cache or secondary source store."
+        }
+      }
+    },
+    {
+      "id": "M1-045",
+      "title": "Preserve original CSV inspection across review limits and worker versions",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-041"
+      ],
+      "scope": [
+        "apps/desktop",
+        "contracts",
+        "crates/application",
+        "crates/worker-host",
+        "crates/persistence",
+        "python/worker_runtime",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Through the single-file and folder source-row dialogs, fall back to the entitled original response after review metadata exceeds the reply limit or a compatible worker lacks the optional capability. Use a new native request identity and show that review is unavailable. A truly oversized raw row remains rejected.",
+        "Show original and historical mapping values together for each conflicting column. Preserve observable spaces in both values, including one versus two spaces in a timestamp format.",
+        "Compile the original public Rust row-reader signature and the original request and result literals. Keep existing payloads and their optional review forms compatible through additive types and explicitly negotiated worker support."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "local-import-publication",
+        "local-folder-import",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-045-064d7c6a834817f2.json",
+          "sha256": "e9c6a0b831771a51acc75e50aa84cba1b184996271f19103e83f7bc6812d1ed5"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The built single-file and folder dialogs recovered the 64 KiB raw response with fresh IDs, kept a true over-limit record rejected, and discarded both raw responses after revocation. The declaration table preserved literal whitespace by column. The old Rust input and output constructors and six-argument function compiled as a real caller. A separate worker process lacking the optional capability received only the compatible original request.",
+      "plan": {
+        "outcome": "Both frozen CSV dialogs retain original-row access while presenting attributable, legible declaration review when the reader can supply it.",
+        "change_types": [
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "contracts/market-data-v1.json",
+          "python/worker_runtime/local_import.py",
+          "crates/worker-host/src/local_import.rs",
+          "apps/desktop/ui/src/local-preview-chart.tsx",
+          "tests/ui/local-import.spec.mjs"
+        ],
+        "hypotheses": [
+          "A fresh, ordinary authorized read can preserve an original response when review fails for a known capability or size reason. Separately typed opt-in payloads can preserve both the original Rust constructors and the accepted JSON shapes."
+        ],
+        "risks": [
+          {
+            "failure": "Fallback hides a supported row, bypasses revocation, repeats a stale request, or admits oversized raw fields.",
+            "checks": [
+              "local-import-publication",
+              "local-folder-import",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Mixed worker versions receive unnegotiated framing or valid legacy Rust callers fail to compile.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "generated-contracts",
+              "typescript-contracts"
+            ]
+          },
+          {
+            "failure": "Whitespace is lost or the original value is associated with an unrelated mapping field.",
+            "checks": [
+              "local-folder-import",
+              "desktop-localization",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Revert the compatibility correction while retaining the reviewed PR and all immutable source and verification records.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "worker-host",
+            "worker-runtime",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_import.rs",
+            "crates/application/src/local_publication.rs",
+            "crates/application/src/folder_publication.rs",
+            "apps/desktop/ui/src/local-preview-chart.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/ReadLocalImportSourceRowInput"
+            }
+          ],
+          "non_goals": [
+            "Bulk revision scans and historical observation time admission."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original 64 KiB frame limit, raw wire forms, historical revision identity, mapping version, and current profile access."
+          ],
+          "change": [
+            "Negotiate opt-in declaration review, recover supported raw reads with a fresh request, and present conflicts by column with their literal values."
+          ],
+          "data_plan": "Use synthetic historical publications and private worker fixtures. The existing storage format and read-only authorization path are sufficient.",
+          "cleanup": "Reuse the same raw reader and shared dialog retry path for both revision kinds."
+        }
+      }
+    },
+    {
+      "id": "M1-046",
+      "title": "Preserve exhaustive Rust callers of the public wire decoder",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-045"
+      ],
+      "scope": [
+        "contracts",
+        "crates/domain",
+        "crates/worker-host",
+        "python/worker_runtime",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Compile and run an external Rust consumer that exhaustively matches all 87 original Message variants through the unchanged public decode_line signature.",
+        "Decode valid opt-in file and folder CSV review frames through a separate typed entry. Keep legacy frames, unknown frame rejection, and the newline-inclusive frame budget covered.",
+        "Keep the private worker handshake and negotiated review capability isolated from the original row reader. Compare the remaining public Rust surface against the reviewed base for exhaustive and literal callers."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "architecture",
+        "python-types-win32",
+        "local-folder-import"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-046-cae142cb2b6dddd4.json",
+          "sha256": "513ec44e43bd0c48389adf79f48773d998e9cbb8816f7fbcaa36d3fcaa0fc1d2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The unchanged external consumer compiled and ran against the 87-variant public decoder on main, the previous published candidate, and the repaired source. Shared vectors and typed import and folder review responses exercised the separate decoder, including the exact 64 KiB boundary, unknown frames, and rejected legacy review input. The CSV worker retained explicit capability negotiation. The other original generated Rust enum and struct declarations and affected public signatures matched main.",
+      "plan": {
+        "outcome": "An unchanged exhaustive Rust caller builds and runs while explicit opt-in callers can validate and decode typed CSV review messages.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "scripts/generate_contracts.py",
+          "crates/domain/src/wire.rs",
+          "crates/worker-host/src/local_import.rs",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "Separate generated unions can keep the original Rust enum exhaustive while reusing schema and frame validation for opt-in messages."
+        ],
+        "risks": [
+          {
+            "failure": "A previous exhaustive consumer cannot compile or a legacy frame changes meaning.",
+            "checks": [
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "The opt-in decoder accepts an unknown, malformed, oversized, or unnegotiated frame.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "typescript-contracts",
+              "python-types",
+              "python-types-win32",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Revert this correction with the earlier source-row review records and their receipts available for diagnosis.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "worker-host",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "crates/domain/src/wire.rs",
+            "crates/worker-host/src/lib.rs",
+            "crates/worker-host/src/local_import.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Message"
+            }
+          ],
+          "non_goals": [
+            "Changes to frozen snapshot identity, retained bytes, permissions, or local API observation times."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The original exhaustive Message enum and decode_line signature, original wire frames, and the worker capability handshake."
+          ],
+          "change": [
+            "Use a separate typed decoder for the existing opt-in declaration review frames."
+          ],
+          "data_plan": "Use the shared protocol vectors and the existing synthesized worker fixtures. Persistent records require no migration.",
+          "cleanup": "Share framing and validation between the Rust decoding entries."
+        }
+      }
+    },
+    {
+      "id": "M1-047",
+      "title": "Preserve the public Python worker wire decoder",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-046"
+      ],
+      "scope": [
+        "python/worker_runtime",
+        "tests/contracts",
+        "pyproject.toml",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "The unchanged typed Python client imports and runs with the established Message result and passes strict mypy. The protocol module continues to export Message.",
+        "Legacy decode_line rejects all four CSV review envelope types. The explicit extended entry handles those envelopes and retains strict validation of unknown, malformed and over-limit frames.",
+        "Normal market, indicator, and CSV worker traffic keeps its established protocol boundaries and the CSV review capability remains separately negotiated."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-types-win32",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-047-718aafc50ed7769d.json",
+          "sha256": "abb1c65b96f9cf38e464a6d66dfc908a5471e16ec93874a35166f4f7bc873bdd"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The unchanged typed client ran and passed strict mypy, and the protocol module exported Message. The legacy codec rejected all four optional review envelopes, while the explicit codec round-tripped those envelopes and rejected malformed, unknown and over-limit frames. Real worker tests retained the CSV review negotiation, raw byte limit and ordinary protocol behavior.",
+      "plan": {
+        "outcome": "Old Python wire clients retain their import, typing and frame acceptance while explicit callers can use the CSV review envelopes.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "python/worker_runtime/protocol.py",
+          "python/worker_runtime/__main__.py",
+          "python/worker_runtime/indicator.py",
+          "python/worker_runtime/local_import.py",
+          "contracts/schemas/protocol.schema.json",
+          "tests/contracts/test_protocol.py"
+        ],
+        "hypotheses": [
+          "Sharing framing while selecting the exact canonical schema union at the entry point restores legacy typing and rejection without changing worker negotiation."
+        ],
+        "risks": [
+          {
+            "failure": "The old import or type annotation fails or ordinary worker traffic changes.",
+            "checks": [
+              "python-types",
+              "python-types-win32",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An extended frame bypasses validation, reaches the original decoder, or loses the newline-inclusive byte limit.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Revert the Python entry correction while retaining prior task records and the reviewed diagnostic.",
+        "implementation": {
+          "modules": [
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/worker_runtime/protocol.py",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Message"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/ExtendedMessage"
+            }
+          ],
+          "non_goals": [
+            "Rust or schema changes, worker feature negotiation changes, CSV UI changes and local API observation times."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original Python Message import, decoder and encoder signatures, original wire frames, validation behavior and byte limit."
+          ],
+          "change": [
+            "Select extended review explicitly in the shared Python codec."
+          ],
+          "data_plan": "Use the synthetic shared protocol vectors and worker tests. Persistent records require no migration.",
+          "cleanup": "Use one frame parser and serializer for both validation entries."
+        }
+      }
     }
   ]
 }

@@ -3609,17 +3609,28 @@
     },
     {
       "id": "frozen-csv-semantic-reassessment",
-      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations. The local regression reproduced INVALID_ARGUMENT for both selected rows before the worker repair. See .reports/runs/20261125T034911.580741Z-d1bc21fc/test-report.json. The harness also recorded sandboxed loopback failures and a changed working tree at the end of the run.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T034911.580741Z-d1bc21fc",
+          "source_commit": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+          "report_sha256": "293d48960e0bb6726a92a516acf795e85284d54931df4db555f13ac0959b2fd1"
+        }
+      ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The synthetic published revision retains original raw timezone, timeframe and volume declarations that conflict with its normalized bars. Correcting admission for new data leaves older frozen revisions and any analyses pinned to them in need of an attributable review path.",
       "task_ids": [
-        "M1-029"
+        "M1-041"
       ],
       "regression_checks": [
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Frozen source-row reads used the stored encoding and locator but omitted comparison with the bound historical mapping.",
+        "correction": "An opt-in local source record review identifies each conflicting original column and the reviewed value. The worker and current import use the same comparison rules, while the readback retains the historical revision, source bytes and chart hash.",
+        "prevention": "A synthetic historical revision is reopened through the desktop operation and browser without its source folder. Checks verify all semantic fields, exact raw values, quoted multiline locators, denied and revoked reads, raw-only compatibility and stable snapshot identity."
+      },
       "deferral_reason": null
     },
     {
@@ -5929,6 +5940,86 @@
         "cause": "The writer used the current view after resolved collection warnings were filtered.",
         "correction": "Persist the sanitized original diagnostics independently from the current display.",
         "prevention": "Resave complete retained failure observations with original missing-clock and missing-compact notes and an independent note."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "shared-worker-process-types",
+      "source": "Local Python 3.12 mypy run during the M1-041 audit at 9180963. The reproducible failure is retained in .reports/m1-041-red-python-types.log.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "The worker type check follows the trusted indicator guard into scripts/process_tree.py and reports eight strict type errors in the shared cleanup module.",
+      "task_ids": [
+        "M1-041"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The typed indicator guard imports the shared Linux supervisor and stop helper. The supervisor expansion left their published Python signatures incomplete.",
+        "correction": "Type the shared process entry points and guard Linux-only process constants on their supported platform.",
+        "prevention": "The local worker type suite and process-supervision regressions passed. A separate mypy run under the Windows type model also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-review-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at 638c8dd29ad122e86755b2d1f7b0697e36c67f93. Local pre-repair observations are retained in .reports/m1-045-red-rust-caller.log (SHA-256 62c695e54e35def6acb3bf43bb1fe26b47389a3b44ee596e691fb4aadebd6644), .reports/m1-045-red-worker.log (SHA-256 b32dc3e2e3b4d2999d5852d63ce59da4f2acec75cb0e57a1215adbdb27693f5c), .reports/m1-045-red-browser.log (SHA-256 71a8e67b6034ab8c18c682abac5d0e138321d1ee20e39886da4c1ddbe6dc038e).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Optional review metadata makes otherwise valid frozen CSV rows exceed the response budget in both dialogs. The UI collapses meaningful mapping whitespace. The public Rust row signature and original request constructors changed, and older workers reject the unnegotiated option.",
+      "task_ids": [
+        "M1-045"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory desktop review request consumed extra space, used the original worker capability, and conflated review metadata with stable Rust types. The review list collapsed whitespace.",
+        "correction": "Negotiate the distinct worker feature, retain the original Rust types and entry point, and use a fresh, reauthorized raw read on the two recoverable review failures. Show conflicting columns in an aligned table with literal whitespace.",
+        "prevention": "Exercise the 64 KiB boundary and an oversized original, permission revocation between review and retry, and literal whitespace in both dialogs. Compile a separate old caller and verify positive and negative private capability paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-message-exhaustive-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at d9015bda42d60a40cfd4b6abf4299d658aaf3364. The failing pre-repair consumer compilation is retained in .reports/m1-046-red-exhaustive.log (SHA-256 a5e58eaf4fcf56ee1ec01e2eb2966d55de486dc73a42d848629f1af022c80887).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The same source that exhaustively matches the 87 original Rust Message variants compiles on main and 638c8dd. The public decode_line return type on d9015bd exposes four additional review variants and the unchanged caller fails with E0004.",
+      "task_ids": [
+        "M1-046"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Review request and response members were added to the exhaustive public Message enum returned by the original Rust decoder.",
+        "correction": "Restore the original canonical Message definition and public decoder signature. Route opt-in review envelopes through a separate generated union and decoder with the common framing checks. Retain capability negotiation in the CSV host.",
+        "prevention": "Compile and run the unchanged 87-variant public consumer. Run shared positive and negative wire vectors through both Rust entries, check typed review responses and frame limits, and retain private capability and original row constructor cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-python-decoder-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at b76ed015fcbdf5a9e0679d7ad56fec6b24313f29. The same consumer and four envelope comparisons before repair are retained in .reports/m1-047-before-repair.log (SHA-256 eb49fe78aeed336c26533966edafc2c517d441ca7d1a93969bce85d1f3039012).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The established Python protocol module no longer exports Message, and decode_line widens its return type and admits four opt-in CSV review envelope types. Existing typed callers require the original Message and frame acceptance.",
+      "task_ids": [
+        "M1-047"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The Python protocol module used the extended schema root as its only validator and replaced the public Message import and decoder return type with ExtendedMessage.",
+        "correction": "Explicitly re-export Message and select the original canonical schema union for the legacy codec. Expose the extended union through separate codec entries that reuse the same framing and syntax checks.",
+        "prevention": "Run the unchanged typed consumer through strict mypy and runtime tests. Check both decoder entries against all shared vectors, verify the four review envelopes and exact frame budget, and retain real normal and negotiated worker tests."
       },
       "deferral_reason": null
     }
