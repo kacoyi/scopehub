@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-149",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25716,7 +25716,7 @@
       "id": "M0-149",
       "title": "Distinguish refused indicator status reads during delivery recovery",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-099",
         "M0-101"
@@ -25770,16 +25770,24 @@
         "Native preview status retries only an explicitly refused writer admission. An admitted registry or storage BUSY, an older unclassified reply and an unrelated native error stop and cancel the original task.",
         "The first-window journal rejects a raw cancellation with no task ID. A valid previous-task cancellation and the cancellation on exhaustion remain accounted for."
       ],
-      "next_action": "Independently review the deadline journal controls on the verified exact source, then obtain matching ordinary native outcomes and keep the unclassified protected status requests distinct.",
+      "next_action": null,
       "blocker": null,
       "delivery": "current-contract",
       "evidence": [
         {
           "path": "project/evidence/M0-149-986051150484c8f5.json",
           "sha256": "74dfbda9adea96fc2d922ee8c41066bebaf75e0bff310451890923a9314e00e6"
+        },
+        {
+          "path": "project/evidence/M0-149-798f9be1c30afd19.json",
+          "sha256": "9784b39c69b89dc1c6607111eae300a9acc01462c8e468c216d52f3020397f63"
+        },
+        {
+          "path": "project/evidence/M0-149-65e6b10d5bd355ff.json",
+          "sha256": "79d45758a5d8182ede755ae6dd6a6057f4348bf8d94bff7164b2b655a8080804"
         }
       ],
-      "closure_reason": null,
+      "closure_reason": "On the ordinary PR and scoped workflows, Linux and Windows each delivered nine browser journals from seven frozen-preview scenarios and four native transport controls. After losing a ready reply, the bounded held route observed two explicit refusals, the unforwarded request reaching its original browser deadline, and one cancellation of the same task. Full and cropped windows returned zero volatility. The earlier protected run retained two request identities without their HTTP outcomes.",
       "plan": {
         "outcome": "Preserve bounded same-task recovery and make the native zero-volatility observation distinguish a definite pre-admission refusal from a second accepted status recovery.",
         "change_types": [
