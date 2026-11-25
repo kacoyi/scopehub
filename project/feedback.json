@@ -6683,6 +6683,66 @@
       "resolution": null,
       "deferral_reason": null,
       "observation": "An official full platform compact and a compatible copy with one unknown producer cache lose the platform and its 804-second objective in both orders. Actual known cache contradictions need scoped diagnostics and exclusion from cache cohorts while the valid wall time remains."
+    },
+    {
+      "id": "timing-capture-overwrites-readable-and-invalid-originals",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "A 2,095,408-byte readable shared capture is replaced with a 2,099,767-byte union that its normal reader rejects. Later collection reads the rejected capture as empty and overwrites the archived evidence."
+    },
+    {
+      "id": "timing-optional-step-erases-independent-elapsed-clocks",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Removing only a recovery browser-install completion timestamp from a matching Actions record causes both orders to lose the known 645, 321 and 804 second elapsed clocks, including after archive reopen."
+    },
+    {
+      "id": "timing-producer-dispute-stops-independent-platform-intake",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Two producer reports and one browser job identity dispute produce no platform requests on either collection, even when Linux and Windows protected artifacts are available and the recovery clock is usable."
+    },
+    {
+      "id": "timing-exact-producer-cache-cannot-complete-aggregate-vector",
+      "source": "Independent Astra review of 6c5769688ed757cc03883cc2f5620f97238d77cc. Retained as archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt (SHA-256 2f32b49a2e020321f3e9dfe214deb0efe75b05ee8d1bb130e7d637a8b0800349).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "An authentic browser producer with matching CI identity, input digest and 11 check rows cannot complete an unknown browser component of the 804-second Windows aggregate; both orders and reopen lose the known partial classification."
     }
   ]
 }

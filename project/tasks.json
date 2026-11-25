@@ -24253,14 +24253,17 @@
         "Conflicting internally valid checkout claims within one attempt retain their original reports without attributable timing or protected capture and index qualification.",
         "A matching known checkout enriches an otherwise identical clock without replacing observed times. Differing known checkout claims remain disputed.",
         "Known per-producer cache facts enrich unknown facts. Conflicting known facts foreclose cache-dependent cohorts while valid wall duration survives. Preserve real full-sample conflicts, historic records timing, and previously accepted task and receipt history.",
-        "Preserve a real shared-capture red and green replay and a canonical task report on the exact candidate. Keep the corrective task and findings active for independent review."
+        "Preserve a real shared-capture red and green replay and a canonical task report on the exact candidate. Keep the corrective task and findings active for independent review.",
+        "Shared capture applies its ordinary reader bound and validates the candidate before atomic publication. A failed read, overflow or invalid update preserves original bytes, existing index and retry state.",
+        "Separate job identity from observed fields. Missing fields enrich from matching known values, two known disagreements affect the dependent result, and independent job and platform observations remain usable.",
+        "A producer dispute does not prevent ordinary protected platform backfill and indexing. An exactly matching producer can supply one unknown component of an existing aggregate cache vector."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reproduce all four timing evidence faults with the public CLI and temporary shared capture. Verify deterministic reconciliation and retain the exact task report for independent review.",
+      "next_action": "Retain the four second-round failures and replay all eight findings and historical controls on real private shared capture, then deliver the exact canonical local task report for independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24271,10 +24274,12 @@
         "context": [
           "scripts/timing.py",
           "tests/project/test_timing.py",
-          "archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt"
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-integration-ea836e3.txt",
+          "archives/observations/m0-133-timing-reconciliation/astra-timing-6c57696.txt"
         ],
         "hypotheses": [
-          "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes."
+          "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes.",
+          "Identity and qualification gates should be separate from optional measurement reconciliation. Capture publication and reopening should share validation and byte bounds."
         ],
         "risks": [
           {
@@ -24287,6 +24292,19 @@
             "failure": "Complementary checkout or cache facts become disputes, or genuine conflicts become qualified. Exercise both orders, duplicate inputs, complementary clock spans and component caches, known contradictions, and unchanged records and full-scope controls.",
             "checks": [
               "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A near-boundary candidate or an existing invalid file destroys original data. Test exact limit, one byte over, a formerly readable near-limit capture, invalid or oversized incumbent, reader-visible bytes, retry and lock contention in a private Git common directory.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Conflicting or unqualified facts propagate to unrelated metrics, jobs, cache cohorts or platform requests. In both orders and repeated intake, verify independently expected authentic job totals, exact producer cache provenance, one disputed versus two protected jobs, and real contradictory controls.",
+            "checks": [
               "python-contracts-workers"
             ]
           }
@@ -24309,7 +24327,8 @@
             "Workflow, runtime product, accepted task records, remote operations and premature M0-133 closure."
           ],
           "open_questions": [
-            "Keep the compatible legacy capture format while preserving distinct disputed observations and derived timing."
+            "Keep the existing archive format; reject a candidate that cannot be read within the shared limit rather than introducing a storage migration.",
+            "Use the attempt and job owner for an exact known-value union; use independently matched checks and digest for cache component authority."
           ]
         },
         "evolution": {
@@ -24318,7 +24337,8 @@
             "Original artifacts, accepted M0-103, M0-105, M0-130 and M0-131 history, protected wall timing and scoped records coverage."
           ],
           "change": [
-            "Reconcile exact attempt identity and compatible optional evidence before deriving platform, job, cache and index eligibility."
+            "Reconcile exact attempt identity and compatible optional evidence before deriving platform, job, cache and index eligibility.",
+            "Validate and publish one bounded capture transaction under the per-attempt lock while permitting coherent independent platform backfill."
           ],
           "data_plan": "Use authenticated historic snapshots and controlled copies under ignored paths and temporary shared Git storage.",
           "cleanup": "Keep immutable red and green evidence, remove temporary shared state, and leave the tracked worktree clean with M0-133 active."
