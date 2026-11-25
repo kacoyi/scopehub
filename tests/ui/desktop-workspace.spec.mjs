@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
-import { control, leaveSample } from './workspace-controls.mjs';
+import { control, leaveSample, openPanel } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
 const operationId = 'ce7fd52d-7a62-441f-897f-098098e6fe82';
@@ -850,22 +850,21 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
         const selectedBar = price.getByLabel('Selected bar');
         let peer;
         try {
-          let peerPage;
           if (!order.startsWith('with the same')) {
-            peerPage = await page.context().newPage();
-            await nativeTransport(peerPage, { optedIn: true }, ordinary);
+            peer = await page.context().newPage();
+            await nativeTransport(peer, { optedIn: true }, ordinary);
           }
           await page.goto('/');
           await expect.poll(() => capturedFirst, { timeout: 8000 }).toBe(true);
           await expect(selectedBar).toHaveCount(0);
           const peerChangesSource = !order.startsWith('with the same');
           if (peerChangesSource) {
-            peer = peerPage;
-            const window = peerPage;
+            const window = peer;
             await window.goto('/', { timeout: 8000 });
             const peerChart = window.getByRole('region', { name: 'Price chart' });
             await expect(peerChart.getByLabel('Selected bar')).toContainText('C 44');
-            await control(peerChart, 'Open published CSV').click();
+            await openPanel(window, 'Data sources');
+            await control(window.getByRole('complementary', { name: 'Data sources' }), 'Open published CSV').click({ timeout: 8000 });
             const dialog = window.getByRole('dialog', { name: 'Open published CSV' });
             await dialog.getByLabel('Revision ID').fill(b);
             await control(dialog, 'Open frozen chart').click();
@@ -886,8 +885,11 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
             const observer = new MutationObserver(check);
             observer.observe(document.body, { subtree: true, childList: true, characterData: true });
             window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
-            window.dispatchEvent(new Event('focus'));
+            window.observedFocus = false;
+            window.addEventListener('focus', () => { window.observedFocus = true; }, { once: true });
           });
+          await page.bringToFront();
+          await page.evaluate(() => { if (!window.observedFocus) window.dispatchEvent(new Event('focus')); });
           if (!order.startsWith('after')) {
             oldReply.resolve();
             await expect.poll(() => history.some(item => item.delivered === a)).toBe(true);
