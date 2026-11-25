@@ -7082,6 +7082,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-bulleted-document-activates-quoted-exchange",
+      "source": "Independent Astra Standard review of 4481eab5456943f1c46a7a05b3fc8e5e556e6d82, recorded at 76cc7d774fdb0fa457341ed3bc4cdb7ca34c9312. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-4481eab5/original-assistant-response.jsonl (SHA-256 93f3f9b026f3a4a04dbd8cbcdb77f2be2888ab27b0a6519f419cd48252da012a).",
+      "observation": "Adding a Unicode bullet to a documentation heading caused the first public M0-103 intake to record an approval and observation from a fenced terminal example. Handoff showed approval, and project check, history and delivery scope allowed closure. The unbulleted document was rejected and a source-bound pending request still blocked the untimed example.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

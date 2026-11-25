@@ -24940,7 +24940,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify document-bound verdict extraction through the first M0-103 intake, retain exact originals, and run the canonical M0-136 task before independent source review.",
+      "next_action": "Verify authored verdict and terminal exchange boundaries at public intake, retain the red and green observations, and run the canonical M0-136 task for independent source review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24955,7 +24955,8 @@
           "project/development.json",
           "project/feedback.json",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-136-d29a74cb/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-bce7aece/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-bce7aece/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-4481eab5/final-response.txt"
         ],
         "hypotheses": [
           "The prior closure qualified engineering execution correctly. The missing link is independent review at task acceptance, so the same green report cannot qualify the new transition by itself.",
@@ -25007,6 +25008,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A bulleted documentation heading turns quoted terminal examples into an independent decision. Exercise the first public M0-103 import, top-level and nested Markdown examples, genuine clipped terminal approvals and rejections, equivalent structured and plain replies, exact replay and pending-request chronology.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the acceptance addition and retain original independently observed decisions and the known early-closure reproduction.",
@@ -25038,7 +25046,8 @@
           "open_questions": [
             "Which material source changes after review require a second decision, and which administrative or protected changes retain the original scope?",
             "Keep the accepted ledger prefix immutable. Derive current response content identity from the same extracted Markdown source as the observation and use the stable event identity and available historical fingerprints.",
-            "Which opening structural markers identify the retained terminal envelopes? Bind the decision and observation to one extracted response regardless of terminal examples in the body."
+            "Which opening structural markers identify the retained terminal envelopes? Bind the decision and observation to one extracted response regardless of terminal examples in the body.",
+            "Use document structure to identify authored decision and exchange boundaries. Keep one selected final response for the heading, observation and replay digest, and verify the same result on retained genuine terminal captures."
           ]
         },
         "evolution": {
