@@ -151,6 +151,15 @@
       },
       "supersedes": "c044b0414b8b8789fd3416730978ab7db1303ecc4e5f67c36063c5f05e37c145",
       "evidence_sha256": "e671c77549af54f0e20e69e1ceea2d503b2bad48b03c03bc327d36f3ba131d27"
+    },
+    {
+      "kind": "request",
+      "source_commit": "bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "scope": "Independently review the source-bound M0-136 correction for mixed legacy text and structured response replay identity after the superseded rejection. Validate exact literal response preservation, whitespace, section and markdown controls, duplicate import and chronological decisions through the public request/import/handoff commands. Confirm the shared project CLI preserves protected maintenance behavior and established completed scopes. Distinguish local regression evidence, the real prior assistant response and pending new review from hosted qualification.",
+      "supersedes": "e210fc5fab7766aa6d614eb2e03ec715698348126f11b20c12cd217082f75876",
+      "requested_at": "2026-11-25T17:17:32.309942+00:00",
+      "request_id": "9d8b3d4394b5b3a9c14a6f5a679821d1e9c4f0cd1175174f5badfb95ccf135c5",
+      "evidence_sha256": "7433576c90293dd92c53af473219b103ec3eca2097611c2d0c3332a978c321ee"
     }
   ]
 }
