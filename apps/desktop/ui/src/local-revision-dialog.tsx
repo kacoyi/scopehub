@@ -1,5 +1,5 @@
 import { waitForReply, withReplyDeadline } from './reply-deadline';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import { formatNumber, message, plural, t } from './i18n';
 import {
@@ -125,6 +125,24 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     });
     return () => { superseded = true; };
   }, [listLoading, selection, workspacePending]);
+
+  const withheldFolderIds = useEffectEvent((revisions: readonly { revision_id: string }[]) =>
+    revisions.map(entry => entry.revision_id).filter(id => revisionAccess.unavailable.has(id) && !revisionAccess.revoked.has(id)));
+  const { verifyFolder } = revisionAccess;
+  useEffect(() => {
+    if (kind !== 'folder' || library.status !== 'ready') return;
+    let superseded = false;
+    const withheld = withheldFolderIds(library.result.revisions);
+    // List membership is not a display grant. Recheck only temporary
+    // denials on the current page, in order on the native admission lane.
+    void (async () => {
+      for (const id of withheld) {
+        if (superseded) return;
+        await verifyFolder(id);
+      }
+    })();
+    return () => { superseded = true; };
+  }, [kind, library, verifyFolder]);
 
   useEffect(() => {
     const node = dialog.current;

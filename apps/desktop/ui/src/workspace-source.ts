@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { RestoredChartSource } from './chart-workspace';
 import { openAuthenticatedFrozenChart, type FrozenChartResult } from './frozen-evidence';
 import type { ChartHistory, Instrument } from './market';
@@ -42,22 +42,37 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   const status = source?.kind === 'frozen' ? source.status : undefined;
   const revoked = id !== undefined && (status === 'revoked' || access.revoked.has(id));
   const missing = id !== undefined && access.unavailable.has(id);
-  const openable = id && status === 'available' && !revoked && !missing ? id : undefined;
+  const available = id && status === 'available' && !revoked && !missing ? id : undefined;
+  const openable = available && !workspace?.unconfirmedRevisions.has(available) ? available : undefined;
   const [loaded, setLoaded] = useState<RestoredChartSource>();
   const [attempt, setAttempt] = useState(0);
+  const opening = useRef<AbortController>(null);
   const { beginRead, withhold } = access;
+  const refreshPublishedAccess = workspace?.sourceRecovery ? undefined : workspace?.refreshPublishedAccess;
+  const fenceFirstReadOnFocus = useCallback((revision: string) => {
+    if (!opening.current || !refreshPublishedAccess) return false;
+    // Fence the old bars before awaiting the snapshot. The existing access
+    // queue also handles a workspace operation that already owns admission.
+    opening.current.abort();
+    refreshPublishedAccess(revision);
+    setAttempt(value => value + 1);
+    return true;
+  }, [refreshPublishedAccess]);
   const refreshAccess = useEffectEvent((revision: string) => {
     workspace?.refreshPublishedAccess(revision);
   });
 
-  const watched = id && !revoked && (missing || loaded?.status === 'ready' && loaded.revision_id === id) ? id : undefined;
-  useWatchPublishedRevision(watched, access.verify, workspace, missing ? 'checked-by-reader' : 'check');
+  const ready = loaded?.status === 'ready' && loaded.revision_id === id;
+  const watched = id && !revoked && (available || missing || ready) ? id : undefined;
+  const watchMode = missing ? 'checked-by-reader' : ready ? 'check' : 'focus-only';
+  useWatchPublishedRevision(watched, access.verify, workspace, watchMode, fenceFirstReadOnFocus);
   useEffect(() => {
     if (!openable) {
       setLoaded(undefined);
       return;
     }
     const controller = new AbortController();
+    opening.current = controller;
     const reading = beginRead(openable);
     setLoaded({ kind: 'frozen', revision_id: openable, status: 'loading' });
     void openAuthenticatedFrozenChart(openable, crypto.randomUUID(), controller.signal).then(result => {
@@ -74,8 +89,13 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
         withhold(openable);
         refreshAccess(openable);
       }
+    }).finally(() => {
+      if (opening.current === controller) opening.current = null;
     });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (opening.current === controller) opening.current = null;
+    };
   }, [openable, beginRead, withhold, attempt]);
 
   const retry = () => {
