@@ -1,5 +1,6 @@
 """Bounded cleanup for verification subprocesses."""
 
+from collections.abc import Sequence
 import json
 import os
 from pathlib import Path
@@ -8,7 +9,7 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Protocol
+from typing import Any, BinaryIO, Protocol, cast
 
 
 def running_group(group: int) -> bool:
@@ -27,13 +28,13 @@ class ProcessJob(Protocol):
     def stop(self) -> None: ...
 
 
-def start_linux_market_check(argv, **options):
+def start_linux_market_check(argv: Sequence[str], **options: Any) -> tuple[subprocess.Popen[bytes], BinaryIO]:
     # The subreaper belongs to one check, never to the multithreaded harness.
     read_fd, write_fd = os.pipe()
     with os.fdopen(write_fd, 'wb') as result:
         try:
             process = subprocess.Popen(
-                [sys._base_executable, '-I', '-S', __file__, str(result.fileno()), *argv],
+                [getattr(sys, '_base_executable', sys.executable), '-I', '-S', __file__, str(result.fileno()), *argv],
                 stdin=subprocess.PIPE, pass_fds=(result.fileno(),), **options,
             )
         except BaseException:
@@ -42,7 +43,8 @@ def start_linux_market_check(argv, **options):
     return process, os.fdopen(read_fd, 'rb')
 
 
-def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *, result_pipe=None):
+def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *,
+              result_pipe: BinaryIO | None = None) -> Sequence[int | str | None] | None:
     """Checks are trusted local programs, not a sandbox for hostile code."""
     if result_pipe is not None:
         # Closing the control pipe requests cancellation. The supervisor
@@ -50,7 +52,7 @@ def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *
         with result_pipe:
             if process.wait(timeout=10) != 0 or not (result := result_pipe.read(128)):
                 raise OSError('Linux market recovery process supervisor failed')
-        return json.loads(result)
+        return cast(list[int | str | None], json.loads(result))
     if sys.platform == 'win32':
         assert job is not None
         job.stop()
@@ -66,9 +68,12 @@ def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *
             if time.monotonic() >= deadline:
                 raise OSError('Verification process group still has live members')
             time.sleep(.01)
+    return None
 
 
-def reap_linux_children():
+def reap_linux_children() -> None:
+    if sys.platform != 'linux':
+        raise OSError('Descendant reaping requires Linux')
     # A subreaper adopts orphaned descendants, even across sessions. These
     # are exact child PIDs and cannot be reused before this process waits.
     children = Path(f'/proc/self/task/{os.getpid()}/children')
@@ -90,9 +95,11 @@ def reap_linux_children():
         time.sleep(.01)
 
 
-def supervise_linux_market_check(result_fd, argv):
+def supervise_linux_market_check(result_fd: int, argv: Sequence[str]) -> None:
     import ctypes
 
+    if sys.platform != 'linux':
+        raise OSError('Market process supervision requires Linux')
     # An inherited SIG_IGN would autoreap children and discard their status.
     signal.signal(signal.SIGCHLD, signal.SIG_DFL)
     prctl = ctypes.CDLL(None, use_errno=True).prctl

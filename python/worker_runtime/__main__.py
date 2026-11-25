@@ -11,8 +11,8 @@ from typing import Literal, cast
 from uuid import uuid4
 
 from contracts.generated.protocol import (
-    CancelMemberRequest11, ErrorCode, ErrorResponse, Heartbeat, Hello, MarketHistoryPageError, MarketHistoryPageRequest,
-    MarketHistoryPageResponse, MarketSubscriptionError, MarketSubscriptionRequest,
+    CancelMemberRequest11, ErrorCode, ErrorResponse, Heartbeat, Hello, MarketHistoryPageError,
+    MarketHistoryPageRequest, MarketHistoryPageResponse, MarketSubscriptionError, MarketSubscriptionRequest,
     MarketSubscriptionResponse, Message, Request, Response, WorkerHello11, WorkerRole,
 )
 from providers.history import HistoryError, execute

@@ -1326,5 +1326,55 @@
     "name": "bound AI workspace layout apply requires a preview",
     "valid": false,
     "wire": "{\"type\":\"event\",\"protocol_version\":\"1.1\",\"message_id\":\"3a50ea13-08a3-48a8-b202-e5ad948f7bb8\",\"timestamp_ms\":100,\"event\":\"ai.tool_request\",\"task_id\":\"676375fa-f7ad-4f78-8c6a-83fac90940a7\",\"call_id\":\"b7d9637b-439f-4e94-a4fc-62f2eebb170f\",\"stream_id\":\"st\",\"sequence\":4,\"payload\":{\"scope\":{\"workspace_id\":\"workspace\",\"target\":{\"kind\":\"layout\",\"object_id\":\"workspace-layout\"},\"expected_workspace_revision\":3,\"expected_selection_revision\":1,\"idempotency_key\":\"031a47fa-1a23-4687-b2f1-49dfd03cc988\"},\"intent\":{\"operation\":\"workspace.applyLayout\",\"arguments\":{\"edit\":{\"action\":\"save\",\"name\":\"Daily review\",\"definition\":{\"version\":1,\"panels\":[{\"panel\":\"watchlist\",\"dock\":\"left\",\"size\":240},{\"panel\":\"inspection\",\"dock\":\"bottom\",\"size\":200}],\"theme\":\"dark\",\"gain_color\":\"#43d4ac\",\"loss_color\":\"#f17d85\",\"link_selection\":true,\"pinned_instrument\":\"SIM.CN.FUTURE.001\"}}}}}}"
+  },
+  {
+    "name": "1.1 frozen import source row requests declaration review",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"review_declarations\":true}}\n"
+  },
+  {
+    "name": "1.1 frozen import source row rejects a nonboolean review flag",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"review_declarations\":\"true\"}}\n"
+  },
+  {
+    "name": "1.1 frozen import source row attributes a declaration conflict",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"timezone\"],\"raw_fields\":[\"UTC\"],\"declaration_conflicts\":[{\"column_index\":0,\"field\":\"timezone\",\"reviewed_value\":\"Asia/Shanghai\"}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 frozen import source row rejects an invalid declaration column",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"timezone\"],\"raw_fields\":[\"UTC\"],\"declaration_conflicts\":[{\"column_index\":512,\"field\":\"timezone\",\"reviewed_value\":\"Asia/Shanghai\"}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 frozen import source row carries an unavailable declaration review",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalImportSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"locator\":{\"record_number\":501,\"line_start\":503,\"line_end\":504},\"header\":[\"timezone\"],\"raw_fields\":[\"UTC\"],\"declaration_conflicts\":null},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 frozen folder source row requests declaration review",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504},\"review_declarations\":true}}\n"
+  },
+  {
+    "name": "1.1 frozen folder source row rejects a nonboolean review flag",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000001\",\"timestamp_ms\":1700000000000,\"type\":\"request\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"task_id\":null,\"payload\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504},\"review_declarations\":\"true\"}}\n"
+  },
+  {
+    "name": "1.1 frozen folder source row attributes a declaration conflict",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"header\":[\"timezone\"],\"raw_fields\":[\"UTC\"],\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504},\"declaration_conflicts\":[{\"column_index\":0,\"field\":\"timezone\",\"reviewed_value\":\"Asia/Shanghai\"}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 frozen folder source row rejects an invalid declaration column",
+    "valid": false,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"header\":[\"timezone\"],\"raw_fields\":[\"UTC\"],\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504},\"declaration_conflicts\":[{\"column_index\":512,\"field\":\"timezone\",\"reviewed_value\":\"Asia/Shanghai\"}]},\"error\":null}\n"
+  },
+  {
+    "name": "1.1 frozen folder source row carries an unavailable declaration review",
+    "valid": true,
+    "wire": "{\"protocol_version\":\"1.1\",\"message_id\":\"00000000-0000-4000-8000-000000000005\",\"timestamp_ms\":1700000000000,\"type\":\"response\",\"request_id\":\"00000000-0000-4000-8000-000000000002\",\"operation\":\"market.readLocalFolderSourceRow\",\"ok\":true,\"result\":{\"version\":1,\"revision_id\":\"00000000-0000-4000-8000-000000000006\",\"header\":[\"timezone\"],\"raw_fields\":[\"UTC\"],\"source\":{\"relative_path\":\"data/alias.csv\",\"source_sha256\":\"74936470b7360a315cc92a82c8990dc529a933c8cf684ec3b31dfd7080e1a234\",\"record_number\":501,\"line_start\":503,\"line_end\":504},\"declaration_conflicts\":null},\"error\":null}\n"
   }
 ]

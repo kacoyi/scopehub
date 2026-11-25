@@ -1,6 +1,7 @@
 """Review retained verification timings or explicitly inspect a GitHub Actions run."""
 
 import argparse
+from ast import literal_eval
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from functools import cache
@@ -69,6 +70,14 @@ HOSTED_BUDGET = 15 * 60
 MAX_RECENT = 12
 DEFAULT_RECENT = 8
 COMPACT_LIMIT = 128 * 1024
+TIMING_READ_LIMIT = 2 * 1024 * 1024
+MANUAL_ARCHIVE_LIMIT = 16 * 1024 * 1024
+REVIEW_READ_LIMIT = 64 * 1024 * 1024
+QUOTED_FILENAME = r"""(?:'(?:[^'\\\r\n]|\\.)*'|"(?:[^"\\\r\n]|\\.)*")"""
+LEGACY_FILE_ERROR = re.compile(
+    rf'(?P<message>\[(?:Errno|WinError) \d+\] [^\r\n]+?): '
+    rf'(?P<source>{QUOTED_FILENAME})(?: -> (?P<target>{QUOTED_FILENAME}))?\Z'
+)
 GENERATED_CHECK = 'generated-contracts'
 GENERATED_COMMAND = ['{python}', 'scripts/generate_contracts.py', '--check']
 GENERATOR_VERSIONS = {
@@ -397,10 +406,14 @@ def has_windows_producers(siblings, expected):
             and all(job['platform'] == 'Windows' and job['runner_label'] == 'windows-latest' for job in named))
 
 
-def hosted_timing(run, jobs):
-    """Derive clock intervals from an exact Actions attempt and its actual job topology."""
+def require_verification_workflow(run):
     if run.get('path', WORKFLOW) != WORKFLOW or run.get('name', 'Verify delivery') != 'Verify delivery':
         raise TimingError('Expected the ScopeHub verification workflow')
+
+
+def hosted_timing(run, jobs):
+    """Derive clock intervals from an exact Actions attempt and its actual job topology."""
+    require_verification_workflow(run)
     repository = run.get('repository', {}).get('full_name')
     if not repository:
         match = re.fullmatch(r'https://github\.com/([\w.-]+/[\w.-]+)/actions/runs/\d+', run.get('html_url', ''))
@@ -938,6 +951,7 @@ def timing_view(samples, *, hosted=(), issues=None):
                            'platform': platform, 'arch': arch, **objective_review(rows, metric, budget)})
     return {'samples': merged, 'hosted': hosted, 'reviews': reviews, 'objective_reviews': objectives,
             'pr_main_comparisons': list(pr_main_comparisons(merged)),
+            'input_issues': current_collection_issues(issues, samples, hosted),
             'next_action': ('Review objective breaches and material growth, then collect missing comparable observations.'
                             if reviews else 'Retain a measured fast run or a hosted change report with matching Actions jobs.')}
 
@@ -1260,28 +1274,98 @@ def incremental_timing_paths(directories):
             for path in entries[run]]
 
 
-def read_bounded_timing(path):
-    limit = 2 * 1024 * 1024
-    with path.open('rb') as content:
+class TimingReadBudget:
+    def __init__(self):
+        self.remaining = REVIEW_READ_LIMIT
+
+
+def read_bounded_timing(path, *, manual_archive=False, budget=None):
+    file_limit = MANUAL_ARCHIVE_LIMIT if manual_archive else TIMING_READ_LIMIT
+    limit = min(file_limit, budget.remaining) if budget is not None else file_limit
+    if limit < file_limit:
+        limit_error = 'Review inputs exceed the combined timing read limit.'
+    elif manual_archive:
+        limit_error = 'Report exceeds the manual timing archive limit.'
+    else:
+        limit_error = 'Report exceeds the compact timing read limit.'
+    if not limit:
+        raise TimingError(limit_error)
+    # Opening a FIFO must not wait for a writer, including if the path changes before this open.
+    flags = os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+    if not stat.S_ISREG(path.stat().st_mode):
+        raise TimingError('Expected a regular timing input file.')
+    with os.fdopen(os.open(path, flags), 'rb') as content:
+        info = os.fstat(content.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise TimingError('Expected a regular timing input file.')
+        if info.st_size > limit:
+            raise TimingError(limit_error)
         raw = content.read(limit + 1)
+    if budget is not None:
+        budget.remaining = max(0, budget.remaining - len(raw))
     if len(raw) > limit:
+        raise TimingError(limit_error)
+    data = json.loads(raw)
+    if len(raw) > TIMING_READ_LIMIT and (not isinstance(data, dict) or data.get('kind') != ARCHIVE_KIND):
         raise TimingError('Report exceeds the compact timing read limit.')
-    return json.loads(raw)
+    return data
 
 
-def archive_inputs(data, label, issues, *, collection_issues=True):
-    samples = admitted_records(data.get('samples'), valid_sample, f'timing sample in {label}', issues)
-    hosted = admitted_records(data.get('hosted'), valid_clock, f'attempt clock in {label}', issues)
+def input_error(error):
+    # OSError's formatted representation includes the full file path.
+    return (error.strerror or type(error).__name__) if isinstance(error, OSError) else str(error)
+
+
+def timing_filename(path):
+    return path.replace('\\', '/').rsplit('/', 1)[-1]
+
+
+def sanitize_legacy_file_error(error):
+    # Old --actions diagnostics could name the jobs input but quote the run input in the exception.
+    match = LEGACY_FILE_ERROR.fullmatch(error)
+    if match is None:
+        return error
+    try:
+        names = [repr(timing_filename(literal_eval(path))) for path in (match['source'], match['target']) if path]
+    except (SyntaxError, ValueError):
+        return match['message']
+    return f"{match['message']}: {' -> '.join(names)}"
+
+
+def collection_issue(note, label):
+    issue = {**note, 'error': sanitize_legacy_file_error(note['error'])}
+    # Keep the original source label after sanitizing it, including on resave.
+    for field in ('path', 'file'):
+        if isinstance(location := note.get(field), str) and location:
+            name = timing_filename(location)
+            issue['error'] = issue['error'].replace(location, name)
+            issue[field] = name
+    if not isinstance(issue.get('file'), str) or not issue['file']:
+        issue['file'] = label
+    return issue
+
+
+def archive_inputs(data, label, issues, *, collection_issues=True, validation_issues=None):
+    invalid = issues if validation_issues is None else validation_issues
+    samples = admitted_records(data.get('samples'), valid_sample, f'timing sample in {label}', invalid)
+    hosted = admitted_records(data.get('hosted'), valid_clock, f'attempt clock in {label}', invalid)
     if collection_issues:
         notes = admitted_records(data.get('input_issues', []),
                                  lambda note: labels(note, ('error',)) and isinstance(note['error'], str),
-                                 f'collection issue in {label}', issues)
-        failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success' and clock_capture_complete(clock)
-                  and failed_capture_is_complete(clock, samples, hosted)}
-        issues.extend({**note, 'file': label} for note in notes
-                      if not (isinstance(note.get('run_id'), str) and note['run_id'] in failed
-                              and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}))
+                                 f'collection issue in {label}', invalid)
+        issues.extend(collection_issue(note, label) for note in notes)
     return samples, hosted
+
+
+def current_collection_issues(issues, samples, hosted):
+    def missing_capture(note):
+        return isinstance(note.get('run_id'), str) and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}
+
+    incomplete = {note['run_id'] for note in issues if missing_capture(note)}
+    complete = {clock['run_id'] for clock in hosted
+                if clock['run_id'] in incomplete and clock['conclusion'] != 'success'
+                and clock_capture_complete(clock) and failed_capture_is_complete(clock, samples, hosted)}
+    return [note for note in issues if not (missing_capture(note) and note['run_id'] in complete)]
 
 
 def retained_failures_for_clocks(directories, hosted, already_read, issues):
@@ -1450,9 +1534,13 @@ def retained_budget_inputs(root, feedback=()):
     archives = [path for _, path in sorted(archives)[-4:]]
     local = sorted(root.glob('.reports/runs/*/test-report.json'), reverse=True)[:MAX_RECENT]
     samples, hosted = [], []
+    review_budget = TimingReadBudget()
     for path in [*recent, *archives, *local]:
         try:
-            data = read_bounded_timing(path)
+            if path in archives:
+                data = read_bounded_timing(path, manual_archive=True, budget=review_budget)
+            else:
+                data = read_bounded_timing(path)
             if data.get('kind') == ARCHIVE_KIND:
                 archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
                 samples.extend(archive_samples)
@@ -1460,7 +1548,7 @@ def retained_budget_inputs(root, feedback=()):
             elif path in local and not data.get('ci') and (data.get('selection') or {}).get('profile') == 'fast':
                 samples.append(report_sample(data))
         except (OSError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'file': path.name, 'error': str(error)})
+            issues.append({'file': path.name, 'error': input_error(error)})
     linked_samples, linked_hosted = linked_capture_inputs(directories, linked_timing_keys(feedback), recent, issues)
     samples.extend(linked_samples)
     hosted.extend(linked_hosted)
@@ -1490,7 +1578,7 @@ def budget_status(samples, hosted, issues, feedback, tasks, *, root=ROOT):
                 for group in view['reviews'] for metric in group['metrics']
                 if metric['objective_seconds'] is not None
             ],
-            'input_issues': issues,
+            'input_issues': view.get('input_issues', issues),
             'timing_command': 'pnpm project:timing'}
 
 
@@ -1837,6 +1925,72 @@ def review_summary(view):
     return '\n'.join(lines) + '\n'
 
 
+def require_review_archive_shape(archive):
+    if not isinstance(archive.get('samples'), list) or not isinstance(archive.get('hosted'), list):
+        raise TimingError('Expected a timing archive with sample and clock lists.')
+    if archive.get('recent_collection') is not None and not isinstance(archive['recent_collection'], dict):
+        raise TimingError('Expected a timing archive collection record.')
+
+
+def save_review_archive(path, archive):
+    require_review_archive_shape(archive)
+    invalid, notes = [], []
+    archive_inputs(archive, path.name, notes, validation_issues=invalid)
+    if invalid:
+        raise TimingError(invalid[0]['error'])
+    archive = {**archive, 'input_issues': notes}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    encoder = json.JSONEncoder(separators=(',', ':'), allow_nan=False)
+    with TemporaryDirectory(prefix='.scopehub-timing-', dir=path.parent) as folder:
+        staged = Path(folder) / 'archive.json'
+        remaining = MANUAL_ARCHIVE_LIMIT - 1
+        with staged.open('xb') as output:
+            for part in encoder.iterencode(archive):
+                encoded = part.encode('ascii')
+                remaining -= len(encoded)
+                if remaining < 0:
+                    raise TimingError('Review archive exceeds the manual timing archive limit.')
+                output.write(encoded)
+            output.write(b'\n')
+        identity = staged.stat()
+        # Publish a complete file with create-only semantics, even if another writer raced us.
+        os.link(staged, path)
+        return identity
+
+
+def append_review_summary(path, contents, *, archive=None, archive_identity=None):
+    with path.open('a', encoding='utf-8') as output:
+        if archive_identity is not None:
+            summary_identity = os.fstat(output.fileno())
+            if (os.path.samestat(summary_identity, archive_identity)
+                    or os.path.samestat(summary_identity, archive.stat())):
+                raise TimingError('The review archive and job summary must use different files.')
+        output.write(contents)
+
+
+def validate_actions_run(run):
+    if (not isinstance(run, dict) or not positive_id(run.get('id'))
+            or not isinstance(run.get('repository', {}), dict)
+            or any(run.get(key) is not None and not isinstance(run[key], str)
+                   for key in ('event', 'head_sha', 'html_url', 'status', 'conclusion'))):
+        raise TimingError('Expected an Actions run record.')
+    repository = run.get('repository', {}).get('full_name')
+    if repository is not None and (not isinstance(repository, str)
+                                   or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository)):
+        raise TimingError('Expected an Actions repository full_name in owner/name form.')
+    require_verification_workflow(run)
+
+
+def actions_jobs(data):
+    jobs = data.get('jobs') if isinstance(data, dict) else data
+    if not isinstance(jobs, list) or not all(
+            isinstance(job, dict) and isinstance(job.get('name'), str)
+            and isinstance(job.get('steps', []), list)
+            and all(isinstance(step, dict) for step in job.get('steps', [])) for job in jobs):
+        raise TimingError('Expected a list of Actions job records.')
+    return jobs
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--report', action='append', type=Path, help='Harness report, timing sample, or saved archive; repeatable')
@@ -1871,25 +2025,65 @@ def main():
         parser.error('--github-actions requires --recent and cannot accompany --run')
     samples, workflows, issues = [], [], []
     recent = None
+    explicit_input_failed = False
+    read_budget = TimingReadBudget()
     try:
+        if args.save and args.summary and args.save.resolve() == args.summary.resolve():
+            raise TimingError('The review archive and job summary must use different files.')
         for path in args.report if args.report is not None else local_paths(ROOT):
             try:
-                data = read_bounded_timing(path)
+                manual = args.report is not None or (
+                    path.parent == ROOT / '.reports/timing' and not CI_TIMING_NAME.fullmatch(path.name))
+                data = read_bounded_timing(path, manual_archive=manual, budget=read_budget)
+                if not isinstance(data, dict):
+                    raise TimingError('Expected a timing report, sample or saved archive.')
                 if data.get('kind') == ARCHIVE_KIND:
-                    archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
+                    require_review_archive_shape(data)
+                    invalid = []
+                    archive_samples, archive_hosted = archive_inputs(data, path.name, issues, validation_issues=invalid)
+                    if invalid:
+                        issues.extend(invalid)
+                        explicit_input_failed |= args.report is not None
                     samples.extend(archive_samples)
                     workflows.extend(archive_hosted)
                     recent = data.get('recent_collection') or recent
+                elif data.get('kind') == SAMPLE_KIND:
+                    if not valid_sample(data):
+                        raise TimingError('Invalid timing sample.')
+                    samples.append(data)
+                elif 'kind' in data:
+                    raise TimingError('Unexpected timing input kind.')
                 else:
-                    samples.append(data if data.get('kind') == SAMPLE_KIND else report_sample(data))
+                    checks = data.get('checks')
+                    if (not short_label(data.get('run_id')) or not isinstance(checks, list)
+                            or not all(isinstance(check, dict) and short_label(check.get('id'))
+                                       and short_label(check.get('status')) for check in checks)):
+                        raise TimingError('Expected a harness report with run identity and checks.')
+                    samples.append(report_sample(data))
             except (OSError, *TIMING_INPUT_ERRORS) as error:
-                issues.append({'path': str(path), 'error': str(error)})
+                explicit_input_failed |= args.report is not None
+                issues.append({'file': path.name, 'error': input_error(error)})
+                if not read_budget.remaining:
+                    break
         for run_path, jobs_path in args.actions or []:
+            path = run_path
             try:
-                run, jobs = read_bounded_timing(run_path), read_bounded_timing(jobs_path)
-                workflows.append(hosted_timing(run, jobs if isinstance(jobs, list) else jobs['jobs']))
+                run = read_bounded_timing(run_path, budget=read_budget)
+                validate_actions_run(run)
+                path = jobs_path
+                jobs = actions_jobs(read_bounded_timing(jobs_path, budget=read_budget))
+                clock = hosted_timing(run, jobs)
+                if not valid_clock(clock):
+                    raise TimingError('Invalid attempt clock derived from Actions input.')
+                workflows.append(clock)
             except (OSError, *TIMING_INPUT_ERRORS) as error:
-                issues.append({'path': str(jobs_path), 'error': str(error)})
+                explicit_input_failed = True
+                issues.append({'file': path.name, 'error': input_error(error)})
+                if not read_budget.remaining:
+                    break
+        if args.save and explicit_input_failed:
+            print(json.dumps({'input_issues': issues}, indent=2))
+            parser.exit(1, 'Could not save the review because an explicit timing input was incomplete or invalid.\n')
         if args.run or args.recent is not None:
             repository = hosted_repository(args.github_actions)
         if args.run:
@@ -1897,22 +2091,21 @@ def main():
                 workflows.append(inspect_hosted(run, args.attempt, repository, samples))
         if args.recent is not None:
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
-        view = timing_view(samples, hosted=workflows, issues=issues)
+        view = timing_view(samples, hosted=workflows, issues=list(issues))
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
-        view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
+        view.update(weekly_review=weekly_review(), recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
+        archive_identity = None
         if args.save:
-            args.save.parent.mkdir(parents=True, exist_ok=True)
-            with args.save.open('xb') as output:
-                output.write(json_bytes({'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
-                                         'recent_collection': recent, 'input_issues': issues}))
+            archive_identity = save_review_archive(
+                args.save, {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
+                            'recent_collection': recent, 'input_issues': issues})
         if args.summary:
-            with args.summary.open('a', encoding='utf-8') as output:
-                output.write(review_summary(view))
+            append_review_summary(args.summary, review_summary(view), archive=args.save, archive_identity=archive_identity)
         print(json.dumps(view, indent=2))
     except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-        parser.exit(1, f'Timing inspection failed: {error}\n')
+        parser.exit(1, f'Timing inspection failed: {input_error(error)}\n')
 
 
 if __name__ == '__main__':
