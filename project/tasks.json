@@ -21153,6 +21153,133 @@
           "cleanup": "Retain the same timeout and process termination boundary. Confirm owned process exit before deleting disposable profiles, and preserve uncertain recovery state."
         }
       }
+    },
+    {
+      "id": "M0-110",
+      "title": "Restore linked verification timing on protected main",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary status and CI read explicitly linked original timing after the recent history windows rotate, including in a fresh linked checkout. Retained capture bytes and recent candidate selection limits are preserved.",
+        "Missing originals, conflicting identities and retained authenticated failures cannot supply positive recovery. Ordinary Windows directory spelling is supported while redirected index paths are refused.",
+        "An existing store can index its original compact captures offline. Verify the migrated real controls and keep the Windows pull request elapsed objective separate from observed main push recovery."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-110-ec3b4d3958738058.json",
+          "sha256": "632ad9aa482a999884d308c307bf66dc9b07f6c238ed10088444a3c18500a0e1"
+        },
+        {
+          "path": "project/evidence/M0-110-86b207d642064200.json",
+          "sha256": "8fbbaa7ef90cf8c9cbcb8266a67d08ddae403922797352fc1a183e137a51296d"
+        },
+        {
+          "path": "project/evidence/M0-110-504d5450ea9462d0.json",
+          "sha256": "18d5058ca59e5a6a4167381ed60299a5b65f0c33daca5ec54eca30230b8bfd91"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard review approved 34b4627. Protected Linux and Windows run 45550215575 verified the amended definition and all linked timing regressions. Historical recovery observations retain their own scope. Current Windows PR elapsed remains independently governed.",
+      "plan": {
+        "outcome": "The ordinary budget verdict can use its exact linked PR and push controls after history rotates, from a fresh checkout on protected main.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json",
+          "archives/observations/m0-097-linked-timing-intake/retention-audit.json",
+          "archives/observations/m0-098-linked-timing-windows-ef65312/index.json"
+        ],
+        "hypotheses": [
+          "The bounded recent scan still hides available linked inputs on main. The shared index independently staged at 77bf40b, 6241372 and ef65312 can recover them using original compact captures."
+        ],
+        "risks": [
+          {
+            "failure": "Automatic or manual rotation hides a linked original despite its capture remaining available.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A missing or authenticated failed original, missing clock or ambiguous claimant is admitted as comparable recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An ordinary Windows directory alias blocks capture, or a redirected index permits writes outside the timing store.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new clockless claimant leaves the first ordinary CI verdict recovered until another query.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An entirely conflicting PR event triggers a shared fallback that discards valid main-push controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the index and its migration entry while retaining original captures and diagnostic reports.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/project.py",
+            "scripts/ci.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Windows workflow producer changes, checkout cleanup, branch publication and a claim of faster elapsed CI are outside this implementation."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep original archived reports, exact event separation, tested ancestry, retained failure authority, timed objectives and required check coverage."
+          ],
+          "change": [
+            "Make exact linked captures visible to ordinary status and CI outside the existing recent windows through derived shared lookup entries."
+          ],
+          "data_plan": "Use a read-only snapshot of retained compact captures for verification. The offline migration only adds lookup entries to its selected shared timing store.",
+          "cleanup": "Retain the unchanged original capture bytes and keep missing or conflicting links actionable."
+        }
+      }
     }
   ]
 }

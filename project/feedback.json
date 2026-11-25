@@ -5236,7 +5236,8 @@
       "severity": "major",
       "status": "addressed",
       "task_ids": [
-        "M0-097"
+        "M0-097",
+        "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
@@ -5259,9 +5260,9 @@
         }
       ],
       "resolution": {
-        "cause": "Bounded recent capture and local review selection also governed explicitly linked historical timing identities.",
-        "correction": "Index original canonical compact captures by exact harness report and checkout identity in shared Git timing storage. Ordinary status and CI consult only requested linked entries beyond the unchanged recent windows. One standalone offline command indexes pre-existing captures.",
-        "prevention": "Exercise both window boundaries and shared lookup from an independent worktree, verify new ordinary intake indexes its captures and reread exact retained failure authority."
+        "cause": "Bounded automatic and manual timing windows excluded explicitly linked historical diagnostics.",
+        "correction": "Index original canonical captures by exact report and checkout identity. Ordinary status and CI consult that shared index without widening the recent windows. The offline migration preserves original capture bytes.",
+        "prevention": "Exercise both rotation boundaries, fresh linked checkout lookup, automatic intake and retained failure authority. Replay six original PR controls and five main-push controls."
       },
       "deferral_reason": null
     },
@@ -5272,15 +5273,16 @@
       "severity": "major",
       "status": "addressed",
       "task_ids": [
-        "M0-097"
+        "M0-097",
+        "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
       "resolution": {
-        "cause": "Comparison treated only claimants with a currently eligible clock as conflicting.",
-        "correction": "Use the persistent indexed claimants for each requested original identity before checking clock eligibility. Keep that identity unavailable and conflicting when another indexed attempt loses its clock or its capture.",
-        "prevention": "Replay complete, missing-clock and missing-capture conflicts through ordinary offline status and regular CI alongside an independent qualifying recovery."
+        "cause": "Conflict detection depended on both capture files and eligible clocks remaining available.",
+        "correction": "Treat persistent indexed claims for one exact report identity as ambiguous before clock eligibility, even when another claimant has lost its clock or original capture.",
+        "prevention": "Exercise both clocks present, a missing clock, and a missing capture through ordinary status and CI alongside an independently qualifying recovery."
       },
       "deferral_reason": null
     },
@@ -5310,7 +5312,8 @@
       "severity": "major",
       "status": "addressed",
       "task_ids": [
-        "M0-098"
+        "M0-098",
+        "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
@@ -5323,9 +5326,9 @@
         }
       ],
       "resolution": {
-        "cause": "Different resolved spellings of the same plain Windows directory could be treated as a redirect.",
-        "correction": "Inspect existing directory components for real redirects before using the linked index. Accept ordinary aliases and reject reparse points.",
-        "prevention": "Keep the four backfill cases on an alternate spelling and the Windows junction controls for both index and identity paths. Retain the successful Windows regression in run 45459661035."
+        "cause": "Different resolved spellings of the same ordinary Windows directory could be treated as redirects.",
+        "correction": "Inspect existing directory components, allowing ordinary directory aliases and refusing redirected paths and reparse points.",
+        "prevention": "Exercise the four local and shared alternate-spelling intake cases plus index and identity junction refusal. Retain each protected Windows observation with its source task."
       },
       "deferral_reason": null
     },
@@ -5774,6 +5777,44 @@
         "cause": "An oversized opaque tail could pass structural decoding and disappear as inert before the historical managed limit was applied.",
         "correction": "Enforce the layout-specific CommonAce and ObjectAce opaque-length limits before Ace normalization, for ordinary and callback shapes.",
         "prevention": "The Windows Rust opaque-length regression tests the aligned maxima and the first aligned lengths above them. The ordinary Windows storage differential exercises private-workspace compatibility and byte-stable refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-first-query-misses-new-claimant",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "The first ordinary CI query reported recovery even though collection indexed a second claimant for a linked report and returned no matching clock. An immediate read-only query reported the same report as conflicting and recovery as pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Ordinary CI read claims before collection and did not re-evaluate report identities acquired during that call.",
+        "correction": "Re-evaluate only relevant identities after collection and treat a second clockless claimant as a conflict immediately.",
+        "prevention": "Assert the same pending verdict on the first and repeated ordinary CI queries and preserve an unambiguous valid control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-masks-independent-event",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "When every retained PR baseline identity had two claimants, the ordinary recovery comparison raised on an absent cutoff. The shared fallback discarded valid main-push recovery controls in both ordinary project status and CI.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An event with no unambiguous linked observation attempted to compare a missing chronology cutoff.",
+        "correction": "Leave only the affected event pending and continue to evaluate independent event controls.",
+        "prevention": "Exercise an entirely conflicting PR alongside valid main-push recovery through ordinary status and CI."
       },
       "deferral_reason": null
     }
