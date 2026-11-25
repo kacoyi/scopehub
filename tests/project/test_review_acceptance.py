@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from scripts import project, review_acceptance
 from scripts.integration import delivery_scope
+from scripts.review_tree import CommittedPath
 from tests.project.fixtures import task_by_id
 from tests.project.test_continuity import ProjectFixture
 
@@ -319,6 +320,31 @@ class TaskReviewTests(ProjectFixture):
             self.assertIn('verbatim', reply['observation'])
             self.assertIn('Chinese', reply['owner_communication'])
         self.assertNotIn('review_reply', self.command('context', 'M0-002', '--phase', 'verify'))
+
+    def test_bound_review_navigation_keeps_current_requests_separate(self):
+        _, source = self.open_review()
+        verified = ('context', TASK, '--phase', 'verify', '--source', source)
+        clean = self.command(*verified)
+        self.assertEqual(source, clean['review_source'])
+        self.assertNotIn('independent_review', clean)
+        self.assertEqual(f'APPROVE {TASK} {source}', clean['review_reply']['first_line'][0])
+        self.assertTrue(clean['review_reply']['current_checkout_review_command'].endswith(
+            f'context {TASK} --phase handoff'))
+
+        opened = self.command('review', TASK, '--source', source,
+                              '--request', 'Verify the recorded read and reopening result.')
+        live = self.command('context', TASK, '--phase', 'handoff')['independent_review']
+        self.assertEqual('current_checkout', live['record_basis'])
+        self.assertEqual(opened['request']['request_id'], live['pending_request']['request_id'])
+        self.command(*verified, error='requires a clean checkout')
+        self.assertEqual(source, self.command('source', 'project/tasks.json', '/tasks/0',
+                                              '--source', source)['source_commit'])
+
+        # Once a bound view is opened, mutable request records never become
+        # part of the reviewed tree, including during repeated navigation.
+        immutable = project.task_context(CommittedPath.at(self.root, source), TASK, phase='verify')
+        self.assertNotIn('independent_review', immutable)
+        self.assertEqual(clean['review_reply'], immutable['review_reply'])
 
     def test_post_verdict_observation_rejects_heading_atoms_and_accepts_short_facts(self):
         base, source = self.open_review()
