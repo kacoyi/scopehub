@@ -2798,68 +2798,231 @@ test('decision-note backup restore previews known deletions and independent copi
   }
 });
 
-test('decision-note draft keeps its text and date across peer timeframe changes', async ({ browser }) => {
-  const profile = await makeProfile();
-  const fixture = { date: '2026-02-03', thesis: 'Synthetic decision for a pending outcome', choice: 'Wait', outcomes: [] };
-  const draft = 'Synthetic unsubmitted reflection';
-  const date = '2026-04-09';
-  try {
-    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
-      await inFreshBrowser(browser, server, async page => {
-        await control(page, 'Decision notes').click();
-        await saveBackupTestNote(page.getByRole('dialog', { name: 'Decision notes' }), fixture);
-      });
-      await inFreshBrowser(browser, server, async observer => {
-        await control(observer, 'Decision notes').click();
-        const notes = observer.locator('dialog.decision-dialog');
-        await assertBackupTestNote(notes, fixture);
-        await notes.getByRole('button', { name: 'Add later outcome' }).click();
-        const outcome = notes.locator('textarea[name="body"]');
-        const outcomeDate = notes.locator('input[name="date"]');
-        await outcome.fill(draft);
-        await outcomeDate.fill(date);
+function observeDecisionNoteWindow(page, window, events, baseline) {
+  const identify = request => {
+    if (new URL(request.url()).pathname !== endpoint) return;
+    const message = request.postDataJSON();
+    const operation = message?.intent?.operation ?? message?.type;
+    if (operation !== 'snapshot' && operation !== 'chart.setTimeframe' && !operation?.startsWith('decisionNote.')) return;
+    return { window, operation, requestId: message.request_id, target: message.scope?.target?.object_id,
+      noteId: message.intent?.arguments?.note_id, expectedRevision: message.scope?.expected_workspace_revision,
+      confirmation: message.confirmation?.decision };
+  };
+  const add = (stage, details) => events.push({ stage, elapsedMs: performance.now() - baseline, ...details });
+  page.on('request', request => {
+    const details = identify(request);
+    if (details) add('request', details);
+  });
+  page.on('requestfailed', request => {
+    const details = identify(request);
+    if (details) add('failed-delivery', { ...details, error: request.failure()?.errorText });
+  });
+  page.on('response', response => {
+    const details = identify(response.request());
+    if (!details) return;
+    const event = { ...details, http: response.status() };
+    add('response', event);
+    const row = events.at(-1);
+    void response.json().then(frame => {
+      const result = frame.result;
+      const outcome = result?.outcome;
+      Object.assign(row, { state: outcome?.state, code: outcome?.error?.code ?? frame.error?.code,
+        retryable: outcome?.error?.retryable ?? frame.error?.retryable, receiptRevision: outcome?.receipt?.committed_workspace_revision,
+        workspaceRevision: result?.workspace?.revision ?? outcome?.result?.revision, selectionRevision: result?.selection_revision,
+        selectedNote: outcome?.result?.note?.note_id, list: outcome?.result?.notes?.map(note => note.note_id) });
+    }, error => { row.readError = error.message.split('\n')[0]; });
+  });
+}
 
-        await inFreshBrowser(browser, server, async peer => {
-          await duringResponse(observer, 'decisionNote.read', async () => {
-            expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+async function decisionNoteMode(page) {
+  return page.evaluate(() => {
+    const dialog = document.querySelector('dialog.decision-dialog');
+    if (!dialog?.open) return { mode: 'closed' };
+    const buttons = [...dialog.querySelectorAll('button')].map(button => button.textContent.trim());
+    return {
+      mode: dialog.querySelector('.note-approval') ? 'approval'
+        : dialog.querySelector('textarea[name="body"]') ? 'outcome-draft'
+          : dialog.querySelector('textarea[name="thesis"]') ? 'new-draft'
+            : dialog.querySelector('.note-original') ? 'detail'
+              : buttons.includes('New decision note') ? 'list'
+                : buttons.includes('Reload decision notes') ? 'reload' : 'loading',
+      busy: dialog.querySelector('.decision-body')?.getAttribute('aria-busy') === 'true',
+      selectedDate: dialog.querySelector('.note-original time')?.dateTime,
+      listDates: [...dialog.querySelectorAll('.note-list time')].map(time => time.dateTime),
+      notice: dialog.querySelector('.note-status')?.textContent,
+      error: dialog.querySelector('.note-error')?.textContent,
+    };
+  });
+}
+
+function decisionNoteStoredState(profile) {
+  const db = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+  try {
+    return {
+      workspace: db.prepare('SELECT revision, selection_revision, timeframe FROM workspaces WHERE id = ?').get(workspaceId),
+      notes: db.prepare('SELECT note_id FROM decision_notes ORDER BY note_id').all().map(row => row.note_id),
+      outcomeCount: db.prepare('SELECT count(*) AS count FROM decision_note_outcomes').get().count,
+      deletions: db.prepare('SELECT note_id, revision FROM decision_note_deletions ORDER BY note_id').all()
+        .map(row => ({ noteId: row.note_id, revision: row.revision })),
+    };
+  } finally { db.close(); }
+}
+
+async function whilePeerHoldsNoteSnapshot(server, observer, deleting, observation, action) {
+  const url = server.url + endpoint;
+  const tag = server.tagSnapshot();
+  let armed = false;
+  let tagged = false;
+  const holdObserver = async route => {
+    if (!armed || tagged || route.request().postDataJSON()?.type !== 'snapshot') return route.continue();
+    tagged = true;
+    await route.continue({ headers: { ...await route.request().allHeaders(), ...tag.headers } });
+  };
+  const deliverApproval = async route => {
+    if (!isDecisionNoteDeleteApproval(route.request().postDataJSON())) return route.continue();
+    const response = await route.fetch();
+    try {
+      expect((await response.json()).result.outcome.state).toBe('committed');
+      armed = true;
+      await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
+      observation.heldObserver = await tag.wait('written');
+      await route.fulfill({ response });
+    } finally {
+      await response.dispose();
+    }
+  };
+  const releaseAfterRefusal = response => {
+    if (!armed || response.status() !== 429 || new URL(response.url()).pathname !== endpoint) return;
+    const body = response.request().postDataJSON();
+    if (body?.type !== 'snapshot' && body?.intent?.operation !== 'decisionNote.read') return;
+    observation.refusedInitiatingRead ??= { operation: body.intent?.operation ?? body.type,
+      requestId: body.request_id, http: response.status() };
+    tag.release();
+  };
+  await observer.route(url, holdObserver);
+  await deleting.route(url, deliverApproval);
+  deleting.on('response', releaseAfterRefusal);
+  try {
+    await action();
+    expect(observation.refusedInitiatingRead).toMatchObject(
+      { operation: 'decisionNote.read', requestId: expect.any(String), http: 429 });
+    const events = observation.events.filter(event => event.window === 'deleting-window');
+    const approval = events.findIndex(event => event.stage === 'response'
+      && event.operation === 'decisionNote.delete' && event.confirmation === 'approve');
+    expect(approval).toBeGreaterThanOrEqual(0);
+    const reopened = events.slice(approval + 1);
+    expect(reopened.find(event => event.stage === 'request')).toMatchObject({
+      operation: 'decisionNote.read', noteId: null, requestId: observation.refusedInitiatingRead.requestId,
+    });
+    const reply = reopened.filter(event => event.stage === 'response' && event.operation === 'decisionNote.read');
+    expect(reply[0]).toMatchObject({ http: 429 });
+    expect(reply.at(-1)).toMatchObject({ http: 200, requestId: observation.refusedInitiatingRead.requestId });
+  } finally {
+    tag.release();
+    deleting.off('response', releaseAfterRefusal);
+    await Promise.all([observer.unroute(url, holdObserver), deleting.unroute(url, deliverApproval)]);
+  }
+}
+
+for (const holdPeer of [false, true]) {
+  test(holdPeer ? 'committed decision-note deletion returns to list after peer admission contention'
+    : 'decision-note draft keeps its text and date across peer timeframe changes', async ({ browser }, testInfo) => {
+    const profile = await makeProfile();
+    const fixture = { date: '2026-02-03', thesis: 'Synthetic decision for a pending outcome', choice: 'Wait', outcomes: [] };
+    const draft = 'Synthetic unsubmitted reflection';
+    const date = '2026-04-09';
+    const observation = { holdPeer, events: [] };
+    const baseline = performance.now();
+    const watch = (page, window) => observeDecisionNoteWindow(page, window, observation.events, baseline);
+    try {
+      await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+        await inFreshBrowser(browser, server, async page => {
+          watch(page, 'seed');
+          await control(page, 'Decision notes').click();
+          await saveBackupTestNote(page.getByRole('dialog', { name: 'Decision notes' }), fixture);
+        });
+        await inFreshBrowser(browser, server, async observer => {
+          watch(observer, 'observer');
+          await control(observer, 'Decision notes').click();
+          const notes = observer.locator('dialog.decision-dialog');
+          await assertBackupTestNote(notes, fixture);
+          await notes.getByRole('button', { name: 'Add later outcome' }).click();
+          const outcome = notes.locator('textarea[name="body"]');
+          const outcomeDate = notes.locator('input[name="date"]');
+          await outcome.fill(draft);
+          await outcomeDate.fill(date);
+
+          await inFreshBrowser(browser, server, async peer => {
+            watch(peer, 'timeframe-peer');
+            await duringResponse(observer, 'decisionNote.read', async () => {
+              expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+              await observer.bringToFront();
+            }, 10_000);
+            await expect(outcome).toHaveValue(draft);
+            await expect(outcomeDate).toHaveValue(date);
+
+            await notes.getByRole('button', { name: 'Review later outcome' }).click();
+            const approval = notes.getByRole('button', { name: 'Save later outcome' });
+            await expect(approval).toBeVisible();
+            await peer.bringToFront();
+            expect((await act(peer, '1d', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
             await observer.bringToFront();
-          }, 10_000);
-          await expect(outcome).toHaveValue(draft);
-          await expect(outcomeDate).toHaveValue(date);
+            await expect(approval).toHaveCount(0);
+            await expect(outcome).toHaveValue(draft);
+            await expect(outcomeDate).toHaveValue(date);
+          });
 
           await notes.getByRole('button', { name: 'Review later outcome' }).click();
-          const approval = notes.getByRole('button', { name: 'Save later outcome' });
-          await expect(approval).toBeVisible();
-          await peer.bringToFront();
-          expect((await act(peer, '1d', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
-          await observer.bringToFront();
-          await expect(approval).toHaveCount(0);
-          await expect(outcome).toHaveValue(draft);
-          await expect(outcomeDate).toHaveValue(date);
+          await notes.getByRole('button', { name: 'Save later outcome' }).click();
+          await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(draft)).toBeVisible();
+          await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(date)).toBeVisible();
+          await notes.getByRole('button', { name: 'Add later outcome' }).click();
+          const deletedDraft = 'Synthetic draft to remove on peer deletion';
+          await outcome.fill(deletedDraft);
+          await inFreshBrowser(browser, server, async peer => {
+            watch(peer, 'deleting-window');
+            await control(peer, 'Decision notes').click();
+            await expect(peer.getByRole('button', { name: new RegExp(fixture.date) })).toBeVisible();
+            observation.before = {
+              initiating: await decisionNoteMode(peer), observing: await decisionNoteMode(observer), stored: decisionNoteStoredState(profile),
+            };
+            try {
+              const remove = () => deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
+              if (holdPeer) await whilePeerHoldsNoteSnapshot(server, observer, peer, observation, remove);
+              else await remove();
+              await observer.bringToFront();
+              await expect(outcome).toHaveCount(0);
+              await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+              await expect(notes.getByText(draft)).toHaveCount(0);
+              await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+            } catch (error) {
+              for (const [label, page] of [['deleting-window', peer], ['observer', observer]]) {
+                const screenshot = await page.screenshot({ timeout: 1_000 }).catch(() => undefined);
+                if (screenshot) await testInfo.attach(label + '-at-failure', {
+                  body: screenshot, contentType: 'image/png',
+                }).catch(() => {});
+              }
+              throw error;
+            } finally {
+              observation.after = {
+                initiating: await decisionNoteMode(peer), observing: await decisionNoteMode(observer), stored: decisionNoteStoredState(profile),
+              };
+            }
+            expect(observation.before.observing.mode).toBe('outcome-draft');
+            expect(observation.before.stored.outcomeCount).toBe(1);
+            expect(observation.after.initiating.mode).toBe('list');
+            expect(observation.after.observing.mode).toBe('list');
+            expect(observation.after.stored).toMatchObject({ notes: [], outcomeCount: 0,
+              deletions: [{ noteId: observation.before.stored.notes[0], revision: observation.after.stored.workspace.revision }] });
+          });
         });
-
-        await notes.getByRole('button', { name: 'Review later outcome' }).click();
-        await notes.getByRole('button', { name: 'Save later outcome' }).click();
-        await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(draft)).toBeVisible();
-        await expect(notes.getByRole('region', { name: 'Later outcomes' }).getByText(date)).toBeVisible();
-        await notes.getByRole('button', { name: 'Add later outcome' }).click();
-        const deletedDraft = 'Synthetic draft to remove on peer deletion';
-        await outcome.fill(deletedDraft);
-        await inFreshBrowser(browser, server, async peer => {
-          await control(peer, 'Decision notes').click();
-          await deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
-          await observer.bringToFront();
-          await expect(outcome).toHaveCount(0);
-          await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
-          await expect(notes.getByText(draft)).toHaveCount(0);
-          await expect(notes.getByText('No saved decision notes.')).toBeVisible();
-        });
-      });
-    });
-  } finally {
-    await profile.close();
-  }
-});
+      }, { snapshotGate: holdPeer });
+    } finally {
+      await testInfo.attach('decision-note-window-timeline', { body: JSON.stringify(observation), contentType: 'application/json' });
+      await profile.close();
+    }
+  });
+}
 
 test('a confirmed decision-note deletion survives list retries and clears when a new note starts', async ({ browser }, testInfo) => {
   const profile = await makeProfile();
