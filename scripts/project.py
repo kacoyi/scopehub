@@ -3,6 +3,7 @@
 import argparse
 import ast
 from datetime import date, datetime, timedelta, timezone
+from functools import cached_property, partial
 from graphlib import CycleError, TopologicalSorter
 import hashlib
 from io import BytesIO
@@ -387,9 +388,13 @@ def committed_source_identity(root, commit):
 
 
 def validate_model(root, name, value):
-    schema = read_json(root / 'contracts/schemas/project.schema.json')
+    definitions = read_json(root / 'contracts/schemas/project.schema.json')['$defs']
+    _validate_project_model(definitions, name, value)
+
+
+def _validate_project_model(definitions, name, value):
     validator = Draft202012Validator(
-        {'$ref': f'#/$defs/{name}', '$defs': schema['$defs']}, format_checker=FormatChecker(),
+        {'$ref': f'#/$defs/{name}', '$defs': definitions}, format_checker=FormatChecker(),
     )
     errors = list(validator.iter_errors(value))
     if errors:
@@ -431,8 +436,10 @@ def load_project(root=ROOT):
         raise ProjectError(f'Invalid engineering contract: {error}') from error
     ledger = read_json(root / 'project/tasks.json')
     catalog = read_json(root / 'project/checks.json')
-    validate_model(root, 'TaskLedger', ledger)
-    validate_model(root, 'CheckCatalog', catalog)
+    definitions = read_json(root / 'contracts/schemas/project.schema.json')['$defs']
+    validate = partial(_validate_project_model, definitions)
+    validate('TaskLedger', ledger)
+    validate('CheckCatalog', catalog)
     tasks = indexed(ledger['tasks'], 'task')
     checks = indexed(catalog['checks'], 'check')
     gates = indexed(catalog['milestones'], 'milestone')
@@ -478,7 +485,7 @@ def load_project(root=ROOT):
     decision_paths = {}
     for path in sorted((root / 'contracts/decisions').glob('*.json'), key=lambda path: path.name):
         decision = read_json(path)
-        validate_model(root, 'Decision', decision)
+        validate('Decision', decision)
         if not path.name.startswith(decision['id'] + '-'):
             raise ProjectError(f'Decision ID does not match filename: {path.name}')
         decisions.append(decision)
@@ -529,7 +536,7 @@ def load_project(root=ROOT):
             if digest(path.read_bytes()) != ref['sha256']:
                 raise ProjectError(f"Evidence digest mismatch: {ref['path']}")
             receipt = read_json(path)
-            validate_model(root, 'Evidence', receipt)
+            validate('Evidence', receipt)
             if receipt['task_id'] != task['id']:
                 raise ProjectError(f"Evidence belongs to another task: {task['id']}")
             observed = indexed(receipt['checks'], 'evidence check')
@@ -563,7 +570,7 @@ def load_project(root=ROOT):
         raise ProjectError('The focus must identify active work when active tasks exist')
     project = {'spec': spec, 'ledger': ledger, 'catalog': catalog, 'tasks': tasks, 'checks': checks,
                'decisions': decisions, 'decision_paths': decision_paths, 'replacements': replacements}
-    validate_delivery(root, project)
+    validate_delivery(root, project, validate)
     primary = spec.get('ai', {}).get('model_connections', {}).get('primary_cloud_route')
     if primary is not None:
         if (not isinstance(primary, dict) or not isinstance(primary.get('task'), str)
@@ -593,7 +600,7 @@ def load_project(root=ROOT):
         else:
             from development import validate_record
         record = read_json(local_path(root, development_path))
-        validate_model(root, 'Development', record)
+        validate('Development', record)
         try:
             validate_record(root, project, record)
         except (ValueError, OSError) as error:
@@ -604,11 +611,11 @@ def load_project(root=ROOT):
     return project
 
 
-def validate_delivery(root, project):
+def validate_delivery(root, project, validate):
     delivery = read_json(root / 'project/delivery.json')
     feedback = read_json(root / 'project/feedback.json')
-    validate_model(root, 'Delivery', delivery)
-    validate_model(root, 'Feedback', feedback)
+    validate('Delivery', delivery)
+    validate('Feedback', feedback)
     indexed(delivery['scaffold_maintenance']['periodic_reviews'], 'periodic review')
     tasks, checks = project['tasks'], project['checks']
     types = indexed(delivery['change_types'], 'change type')
@@ -2086,11 +2093,27 @@ def validate_feedback_changes(root, project, commit, old_items, items, *, inheri
             raise ProjectError(f'Closing feedback {key} requires new regression evidence for {sorted(missing)}')
 
 
-def validate_feedback_checkpoint(root, project, commit, inherited=None):
+class _FeedbackRulePredecessor:
+    """The fixed rule introduction's accepted parent, read only after proving ancestry."""
+
+    def __init__(self, root):
+        self.root = root
+        self.commit = f'{FEEDBACK_RECEIPT_INTRODUCTION}^1'
+
+    @cached_property
+    def feedback(self):
+        return feedback_at(self.root, self.commit)
+
+    @cached_property
+    def tasks(self):
+        return tasks_at_feedback_checkpoint(self.root, self.commit)
+
+
+def validate_feedback_checkpoint(root, project, commit, predecessor, inherited=None):
     """Recognize an older closure only across the actual protected rule transition."""
     old_items = feedback_at(root, commit)
     items = indexed(project['feedback']['items'], 'feedback')
-    last_legacy = f'{FEEDBACK_RECEIPT_INTRODUCTION}^1'
+    last_legacy = predecessor.commit
     # A shallow or unrelated checkout may not prove the crossing. Its ordinary
     # comparison still requires full current evidence for every changed closure.
     def ancestor(earlier, later):
@@ -2098,8 +2121,8 @@ def validate_feedback_checkpoint(root, project, commit, inherited=None):
 
     legacy = None
     if ancestor(commit, last_legacy) and ancestor(FEEDBACK_RECEIPT_INTRODUCTION, 'HEAD'):
-        legacy = feedback_at(root, last_legacy)
-        verify_accepted_tasks(root, project, tasks_at_feedback_checkpoint(root, last_legacy).values())
+        legacy = predecessor.feedback
+        verify_accepted_tasks(root, project, predecessor.tasks.values())
         # Compare this endpoint too: the caller's older base cannot see a deletion,
         # edit or recurrence of a finding introduced before the rules changed.
         validate_feedback_changes(root, project, last_legacy, legacy, items)
@@ -2180,10 +2203,11 @@ def local_feedback_history(root, project):
     checkpoint = feedback_commit(root, os.environ.get('SCOPEHUB_CHECKPOINT_BASE'))
     compared = []
     imports = {}
+    predecessor = _FeedbackRulePredecessor(root)
     for sha in dict.fromkeys([reviewed, head, checkpoint]):
         if sha:
             require_periodic_transition(root, project, sha)
-            records = validate_feedback_checkpoint(root, project, sha, imports)
+            records = validate_feedback_checkpoint(root, project, sha, predecessor, imports)
             if explicit and sha == reviewed:
                 imports = reviewed_feedback_imports(records, reviewed, head)
             compared.append(sha)
@@ -2193,18 +2217,20 @@ def local_feedback_history(root, project):
 
 
 def review_history(root=ROOT, base=None, *, checkpoint_base=None, fetch_missing_checkpoint=False):
-    result, records = compare_history(root, base)
+    predecessor = _FeedbackRulePredecessor(root)
+    result, records = compare_history(root, base, predecessor=predecessor)
     if checkpoint_base and checkpoint_base != base:
         if fetch_missing_checkpoint:
             if os.environ.get('GITHUB_ACTIONS') != 'true':
                 raise ProjectError('Checkpoint recovery requires the GitHub Actions job context')
             recover_hosted_checkpoint(root, checkpoint_base, os.environ.get('GITHUB_REPOSITORY', ''))
+            predecessor = _FeedbackRulePredecessor(root)
         imports = reviewed_feedback_imports(records, result.get('base_commit'), feedback_commit(root, 'HEAD'))
-        result['previous_checkpoint'], _ = compare_history(root, checkpoint_base, imports)
+        result['previous_checkpoint'], _ = compare_history(root, checkpoint_base, imports, predecessor=predecessor)
     return result
 
 
-def compare_history(root, base, inherited=None):
+def compare_history(root, base, inherited=None, *, predecessor=None):
     """Return the reviewed base ledger only after the complete history comparison passes."""
     if not base or set(base) == {'0'}:
         return {'status': 'not_applicable', 'reason': 'No previous revision supplied; no history comparison was performed.'}, {}
@@ -2225,7 +2251,8 @@ def compare_history(root, base, inherited=None):
         old = old_tasks.get(key, {})
         if old.get('status') not in {'done', 'cancelled'}:
             validate_report_references(root, task, f'Task {key}')
-    feedback = validate_feedback_checkpoint(root, project, resolved, inherited)
+    feedback = validate_feedback_checkpoint(root, project, resolved, predecessor or _FeedbackRulePredecessor(root),
+                                            inherited)
     review_operational_report_paths(root, resolved)
     catalog = previous('project/checks.json')
     previous_commands = {check['id']: check.get('command') for check in catalog['checks']} if catalog else {}
