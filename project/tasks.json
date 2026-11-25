@@ -21156,6 +21156,961 @@
       }
     },
     {
+      "id": "M0-110",
+      "title": "Restore linked verification timing on protected main",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary status and CI read explicitly linked original timing after the recent history windows rotate, including in a fresh linked checkout. Retained capture bytes and recent candidate selection limits are preserved.",
+        "Missing originals, conflicting identities and retained authenticated failures cannot supply positive recovery. Ordinary Windows directory spelling is supported while redirected index paths are refused.",
+        "An existing store can index its original compact captures offline. Verify the migrated real controls and keep the Windows pull request elapsed objective separate from observed main push recovery."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-110-ec3b4d3958738058.json",
+          "sha256": "632ad9aa482a999884d308c307bf66dc9b07f6c238ed10088444a3c18500a0e1"
+        },
+        {
+          "path": "project/evidence/M0-110-86b207d642064200.json",
+          "sha256": "8fbbaa7ef90cf8c9cbcb8266a67d08ddae403922797352fc1a183e137a51296d"
+        },
+        {
+          "path": "project/evidence/M0-110-504d5450ea9462d0.json",
+          "sha256": "18d5058ca59e5a6a4167381ed60299a5b65f0c33daca5ec54eca30230b8bfd91"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard review approved 34b4627. Protected Linux and Windows run 45550215575 verified the amended definition and all linked timing regressions. Historical recovery observations retain their own scope. Current Windows PR elapsed remains independently governed.",
+      "plan": {
+        "outcome": "The ordinary budget verdict can use its exact linked PR and push controls after history rotates, from a fresh checkout on protected main.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json",
+          "archives/observations/m0-097-linked-timing-intake/retention-audit.json",
+          "archives/observations/m0-098-linked-timing-windows-ef65312/index.json"
+        ],
+        "hypotheses": [
+          "The bounded recent scan still hides available linked inputs on main. The shared index independently staged at 77bf40b, 6241372 and ef65312 can recover them using original compact captures."
+        ],
+        "risks": [
+          {
+            "failure": "Automatic or manual rotation hides a linked original despite its capture remaining available.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A missing or authenticated failed original, missing clock or ambiguous claimant is admitted as comparable recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An ordinary Windows directory alias blocks capture, or a redirected index permits writes outside the timing store.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new clockless claimant leaves the first ordinary CI verdict recovered until another query.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An entirely conflicting PR event triggers a shared fallback that discards valid main-push controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the index and its migration entry while retaining original captures and diagnostic reports.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/project.py",
+            "scripts/ci.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Windows workflow producer changes, checkout cleanup, branch publication and a claim of faster elapsed CI are outside this implementation."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep original archived reports, exact event separation, tested ancestry, retained failure authority, timed objectives and required check coverage."
+          ],
+          "change": [
+            "Make exact linked captures visible to ordinary status and CI outside the existing recent windows through derived shared lookup entries."
+          ],
+          "data_plan": "Use a read-only snapshot of retained compact captures for verification. The offline migration only adds lookup entries to its selected shared timing store.",
+          "cleanup": "Retain the unchanged original capture bytes and keep missing or conflicting links actionable."
+        }
+      }
+    },
+    {
+      "id": "M0-111",
+      "title": "Round-trip bounded manual verification timing archives",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Read and resave the original 5838434-byte v1 review offline, preserving all 564 samples and 56 clocks, and retain previously readable reports and diagnostic records.",
+        "Reject oversized, malformed or mislabeled input with bounded reads and path-safe diagnoses. Keep automatic capture and hosted artifact limits, and bound aggregate manual review input.",
+        "An unsuccessful save leaves the destination absent or preserves an existing file. Rejected explicit input must not produce a replacement archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-111-5eb5051e64c1978c.json",
+          "sha256": "64cc2a4a7fab89f0798b4e07822b952ea30b1ce1c4bbbd0c274a465cbde09d8e"
+        },
+        {
+          "path": "project/evidence/M0-111-cf178d6905ff9298.json",
+          "sha256": "3096c005cc95c29f62384616712be9ff68d274cc5ce19207d6027a3d8160a32c"
+        },
+        {
+          "path": "project/evidence/M0-111-ec9c22cb85e4aaed.json",
+          "sha256": "d9191f05cfbc7652b06bc23919d174ecfd793f5199ba678cbe9fdb0f37d4b0a2"
+        },
+        {
+          "path": "project/evidence/M0-111-595ccf02abcbda0d.json",
+          "sha256": "9969287bc5d7d629a20e5371f783d04738a9237d97d301105ac7fa0589c0098d"
+        },
+        {
+          "path": "project/evidence/M0-111-3b36843f50bddcf6.json",
+          "sha256": "8739b61feb875b9be477ac8e2927ed281604f80e3ba2e3ec2a96e72ae5f3b572"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard review approved 36185b8. Authenticated Linux and Windows run 45556669680 verified the archive round trip and six addressed findings. M0-103 and M0-104 retain the independent elapsed-performance qualification.",
+      "plan": {
+        "outcome": "A maintainer can reload a manual timing review above the compact capture limit and securely save it for another offline review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A separate bounded manual archive reader and matching writer can retain full v1 data without relaxing automatic capture limits."
+        ],
+        "risks": [
+          {
+            "failure": "The Actions path creates a clock the archive reader rejects, or a resolved current finding is suppressed in the durable history. Verify rejected repositories and job rows, a complete Actions save and reopen, and lossless repeated saves with failed-run collection findings.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A file written by the tool cannot be read back, or flattening and deduplication change observation or error identities.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Malformed or oversized input consumes unbounded resources, exposes a local path, or leaves a partial destination.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "One invalid record in any explicitly selected input is silently dropped and a partial archive is published.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An Actions diagnostic attributes failure to its peer input or exposes the original input directory.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A summary append changes an existing or newly published archive through a hardlink, alias or destination race.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the reader and writer together and retain original v1 archives and failed input diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Changes to hosted collection, protected workflow selection, linked timing conflict handling or the CI budget objective are outside this repair."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep the v1 archive format, observed rows and diagnostics, compact automatic capture limits, and create-only save semantics."
+          ],
+          "change": [
+            "Use one bounded manual archive representation for reading and atomic saving."
+          ],
+          "data_plan": "Read the archived coordinator review offline and exercise malformed input with synthetic data. Never change the archived original.",
+          "cleanup": "Stage saves in the destination directory and remove staging files when publication succeeds or fails."
+        }
+      }
+    },
+    {
+      "id": "M1-041",
+      "title": "Review conflicting declarations in frozen native CSV source records",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-035",
+        "M1-038"
+      ],
+      "scope": [
+        "contracts",
+        "python/providers",
+        "python/worker_runtime",
+        "crates/application",
+        "crates/worker-host",
+        "apps/desktop",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Inspect a source record from an authorized frozen single-file or folder revision. Attribute each contradictory explicit declaration to the exact preserved source field and compare it with the mapping version bound to the revision.",
+        "Keep original bytes, source locators, previously published bars, dataset IDs and chart hashes unchanged. A denied, revoked, missing or unverifiable source cannot yield a successful review. A client that requests raw fields alone retains the existing response.",
+        "Verify a synthetic pre-admission revision, an unaffected record, multiline records, an independently revoked folder, and reopening with no live source-folder grant."
+      ],
+      "checks": [
+        "python-contracts-workers",
+        "market-fixtures",
+        "market-workflow",
+        "python-types",
+        "generated-contracts",
+        "typescript-contracts",
+        "architecture",
+        "rust-contracts-workers",
+        "ui-build",
+        "desktop-localization",
+        "rust-format",
+        "rust-lints",
+        "local-import-publication",
+        "local-folder-import"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-041-a51fdc4738047663.json",
+          "sha256": "645ccd67b60e3cd3e5f3a6b761059517bb693bb947cade597b1e66a3b227d0b7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "A controlled historical futures revision exposed every contradictory declaration at the exact source record. The native bridge and built browser reopened it without the original directory, preserved its complete snapshot and retained raw bytes, and kept raw-only reads compatible. Folder and single-file revocation checks passed. The attached Linux task receipt covers the delivered scope.",
+      "plan": {
+        "outcome": "The existing original-row view shows conflicts with the exact mapping under which a historical bar was published.",
+        "change_types": [
+          "market-fixtures",
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-23-continuity-audit.json",
+          "python/providers/csv_bar_mapping.py",
+          "crates/application/src/local_publication.rs",
+          "crates/application/src/folder_publication.rs",
+          "apps/desktop/ui/src/local-preview-chart.tsx"
+        ],
+        "hypotheses": [
+          "Reuse the current admission rule for explicit declarations while parsing the selected logical record from retained source bytes. An opt-in response preserves earlier raw-read clients."
+        ],
+        "risks": [
+          {
+            "failure": "The shared process supervisor breaks worker type verification or changes process cleanup behavior.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Legacy conflicts are missed, or newer mapping drafts are compared with previously frozen source rows.",
+            "checks": [
+              "python-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "A review leaks another revision or mutates bars, original bytes or snapshot identity.",
+            "checks": [
+              "rust-contracts-workers",
+              "local-folder-import"
+            ]
+          },
+          {
+            "failure": "The new wire reply is ambiguous, rejects raw-only callers or loses readable diagnostics.",
+            "checks": [
+              "generated-contracts",
+              "typescript-contracts",
+              "ui-build",
+              "desktop-localization"
+            ]
+          }
+        ],
+        "rollback": "Revert the read-path addition. Existing data and mapping versions require no migration.",
+        "implementation": {
+          "modules": [
+            "application",
+            "worker-host",
+            "providers",
+            "worker-runtime",
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "crates/application/src/local_publication.rs",
+            "crates/application/src/folder_publication.rs",
+            "apps/desktop/ui/src/local-preview-chart.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/refresh_conflicts"
+            }
+          ],
+          "non_goals": [
+            "Automatic repair, bulk scan, Parquet selection, source rebind and dated evidence admission."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Historical mapping versions, byte hashes, source locators, frozen chart identity and profile-scoped display permission."
+          ],
+          "change": [
+            "Add opt-in declaration comparison for one linked frozen source record."
+          ],
+          "data_plan": "Read immutable bytes through the existing entitled operations. Use synthetic historical fixtures and preserve the original bytes even if they conflict.",
+          "cleanup": "Share one declaration comparison with live admission. No persistent cache or secondary source store."
+        }
+      }
+    },
+    {
+      "id": "M1-045",
+      "title": "Preserve original CSV inspection across review limits and worker versions",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-041"
+      ],
+      "scope": [
+        "apps/desktop",
+        "contracts",
+        "crates/application",
+        "crates/worker-host",
+        "crates/persistence",
+        "python/worker_runtime",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Through the single-file and folder source-row dialogs, fall back to the entitled original response after review metadata exceeds the reply limit or a compatible worker lacks the optional capability. Use a new native request identity and show that review is unavailable. A truly oversized raw row remains rejected.",
+        "Show original and historical mapping values together for each conflicting column. Preserve observable spaces in both values, including one versus two spaces in a timestamp format.",
+        "Compile the original public Rust row-reader signature and the original request and result literals. Keep existing payloads and their optional review forms compatible through additive types and explicitly negotiated worker support."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "architecture",
+        "ui-build",
+        "desktop-localization",
+        "local-import-publication",
+        "local-folder-import",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-045-064d7c6a834817f2.json",
+          "sha256": "e9c6a0b831771a51acc75e50aa84cba1b184996271f19103e83f7bc6812d1ed5"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The built single-file and folder dialogs recovered the 64 KiB raw response with fresh IDs, kept a true over-limit record rejected, and discarded both raw responses after revocation. The declaration table preserved literal whitespace by column. The old Rust input and output constructors and six-argument function compiled as a real caller. A separate worker process lacking the optional capability received only the compatible original request.",
+      "plan": {
+        "outcome": "Both frozen CSV dialogs retain original-row access while presenting attributable, legible declaration review when the reader can supply it.",
+        "change_types": [
+          "ui",
+          "protocol"
+        ],
+        "context": [
+          "contracts/market-data-v1.json",
+          "python/worker_runtime/local_import.py",
+          "crates/worker-host/src/local_import.rs",
+          "apps/desktop/ui/src/local-preview-chart.tsx",
+          "tests/ui/local-import.spec.mjs"
+        ],
+        "hypotheses": [
+          "A fresh, ordinary authorized read can preserve an original response when review fails for a known capability or size reason. Separately typed opt-in payloads can preserve both the original Rust constructors and the accepted JSON shapes."
+        ],
+        "risks": [
+          {
+            "failure": "Fallback hides a supported row, bypasses revocation, repeats a stale request, or admits oversized raw fields.",
+            "checks": [
+              "local-import-publication",
+              "local-folder-import",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Mixed worker versions receive unnegotiated framing or valid legacy Rust callers fail to compile.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "generated-contracts",
+              "typescript-contracts"
+            ]
+          },
+          {
+            "failure": "Whitespace is lost or the original value is associated with an unrelated mapping field.",
+            "checks": [
+              "local-folder-import",
+              "desktop-localization",
+              "ui-build"
+            ]
+          }
+        ],
+        "rollback": "Revert the compatibility correction while retaining the reviewed PR and all immutable source and verification records.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "application",
+            "worker-host",
+            "worker-runtime",
+            "desktop",
+            "ui"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_import.rs",
+            "crates/application/src/local_publication.rs",
+            "crates/application/src/folder_publication.rs",
+            "apps/desktop/ui/src/local-preview-chart.tsx"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/native_csv_source_declarations"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/ReadLocalImportSourceRowInput"
+            }
+          ],
+          "non_goals": [
+            "Bulk revision scans and historical observation time admission."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original 64 KiB frame limit, raw wire forms, historical revision identity, mapping version, and current profile access."
+          ],
+          "change": [
+            "Negotiate opt-in declaration review, recover supported raw reads with a fresh request, and present conflicts by column with their literal values."
+          ],
+          "data_plan": "Use synthetic historical publications and private worker fixtures. The existing storage format and read-only authorization path are sufficient.",
+          "cleanup": "Reuse the same raw reader and shared dialog retry path for both revision kinds."
+        }
+      }
+    },
+    {
+      "id": "M1-046",
+      "title": "Preserve exhaustive Rust callers of the public wire decoder",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-045"
+      ],
+      "scope": [
+        "contracts",
+        "crates/domain",
+        "crates/worker-host",
+        "python/worker_runtime",
+        "tests",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "Compile and run an external Rust consumer that exhaustively matches all 87 original Message variants through the unchanged public decode_line signature.",
+        "Decode valid opt-in file and folder CSV review frames through a separate typed entry. Keep legacy frames, unknown frame rejection, and the newline-inclusive frame budget covered.",
+        "Keep the private worker handshake and negotiated review capability isolated from the original row reader. Compare the remaining public Rust surface against the reviewed base for exhaustive and literal callers."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "architecture",
+        "python-types-win32",
+        "local-folder-import"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-046-cae142cb2b6dddd4.json",
+          "sha256": "513ec44e43bd0c48389adf79f48773d998e9cbb8816f7fbcaa36d3fcaa0fc1d2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The unchanged external consumer compiled and ran against the 87-variant public decoder on main, the previous published candidate, and the repaired source. Shared vectors and typed import and folder review responses exercised the separate decoder, including the exact 64 KiB boundary, unknown frames, and rejected legacy review input. The CSV worker retained explicit capability negotiation. The other original generated Rust enum and struct declarations and affected public signatures matched main.",
+      "plan": {
+        "outcome": "An unchanged exhaustive Rust caller builds and runs while explicit opt-in callers can validate and decode typed CSV review messages.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "contracts/schemas/protocol.schema.json",
+          "scripts/generate_contracts.py",
+          "crates/domain/src/wire.rs",
+          "crates/worker-host/src/local_import.rs",
+          "tests/fixtures/protocol-cases.json"
+        ],
+        "hypotheses": [
+          "Separate generated unions can keep the original Rust enum exhaustive while reusing schema and frame validation for opt-in messages."
+        ],
+        "risks": [
+          {
+            "failure": "A previous exhaustive consumer cannot compile or a legacy frame changes meaning.",
+            "checks": [
+              "rust-contracts-workers",
+              "generated-contracts"
+            ]
+          },
+          {
+            "failure": "The opt-in decoder accepts an unknown, malformed, oversized, or unnegotiated frame.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "typescript-contracts",
+              "python-types",
+              "python-types-win32",
+              "local-folder-import"
+            ]
+          }
+        ],
+        "rollback": "Revert this correction with the earlier source-row review records and their receipts available for diagnosis.",
+        "implementation": {
+          "modules": [
+            "domain",
+            "worker-host",
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "crates/domain/src/wire.rs",
+            "crates/worker-host/src/lib.rs",
+            "crates/worker-host/src/local_import.rs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Message"
+            }
+          ],
+          "non_goals": [
+            "Changes to frozen snapshot identity, retained bytes, permissions, or local API observation times."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The original exhaustive Message enum and decode_line signature, original wire frames, and the worker capability handshake."
+          ],
+          "change": [
+            "Use a separate typed decoder for the existing opt-in declaration review frames."
+          ],
+          "data_plan": "Use the shared protocol vectors and the existing synthesized worker fixtures. Persistent records require no migration.",
+          "cleanup": "Share framing and validation between the Rust decoding entries."
+        }
+      }
+    },
+    {
+      "id": "M1-047",
+      "title": "Preserve the public Python worker wire decoder",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-046"
+      ],
+      "scope": [
+        "python/worker_runtime",
+        "tests/contracts",
+        "pyproject.toml",
+        "project"
+      ],
+      "decision_refs": [
+        "0013",
+        "0015",
+        "0025",
+        "0028"
+      ],
+      "acceptance": [
+        "The unchanged typed Python client imports and runs with the established Message result and passes strict mypy. The protocol module continues to export Message.",
+        "Legacy decode_line rejects all four CSV review envelope types. The explicit extended entry handles those envelopes and retains strict validation of unknown, malformed and over-limit frames.",
+        "Normal market, indicator, and CSV worker traffic keeps its established protocol boundaries and the CSV review capability remains separately negotiated."
+      ],
+      "checks": [
+        "generated-contracts",
+        "typescript-contracts",
+        "python-types",
+        "python-types-win32",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "architecture"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-047-718aafc50ed7769d.json",
+          "sha256": "abb1c65b96f9cf38e464a6d66dfc908a5471e16ec93874a35166f4f7bc873bdd"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The unchanged typed client ran and passed strict mypy, and the protocol module exported Message. The legacy codec rejected all four optional review envelopes, while the explicit codec round-tripped those envelopes and rejected malformed, unknown and over-limit frames. Real worker tests retained the CSV review negotiation, raw byte limit and ordinary protocol behavior.",
+      "plan": {
+        "outcome": "Old Python wire clients retain their import, typing and frame acceptance while explicit callers can use the CSV review envelopes.",
+        "change_types": [
+          "protocol"
+        ],
+        "context": [
+          "python/worker_runtime/protocol.py",
+          "python/worker_runtime/__main__.py",
+          "python/worker_runtime/indicator.py",
+          "python/worker_runtime/local_import.py",
+          "contracts/schemas/protocol.schema.json",
+          "tests/contracts/test_protocol.py"
+        ],
+        "hypotheses": [
+          "Sharing framing while selecting the exact canonical schema union at the entry point restores legacy typing and rejection without changing worker negotiation."
+        ],
+        "risks": [
+          {
+            "failure": "The old import or type annotation fails or ordinary worker traffic changes.",
+            "checks": [
+              "python-types",
+              "python-types-win32",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An extended frame bypasses validation, reaches the original decoder, or loses the newline-inclusive byte limit.",
+            "checks": [
+              "python-contracts-workers",
+              "rust-contracts-workers",
+              "typescript-contracts"
+            ]
+          }
+        ],
+        "rollback": "Revert the Python entry correction while retaining prior task records and the reviewed diagnostic.",
+        "implementation": {
+          "modules": [
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/worker_runtime/protocol.py",
+            "python/worker_runtime/__main__.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/Message"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/ExtendedMessage"
+            }
+          ],
+          "non_goals": [
+            "Rust or schema changes, worker feature negotiation changes, CSV UI changes and local API observation times."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Original Python Message import, decoder and encoder signatures, original wire frames, validation behavior and byte limit."
+          ],
+          "change": [
+            "Select extended review explicitly in the shared Python codec."
+          ],
+          "data_plan": "Use the synthetic shared protocol vectors and worker tests. Persistent records require no migration.",
+          "cleanup": "Use one frame parser and serializer for both validation entries."
+        }
+      }
+    },
+    {
+      "id": "M0-106",
+      "title": "Check the reviewed source before submitting a hosted task",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-092"
+      ],
+      "scope": [
+        "scripts/ci.py",
+        "scripts/project.py",
+        "scripts/verification_scope.py",
+        "tests/project/test_ci.py",
+        "tests/project/test_verify_browser_setup.py",
+        ".github/workflows/verify.yml",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A coordinator can inspect the exact reviewed task, protected base and proposed candidate locally. The historical mismatched M1-040 candidate is refused and the intended reviewed source is identified. Incomplete history stays explicitly unverified.",
+        "The opt-in entry attempts one submission after observing the expected protected base and branch tip. Mismatches observed in preflight cause zero submissions. GitHub resolves the branch separately. The guarded workflow checks the event commit and protected base before scheduling either verification job, checks out the exact expected commit, and binds evidence to it.",
+        "An explicitly named dependent base contributes scoped changes linked by a distinct task definition or an unfinished dependency declared by the reviewed task. A dependency already completed on the protected base needs a supplementary receipt whose input digest and file count match its own committed source under that revision's execution-input rules. Cancelled dependencies are rejected before remote access. The candidate must match the exact reviewed integration. Ordinary inspection, manual workflows and task receipt provenance keep their existing behavior.",
+        "A lost submission response is reported as unknown with enough information to locate the run, including a unique request identifier. A successful response retains the run ID when supplied. Guarded requests have isolated concurrency groups."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-106-9210b74877b6f317.json",
+          "sha256": "4fd621d811f7c24da327c03e4614160fb66e1f955c63ab6de2e5fbda78847138"
+        },
+        {
+          "path": "project/evidence/M0-106-be54a7b8d6d26331.json",
+          "sha256": "ccc65f0a8d922c264888c29947f54a4dde8d82a1a171507d5fca2c8cde20fb31"
+        },
+        {
+          "path": "project/evidence/M0-106-9dd4e89b86fcae2d.json",
+          "sha256": "afe098883a0da1b2136d6f9314f702b0ad7ec5edbfe29275558ed02d990365d9"
+        },
+        {
+          "path": "project/evidence/M0-106-33a260ee0e4c3f81.json",
+          "sha256": "f4a2ea366a066a142970b99c498dc53cd1f354d82644ec7975dd900f9caa5500"
+        },
+        {
+          "path": "project/evidence/M0-106-fa231894d650876c.json",
+          "sha256": "67b3a1a8165657c63ff67f277a12bd95dd076a820816c72ee1863685237212dd"
+        },
+        {
+          "path": "project/evidence/M0-106-b3d6bf14e3b06602.json",
+          "sha256": "f40f39fc4940de8c6026d44a3cbfca19b4da508932110f4ab13e3306ad0f82f2"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "PR 91 reviewed head bc0af9581d75588dccdd290b764e6a6c3f568313 on protected base 9180963fb3185dbceaafcaf19ee5f2dc78ae3649 passed the guard and both native task jobs in authenticated dispatch 45554455415. Dispatch ID 1e59bf0010ca4bea9fca87fd92e12988 matched the run title, expected head and both artifact checkouts. Ordinary run 45552460066 passed both protected jobs on the reviewed head.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "plan": {
+        "outcome": "A coordinator can catch the wrong verified source or stale branch before consuming a two-platform task run.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/ci.py",
+          "scripts/verification_scope.py",
+          ".github/workflows/verify.yml",
+          "project/delivery.json",
+          "archives/observations/m1-040-integrated-task-45488642757/index.json"
+        ],
+        "hypotheses": [
+          "Local Git can compare the reviewed integration and attribute the explicit dependent base, while an authenticated observation and a lightweight workflow gate bound the freshness of mutable refs."
+        ],
+        "risks": [
+          {
+            "failure": "A branch moves after preflight or the protected base becomes stale before workflow admission, and expensive verification or evidence creation runs for the wrong source.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing dependency objects, unrelated dependency history or shallow history can abort without a structured local verdict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The named task only appears in the ledger and has no link to the candidate base, or a justified explicit stack is refused.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An already completed dependency borrows shared changed paths or an older receipt to claim an unrelated stack.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A clean receipt's input digest, file count or exclusions disagree with its own Git commit, or a cancelled dependency is treated as unfinished work.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A lost POST response hides possible acceptance or misdirects the operator into a second submission that cancels an existing run.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Workflow gating or concurrency changes interrupt ordinary read-only inspection, manual use or protected verification.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the opt-in entry, workflow guard and associated guidance together. Retain original evidence and diagnosis.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci.py",
+            "scripts/project.py",
+            "tests/project/test_ci.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/checkpoint"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No new hosted workflow, branch protection, credential, release gate, timing objective, receipt policy or automatic rerun."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing read-only inspection and direct GitHub workflow use, protected checks and immutable task history."
+          ],
+          "change": [
+            "Add one source-aware local entry for inspection and guarded submission of the existing manual task workflow."
+          ],
+          "data_plan": "Use exact Git objects and the existing task and GitHub identity records. Never modify original verification reports.",
+          "cleanup": "Keep the first ordinary entry regression and the local historical comparison with separate Git and dispatch-spy evidence."
+        }
+      }
+    },
+    {
       "id": "M4-017",
       "title": "Retain independently consented external client observations",
       "milestone": "M4",

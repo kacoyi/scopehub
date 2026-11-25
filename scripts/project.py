@@ -1,13 +1,15 @@
 """Validate project history, show a resumable workfront and preserve check evidence."""
 
 import argparse
+import ast
 from datetime import date, datetime, timedelta, timezone
 from graphlib import CycleError, TopologicalSorter
 import hashlib
+from io import BytesIO
 import json
 import os
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -17,14 +19,14 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import checkout_git_environment
+    from .verification_scope import checkout_git_environment, git, nul_fields
     from .worktree import WorktreeError, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import checkout_git_environment
+    from verification_scope import checkout_git_environment, git, nul_fields
     from worktree import WorktreeError, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -270,27 +272,81 @@ def checkout_status(root, env):
     return files, None if head == b'(initial)' else head.decode('ascii'), dirty
 
 
+def is_source_input(relative, exclusions):
+    return not any(relative == item or (item.endswith('/') and relative.startswith(item)) for item in exclusions)
+
+
+def source_snapshot(entries, head, dirty, exclusions):
+    if not entries:
+        raise ProjectError('No execution inputs found')
+    return {
+        'snapshot_kind': 'execution-inputs-v1',
+        'sha256': digest(json.dumps(sorted(entries), separators=(',', ':')).encode('utf-8')),
+        'file_count': len(entries), 'git_head': head,
+        'working_tree_dirty': dirty, 'exclusions': exclusions,
+    }
+
+
 def source_identity(root=ROOT):
     """Hash current non-ignored files without following symlinks or reading .git."""
     files, head, dirty = checkout_status(root, checkout_git_environment())
     entries = []
-    for relative in sorted(files):
-        if any(relative == item or (item.endswith('/') and relative.startswith(item))
-               for item in INPUT_EXCLUSIONS):
+    for relative in files:
+        if not is_source_input(relative, INPUT_EXCLUSIONS):
             continue
         path = root / relative
         if path.is_symlink():
             entries.append([relative, 'symlink', path.readlink().as_posix()])
         elif path.is_file():
             entries.append([relative, 'file', file_digest(path)])
-    if not entries:
-        raise ProjectError('No execution inputs found in the Git worktree')
-    return {
-        'snapshot_kind': 'execution-inputs-v1',
-        'sha256': digest(json.dumps(entries, separators=(',', ':')).encode('utf-8')),
-        'file_count': len(entries), 'git_head': head,
-        'working_tree_dirty': dirty, 'exclusions': INPUT_EXCLUSIONS,
-    }
+    return source_snapshot(entries, head, dirty, INPUT_EXCLUSIONS)
+
+
+def historical_input_exclusions(root, commit):
+    # Read the historical v1 policy as data. A candidate's code never runs here.
+    try:
+        policy = ast.parse(git(root, 'show', f'{commit}:scripts/project.py'))
+        values = [statement.value for statement in policy.body if isinstance(statement, ast.Assign)
+                  for target in statement.targets if isinstance(target, ast.Name) and target.id == 'INPUT_EXCLUSIONS']
+        value, = values
+        exclusions = ast.literal_eval(value)
+    except (SyntaxError, ValueError, TypeError) as error:
+        raise ProjectError(f'Cannot resolve execution-inputs-v1 rules at {commit}') from error
+    if (not isinstance(exclusions, list) or not all(isinstance(path, str) and path for path in exclusions)
+            or len(exclusions) != len(set(exclusions))):
+        raise ProjectError(f'Invalid execution-inputs-v1 exclusions at {commit}')
+    return exclusions
+
+
+def committed_source_identity(root, commit):
+    """Reproduce a clean v1 snapshot from a verified Git commit and its own rules."""
+    exclusions = historical_input_exclusions(root, commit)
+    blobs = []
+    for field in nul_fields(git(root, 'ls-tree', '-r', '-z', '--full-tree', commit)):
+        info, path = field.split(b'\t', 1)
+        mode, kind, object_id = info.split()
+        relative = path.decode('utf-8')
+        # The worktree snapshot observes files and symlinks, not submodule directories.
+        if kind == b'blob' and is_source_input(relative, exclusions):
+            blobs.append((object_id, mode, relative))
+    requests = b''.join(object_id + b'\n' for object_id, _, _ in blobs)
+    entries = []
+    with BytesIO(git(root, 'cat-file', '--batch', input=requests)) as contents:
+        for object_id, mode, relative in blobs:
+            header = contents.readline().split()
+            if len(header) != 3 or header[:2] != [object_id, b'blob'] or not header[2].isdigit():
+                raise ProjectError(f'Cannot read execution input {relative} at {commit}')
+            size = int(header[2])
+            data = contents.read(size)
+            if len(data) != size or contents.read(1) != b'\n':
+                raise ProjectError(f'Incomplete execution input {relative} at {commit}')
+            if mode == b'120000':
+                entries.append([relative, 'symlink', PurePosixPath(os.fsdecode(data)).as_posix()])
+            else:
+                entries.append([relative, 'file', digest(data)])
+        if contents.read(1):
+            raise ProjectError(f'Unexpected execution input objects at {commit}')
+    return source_snapshot(entries, commit, False, exclusions)
 
 
 def validate_model(root, name, value):
