@@ -6534,7 +6534,7 @@
       "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4, transcript SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341. Original local task closures ecf48f65a02b94967e0813fec4e9cbbec360ffbf and 97fedb3771bcdbcbf1030d32d4eec1c69401d656.",
       "observation": "M0-130 and M0-131 were locally done with passing receipts before independent review found that a known timing conflict could disappear after normal capture and reopen. On the reviewed source the CLI correctly withheld the disputed browser clock on first interpretation, while saving kept only the complete listing and reopening its output recovered a 645-second clock without a conflict. Existing evidence qualified the cases actually exercised before closure. The review launch used the implementation-phase task context; whether an earlier focused independent review would have caught the missing boundary is an implementation hypothesis.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-134"
       ],
@@ -6542,7 +6542,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The prior passing checks qualified their exercised timing cases. The capture and reopen conflict escaped those controls, and the routine review launcher opened implementation guidance without a separate source-bound verification step.",
+        "correction": "Open verification context for the review role. For consequential work, hand off the exact clean candidate, original observation, independent expected outcome and distinguishing control before requesting task closure.",
+        "prevention": "For the next consequential change or substantive source revision, the implementer supplies the exact clean candidate and its caller or data boundary to an independent reviewer. Astra exercised this handoff on the approved M0-134 source. Timing repair and recurrence remain in their owning tasks. M0-136 owns enforcement of the administrative decision."
+      },
       "deferral_reason": null
     },
     {
@@ -6550,7 +6554,7 @@
       "source": "Independent cold Astra Standard review of 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a, transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Independent ordinary-entry repair controls on protected 6cf0d0dc87b344203ab194a2cd047d36bf801f3c and the candidate.",
       "observation": "Transient feedback substitution followed by a clean worktree made bound launch and context stamp the requested SHA over stale feedback. M0-094 gave an unrelated passing task diagnostic as the origin of its independently reviewed finding. Historical 6cad01c M4-018 already describes independent reads and A/B bytes despite its open state, yet the launch inferred pending attribution. In disposable clones an unrelated null task_ids or unreadable optional feedback blocked unbound maintenance launch on the candidate while protected main launched. The M0-119 diagnostic resolved with 11 original logs when given the private archive root, while the advertised bare command without host configuration failed.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-134"
       ],
@@ -6558,15 +6562,19 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Bound readers loaded live records between clean-checkout checks. Summary routing inferred finding origin from task diagnostics and attribution from open status. Ordinary launch treated optional feedback as mandatory, and bare archive resolution lacked repository-local configuration.",
+        "correction": "Read one committed tree for the bound review. Separate original from related evidence, surface the recorded mechanism or unresolved next observation, and retain ordinary repair guidance when optional feedback cannot be read. Resolve diagnostic archives using the explicit path, environment or repository-local configuration.",
+        "prevention": "Independently exercise transient working-record substitution, M0-094 original provenance, the known historical M4-018 mechanism, degraded ordinary launch and the M0-119 original report with 11 verified logs. At the next ordinary Linux recurrence, the verification owner retains the original report and correlates the last completed timeout phase or admission holder before retrying. M0-119 keeps that investigation open."
+      },
       "deferral_reason": null
     },
     {
       "id": "bound-review-navigation-loses-source-and-read-only-entry",
       "source": "Astra Standard cold rereview of 5b6c61a3cb84ae3fedb5a12a79d96f80ac06ebe6. Original transcript: archives/observations/m0-134-navigation-finding-5b6c61a/astra-cold-review-5b6c61a.txt (SHA-256 bdb799cc76324b100e62f1b70044faac42021b7bb257f9654336b363581e9cf0).",
-      "observation": "A reader following the bound context\u2019s printed detail, repeat verification and generic source navigation can lose the reviewed SHA and read substituted worktree feedback or the linked engineering product record. Feedback links retained the SHA but used pnpm and uv. The normal read-only role could not create the uv cache lock. Explicitly bound reads and dirty or moved checkout admission controls succeeded.",
+      "observation": "A reader following the bound context’s printed detail, repeat verification and generic source navigation can lose the reviewed SHA and read substituted worktree feedback or the linked engineering product record. Feedback links retained the SHA but used pnpm and uv. The normal read-only role could not create the uv cache lock. Explicitly bound reads and dirty or moved checkout admission controls succeeded.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-134"
       ],
@@ -6574,7 +6582,11 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Follow-up context and source commands used ordinary worktree defaults. Feedback links retained the commit but depended on a pnpm and uv wrapper that tried to write a cache lock. Explicitly typed bound commands did not exercise these advertised follow-ups.",
+        "correction": "Reuse the platform-specific read-only Python entrypoint for bound detail, repeat verification, product and feedback source queries. Preserve the candidate SHA and the original diagnostic locator separately. List current checkout operations in their own field.",
+        "prevention": "Execute the printed prompts and follow-up commands under a filesystem read-only constraint. Verify committed content after working-data substitution, reject dirty or moved bound context, and reopen historical Git facts and the configured original diagnostic. Preserve the unbound compact launch. The recorded Linux run and independent Astra review verify those boundaries."
+      },
       "deferral_reason": null
     }
   ]
