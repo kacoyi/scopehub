@@ -261,6 +261,14 @@ def main():
     parser.add_argument('--ci-windows-lane', help=argparse.SUPPRESS)
     parser.add_argument('--ci-windows-aggregate', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
+    split = args.ci_windows_lane is not None or args.ci_windows_aggregate is not None
+    if split:
+        if __package__:
+            from .verification_scope import WINDOWS_LANES, windows_lane_checks, windows_lanes_run_id
+        else:
+            from verification_scope import WINDOWS_LANES, windows_lane_checks, windows_lanes_run_id
+        if args.ci_windows_lane is not None and args.ci_windows_lane not in WINDOWS_LANES:
+            parser.error('Unknown Windows verification lane')
     if args.ci_build_setup_required:
         try:
             required = ci_requires_build_setup(load_project(ROOT), args.task, profile=args.profile)
@@ -274,7 +282,6 @@ def main():
     selected = select_checks(project, profile=args.profile, task_id=args.task)
     source = source_identity(ROOT)
     ci = ci_provenance(source, os.environ, ROOT)
-    split = bool(args.ci_windows_lane or args.ci_windows_aggregate)
     if split and (not ci or ci['event'] not in {'pull_request', 'push'} or platform.system() != 'Windows'
                   or args.task or args.fail_fast):
         parser.error('Windows lanes require hosted Windows change verification')
@@ -282,15 +289,8 @@ def main():
         parser.error('A Windows lane uses its fixed selection')
     if args.ci_windows_aggregate and not (args.require_windows or args.profile):
         parser.error('The Windows aggregate requires a full native or scoped selection')
-    if split:
-        if __package__:
-            from .verification_scope import WINDOWS_LANES, windows_lane_checks, windows_lanes_run_id
-        else:
-            from verification_scope import WINDOWS_LANES, windows_lane_checks, windows_lanes_run_id
-        if args.ci_windows_lane:
-            if args.ci_windows_lane not in WINDOWS_LANES:
-                parser.error('Unknown Windows verification lane')
-            selected = windows_lane_checks(selected, args.ci_windows_lane)
+    if args.ci_windows_lane:
+        selected = windows_lane_checks(selected, args.ci_windows_lane)
     maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]

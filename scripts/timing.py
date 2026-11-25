@@ -1869,11 +1869,14 @@ def sample_belongs_to_capture(sample, path):
 
 
 def indexable_capture_samples(path, samples, hosted, issues):
-    evidence = reconcile_timing_clocks(samples, hosted, issues)
-    return [group[0] for group in coalesce_samples(samples, issues, clocks=evidence.attempts) if len(group) == 1
+    disputes = timing_checkout_conflicts(samples, hosted, issues)
+    clocks, _ = attempt_clocks([clock for clock in hosted if ci_key(clock) not in disputes], [])
+    # Index ownership needs identity, not derived measurements. Reopening
+    # replays the original observations and reports their numeric disputes.
+    return [group[0] for group in coalesce_samples(samples, [], clocks=clocks) if len(group) == 1
             and sample_belongs_to_capture(group[0], path)
-            and ci_key(group[0]['ci']) not in evidence.checkout_disputes
-            and not native_report_issue(group[0], evidence.attempts.get(ci_key(group[0]['ci'])), issues)]
+            and ci_key(group[0]['ci']) not in disputes
+            and not native_report_issue(group[0], clocks.get(ci_key(group[0]['ci'])), issues)]
 
 
 def index_capture(path, samples, hosted=(), issues=None):

@@ -541,9 +541,11 @@ class HostedTimingTests(unittest.TestCase):
                     self.assertEqual(expected_wall, observed['Windows', 'full']['seconds']['total'])
                     if not extra_samples:
                         self.assertEqual(expected_browser, observed['Windows', 'ci-windows-browser']['seconds']['total'])
+                    linked_issues = []
                     linked, linked_clocks = timing.linked_capture_inputs(
-                        [shared], {timing.report_key(windows)}, [], [],
+                        [shared], {timing.report_key(windows)}, [], linked_issues,
                     )
+                    self.assertFalse(linked_issues)
                     if extra_samples:
                         self.assertEqual([], linked)
                         self.assertEqual([], linked_clocks)
