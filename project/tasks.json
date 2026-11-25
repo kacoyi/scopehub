@@ -25426,7 +25426,10 @@
         "contracts/reviews",
         "project/evidence",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "apps/desktop/ui/src/private-records.tsx",
+        "apps/desktop/ui/src/folder-refresh-review.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs"
       ],
       "decision_refs": [
         "0004",
@@ -25445,7 +25448,8 @@
         "desktop-workspace-transport",
         "local-import-ui",
         "local-folder-refresh-preview",
-        "state-migrations"
+        "state-migrations",
+        "workspace-timeframe"
       ],
       "evidence": [
         {
@@ -25453,7 +25457,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Diagnose the guarded Windows multi-file stage through the existing native operation and UI. Exercise a completed, rejected and bounded pending reply, preserve the source and provenance checks and repeat native task verification on the reviewed correction.",
+      "next_action": "Trace the guarded Windows folder stage and the ordinary private correction and focus snapshot failures. Verify bounded stage completion and qualified snapshot and private read observations without repeating a write.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25468,12 +25472,15 @@
           "apps/desktop/ui/src/local-revision-dialog.tsx",
           "tests/ui/desktop-workspace.spec.mjs",
           "tests/ui/local-import.spec.mjs",
-          "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json"
+          "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json",
+          "archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json",
+          "tests/ubuntu-preview/workspace.spec.mjs"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
           "Source-save and recovery guards can discard focus events even though the normal snapshot lane already has a single trailing slot.",
-          "The folder list filters globally withheld revisions without rechecking them after a successful refresh."
+          "The folder list filters globally withheld revisions without rechecking them after a successful refresh.",
+          "An overlapping focus snapshot can cause an unrelated private detail read to be refused, and the native test may count a refused snapshot as an admitted state observation. Examine these entrypoints independently."
         ],
         "risks": [
           {
@@ -25513,6 +25520,18 @@
             "failure": "The native folder stage can still be pending or can return an error while an unrelated UI assertion checks only for a rendered table. A missing or rejected response must not look successful.",
             "checks": [
               "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A focus snapshot occupies the shared native read admission when a private detail is required after a peer correction, leaving the panel stale or falsely clearing private content.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A numbered focus snapshot or independent post-readback proof treats a rejected response as verified state, losing the intended A and B controls.",
+            "checks": [
+              "desktop-workspace-transport"
             ]
           }
         ],
@@ -25555,6 +25574,16 @@
           "run_id": "20261125T180605.452785Z-ff5c1439",
           "source_commit": "1a7cec7c3043bb3a061b81dd89a58d84487b25d4",
           "report_sha256": "ec13514b46a70cbec55dac1f91936a0689e1742e8dd9616ac48d49ed517cb6c3"
+        },
+        {
+          "run_id": "20261125T180528.899232Z-5b935db9",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "a168cedfd2a8772d89eab3fe9c982881445074ee638a0cfbfa72e84a6b08d5d2"
+        },
+        {
+          "run_id": "windows-change-45671281695-1",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
         }
       ]
     }

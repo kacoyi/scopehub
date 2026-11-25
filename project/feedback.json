@@ -7090,6 +7090,82 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "ordinary-refocus-private-correction-read-was-refused",
+      "source": "Ordinary PR97 45671281695 attempt 1 at submitted head 1a7cec7c3043bb3a061b81dd89a58d84487b25d4 and tested merge 265703a505f9bba6161d3cd9378f0639b79d8d20. Retained manifest archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json (SHA-256 9322d98bfb2bd0504cca09c1dc683cb6455933be0f04c42246e6b154c9753606). Both reports record local-folder-refresh-preview as not selected. Linux log SHA-256 8bde7757f019bb677db2b1734369e36dd3daa7dbc0903ee29754237ffe2071c5 and Windows log SHA-256 6c5adb98295377cc7ac1e19755e9de8dde818ef01c4c990f6da83ecef636909a.",
+      "observation": "Both hosted platforms received HTTP 429 at workspace.spec.mjs:5788 while checking an authorized corrected detail after explicit refocus. The original logs establish the refusal, not which request held admission or whether the UI could recover.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T180528.899232Z-5b935db9",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "a168cedfd2a8772d89eab3fe9c982881445074ee638a0cfbfa72e84a6b08d5d2"
+        },
+        {
+          "run_id": "windows-change-45671281695-1",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "ordinary-held-focus-number-can-observe-rejected-snapshot",
+      "source": "Ordinary PR97 45671281695 attempt 1 at submitted head 1a7cec7c3043bb3a061b81dd89a58d84487b25d4 and tested merge 265703a505f9bba6161d3cd9378f0639b79d8d20. Retained manifest archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json (SHA-256 9322d98bfb2bd0504cca09c1dc683cb6455933be0f04c42246e6b154c9753606). Both reports record local-folder-refresh-preview as not selected. Linux log SHA-256 3ee7d924f61d4da4d8ef5099bf41032b0afff41f3b6ed1f248b27729769873d1 and Windows log SHA-256 7b0b6916fc713bba13e09e05a4d12ab4355aa13451f92feed86d3482374af07f.",
+      "observation": "Both hosted platforms reached the numbered held snapshot observation at desktop-workspace.spec.mjs:992 with source and selection undefined. The log does not identify the envelope or error code. Distinguish a rejected observation from a missing or stale state update.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T180528.899232Z-5b935db9",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "a168cedfd2a8772d89eab3fe9c982881445074ee638a0cfbfa72e84a6b08d5d2"
+        },
+        {
+          "run_id": "windows-change-45671281695-1",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "ordinary-post-readback-proof-snapshot-was-rejected",
+      "source": "Ordinary PR97 45671281695 attempt 1 at submitted head 1a7cec7c3043bb3a061b81dd89a58d84487b25d4 and tested merge 265703a505f9bba6161d3cd9378f0639b79d8d20. Retained manifest archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json (SHA-256 9322d98bfb2bd0504cca09c1dc683cb6455933be0f04c42246e6b154c9753606). Both reports record local-folder-refresh-preview as not selected. Windows log SHA-256 7b0b6916fc713bba13e09e05a4d12ab4355aa13451f92feed86d3482374af07f.",
+      "observation": "Hosted Windows received ok:false from the independent post-readback snapshot at desktop-workspace.spec.mjs:1177. The original log does not record the error code or establish that the already verified peer commit was lost.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45671281695-1",
+          "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
+          "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
