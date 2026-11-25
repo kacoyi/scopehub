@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-129",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24034,7 +24034,7 @@
       "id": "M0-129",
       "title": "Observe Windows Cargo cache composition on ordinary verification",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-094"
       ],
@@ -24069,9 +24069,9 @@
           "sha256": "a2bcbb77250e00597e0b48fc9beb5a58259d8f9c0f2c94195d55148b22f1830f"
         }
       ],
-      "next_action": "Have Astra Standard review the committed executable cleanup and retained native receipt. Record administrative disposition after the independent review.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Astra Standard t10n independently approved the exact clean cleanup at db18a986a6d19cd316fcd23c1f9741f484e55212. The review package is archives/observations/repo-hygiene-20261125/independent-final-m0-129-db18a986/SHA256SUMS (SHA-256 fe3eb4369d6664745a49725eac270790d383ce136ed916148f2b4e1a25427d8f). Ordinary full Windows PR 112 run 45606747991 attempt 1 records complete restored and post-check primary-exact snapshots in both core and browser and the passing native regressions. The original reports, private producer logs and source are indexed in archives/observations/m0-129-native-intake-45606747991/manifest.json (SHA-256 1784cb9e9529414c06affa97b93241b6e77880380ba346de7fbc4c9b9f9fcb9a). The two existing receipts separately cover the native probe and the executable cleanup. The single instrumented warm sample gives no sound basis for a cache exclusion or timing recovery. Reopen a private native A/B only after identifying a material, specifically attributable and reproducibly disposable file class and obtaining an equivalent isolated native seed. M0-127 partial main recovery and the M0-104 native trend remain separate observations.",
       "plan": {
         "outcome": "A verifiable sample of real ordinary Windows Cargo cache composition supports a concrete payload experiment decision.",
         "change_types": [
