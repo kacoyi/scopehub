@@ -24274,7 +24274,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify independent publishing and producer endpoint projections through direct review, capture, linked reopening and the exact canonical task.",
+      "next_action": "Verify admissible endpoint orderings for incomplete, disputed and ordered fragments through ordinary review, capture, indexing, reopening and the exact canonical task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24293,7 +24293,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-5ad75817/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-b58a530f/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-b58a530f/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-f5fd7be5/final-response.txt"
         ],
         "hypotheses": [
           "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes.",
@@ -24372,6 +24373,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Reducing a known dispute to absence can make an impossible phase look measured and complete. Compare independently calculated two- and three-fragment missing, feasible and impossible orders through authentic JSON, permutations, duplicate rows, physical capture, index and linked reopen. Retain independent wall and runner clocks and the ordered 760-second/10-second control.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
@@ -24400,7 +24408,8 @@
             "For v1 retained clocks, direct job end and tail facts are comparable across lists showing the same job; aggregate stages need positive layout evidence. Keep the archive format and reuse the publisher native lane selector.",
             "Persist bounded optional per-job endpoint facts for new Actions listings and reuse the same admission and derivation after reopening. Keep historical compact facts only under verified comparable scope.",
             "Use the publishing revision to resolve the shared selection contract from local committed catalog data. Unknown authority remains diagnostic. Normalize identified step observations before projecting elapsed intervals.",
-            "Retain independent endpoint availability and the existing producer-to-publisher ordering evidence. Separate a missing timestamp from a proved conflict when deriving or replaying each interval."
+            "Retain independent endpoint availability and the existing producer-to-publisher ordering evidence. Separate a missing timestamp from a proved conflict when deriving or replaying each interval.",
+            "Retain bounded observed timestamp choices through every evidence join; an opaque dispute or unavailable ordering must not vote as genuinely absent. Check admissibility without choosing a disputed measurement."
           ]
         },
         "evolution": {

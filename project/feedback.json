@@ -7111,6 +7111,22 @@
       "resolution": null,
       "deferral_reason": null,
       "observation": "Changing the authentic 45546767887 Windows publisher step start from 04:39:18Z to 04:39:19Z makes the preparation interval disputed. Both observations agree on the publishing finish and job end, but direct review, shared capture and linked reopen lose the independent 760-second execution and 10-second tail."
+    },
+    {
+      "id": "timing-disputed-starts-hide-impossible-phase-ordering",
+      "source": "Independent Astra review of f5fd7be52d8f8c289b920c3677e5a91e5d41bd9a. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-f5fd7be5/final-response.txt (SHA-256 3011aa62f51503aa3da63e94bc3d90f2f1af688714920e373fffefc9ddaa9862).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "In authentic run 45546767887, two start-only fragments report 04:39:18Z and 04:39:19Z; a third reports finish 04:39:17Z. Neither start can precede this finish. When the start facts are reduced to unknown, direct review, capture and linked reopen claim 746-second execution and 24-second tail and intake incorrectly considers the phase complete."
     }
   ]
 }
