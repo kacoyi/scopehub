@@ -16,6 +16,8 @@ type OutcomeDraft = { noteId: string; observed_on: string; outcome: string };
 type PendingAction = { kind: 'note'; note: PreparedNote } | { kind: 'restore'; restore: PreparedRestore };
 type NoteFailure = { code: unknown; description: Message };
 
+const listRefreshFailure = message('The decision-note list could not be refreshed.');
+
 const actions = {
   'decisionNote.save': {
     title: message('Save this decision note locally?'), confirm: message('Save decision note'), done: message('Decision note saved.'),
@@ -293,6 +295,14 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
     run(signal => load(noteId, offset, signal));
   }
 
+  function reloadNotes() {
+    const noteId = outcomeDraft?.noteId ?? null;
+    const describe = noteId === null && notice === actions['decisionNote.delete'].done
+      ? () => listRefreshFailure
+      : failureMessage;
+    run(signal => load(noteId, 0, signal), describe);
+  }
+
   function review(noteId: string, intent: NoteIntent) {
     if (!workspaceId || !page || workspace.pending || workspace.error) return;
     setNotice(undefined);
@@ -370,7 +380,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
       } catch (fault) {
         if (!deleting) throw fault;
         signal.throwIfAborted();
-        setError({ code: noteErrorCode(fault), description: message('The decision-note list could not be refreshed.') });
+        setError({ code: noteErrorCode(fault), description: listRefreshFailure });
       } finally {
         if (!signal.aborted) workspace.reload();
       }
@@ -402,7 +412,7 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
         disabled={busy || Boolean(workspace.pending)} onClick={workspace.reload}>{t('Reload workspace state')}</button>}
       {!page && !prepared && (busy ? <p role="status">{t('Loading decision notes…')}</p>
         : <button type="button" className="secondary-button"
-          onClick={() => run(signal => load(outcomeDraft?.noteId ?? null, 0, signal))}>{t('Reload decision notes')}</button>)}
+          onClick={reloadNotes}>{t('Reload decision notes')}</button>)}
       {page && !editor && !prepared && (note ? <div className="note-actions">
         <button type="button" className="secondary-button" disabled={busy} onClick={() => navigate(null)}>{t('All decision notes')}</button>
         <button type="button" className="secondary-button" disabled={editingBlocked} onClick={() => {
@@ -411,7 +421,10 @@ export function DecisionNotes({ workspace, onClose }: { workspace: LocalWorkspac
         }}>{t('Add later outcome')}</button>
         <button type="button" className="secondary-button" disabled={editingBlocked}
           onClick={() => review(note.note_id, { operation: 'decisionNote.delete', arguments: {} })}>{t('Review deletion')}</button>
-      </div> : <button type="button" className="primary" disabled={editingBlocked} onClick={() => setEditor('note')}>{t('New decision note')}</button>)}
+      </div> : <button type="button" className="primary" disabled={editingBlocked} onClick={() => {
+        setNotice(undefined);
+        setEditor('note');
+      }}>{t('New decision note')}</button>)}
       {editor === 'note' && <NoteEditor disabled={editingBlocked} onDiscard={() => { setEditor(undefined); setError(undefined); }}
         onReview={args => review(crypto.randomUUID(), { operation: 'decisionNote.save', arguments: args })} />}
       {note && <OriginalDecision note={note} />}
