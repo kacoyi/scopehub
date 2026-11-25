@@ -3685,7 +3685,7 @@
       "id": "profile-admission-after-relocation-review",
       "source": "Independent Astra Standard at d89a332 and archives/runs/20261125T042136.288677Z-f883380f/test-report.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The reviewed profile opener discarded a retained synthetic WAL when the main file was empty, reused the relocated identity at the old path, and rejected a valid anchor after sampling earlier existence.",
       "task_ids": [
         "M5-005"
@@ -3694,7 +3694,11 @@
         "state-migrations",
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "SQLite saw the damaged main file before raw admission and startup sampled identity in separate steps. New native databases reused the path hash.",
+        "correction": "Reject damaged journal sets ahead of SQLite, serialize startup and keep a permanent new identity for a new database.",
+        "prevention": "Linux storage and desktop tests cover retained bytes, legacy recovery, relocated and recreated namespaces, original provenance and simultaneous opens."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
@@ -3708,7 +3712,7 @@
       "id": "profile-lock-inventory-stale",
       "source": "Hosted dependency-review at archives/runs/20261125T040109.068237Z-3777721b/test-report.json and archives/runs/windows-change-45543738130-1/test-report.json.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "Hosted run 45543738130 failed dependency-review on Linux and Windows. The reviewed Cargo.lock added a dependency edge and the retained inventory still recorded the previous lock digest.",
       "task_ids": [
         "M5-005"
@@ -3716,7 +3720,11 @@
       "regression_checks": [
         "dependency-review"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The Cargo dependency graph changed while the inventory still named the previous Cargo.lock digest.",
+        "correction": "Refresh the inventory from the exact lock and review its unchanged package and license set.",
+        "prevention": "The exact clean Linux commit passed an online dependency review with zero unresolved findings. Hosted freshness remains a separate observation."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {

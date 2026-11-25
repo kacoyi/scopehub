@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M5-005",
+  "focus_task_id": "M5-001",
   "tasks": [
     {
       "id": "M0-001",
@@ -1000,7 +1000,7 @@
       "id": "M5-005",
       "title": "Deliver and verify safe desktop profile relocation after independent review",
       "milestone": "M5",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-001",
         "M2-002"
@@ -1032,10 +1032,15 @@
         "state-migrations",
         "dependency-review"
       ],
-      "evidence": [],
-      "next_action": "Verify main and exact PR history, the profile guards, and the refreshed online dependency review, then retain the passing Linux receipt.",
+      "evidence": [
+        {
+          "path": "project/evidence/M5-005-f9b72cd97430dc5d.json",
+          "sha256": "e30606ccb042125388cf5b6dd25cadc7f8e77fd2edfecdd66e9045ebeee2d48d"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The clean replacement 911c3bef73f76184112f19d208955346d0bb9106 passed all selected Linux task checks including online dependency review. Rust retained unchanged synthetic WAL bytes on refusal, preserved legacy identities and assigned distinct stable namespaces on recreation, and serialized two admitted opens. The desktop verified independent synthetic credential replacement and removal. The Windows storage module type-checked for x86_64-pc-windows-gnu. Native NTFS regression execution, same-account and different-account Windows recovery, and packaged acceptance remain open.",
       "plan": {
         "outcome": "The reviewed profile repair passes synthetic integrity, identity and simultaneous startup controls.",
         "change_types": [

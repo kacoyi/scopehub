@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M5-005",
+  "task_definition_sha256": "27af8e02aa4cdf0ef9dfc63121b1f9cb3f16271da28d825a769ab7fb5d4aa08c",
+  "run_id": "20261125T043031.173588Z-5f81cd73",
+  "recorded_at": "2026-11-25T04:32:35.177443+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "6aaf0206b74b1fd9af37739495041840814e6917e423e6322681064556d83bc5",
+    "file_count": 598,
+    "git_head": "911c3bef73f76184112f19d208955346d0bb9106",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "f9b72cd97430dc5db3842be5536503918c27c690a1741abf04bece45686c25b6",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "534ca268d75d366b22f2751eb4bc3ccecc678a8dca91d19babe04cd0713f1b7e"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "00559b5b0cc0ee4778e888b79de4e96ee7a707f8b6f547fd1b96872426d1b933"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3294b9cb24251c0b840059485b0a88d9316ecda18dda1af889ee763b6d35bedc"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9f1a35e5fa400a37f8a6a98f2eb3a0a99bfbe4b29aeff6f1c3bc55201fdc878b"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ced562fe7ec145db0dce6e4e43cbb9867f8cef5f8cc6b7a8dda8e4bbb52c0fb3"
+    }
+  ],
+  "project_definition_sha256": "c425fd8ed12de668f9adde41fe7ebf6b8ab1ad51b9640f083dd4d74ca7745003",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "8b3ce36223ad0e48ed49d47e3e9f28d0d070969ffd336994982de6d20d7bbeab",
+    "8bf22b827f17cb51e2180caf5a56fb711b952801a3fc5bde04b41c48cbc495c4",
+    "a4d3668c5c198fdf27b34aa1ea84aa2533db903879231433f33b9d6b2dc73b59"
+  ]
+}
