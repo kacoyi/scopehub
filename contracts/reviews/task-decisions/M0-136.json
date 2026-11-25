@@ -189,6 +189,26 @@
       "requested_at": "2026-11-25T17:42:16.846695+00:00",
       "request_id": "69bd392b8070585c23fa8c28aecc4f3e63d40b96e12a0838fb6d6c4085430811",
       "evidence_sha256": "eda47680bc9b509fd74a906e4183c7e05fc6b33e78f61e44a719bf51b44578c6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "scope": "CHANGES_REQUESTED M0-136 4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "observation": "In the M0-103 replay, adding a bullet to a documentation heading caused the intake to accept an approval that appeared only inside a fenced terminal example.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "93f3f9b026f3a4a04dbd8cbcdb77f2be2888ab27b0a6519f419cd48252da012a",
+      "response_id": "592d39279ea733fd6c5e1e0cc382507e3fb9c33df37f5830a5c415b9a6e9908d",
+      "response_sha256": "ce34269b14d7cce387e944ad49f9e021ceba0cba2578bcac78f04a28d691a7dc",
+      "legacy_response_sha256": "00030acce7cea978c3a83f8adbee53f239678bfd2d4240aa7853f19e29889f45",
+      "observation_body_sha256": "f6c0ba3db45ef2f85648ddb952e0224a40ed6917f0c926200f1a8d2e41672fba",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b071eb44f9487d0b07c4a7d9e7ef0f5",
+        "timestamp": "2026-11-25T17:45:35.115Z"
+      },
+      "supersedes": "69bd392b8070585c23fa8c28aecc4f3e63d40b96e12a0838fb6d6c4085430811",
+      "evidence_sha256": "e400c293677a468989764eb8299bd23554ba1841bca13d06243be931a36592c1"
     }
   ]
 }
