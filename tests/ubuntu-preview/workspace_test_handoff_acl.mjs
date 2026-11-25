@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmod, rm, writeFile } from 'node:fs/promises';
+import { chmod, readFile, rm, writeFile } from 'node:fs/promises';
 import { constants } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,7 +57,7 @@ function prepareAclFixture(check, handoff, fixture) {
   const powershell = join(systemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   return runHandoffProbe(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
     env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture },
-    exitStages: { 1: 'fixture preparation' },
+    exitStages: { 1: 'fixture preparation', 2: 'raw ACE readback', 3: 'legacy managed descriptor' },
   });
 }
 
@@ -121,5 +121,32 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
     await assertRejectedHandoff(readOnly, 55);
   } finally {
     await chmod(readOnly, 0o600).finally(() => rm(readOnly));
+  }
+}
+
+export async function assertIneffectiveWindowsHandoffsAccepted(profile) {
+  const prepare = await readFile(new URL('./workspace_test_handoff_ineffective_acl.ps1', import.meta.url), 'utf8');
+  const controls = ['zero-rights', 'inherit-only'];
+  const paths = controls.map(control => join(profile, `synthetic-acl-${control}.txt`));
+  const owned = [];
+  try {
+    for (const path of paths) {
+      await writeFile(path, '', { flag: 'wx', mode: 0o600 });
+      owned.push(path);
+    }
+    try {
+      await prepareAclFixture(prepare, profile, JSON.stringify(paths));
+    } catch (error) {
+      throw new Error(`Could not verify the synthetic ineffective ACL fixtures (${error.message}).`);
+    }
+    for (const [index, control] of controls.entries()) {
+      try {
+        await assertWindowsPrivateHandoff(paths[index]);
+      } catch (error) {
+        throw new Error(`The synthetic ${control} ACE should be ineffective. ${error.message}`);
+      }
+    }
+  } finally {
+    await Promise.all(owned.map(path => rm(path)));
   }
 }

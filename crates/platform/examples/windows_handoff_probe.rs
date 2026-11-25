@@ -16,8 +16,39 @@ fn main() -> std::process::ExitCode {
     std::process::ExitCode::FAILURE
 }
 
+#[cfg(any(windows, test))]
+fn grants_to_unexpected_trustee(_mask: u32, _inherit_only: bool, private_trustee: bool) -> bool {
+    !private_trustee
+}
+
+#[cfg(test)]
+mod tests {
+    use super::grants_to_unexpected_trustee;
+
+    // FILE_READ_DATA is a single nonzero access right.
+    const READ_DATA: u32 = 1;
+
+    #[test]
+    fn zero_mask_does_not_grant_access() {
+        assert!(!grants_to_unexpected_trustee(0, false, false));
+    }
+
+    #[test]
+    fn inherit_only_allow_does_not_grant_access_to_the_file() {
+        assert!(!grants_to_unexpected_trustee(READ_DATA, true, false));
+    }
+
+    #[test]
+    fn effective_allow_still_checks_the_trustee() {
+        assert!(grants_to_unexpected_trustee(READ_DATA, false, false));
+        assert!(!grants_to_unexpected_trustee(READ_DATA, false, true));
+    }
+}
+
 #[cfg(windows)]
 mod windows {
+    use super::grants_to_unexpected_trustee;
+
     use std::{
         fs::{OpenOptions, symlink_metadata},
         mem::{offset_of, size_of},
@@ -162,13 +193,17 @@ mod windows {
                 {
                     return Err(Stage::InheritedAccess);
                 }
-                if !private_trustee(sid, user) {
+                let flags = u32::from(header.AceFlags);
+                if grants_to_unexpected_trustee(
+                    ace.Mask,
+                    flags & INHERIT_ONLY_ACE != 0,
+                    private_trustee(sid, user),
+                ) {
                     return Err(Stage::UnexpectedTrustee);
                 }
                 // SAFETY: the ACE and token supply live, valid SIDs.
                 inherited_user |= unsafe { EqualSid(sid, user) != 0 }
-                    && u32::from(header.AceFlags) & (INHERITED_ACE | INHERIT_ONLY_ACE)
-                        == INHERITED_ACE
+                    && flags & (INHERITED_ACE | INHERIT_ONLY_ACE) == INHERITED_ACE
                     && ace.Mask & REQUIRED == REQUIRED;
             }
             if !inherited_user {
