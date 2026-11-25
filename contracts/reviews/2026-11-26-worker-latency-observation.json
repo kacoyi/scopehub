@@ -1,0 +1,112 @@
+{
+  "reviewed_on": "2026-11-26",
+  "task_id": "M0-140",
+  "disposition": "retain-protected-validator",
+  "task_base": "6dc895eca6bb5ba5bbea8a46391838809ab7cc97",
+  "measured_source": {
+    "commit": "6592dee93bd6cad8b13345fd550b93c573f87d7a",
+    "execution_inputs_sha256": "646bb24ddd5a8c5575578247f931d674bc5263c486214f57fab0b1d4b24a9dc2",
+    "execution_input_file_count": 606
+  },
+  "prior_review": "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+  "private_observation": {
+    "root": "archives/observations/m0-140-worker-latency-6dc895e",
+    "sha256sums": "549be6ffae304bed48b1cc8d05be85bc732c44203833ea56783378b092776f51",
+    "analysis_sha256": "1e9eea6b97227c86ad5511273a49ea0f1778fe8d826cbb823d47c60780021633"
+  },
+  "measurement": {
+    "platform": "Linux x86_64, pinned Python 3.12.15 and Node 24.22.3, headless Chromium",
+    "product_entry": "Built ScopeHub UI with the existing portable native-operation bridge. The chooser supplies only the owned synthetic folder. Requests enter Rust desktop State and actual Python worker children, and the UI renders ordinary replies.",
+    "control": "Eight fresh bridge and browser-context runs per journey. Latency spans the scripted click to the first target reply or visible completion. The optional chart cap sets the supported page_size to 16 once per request; the real UI follows the cursors and the real worker produces all pages. The default request uses its unmodified limit.",
+    "memory": "OS RSS was polled at nominal 12 ms intervals without an in-worker probe in the wall-time arm. After checking the visible chart result, the driver requested a 180 ms wait before closing the browser context and bridge. Retained chart RSS uses samples from 100 ms after visibility (inclusive) until the recorded bridge close (exclusive). Three of the 35 default-chart samples fall after 180 ms. A strict inclusive 100\u2013180 ms recalculation leaves the medians at 29.48 MiB for the default chart and 30.26 MiB for the three-page chart. The CSV workers are reaped before operation return.",
+    "worker_counts": "Three separate wire trials bind each frame to a Python PID and its Rust parent. The original kernel start tick has 10 ms resolution. Repeated chart reads include a registry catalog lookup for each page.",
+    "attribution": "Three targeted timing trials call through to the same Resolver.lookup with thread CPU timestamps. A timer pair took 129\u2013141 ns across the per-process calibration medians. Full cProfile trials agree on counts and incur substantially higher overhead. Neither arm estimates a product wall-time saving. The clean IPC envelope and time outside it are measured separately; the remainder includes input scheduling, UI work and observation polling."
+  },
+  "journeys": {
+    "default_chart": {
+      "scope": "One catalog request, one page and one registry catalog check on the same worker.",
+      "worker_processes": 1,
+      "requests_per_worker": 3,
+      "median_user_to_first_operation_reply_ms": 253.784,
+      "median_user_to_first_target_reply_ms": 309.014,
+      "user_to_visible_ms": {
+        "median": 402.236,
+        "min": 359.129,
+        "max": 409.395
+      },
+      "median_ipc_envelope_ms": 189.814,
+      "median_outside_measured_ipc_ms": 206.736,
+      "approximate_median_worker_start_to_first_reply_ms": 114.65,
+      "median_sampled_worker_peak_rss_mib": 29.48,
+      "median_short_idle_rss_mib": 29.48,
+      "reference_lookup_calls": 2451,
+      "median_lookup_cpu_ms": 9.593,
+      "median_lookup_cpu_through_greeting_ms": 1.429
+    },
+    "bounded_three_page_chart": {
+      "scope": "One catalog request, three pages and three registry catalog checks on the same worker.",
+      "worker_processes": 1,
+      "requests_per_worker": 7,
+      "median_user_to_first_operation_reply_ms": 254.743,
+      "median_user_to_first_target_reply_ms": 307.4,
+      "user_to_visible_ms": {
+        "median": 412.776,
+        "min": 399.605,
+        "max": 421.437
+      },
+      "median_ipc_envelope_ms": 246.411,
+      "median_outside_measured_ipc_ms": 164.593,
+      "approximate_median_worker_start_to_first_reply_ms": 116.33,
+      "median_sampled_worker_peak_rss_mib": 30.26,
+      "median_short_idle_rss_mib": 30.26,
+      "reference_lookup_calls": 5295,
+      "median_lookup_cpu_ms": 21.86,
+      "median_lookup_cpu_through_greeting_ms": 1.45
+    },
+    "csv_source_row": {
+      "scope": "One frozen source record and one content chunk from synthetic daily.csv.",
+      "worker_processes": 1,
+      "requests_per_worker": 1,
+      "median_user_to_first_operation_reply_ms": 148.287,
+      "median_user_to_first_target_reply_ms": 148.287,
+      "user_to_visible_ms": {
+        "median": 237.302,
+        "min": 234.723,
+        "max": 241.503
+      },
+      "median_ipc_envelope_ms": 115.838,
+      "median_outside_measured_ipc_ms": 123.421,
+      "approximate_median_worker_start_to_first_reply_ms": 85.574,
+      "median_sampled_worker_peak_rss_mib": 28.63,
+      "median_short_idle_rss_mib": null,
+      "reference_lookup_calls": 360,
+      "median_lookup_cpu_ms": 1.475,
+      "median_lookup_cpu_through_greeting_ms": 1.475
+    },
+    "csv_folder_refresh": {
+      "scope": "Two distinct digests each use a one-shot header preview and a complete folder inspection. Duplicate content shares those reads. Review, publication and frozen chart reopening start zero Python workers.",
+      "worker_processes": 4,
+      "requests_per_worker": 1,
+      "median_user_to_first_operation_reply_ms": 410.147,
+      "median_user_to_first_target_reply_ms": 410.147,
+      "user_to_visible_ms": {
+        "median": 842.838,
+        "min": 836.634,
+        "max": 863.217
+      },
+      "median_ipc_envelope_ms": 397.815,
+      "median_outside_measured_ipc_ms": 450.491,
+      "approximate_median_worker_start_to_first_reply_ms": 82.6,
+      "median_sampled_worker_peak_rss_mib": 29.53,
+      "median_short_idle_rss_mib": null,
+      "reference_lookup_calls": 1436,
+      "median_lookup_cpu_ms": 5.975,
+      "median_lookup_cpu_through_greeting_ms": 5.975,
+      "user_to_visible_ms_applies_to": "Stage folder refresh through visible review",
+      "median_stage_through_reopened_chart_ms": 1044.8
+    }
+  },
+  "parity_and_cleanup": "Both chart runs assembled the exact 40 committed bars and the same snapshot. CSV record 1 retained its raw fields, source hash and physical line 2. The committed folder revision reopened with closes 38, 40 and 42 and both paths for the duplicate new source. Those projections matched across all arms. The bridge processes exited normally, observed worker PID identities were gone, temporary profiles were removed, and the trace hook was removed before ordinary verification.",
+  "limits": "The deliberate page cap is a synthetic continuation control. Fresh worker processes use a warm local environment. The portable bridge excludes native WebView2 and operating-system picker timing. The named workloads cover a short idle interval and one tiny CSV fixture; field paging frequency, cold machine startup, long-session tail latency, long-lived memory, proportional set size, and hosted timing remain unmeasured.",
+  "decision": "Keep the deferred finding and retain the protected validator. The short bounded chart established reuse and measurable lookup CPU but provides no measured end-to-end improvement or field session distribution. All measured CSV lookup CPU occurred by the handshake; four independent startups occurred even in the tiny folder example. The M0-132 rejected candidate and its startup regressions remain separate. Reopen only if profiling representative longer product sessions shows material user delay and a separately reviewed change preserves ordinary one-shot latency, memory and protocol behavior. M0-104 hosted recovery remains separate."
+}
