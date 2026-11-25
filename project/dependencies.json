@@ -276,6 +276,82 @@
       "https://docs.github.com/en/rest/actions/cache",
       "https://google.github.io/osv.dev/post-v1-querybatch/"
     ],
+    "rust_proposal_review": {
+      "original_refs_and_local_failures": {
+        "manifest": "archives/observations/dependency-queue-20261125/original-refs-and-pr-90-manifest.json",
+        "sha256": "42d9a917b27dd34bf1be6da07279e1d9e2beb6e52b152828e6d1d9df406049d5"
+      },
+      "task_id": "M0-113",
+      "observed_on": "2026-11-25",
+      "reviewed_against": "1a71e272d3abd9fabb8ce49ed3316289f264786a",
+      "original_parent": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+      "proposals": [
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/89",
+          "head": "df61a4ec759e2cef635d50a0d09e72ec3e20d8c4",
+          "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519296584",
+          "original_local_report_sha256": "2581e6cad430a24676001d236837bea383e4d002b2e69c697f72a2402a455ab3",
+          "failure": "The original changes to the Cargo workspace constraint and seven locked versions left the license inventory stale. The unchanged dependency gate rejected the inventory on Ubuntu and Windows.",
+          "official_releases": [
+            "https://github.com/Stranger6667/jsonschema/releases/tag/rust-v0.62.0",
+            "https://github.com/rust-lang/regex/releases/tag/1.13.2"
+          ],
+          "release_source_commits": {
+            "validator_family": "24280ebc025661f9743d969c7ea51122e21f205a",
+            "regex_family": "4226f214c56e584304520adb9080bcc4c792390e"
+          },
+          "registry_archive_digests": {
+            "jsonschema": {
+              "version": "0.62.0",
+              "sha256": "4c5400a8dc340fa3ed743068cf8f3c1719f4f71e1260115dffc64da6bf339135"
+            },
+            "jsonschema-regex": {
+              "version": "0.62.0",
+              "sha256": "7fdaef5fd9b5ee4cc56b9f8d373d811fc4d7b8fdcb0902cf3b7749e5c478118d"
+            },
+            "jsonschema-value": {
+              "version": "0.62.0",
+              "sha256": "fcb55c1402635417a02ce0a53e890ce191cf5b276fc1ec92284fc544d257d127"
+            },
+            "referencing": {
+              "version": "0.62.0",
+              "sha256": "5658eec40ff1065debe70c744f3c36accc3b41566359e098942a101e30d0029e"
+            },
+            "regex": {
+              "version": "1.13.2",
+              "sha256": "9807af0e638c12e753aa1b4e601791bf2a8f71274023c8bbeec12fc149950857"
+            },
+            "regex-automata": {
+              "version": "0.4.19",
+              "sha256": "41d60ef07df457506a0a1a2073112eb4aae5733dbd2813c3da77d1b0fd441158"
+            },
+            "regex-syntax": {
+              "version": "0.8.12",
+              "sha256": "d902046e6a28a1e4c3cab97258a0ce11e994903f01c2d97a9447a0b3df85f4f6"
+            }
+          },
+          "license_and_target_review": "The four schema and reference packages remain MIT and require Rust 1.85. The three regex packages remain MIT OR Apache-2.0 and require Rust 1.65. Verified registry archives against both the sparse index and lock. Existing Ubuntu x64 and Windows x64 caller edges and disabled jsonschema defaults are preserved.",
+          "callable_review": "Rust uses Draft 2020-12 compilation and is_valid with format validation. The release repairs reference resolution and regex matching. ScopeHub has no call to the removed RegexEngineFailure variant or evaluate API."
+        },
+        {
+          "pr": "https://github.com/kacoyi/scopehub/pull/90",
+          "head": "0d56ecf3e354743cebda6c98848556cba6fa7885",
+          "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519317188",
+          "failed_log_zip_sha256": "ac8868987bf7e035b8546f91bf044e7691881df30b1f8a34bc23a8931d7c8e6c",
+          "original_local_report_sha256": "4a2e4c2b8c8012bb07e39c9e509a5f200fab87fbd7befccb8d9e01bba7504bbb",
+          "failure": "The original changes to the worker-host constraint and lock edge left the lock digest in the license inventory stale. The unchanged dependency gate rejected it on Ubuntu and Windows.",
+          "official_releases": [
+            "https://github.com/marshallpierce/rust-base64/releases/tag/v0.23.1",
+            "https://github.com/marshallpierce/rust-base64/blob/v0.23.1/RELEASE-NOTES.md"
+          ],
+          "release_source_commit": "069bf7067b949f5c0a92b6ceb82492920502f2c2",
+          "registry_archive_sha256": "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5",
+          "license_and_target_review": "The already locked base64 release remains MIT OR Apache-2.0 and requires Rust 1.71. The archive contains both texts and no normal dependencies. The supported graphs already enabled std, alloc and simd-unsafe through other consumers; the update adds the worker-host edge without increasing the enabled feature set.",
+          "callable_review": "The host calls the explicit padded standard-alphabet general-purpose engine, which uses scalar callbacks. The Rust host and Python receiver keep the existing bounded frame and canonical byte-transfer rules."
+        }
+      ],
+      "disposition": "Use one native Cargo resolution and reviewed inventory for both replacements. Keep advisory and license policy in force and require exact-head hosted Ubuntu and Windows verification before integration."
+    },
     "proposal_review": {
       "task_id": "M0-040",
       "observed_on": "2026-11-21",
