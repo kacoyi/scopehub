@@ -2895,7 +2895,8 @@ async function whilePeerHoldsNoteSnapshot(server, observer, deleting, observatio
     if (!armed || response.status() !== 429 || new URL(response.url()).pathname !== endpoint) return;
     const body = response.request().postDataJSON();
     if (body?.type !== 'snapshot' && body?.intent?.operation !== 'decisionNote.read') return;
-    observation.refusedInitiatingRead = { operation: body.intent?.operation ?? body.type, http: response.status() };
+    observation.refusedInitiatingRead ??= { operation: body.intent?.operation ?? body.type,
+      requestId: body.request_id, http: response.status() };
     tag.release();
   };
   await observer.route(url, holdObserver);
@@ -2903,7 +2904,19 @@ async function whilePeerHoldsNoteSnapshot(server, observer, deleting, observatio
   deleting.on('response', releaseAfterRefusal);
   try {
     await action();
-    expect(observation.refusedInitiatingRead).toMatchObject({ http: 429 });
+    expect(observation.refusedInitiatingRead).toMatchObject(
+      { operation: 'decisionNote.read', requestId: expect.any(String), http: 429 });
+    const events = observation.events.filter(event => event.window === 'deleting-window');
+    const approval = events.findIndex(event => event.stage === 'response'
+      && event.operation === 'decisionNote.delete' && event.confirmation === 'approve');
+    expect(approval).toBeGreaterThanOrEqual(0);
+    const reopened = events.slice(approval + 1);
+    expect(reopened.find(event => event.stage === 'request')).toMatchObject({
+      operation: 'decisionNote.read', noteId: null, requestId: observation.refusedInitiatingRead.requestId,
+    });
+    const reply = reopened.filter(event => event.stage === 'response' && event.operation === 'decisionNote.read');
+    expect(reply[0]).toMatchObject({ http: 429 });
+    expect(reply.at(-1)).toMatchObject({ http: 200, requestId: observation.refusedInitiatingRead.requestId });
   } finally {
     tag.release();
     deleting.off('response', releaseAfterRefusal);
