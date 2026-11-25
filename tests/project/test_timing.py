@@ -1271,10 +1271,12 @@ class PRMainComparisonTests(unittest.TestCase):
         self.main = self.commit('main merge', self.base, self.head)
 
     def git(self, *args, contents=''):
-        return subprocess.run(
+        # mktree treats a carriage return before LF as part of the entry name.
+        result = subprocess.run(
             ['git', '-c', 'user.name=Timing Fixture', '-c', 'user.email=timing@example.test',
-             *args], cwd=self.root, input=contents, capture_output=True, text=True, check=True,
-        ).stdout.strip()
+             *args], cwd=self.root, input=contents.encode('utf-8'), capture_output=True, check=True,
+        )
+        return os.fsdecode(result.stdout).strip()
 
     def commit(self, message, *parents, tree=None):
         return self.git('commit-tree', tree or self.tree,
@@ -1295,6 +1297,10 @@ class PRMainComparisonTests(unittest.TestCase):
 
         publisher = with_catalog('Publishing checkout', catalog, self.head)
         newer_head = with_catalog('Other catalog', newer, self.head)
+        self.assertEqual(timing.git(self.root, 'ls-tree', '-r', '-z', '--name-only', publisher),
+                         b'project/checks.json\0scripts/project.py\0')
+        self.assertEqual(timing.git(self.root, 'cat-file', 'blob', f'{publisher}:project/checks.json'),
+                         json.dumps(catalog).encode('utf-8'))
         load = timing.native_publishing_catalog
         self.enterContext(patch.object(timing, 'native_publishing_catalog',
                                        side_effect=lambda revision, **options: load(revision, root=self.root, **options)))
@@ -1303,7 +1309,12 @@ class PRMainComparisonTests(unittest.TestCase):
                                        side_effect=lambda revision: snapshot(revision, root=self.root)))
         report = fast_report(20, 190)
         report['environment'].update(system='Windows', machine='AMD64')
-        report['source'].update(git_head=publisher, sha256=snapshot(publisher, root=self.root))
+        published_digest = snapshot(publisher, root=self.root)
+        newer_digest = snapshot(newer_head, root=self.root)
+        self.assertIsNotNone(published_digest)
+        self.assertIsNotNone(newer_digest)
+        self.assertNotEqual(published_digest, newer_digest)
+        report['source'].update(git_head=publisher, sha256=published_digest)
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
                         'event': 'pull_request', 'head_sha': newer_head, 'checkout_sha': publisher}
         report['selection'].update(profile='full', checks=list(full))
@@ -1312,15 +1323,20 @@ class PRMainComparisonTests(unittest.TestCase):
         original = timing.report_sample(report)
         self.assertFalse(timing.native_report_issue(original, None, []))
         for omitted in full:
-            broken = dict(original, selected=[key for key in original['selected'] if key != omitted])
-            self.assertTrue(timing.native_report_issue(broken, None, []))
-        surplus = dict(original, selected=[*original['selected'], 'release-artifacts'])
+            with self.subTest(omitted=omitted):
+                broken = dict(original, selected=[key for key in original['selected'] if key != omitted],
+                              checks=[row for row in original['checks'] if row['id'] != omitted])
+                self.assertTrue(timing.native_report_issue(broken, None, []))
+        surplus = dict(original, selected=[*original['selected'], 'release-artifacts'], checks=[
+            dict(row, status='passed', exit_code=0, reason_code=None) if row['id'] == 'release-artifacts' else row
+            for row in original['checks']
+        ])
         self.assertTrue(timing.native_report_issue(surplus, None, []))
         missing = 'f' * 40
         expired = dict(original, source_commit=missing,
                        ci=dict(original['ci'], checkout_sha=missing, head_sha=publisher))
         self.assertFalse(timing.native_report_issue(expired, None, []))
-        self.assertTrue(timing.native_report_issue(dict(expired, inputs_sha256='a' * 64), None, []))
+        self.assertTrue(timing.native_report_issue(dict(expired, inputs_sha256=newer_digest), None, []))
         issues = []
         self.assertTrue(timing.native_report_issue(dict(expired, ci=dict(expired['ci'], head_sha=missing)), None, issues))
         self.assertIn('publishing catalog is unavailable', issues[0]['error'])

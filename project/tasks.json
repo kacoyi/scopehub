@@ -25703,7 +25703,7 @@
           "report_sha256": "dc1627a9659d1d966f36d7b6501ae6c99974efc1eda82747063c6ee28b6789b6"
         }
       ],
-      "next_action": "Locate the first differing input between the Windows and Linux positive control, correct its owner, and qualify the same public behavior on native Windows.",
+      "next_action": "Review the byte-preserving Git fixture correction and qualify the exact candidate with a new native Windows Python check.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25718,7 +25718,7 @@
           "archives/runs/windows-change-45673372424-1/test-report.json"
         ],
         "hypotheses": [
-          "Possible boundaries include Git fixture object bytes, checkout identity and the platform-specific native report selection. The Windows assertion alone does not identify which boundary differs."
+          "With Windows-style stdin bytes, Git preserved the catalog blobs but wrote carriage returns into fixture tree paths. Replaying that input on Linux reproduces the original native failure; binary stdin preserves the paths."
         ],
         "risks": [
           {
