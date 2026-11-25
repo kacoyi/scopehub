@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-145",
   "tasks": [
     {
       "id": "M0-001",
@@ -25305,6 +25305,116 @@
           ],
           "data_plan": "Use synthetic temporary per-run profiles and retain only business-independent diagnostic timings, states and hashes.",
           "cleanup": "Terminate private workers and windows and retain original traces before disposing the synthetic profiles."
+        }
+      }
+    },
+    {
+      "id": "M0-145",
+      "title": "Bind weekly timing freshness to qualified reports received in the current collection",
+      "milestone": "M0",
+      "status": "active",
+      "delivery": "current-contract",
+      "depends_on": [
+        "M0-133",
+        "M0-135"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/maintenance.py",
+        ".github/workflows/review-verification-timing.yml",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Public recent timing and maintenance verification credit only a full protected platform report actually received for the exact eligible repository, event, run, attempt, source and report identity.",
+        "A producer-only, other-attempt or missing download leaves weekly freshness pending while compatible historic full timing remains available for trend review.",
+        "The scheduled timing workflow supplies historic publishing catalog objects to the normal reader. A truly unavailable catalog still withholds Windows attribution.",
+        "Retain the authentic Windows 804-second wall and 2467-second runner controls for run 45546767887, and preserve M0-130, M0-131, M0-133 and M0-135 accepted history and conditional follow-up."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Retain the independently observed red cases, exercise the public timing workflow command and maintenance verification against exact complete, partial, missing and unavailable-history inputs, and run the canonical task.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A fresh weekly timing claim proves exact report receipt and qualification while historic trends and unavailable-catalog diagnostics retain their established meaning.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "scripts/maintenance.py",
+          ".github/workflows/review-verification-timing.yml",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt"
+        ],
+        "hypotheses": [
+          "The collector can reuse the existing protected platform projection and retain an exact identity for the reports actually acquired.",
+          "Full checkout history at the existing workflow entry makes historic publisher catalogs available without weakening qualification."
+        ],
+        "risks": [
+          {
+            "failure": "A browser-only or wrong-attempt receipt aliases a retained full sample and produces a false freshness claim.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The actual scheduled checkout cannot resolve historic publishing catalogs or a missing catalog is silently accepted.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "New intake changes accepted review facts, native clocks or historic trend definitions.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the bounded collection and workflow correction while retaining original observations, accepted receipts and review diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/project.py",
+            ".github/workflows/review-verification-timing.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "New timing objectives or native attribution rules, reevaluation of accepted M0-130 through M0-135 history, hosted dispatch or publication."
+          ],
+          "open_questions": [
+            "Which catalog objects can the exact scheduled workflow read from a normal full checkout, and what diagnosis is emitted when an object really is missing?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Accepted historical facts and receipts, ordinary objective and coverage rules, conditional owners, and independent historic trends."
+          ],
+          "change": [
+            "Bind weekly freshness to acquired, qualified report identity and supply historic catalog objects at the scheduled entry."
+          ],
+          "data_plan": "Replay retained public artifacts and disposable local clones. Keep accepted originals and retain rejected evidence.",
+          "cleanup": "Keep private red and green reports and preserve the independent task branch."
         }
       }
     }

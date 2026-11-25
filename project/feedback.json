@@ -7465,6 +7465,38 @@
       },
       "deferral_reason": null,
       "observation": "In authentic run 45546767887, two start-only fragments report 04:39:18Z and 04:39:19Z; a third reports finish 04:39:17Z. Neither start can precede this finish. When the start facts are reduced to unknown, direct review, capture and linked reopen claim 746-second execution and 24-second tail and intake incorrectly considers the phase complete."
+    },
+    {
+      "id": "weekly-timing-current-collection-borrows-historic-platform-report",
+      "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 843e97a61010b193fb0146aa1c4242013fa66169. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt (SHA-256 f7cc505f36547b00350e4f58130262b2f1792d9d4ca64a68e6643c22d3d7474c). Original assistant response SHA-256 9f11b2f69e67c95144271a2ae47fa12609f56fd06b9229bd26972d2adce89266.",
+      "observation": "In the public recent timing and verify-maintenance replay of run 45546767887, acquiring only the authentic browser fragment refreshed Windows pull_request when a full platform report remained in retained history. A controlled second attempt also borrowed first-attempt evidence. A fresh full report qualified and a missing download stayed pending.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-145"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-shallow-checkout-hides-historic-publishing-catalog",
+      "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 843e97a61010b193fb0146aa1c4242013fa66169. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-843e97a6/final-response.txt (SHA-256 f7cc505f36547b00350e4f58130262b2f1792d9d4ca64a68e6643c22d3d7474c). Original assistant response SHA-256 9f11b2f69e67c95144271a2ae47fa12609f56fd06b9229bd26972d2adce89266.",
+      "observation": "The scheduled workflow uses the default one-commit checkout. With the same authentic 45546767887 inputs, the complete object store produced the Windows 804-second platform sample, while the one-commit object store lacked the historical publishing catalog and withheld the Windows platform attribution.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-145"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
