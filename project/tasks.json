@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-036",
   "tasks": [
     {
       "id": "M0-001",
@@ -21414,6 +21414,114 @@
           ],
           "data_plan": "Read the archived coordinator review offline and exercise malformed input with synthetic data. Never change the archived original.",
           "cleanup": "Stage saves in the destination directory and remove staging files when publication succeeds or fails."
+        }
+      }
+    },
+    {
+      "id": "M2-036",
+      "title": "Keep decision-note deletion feedback attributable across two tabs",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Preserve the first authenticated Linux failure. Use the ordinary two-tab synthetic journey to correlate approval with the real operation result, persisted note and deletion marker, visible confirmation and the peer projection.",
+        "A verified deletion is acknowledged during delayed or refreshed list projection. A rejected approval never shows success and never deletes the note. Preserve the existing draft, date, approval consent, unknown-result recovery and peer deletion assertions with unchanged deadlines.",
+        "Exercise controlled success and refusal ordering in Linux Chromium and retain the original red evidence and canonical passing task receipt. Treat the older Windows observer empty-state assertion as a separate observation unless evidence identifies the same failure."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070439.970641Z-5b827275",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
+        }
+      ],
+      "next_action": "Correlate the approved delete, verified receipt, stored rows and visible notice in the normal Chromium case. Exercise delayed projection and a definite rejection to identify the smallest correction before recording acceptance.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The initiating tab makes the confirmed deletion visible and both tabs reflect the authoritative list even when projection and peer actions interleave. Definite or uncertain failures retain their own messages and consent rules.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/ui/src/decision-note-transport.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/20261125T070439.970641Z-5b827275/test-report.json"
+        ],
+        "hypotheses": [
+          "The missing success can originate before the mutation, in reply verification, or after a confirmed commit during list refresh. Capture wire and stored state before assigning a cause."
+        ],
+        "risks": [
+          {
+            "failure": "A failed approval or lost reply appears successful, or a committed deletion is presented as unverified when only its follow-up read failed. Use held replies, authoritative storage and a controlled refusal.",
+            "checks": [
+              "workspace-timeframe",
+              "decision-note-lifecycle"
+            ]
+          },
+          {
+            "failure": "A refresh drops an unrelated draft, keeps a superseded approval or leaves a deleted note visible in the peer. Preserve the existing peer workflow and exact visible assertions.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Keep the first producer failure and deterministic Chromium observations. If the correction changes consent or recovery, retire the candidate and retain the existing deadline and operation contract.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to the decision-note wire protocol, storage schema, product permissions, or unrelated Windows failures."
+          ],
+          "open_questions": [
+            "Does the original missing notice coincide with a refused mutation or a completed mutation and a subsequent projection failure?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The single writer, confirmation scope, existing bounds, outcome drafts and peer refresh."
+          ],
+          "change": [
+            "Make the demonstrated deletion feedback boundary observable and correct only the confirmed gap."
+          ],
+          "data_plan": "Use synthetic local profiles and read-only verification of live SQLite rows. No migration.",
+          "cleanup": "Close owned browser contexts and services, release any held reply, and remove temporary profiles after assertions."
         }
       }
     }
