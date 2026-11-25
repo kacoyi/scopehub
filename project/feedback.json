@@ -3670,7 +3670,7 @@
       "id": "external-client-observation-publication",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding external-client-evidence",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The current private-log and hosted observation formats cannot retain the two independent client observations required for qualification. The executable release check itself is still planned.",
       "task_ids": [
         "M4-017"
@@ -3678,7 +3678,11 @@
       "regression_checks": [
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The external-client check had no run-bound observation format, and private-check logs retained only exit codes.",
+        "correction": "Retain a bounded redacted pair with independent publication consents, the same synthetic workspace and exact source identity. Validate it again when staging hosted artifacts and importing receipts.",
+        "prevention": "Exercise a synthetic publish and import round trip. Reject missing observations, shared or absent consent, wrong source and workspace bindings, changed bytes and private fields. The ordinary M4-005 unsupplied check remained blocked with exit 77."
+      },
       "deferral_reason": null
     },
     {
