@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-136",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25250,7 +25250,7 @@
       "id": "M0-136",
       "title": "Require independent evidence when accepting consequential work",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [],
       "scope": [
         "scripts/project.py",
@@ -25280,10 +25280,19 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify the exact receipt bytes and normalized response identity on both fixture newline forms, retain the original native failure, and prepare the corrected source for independent superseding review.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-136-9ff424bfcf950821.json",
+          "sha256": "e2d0704ff449aea4ac06b16b01d6f79260fd794bb73b3cfb467bfeaac2523449"
+        },
+        {
+          "path": "project/evidence/M0-136-db6638b5a498be4a.json",
+          "sha256": "f9a73c583a3bbd902b1564e75ea327c9860ded320d2e4e4440481af0bd361801"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The normal project, history and integration entries now require applicable independent decisions for consequential changes. The actual independent reviewer approved the source and its full observed response was recorded against the pending request. Native task receipts, the original corrective decisions and the separately retained local timeout and controls preserve the verification history.",
       "plan": {
         "outcome": "Administrative completion of consequential work keeps an independent decision tied to the reviewed task, scope, source and observed behavior.",
         "change_types": [
