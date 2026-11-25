@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-156",
   "tasks": [
     {
       "id": "M0-001",
@@ -26083,6 +26083,111 @@
           "report_sha256": "980f9b48c34cf1db47f964de8a614aa5d8afe442f15681adf06b4c60d0da9594"
         }
       ]
+    },
+    {
+      "id": "M0-156",
+      "title": "Verify historical timing inputs in the weekly system Python environment",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-148"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/project.py",
+        ".github/workflows/review-verification-timing.yml",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
+        "Keep omitted or extra checks, unavailable catalogs, contradictory identities and mismatched substitute digests unqualified. Exercise the original present-preview case and the project entry that computes the same Git source identity.",
+        "Retain the original failing interpretation and the positive control. Verify the change through focused regression, normal task verification and source-bound independent review."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "evidence": [],
+      "next_action": "Exercise the packaged weekly script under system Python and the locked project interpreter with the retained historical attempt, then trace the dependency required by substitute input verification.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The scheduled timing reader can validate substitute Git inputs using its declared runtime and preserves conservative timing classification.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/review-verification-timing.yml",
+          "scripts/timing.py",
+          "scripts/project.py",
+          "tests/project/test_timing.py",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt"
+        ],
+        "hypotheses": [
+          "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job."
+        ],
+        "risks": [
+          {
+            "failure": "A successful import hides wrong-source qualification. Check matching and mismatched commits, exact catalog contents, line endings and missing objects.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Moving fingerprint code changes existing execution identities or loads new development dependencies into the weekly process. Compare actual Git object inputs, stored digests and both entrypoints.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/project.py",
+            ".github/workflows/review-verification-timing.yml",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Changing the performance objective, routinely downloading dependency packages for the weekly reader, or accepting incomplete captures."
+          ],
+          "open_questions": [
+            "Which existing source-identity dependencies can be shared between the weekly reader and project commands while preserving the recorded digest format?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Stable execution input digests, public project and timing commands, existing capture files and the routine weekly interpreter."
+          ],
+          "change": [
+            "Make the historical substitute verification available in the declared weekly environment."
+          ],
+          "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs.",
+          "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass."
+        }
+      }
     }
   ]
 }
