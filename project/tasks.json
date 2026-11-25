@@ -25276,7 +25276,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Independently review the measured read reduction. The coordinator owns the ordinary full warm Windows PR observation on the corrective source. Keep the finding open until an authenticated first attempt retains the same 35 selected outcomes and meets the 900-second objective.",
+      "next_action": "Use the retained 975-second warm PR and its Python test durations to measure the next dominant removable cost or scheduling change. Verify unchanged results and obtain a comparable ordinary Windows pull request within 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -25294,6 +25294,11 @@
           "run_id": "windows-change-45667368453-1",
           "source_commit": "08457feb3e6ee8a049aa70f652d35455de73765e",
           "report_sha256": "99b9ccca4c5baec4abbb303f12cea70349bf6ed13c5a8a8bcd60347b99a4b07f"
+        },
+        {
+          "run_id": "windows-change-45674883737-1",
+          "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
+          "report_sha256": "00703b6bfc35ee5dd6ba35e2550efc3726e1f4a6a4fbd868c292d1def4fee7d2"
         }
       ],
       "plan": {
@@ -25307,11 +25312,13 @@
           "tests/project",
           "project/delivery.json",
           "archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json",
-          "Paired public history and check reads: .reports/audit-20261125/m0-146-verification-reads/paired/measurement.json (SHA-256 d1f6956f9b4aa15f73585f4fdd8e77fa93cb03b0c5c35e1d2fbfe5d5f6c7d129), comparing 8763eee588ff18e880155d5e4a89573ca77a3f75 with implementation 528ca59f5655f554396a4cbc0ff460cff0384ddd. Retain the complete raw traces, outputs and profile manifest beside it."
+          "Paired public history and check reads: .reports/audit-20261125/m0-146-verification-reads/paired/measurement.json (SHA-256 d1f6956f9b4aa15f73585f4fdd8e77fa93cb03b0c5c35e1d2fbfe5d5f6c7d129), comparing 8763eee588ff18e880155d5e4a89573ca77a3f75 with implementation 528ca59f5655f554396a4cbc0ff460cff0384ddd. Retain the complete raw traces, outputs and profile manifest beside it.",
+          "archives/runs/windows-change-45674883737-1/test-report.json"
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
-          "The three Windows runs timed the same 103 delivery cases at 285.171, 198.020 and 254.251 seconds. On the matched local fixture, accepted history and check reduced Git starts from 31 to 29 and 20 to 18, respectively, by sharing the proven cutover predecessor. Full checkout check reduced project schema opens from 444 to one. All paired exit codes and output bytes agree for positive, rejected and missing-checkpoint cases. Recovery had measured spare time, but splitting Python would need new report accounting for failures and interruptions. The candidate removes repeated reads while retaining the original four producers."
+          "The three Windows runs timed the same 103 delivery cases at 285.171, 198.020 and 254.251 seconds. On the matched local fixture, accepted history and check reduced Git starts from 31 to 29 and 20 to 18, respectively, by sharing the proven cutover predecessor. Full checkout check reduced project schema opens from 444 to one. All paired exit codes and output bytes agree for positive, rejected and missing-checkpoint cases. Recovery had measured spare time, but splitting Python would need new report accounting for failures and interruptions. The candidate removes repeated reads while retaining the original four producers.",
+          "The first read correction preserved every required outcome. Repeated fixture construction or other costly operations in the still-limiting Python producer may admit a further measured reduction."
         ],
         "risks": [
           {

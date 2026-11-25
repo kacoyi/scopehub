@@ -6986,7 +6986,7 @@
     {
       "id": "verification-windows-warm-pr-python-budget",
       "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298).",
-      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128.",
+      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7010,13 +7010,19 @@
           "run_id": "windows-change-45667368453-1",
           "source_commit": "08457feb3e6ee8a049aa70f652d35455de73765e",
           "report_sha256": "99b9ccca4c5baec4abbb303f12cea70349bf6ed13c5a8a8bcd60347b99a4b07f"
+        },
+        {
+          "run_id": "windows-change-45674883737-1",
+          "source_commit": "89668fa44ffb56cf848518c5959329ef89992ba9",
+          "report_sha256": "00703b6bfc35ee5dd6ba35e2550efc3726e1f4a6a4fbd868c292d1def4fee7d2"
         }
       ],
       "verification_budget": {
         "repository": "kacoyi/scopehub",
         "event": "pull_request",
         "profile": "full",
-        "platform": "Windows"
+        "platform": "Windows",
+        "repair_commit": "528ca59f5655f554396a4cbc0ff460cff0384ddd"
       },
       "resolution": null,
       "deferral_reason": null
