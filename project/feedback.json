@@ -7100,6 +7100,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-terminal-footer-truncates-authored-reply",
+      "source": "Independent Astra Standard review of d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3, recorded at 82bd36ff7878b0033cf255c79cd01d10d7b2a153. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-d4c2ed99/original-assistant-response.jsonl (SHA-256 adbfb35ac45aba0ea0403caaca59b513d00392a58762147abf3d88a187d1169f).",
+      "observation": "Changing an ordinary sentence in the terminal version of an M0-103 reply to begin with Worked for removed a later observation despite the real formatted footer remaining below it. Selecting an earlier observation allowed import, but the equivalent full structured answer was then treated as a distinct response.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
