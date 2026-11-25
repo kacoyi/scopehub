@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-138",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -25250,7 +25250,7 @@
       "id": "M0-138",
       "title": "Reap browser verification servers when their check ends",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-010"
       ],
@@ -25415,8 +25415,8 @@
           "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
         }
       },
-      "closure_reason": null,
-      "next_action": "Obtain independent review of the Windows gate fixture correction, then retain guarded and ordinary native Windows reruns on the corrected source.",
+      "closure_reason": "Linux and Windows passed the four scoped checks and their ordinary PR jobs. Independent review exercised the process identity contrast and the blocked-pipe interruption controls. Windows ran the assigned-process, timeout and external-reader tests. Linux ran the descendant cleanup and competing-writer checks and retained terminal results and their original logs. The earlier failed Windows runs and prior receipts remain available.",
+      "next_action": null,
       "blocker": null,
       "evidence": [
         {
@@ -25442,6 +25442,14 @@
         {
           "path": "project/evidence/M0-138-842e3a6bd98db430.json",
           "sha256": "0e26121fe7bede99a794fa55b1079492eb69ed4ed1a0c9f622869d56dc4173bc"
+        },
+        {
+          "path": "project/evidence/M0-138-92aef6968276723b.json",
+          "sha256": "b3d55554eaae7c5bfd42f202c309b5fa54b77f7ded6bf02a2fc4392057731b0a"
+        },
+        {
+          "path": "project/evidence/M0-138-1e0aefd5ec4e47d9.json",
+          "sha256": "8b9ba8cb3a857e038189b2fc7a7610aa5800f144baa32c6920e4618b2933042b"
         }
       ]
     }
