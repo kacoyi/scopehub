@@ -323,6 +323,72 @@ class TaskReviewTests(ProjectFixture):
         view = self.command('context', TASK, '--phase', 'handoff')['independent_review']
         self.assertEqual(result['decision']['response_id'], view['response_id'])
 
+    def test_review_examples_never_supply_an_exchange_or_standalone_verdict(self):
+        base, source = self.open_review()
+        trace = self.root / '.reports/quoted-review.md'
+        trace.parent.mkdir()
+        claim = 'Both saved exports contained 12 rows.'
+        heading = f'APPROVE {TASK} {source}'
+        exchange = f'› Inspect the examples.\n• {heading}\n\n  {claim}\n  Worked for 1m • today\n'
+        docs = '• Examples of archived review output\n\n'
+        fenced = f'```text\n{exchange}```\n'
+        samples = (
+            docs + fenced,
+            docs + '- A nested example.\n  > ~~~text\n' +
+            ''.join(f'  > {line}\n' for line in exchange.splitlines()) + '  > ~~~\n',
+            docs + '> A quoted exchange.\n' + exchange,
+            docs + '1. A listed exchange.\n' + exchange,
+            '• `Copied syntax\n' + exchange.replace('\n\n', '\n') + '`\n',
+            docs + '<pre>\n' + exchange + '</pre>\n',
+            f'    {heading}\n\n{claim}\n',
+            f'APPROVE {TASK}\n  ```text\n  {source}\n  ```\n\n{claim}\n',
+        )
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer', '--observation', claim)
+        for index, example in enumerate(samples):
+            with self.subTest(index=index):
+                trace.write_text(example, encoding='utf-8')
+                self.command(*args, error='identify this task')
+        self.assertFalse((self.root / f'{review_acceptance.DIRECTORY}/{TASK}.json').exists())
+        self.finish()
+        self.command('check', error='is pending')
+        self.command('history', '--base', base, error='is pending')
+        with self.assertRaisesRegex(project.ProjectError, 'is pending'):
+            delivery_scope(self.root, project.load_project(self.root), base)
+
+    def test_real_terminal_final_reply_keeps_examples_out_of_exchange_boundaries(self):
+        _, source = self.open_review()
+        trace = self.root / '.reports/quoted-review.txt'
+        trace.parent.mkdir()
+        observed = 'I reopened `四月\u3000\t收盘.csv` and counted 11 rows.'
+        quoted = 'Both saved exports contained 12 rows.'
+        reject = f'CHANGES_REQUESTED {TASK} {source}'
+        example = (f'```text\n› Prior request.\n• APPROVE {TASK} {source}\n\n'
+                   f'{quoted}\n  Worked for 1m • example\n```')
+        plain = f'{reject}\n\n{observed}\n\n{example}\n'
+        terminal = (f'› Inspect the current fixture.\n\n• {reject}\n\n  {observed}\n\n'
+                    + ''.join('  ' + line + '\n' for line in example.splitlines())
+                    + '\n  Worked for 1m • today\n')
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer', '--observation')
+        trace.write_text(terminal, encoding='utf-8')
+        self.command(*args, quoted, error='post-verdict body')
+        receipt = self.command(*args, observed)
+        self.assertEqual(reject, receipt['decision']['decision'])
+        self.assertEqual(observed, receipt['decision']['observation'])
+        ledger = self.root / receipt['path']
+        before = ledger.read_bytes()
+
+        trace.write_text(plain, encoding='utf-8')
+        replay = self.command(*args, observed)
+        self.assertFalse(replay['recorded'])
+        self.assertEqual(receipt['decision'], replay['decision'])
+        self.assertEqual(before, ledger.read_bytes())
+        trace.write_text(terminal + '\n› Recheck the exports.\n\n' + example + '\n', encoding='utf-8')
+        self.command(*args, observed, error='last terminal exchange')
+        self.assertEqual(before, ledger.read_bytes())
+        self.assertEqual('changes_requested', self.command('context', TASK)['independent_review']['status'])
+
     def test_stale_predecessor_and_reordered_event_cannot_replace_rejection(self):
         _, source = self.open_review()
         first = self.review(source, event=('msg_first', '2026-11-25T11:00:00Z'))

@@ -18,8 +18,13 @@ ATOMIC_INLINE = (*FORMATTING, inline.CodeSpan)
 def terminal_body(body):
     # The terminal retains line wraps and replaces Markdown list bullets.
     # Undo that layout before asking CommonMark to classify the reply.
-    lines = (line.removeprefix('  ') for line in body.split('\n'))
-    return '\n'.join('- ' + line[2:] if line.startswith('• ') else line for line in lines)
+    source = '\n'.join(line.removeprefix('  ') for line in body.split('\n'))
+    lines = source.split('\n')
+    if not any(line.startswith('• ') for line in lines):
+        return source
+    prose, _ = review_line_contexts(source, lines)
+    return '\n'.join('- ' + line[2:] if index in prose and line.startswith('• ') else line
+                     for index, line in enumerate(lines))
 
 
 def paragraphs(container):
@@ -51,6 +56,41 @@ def literal_spans(node):
     elif isinstance(children := getattr(node, 'children', None), list):
         for child in children:
             yield from literal_spans(child)
+
+
+def review_line_spans(document):
+    for node in document.children:
+        if isinstance(node, block.CodeBlock):
+            # A terminal capture can start inside indented output. It cannot
+            # establish an exchange or a verdict from that output.
+            yield node.start_pos, node.end_pos, False
+        elif isinstance(node, (block.Paragraph, block.Heading, block.SetextHeading)):
+            start = node.start_pos
+            for literal in literal_spans(node):
+                if start < literal.start_pos:
+                    yield start, literal.start_pos, True
+                start = literal.end_pos
+            if start < node.end_pos:
+                yield start, node.end_pos, True
+
+
+def review_line_contexts(source, lines):
+    prose, indented = set(), set()
+    try:
+        spans = iter(review_line_spans(Markdown(extensions=['gfm']).parse(source)))
+        span = next(spans, None)
+        offset = 0
+        for index, line in enumerate(lines):
+            while span and offset >= span[1]:
+                span = next(spans, None)
+            if span is None:
+                break
+            if offset >= span[0] and line.strip():
+                (prose if span[2] else indented).add(index)
+            offset += len(line) + 1
+    except RecursionError:
+        return set(), set()
+    return prose, indented
 
 
 def code_spelling(node, source):

@@ -6,10 +6,10 @@ import json
 import re
 
 if __package__:
-    from .review_observation import markdown_source, response_body, standalone_passage
+    from .review_observation import markdown_source, response_body, review_line_contexts, standalone_passage
     from .verification_scope import EVIDENCE_FILE, TASK_REVIEW_FILE, ScopeError, changes, exact_commit, git, inspect_index, require_ancestor
 else:
-    from review_observation import markdown_source, response_body, standalone_passage
+    from review_observation import markdown_source, response_body, review_line_contexts, standalone_passage
     from verification_scope import EVIDENCE_FILE, TASK_REVIEW_FILE, ScopeError, changes, exact_commit, git, inspect_index, require_ancestor
 
 
@@ -19,7 +19,6 @@ SUBJECT_TASK = re.compile(r'(?<![\w-])M[0-9]+-[0-9]{3}(?![\w-])')
 BOUNDARY_TYPES = {'permissions', 'model-connection'}
 DECISION = re.compile(r'^(?:• )?(\*\*(?:APPROVED?|CHANGES[_ ]REQUESTED)\*\*|(?:APPROVED?|CHANGES[_ ]REQUESTED)\b)')
 COMMIT = re.compile(r'(?<![a-f0-9])(?:[a-f0-9]{64}|[a-f0-9]{40})(?![a-f0-9])')
-MARKDOWN_FENCE = re.compile(r'^ {0,3}(?:`{3,}|~{3,})')
 TRANSCRIPT_LIMIT = 4 * 1024 * 1024
 OBSERVATION_FILE_LIMIT = 4096
 TASK_ADMIN = {'status', 'evidence', 'next_action', 'blocker', 'closure_reason'}
@@ -183,44 +182,85 @@ def prior_records(root, commit, task):
     return []
 
 
-def final_response(text):
-    if text.lstrip().startswith('{'):
-        try:
-            event = json.loads(text)
-            message = event['payload']
-            metadata = event.get('metadata', {})
-            if (not isinstance(metadata, dict) or event['type'] != 'response_item' or message['type'] != 'message'
-                    or message['role'] != 'assistant' or message['phase'] != 'final_answer'
-                    or message['status'] != 'completed'
-                    or metadata.get('client_authored') is True):
-                raise ValueError('Expected a completed final assistant message.')
-            parts = message['content']
-            if not parts or any(part['type'] != 'output_text' for part in parts):
-                raise ValueError('Expected final assistant text.')
-            identity = message['id']
-            if not isinstance(identity, str) or not identity.startswith('msg_'):
-                raise ValueError('Expected a stable final assistant message identity.')
-            return '\n'.join(part['text'] for part in parts), {'id': identity, 'timestamp': event['timestamp']}, False
-        except (KeyError, TypeError, ValueError) as error:
-            raise ReviewError('Expected one retained completed final assistant export.') from error
+def assistant_export(text):
+    try:
+        event = json.loads(text)
+        message = event['payload']
+        metadata = event.get('metadata', {})
+        if (not isinstance(metadata, dict) or event['type'] != 'response_item' or message['type'] != 'message'
+                or message['role'] != 'assistant' or message['phase'] != 'final_answer'
+                or message['status'] != 'completed'
+                or metadata.get('client_authored') is True):
+            raise ValueError('Expected a completed final assistant message.')
+        parts = message['content']
+        if not parts or any(part['type'] != 'output_text' for part in parts):
+            raise ValueError('Expected final assistant text.')
+        identity = message['id']
+        if not isinstance(identity, str) or not identity.startswith('msg_'):
+            raise ValueError('Expected a stable final assistant message identity.')
+        return '\n'.join(part['text'] for part in parts), {'id': identity, 'timestamp': event['timestamp']}
+    except (KeyError, TypeError, ValueError) as error:
+        raise ReviewError('Expected one retained completed final assistant export.') from error
 
-    lines = markdown_source(text).split('\n')
-    # A clipped terminal capture may begin with indented output. Its opening
-    # exchange must appear before any plain verdict, Markdown fence, or prose.
-    opening = next((line for line in lines if line.strip()
-                    and (not line.startswith('  ') or DECISION.match(line.lstrip())
-                         or MARKDOWN_FENCE.match(line))), '')
-    if not opening.startswith(('› ', '• ')):
-        return text, None, False
-    turns = [index for index, line in enumerate(lines)
+
+def terminal_exchange(lines, prose, indented):
+    for opening, line in enumerate(lines):
+        if not line.strip():
+            continue
+        if (line.startswith('  ') and (opening in prose or opening in indented)
+                and not DECISION.match(line.lstrip())):
+            continue
+        break
+    else:
+        return None
+    if opening not in prose or not lines[opening].startswith(('› ', '• ')):
+        return None
+
+    # Only outer authored lines participate in the terminal frame. A Unicode
+    # bullet in a document does not establish a transcript by itself.
+    controls = [(index, line) for index, line in enumerate(lines[opening:], opening)
+                if index in prose and line.startswith(('› ', '• ', '  Worked for '))]
+    turns = [index for index, line in controls
              if line.startswith('› ') and line.strip() != '› Ask Codex to do anything']
-    start = turns[-1] + 1 if turns else 0
-    final = next((index for index in range(len(lines) - 1, start - 1, -1) if lines[index].startswith('• ')), None)
+    if not turns and not any(line.startswith('  Worked for ') for _, line in controls):
+        return (opening, len(lines)) if DECISION.match(lines[opening]) else None
+    start = turns[-1] + 1 if turns else opening
+    final = next((index for index, line in reversed(controls) if index >= start and line.startswith('• ')), None)
     if final is None:
         raise ReviewError('The last terminal exchange has no final independent verdict.')
-    end = next((index for index in range(final + 1, len(lines))
-                if lines[index].startswith(('› ', '  Worked for '))), len(lines))
-    return '\n'.join([lines[final].removeprefix('• '), *lines[final + 1:end]]), None, True
+    end = next((index for index, line in controls
+                if index > final and line.startswith(('› ', '  Worked for '))), len(lines))
+    return final, end
+
+
+def final_response(text):
+    event = None
+    if text.lstrip().startswith('{'):
+        text, event = assistant_export(text)
+    source = markdown_source(text)
+    lines = source.split('\n')
+    prose, indented = review_line_contexts(source, lines)
+    exchange = terminal_exchange(lines, prose, indented) if event is None else None
+    if exchange:
+        first, end = exchange
+        lines[first] = lines[first].removeprefix('• ')
+    else:
+        first = next((index for index, line in enumerate(lines) if line.strip()), len(lines))
+        end = len(lines)
+    if first not in prose:
+        return '', '', event, exchange is not None
+
+    lines[first] = lines[first].lstrip()
+    consumed = first + 1
+    for index in range(consumed, min(first + 4, end)):
+        line = lines[index]
+        if (COMMIT.search(' '.join(lines[first:consumed])) or index not in prose
+                or not line.startswith('  ') or line.lstrip().startswith('•')):
+            break
+        consumed += 1
+    heading = '\n'.join(lines[first:consumed])
+    body = '\n'.join(lines[consumed:end]).rstrip()
+    return heading, body, event, exchange is not None
 
 
 def selected_observation(text, heading, scope):
@@ -254,27 +294,19 @@ def create_decision(root, task, source, transcript, reviewer, scope, observation
         data = stream.read(TRANSCRIPT_LIMIT + 1)
     if len(data) > TRANSCRIPT_LIMIT:
         raise ReviewError('The independent response exceeds the intake limit.')
-    response, event, rendered = final_response(data.decode('utf-8'))
-    lines = markdown_source(response).strip().split('\n')
-    heading = lines[0].strip() if lines else ''
-    consumed = 1
-    for line in lines[1:4]:
-        if COMMIT.search(heading) or not line.startswith('  ') or not line.strip() or line.lstrip().startswith('•'):
-            break
-        heading = compact(heading + ' ' + line)
-        consumed += 1
-    body = '\n'.join(lines[consumed:])
+    heading_source, body, event, rendered = final_response(data.decode('utf-8'))
+    heading = compact(heading_source) if '\n' in heading_source else heading_source.strip()
     scope = compact(scope) if scope else heading
     observation = selected_observation(observation, heading, scope)
     # Keep the historical folded fingerprint for old receipts and scope lookup.
-    whole = compact(response)
+    whole = compact(heading_source + '\n' + body)
     verdict = bound_decision(heading, task, source, scope)
     if not verdict:
         raise ReviewError('The final independent verdict must identify this task and exact full source in its heading.')
     projected_body, observations = response_body(body, rendered=rendered)
     if scope not in whole or observation is None or observation not in observations:
         raise ReviewError('Select a complete factual observation from the post-verdict body, separate from the heading.')
-    projected_heading, _ = response_body('\n'.join(lines[:consumed]), rendered=rendered)
+    projected_heading, _ = response_body(heading_source, rendered=rendered)
     response_text = json.dumps([projected_heading, projected_body], ensure_ascii=False, separators=(',', ':'))
     response_hash = hashlib.sha256(response_text.encode('utf-8')).hexdigest()
     decision = dict(kind='decision', source_commit=source, verdict=verdict, decision=heading, scope=scope,
