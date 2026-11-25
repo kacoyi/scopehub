@@ -21155,6 +21155,269 @@
       }
     },
     {
+      "id": "M0-110",
+      "title": "Restore linked verification timing on protected main",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary status and CI read explicitly linked original timing after the recent history windows rotate, including in a fresh linked checkout. Retained capture bytes and recent candidate selection limits are preserved.",
+        "Missing originals, conflicting identities and retained authenticated failures cannot supply positive recovery. Ordinary Windows directory spelling is supported while redirected index paths are refused.",
+        "An existing store can index its original compact captures offline. Verify the migrated real controls and keep the Windows pull request elapsed objective separate from observed main push recovery."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-110-ec3b4d3958738058.json",
+          "sha256": "632ad9aa482a999884d308c307bf66dc9b07f6c238ed10088444a3c18500a0e1"
+        },
+        {
+          "path": "project/evidence/M0-110-86b207d642064200.json",
+          "sha256": "8fbbaa7ef90cf8c9cbcb8266a67d08ddae403922797352fc1a183e137a51296d"
+        },
+        {
+          "path": "project/evidence/M0-110-504d5450ea9462d0.json",
+          "sha256": "18d5058ca59e5a6a4167381ed60299a5b65f0c33daca5ec54eca30230b8bfd91"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard review approved 34b4627. Protected Linux and Windows run 45550215575 verified the amended definition and all linked timing regressions. Historical recovery observations retain their own scope. Current Windows PR elapsed remains independently governed.",
+      "plan": {
+        "outcome": "The ordinary budget verdict can use its exact linked PR and push controls after history rotates, from a fresh checkout on protected main.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json",
+          "archives/observations/m0-097-linked-timing-intake/retention-audit.json",
+          "archives/observations/m0-098-linked-timing-windows-ef65312/index.json"
+        ],
+        "hypotheses": [
+          "The bounded recent scan still hides available linked inputs on main. The shared index independently staged at 77bf40b, 6241372 and ef65312 can recover them using original compact captures."
+        ],
+        "risks": [
+          {
+            "failure": "Automatic or manual rotation hides a linked original despite its capture remaining available.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A missing or authenticated failed original, missing clock or ambiguous claimant is admitted as comparable recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An ordinary Windows directory alias blocks capture, or a redirected index permits writes outside the timing store.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A new clockless claimant leaves the first ordinary CI verdict recovered until another query.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An entirely conflicting PR event triggers a shared fallback that discards valid main-push controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the index and its migration entry while retaining original captures and diagnostic reports.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/project.py",
+            "scripts/ci.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Windows workflow producer changes, checkout cleanup, branch publication and a claim of faster elapsed CI are outside this implementation."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep original archived reports, exact event separation, tested ancestry, retained failure authority, timed objectives and required check coverage."
+          ],
+          "change": [
+            "Make exact linked captures visible to ordinary status and CI outside the existing recent windows through derived shared lookup entries."
+          ],
+          "data_plan": "Use a read-only snapshot of retained compact captures for verification. The offline migration only adds lookup entries to its selected shared timing store.",
+          "cleanup": "Retain the unchanged original capture bytes and keep missing or conflicting links actionable."
+        }
+      }
+    },
+    {
+      "id": "M0-111",
+      "title": "Round-trip bounded manual verification timing archives",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Read and resave the original 5838434-byte v1 review offline, preserving all 564 samples and 56 clocks, and retain previously readable reports and diagnostic records.",
+        "Reject oversized, malformed or mislabeled input with bounded reads and path-safe diagnoses. Keep automatic capture and hosted artifact limits, and bound aggregate manual review input.",
+        "An unsuccessful save leaves the destination absent or preserves an existing file. Rejected explicit input must not produce a replacement archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-111-5eb5051e64c1978c.json",
+          "sha256": "64cc2a4a7fab89f0798b4e07822b952ea30b1ce1c4bbbd0c274a465cbde09d8e"
+        },
+        {
+          "path": "project/evidence/M0-111-cf178d6905ff9298.json",
+          "sha256": "3096c005cc95c29f62384616712be9ff68d274cc5ce19207d6027a3d8160a32c"
+        },
+        {
+          "path": "project/evidence/M0-111-ec9c22cb85e4aaed.json",
+          "sha256": "d9191f05cfbc7652b06bc23919d174ecfd793f5199ba678cbe9fdb0f37d4b0a2"
+        },
+        {
+          "path": "project/evidence/M0-111-595ccf02abcbda0d.json",
+          "sha256": "9969287bc5d7d629a20e5371f783d04738a9237d97d301105ac7fa0589c0098d"
+        },
+        {
+          "path": "project/evidence/M0-111-3b36843f50bddcf6.json",
+          "sha256": "8739b61feb875b9be477ac8e2927ed281604f80e3ba2e3ec2a96e72ae5f3b572"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard review approved 36185b8. Authenticated Linux and Windows run 45556669680 verified the archive round trip and six addressed findings. M0-103 and M0-104 retain the independent elapsed-performance qualification.",
+      "plan": {
+        "outcome": "A maintainer can reload a manual timing review above the compact capture limit and securely save it for another offline review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A separate bounded manual archive reader and matching writer can retain full v1 data without relaxing automatic capture limits."
+        ],
+        "risks": [
+          {
+            "failure": "The Actions path creates a clock the archive reader rejects, or a resolved current finding is suppressed in the durable history. Verify rejected repositories and job rows, a complete Actions save and reopen, and lossless repeated saves with failed-run collection findings.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A file written by the tool cannot be read back, or flattening and deduplication change observation or error identities.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Malformed or oversized input consumes unbounded resources, exposes a local path, or leaves a partial destination.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "One invalid record in any explicitly selected input is silently dropped and a partial archive is published.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An Actions diagnostic attributes failure to its peer input or exposes the original input directory.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A summary append changes an existing or newly published archive through a hardlink, alias or destination race.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the reader and writer together and retain original v1 archives and failed input diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Changes to hosted collection, protected workflow selection, linked timing conflict handling or the CI budget objective are outside this repair."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep the v1 archive format, observed rows and diagnostics, compact automatic capture limits, and create-only save semantics."
+          ],
+          "change": [
+            "Use one bounded manual archive representation for reading and atomic saving."
+          ],
+          "data_plan": "Read the archived coordinator review offline and exercise malformed input with synthetic data. Never change the archived original.",
+          "cleanup": "Stage saves in the destination directory and remove staging files when publication succeeds or fails."
+        }
+      }
+    },
+    {
       "id": "M1-041",
       "title": "Review conflicting declarations in frozen native CSV source records",
       "milestone": "M1",
