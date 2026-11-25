@@ -24812,7 +24812,7 @@
         }
       },
       "closure_reason": null,
-      "next_action": "Reproduce each independently observed evidence failure, retain the original observations, and verify the corrected source and separate retry.",
+      "next_action": "Obtain independent review of the bounded Linux log snapshot and terminal interruption report, then retain ordinary native Windows verification.",
       "blocker": null,
       "evidence": [
         {
@@ -24822,6 +24822,10 @@
         {
           "path": "project/evidence/M0-138-55559d3c46bcf6ff.json",
           "sha256": "779ec90099ac111c762e2ec859a0e07589d20be8fde659e2c7238d4716c9c246"
+        },
+        {
+          "path": "project/evidence/M0-138-d9e3d2813250112e.json",
+          "sha256": "09cbe08832b7665dc9924f8169af5b1a84c7b72946019e048b06dd7f941a561b"
         }
       ]
     }
