@@ -6772,6 +6772,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-observation-markdown-source-boundary",
+      "source": "Independent Astra Standard final on 624c4cdbacc1318bce6a9ac4af3d8938104fb671. Original final SHA-256 f0ce60d1ea81d7b113da548d7fc12b219f5b9cdd30d13e05050de61373f20d05. Package manifest SHA-256 4a2984d4ed3ba2c2789428bcf17d0b010a9c0b55e1cde2e9dc30e3dad705f002.",
+      "observation": "The ordinary M0-129 closure paths accepted an invisible link-reference title as the whole observation. Setext headings and lazy block quote continuations were also admitted. A complete factual sentence with two balanced inline emphasis spans was rejected.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
