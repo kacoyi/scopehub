@@ -24906,6 +24906,141 @@
       }
     },
     {
+      "id": "M0-140",
+      "title": "Measure worker protocol cost in complete synthetic user workflows",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-132"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain matching source, commands, original timings and response parity for a short real chart history journey and ordinary CSV source-row and folder refresh journeys with synthetic data. Count requests per actual product worker, cold first response and end-to-end completion; report retained memory and unavailable dimensions.",
+        "Attribute reference resolution separately from other worker and UI time. Compare the observed journeys with the accepted M0-132 evidence and record whether these workloads satisfy its reopen condition. Separate the observed synthetic interaction mix from field usage."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-140-5b59f130567ac0ac.json",
+          "sha256": "3811f9cbe69106c3d4831b8328d58d36b4bd1675bf782a25c01d45678e8c4c8f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 9d13f946b101d4978599106e7b2333d5fd5b1403. Eight trials per synthetic journey measured visible chart and CSV latency, worker lifetime, lookup CPU, value parity and cleanup. Applying the strict chart RSS window retained both reported medians. Keep the accepted validator and the deferred finding. M0-144 owns a representative longer session with material lookup-related delay.",
+      "plan": {
+        "outcome": "Give the deferred worker-lookup finding a verifiable product-workload decision without changing the accepted validator.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/src/local_import.rs",
+          "python/worker_runtime/protocol.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A complete chart interaction can reuse one market worker across paging operations, while source-row and folder refresh may pay fresh-worker startup. The actual product routes determine that mix."
+        ],
+        "risks": [
+          {
+            "failure": "A standalone codec timing or an imposed page loop is presented as a user workflow. Exercise the ordinary chart and import routes, bind measurements to their real workers and verify independent expected replies.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the original M0-132 observation, source and measurement files. Retain the existing validator until a separately reviewed change demonstrates product improvement.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "worker-runtime",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "crates/worker-host/src/local_import.rs",
+            "python/worker_runtime/protocol.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Production telemetry, customer files, provider calls and shipping the withdrawn optimization."
+          ],
+          "open_questions": [
+            "Which worker lifetimes does each observed product interaction actually use, and how much of end-to-end elapsed time is attributable to reference resolution?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing wire values, worker ownership, historical measurements and accepted M0-132 decision."
+          ],
+          "change": [
+            "Assign the deferred observation and retain the measured scope and decision."
+          ],
+          "data_plan": "Use synthetic local sources and locally retained measurements; publish a small evidence index with qualified results.",
+          "cleanup": "Keep observations in the development archive, remove temporary instrumentation from the delivered tree and stop any workers started by the measurement."
+        }
+      }
+    },
+    {
+      "id": "M0-144",
+      "title": "Qualify lookup cost when a longer chart session shows visible delay",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-140"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "For the first representative longer chart session in which profiling shows material user-visible delay from protocol reference lookup, retain the source, session duration, actions, per-worker request counts and time to the visible result. Keep private market content local and retain synthetic comparison fixtures.",
+        "Measure lookup CPU alongside end-to-end latency and retained memory for the observed request mix. Compare fresh one-shot CSV source inspection and folder refresh. Preserve chart, CSV and protocol response parity and identify any unavailable measurements.",
+        "Use the M0-132 baseline and M0-140 measurements to decide whether the evidence justifies a separately reviewed change. Record the decision and link any corrective task to the deferred finding."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "The development AI takes this task when a representative longer chart session first shows material lookup-related visible delay. Retain the observation before evaluating an optimization.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
       "id": "M0-136",
       "title": "Require independent evidence when accepting consequential work",
       "milestone": "M0",
