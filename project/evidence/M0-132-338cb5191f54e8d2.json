@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-132",
+  "task_definition_sha256": "dbd3a97bfdb8762390614c5d301b92e67e2ebf3989ec2286cb2c309ab1f62c25",
+  "run_id": "20261125T140416.184584Z-d51876f3",
+  "recorded_at": "2026-11-25T14:09:11.383048+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "4c531ab554a1cc53a03bba6b48b4fb6cd433f632a602b6198697c091cd348f58",
+    "file_count": 605,
+    "git_head": "c6c5d6f36ea24afd4839ab044564a9f593fd572b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "338cb5191f54e8d24f3ac6346a4df3e42f3b92ecd3b84451ded0e9a32d4a1b9a",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-worker-schema-investigation/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-worker-schema-investigation/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7c34ddc20b6b915f86c07199507686230c65a56929124199caac807dcd14b8d6"
+    },
+    {
+      "id": "python-types",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-worker-schema-investigation/.venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2d6b2fd3da664bcd3c10a511fd2cb9bf5f7517722cb0753d911d03540bfa3cbf"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-worker-schema-investigation/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bd16d50655708c96636a9d0d2c3f05b3804518c8b1ae99268e080f73f0443880"
+    }
+  ],
+  "project_definition_sha256": "c059f57707092a620c52e3c2f5733b9324a7ca3a084c1f7b3e4b9dd74cf9decc",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

@@ -55,6 +55,27 @@ const unavailable = () => new PreviewFailure(503, 'WORKER_EXITED');
 const invalidReply = () => new PreviewFailure(502, 'OUTPUT_INVALID');
 const timeout = () => new PreviewFailure(504, 'TIMEOUT');
 
+async function refuseBusy(request, response, byteLimit) {
+  // This request has already lost admission. Drain its body without parsing
+  // it or using the writer so the connection can deliver the structured refusal.
+  const deadline = setTimeout(() => failureResponse(request, response, timeout()), requestDeadlineMs);
+  let received = 0;
+  try {
+    for await (const chunk of request.iterator({ destroyOnReturn: false })) {
+      received += chunk.length;
+      if (received > byteLimit) {
+        return failureResponse(request, response, new PreviewFailure(413, 'RESOURCE_LIMIT'));
+      }
+    }
+  } catch {
+    // The client or the bounded upload deadline closed the connection.
+    return;
+  } finally {
+    clearTimeout(deadline);
+  }
+  if (request.complete) failureResponse(request, response, new PreviewFailure(429, 'BUSY'));
+}
+
 function withinDirectory(directory, path) {
   const fromDirectory = relative(directory, path);
   return !isAbsolute(fromDirectory) && fromDirectory !== '..' && !fromDirectory.startsWith('..' + sep);
@@ -740,11 +761,11 @@ export function ubuntuWorkspace() {
         try {
           assertLocalJsonRequest(request, http, requestBytes);
           if (!access?.permits(request.headers.authorization)) throw new PreviewFailure(403, 'PERMISSION_DENIED');
-          if (active) throw new PreviewFailure(429, 'BUSY');
           if (!writer) throw unavailable();
         } catch (error) {
           return failureResponse(request, response, error);
         }
+        if (active) return refuseBusy(request, response, requestBytes);
         active = true;
         const controller = new AbortController();
         const disconnected = () => controller.abort(new PreviewFailure(499, 'CANCELLED'));

@@ -80,6 +80,8 @@ export class WorkspaceSourceError extends Error {
   }
 }
 
+export class IndicatorStatusDeliveryError extends Error {}
+
 const desktop = isTauri();
 const nativeWorkspace = desktop && window.__SCOPEHUB_DESKTOP_WORKSPACE__ === true;
 const nativeModel = desktop && window.__SCOPEHUB_DESKTOP_TEXT_MODEL__ === true;
@@ -167,6 +169,13 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
   const response = await fetch(path, {
     method: 'POST', mode: 'same-origin', credentials: 'omit', redirect: 'error', signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${launchCapability}` }, body: JSON.stringify(body),
+  }).catch(error => {
+    // Classify only a browser fetch failure before there is an HTTP response.
+    // JSON decoding and reported protocol failures keep their own semantics.
+    if ('type' in body && body.type === 'indicator_preview_status' && error instanceof TypeError && !signal.aborted) {
+      throw new IndicatorStatusDeliveryError('The indicator status response did not arrive.', { cause: error });
+    }
+    throw error;
   });
   const reply = await response.json();
   signal.throwIfAborted();

@@ -1,0 +1,91 @@
+{
+  "reviewed_on": "2026-11-25",
+  "task_id": "M0-132",
+  "disposition": "retain-protected-validator",
+  "protected_base": "6cf0d0dc87b344203ab194a2cd047d36bf801f3c",
+  "rejected_experiment": {
+    "commit": "412881a7a949989d9eddab7a5f2e3c2b79edb391",
+    "tree": "7b1a5617f6fc2d2ce4ba10ab2461bcae9f1c26ab",
+    "independent_review": "Astra Standard CHANGES_REQUESTED",
+    "method": "Prepare bundled root-local schema references as anchors at import using the locked public jsonschema and referencing interfaces. Keep the default resolver for unsupported schema shapes.",
+    "private_evidence": {
+      "root": "archives/observations/repo-hygiene-20261125/m0-132-independent-decision-412881a",
+      "sha256sums": "2a022b0e88d29f2225d295776b05d220d3c38478a77ddeab8110fb70907c9c61",
+      "file_sha256": {
+        "independent-review.txt": "8a1493770195c8483a14b453657cd3f77e7a94de8127f0642ed49ccdd0fdcc06",
+        "reviewed-candidate.bundle": "f730f3e914e33d9265491d337c9e13307e8cf107e83fa47e420fc08a5d67570a",
+        "review-candidate/review-manifest.json": "c9a7c288a12748c772b444a102b2ef31d0a4b242770af4944ce3df2988ee6f43",
+        "review-candidate/measurements/results/ab-wall-rss.json": "950e541c57a7dfb7478171eeb8ed86d4f24b03247fa66b0c59ffb047543a1455",
+        "review-candidate/measurements/results/actual-product-parity.json": "3d22de0cd94773e6ff77bbbb7665d0bc44594053d6ebb4187f959ca55be2eb77",
+        "review-candidate/measurements/results/real-worker-route.json": "c903a2d424379079f25b3109a9add6b9067994d77d5c11259d9318fcefdaedc8",
+        "review-candidate/measurements/results/real-worker-64k-boundaries.json": "6ea875747bdd7eefb323147abfd079a137d469532be12847b891b28281abd470"
+      }
+    }
+  },
+  "hosted_observation": {
+    "run_id": "45601205813",
+    "platform": "Linux",
+    "cache": "warm",
+    "selected_outcomes": 35,
+    "elapsed_seconds": 772,
+    "python_contracts_workers_seconds": 193.7,
+    "shared_vectors_case_seconds": 21.059,
+    "source": "Use the authenticated original and private attribution indexed by the M0-132 feedback diagnostic locator."
+  },
+  "local_experiment": {
+    "platform": "Linux",
+    "python": "3.12.15",
+    "shared_vector_count": 274,
+    "public_codec_outcomes_equal": 1766,
+    "boundary_outcomes_equal": 87,
+    "shared_vector_test_seconds_median": {
+      "protected": 6.527,
+      "experiment": 6.013
+    },
+    "paired_seconds_saved": [
+      0.454453,
+      0.540956,
+      0.652065,
+      0.615508
+    ],
+    "protocol_import_milliseconds_added": 13.947,
+    "rss_bytes_added_after_import": 1576960,
+    "rss_bytes_added_after_vectors": 7315456,
+    "source_row_worker_ms_median": {
+      "protected": 80.304,
+      "experiment": 94.641
+    },
+    "independent_worker_ms_median": {
+      "cold_csv_source_row": {
+        "protected": 85.8,
+        "experiment": 101.8
+      },
+      "one_history_page": {
+        "protected": 98.1,
+        "experiment": 108.0
+      },
+      "32_history_pages_one_worker": {
+        "protected": 470.7,
+        "experiment": 446.8
+      }
+    },
+    "worker_scope": "These Linux worker timings run from launch through exit with synthetic input and verified replies. The product replay in real-worker-route.json retains two CSV source-row timings per arm behind its 80.304 and 94.641 ms medians. The original independent-review.txt reports four measurements per arm after warmup and retains only the 85.8 and 101.8 ms CSV medians. Its retained per-run timings cover one-page and 32-page history requests. The one-shot source-row path starts a new worker and pays preparation at the handshake.",
+    "independent_csv_replay": {
+      "baseline_head": "ff0d278f081e2a63c9386f6bf6c8ea538e24c29d",
+      "experiment_head": "412881a7a949989d9eddab7a5f2e3c2b79edb391",
+      "source": "archives/observations/repo-hygiene-20261125/independent-final-m0-132-ff0d278f/final-response.txt",
+      "source_sha256": "0b87cda50a4c454ed99a96de7b1d04e0a62e5f092747a81a69a2fc98c47492ac",
+      "warmups_per_arm": 1,
+      "timed_runs_per_arm": 4,
+      "worker_ms_median": {
+        "baseline": 91.284,
+        "experiment": 103.575
+      },
+      "scope": "Separate interleaved CSV source-row replay using the same loader. Reply bytes matched. The review reports launch-to-exit medians."
+    },
+    "boundary_scope": "Both codecs matched public values, bytes and errors. The actual source-row worker accepted 65,535 and 65,536 byte replies and returned RESOURCE_LIMIT one byte above the cap."
+  },
+  "decision": "Retain the protected validator. The original 274-vector test saves 0.514 seconds locally. The added startup cost repeats on ordinary fresh CSV source-row and folder-refresh workers. Reusing one market worker across 32 pages showed a benefit, while the actual user workload mix and its end-to-end gain remain unmeasured.",
+  "reopen_when": "Revisit only if profiling a representative product workload, such as chart history paging across many requests in one reused market worker, shows protocol reference resolution materially delays user-visible completion. Measure the actual requests-per-worker distribution and end-to-end latency, including cold first response, ordinary one-shot CSV source-row and folder refresh, repeated operations, and retained memory. Any new candidate must preserve the protocol and improve the targeted product workload within the measured one-shot latency and memory budgets.",
+  "qualification": "The supported experiment and the earlier private profiler prototype are distinct. This Linux-local evidence establishes the investigation result. Native results and the comparable multi-PR hosted timing qualification for M0-104 remain separate."
+}

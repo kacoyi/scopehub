@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "observed_at": "2026-11-23T10:04:51.460841+00:00",
+  "observed_at": "2026-11-25T05:44:07.660947+00:00",
   "lock_sha256": {
-    "Cargo.lock": "96621a11f8a71e9182d4ac85086ce34222c167502aa1dd66706703e71687eba0",
+    "Cargo.lock": "7ce260e0f34c5fbbf725831316d5219a188fc13a72d43d7bad3a058d2567c777",
     "uv.lock": "628c3231c45d1c644d8909dcf009367266104f5978d3d87976af6760c78c2842",
     "pnpm-lock.yaml": "93ce172ebd5dbdddc6e00334d8aa79f9913545cf2bf52a49770d4eedff16c1f3"
   },
@@ -1403,23 +1403,23 @@
     {
       "ecosystem": "crates.io",
       "name": "jsonschema",
-      "version": "0.61.2",
+      "version": "0.62.0",
       "license": "MIT",
-      "metadata_url": "https://crates.io/crates/jsonschema/0.61.2"
+      "metadata_url": "https://crates.io/crates/jsonschema/0.62.0"
     },
     {
       "ecosystem": "crates.io",
       "name": "jsonschema-regex",
-      "version": "0.61.2",
+      "version": "0.62.0",
       "license": "MIT",
-      "metadata_url": "https://crates.io/crates/jsonschema-regex/0.61.2"
+      "metadata_url": "https://crates.io/crates/jsonschema-regex/0.62.0"
     },
     {
       "ecosystem": "crates.io",
       "name": "jsonschema-value",
-      "version": "0.61.2",
+      "version": "0.62.0",
       "license": "MIT",
-      "metadata_url": "https://crates.io/crates/jsonschema-value/0.61.2"
+      "metadata_url": "https://crates.io/crates/jsonschema-value/0.62.0"
     },
     {
       "ecosystem": "crates.io",
@@ -2047,30 +2047,30 @@
     {
       "ecosystem": "crates.io",
       "name": "referencing",
-      "version": "0.61.2",
+      "version": "0.62.0",
       "license": "MIT",
-      "metadata_url": "https://crates.io/crates/referencing/0.61.2"
+      "metadata_url": "https://crates.io/crates/referencing/0.62.0"
     },
     {
       "ecosystem": "crates.io",
       "name": "regex",
-      "version": "1.13.1",
+      "version": "1.13.2",
       "license": "MIT OR Apache-2.0",
-      "metadata_url": "https://crates.io/crates/regex/1.13.1"
+      "metadata_url": "https://crates.io/crates/regex/1.13.2"
     },
     {
       "ecosystem": "crates.io",
       "name": "regex-automata",
-      "version": "0.4.18",
+      "version": "0.4.19",
       "license": "MIT OR Apache-2.0",
-      "metadata_url": "https://crates.io/crates/regex-automata/0.4.18"
+      "metadata_url": "https://crates.io/crates/regex-automata/0.4.19"
     },
     {
       "ecosystem": "crates.io",
       "name": "regex-syntax",
-      "version": "0.8.11",
+      "version": "0.8.12",
       "license": "MIT OR Apache-2.0",
-      "metadata_url": "https://crates.io/crates/regex-syntax/0.8.11"
+      "metadata_url": "https://crates.io/crates/regex-syntax/0.8.12"
     },
     {
       "ecosystem": "crates.io",

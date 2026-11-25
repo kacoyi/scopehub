@@ -6,12 +6,12 @@ use scopehub_domain::{
         DecisionNotePreviewRestoreCommand11, DecisionNotePreviewRestoreReply11,
         DecisionNoteReadCommand11, DecisionNoteReadReply11, DecisionNoteRestoreBackupCommand11,
         DecisionNoteRestoreBackupReply11, DecisionNoteSaveCommand11, DecisionNoteSaveReply11,
-        LocalApiConnectionReply11, LocalApiConnectionRequest, Message, MutationIntent11,
-        PrivateRecordChangeCommand11, PrivateRecordChangeReply11, PrivateRecordExportCommand11,
-        PrivateRecordExportReply11, PrivateRecordReadCommand11, PrivateRecordReadReply11, Request,
-        ToolCall,
+        ExtendedMessage, LocalApiConnectionReply11, LocalApiConnectionRequest, Message,
+        MutationIntent11, PrivateRecordChangeCommand11, PrivateRecordChangeReply11,
+        PrivateRecordExportCommand11, PrivateRecordExportReply11, PrivateRecordReadCommand11,
+        PrivateRecordReadReply11, Request, ToolCall,
     },
-    wire::normalize_integers,
+    wire::{ProtocolError, decode_extended_line, normalize_integers},
 };
 use scopehub_worker_host::{SCHEMA, decode_line, max_message_bytes};
 use serde_json::Value;
@@ -80,7 +80,8 @@ fn shared_vectors_and_generated_types_agree() {
     let examples: Vec<Value> =
         serde_json::from_str(include_str!("../../../tests/fixtures/protocol-cases.json")).unwrap();
     for example in examples {
-        let result = decode_line(example["wire"].as_str().unwrap().as_bytes());
+        let wire = example["wire"].as_str().unwrap();
+        let result = decode_extended_line(wire.as_bytes());
         assert_eq!(
             result.is_ok(),
             example["valid"].as_bool().unwrap(),
@@ -88,8 +89,39 @@ fn shared_vectors_and_generated_types_agree() {
             example["name"],
             result
         );
+        let legacy = decode_line(wire.as_bytes());
+        if result.is_err() {
+            assert!(legacy.is_err(), "{}", example["name"]);
+        }
         if let Ok(message) = result {
-            let original: Value = serde_json::from_str(example["wire"].as_str().unwrap()).unwrap();
+            let original: Value = serde_json::from_str(wire).unwrap();
+            let is_review = original["payload"].get("review_declarations").is_some()
+                || original["result"].get("declaration_conflicts").is_some();
+            if is_review {
+                assert_eq!(
+                    legacy,
+                    Err(ProtocolError::InvalidMessage),
+                    "{}",
+                    example["name"]
+                );
+                assert!(
+                    !matches!(message, ExtendedMessage::Message(_)),
+                    "{}",
+                    example["name"]
+                );
+                assert_eq!(
+                    serde_json::to_value(message).unwrap(),
+                    original,
+                    "{}",
+                    example["name"]
+                );
+                continue;
+            }
+            let ExtendedMessage::Message(message) = message else {
+                panic!("legacy frame decoded as extension: {}", example["name"]);
+            };
+            let message = *message;
+            assert_eq!(legacy, Ok(message.clone()), "{}", example["name"]);
             match &message {
                 Message::Request(request) => {
                     let operation = request_operation(request);
@@ -403,6 +435,85 @@ fn roundtrip<T: serde::de::DeserializeOwned + serde::Serialize>(message: &Value)
 fn rejects_invalid_utf8_and_oversize_frames() {
     assert!(decode_line(&[0xff, b'\n']).is_err());
     assert!(decode_line(&vec![b'x'; max_message_bytes() + 1]).is_err());
+}
+
+#[test]
+fn extended_review_responses_keep_typed_values_and_frame_limits() {
+    let examples: Vec<Value> =
+        serde_json::from_str(include_str!("../../../tests/fixtures/protocol-cases.json")).unwrap();
+    for kind in ["import", "folder"] {
+        let name = format!("1.1 frozen {kind} source row attributes a declaration conflict");
+        let example = examples
+            .iter()
+            .find(|example| example["name"] == name)
+            .unwrap();
+        let body = example["wire"]
+            .as_str()
+            .unwrap()
+            .strip_suffix('\n')
+            .unwrap();
+        let frame = format!("{body}\r\n");
+        let (raw_fields, conflicts) = match decode_extended_line(frame.as_bytes()).unwrap() {
+            ExtendedMessage::ReadLocalImportSourceRowReviewResponse(response)
+                if kind == "import" =>
+            {
+                (
+                    response.result.raw_fields,
+                    response.result.declaration_conflicts,
+                )
+            }
+            ExtendedMessage::ReadLocalFolderSourceRowReviewResponse(response)
+                if kind == "folder" =>
+            {
+                (
+                    response.result.raw_fields,
+                    response.result.declaration_conflicts,
+                )
+            }
+            other => panic!("unexpected {kind} response: {other:?}"),
+        };
+        assert_eq!(raw_fields, ["UTC"]);
+        let conflicts = conflicts.unwrap();
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].column_index, 0);
+        assert_eq!(
+            conflicts[0].reviewed_value.as_deref(),
+            Some("Asia/Shanghai")
+        );
+    }
+
+    let frame = examples
+        .iter()
+        .find(|example| {
+            example["name"] == "1.1 frozen import source row attributes a declaration conflict"
+        })
+        .unwrap()["wire"]
+        .as_str()
+        .unwrap();
+    let body = frame.strip_suffix('\n').unwrap();
+    let mut exact = body.as_bytes().to_vec();
+    exact.resize(max_message_bytes() - 1, b' ');
+    exact.push(b'\n');
+    assert!(decode_extended_line(&exact).is_ok());
+    exact.insert(exact.len() - 1, b' ');
+    assert_eq!(
+        decode_extended_line(&exact),
+        Err(ProtocolError::ResourceLimit)
+    );
+    assert_eq!(decode_line(&exact), Err(ProtocolError::ResourceLimit));
+    assert_eq!(
+        decode_extended_line(&[0xff, b'\n']),
+        Err(ProtocolError::InvalidMessage)
+    );
+    assert_eq!(
+        decode_extended_line(format!("{frame}\n").as_bytes()),
+        Err(ProtocolError::InvalidMessage)
+    );
+    let unknown = frame.replace("market.readLocalImportSourceRow", "market.unknown");
+    assert_eq!(
+        decode_extended_line(unknown.as_bytes()),
+        Err(ProtocolError::InvalidMessage)
+    );
 }
 
 #[test]

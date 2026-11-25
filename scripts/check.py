@@ -33,7 +33,10 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from .storage import maintain_automatically
-        from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
+        from .verification_evidence import (
+            FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
+            integration_validation, redacted_check_log, release_artifacts,
+        )
     else:
         from doctor import tool_version
         from processes import log_tail, run_logged
@@ -43,7 +46,10 @@ try:
             task_definition_hash, validate_model, verify_primary_model, windows_x64,
         )
         from storage import maintain_automatically
-        from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, field_observation, collect_session, integration_validation, release_artifacts
+        from verification_evidence import (
+            FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, collect_run_observation, field_observation,
+            integration_validation, redacted_check_log, release_artifacts,
+        )
 except Exception as error:
     if __name__ != '__main__':
         raise
@@ -68,22 +74,21 @@ def ci_provenance(source, env, root=ROOT):
     return record
 
 
-PRIVATE_CHECK_LOGS = set(SESSION_CHECKS) | set(FIELD_ACTIONS) | {'configured-external-ai-clients', 'credential-boundaries'}
+PRIVATE_CHECK_LOGS = RUN_OBSERVATION_CHECKS | set(FIELD_ACTIONS) | {'credential-boundaries'}
 STOP_REASONS = {'interrupted', 'cleanup_failed'}
 BUILD_CHECKS = {'typescript-contracts', 'ui-build', 'rust-format', 'rust-contracts-workers',
                 'rust-lints', 'windows-native-build'}
-# Market recovery uses the Python producer's spare Windows time and the browser cache key.
-WINDOWS_PYTHON_CHECKS = {'python-contracts-workers', 'market-recovery'}
 WINDOWS_BROWSER_CHECKS = {'market-workflow', 'chart-history', 'ubuntu-preview',
                           'local-import-ui', 'market-live-stream', 'market-quality-states',
                           'market-worker-interruption', 'market-recovery-ui', 'workspace-timeframe',
                           'desktop-workspace-transport', 'desktop-localization'}
-WINDOWS_LANES = ('core', 'browser', 'python')
+WINDOWS_LANE_CHECKS = {
+    'browser': WINDOWS_BROWSER_CHECKS,
+    'python': {'python-contracts-workers'},
+    'recovery': {'market-recovery'},
+}
+WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 CHECK_OUTPUT_LOCK = Lock()
-
-
-def redacted_check_log(exit_code):
-    return (json.dumps({'exit_code': exit_code}) + '\n').encode('ascii')
 
 
 def print_check(record):
@@ -109,7 +114,7 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_bytes(redacted_check_log(exit_code))
     status = 'passed' if exit_code == 0 and reason is None else 'failed'
-    if exit_code == 77 and reason is None and name in {*FIELD_ACTIONS, *SESSION_CHECKS}:
+    if exit_code == 77 and reason is None and name in (RUN_OBSERVATION_CHECKS | FIELD_ACTIONS.keys()):
         status = 'blocked'
         reason = 'observation_unavailable'
     record = {'id': name, 'status': status, 'command': argv, 'exit_code': exit_code,
@@ -133,11 +138,9 @@ def check_timeout(check, system):
 
 
 def windows_lane_checks(selected, lane):
-    if lane == 'python':
-        return selected & WINDOWS_PYTHON_CHECKS
-    if lane == 'browser':
-        return selected & WINDOWS_BROWSER_CHECKS
-    return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS
+    if lane == 'core':
+        return selected.difference(*WINDOWS_LANE_CHECKS.values())
+    return selected & WINDOWS_LANE_CHECKS[lane]
 
 
 def windows_lanes_run_id(ci):
@@ -261,7 +264,7 @@ def ci_requires_build_setup(project, task_id=None, *, profile=None):
 
 
 def checked_session(project, run_dir, key, source):
-    observation = collect_session(run_dir, key, source)
+    observation = collect_run_observation(ROOT, run_dir, key, source)
     verify_primary_model(project, {key: {'observation': observation}}, check_id=key)
     return observation
 
@@ -320,7 +323,7 @@ def main():
     stopped = False
     catalog = project['catalog']['checks']
     hosted_full = ci is not None and not (args.task or args.profile or args.fail_fast)
-    overlap = (hosted_full and
+    overlap = (hosted_full and not args.ci_windows_lane and
                not any(env.get(key) for key in ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')))
     concurrent_results = {}
     if args.ci_windows_aggregate:
@@ -359,15 +362,7 @@ def main():
                             'reason_code': 'unsupported_platform', 'reason': 'Requires native Windows x64.'})
         else:
             if overlap and check['id'] == 'python-contracts-workers':
-                if args.ci_windows_lane == 'python':
-                    # Only the full Windows Python producer has isolated browser prerequisites.
-                    window = [check]
-                    window.extend(recovery for recovery in catalog[index + 1:]
-                                  if recovery['id'] == 'market-recovery' and recovery['id'] in selected
-                                  and recovery['status'] == 'implemented'
-                                  and (recovery['platforms'] == 'all' or windows_x64(environment)))
-                else:
-                    window = build_window(catalog, selected, environment, index)
+                window = build_window(catalog, selected, environment, index)
                 if len(window) > 1:
                     concurrent_results = run_overlapped(window, env, run_dir, system=environment['system'])
             result = concurrent_results.pop(check['id'], None)
@@ -380,7 +375,7 @@ def main():
                 result = execute(check['id'], command, check_env, run_dir, check_timeout(check, environment['system']))
             if result['status'] == 'passed':
                 try:
-                    if check['id'] in SESSION_CHECKS:
+                    if check['id'] in RUN_OBSERVATION_CHECKS:
                         result['observation'] = checked_session(project, run_dir, check['id'], source)
                     elif check['id'] in FIELD_ACTIONS:
                         result['field_observation'] = field_observation(ROOT, check['id'], hosted=ci is not None)
