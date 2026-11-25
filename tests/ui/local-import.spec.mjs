@@ -2897,3 +2897,97 @@ base('a silent folder status releases the published drawer and cannot reopen it 
     silent.resolve({ result: { revision: { revision_id: id } } });
   }
 });
+
+base('refresh verifies temporarily withheld folder revisions before restoring discovery', {
+  tag: '@profile-folder-refresh',
+}, async ({ page }, testInfo) => {
+  const ids = [randomUUID(), randomUUID(), randomUUID()];
+  const replies = ids.map((revision_id, index) => {
+    const close = [58, 68, 78][index];
+    const relative_path = ['available.csv', 'missing.csv', 'revoked.csv'][index];
+    const source_sha256 = createHash('sha256').update(`${relative_path}:${close}`).digest('hex');
+    const bar = { time_ms: Date.parse('2026-04-16T01:30:00Z'), trading_day: '2026-04-16',
+      open: close - 1, high: close + 1, low: close - 2, close, volume: 125, is_closed: true };
+    const revision = { revision_id, base_revision_id: randomUUID(), parent_revision_id: null, origin_path: relative_path,
+      symbol: '000731', source_count: 1, bar_count: 1, series: { ...equity.settings, roll_method: null },
+      bar_summary: { final_close: close, final_trading_day: bar.trading_day, first_trading_day: bar.trading_day } };
+    return { version: 1, revision, files: [{ relative_path, source_sha256, record_count: 1 }],
+      bars: [{ bar, sources: [{ relative_path, source_sha256, record_number: 1, line_start: 2, line_end: 2 }] }] };
+  });
+  const availableStatus = Promise.withResolvers();
+  const availableEntered = Promise.withResolvers();
+  let recover = false;
+  let lists = 0;
+  const checks = [];
+  const reads = [];
+  await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+    if (command !== 'execute_operation') return { result: null };
+    if (args.operation === 'market.listLocalImportRevisions') return { result: { revisions: [], next_after_revision_id: null } };
+    if (args.operation === 'market.listLocalFolderRevisions') {
+      lists++;
+      return { result: { version: 1, revisions: replies.map(reply => reply.revision), next_after_revision_id: null } };
+    }
+    expect(args.operation).toBe('market.readLocalFolderRevision');
+    const id = args.payload.revision_id;
+    const statusOnly = args.payload.include_details === false;
+    (statusOnly ? checks : reads).push({ id, recover });
+    if (id === ids[2]) return { error: { code: 'PERMISSION_DENIED' } };
+    if (id === ids[1] || !recover) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+    if (statusOnly) {
+      availableEntered.resolve();
+      await availableStatus.promise;
+      return { result: { revision: replies[0].revision, bars: [], files: [] } };
+    }
+    return { result: replies[0] };
+  });
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.testNativeInvoke(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+  const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+  const entries = ['available.csv', 'missing.csv', 'revoked.csv'].map(name =>
+    dialog.getByRole('button', { name: new RegExp('Open folder revision from ' + name.replace('.', '\\.')) }));
+  const frozen = dialog.getByRole('region', { name: 'Frozen local folder chart' });
+  try {
+    await page.goto('/');
+    await control(page, 'Open published CSV').last().click();
+    await control(dialog, 'Folder revisions').click();
+    for (const [index, entry] of entries.entries()) {
+      await entry.click();
+      await expect.poll(() => checks.filter(row => row.id === ids[index]).length).toBe(1);
+      await expect(entry).toHaveCount(0);
+      await expect(frozen).toHaveCount(0);
+    }
+    recover = true;
+    await control(dialog, 'Refresh revisions').click();
+    await expect.poll(() => lists).toBe(2);
+    await expect.poll(() => checks.filter(row => row.recover && row.id === ids[0]).length, { timeout: 2500 }).toBe(1);
+    await availableEntered.promise;
+    await expect(entries[0]).toHaveCount(0);
+    await expect(frozen).toHaveCount(0);
+    availableStatus.resolve();
+    await expect(entries[0]).toBeVisible();
+    await expect.poll(() => checks.filter(row => row.recover && row.id === ids[1]).length).toBe(1);
+    await expect(entries[1]).toHaveCount(0);
+    await expect(entries[2]).toHaveCount(0);
+    expect(checks.filter(row => row.recover && row.id === ids[2])).toEqual([]);
+    await entries[0].click();
+    await expect(frozen.getByLabel('Selected bar')).toContainText('C 58');
+    await expect(dialog.getByRole('region', { name: 'Published folder source provenance' })).toContainText(ids[0]);
+    expect(reads.filter(row => row.recover).map(row => row.id)).toEqual([ids[0]]);
+    await dialog.press('Escape');
+    await expect(frozen).toHaveCount(0);
+  } finally {
+    availableStatus.resolve();
+    await testInfo.attach('folder-recheck-ordering', {
+      body: JSON.stringify({ ids, lists, checks, reads, visible: await frozen.allTextContents() }, null, 2),
+      contentType: 'application/json',
+    });
+  }
+});

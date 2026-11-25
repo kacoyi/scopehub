@@ -799,3 +799,116 @@ test('a retryable admission rejection cannot disable authorized selection clear'
   await expect(clear).toHaveCount(0);
   expect(cleared?.workspace_id).toBe(base.workspace.id);
 });
+
+for (const order of ['before the focus snapshot', 'after the replacement is visible', 'with the same source confirmed']) {
+  test(`first saved-chart reopen fences a held reply ${order}`, async ({ page, browser }, testInfo) => {
+    await buildPreview();
+    await withProfile(async profile => {
+      const a = randomUUID();
+      const b = randomUUID();
+      const bar = (date, open, high, low, close) => ({
+        time_ms: Date.parse(date + 'T00:00:00Z'), trading_day: date, open, high, low, close, volume: 13, is_closed: true,
+      });
+      await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 41, 46, 40, 44));
+      await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 102, 109, 101, 106));
+      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+        const initial = await dispatch({ type: 'snapshot' });
+        const selected = await dispatch({ type: 'workspace_source', request_id: randomUUID(),
+          expected_selection_revision: initial.result.selection_revision, source: { kind: 'frozen', revision_id: a } });
+        expect(selected.ok).toBe(true);
+        const firstRead = Promise.withResolvers();
+        const oldReply = Promise.withResolvers();
+        const focusSnapshot = Promise.withResolvers();
+        const history = [];
+        let snapshots = 0;
+        let held = false;
+        const ordinary = ({ operation, payload }) => operation === 'market.listLocalImportRevisions'
+          ? { result: { version: 1, revisions: [], next_after_revision_id: null } } : dispatch(payload);
+        await nativeTransport(page, { optedIn: true }, async args => {
+          const { payload } = args;
+          if (payload.type === 'snapshot') {
+            const number = ++snapshots;
+            const reply = await ordinary(args);
+            history.push({ number, snapshot: reply.result?.source });
+            if (number === 2) await focusSnapshot.promise;
+            return reply;
+          }
+          if (payload.type === 'frozen_chart' && payload.revision_id === a && !held) {
+            held = true;
+            const captured = await ordinary(args);
+            expect(captured.ok).toBe(true);
+            expect(captured.result.bars[0].bar.close).toBe(44);
+            firstRead.resolve();
+            await oldReply.promise;
+            history.push({ delivered: a, close: 44 });
+            return captured;
+          }
+          return ordinary(args);
+        });
+        const price = page.getByRole('region', { name: 'Price chart' });
+        const selectedBar = price.getByLabel('Selected bar');
+        let peer;
+        try {
+          await page.goto('/');
+          await firstRead.promise;
+          await expect(selectedBar).toHaveCount(0);
+          const peerChangesSource = !order.startsWith('with the same');
+          if (peerChangesSource) {
+            peer = await browser.newContext();
+            const window = await peer.newPage();
+            await nativeTransport(window, { optedIn: true }, ordinary);
+            await window.goto('/');
+            const peerChart = window.getByRole('region', { name: 'Price chart' });
+            await expect(peerChart.getByLabel('Selected bar')).toContainText('C 44');
+            await control(peerChart, 'Open published CSV').click();
+            const dialog = window.getByRole('dialog', { name: 'Open published CSV' });
+            await dialog.getByLabel('Revision ID').fill(b);
+            await control(dialog, 'Open frozen chart').click();
+            await expect(dialog.getByLabel('Selected bar')).toContainText('C 106');
+            await control(dialog, 'Use as workspace source').click();
+            await expect(dialog).toHaveCount(0);
+            await expect(peerChart.getByLabel('Selected bar')).toContainText('C 106');
+            const confirmed = await dispatch({ type: 'snapshot' });
+            expect(confirmed.result.source).toMatchObject({ kind: 'frozen', revision_id: b, status: 'available' });
+            expect(confirmed.result.selection_revision).toBe(selected.result.selection_revision + 1);
+          }
+          await page.evaluate(() => {
+            window.observedFirstReopen = [];
+            const check = () => {
+              const bar = document.querySelector('[aria-label="Selected bar"]');
+              if (bar) window.observedFirstReopen.push(bar.textContent);
+            };
+            const observer = new MutationObserver(check);
+            observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+            window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+            window.dispatchEvent(new Event('focus'));
+          });
+          if (!order.startsWith('after')) {
+            oldReply.resolve();
+            await expect.poll(() => history.some(item => item.delivered === a)).toBe(true);
+          }
+          await expect.poll(() => snapshots, { timeout: 2500 }).toBe(2);
+          await expect(selectedBar).toHaveCount(0);
+          focusSnapshot.resolve();
+          await expect(selectedBar).toContainText(peerChangesSource ? 'C 106' : 'C 44');
+          oldReply.resolve();
+          await expect.poll(() => history.some(item => item.delivered === a)).toBe(true);
+          await expect(selectedBar).toContainText(peerChangesSource ? 'C 106' : 'C 44');
+          if (peerChangesSource) {
+            expect((await page.evaluate(() => window.observedFirstReopen)).some(text => text.includes('C 44'))).toBe(false);
+          }
+        } finally {
+          focusSnapshot.resolve();
+          oldReply.resolve();
+          const visible = await selectedBar.allTextContents();
+          const observed = await page.evaluate(() => window.observedFirstReopen ?? []);
+          await testInfo.attach('first-reopen-ordering', {
+            body: JSON.stringify({ order, a, b, snapshots, history, visible, observed }, null, 2),
+            contentType: 'application/json',
+          });
+          await peer?.close();
+        }
+      });
+    });
+  });
+}
