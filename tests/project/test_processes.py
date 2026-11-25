@@ -1,11 +1,14 @@
 """Real subprocess regressions for diagnostics and bounded check lifetimes."""
 
-from contextlib import redirect_stderr, redirect_stdout
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from io import BytesIO, StringIO, TextIOWrapper
 import json
 import os
 import hashlib
 from pathlib import Path
+import select
+import socket
 import sys
 import subprocess
 import tempfile
@@ -63,6 +66,125 @@ class ProcessTests(unittest.TestCase):
         self.assertIn(b'Check stopped: timeout', log)
         self.assertEqual(result['log_sha256'], hashlib.sha256(log).hexdigest())
         path.unlink()
+
+    @unittest.skipUnless(sys.platform == 'linux', 'requires Linux sessions and child reaping')
+    def test_public_browser_check_owns_detached_listener_on_every_exit(self):
+        listener = self.root / 'listener.py'
+        listener.write_text('''
+import json, os, socket, sys, time
+from pathlib import Path
+
+ready, stop, reply = sys.argv[1:]
+ready, stop = Path(ready), Path(stop)
+with socket.socket() as server:
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(('127.0.0.1', 0))
+    server.listen()
+    server.settimeout(.1)
+    ready.with_suffix('.tmp').write_text(json.dumps([os.getpid(), server.getsockname()[1]]))
+    ready.with_suffix('.tmp').replace(ready)
+    deadline = time.monotonic() + 20
+    while not stop.exists() and time.monotonic() < deadline:
+        try:
+            connection, _ = server.accept()
+        except TimeoutError:
+            continue
+        with connection:
+            connection.sendall(reply.encode())
+''')
+        launcher = '''
+import subprocess, sys, time
+from pathlib import Path
+
+listener, ready, stop, release, mode = sys.argv[1:]
+print('fixture launcher started', flush=True)
+child = subprocess.Popen([sys.executable, listener, ready, stop, 'owned'],
+                         start_new_session=True)
+deadline = time.monotonic() + 15
+while not Path(release).exists():
+    if time.monotonic() >= deadline or child.poll() is not None:
+        raise SystemExit(99)
+    time.sleep(.01)
+raise SystemExit(int(mode))
+'''
+
+        def endpoint(ready):
+            deadline = time.monotonic() + 3
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            self.assertTrue(ready.exists(), f'{ready.name} did not start')
+            return json.loads(ready.read_bytes())
+
+        def reply(port):
+            with (socket.create_connection(('127.0.0.1', port), timeout=2) as client,
+                  client.makefile('rb') as response):
+                return response.read()
+
+        cases = [('0', ('passed', 0, None)), ('7', ('failed', 7, None)),
+                 ('cancelled', ('failed', None, 'interrupted')), ('timed-out', ('failed', None, 'timeout'))]
+        for mode, expected in cases:
+            with self.subTest(mode=mode), ExitStack() as cleanup:
+                work = self.root / mode
+                work.mkdir()
+                control_ready, control_stop = work / 'control.json', work / 'control-stop'
+                control = subprocess.Popen([sys.executable, str(listener), str(control_ready), str(control_stop),
+                                            'unrelated'], start_new_session=True)
+                cleanup.callback(control.wait, timeout=5)
+                cleanup.callback(control_stop.touch)
+                _, control_port = endpoint(control_ready)
+                self.assertEqual(b'unrelated', reply(control_port))
+
+                ready, stop, release = work / 'owned.json', work / 'owned-stop', work / 'release'
+                cancel = Event()
+                command = [sys.executable, '-c', launcher, *map(str, (listener, ready, stop, release)), mode]
+                cleanup.enter_context(patch.object(harness, 'ROOT', work))
+                cleanup.enter_context(redirect_stdout(StringIO()))
+                executor = cleanup.enter_context(ThreadPoolExecutor(max_workers=1))
+                cleanup.callback(stop.touch)
+                check = executor.submit(harness.execute, 'desktop-localization', command, dict(os.environ),
+                                        work / '.reports', 4 if mode == 'timed-out' else 10,
+                                        cancel=cancel.is_set if mode == 'cancelled' else None)
+                pid, port = endpoint(ready)
+                identity = os.pidfd_open(pid)
+                cleanup.callback(os.close, identity)
+
+                def stop_owned_fixture():
+                    stop.touch()
+                    poller = select.poll()
+                    poller.register(identity, select.POLLIN)
+                    self.assertTrue(poller.poll(5000), 'the fixture listener must stop during teardown')
+
+                cleanup.callback(stop_owned_fixture)
+                self.assertEqual(pid, os.getsid(pid), 'fixture listener must be in a detached session')
+                self.assertEqual(b'owned', reply(port))
+                if mode == 'cancelled':
+                    cancel.set()
+                elif mode != 'timed-out':
+                    release.touch()
+                record = check.result(timeout=15)
+                self.assertEqual(expected, (record['status'], record['exit_code'], record.get('reason_code')))
+                log = (work / record['log']).read_bytes()
+                self.assertIn(b'fixture launcher started', log)
+                self.assertEqual(hashlib.sha256(log).hexdigest(), record['log_sha256'])
+                self.assertIsNone(control.poll(), 'the unrelated process must still be running')
+                self.assertEqual(b'unrelated', reply(control_port))
+                address = ('127.0.0.1', port)
+                with socket.socket() as rebound:
+                    rebound.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    rebound.settimeout(2)
+                    try:
+                        rebound.bind(address)
+                    except OSError as error:
+                        self.fail(f'{mode} left its detached listener live at return: {error}')
+                    rebound.listen()
+                    with socket.create_connection(address, timeout=2) as client:
+                        connection, _ = rebound.accept()
+                        with connection:
+                            connection.sendall(b'rebound')
+                        with client.makefile('rb') as response:
+                            self.assertEqual(b'rebound', response.read())
+                fdinfo = Path(f'/proc/self/fdinfo/{identity}').read_text().splitlines()
+                self.assertEqual('-1', next(line.split()[1] for line in fdinfo if line.startswith('Pid:')))
 
     @unittest.skipUnless(sys.platform in {'linux', 'win32'}, 'requires owned process tree verification')
     def test_workspace_profile_pool_waits_for_grandchild_before_removal(self):
@@ -365,20 +487,13 @@ time.sleep(30)
 
     def test_interruption_stops_descendants_and_preserves_reason(self):
         parent, ready, escaped = self.descendant_command(wait=True)
-        original_wait = subprocess.Popen.wait
-        interrupted = False
+        def interrupt_wait(*args, **kwargs):
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.005)
+            raise KeyboardInterrupt
 
-        def wait(process, *args, **kwargs):
-            nonlocal interrupted
-            if not interrupted:
-                deadline = time.monotonic() + 5
-                while not ready.exists() and time.monotonic() < deadline:
-                    time.sleep(.005)
-                interrupted = True
-                raise KeyboardInterrupt
-            return original_wait(process, *args, **kwargs)
-
-        with patch.object(subprocess.Popen, 'wait', wait):
+        with patch.object(processes, '_wait_for_check', interrupt_wait):
             result = self.execute(parent, timeout=10)
         self.assertEqual('interrupted', result['reason_code'])
         self.assertTrue(ready.exists())

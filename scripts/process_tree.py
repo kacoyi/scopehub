@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import select
+from selectors import DefaultSelector, EVENT_READ
 import signal
 import subprocess
 import sys
@@ -28,7 +29,7 @@ class ProcessJob(Protocol):
     def stop(self) -> None: ...
 
 
-def start_linux_market_check(argv: Sequence[str], **options: Any) -> tuple[subprocess.Popen[bytes], BinaryIO]:
+def start_linux_check(argv: Sequence[str], **options: Any) -> tuple[subprocess.Popen[bytes], BinaryIO]:
     # The subreaper belongs to one check, never to the multithreaded harness.
     read_fd, write_fd = os.pipe()
     with os.fdopen(write_fd, 'wb') as result:
@@ -43,15 +44,22 @@ def start_linux_market_check(argv: Sequence[str], **options: Any) -> tuple[subpr
     return process, os.fdopen(read_fd, 'rb')
 
 
+def wait_linux_check(process: subprocess.Popen[bytes], result_pipe: BinaryIO, timeout: float) -> None:
+    # The command outcome is ready before the supervisor finishes reaping.
+    with DefaultSelector() as selector:
+        selector.register(result_pipe, EVENT_READ)
+        if not selector.select(timeout):
+            raise subprocess.TimeoutExpired(process.args, timeout)
+
+
 def stop_tree(process: subprocess.Popen[bytes], job: ProcessJob | None = None, *,
               result_pipe: BinaryIO | None = None) -> Sequence[int | str | None] | None:
     """Checks are trusted local programs, not a sandbox for hostile code."""
     if result_pipe is not None:
         # Closing the control pipe requests cancellation. The supervisor
-        # reports only after all its children have been reaped.
-        with result_pipe:
-            if process.wait(timeout=10) != 0 or not (result := result_pipe.read(128)):
-                raise OSError('Linux market recovery process supervisor failed')
+        # result is trusted only after it has reaped all of its children.
+        if process.wait(timeout=10) != 0 or not (result := result_pipe.read(128)):
+            raise OSError('Linux check process supervisor failed')
         return cast(list[int | str | None], json.loads(result))
     if sys.platform == 'win32':
         assert job is not None
@@ -86,7 +94,7 @@ def reap_linux_children() -> None:
         if pid:
             continue
         if time.monotonic() >= deadline:
-            raise OSError('Linux market recovery still has live descendants')
+            raise OSError('Linux check still has live descendants')
         for child in children.read_text('ascii').split():
             try:
                 os.kill(int(child), signal.SIGKILL)
@@ -95,19 +103,19 @@ def reap_linux_children() -> None:
         time.sleep(.01)
 
 
-def supervise_linux_market_check(result_fd: int, argv: Sequence[str]) -> None:
+def supervise_linux_check(result_fd: int, argv: Sequence[str]) -> None:
     import ctypes
 
     if sys.platform != 'linux':
-        raise OSError('Market process supervision requires Linux')
+        raise OSError('Check process supervision requires Linux')
     # An inherited SIG_IGN would autoreap children and discard their status.
     signal.signal(signal.SIGCHLD, signal.SIG_DFL)
     prctl = ctypes.CDLL(None, use_errno=True).prctl
     prctl.argtypes = [ctypes.c_int] + [ctypes.c_ulong] * 4
     if prctl(36, 1, 0, 0, 0) != 0:  # PR_SET_CHILD_SUBREAPER
-        raise OSError(ctypes.get_errno(), 'Cannot supervise Linux market recovery descendants')
+        raise OSError(ctypes.get_errno(), 'Cannot supervise Linux check descendants')
 
-    with os.fdopen(result_fd, 'wb') as result:
+    with os.fdopen(result_fd, 'wb', buffering=0) as result:
         exit_code = reason = None
         try:
             if not select.select([0], [], [], 0)[0]:
@@ -121,9 +129,11 @@ def supervise_linux_market_check(result_fd: int, argv: Sequence[str]) -> None:
             print(f'Cannot start check: {error}', file=sys.stderr)
             reason = 'launch_error'
         finally:
-            reap_linux_children()
-        result.write(json.dumps([exit_code, reason]).encode('ascii'))
+            try:
+                result.write(json.dumps([exit_code, reason]).encode('ascii'))
+            finally:
+                reap_linux_children()
 
 
 if __name__ == '__main__':
-    supervise_linux_market_check(int(sys.argv[1]), sys.argv[2:])
+    supervise_linux_check(int(sys.argv[1]), sys.argv[2:])

@@ -105,11 +105,10 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     log_path = run_dir / f'{name}.log'
     print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout})
     private = name in PRIVATE_CHECK_LOGS
-    # Playwright, pnpm and the history bridge can leave the initial Linux group.
-    containment = {'contain_linux_tree': True} if sys.platform == 'linux' and name == 'market-recovery' else {}
+    # Check launchers can leave the initial process group on Linux.
     exit_code, reason = run_logged([executable, *argv[1:]], cwd=ROOT, env=env,
                                   log_path=os.devnull if private else log_path, timeout=timeout, cancel=cancel,
-                                  **containment)
+                                  contain_linux_tree=True)
     if private:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_bytes(redacted_check_log(exit_code))

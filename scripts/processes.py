@@ -1,5 +1,6 @@
 """Run repository checks with durable output and bounded process lifetimes."""
 
+from functools import partial
 import os
 from pathlib import Path
 import subprocess
@@ -7,9 +8,9 @@ import sys
 import time
 
 if __package__:
-    from .process_tree import start_linux_market_check, stop_tree
+    from .process_tree import start_linux_check, stop_tree, wait_linux_check
 else:
-    from process_tree import start_linux_market_check, stop_tree
+    from process_tree import start_linux_check, stop_tree, wait_linux_check
 
 WINDOWS_LAUNCHER = '''
 import subprocess, sys
@@ -19,16 +20,17 @@ raise SystemExit(subprocess.call(sys.argv[1:], stdin=subprocess.DEVNULL))
 '''
 
 
-def _wait_for_check(process, timeout, cancel):
+def _wait_for_check(process, timeout, cancel, *, result_pipe=None):
+    wait = process.wait if result_pipe is None else partial(wait_linux_check, process, result_pipe)
     if cancel is None:
-        return process.wait(timeout=timeout)
+        return wait(timeout=timeout)
     deadline = time.monotonic() + timeout
     while not cancel():
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise subprocess.TimeoutExpired(process.args, timeout)
         try:
-            return process.wait(timeout=min(remaining, .25))
+            return wait(timeout=min(remaining, .25))
         except subprocess.TimeoutExpired:
             continue
     raise KeyboardInterrupt
@@ -57,7 +59,7 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
             command = [sys._base_executable, '-I', '-S', '-c', WINDOWS_LAUNCHER, *argv] if job else argv
             options.update(cwd=cwd, env=env, stdout=output, stderr=subprocess.STDOUT)
             if contain_linux_tree and sys.platform == 'linux':
-                process, result_pipe = start_linux_market_check(command, **options)
+                process, result_pipe = start_linux_check(command, **options)
             else:
                 process = subprocess.Popen(command, stdin=subprocess.PIPE if job else subprocess.DEVNULL,
                                            **options)
@@ -65,9 +67,10 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
                 job.assign(process.pid)
                 process.stdin.write(b'1')
                 process.stdin.close()
-            return_code = _wait_for_check(process, timeout, cancel)
             if result_pipe is None:
-                exit_code = return_code
+                exit_code = _wait_for_check(process, timeout, cancel)
+            else:
+                _wait_for_check(process, timeout, cancel, result_pipe=result_pipe)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
             reason = 'timeout' if isinstance(error, subprocess.TimeoutExpired) else 'interrupted'
             output.write(f'\nCheck stopped: {reason}.\n'.encode('utf-8'))
@@ -92,6 +95,8 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
                     process.kill()
                     process.wait(timeout=10)
             finally:
+                if result_pipe is not None:
+                    result_pipe.close()
                 if job:
                     job.close()
     return exit_code, reason
