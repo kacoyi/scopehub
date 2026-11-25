@@ -23,7 +23,7 @@
       "reviewed_ref": "v10.4.0",
       "observed_at": "2026-11-25",
       "source": "https://github.com/astral-sh/setup-uv/tree/1db35dd8eee11c5894872e0b383ae6c406cf738d",
-      "review": "The immutable release runs Node 24 on hosted Ubuntu and Windows. The setup and successful post bundles retain the exact uv version-file, Python 3.12, supplied Linux and Windows archive checksums, GitHub Releases download and existing cache settings. Requiring checksums also includes the expected checksum in the tool-cache identity. The optional Windows Python junction repair is for cache-python; this workflow leaves that input disabled. Workflow permissions remain contents:read."
+      "review": "The immutable release runs Node 24 on hosted Ubuntu and Windows. The setup and successful post bundles retain the exact uv version-file, Python 3.12, supplied Linux and Windows archive checksums, GitHub Releases download and existing cache settings. The new optional strict-checksum input defaults to false, preserving the existing tool-cache behavior and explicit checksum validation on download. The optional Windows Python junction repair is for cache-python; this workflow leaves that input disabled. The bundled runtime dependency undici moves from 8.10.0 to 8.11.0 under MIT. Workflow permissions remain contents:read."
     },
     {
       "repository": "pnpm/action-setup",
@@ -370,6 +370,7 @@
       "original_parent": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
       "failed_run": "https://github.com/kacoyi/scopehub/actions/runs/45519231958",
       "failed_log_zip_sha256": "cd929f2abcee625b263d390a926343844157deeb0ba931511ebdc13a142974c5",
+      "observations_archive": "archives/observations/dependency-queue-20261125/pr-88",
       "original_local_report_sha256": "d98425e72dae608541931358face83f94a789f9c1b4d1b3acabb5d746065fa3f",
       "failure": "The original patch changed only the workflow pin. Ubuntu and Windows set up uv and synchronized the locked project, then the unchanged dependency gate rejected the unreviewed immutable action pin.",
       "release": "https://github.com/astral-sh/setup-uv/releases/tag/v10.4.0",
@@ -382,7 +383,7 @@
         "LICENSE": "933c6b13611b145de8fc8016281b2733e4a38c66f431de5bf48ed89b42af164b"
       },
       "license": "MIT",
-      "disposition": "Use the reviewed v10.4.0 commit with checksum enforcement and the existing explicit platform digests. Require matching hosted Ubuntu and Windows verification before integration."
+      "disposition": "Use the reviewed v10.4.0 commit with the existing explicit platform digests and workflow inputs. Require matching hosted Ubuntu and Windows verification before integration."
     },
     "uv_toolchain_review": {
       "task_id": "M0-041",

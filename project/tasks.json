@@ -11896,7 +11896,7 @@
           "scripts/dependencies.py"
         ],
         "hypotheses": [
-          "The immutable upstream release accepts the existing version-file, platform checksum, Python and cache inputs; requiring checksums also binds action tool-cache reuse to the supplied digest."
+          "The immutable upstream release accepts the existing version-file, platform checksum, Python and cache inputs and retains the default tool-cache identity."
         ],
         "risks": [
           {
@@ -11947,16 +11947,28 @@
             "The uv and Python pins, lock inputs, GitHub Releases source, cache pruning and contents-read workflow role."
           ],
           "change": [
-            "Bind the reviewed 10.4.0 action and require a known checksum with digest-bound tool-cache reuse."
+            "Bind the reviewed 10.4.0 action to the existing checksum and cache policy."
           ],
           "data_plan": "The workflow only handles development toolchains and caches. No product data or protocol changes.",
           "cleanup": "Retain the original proposal and red evidence; review exact-head hosted results before substituting the original proposal."
         }
       },
-      "next_action": "Run the bundled setup entrypoint and the local task harness; hand the exact candidate to the coordinator for hosted Ubuntu and Windows verification.",
+      "next_action": "After archiving local verification, run the approved candidate through the protected Ubuntu and Windows workflows and retain both exact-head reports before integration.",
       "blocker": null,
       "evidence": [],
-      "closure_reason": null
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T003718.129583Z-fcf62f9b",
+          "source_commit": "7426cf6f9b4a76ea116d2913d74cd3a3c712d2ee",
+          "report_sha256": "d87a691bff91564fdc3211f1edb23624e4c1222a0e3a5cd3437901d571145317"
+        },
+        {
+          "run_id": "windows-change-45519231958-1",
+          "source_commit": "7426cf6f9b4a76ea116d2913d74cd3a3c712d2ee",
+          "report_sha256": "176969de12cd0dbefae113a4088a8fdadcaff4a2d93f23a77bdf9d2b77c3fb30"
+        }
+      ]
     },
     {
       "id": "M0-041",
