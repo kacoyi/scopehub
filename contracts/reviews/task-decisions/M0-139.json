@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-139",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "e342a17dfdb614cf1df83d9ab2142eee880db918",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 e342a17dfdb614cf1df83d9ab2142eee880db918",
+      "scope": "APPROVE M0-139 e342a17dfdb614cf1df83d9ab2142eee880db918",
+      "observation": "I verified that only market-recovery-ui moved lanes, all 35 Windows outcomes and aggregate failure handling were preserved, and the local receipt matches this candidate, which still needs a qualifying PR run before integration because PR116’s 839-second wall time and 2,474 runner-seconds belong to the earlier head and all three main-push controls predate the fix, leaving the finding open under M0-141.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "ed684f795cf87ce6178fb08c275e3025c24e8e70a5f9bc2093fb7b9d2ea29b67",
+      "response_id": "45f271dbcddbfdd7deb9830827d6768e4e88452aed3aa18c9883d1a9f0c73730",
+      "response_sha256": "81cd8ac527d03ea28f1af17aea7040d0e321ee8e30ccfbe8a63ef754d2873647",
+      "legacy_response_sha256": "3d443c4c44e984a706e31308fb65645035883f06b0151a0d94884d8a5c130a84",
+      "observation_body_sha256": "2c2cb75273f0735539c95676fdeb394bbeafedf73900ec7a9641dc6ccb36c9a8",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b072efbfa8087d08819ad6409510cc9",
+        "timestamp": "2026-11-25T18:54:54.258Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "accf8ac2eb6556c232a9f00dffa4553a18b8adaea4c3e7459048c6231997e991"
+    }
+  ]
+}
