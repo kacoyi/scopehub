@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-101",
+  "task_definition_sha256": "772a6f92b42fe5fb06c7f20aca6c7cff6d4fed6a02e4004456a2e6f635f5b42b",
+  "run_id": "20261124T191213.131242Z-d78b1248",
+  "recorded_at": "2026-11-24T19:15:37.267624+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "68e74e1f63b00eb227eeb5d806565f58b3941d031db65c9c83d7a467b622681e",
+    "file_count": 597,
+    "git_head": "183e404417a4da638b4a3a606b9d71758fbfc2aa",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "1539772caeae44809e8de5a84e8869547258ec7e4f5ee6d362b72a75bf62c4b9",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/indicator-draft-delivery-recovery/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-draft-delivery-recovery/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c560a6edf87b344bdc6a256aae2662b7fba01aa90e3572d08343f2b180d8261e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-draft-delivery-recovery/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "64d36e1ff3e289f61869e74638af40bff3be131dd3f72fb6c802fba9ffd3f360"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ff8e138175884a06c74cd35d32b78dfe2de625dce6ab64e45466b0582fe878df"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4b17996b4f6c245f1c9202d83c6af565a9e0e677b7e01568a851bb4ad99917ad"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2b287e07a670fce23171dc2ee9becab125c235cf3717abff66742ebded401f21"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4d22beb54a3d7a96f008abcbe4b9b6014412dcadcaf698d626abb0322ee76b4f"
+    }
+  ],
+  "project_definition_sha256": "c98e996ff8a5c9258fd28469e375ed4637496cea6251be5929cd5bd1291d2395",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "3f211d765a0464cd9539ac454e15291ca0105cb8018d2ec4e69e4bd2f11fd5a7",
+    "d15a7e5e7477b61063388bdbc95ef755d01bd7ea5be31cf184893a39efab7ba1"
+  ]
+}

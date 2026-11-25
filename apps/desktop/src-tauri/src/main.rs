@@ -7,6 +7,10 @@ compile_error!(
 
 #[cfg(windows)]
 fn main() {
+    #[cfg(windows)]
+    if let Some(exit) = scopehub_persistence::run_workspace_acl_worker() {
+        std::process::exit(exit);
+    }
     use scopehub_desktop::bridge;
     use std::ffi::OsStr;
     use tauri::Manager;

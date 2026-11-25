@@ -3102,3 +3102,9 @@ async fn native_private_record_uses_the_bound_writer_and_survives_restart() {
     assert!(reopened.reads.lock().await.status().process_id.is_none());
     reopened.shutdown().await;
 }
+
+#[cfg(windows)]
+#[test]
+fn workspace_acl_worker() {
+    scopehub_persistence::run_workspace_acl_test_worker();
+}
