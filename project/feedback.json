@@ -5683,6 +5683,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-acl-inert-object-and-compound-layouts",
+      "source": "Astra Standard PR 84 source review at 070818f04c41c4dccffd7b2356039199aa198035. Original copy .reports/m0-105-object-ace/astra-pr84-070818f.txt (SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1). Layout coverage is recorded in contracts/reviews/2026-11-25-windows-workspace-acl-layouts.json.",
+      "observation": "The native decoder refused ObjectAce layouts before the managed baseline would remove inert known entries. The existing negative test changed a common ACE type without adding object flags and optional GUIDs, so it represented a malformed object buffer. Reference-source review also identified the legacy CompoundAce known layout and the distinct opaque CustomAce envelope. No NTFS outcome for these added cases was observed in the source review.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -18,7 +18,8 @@ use std::{
 use windows_sys::Win32::{
     Foundation::{ERROR_ALREADY_EXISTS, ERROR_SUCCESS, GENERIC_ALL, LocalFree},
     Security::{
-        ACE_HEADER, ACL, ACL_SIZE_INFORMATION, AclSizeInformation,
+        ACE_HEADER, ACE_INHERITED_OBJECT_TYPE_PRESENT, ACE_OBJECT_TYPE_PRESENT, ACL,
+        ACL_REVISION_DS, ACL_SIZE_INFORMATION, AclSizeInformation,
         Authorization::{
             ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW,
             GetSecurityInfo, SDDL_REVISION_1, SE_FILE_OBJECT,
@@ -39,10 +40,15 @@ use windows_sys::Win32::{
     System::{
         Memory::LocalSize,
         SystemServices::{
-            ACCESS_ALLOWED_ACE_TYPE, ACCESS_ALLOWED_CALLBACK_ACE_TYPE, ACCESS_DENIED_ACE_TYPE,
-            ACCESS_DENIED_CALLBACK_ACE_TYPE, SID_MAX_SUB_AUTHORITIES, SID_REVISION,
-            SYSTEM_ALARM_ACE_TYPE, SYSTEM_ALARM_CALLBACK_ACE_TYPE, SYSTEM_AUDIT_ACE_TYPE,
-            SYSTEM_AUDIT_CALLBACK_ACE_TYPE,
+            ACCESS_ALLOWED_ACE_TYPE, ACCESS_ALLOWED_CALLBACK_ACE_TYPE,
+            ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE, ACCESS_ALLOWED_COMPOUND_ACE_TYPE,
+            ACCESS_ALLOWED_OBJECT_ACE_TYPE, ACCESS_DENIED_ACE_TYPE,
+            ACCESS_DENIED_CALLBACK_ACE_TYPE, ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE,
+            ACCESS_DENIED_OBJECT_ACE_TYPE, SID_MAX_SUB_AUTHORITIES, SID_REVISION,
+            SYSTEM_ALARM_ACE_TYPE, SYSTEM_ALARM_CALLBACK_ACE_TYPE,
+            SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE, SYSTEM_ALARM_OBJECT_ACE_TYPE,
+            SYSTEM_AUDIT_ACE_TYPE, SYSTEM_AUDIT_CALLBACK_ACE_TYPE,
+            SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE, SYSTEM_AUDIT_OBJECT_ACE_TYPE,
         },
         Threading::{GetCurrentProcess, OpenProcessToken},
         WindowsProgramming::DRIVE_FIXED,
@@ -251,21 +257,27 @@ enum Entry {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum CommonAceKind {
+enum AceKind {
     Allow,
     Deny,
-    AccessCallback,
     Audit,
+    UnsupportedAccess,
 }
 
-struct CommonAce<'a> {
-    kind: CommonAceKind,
+enum AceLayout {
+    Common,
+    Object,
+    Compound,
+}
+
+struct DecodedAce<'a> {
+    kind: AceKind,
     flags: u32,
     mask: u32,
     sid: &'a [u8],
 }
 
-fn common_ace(bytes: &[u8]) -> Result<CommonAce<'_>, u8> {
+fn decode_ace(bytes: &[u8], acl_revision: u32) -> Result<DecodedAce<'_>, u8> {
     let [
         ace_type,
         flags,
@@ -275,7 +287,7 @@ fn common_ace(bytes: &[u8]) -> Result<CommonAce<'_>, u8> {
         mask_1,
         mask_2,
         mask_3,
-        sid_and_data @ ..,
+        body @ ..,
     ] = bytes
     else {
         return Err(27);
@@ -284,17 +296,38 @@ fn common_ace(bytes: &[u8]) -> Result<CommonAce<'_>, u8> {
     if size != bytes.len() || !size.is_multiple_of(size_of::<u32>()) {
         return Err(27);
     }
-    let kind = match u32::from(*ace_type) {
-        ACCESS_ALLOWED_ACE_TYPE => CommonAceKind::Allow,
-        ACCESS_DENIED_ACE_TYPE => CommonAceKind::Deny,
+    let (kind, layout) = match u32::from(*ace_type) {
+        ACCESS_ALLOWED_ACE_TYPE => (AceKind::Allow, AceLayout::Common),
+        ACCESS_DENIED_ACE_TYPE => (AceKind::Deny, AceLayout::Common),
         ACCESS_ALLOWED_CALLBACK_ACE_TYPE | ACCESS_DENIED_CALLBACK_ACE_TYPE => {
-            CommonAceKind::AccessCallback
+            (AceKind::UnsupportedAccess, AceLayout::Common)
         }
         SYSTEM_AUDIT_ACE_TYPE
         | SYSTEM_ALARM_ACE_TYPE
         | SYSTEM_AUDIT_CALLBACK_ACE_TYPE
-        | SYSTEM_ALARM_CALLBACK_ACE_TYPE => CommonAceKind::Audit,
+        | SYSTEM_ALARM_CALLBACK_ACE_TYPE => (AceKind::Audit, AceLayout::Common),
+        ACCESS_ALLOWED_OBJECT_ACE_TYPE
+        | ACCESS_DENIED_OBJECT_ACE_TYPE
+        | ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE
+        | ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE => (AceKind::UnsupportedAccess, AceLayout::Object),
+        SYSTEM_AUDIT_OBJECT_ACE_TYPE
+        | SYSTEM_ALARM_OBJECT_ACE_TYPE
+        | SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE
+        | SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE => (AceKind::Audit, AceLayout::Object),
+        ACCESS_ALLOWED_COMPOUND_ACE_TYPE => (AceKind::UnsupportedAccess, AceLayout::Compound),
         _ => return Err(27),
+    };
+    let sid_and_data = match layout {
+        AceLayout::Common => body,
+        AceLayout::Object => object_ace_sid_and_data(body, acl_revision)?,
+        AceLayout::Compound => {
+            // The legacy impersonation layout has a 16-bit type followed
+            // by a reserved zero word.
+            let [1, 0, 0, 0, sid @ ..] = body else {
+                return Err(27);
+            };
+            sid
+        }
     };
     let [revision, count, ..] = sid_and_data else {
         return Err(27);
@@ -302,15 +335,31 @@ fn common_ace(bytes: &[u8]) -> Result<CommonAce<'_>, u8> {
     if !sid_fits(*revision, *count, sid_and_data.len()) {
         return Err(27);
     }
-    // Common ACEs can carry opaque data after the complete SID. Admission
-    // never interprets it or relies on a callback's condition to deny access.
     let sid_size = 8 + usize::from(*count) * size_of::<u32>();
-    Ok(CommonAce {
+    if matches!(layout, AceLayout::Compound) && sid_size != sid_and_data.len() {
+        return Err(27);
+    }
+    // Common and object ACEs can carry opaque data after the complete SID.
+    // No condition or object selector supplies workspace authority.
+    Ok(DecodedAce {
         kind,
         flags: u32::from(*flags),
         mask: u32::from_le_bytes([*mask_0, *mask_1, *mask_2, *mask_3]),
         sid: &sid_and_data[..sid_size],
     })
+}
+
+fn object_ace_sid_and_data(body: &[u8], acl_revision: u32) -> Result<&[u8], u8> {
+    let [low, middle_low, middle_high, high, guids_and_sid @ ..] = body else {
+        return Err(27);
+    };
+    let flags = u32::from_le_bytes([*low, *middle_low, *middle_high, *high]);
+    let guid_flags = ACE_OBJECT_TYPE_PRESENT | ACE_INHERITED_OBJECT_TYPE_PRESENT;
+    if acl_revision != ACL_REVISION_DS || flags & !guid_flags != 0 {
+        return Err(27);
+    }
+    let guid_bytes = flags.count_ones() as usize * size_of::<windows_sys::core::GUID>();
+    guids_and_sid.get(guid_bytes..).ok_or(27)
 }
 
 fn normalize_access_flags(kind: Entry, mut flags: u32, mask: u32) -> Option<u32> {
@@ -329,6 +378,22 @@ fn normalize_access_flags(kind: Entry, mut flags: u32, mask: u32) -> Option<u32>
         flags &= !NO_PROPAGATE_INHERIT_ACE;
     }
     Some(flags & !(SUCCESSFUL_ACCESS_ACE_FLAG | FAILED_ACCESS_ACE_FLAG))
+}
+
+fn normalized_access(kind: Entry, ace: &DecodedAce<'_>) -> Result<Option<(u32, u32)>, u8> {
+    let Some(flags) = normalize_access_flags(kind, ace.flags, ace.mask) else {
+        return Ok(None);
+    };
+    let rank = match ace.kind {
+        AceKind::Deny => 0,
+        AceKind::Allow => 1,
+        AceKind::Audit => return Ok(None),
+        // The managed DACL drops inert entries before the workspace policy
+        // refuses unsupported access entries that remain.
+        AceKind::UnsupportedAccess => return Err(27),
+    };
+    let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
+    Ok(Some((flags, rank)))
 }
 
 fn private_principal(sid: &str, user: &str) -> bool {
@@ -568,7 +633,8 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         return Err(26);
     }
     // SAFETY: the aligned ACL header fits in the descriptor's allocation.
-    let acl_size = usize::from(unsafe { (*dacl).AclSize });
+    let (acl_size, acl_revision) =
+        unsafe { (usize::from((*dacl).AclSize), u32::from((*dacl).AclRevision)) };
     // SAFETY: the complete DACL extent is within the live descriptor.
     if !(size_of::<ACL>()..=acl_room).contains(&acl_size) || unsafe { IsValidAcl(dacl) } == 0 {
         return Err(26);
@@ -622,31 +688,19 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         }
         // SAFETY: the ACE lies entirely within the live ACL allocation.
         let bytes = unsafe { std::slice::from_raw_parts(entry.cast::<u8>(), ace_size) };
-        let CommonAce {
-            kind: ace,
-            flags,
-            mask,
-            sid,
-        } = common_ace(bytes)?;
+        let ace = decode_ace(bytes, acl_revision)?;
         // SAFETY: the parser limits the SID to its exact extent in the live ACE.
-        let sid = unsafe { sid_text(sid.as_ptr().cast_mut().cast(), sid.len()) }.map_err(|_| 27)?;
-        let Some(flags) = normalize_access_flags(kind, flags, mask) else {
+        let sid = unsafe { sid_text(ace.sid.as_ptr().cast_mut().cast(), ace.sid.len()) }
+            .map_err(|_| 27)?;
+        let Some((flags, rank)) = normalized_access(kind, &ace)? else {
             continue;
         };
-        let rank = match ace {
-            CommonAceKind::Deny => 0,
-            CommonAceKind::Allow => 1,
-            CommonAceKind::Audit => continue,
-            // The managed DACL drops inert entries before the workspace
-            // policy refuses callbacks that remain.
-            CommonAceKind::AccessCallback => return Err(27),
-        };
-        let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
         canonical &= rank >= previous_rank;
         previous_rank = rank;
-        if ace == CommonAceKind::Deny {
+        if ace.kind == AceKind::Deny {
             continue;
         }
+        let mask = ace.mask;
         let applies_here = flags & INHERIT_ONLY_ACE == 0;
         if kind == Entry::Ancestor {
             if !trusted_ancestor(&sid, user) && applies_here && mask & REPLACE_ENTRY != 0 {

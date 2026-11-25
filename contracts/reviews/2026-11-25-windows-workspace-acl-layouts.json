@@ -1,0 +1,68 @@
+{
+  "kind": "engineering_review",
+  "date": "2026-11-25",
+  "task_id": "M0-105",
+  "reviewed_pr_head": "070818f04c41c4dccffd7b2356039199aa198035",
+  "managed_baseline_commit": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+  "managed_storage_policy": "crates/persistence/src/storage_acl.ps1",
+  "references": [
+    "https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/ace.cs#L262-L383",
+    "https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1094",
+    "https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1746-L1808",
+    "https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-access_allowed_object_ace",
+    "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/628ebb1d-c509-4ea0-a10f-77ef97ca4586"
+  ],
+  "evaluation_stages": [
+    {
+      "stage": "descriptor_and_layout",
+      "rule": "Require the native descriptor, owner, DACL, complete aligned ACE and bounded valid SID. Object layouts require ACL_REVISION_DS, two documented object flag bits and exactly the GUID fields those bits select before the SID. Compound impersonation uses a known subtype, zero reserved field and an exact SID extent. Opaque data in known qualified layouts stays inside the advertised record."
+    },
+    {
+      "stage": "normalization",
+      "rule": "Remove zero-mask known entries. Remove all inherit-only entries on a regular file and remove inherit-only entries with no child scope on a directory. Strip ineffective file inheritance, directory no-propagate without child scope and DACL audit flags. Audit and alarm qualifiers are removed from a DACL."
+    },
+    {
+      "stage": "workspace_policy",
+      "rule": "Refuse remaining callbacks, object permissions and compound permissions. Only ordinary allows can supply private owner access and child coverage. The directory compaction retains the existing canonical order and one adjacent merge pass. Ordinary deny entries supply no grants. Unknown types, invalid selectors, invalid revisions and malformed extents fail closed."
+    }
+  ],
+  "layouts": [
+    {
+      "types": ["AccessAllowed", "AccessDenied"],
+      "managed_baseline": "CommonAce. Surviving allows go through the principal and access checks. Surviving denies supply no grants.",
+      "coverage": ["Native file and directory control matrix", "Ordinary inherited and split private workspaces", "Real SQLite reopen and byte-stable refusal of shared DB or WAL"]
+    },
+    {
+      "types": ["AccessAllowedCallback", "AccessDeniedCallback"],
+      "managed_baseline": "CommonAce. Drop inert entries. Refuse surviving callbacks.",
+      "coverage": ["Native file and directory matrix with raw callback bytes checked"]
+    },
+    {
+      "types": ["SystemAudit", "SystemAlarm", "SystemAuditCallback", "SystemAlarmCallback"],
+      "managed_baseline": "CommonAce. The managed DACL removes these qualifiers.",
+      "coverage": ["Bounded decoder and admission normalization cases", "Managed in-memory DACL comparison"]
+    },
+    {
+      "types": ["AccessAllowedObject", "AccessDeniedObject", "AccessAllowedCallbackObject", "AccessDeniedCallbackObject"],
+      "managed_baseline": "ObjectAce. Drop inert entries. Refuse any surviving object entry, even with neither GUID selected.",
+      "coverage": ["Native file and directory matrix installed as ACL_REVISION_DS with raw byte verification", "Bounded variants for neither GUID, each GUID independently, and both GUIDs", "Malformed object flags, missing GUIDs and wrong revision"]
+    },
+    {
+      "types": ["SystemAuditObject", "SystemAlarmObject", "SystemAuditCallbackObject", "SystemAlarmCallbackObject"],
+      "managed_baseline": "ObjectAce. The managed DACL removes these qualifiers after parsing the optional GUIDs.",
+      "coverage": ["Bounded decoder and admission normalization for all GUID combinations", "Managed in-memory DACL comparison"]
+    },
+    {
+      "types": ["AccessAllowedCompound"],
+      "managed_baseline": "CompoundAce. The managed DACL can drop a zero-mask or inapplicable inherit-only entry. The workspace predicate refuses a surviving compound entry.",
+      "coverage": ["Bounded legacy impersonation decoder and admission normalization", "Managed in-memory DACL comparison", "Unsupported subtype, reserved field and excess bytes refused"]
+    },
+    {
+      "types": ["CustomAce", "Unrecognized or reserved wire layouts"],
+      "managed_baseline": "The managed parser can represent some unrecognized types as opaque CustomAce. Generic inheritance filtering can drop an inherit-only CustomAce. A surviving CustomAce is refused. The baseline cannot derive a known access mask from opaque data.",
+      "coverage": ["Managed in-memory comparison of opaque inherit-only and surviving entries", "Native parser refuses unrecognized layout types before normalization"],
+      "disposition": "Fail closed for opaque unknown layouts, including when the managed generic inheritance filter would remove an opaque entry."
+    }
+  ],
+  "evidence_scope": "This is a source comparison and test coverage map. Native disk behavior, same-user SQLite reopen, byte-stable refusals and M0-105 task completion require a matching Windows report. Previous receipts retain their original source."
+}

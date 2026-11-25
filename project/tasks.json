@@ -20825,6 +20825,7 @@
         "scripts/check_architecture.py",
         "scripts/prepare_workspace_profile_pool.py",
         "contracts/decisions/0029-supervised-native-windows-workspace-acl.json",
+        "contracts/reviews/2026-11-25-windows-workspace-acl-layouts.json",
         "Cargo.lock",
         "project/dependency-inventory.json"
       ],
@@ -20870,7 +20871,7 @@
           "report_sha256": "f8b5cc2f1913d5252a732a8c33796dec03e02d348a1438545950a1fc1e8e2329"
         }
       ],
-      "next_action": "Obtain independent review and coordinator-owned PR #84 protected Linux and Windows checks plus M0-105 verification for the exact common ACE correction. Compare the native and original managed decisions for inert and effective common entries on files and directories. Observe same-user reopen and unchanged database and WAL bytes after refusal. Run 45546767887 remains historical evidence of d9102de and its checked merge.",
+      "next_action": "Obtain independent review and coordinator-owned PR #84 protected Linux and Windows checks plus M0-105 verification for the exact descriptor-layout correction. Compare inert and effective access entries in real file and directory DACLs, including object GUID fields, and review the coverage of the remaining recognized layouts. Observe same-user reopen and unchanged database and WAL bytes after refusal. Run 45546767887 remains historical evidence of d9102de and its checked merge.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20895,6 +20896,12 @@
           "A shared precompiled worker or native policy may remove the interpreter dependency while preserving an OS process that can be terminated and waited. Compare cost and ability to run the normal desktop, development bridge and test entry without portable or packaging surprises."
         ],
         "risks": [
+          {
+            "failure": "A known ACE is refused before inert-entry normalization, or a malformed object flag, optional GUID, compound layout or opaque unknown entry reaches normalization and alters admission. Cover each recognized descriptor layout and verify real file and directory DACLs against the historical evaluator.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
           {
             "failure": "The native path rejects a callback before checking whether it can affect the selected object, or ignores a malformed, unknown or still-effective unsupported entry. Verify common ACE lengths and SID bounds, object-specific normalization and the legacy post-normalization rejection order.",
             "checks": [
