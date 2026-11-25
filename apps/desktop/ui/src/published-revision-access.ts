@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { readFrozenRevisionStatus, type LocalWorkspace } from './use-local-workspace';
 import { readLocalFolderRevision } from './local-import-transport';
+import { withReplyDeadline } from './reply-deadline';
 
 export function displayAccessDenied(error: unknown) {
   return error !== null && typeof error === 'object' && 'code' in error
@@ -10,47 +11,56 @@ export function displayAccessDenied(error: unknown) {
 export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined) {
   const observed = useRef(new Set<string>());
   const missing = useRef(new Set<string>());
-  const checking = useRef(new Map<string, Promise<void>>());
+  const generations = useRef(new Map<string, number>());
+  const checking = useRef(new Map<string, { controller: AbortController; request: Promise<void> }>());
   const [revoked, setRevoked] = useState<ReadonlySet<string>>(observed.current);
   const [unavailable, setUnavailable] = useState<ReadonlySet<string>>(missing.current);
   const selected = useRef<{ token: number; id: string } | undefined>(undefined);
+  const previousUnavailableSource = useRef<string | undefined>(undefined);
   const snapshot = workspace?.snapshot;
   const canCheckRevision = workspace?.canCheckRevision;
   const refreshPublishedAccess = workspace?.refreshPublishedAccess;
 
+  const stopChecking = useCallback((id: string) => {
+    checking.current.get(id)?.controller.abort();
+    checking.current.delete(id);
+  }, []);
   const revoke = useCallback((id: string) => {
     if (observed.current.has(id)) return;
+    stopChecking(id);
     observed.current = new Set(observed.current).add(id);
     setRevoked(observed.current);
-  }, []);
+  }, [stopChecking]);
   // The ref also fences a response delivered before React commits the revoked view.
   const canDisplay = useCallback((id: string) => !observed.current.has(id) && !missing.current.has(id), []);
+  const beginRead = useCallback((id: string) => {
+    const generation = generations.current.get(id);
+    return () => canDisplay(id) && generations.current.get(id) === generation;
+  }, [canDisplay]);
   const setMissing = useCallback((id: string, absent: boolean) => {
     if (missing.current.has(id) === absent) return;
     const next = new Set(missing.current);
-    if (absent) next.add(id);
-    else next.delete(id);
+    if (absent) {
+      next.add(id);
+      generations.current.set(id, (generations.current.get(id) ?? 0) + 1);
+    } else next.delete(id);
     missing.current = next;
     setUnavailable(next);
   }, []);
-  useLayoutEffect(() => {
-    const target = snapshot?.chart_evidence;
-    if (target && snapshot) {
-      if ('revision_id' in target) {
-        selected.current = { token: snapshot.selection_revision, id: target.revision_id };
-        return;
-      }
-      const { source } = snapshot;
-      if (selected.current?.token === snapshot.selection_revision && source?.kind === 'frozen'
-        && source.revision_id === selected.current.id && source.status === 'revoked') revoke(source.revision_id);
-    }
-    selected.current = undefined;
-  }, [snapshot, revoke]);
-  const verifyAccess = useCallback((id: string, read: () => Promise<'available' | 'missing' | 'revoked' | undefined>) => {
+  const withhold = useCallback((id: string) => {
+    if (observed.current.has(id)) return;
+    stopChecking(id);
+    setMissing(id, true);
+  }, [setMissing, stopChecking]);
+
+  const verifyAccess = useCallback((id: string,
+    read: (signal: AbortSignal) => Promise<'available' | 'missing' | 'revoked' | undefined>) => {
     if (observed.current.has(id) || canCheckRevision?.() === false) return;
     const current = checking.current.get(id);
-    if (current) return current;
-    const request = read().then(status => {
+    if (current) return current.request;
+    const controller = new AbortController();
+    const request = withReplyDeadline(5000, read, controller.signal).then(status => {
+      if (controller.signal.aborted) return;
       if (status === 'revoked') revoke(id);
       else if (status === 'missing') setMissing(id, true);
       else if (status === 'available' && missing.current.has(id)) {
@@ -58,26 +68,54 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
         refreshPublishedAccess?.(id);
       }
     }, error => {
-      if (displayAccessDenied(error)) setMissing(id, true);
-    }).finally(() => checking.current.delete(id));
-    checking.current.set(id, request);
+      if (!controller.signal.aborted && displayAccessDenied(error)) setMissing(id, true);
+    }).finally(() => {
+      if (checking.current.get(id)?.controller === controller) checking.current.delete(id);
+    });
+    checking.current.set(id, { controller, request });
     return request;
   }, [canCheckRevision, refreshPublishedAccess, revoke, setMissing]);
-  const verify = useCallback((id: string) => verifyAccess(id, async () => {
-    const reply = await readFrozenRevisionStatus(id, AbortSignal.timeout(5000));
+  const verify = useCallback((id: string) => verifyAccess(id, async signal => {
+    const reply = await readFrozenRevisionStatus(id, signal);
     if (reply?.available === true && reply.revoked === undefined) return 'available';
     if (reply?.available === false) return reply.revoked === true ? 'revoked' : 'missing';
   }), [verifyAccess]);
-  const verifyFolder = useCallback((id: string) => verifyAccess(id, async () => {
+  const verifyFolder = useCallback((id: string) => verifyAccess(id, async signal => {
     try {
-      const reply = await readLocalFolderRevision({ version: 1, revision_id: id, include_details: false }, crypto.randomUUID());
+      const reply = await readLocalFolderRevision(
+        { version: 1, revision_id: id, include_details: false }, crypto.randomUUID(), signal);
       if (reply.revision.revision_id === id) return 'available';
     } catch (error) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'PERMISSION_DENIED') return 'revoked';
       throw error;
     }
   }), [verifyAccess]);
-  return { revoked, unavailable, canDisplay, revoke, verify, verifyFolder };
+
+  useLayoutEffect(() => {
+    const requests = checking.current;
+    return () => {
+      for (const { controller } of requests.values()) controller.abort();
+      requests.clear();
+    };
+  }, []);
+  useLayoutEffect(() => {
+    if (!snapshot) return;
+    const { source, chart_evidence: target, selection_revision: token } = snapshot;
+    if (source?.kind === 'frozen' && source.status === 'revoked') revoke(source.revision_id);
+    const unavailableSource = source?.kind === 'frozen' && source.status === 'unavailable' ? source.revision_id : undefined;
+    if (unavailableSource && unavailableSource !== previousUnavailableSource.current) withhold(unavailableSource);
+    previousUnavailableSource.current = unavailableSource;
+
+    const previous = selected.current;
+    selected.current = target && 'revision_id' in target ? { token, id: target.revision_id } : undefined;
+    if (target && 'unavailable' in target && previous?.token === token) {
+      // The same selection is now redacted. Fence its previous reply immediately,
+      // then let the registry distinguish temporary absence from withdrawal.
+      withhold(previous.id);
+      void verify(previous.id);
+    }
+  }, [snapshot, revoke, verify, withhold]);
+  return { revoked, unavailable, canDisplay, beginRead, revoke, withhold, verify, verifyFolder };
 }
 
 export type PublishedRevisionAccess = ReturnType<typeof usePublishedRevisionAccess>;

@@ -45,23 +45,24 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   const openable = id && status === 'available' && !revoked && !missing ? id : undefined;
   const [loaded, setLoaded] = useState<RestoredChartSource>();
   const [attempt, setAttempt] = useState(0);
-  const canDisplay = access.canDisplay;
+  const { beginRead, withhold } = access;
   const refreshAccess = useEffectEvent((revision: string) => {
     workspace?.refreshPublishedAccess(revision);
   });
 
   const watched = id && !revoked && (missing || loaded?.status === 'ready' && loaded.revision_id === id) ? id : undefined;
-  useWatchPublishedRevision(watched, access.verify, workspace);
+  useWatchPublishedRevision(watched, access.verify, workspace, missing ? 'checked-by-reader' : 'check');
   useEffect(() => {
     if (!openable) {
       setLoaded(undefined);
       return;
     }
     const controller = new AbortController();
+    const reading = beginRead(openable);
     setLoaded({ kind: 'frozen', revision_id: openable, status: 'loading' });
     void openAuthenticatedFrozenChart(openable, crypto.randomUUID(), controller.signal).then(result => {
       const chart = projectFrozenChart(result);
-      if (!controller.signal.aborted && canDisplay(openable)) setLoaded(chart ? {
+      if (!controller.signal.aborted && reading()) setLoaded(chart ? {
         kind: 'frozen', revision_id: openable, status: 'ready', chart, label: result.revision.relative_path,
       } : { kind: 'frozen', revision_id: openable, status: 'unavailable' });
     }).catch(error => {
@@ -69,10 +70,13 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
       setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
       // The first read can lose access before the open chart's watcher starts.
       // The current snapshot distinguishes a withdrawal from missing data.
-      if (displayAccessDenied(error)) refreshAccess(openable);
+      if (reading() && displayAccessDenied(error)) {
+        withhold(openable);
+        refreshAccess(openable);
+      }
     });
     return () => controller.abort();
-  }, [openable, canDisplay, attempt]);
+  }, [openable, beginRead, withhold, attempt]);
 
   const retry = () => {
     if (id && missing) void access.verify(id);

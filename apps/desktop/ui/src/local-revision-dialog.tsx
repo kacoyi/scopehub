@@ -1,3 +1,4 @@
+import { waitForReply, withReplyDeadline } from './reply-deadline';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import { formatNumber, message, plural, t } from './i18n';
@@ -88,7 +89,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const lostAccess = watchedId !== undefined && revisionAccess.revoked.has(watchedId);
   const visibleFrozen = frozen && revisionAccess.canDisplay(frozen.result.revision.revision_id) ? frozen : undefined;
   const visibleRevisions = library.status === 'ready'
-    ? library.result.revisions.filter(entry => !revisionAccess.revoked.has(entry.revision_id)) : [];
+    ? library.result.revisions.filter(entry => revisionAccess.canDisplay(entry.revision_id)) : [];
   useWatchPublishedRevision(lostAccess ? undefined : watchedId,
     watchedKind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify,
     watchedKind === 'folder' ? undefined : workspace, 'checked-by-reader');
@@ -113,9 +114,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       const input = { version: 1 as const, after_revision_id: selection.cursors.at(-1) ?? null, limit: PAGE_SIZE };
       let page: LibraryPage;
       try {
-        const result = selection.kind === 'folder'
-          ? await listLocalFolderRevisions(input, crypto.randomUUID())
-          : await listLocalImportRevisions({ ...input, include_bar_summary: true }, crypto.randomUUID());
+        const result = await withReplyDeadline(15_000, async () => selection.kind === 'folder'
+          ? listLocalFolderRevisions(input, crypto.randomUUID())
+          : listLocalImportRevisions({ ...input, include_bar_summary: true }, crypto.randomUUID()), lifetime.current?.signal);
         page = { status: 'ready', result };
       } catch (error) {
         page = { status: errorCode(error) === 'PROVIDER_NOT_CONFIGURED' ? 'unconfigured' : 'error' };
@@ -156,6 +157,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
 
   async function request(work: () => Promise<void>, fallback: string) {
     if (active.current || listLoading || workspacePending) return;
+    const signal = lifetime.current?.signal;
+    if (!signal || signal.aborted) return;
     active.current = true;
     setBusy(true);
     setFailure(undefined);
@@ -164,32 +167,34 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       await work();
     } catch (error) {
       const nextFailure = failureMessage(error, fallback);
-      setFailure(() => nextFailure);
+      if (!signal.aborted) setFailure(() => nextFailure);
     } finally {
       active.current = false;
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
   async function open(id: string, fromLibrary = false) {
     const signal = lifetime.current?.signal;
     if (active.current || !signal || signal.aborted) return;
-    const chartSignal = workspace && kind === 'csv' ? signal : undefined;
     setFrozen(undefined);
     await request(async () => {
       setOpening({ id, kind });
       const denied = { code: workspace && kind === 'csv' ? 'SNAPSHOT_UNAVAILABLE' : 'PERMISSION_DENIED' };
+      const verify = kind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify;
+      let reading: (() => boolean) | undefined;
       try {
-        if (revisionAccess.unavailable.has(id)) {
-          await (kind === 'folder' ? revisionAccess.verifyFolder(id) : revisionAccess.verify(id));
+        if (!revisionAccess.canDisplay(id)) {
+          await waitForReply(signal, () => verify(id) ?? Promise.resolve());
         }
         if (!revisionAccess.canDisplay(id)) throw denied;
+        reading = revisionAccess.beginRead(id);
         const opened: OpenedRevision = kind === 'folder'
-          ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID()) }
-          : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID(), chartSignal)
-            : await readLocalImportRevision({ version: 1, revision_id: id }, crypto.randomUUID()) };
-        if (chartSignal?.aborted) return;
-        if (!revisionAccess.canDisplay(id)) throw denied;
+          ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID(), signal) }
+          : { kind, result: workspace ? await openAuthenticatedFrozenChart(id, crypto.randomUUID(), signal)
+            : await readLocalImportRevision({ version: 1, revision_id: id }, crypto.randomUUID(), signal) };
+        if (signal.aborted) return;
+        if (!reading()) throw denied;
         const { result } = opened;
         if (result.revision.revision_id !== id || result.bars.length !== result.revision.bar_count
           || (opened.kind === 'folder' && opened.result.files.length !== opened.result.revision.source_count)) {
@@ -197,16 +202,18 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         }
         setFrozen(opened);
       } catch (error) {
-        if (chartSignal?.aborted) return;
+        if (signal.aborted) return;
         if (displayAccessDenied(error)) {
           if (fromLibrary) libraryTitle.current?.focus();
-          removeFromLibrary(id);
-          void (kind === 'folder' ? revisionAccess.verifyFolder(id) : revisionAccess.verify(id));
-          workspace?.refreshPublishedAccess(id);
+          if (reading?.()) {
+            revisionAccess.withhold(id);
+            void verify(id);
+            if (kind === 'csv') workspace?.refreshPublishedAccess(id);
+          }
         }
         throw error;
       } finally {
-        if (!chartSignal?.aborted) setOpening(undefined);
+        if (!signal.aborted) setOpening(undefined);
       }
     }, 'Unable to open the frozen chart.');
   }

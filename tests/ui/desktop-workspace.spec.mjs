@@ -720,3 +720,82 @@ test('native text setup retries a held writer and sends only on explicit submiss
     releaseSnapshot.resolve();
   }
 });
+
+for (const change of ['revoked source without selection', 'redacted selection without source']) {
+  test(`a delayed published CSV cannot display after a ${change}`, async ({ page }) => {
+    await buildPreview();
+    await withProfile(async profile => {
+      const id = randomUUID();
+      await seedDisplayOnlyChart(profile, id, {
+        time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72,
+        close: 74, volume: 13, is_closed: true,
+      });
+      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+        const readEntered = Promise.withResolvers();
+        const late = Promise.withResolvers();
+        const status = Promise.withResolvers();
+        const base = { ...restoreSnapshot(id), source: null };
+        let current = change.startsWith('revoked') ? { ...base, chart_evidence: null } : base;
+        await nativeTransport(page, { optedIn: true }, async ({ operation, payload }) => {
+          if (operation === 'market.listLocalImportRevisions') return { result: { revisions: [], next_after_revision_id: null } };
+          if (payload.type === 'snapshot') return { result: current };
+          if (payload.type === 'frozen_chart_status') return status.promise;
+          const reply = await dispatch(payload);
+          expect(reply.ok).toBe(true);
+          readEntered.resolve();
+          await late.promise;
+          return reply;
+        });
+        try {
+          await page.goto('/');
+          await control(page.getByRole('region', { name: 'Price chart' }), 'Open published CSV').click();
+          const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+          await dialog.getByLabel('Revision ID').fill(id);
+          await control(dialog, 'Open frozen chart').click();
+          await readEntered.promise;
+          current = change.startsWith('revoked')
+            ? { ...base, ...restoreSnapshot(id, 'revoked'), chart_evidence: null }
+            : { ...base, chart_evidence: { unavailable: true } };
+          await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+          if (change.startsWith('revoked')) {
+            await expect(page.getByText('Access to this published CSV was revoked.')).toBeVisible();
+          } else {
+            await expect(control(dialog, 'Clear shared selection')).toBeVisible();
+          }
+          late.resolve();
+          await expect(dialog.getByRole('alert')).toHaveText('This frozen chart is unavailable in the current profile.');
+          await expect(control(dialog, 'Use as workspace source')).toHaveCount(0);
+        } finally {
+          late.resolve();
+          status.resolve({ result: { available: false } });
+        }
+      });
+    });
+  });
+}
+
+test('a retryable admission rejection cannot disable authorized selection clear', async ({ page }) => {
+  const id = randomUUID();
+  const base = { ...restoreSnapshot(id), source: null, chart_evidence: { unavailable: true } };
+  let reads = 0;
+  let cleared;
+  await nativeTransport(page, { optedIn: true }, ({ payload }) => {
+    if (payload.type === 'snapshot') {
+      if (++reads === 1) return { error: { code: 'BUSY', retryable: true } };
+      return { result: base };
+    }
+    expect(payload).toMatchObject({ operation: 'workspace.selectEvidence', expected_selection_revision: 2, target: null });
+    cleared = payload;
+    return { result: {
+      protocol_version: '1.1', type: 'response', operation: payload.operation, request_id: payload.request_id,
+      selection: { workspace_id: base.workspace.id, selection_revision: 3, target: null },
+    } };
+  });
+  await page.goto('/');
+  const clear = control(page.getByRole('region', { name: 'Price chart' }), 'Clear shared selection');
+  await expect(clear).toBeEnabled();
+  expect(reads).toBeGreaterThan(1);
+  await clear.click();
+  await expect(clear).toHaveCount(0);
+  expect(cleared?.workspace_id).toBe(base.workspace.id);
+});

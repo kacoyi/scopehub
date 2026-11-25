@@ -326,6 +326,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const frozenFolder = frozenFolderRecord && revisionAccess.canDisplay(frozenFolderRecord.revision.revision_id) ? frozenFolderRecord : undefined;
   const refreshRevisionId = folderRefresh?.folder_base?.revision_id ?? folderRefresh?.base?.revision_id;
   const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.revoked.has(refreshRevisionId);
+  const refreshVisible = refreshRevisionId === undefined || revisionAccess.canDisplay(refreshRevisionId);
   useWatchPublishedRevision(lostAccess ? undefined : publishedId, revisionAccess.verify, workspace);
   useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, revisionAccess.verifyFolder, undefined);
   useWatchPublishedRevision(
@@ -642,15 +643,20 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   async function openFrozenFolder() {
     if (!publishedFolder) return;
     const revisionId = publishedFolder.revision_id;
+    const reading = revisionAccess.beginRead(revisionId);
+    const controller = new AbortController();
     await runRequest('read-folder', async id => {
       try {
-        return await readLocalFolderRevision({ version: 1, revision_id: revisionId }, id);
+        return await readLocalFolderRevision({ version: 1, revision_id: revisionId }, id, controller.signal);
       } catch (error) {
-        if (displayAccessDenied(error)) void revisionAccess.verifyFolder(revisionId);
+        if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
+          revisionAccess.withhold(revisionId);
+          void revisionAccess.verifyFolder(revisionId);
+        }
         throw error;
       }
     }, reply => {
-      if (!revisionAccess.canDisplay(revisionId)) return;
+      if (!reading()) return;
       if (reply.revision.revision_id !== revisionId || reply.bars.length !== publishedFolder.bar_count
         || reply.files.length !== publishedFolder.source_count) {
         setPublicationFailure({ message: message('The frozen folder revision could not be verified.') });
@@ -658,7 +664,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       }
       setFrozen(undefined);
       setFrozenFolder(reply);
-    });
+    }, async () => { controller.abort(); });
   }
 
   async function revokeFrozenFolder() {
@@ -677,17 +683,22 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   async function openFrozenChart() {
     if (!published) return;
     const revisionId = published.revision_id;
-    const controller = workspace ? new AbortController() : undefined;
+    const reading = revisionAccess.beginRead(revisionId);
+    const controller = new AbortController();
     await runRequest('read', async id => {
       try {
-        return controller ? await openAuthenticatedFrozenChart(revisionId, id, controller.signal)
-          : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id);
+        return workspace ? await openAuthenticatedFrozenChart(revisionId, id, controller.signal)
+          : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id, controller.signal);
       } catch (error) {
-        if (!controller?.signal.aborted && displayAccessDenied(error)) void revisionAccess.verify(revisionId);
+        if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
+          revisionAccess.withhold(revisionId);
+          void revisionAccess.verify(revisionId);
+          workspace?.refreshPublishedAccess(revisionId);
+        }
         throw error;
       }
     }, reply => {
-      if (!revisionAccess.canDisplay(revisionId)) return;
+      if (!reading()) return;
       if (reply.revision.revision_id !== published.revision_id || reply.revision.source_sha256 !== published.source_sha256
         || reply.revision.mapping_sha256 !== published.mapping_sha256 || reply.bars.length !== published.bar_count) {
         setPublicationFailure({ message: message('The frozen chart reply could not be verified.') });
@@ -695,7 +706,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       }
       setFrozenFolder(undefined);
       setFrozen(reply);
-    }, controller ? async () => { controller.abort(); } : undefined);
+    }, async () => { controller.abort(); });
   }
 
   async function revokeFrozenChart() {
@@ -836,7 +847,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       <div className="local-import-results">
         {progressText && <div className="local-import-card local-import-progress">
           <p role="status">{progressText}</p>
-          {progress && !['revoke', 'read-folder', 'revoke-folder', 'prepare-folder'].includes(progress.action)
+          {progress && !['revoke', 'revoke-folder', 'prepare-folder'].includes(progress.action)
             && (progress.action !== 'read' || workspace) && progress.phase !== 'cancelled' &&
             <button type="button" className="secondary-button" disabled={progress.phase === 'cancelling'} onClick={cancel}>{t('Cancel {action}', { action: t(actionText[progress.action].label) })}</button>}
         </div>}
@@ -845,7 +856,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         <FolderRefreshReview
           revisionId={publishedFolder?.revision_id ?? published?.revision_id}
           busy={busy}
-          result={refreshRevoked ? undefined : folderRefresh}
+          result={refreshVisible ? folderRefresh : undefined}
           onPreview={revisionId => void stageFolderRefresh(revisionId)}
           prepared={preparedFolder?.review}
           attempted={preparedFolder?.attempted ?? false}

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-035",
   "tasks": [
     {
       "id": "M0-001",
@@ -20200,6 +20200,148 @@
           ],
           "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
           "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
+        }
+      }
+    },
+    {
+      "id": "M2-035",
+      "title": "Fence and recover frozen chart access through open, refresh and clear",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-034"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ui",
+        "tests/ubuntu-preview",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
+        "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
+        "Folder read and status waits release after timeout or cancellation and ignore late results.",
+        "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "local-import-ui",
+        "local-folder-refresh-preview",
+        "local-folder-import",
+        "workspace-timeframe"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T050030.893328Z-8519eb03",
+          "source_commit": "9cad03564df53e2f36b8cc4969258a32a8090260",
+          "report_sha256": "ed7011eeea4600b13c8107606a4618e5e1fe7192afb7fa1de6bc507e7c27858e"
+        }
+      ],
+      "next_action": "Retain matching red and green regression checks for the review findings.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Frozen CSV and folder charts obey current profile access, and authorized shared selection clear remains available.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/local-revision-dialog.tsx",
+          "apps/desktop/ui/src/local-import-editor.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts"
+        ],
+        "hypotheses": [
+          "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
+          "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
+          "Folder read and status waits release after timeout or cancellation and ignore late results.",
+          "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
+        ],
+        "risks": [
+          {
+            "failure": "A late CSV reply displays withdrawn evidence after source-only revocation or redaction of the same shared selection.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A denied foreground folder read leaves cached chart and provenance visible until a status reply.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A silent native folder status reply indefinitely blocks retry.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Hosted Chromium captured a retryable snapshot admission failure leaving the authorized shared-selection clear disabled.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "local-folder-import",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the UI correction. Workspace records and grants use the existing protocol.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/published-revision-access.ts",
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/local-import-editor.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Physical Windows acceptance, release, or changes to unrelated authorization."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing authorization, provenance and historical evidence."
+          ],
+          "change": [
+            "Source-only revocation and redaction of an unchanged selection fence in-flight CSV replies and cached drawer data.",
+            "Denied foreground CSV and folder reads withhold evidence immediately, and only verified access can restore temporary absence.",
+            "Folder read and status waits release after timeout or cancellation and ignore late results.",
+            "An authorized user can clear a redacted selection after retryable snapshot admission, retaining the workspace revision and undo state."
+          ],
+          "data_plan": "Use only synthetic profiles, fixtures and identifiers.",
+          "cleanup": "Discard superseded in-flight work while retaining recovery artifacts."
         }
       }
     }

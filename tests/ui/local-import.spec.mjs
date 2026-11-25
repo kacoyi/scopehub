@@ -2281,6 +2281,8 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
   const folder = join(temporary, 'synthetic-csv');
   let bridge;
   let loseReceipt = true;
+  let denyFolderRead = false;
+  const heldFolderStatus = Promise.withResolvers();
   const calls = [];
   const operations = name => calls.filter(call => call.args?.operation === `market.${name}`);
   const run = (operation, payload) => bridge.request('execute_operation', {
@@ -2297,6 +2299,10 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
 
     bridge = startLocalImportBridge(binary, profile, folder);
     await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+      if (denyFolderRead && args?.operation === 'market.readLocalFolderRevision') {
+        if (args.payload.include_details === false) await heldFolderStatus.promise;
+        else return { error: { code: 'PERMISSION_DENIED' } };
+      }
       const reply = await bridge.request(command, args);
       calls.push({ command, args, reply });
       if (args?.operation === 'market.publishLocalFolderRefresh' && reply.result && loseReceipt) {
@@ -2465,6 +2471,13 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
       await expect(row.getByRole('cell', { name: '39', exact: true })).toBeVisible();
     }
 
+    denyFolderRead = true;
+    await published.getByRole('button', { name: 'Open frozen folder chart' }).click();
+    await expect(chart).toHaveCount(0);
+    await expect(provenance).toHaveCount(0);
+    denyFolderRead = false;
+    heldFolderStatus.resolve();
+    await expect(chart.getByLabel('Selected bar')).toContainText('C 42');
     await expect(acceptedId).toHaveValue(revisionId);
     // Recreate both published sources, then replace only the former representative.
     const copyPath = join(folder, 'retained-copy.csv');
@@ -2565,7 +2578,67 @@ base('publishes a reviewed folder once and reopens its frozen provenance without
     expect(revokedRow.error.code).toMatch(/PERMISSION_DENIED|SNAPSHOT_UNAVAILABLE/);
     expect(revokedRow.result).toBeUndefined();
   } finally {
+    heldFolderStatus.resolve();
     await bridge?.close();
     await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+base('a silent folder status releases the published drawer and cannot reopen it late', async ({ page }) => {
+  const id = randomUUID();
+  const statusEntered = Promise.withResolvers();
+  const silent = Promise.withResolvers();
+  let statuses = 0;
+  let opens = 0;
+  await page.exposeBinding('testNativeInvoke', (_, command, args) => {
+    if (command !== 'execute_operation') return { result: null };
+    if (args.operation.endsWith('Revisions')) return { result: { version: 1, revisions: [], next_after_revision_id: null } };
+    expect(args.operation).toBe('market.readLocalFolderRevision');
+    if (args.payload.include_details !== false) {
+      opens++;
+      return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+    }
+    if (++statuses === 1) return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+    if (statuses === 2) {
+      statusEntered.resolve();
+      return silent.promise;
+    }
+    return { result: { revision: { revision_id: id } } };
+  });
+  await page.addInitScript(() => {
+    window.isTauri = true;
+    window.__TAURI_INTERNALS__ = {
+      async invoke(command, args) {
+        const reply = await window.testNativeInvoke(command, args);
+        if (reply.error) throw reply.error;
+        return reply.result;
+      },
+    };
+  });
+  try {
+    await page.clock.install();
+    await page.goto('/');
+    await control(page, 'Open published CSV').last().click();
+    const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+    await dialog.getByRole('button', { name: 'Folder revisions' }).click();
+    await dialog.getByLabel('Revision ID').fill(id);
+    const open = control(dialog, 'Open frozen folder revision');
+    await open.click();
+    await expect.poll(() => statuses).toBe(1);
+    await expect(open).toBeEnabled();
+    await open.click();
+    await statusEntered.promise;
+    await expect(open).toBeDisabled();
+    await page.clock.fastForward(5100);
+    await expect(open).toBeEnabled();
+    await open.click();
+    await expect.poll(() => opens).toBe(2);
+    await expect(open).toBeEnabled();
+    await dialog.press('Escape');
+    silent.resolve({ result: { revision: { revision_id: id } } });
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Frozen local folder chart' })).toHaveCount(0);
+  } finally {
+    silent.resolve({ result: { revision: { revision_id: id } } });
   }
 });

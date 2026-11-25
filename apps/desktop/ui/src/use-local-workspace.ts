@@ -1,3 +1,4 @@
+import { withReplyDeadline } from './reply-deadline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { abortableDelay } from './abortable-delay';
@@ -220,7 +221,8 @@ function validWorkspace(value: Workspace | undefined) {
 }
 
 export async function readWorkspaceSnapshot(signal: AbortSignal): Promise<Snapshot> {
-  return validateSnapshot(await exchangeSourceStage<Snapshot>({ type: 'snapshot' }, signal, () => {}));
+  return validateSnapshot(await withReplyDeadline(sourceReplyDeadlineMs, deadline =>
+    retryAdmission(onBusy => waitForWorkspaceReply<Snapshot>({ type: 'snapshot' }, deadline, onBusy), deadline), signal));
 }
 
 export function readFrozenRevisionStatus(revision_id: string, signal: AbortSignal) {
@@ -334,7 +336,8 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
     workspace_id: snapshot.workspace.id, expected_selection_revision: snapshot.selection_revision, target,
   };
   const exchange = async () => {
-    const reply = await exchangeWorkspace<SelectEvidenceReply11>(request, signal);
+    const reply = await withReplyDeadline(sourceReplyDeadlineMs, deadline =>
+      waitForWorkspaceReply<SelectEvidenceReply11>(request, deadline), signal);
     if (reply.request_id !== request.request_id || reply.operation !== request.operation
       || reply.type !== 'response' || reply.protocol_version !== '1.1') throw { code: 'OUTPUT_INVALID' };
     if ('error' in reply) throw reply.error;
@@ -344,7 +347,7 @@ async function selectEvidence(snapshot: Snapshot, target: ChartInterval11 | null
     // BUSY rejects admission or rolls back before commit. A missing or invalid
     // reply may follow a commit and still requires reloading workspace state.
     if (errorCode(error) !== 'BUSY') throw error;
-    await new Promise<void>(resolve => window.setTimeout(resolve, 150));
+    await abortableDelay(150, signal);
     signal.throwIfAborted();
     return exchange();
   });

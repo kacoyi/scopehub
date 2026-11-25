@@ -400,10 +400,17 @@ revocationTest('published revocation removes visible and delayed frozen evidence
             expect(initial.result.undo.operation_id).toBe(baseline.receipt.operation_id);
             const workspaceClear = control(fresh, 'Clear shared selection');
             await expect.soft(workspaceClear).toBeVisible({ timeout: 2500 });
+            let rejectedSnapshot = false;
+            await fresh.route(`**${endpoint}`, async route => {
+              if (rejectedSnapshot || route.request().postDataJSON()?.type !== 'snapshot') return route.continue();
+              rejectedSnapshot = true;
+              await route.fulfill({ status: 429, json: { ok: false, error: { code: 'BUSY', retryable: true } } });
+            });
             const denied = await open(fresh, revision);
             await expect(denied.getByText('This frozen chart is unavailable in the current profile.')).toBeVisible();
             const modalClear = control(denied, 'Clear shared selection');
             await expect(modalClear).toBeEnabled();
+            expect(rejectedSnapshot).toBe(true);
             const accepted = await action(fresh, denied, 'Clear shared selection', 'workspace.selectEvidence');
             expect(accepted.result.selection).toEqual({ workspace_id: 'main', selection_revision: 2, target: null });
             const cleared = (await (await post(server, snapshot)).json()).result;

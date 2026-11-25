@@ -5239,6 +5239,32 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "frozen-chart-access-lifecycle-review",
+      "source": "Independent Astra Standard at 2524629 and the retained hosted Linux Chromium diagnostic.",
+      "severity": "major",
+      "status": "open",
+      "observation": "A late CSV reply displays withdrawn evidence after source-only revocation or redaction of the same shared selection. A denied foreground folder read leaves cached chart and provenance visible until a status reply. A silent native folder status reply indefinitely blocks retry. Hosted Chromium captured a retryable snapshot admission failure leaving the authorized shared-selection clear disabled.",
+      "task_ids": [
+        "M2-035"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "local-import-ui",
+        "local-folder-refresh-preview",
+        "local-folder-import",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T050030.893328Z-8519eb03",
+          "source_commit": "9cad03564df53e2f36b8cc4969258a32a8090260",
+          "report_sha256": "ed7011eeea4600b13c8107606a4618e5e1fe7192afb7fa1de6bc507e7c27858e"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

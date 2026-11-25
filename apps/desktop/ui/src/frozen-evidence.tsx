@@ -1,5 +1,6 @@
 import { message, t, type Message } from './i18n';
 import { useId, useState } from 'react';
+import { withReplyDeadline } from './reply-deadline';
 import type {
   Bar, FrozenSnapshot, ProjectedChartReply11, ReadLocalImportRevisionOutput, ReadProjectedChart11,
 } from '../../../../contracts/generated/protocol';
@@ -10,9 +11,8 @@ export type FrozenChartResult = ReadLocalImportRevisionOutput & { snapshot?: Fro
 
 export async function openAuthenticatedFrozenChart(revisionId: string, requestId: string, callerSignal?: AbortSignal) {
   const request = { type: 'frozen_chart', revision_id: revisionId, request_id: requestId } as const;
-  const timeout = AbortSignal.timeout(15_000);
-  const signal = callerSignal ? AbortSignal.any([callerSignal, timeout]) : timeout;
-  const result = await readWorkspaceAfterAdmission<FrozenChartResult>(request, signal);
+  const result = await withReplyDeadline(15_000,
+    signal => readWorkspaceAfterAdmission<FrozenChartResult>(request, signal), callerSignal);
   if (result.snapshot?.dataset_id !== revisionId || result.snapshot.dataset_revision !== revisionId
     || !/^[0-9a-f]{64}$/.test(result.snapshot.content_hash) || result.bars.length !== result.revision.bar_count) {
     throw new Error('The frozen chart reply could not be verified.');

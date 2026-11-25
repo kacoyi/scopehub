@@ -1,3 +1,4 @@
+import { withReplyDeadline } from './reply-deadline';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type {
   ListLocalImportRevisionsInput, ListLocalImportRevisionsOutput,
@@ -349,11 +350,11 @@ export async function publishLocalImport(payload: PublishLocalImportInput, reque
   });
 }
 
-export async function readLocalImportRevision(payload: ReadLocalImportRevisionInput, requestId: string) {
+export async function readLocalImportRevision(payload: ReadLocalImportRevisionInput, requestId: string, signal?: AbortSignal) {
   requireNative();
-  return invoke<ReadLocalImportRevisionOutput>('execute_operation', {
+  return withReplyDeadline(15_000, () => invoke<ReadLocalImportRevisionOutput>('execute_operation', {
     operation: 'market.readLocalImportRevision', payload, requestId,
-  });
+  }), signal);
 }
 
 export async function readLocalImportSourceRow(payload: ReadLocalImportSourceRowInput, requestId: string) {
@@ -405,11 +406,11 @@ export async function listLocalFolderRevisions(payload: ListLocalFolderRevisions
   });
 }
 
-export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionInput, requestId: string) {
+export async function readLocalFolderRevision(payload: ReadLocalFolderRevisionInput, requestId: string, signal?: AbortSignal) {
   requireNative();
-  return invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
+  return withReplyDeadline(15_000, () => invoke<ReadLocalFolderRevisionOutput>('execute_operation', {
     operation: 'market.readLocalFolderRevision', payload, requestId,
-  });
+  }), signal);
 }
 
 export async function readLocalFolderSourceRow(payload: ReadLocalFolderSourceRowInput, requestId: string) {
