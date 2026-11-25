@@ -5186,6 +5186,48 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-used-unrelated-unmerged-stack",
+      "source": "Authenticated manual task workflow 45488642757 and both original reports retained in archives/runs. Its independently verified sources, terminal clock and source comparison are indexed at archives/observations/m1-040-integrated-task-45488642757/index.json (SHA-256 e75ef6ffa30803404ad81b8b246dc746930973b56e92e52df5748ccc620e2c72).",
+      "observation": "M1-040 was independently reviewed at 89143f000974b8d79720878e3c19f88d17ea7cb1 on protected main c4f07b38ad8040de9ffc950b8e98de315d956958. The coordinator dispatched the task at 484d684e0ba996643f4af5899f0aa2149e0ba6f8 on the unrelated unmerged PR 84 stack. Both jobs passed for that stack, consuming 1535 seconds wall and 1987 runner-seconds. The execution and project definition fingerprints differ on the intended independent product source, so those receipts cannot validate its delivery. Existing checkout and dispatch commands did not check the reviewed task source and intended base together before submitting.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-preflight-history-error-without-result",
+      "source": "Independent read-only Astra Standard review of fc2d22a464453a9082de7211f207de674b888bc8. Full transcript at archives/observations/m0-106-dispatch-review/astra-fc2d22a.txt (SHA-256 0ec04a979009bc1d3552f46a64d24085fe12631fcdc1e5381547a07c5cda4d54).",
+      "observation": "An unavailable named dependency or an existing dependency outside the protected ancestry caused the local task dispatch CLI to exit with a traceback and no structured result. A shallow history check also escaped the same reporting boundary. None submitted a workflow.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

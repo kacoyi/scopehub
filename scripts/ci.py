@@ -1,18 +1,23 @@
-"""Inspect hosted verification for this repository's exact commit using official gh."""
+"""Inspect hosted verification and preflight an explicitly selected task dispatch."""
 
 import argparse
 from datetime import datetime, timedelta, timezone
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+from tempfile import TemporaryDirectory
+from urllib.parse import quote
 
 if __package__:
-    from .project import ProjectError, checkout_git_environment, read_json, source_identity
+    from .project import ProjectError, checkout_git_environment, load_project, read_json, source_identity, task_definition_hash
     from .timing import ci_budget_status
+    from .verification_scope import ScopeError, exact_commit, git, oid, require_ancestor, require_complete_history, resolve_commit
 else:
-    from project import ProjectError, checkout_git_environment, read_json, source_identity
+    from project import ProjectError, checkout_git_environment, load_project, read_json, source_identity, task_definition_hash
     from timing import ci_budget_status
+    from verification_scope import ScopeError, exact_commit, git, oid, require_ancestor, require_complete_history, resolve_commit
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = '.github/workflows/verify.yml'
@@ -42,6 +47,112 @@ def github_identity(root=ROOT):
     if command(['gh', 'api', 'user', '--jq', '.login'], root).lower() != account.lower():
         raise ProjectError('The active GitHub account does not match the repository marker')
     return f'{match[1]}/{match[2]}'
+
+
+def expected_integration_tree(root, base, reviewed):
+    # A real three-way merge can write tree objects. Keep them outside the checkout's object database.
+    objects = git(root, 'rev-parse', '--path-format=absolute', '--git-path', 'objects').removesuffix(b'\n')
+    if os.name == 'nt':
+        objects = objects.removesuffix(b'\r')
+    if b'\n' in objects:
+        raise ProjectError('The Git object directory cannot be represented in the temporary merge.')
+    with TemporaryDirectory(prefix='scopehub-task-tree-') as folder:
+        info = Path(folder) / 'info'
+        info.mkdir()
+        (info / 'alternates').write_bytes(objects + b'\n')
+        result = subprocess.run(
+            ['git', '--no-replace-objects', '--no-optional-locks',
+             'merge-tree', '--write-tree', '--no-messages', base, reviewed],
+            cwd=root, capture_output=True, timeout=30,
+            env={**checkout_git_environment(), 'GIT_OBJECT_DIRECTORY': folder,
+                 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1'},
+        )
+    if result.returncode == 1:
+        raise ProjectError('The reviewed source conflicts with the intended base. Review the resolved integration first.')
+    if result.returncode:
+        raise ProjectError('The expected integration is unavailable. Verify local Git history and objects.')
+    return oid(result.stdout.strip().decode('ascii'))
+
+
+def committed_tasks(root, commit):
+    return {row['id']: row for row in json.loads(git(root, 'show', f'{commit}:project/tasks.json'))['tasks']}
+
+
+def remote_branch_tip(root, repository, branch):
+    endpoint = f'repos/{repository}/git/ref/heads/{quote(branch, safe="/")}'
+    ref = json.loads(command(['gh', 'api', endpoint], root))
+    target = ref.get('object') if isinstance(ref, dict) else None
+    if not isinstance(target, dict) or ref.get('ref') != f'refs/heads/{branch}' or target.get('type') != 'commit':
+        raise ProjectError(f'The remote branch {branch} could not be verified.')
+    return oid(target.get('sha'))
+
+
+def dispatch_task(root, task_id, *, base, reviewed, branch, dependency=None, submit=False):
+    source = source_identity(root)
+    if source['working_tree_dirty'] or not source['git_head']:
+        raise ProjectError('Use a clean committed checkout for task dispatch.')
+    head = source['git_head']
+    try:
+        require_complete_history(root)
+        base, reviewed, head = (exact_commit(root, value) for value in (base, reviewed, head))
+        policy = json.loads(git(root, 'show', f'{base}:project/branch-protection.json'))
+        protected = policy['branch']
+        tracked = resolve_commit(root, f'refs/remotes/origin/{protected}')
+    except ScopeError as error:
+        raise ProjectError(f'Cannot verify protected base {base} and reviewed source {reviewed} in local Git history: {error}') from error
+    if tracked != base:
+        raise ProjectError(f'The supplied protected base {base} differs from the locally tracked {protected} tip {tracked}.')
+    try:
+        git(root, 'check-ref-format', f'refs/heads/{branch}')
+    except ScopeError:
+        raise ProjectError('Pass an exact branch name with --ref.') from None
+
+    intended = base
+    if dependency:
+        dependency_id, revision = dependency
+        try:
+            intended = exact_commit(root, revision)
+            require_ancestor(root, base, intended)
+        except ScopeError as error:
+            raise ProjectError(f'Dependency {dependency_id} at {revision} is unavailable or unverified against base {base}: {error}') from error
+        if dependency_id == task_id or dependency_id not in committed_tasks(root, intended):
+            raise ProjectError(f'The named dependency {dependency_id} is absent from its base or is the selected task.')
+    expected = expected_integration_tree(root, intended, reviewed)
+    actual = git(root, 'rev-parse', f'{head}^{{tree}}').strip().decode('ascii')
+    if actual != expected:
+        raise ProjectError(
+            f'Checkout {head} does not match reviewed source {reviewed} integrated with the intended base {intended}. '
+            f'Use {reviewed} if already based there, or its reviewed integration with that base (expected tree {expected}).'
+        )
+    try:
+        require_ancestor(root, intended, head)
+    except ScopeError as error:
+        raise ProjectError(f'Cannot verify intended base {intended} in checkout {head}: {error}') from error
+    reviewed_task = committed_tasks(root, reviewed).get(task_id)
+    candidate_task = load_project(root)['tasks'].get(task_id)
+    if not reviewed_task or not candidate_task or task_definition_hash(reviewed_task) != task_definition_hash(candidate_task):
+        raise ProjectError(f'Task {task_id} does not have the same definition in the reviewed source and checkout.')
+    ref = f'refs/heads/{branch}'
+    result = {'status': 'ready', 'task_id': task_id, 'head_sha': head, 'reviewed_sha': reviewed,
+              'protected_base': base, 'intended_base': intended, 'expected_tree': expected, 'ref': ref,
+              'base_observation': 'local_tracking', 'remote_verified': False}
+    if dependency:
+        result['dependency'] = {'task_id': dependency_id, 'commit': intended}
+    if submit:
+        repository = github_identity(root)
+        if repository != policy['repository']:
+            raise ProjectError('The authenticated origin differs from the protected repository.')
+        observed_base = remote_branch_tip(root, repository, protected)
+        if observed_base != base:
+            raise ProjectError(f'The remote protected {protected} tip is {observed_base}; reviewed base was {base}.')
+        observed_head = remote_branch_tip(root, repository, branch)
+        if observed_head != head:
+            raise ProjectError(f'The remote branch tip for {ref} is {observed_head}; expected checkout {head}.')
+        command(['gh', 'api', '--method', 'POST', f'repos/{repository}/actions/workflows/verify.yml/dispatches',
+                 '-f', f'ref={ref}', '-f', f'inputs[task_id]={task_id}'], root)
+        result.update(status='submitted', base_observation='authenticated_remote', remote_verified=True,
+                      next_action='Check the resulting run head against head_sha before using any evidence.')
+    return result
 
 
 def classify_runs(runs, head, *, dirty=False, selected=False):
@@ -186,13 +297,31 @@ def status(root=ROOT, run_id=None):
     return result
 
 
-if __name__ == '__main__':
+def main(argv=None, *, root=ROOT):
     parser = argparse.ArgumentParser()
     parser.add_argument('--run', type=int, help='Inspect an explicit run; a different commit is never accepted')
-    args = parser.parse_args()
+    subcommands = parser.add_subparsers(dest='operation')
+    dispatch = subcommands.add_parser('dispatch-task', help='Compare reviewed task source before optional submission')
+    dispatch.add_argument('task_id')
+    dispatch.add_argument('--base', required=True, help='Expected current protected main commit')
+    dispatch.add_argument('--reviewed', required=True, help='Independently reviewed task source commit')
+    dispatch.add_argument('--ref', required=True, metavar='BRANCH', help='Exact remote branch name')
+    dispatch.add_argument('--dependency', nargs=2, metavar=('TASK_ID', 'COMMIT'), help='Explicit planned dependent base')
+    dispatch.add_argument('--submit', action='store_true', help='Verify live refs and submit the existing manual task')
+    args = parser.parse_args(argv)
+    if args.operation and args.run is not None:
+        parser.error('--run is only for workflow inspection')
     try:
-        result = status(run_id=args.run)
-    except (ProjectError, OSError, subprocess.SubprocessError, KeyError, ValueError) as error:
+        if args.operation == 'dispatch-task':
+            result = dispatch_task(root, args.task_id, base=args.base, reviewed=args.reviewed, branch=args.ref,
+                                   dependency=args.dependency, submit=args.submit)
+        else:
+            result = status(root, run_id=args.run)
+    except (ProjectError, ScopeError, OSError, subprocess.SubprocessError, KeyError, ValueError) as error:
         result = {'status': 'failed', 'error': str(error)}
     print(json.dumps(result, indent=2))
-    raise SystemExit(0 if result['status'] == 'passed' else 1)
+    return 0 if result['status'] in {'passed', 'ready', 'submitted'} else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

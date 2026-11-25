@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-106",
   "tasks": [
     {
       "id": "M0-001",
@@ -19979,6 +19979,121 @@
           ],
           "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
           "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
+        }
+      }
+    },
+    {
+      "id": "M0-106",
+      "title": "Check the reviewed source before submitting a hosted task",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-092"
+      ],
+      "scope": [
+        "scripts/ci.py",
+        "tests/project/test_ci.py",
+        "project/delivery.json",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "A coordinator can inspect the exact reviewed task, protected base and proposed candidate locally. The historical mismatched M1-040 candidate is refused and the intended reviewed source is identified. Incomplete history stays explicitly unverified.",
+        "The same opt-in entry submits the existing manual task workflow once for the authenticated branch after verifying the current protected base and exact remote tip. Mismatched inputs or stale refs cause zero submissions.",
+        "An explicitly named dependent base is allowed when the candidate matches the reviewed task integrated with that base. Ordinary inspection, manual workflows and task receipt provenance keep their existing behavior."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Validate the opt-in command with real Git fixture history, a local GitHub CLI dispatch spy, and the archived M1-040 source pair. Obtain independent review before any publication.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "plan": {
+        "outcome": "A coordinator can catch the wrong verified source or stale branch before consuming a two-platform task run.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/ci.py",
+          "scripts/verification_scope.py",
+          "project/delivery.json",
+          "archives/observations/m1-040-integrated-task-45488642757/index.json"
+        ],
+        "hypotheses": [
+          "The expected reviewed integration and observed branch tip can be checked using local Git and the existing authenticated GitHub account flow."
+        ],
+        "risks": [
+          {
+            "failure": "An unrelated stack, stale protected base, missing Git history or moved remote ref reaches the dispatch call.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Missing dependency objects, unrelated dependency history or shallow history can abort without a structured local verdict.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The new entry obscures ordinary read-only CI inspection or blocks a legitimate explicitly planned stack.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the opt-in entry and associated guidance together. Keep original workflow, evidence and diagnosis.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci.py",
+            "tests/project/test_ci.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/checkpoint"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No new hosted workflow, branch protection, credential, release gate, timing objective, receipt policy or automatic rerun."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing read-only inspection and direct GitHub workflow use, protected checks and immutable task history."
+          ],
+          "change": [
+            "Add one source-aware local entry for inspection and optional submission of the existing manual task workflow."
+          ],
+          "data_plan": "Use exact Git objects and the existing task and GitHub identity records. Never modify original verification reports.",
+          "cleanup": "Keep the first ordinary entry regression and the local historical comparison with separate Git and dispatch-spy evidence."
         }
       }
     }
