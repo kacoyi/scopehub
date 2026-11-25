@@ -6,6 +6,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { expect } from '@playwright/test';
@@ -17,6 +18,10 @@ const workspaceBridge = join(root, 'target', 'debug', process.platform === 'win3
 
 export const workspaceEndpoint = '/__scopehub/workspace';
 export const credentialEndpoint = '/__scopehub/model-credential';
+
+export function preAdmissionBusy({ status, body }) {
+  return status === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error.retryable === true;
+}
 
 export async function installBrowserNetworkGuard(context, origin) {
   const browserSends = [];
@@ -132,45 +137,81 @@ export async function withWorkspaceTransport(profile, use, { protectedValues = [
       },
       body: JSON.stringify(frame) + ' '.repeat(padding),
     });
-    const dispatch = async (frame, padding = 0) => (await post(workspaceEndpoint, frame, true, padding)).json();
+    const dispatchResponse = async (frame, padding = 0) => {
+      const response = await post(workspaceEndpoint, frame, true, padding);
+      return { status: response.status, body: await response.json() };
+    };
+    const dispatch = async (frame, padding) => (await dispatchResponse(frame, padding)).body;
     const dispatchCredential = async (frame, authorized) => {
       const response = await post(credentialEndpoint, frame, authorized);
       return { status: response.status, cacheControl: response.headers.get('cache-control'), body: await response.json() };
     };
-    const holdRevisionRead = async read => {
+    let activeRevisionRead;
+    const holdRevisionRead = async (read, requestId, observe = () => {}, deadline = AbortSignal.timeout(8_000)) => {
+      deadline.throwIfAborted();
+      if (activeRevisionRead) throw new Error('A designated revision read already owns the gate.');
+      if (typeof requestId !== 'string' || !requestId) throw new Error('The revision gate requires a request identity.');
       const listening = new AbortController();
-      const signal = AbortSignal.any([listening.signal, AbortSignal.timeout(8_000)]);
-      let released = false;
+      const signal = AbortSignal.any([listening.signal, deadline]);
+      const owner = {};
+      activeRevisionRead = owner;
+      const record = (phase, details) => observe({ phase, requestId, ...details });
       const release = () => {
-        if (released) return;
-        released = true;
-        if (child.connected) child.send('release-published-revision-gate', () => {});
+        if (activeRevisionRead !== owner) return;
+        activeRevisionRead = undefined;
+        if (child.connected) child.send({ type: 'release-published-revision-gate', requestId }, () => {});
+        record('released');
       };
-      const waitFor = async message => {
+      const waitFor = async (type, phase) => {
         for await (const [value] of on(child, 'message', { signal })) {
-          if (value === message) return;
+          if (value?.type === type && value.requestId === requestId) {
+            record(phase);
+            return;
+          }
         }
       };
-      const armed = waitFor('published-revision-gate-armed');
-      const held = waitFor('published-revision-reply-held');
+      const armed = waitFor('published-revision-gate-armed', 'armed');
+      const held = waitFor('published-revision-reply-held', 'held');
       const sent = new Promise((resolve, reject) => {
-        child.send('arm-published-revision-gate', error => error ? reject(error) : resolve());
+        child.send({ type: 'arm-published-revision-gate', requestId }, error => error ? reject(error) : resolve());
       });
       const gateReady = Promise.all([sent, armed, held]);
-      // Tests without a preview dialog can submit an explicit status read.
-      const reply = read && armed.then(read);
+      const reply = armed.then(() => read(deadline)).then(({ status, body }) => {
+        record('reply', { status, ok: body?.ok, code: body?.error?.code });
+        return body;
+      });
       try {
-        await (reply ? Promise.race([gateReady, reply.then(response => {
+        await Promise.race([gateReady, reply.then(response => {
           if (response?.ok === false && response.error) throw response.error;
-          throw new Error('The published revision status read completed before the gate held its reply.');
-        })]) : gateReady);
+          throw new Error('The designated revision status completed before its writer reply was held.');
+        })]);
         return { release, reply };
       } catch (error) {
+        record('claim-failed', { code: error?.code, error: error?.name });
         release();
         throw error;
       } finally {
         listening.abort();
       }
+    };
+    const holdRevisionStatus = (revisionId, observe = () => {}) => {
+      const requestId = randomUUID();
+      const frame = { type: 'frozen_chart_status', request_id: requestId, revision_id: revisionId };
+      return holdRevisionRead(async deadline => {
+        // Retry only an observed HTTP rejection before admission, within the
+        // existing proof budget. A written request still owns its reply.
+        const end = performance.now() + 4_000;
+        for (;;) {
+          deadline.throwIfAborted();
+          const response = await dispatchResponse(frame);
+          if (!preAdmissionBusy(response)) return response;
+          observe({ phase: 'admission-refused', requestId, status: response.status, code: response.body.error.code });
+          const remaining = end - performance.now();
+          if (remaining <= 0) return response;
+          await delay(Math.min(100, remaining), undefined, { signal: deadline });
+          if (performance.now() >= end) return response;
+        }
+      }, requestId, observe);
     };
     const withPreview = async (browser, usePage) => {
       const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
@@ -190,7 +231,10 @@ export async function withWorkspaceTransport(profile, use, { protectedValues = [
         await context.close();
       }
     };
-    await use({ dispatch, dispatchCredential, holdRevisionRead: gateStatus ? holdRevisionRead : undefined, withPreview });
+    await use({
+      dispatch, dispatchResponse, dispatchCredential, withPreview,
+      ...(gateStatus && { holdRevisionRead, holdRevisionStatus }),
+    });
     expect(output.includes(capability), 'The preview never logs the workspace capability').toBe(false);
   } finally {
     const [code] = await closeWorkspaceService(child, closed);

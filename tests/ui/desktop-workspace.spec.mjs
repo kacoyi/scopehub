@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
+import { buildPreview, preAdmissionBusy, seedDisplayOnlyChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
 import { control, leaveSample, openPanel } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
@@ -8,19 +8,19 @@ const operationId = 'ce7fd52d-7a62-441f-897f-098098e6fe82';
 const chart = { kind: 'chart', object_id: 'main-chart' };
 const undo = { operation_id: operationId, committed_workspace_revision: 1 };
 
-function revisionStatus(dispatch, revisionId) {
-  return dispatch({ type: 'frozen_chart_status', request_id: randomUUID(), revision_id: revisionId });
+function revisionStatus(dispatch, revisionId, requestId = randomUUID()) {
+  return dispatch({ type: 'frozen_chart_status', request_id: requestId, revision_id: revisionId });
 }
 
-async function readProofSnapshot(dispatch, onRefused = () => {}) {
-  let reply;
+async function readProofSnapshot(dispatchResponse, onRefused = () => {}) {
+  let response;
   await expect.poll(async () => {
-    reply = await dispatch({ type: 'snapshot' });
-    if (reply.ok !== false || reply.error?.code !== 'BUSY' || reply.error.retryable !== true) return true;
-    await onRefused();
+    response = await dispatchResponse({ type: 'snapshot' });
+    if (!preAdmissionBusy(response)) return true;
+    onRefused(response);
     return false;
   }, { timeout: 4_000, message: 'The verified state read must reach a terminal snapshot reply' }).toBe(true);
-  return reply;
+  return response;
 }
 
 function workspace(timeframe, revision) {
@@ -349,7 +349,7 @@ test('an outstanding native source invoke needs revision proof and a late reply 
       time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
       volume: 13, is_closed: true,
     });
-    await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
+    await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionStatus }) => {
       const snapshots = [];
       const snapshot = async stage => {
         const reply = await dispatch({ type: 'snapshot' });
@@ -418,7 +418,7 @@ test('an outstanding native source invoke needs revision proof and a late reply 
         expect(await snapshot('after-unavailable')).toMatchObject(original);
 
         await revisionInput.fill(revision);
-        const held = await holdRevisionRead(() => revisionStatus(dispatch, revision));
+        const held = await holdRevisionStatus(revision);
         try {
           await openFrozen.click();
           await expect.poll(() => reads[1]?.payload.revision_id).toBe(revision);
@@ -508,20 +508,93 @@ test('an outstanding native source invoke needs revision proof and a late reply 
   });
 });
 
-test('a revision gate preserves rejected and thrown errors before admission', async () => {
+test('a revision gate holds the designated Rust reply after an interleaved status for the same revision', async ({}, testInfo) => {
   test.setTimeout(180_000);
   await buildPreview();
-  await withProfile(profile => withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
-    await test.step('propagates the original code promptly', async () => {
-      await expect(holdRevisionRead(() => revisionStatus(dispatch, 'invalid'))).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-    }, { timeout: 3000 });
-    await test.step('propagates a thrown read error promptly', async () => {
-      const failure = new Error('Synthetic revision dispatch failure');
-      await expect(holdRevisionRead(() => { throw failure; })).rejects.toBe(failure);
-    }, { timeout: 3000 });
-    const held = await holdRevisionRead(() => revisionStatus(dispatch, randomUUID()));
-    held.release();
-    expect(await held.reply).toEqual({ ok: true, result: { available: false } });
+  await withProfile(async profile => {
+    const revision = randomUUID();
+    await seedDisplayOnlyChart(profile, revision, {
+      time_ms: Date.parse('2026-02-04T00:00:00Z'), trading_day: '2026-02-04',
+      open: 103, high: 109, low: 101, close: 106, volume: 13, is_closed: true,
+    });
+    await withWorkspaceTransport(profile, async ({ dispatch, dispatchResponse, holdRevisionRead }) => {
+      const before = await dispatch({ type: 'snapshot' });
+      expect(before).toMatchObject({ ok: true, result: { selection_revision: 0, source: null } });
+      const designated = randomUUID();
+      const background = randomUUID();
+      const phases = [];
+      let backgroundReply;
+      const held = await holdRevisionRead(async () => {
+        backgroundReply = await revisionStatus(dispatch, revision, background);
+        return revisionStatus(dispatchResponse, revision, designated);
+      }, designated, event => phases.push(event));
+      let rejected;
+      let reply;
+      const backgroundCompletedBeforeHold = backgroundReply?.ok === true;
+      try {
+        expect(backgroundReply, 'The native holder belongs to the designated request, not the earlier same-revision read')
+          .toEqual({ ok: true, result: { available: true } });
+        expect(phases).toContainEqual({ phase: 'held', requestId: designated });
+        rejected = await revisionStatus(dispatchResponse, revision);
+        expect(rejected).toEqual({ status: 429, body: { ok: false, error: { code: 'BUSY', retryable: true } } });
+      } finally {
+        held.release();
+        try {
+          reply = await held.reply;
+        } finally {
+          await testInfo.attach('native-revision-gate-interleaving', {
+            body: JSON.stringify({ designated, background, backgroundCompletedBeforeHold, phases, rejected, reply }),
+            contentType: 'application/json',
+          });
+        }
+      }
+      expect(reply).toEqual({ ok: true, result: { available: true } });
+      expect(await dispatch({ type: 'snapshot' })).toEqual(before);
+    }, { gateStatus: true });
+  });
+});
+
+test('a revision gate preserves rejected and thrown errors and releases an unclaimed timeout', async ({}, testInfo) => {
+  test.setTimeout(180_000);
+  await buildPreview();
+  await withProfile(profile => withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead, holdRevisionStatus }) => {
+    const phases = [];
+    const record = event => phases.push(event);
+    const before = await dispatch({ type: 'snapshot' });
+    try {
+      await test.step('propagates the original code promptly', async () => {
+        await expect(holdRevisionStatus('invalid', record)).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+      }, { timeout: 3000 });
+      await test.step('propagates a thrown read error promptly', async () => {
+        const failure = new Error('Synthetic revision dispatch failure');
+        await expect(holdRevisionRead(() => { throw failure; }, randomUUID(), record)).rejects.toBe(failure);
+      }, { timeout: 3000 });
+      const requestId = randomUUID();
+      await test.step('disarms when the designated request never reaches the writer', async () => {
+        await expect(holdRevisionRead(() => new Promise(() => {}), requestId, record))
+          .rejects.toMatchObject({ name: 'AbortError', cause: { name: 'TimeoutError' } });
+        expect(phases.filter(phase => phase.requestId === requestId).map(phase => phase.phase))
+          .toEqual(['armed', 'claim-failed', 'released']);
+        expect(await dispatch({ type: 'snapshot' })).toEqual(before);
+      });
+      const held = await holdRevisionStatus(randomUUID(), record);
+      held.release();
+      expect(await held.reply).toEqual({ ok: true, result: { available: false } });
+      const next = await holdRevisionStatus(randomUUID(), record);
+      try {
+        held.release();
+        await expect(holdRevisionStatus(randomUUID(), record)).rejects.toThrow('already owns the gate');
+        expect(await dispatch({ type: 'snapshot' })).toMatchObject({ ok: false, error: { code: 'BUSY' } });
+      } finally {
+        next.release();
+      }
+      expect(await next.reply).toEqual({ ok: true, result: { available: false } });
+      expect(await dispatch({ type: 'snapshot' })).toEqual(before);
+    } finally {
+      await testInfo.attach('native-revision-gate-failure-phases', {
+        body: JSON.stringify(phases), contentType: 'application/json',
+      });
+    }
   }, { gateStatus: true }));
 });
 
@@ -949,7 +1022,7 @@ for (const scenario of [
       });
       await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 44));
       await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 106));
-      await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
+      await withWorkspaceTransport(profile, async ({ dispatch, dispatchResponse, holdRevisionStatus }) => {
         const selectA = await dispatch({ type: 'workspace_source', request_id: randomUUID(),
           expected_selection_revision: 0, source: { kind: 'frozen', revision_id: a } });
         expect(selectA).toMatchObject({ ok: true, result: { selection_revision: 1 } });
@@ -969,7 +1042,7 @@ for (const scenario of [
             let reply;
             if (!focusRefused && snapshotCalls === 1 && scenario.name === 'repeated focus during the first confirmation') {
               focusRefused = true;
-              const holder = await holdRevisionRead(() => revisionStatus(dispatch, a));
+              const holder = await holdRevisionStatus(a, event => trace.push({ revisionGate: event }));
               try {
                 reply = await ordinary(args);
                 expect(reply).toMatchObject({ ok: false, error: { code: 'BUSY', retryable: true } });
@@ -1036,8 +1109,8 @@ for (const scenario of [
             await control(dialog, 'Use as workspace source').click();
             await expect(dialog).toHaveCount(0);
             await expect(peerChart.getByLabel('Selected bar')).toContainText('C 106');
-            const current = await readProofSnapshot(dispatch);
-            expect(current).toMatchObject({ ok: true, result: { source: { revision_id: b }, selection_revision: 2 } });
+            const current = await readProofSnapshot(dispatchResponse);
+            expect(current).toMatchObject({ status: 200, body: { ok: true, result: { source: { revision_id: b }, selection_revision: 2 } } });
             trace.push({ peerCommitted: b, close: 106, selection: 2 });
           }
           await page.evaluate(() => {
@@ -1090,7 +1163,8 @@ for (const scenario of [
   { name: 'a first source save is superseded during readback' },
   { name: 'the same source is confirmed after readback', startsWithA: true, unchanged: true },
   { name: 'focus during the issued write settles after its readback', heldWrite: true },
-  { name: 'focus survives failed readback and explicit recovery', recover: true },
+  { name: 'focus survives failed readback and explicit recovery', recover: true, contendProof: true },
+  { name: 'focus survives failed readback and ordinary explicit recovery', recover: true },
   { name: 'closing the dialog does not discard focus or repeat the write', closeDialog: true },
 ]) {
   test(`source-save focus waits for the latest snapshot when ${scenario.name}`, async ({ page }, testInfo) => {
@@ -1105,7 +1179,7 @@ for (const scenario of [
       });
       await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 44));
       await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 106));
-      await withWorkspaceTransport(profile, async ({ dispatch, holdRevisionRead }) => {
+      await withWorkspaceTransport(profile, async ({ dispatch, dispatchResponse, holdRevisionStatus }) => {
         const originalRevision = scenario.startsWithA ? 1 : 0;
         const savedRevision = originalRevision + 1;
         const confirmedRevision = scenario.unchanged ? savedRevision : savedRevision + 1;
@@ -1206,22 +1280,25 @@ for (const scenario of [
             await expect(dialog(peer)).toHaveCount(0);
             await expect(selectedBar(peer)).toContainText('C 106');
           }
-          const holder = scenario.recover ? await holdRevisionRead(() => revisionStatus(dispatch, currentId)) : undefined;
-          let proof;
-          try {
-            proof = await readProofSnapshot(dispatch, async () => {
-              trace.push({ postReadbackSnapshotRefused: 'BUSY' });
-              if (holder) {
-                holder.release();
-                expect(await holder.reply).toMatchObject({ ok: true, result: { available: true } });
-              }
-            });
-          } finally {
-            holder?.release();
+          if (scenario.contendProof) {
+            const holder = await holdRevisionStatus(currentId, event => trace.push({ revisionGate: event }));
+            try {
+              const refused = await dispatchResponse({ type: 'snapshot' });
+              trace.push({ postReadbackSnapshotRefused: refused.body.error?.code, status: refused.status });
+              expect(preAdmissionBusy(refused), 'The proof is refused before admission while the designated reply is held').toBe(true);
+            } finally {
+              holder.release();
+            }
+            expect(await holder.reply).toMatchObject({ ok: true, result: { available: true } });
           }
-          if (holder) expect(trace).toContainEqual({ postReadbackSnapshotRefused: 'BUSY' });
+          const proof = await readProofSnapshot(dispatchResponse, response => {
+            trace.push({ proofAdmissionRefused: response.body.error.code, status: response.status });
+          });
+          trace.push({ phase: 'proof-settled', status: proof.status, ok: proof.body.ok, code: proof.body.error?.code });
           expect(proof).toMatchObject({
-            ok: true, result: { selection_revision: confirmedRevision, source: { revision_id: currentId } },
+            status: 200, body: {
+              ok: true, result: { selection_revision: confirmedRevision, source: { revision_id: currentId } },
+            },
           });
 
           await page.evaluate(() => {
@@ -1280,7 +1357,7 @@ for (const scenario of [
           });
           await peer?.close();
         }
-      }, { gateStatus: Boolean(scenario.recover) });
+      }, { gateStatus: Boolean(scenario.contendProof) });
     });
   });
 }
