@@ -2726,12 +2726,47 @@ def collection_source(root):
     return None
 
 
+def platform_report_receipt(sample):
+    """Bind a full report's identity and measurements independently of reconciled clocks and caches."""
+    if sample['profile'] != 'full' or not platform_timing_identity(sample) or not sample_eligible(sample):
+        return None
+    fields = ('run_id', 'source_commit', 'inputs_sha256', 'recorded_at', 'platform', 'arch',
+              'report_status', 'working_tree_dirty', 'task_id', 'selected', 'checks')
+    core = {key: sample.get(key) for key in fields}
+    core.update({key: sample['seconds'][key] for key in ('harness', 'check_work')})
+    content = json.dumps(core, sort_keys=True, separators=(',', ':')).encode()
+    ci = sample['ci']
+    return {**{key: ci[key] for key in (*ATTEMPT_IDENTITY, 'checkout_sha')},
+            'platform': sample['platform'], 'report_id': sample['run_id'],
+            'report_identity_sha256': sha256(content).hexdigest()}
+
+
+def qualified_collected_reports(samples, collection):
+    """Use only exact receipts also admitted by the ordinary timing review."""
+    if not collection or not commit_id(collection.get('capture_source')):
+        return []
+    received = collection.get('collected_samples', [])
+    if not isinstance(received, list) or len(received) > 192:
+        raise TimingError('Expected a bounded timing collection.')
+    keys = {json.dumps(row, sort_keys=True) for row in received if isinstance(row, dict)}
+    matches = {}
+    for sample in samples:
+        if (not isinstance(sample, dict) or sample.get('review_exclusion', False) is not None
+                or duration(sample.get('seconds', {}).get('total')) is None):
+            continue
+        if receipt := platform_report_receipt(sample):
+            key = json.dumps(receipt, sort_keys=True)
+            if key in keys:
+                matches[key] = receipt
+    return [matches[key] for key in sorted(matches)]
+
+
 def inspect_recent(repository, limit, samples, workflows, issues):
     source = collection_source(ROOT)
     runs = recent_runs(repository, limit)
     starting_issues = len(issues)
     with_compact, without_compact = [], []
-    collected_samples = set()
+    collected_samples = []
     for run in runs:
         run_id, attempt = str(run['id']), str(run['run_attempt'])
         try:
@@ -2741,15 +2776,17 @@ def inspect_recent(repository, limit, samples, workflows, issues):
             samples.extend(compact)
             if compact or has_report:
                 workflows.append(inspect_jobs(run, repository))
-                collected_samples.update((run_id, sample['platform'], run['event']) for sample in compact)
+                identity = actions_attempt_identity(repository, run)
+                collected_samples.extend(receipt for sample in compact
+                                         if ci_key(sample['ci']) == identity
+                                         and (receipt := platform_report_receipt(sample)))
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': str(error)})
     return {'collected_at': datetime.now(timezone.utc).isoformat(),
             'capture_source': source if source and collection_source(ROOT) == source else None,
             'limit_per_event': limit, 'completed_runs_considered': len(runs),
             'runs_with_compact': len(with_compact), 'runs_without_compact': len(without_compact),
-            'collected_samples': [{'run_id': run, 'platform': platform, 'event': event}
-                                  for run, platform, event in sorted(collected_samples)],
+            'collected_samples': collected_samples,
             'missing_compact_run_ids': without_compact,
             'unsuccessful_runs': sum(run.get('conclusion') != 'success' for run in runs),
             'cold_bootstrap': not with_compact and len(issues) == starting_issues}
@@ -2993,6 +3030,8 @@ def main():
         if args.recent is not None:
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
         view = timing_view(samples, hosted=workflows, issues=list(issues))
+        if recent is not None:
+            recent = {**recent, 'collected_samples': qualified_collected_reports(view['samples'], recent)}
         tasks = {task['id']: task for task in read_json(ROOT / 'project/tasks.json')['tasks']}
         feedback = read_json(ROOT / 'project/feedback.json')['items']
         view.update(weekly_review=weekly_review(), recent_collection=recent,

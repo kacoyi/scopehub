@@ -17,6 +17,7 @@ from unittest.mock import patch
 from scripts import check as harness
 from scripts import ci
 from scripts import project as project_cli
+from scripts import timing as timing_cli
 from scripts.project import (
     ProjectError, archive_evidence, digest, json_bytes, load_project, product_progress, readiness,
     periodic_reviews, read_json, recover_hosted_checkpoint, review_history, task_context, workfront,
@@ -58,16 +59,40 @@ class DeliveryTests(ProjectFixture):
 
     def timing_review(self, clock):
         scopes = []
-        samples = []
         for platform in ('Linux', 'Windows'):
             for event in ('pull_request', 'push'):
-                runs = [str(45556251399 + len(samples) + i) for i in range(3)]
+                runs = [str(45556251399 + 3 * len(scopes) + i) for i in range(3)]
                 scopes.append({'repository': 'kacoyi/scopehub', 'event': event, 'profile': 'full',
                                'platform': platform, 'sample_count': 3, 'recent_runs': runs,
                                'recent_objective_breaches': 0})
-                samples.extend({'run_id': run, 'platform': platform, 'event': event} for run in runs)
-        return {'recent_collection': {'collected_at': clock, 'collected_samples': samples}, 'objective_reviews': scopes,
-                'input_issues': [], 'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
+        source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
+        report = {'recent_collection': {'collected_at': clock, 'capture_source': source},
+                  'objective_reviews': scopes, 'input_issues': [],
+                  'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
+        self.timing_received(report)
+        return report
+
+    def timing_received(self, report):
+        collection = report['recent_collection']
+        source = collection['capture_source']
+        samples = []
+        for scope in report['objective_reviews']:
+            for run in scope['recent_runs']:
+                ci = {key: scope[key] for key in ('repository', 'event')}
+                ci.update(run_id=run, run_attempt='1', head_sha=source, checkout_sha=source)
+                sample = timing_cli.report_sample({
+                    'run_id': f'synthetic-report-{run}', 'ci': ci, 'generated_at': collection['collected_at'],
+                    'source': {'git_head': source, 'working_tree_dirty': False}, 'status': 'passed',
+                    'source_unchanged': True, 'project_unchanged': True,
+                    'environment': {'system': scope['platform'], 'machine': 'x86_64'},
+                    'selection': {'profile': 'full', 'checks': ['environment']},
+                    'checks': [{'id': 'environment', 'status': 'passed', 'exit_code': 0, 'duration_seconds': 1}],
+                })
+                sample['review_exclusion'] = None
+                sample['seconds']['total'] = 42
+                samples.append(sample)
+        report['samples'] = samples
+        collection['collected_samples'] = [timing_cli.platform_report_receipt(sample) for sample in samples]
 
     def protect_observation(self, record, *reports):
         verified = self.project_command('verify-maintenance', str(record),
@@ -334,8 +359,7 @@ class DeliveryTests(ProjectFixture):
             if runs is not None:
                 identity[:] = runs
             raw['objective_reviews'] = cohorts
-            raw['recent_collection']['collected_samples'] = [
-                {'run_id': run, 'platform': 'Linux', 'event': event} for run in identity]
+            self.timing_received(raw)
             self.add_periodic_record(row, raw)
             path.write_bytes(json_bytes(delivery))
             return identity
@@ -815,6 +839,34 @@ class DeliveryTests(ProjectFixture):
             supplement.write_bytes(json_bytes(product))
             self.assertIn('same slice', self.project_command(*args, '--report', str(supplement))['error'])
 
+    def test_maintenance_rechecks_exact_received_platform_report_identity(self):
+        self.periodic_fixture()
+        self.commit_fixture()
+        inputs = self.timing_review('2026-11-25T07:00:00Z')
+        observed = inputs['recent_collection']['collected_samples']
+        target = next(row for row in observed if row['platform'] == 'Windows' and row['event'] == 'pull_request')
+        raw = self.root / '.reports/timing-input.json'
+        raw.parent.mkdir()
+        proposed = raw.with_name('proposed.json')
+        cases = (
+            (target, False),
+            (dict(target, run_attempt='2'), True),
+            (dict(target, checkout_sha='f' * 40), True),
+            (dict(target, report_id='different-harness-report'), True),
+            (dict(target, report_identity_sha256='f' * 64), True),
+            ({key: target[key] for key in ('run_id', 'event', 'platform')}, True),
+        )
+        for collected, pending in cases:
+            with self.subTest(collected=collected):
+                inputs['recent_collection']['collected_samples'] = [collected]
+                raw.write_bytes(json_bytes(inputs))
+                outcome = self.project_command('observe-maintenance', 'verification-timing', '--report', str(raw))
+                self.assertIs(pending, 'Windows pull_request' in outcome['evidence']['pending'])
+                self.assertEqual(4, len(outcome['evidence']['objective_reviews']))
+                proposed.write_bytes(json_bytes(outcome))
+                verified = self.project_command('verify-maintenance', str(proposed), '--report', str(raw))
+                self.assertEqual('originals_verified', verified['status'])
+
     def test_timing_original_does_not_inherit_the_review_checkout_source(self):
         self.periodic_fixture()
         base = self.commit_fixture()
@@ -822,6 +874,7 @@ class DeliveryTests(ProjectFixture):
         raw = self.root / '.reports/timing.json'
         raw.parent.mkdir(exist_ok=True)
         inputs = self.timing_review('2026-11-25T07:00:00Z')
+        del inputs['recent_collection']['capture_source']
         raw.write_bytes(json_bytes(inputs))
         args = ('observe-maintenance', key, '--report', str(raw))
         pending = self.project_command(*args)

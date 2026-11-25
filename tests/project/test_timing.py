@@ -469,6 +469,44 @@ class HostedTimingTests(unittest.TestCase):
         self.assertTrue(timing.valid_clock(overflow))
         check([overflow], (None, None, None), False)
 
+    def test_recent_collection_only_credits_received_qualified_platform_report(self):
+        run = hosted_run()
+        jobs = self.split_windows_jobs()
+        clock = timing.hosted_timing(run, jobs)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        full = timing.report_sample(report)
+        browser = lane_sample(full, 'browser')
+        run_again = dict(run, run_attempt=2)
+        again = timing.hosted_timing(run_again, [dict(job, run_attempt=2) for job in jobs])
+        second = dict(full, run_id='windows-change-11-2', ci=dict(full['ci'], run_attempt='2'))
+        shortened = dict(full, selected=[key for key in full['selected'] if key != 'workspace-timeframe'])
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / 'retained.json'
+            timing.save_review_archive(archive, {'kind': timing.ARCHIVE_KIND, 'samples': [full], 'hosted': [clock]})
+            for name, listing, observed, added, eligible in (
+                ('full', run, clock, [full], True),
+                ('browser', run, clock, [browser], False),
+                ('missing', run, clock, [], False),
+                ('another attempt', run_again, again, [second], False),
+                ('incomplete selection', run, clock, [shortened], False),
+            ):
+                with self.subTest(name=name):
+                    out = StringIO()
+                    argv = ['timing.py', '--report', str(archive), '--recent', '1', '--github-actions']
+                    with (patch.object(sys, 'argv', argv), redirect_stdout(out),
+                          patch.object(timing, 'hosted_repository', return_value='fixture/scopehub'),
+                          patch.object(timing, 'collection_source', return_value='c' * 40),
+                          patch.object(timing, 'recent_runs', return_value=[listing]),
+                          patch.object(timing, 'download_timing', return_value=added),
+                          patch.object(timing, 'inspect_jobs', return_value=observed)):
+                        timing.main()
+                    view = json.loads(out.getvalue())
+                    objective, = view['objective_reviews']
+                    self.assertEqual((1, 765), (objective['sample_count'], objective['recent_median_seconds']))
+                    collected = view['recent_collection']['collected_samples']
+                    self.assertEqual([timing.platform_report_receipt(full)] if eligible else [], collected)
+
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()
         run = hosted_run()
