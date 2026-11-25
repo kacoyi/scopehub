@@ -480,7 +480,7 @@ def checkout_files(checkout):
 
 def status_records(stream):
     pending = b''
-    while block := stream.read1(65_536):
+    while block := stream.read1(4_096):
         offset = 0
         while (end := block.find(b'\0', offset)) != -1:
             yield pending + block[offset:end]
@@ -494,10 +494,11 @@ def status_records(stream):
 def checkout_status(checkout, overrides, entry_limit):
     # Disabling rename detection keeps one pathname per record. The dirty boolean
     # is the same for a rename and for separate removal and addition records.
-    argv = ['git', *GIT_READ_OPTIONS, '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false',
-            *overrides, 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=normal',
-            '--ignored=matching', '--ignore-submodules=all']
-    dirty = False
+    status_args = ('-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', *overrides,
+                   'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=normal',
+                   '--ignore-submodules=all')
+    dirty = bool(git(checkout, *status_args, '--ignored=no').stdout)
+    argv = ['git', *GIT_READ_OPTIONS, *status_args, '--ignored=matching']
     ignored = []
     with tempfile.TemporaryFile() as errors, subprocess.Popen(
             argv, cwd=checkout, env=worktree.git_environment(), stdin=subprocess.DEVNULL,
@@ -507,21 +508,20 @@ def checkout_status(checkout, overrides, entry_limit):
                 if len(record) < 4 or record[2:3] != b' ':
                     raise ValueError('Cannot read Git status record')
                 if record.startswith(b'!! '):
-                    # One additional root proves overflow. Drain the remaining
-                    # status records to establish dirty state and Git's exit status.
-                    if len(ignored) <= entry_limit:
-                        ignored.append(checkout / os.fsdecode(record[3:]).removesuffix('/'))
-                else:
-                    dirty = True
-            status = process.wait()
-        except BaseException:
-            process.kill()
-            process.wait()
-            raise
-        if status:
-            errors.seek(0)
-            detail = os.fsdecode(errors.read(65_536)).strip()
-            raise worktree.WorktreeError(detail or f'git status exited with status {status}')
+                    ignored.append(checkout / os.fsdecode(record[3:]).removesuffix('/'))
+                    if len(ignored) > entry_limit:
+                        break
+            # An excess root proves exhaustion. Preserve any known Git failure
+            # before stopping the producer without reading the rest of its output.
+            status = process.poll() if len(ignored) > entry_limit else process.wait()
+            if status:
+                errors.seek(0)
+                detail = os.fsdecode(errors.read(65_536)).strip()
+                raise worktree.WorktreeError(detail or f'git status exited with status {status}')
+        finally:
+            if process.returncode is None:
+                process.kill()
+                process.wait()
     return dirty, ignored
 
 

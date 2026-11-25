@@ -5235,6 +5235,17 @@
         "prevention": "A real 64-root Git fixture with a dirty tracked file measures two retained roots with a budget of one. Additional regressions measure the initial iterator and exercise a native rename whose source begins with an ignored-status prefix. The pre-fix regression log is retained at .reports/audit-20261125/retirement-root-intake-red.log with SHA-256 f4e4c66619ab3dbe3b469437d91af1923bc37af9ca5dea9e7912ba0e204f1228. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-ignored-status-drains-past-budget",
+      "source": "Second Astra Standard independent review of 95f20e913f2d4d91f347156af10d72467b4b3f74 on 2026-11-25.",
+      "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-116"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

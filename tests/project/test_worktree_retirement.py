@@ -190,6 +190,199 @@ class WorktreeRetirementTests(unittest.TestCase):
         self.assertEqual(len(retained), 2, retained)
         self.assertEqual(len(consumed), 4, consumed)
 
+    def test_native_git_status_stops_reading_ignored_roots_at_overflow(self):
+        exclude = self.common / 'info/exclude'
+        exclude.parent.mkdir(exist_ok=True)
+        exclude.write_text('ignored-*\n', encoding='utf-8')
+        for number in range(2048):
+            (self.candidate / f'ignored-{number:04d}-{"x" * 64}').write_bytes(b'')
+        baseline = self.git('status', '--porcelain=v1', '-z', '--ignored=matching', cwd=self.candidate)
+        self.assertEqual(baseline.count('\0'), 2048)
+        self.assertGreater(len(baseline), 128 * 1024)
+
+        launch = subprocess.Popen
+        status_records = worktree_retirement.status_records
+        children = []
+        parsed = []
+
+        class MeasuredPipe:
+            def __init__(self, stream):
+                self.stream = stream
+                self.bytes_read = 0
+
+            def read1(self, size):
+                block = self.stream.read1(size)
+                self.bytes_read += len(block)
+                return block
+
+            def __getattr__(self, name):
+                return getattr(self.stream, name)
+
+        def measure_git(args, **options):
+            child = launch(args, **options)
+            if options.get('cwd') == self.candidate and '--ignored=matching' in args:
+                child.stdout = MeasuredPipe(child.stdout)
+                children.append(child)
+            return child
+
+        def count_records(stream):
+            for record in status_records(stream):
+                if isinstance(stream, MeasuredPipe) and record.startswith(b'!! '):
+                    parsed.append(record)
+                yield record
+
+        with (patch.object(subprocess, 'Popen', side_effect=measure_git),
+              patch.object(worktree_retirement, 'status_records', side_effect=count_records)):
+            row = self.row(IDLE, entry_limit=1)
+
+        self.assert_held(row, 'checkout_observation_incomplete')
+        self.assert_held(row, 'path_consumer_observation_incomplete')
+        self.assertTrue(row['clean'])
+        self.assertEqual(len(children), 1)
+        measurement = f'{len(parsed)} ignored records, {children[0].stdout.bytes_read} bytes read'
+        self.assertEqual(len(parsed), 2, measurement)
+        # One pipe block can include read-ahead past the record proving overflow.
+        record_bytes = sum(len(record) + 1 for record in parsed)
+        self.assertLessEqual(children[0].stdout.bytes_read, 4096 + record_bytes, measurement)
+        self.assertTrue(children[0].stdout.closed)
+        self.assertIsNotNone(children[0].returncode)
+
+    def test_retirement_checks_dirty_state_independently_of_the_ignored_stream(self):
+        launch = subprocess.Popen
+        commands = []
+        children = []
+        tail = "sys.stdout.buffer.write(b' M fixture.txt\\0')\n"
+
+        def provide_status(args, **options):
+            if options.get('cwd') != self.candidate or 'status' not in args:
+                return launch(args, **options)
+            ordinary = '--ignored=no' in args
+            program = 'import sys\n'
+            if not ordinary:
+                program += ("for number in range(10000):\n"
+                            "    sys.stdout.buffer.write(f'!! ignored-{number:04d}\\0'.encode('ascii'))\n")
+            program += tail
+            commands.append('ordinary' if ordinary else 'ignored')
+            child = launch([sys.executable, '-c', program], **options)
+            children.append(child)
+            return child
+
+        with patch.object(subprocess, 'Popen', side_effect=provide_status):
+            row = self.row(IDLE, entry_limit=1)
+
+        self.assertFalse(row['clean'])
+        self.assert_held(row, 'dirty_checkout')
+        self.assert_held(row, 'checkout_observation_incomplete')
+        self.assertEqual(row['details']['checkout_observation_incomplete'],
+                         'Ignored path inventory exceeded the observation budget')
+        self.assertEqual(commands, ['ordinary', 'ignored'])
+        for child in children:
+            self.assertTrue(child.stdout.closed)
+            self.assertIsNotNone(child.returncode)
+
+    def test_retirement_holds_and_reaps_failed_git_status_commands(self):
+        launch = subprocess.Popen
+        invalid = '--scopehub-fixture-invalid-status-option'
+        for mode in ('--ignored=no', '--ignored=matching'):
+            children = []
+
+            def fail_status(args, **options):
+                if options.get('cwd') != self.candidate or mode not in args:
+                    return launch(args, **options)
+                child = launch([*args, invalid], **options)
+                children.append(child)
+                return child
+
+            with (self.subTest(mode=mode),
+                  patch.object(subprocess, 'Popen', side_effect=fail_status)):
+                candidate = self.row(IDLE, entry_limit=1)
+                self.assert_held(candidate, 'checkout_observation_incomplete')
+                self.assert_held(candidate, 'path_consumer_observation_incomplete')
+                self.assertIn(invalid.removeprefix('--'), candidate['details']['checkout_observation_incomplete'])
+                self.assertEqual(len(children), 1)
+                self.assertTrue(children[0].stdout.closed)
+                self.assertIsNotNone(children[0].returncode)
+                self.assertNotEqual(children[0].returncode, 0)
+
+    def test_completed_git_failure_is_reported_even_with_an_overflow_record(self):
+        launch = subprocess.Popen
+        children = []
+        detail = 'Fixture Git status failed after emitting two ignored paths.'
+        program = ("import sys\n"
+                   "sys.stdout.buffer.write(b'!! ignored-first\\0!! ignored-second\\0')\n"
+                   f"sys.stderr.write({detail!r})\n"
+                   "raise SystemExit(23)\n")
+
+        def complete_failed_status(args, **options):
+            if options.get('cwd') != self.candidate or '--ignored=matching' not in args:
+                return launch(args, **options)
+            child = launch([sys.executable, '-c', program], **options)
+            children.append(child)
+            self.assertEqual(child.wait(timeout=5), 23)
+            return child
+
+        with patch.object(subprocess, 'Popen', side_effect=complete_failed_status):
+            row = self.row(IDLE, entry_limit=1)
+
+        self.assert_held(row, 'checkout_observation_incomplete')
+        self.assert_held(row, 'path_consumer_observation_incomplete')
+        self.assertEqual(row['details']['checkout_observation_incomplete'], detail)
+        self.assertEqual(len(children), 1)
+        self.assertTrue(children[0].stdout.closed)
+        self.assertEqual(children[0].returncode, 23)
+
+    def test_retirement_reaps_git_when_ignored_status_output_cannot_be_read(self):
+        launch = subprocess.Popen
+        children = []
+        detail = 'Fixture prevents reading ignored Git status.'
+
+        def unreadable_status(args, **options):
+            if options.get('cwd') != self.candidate or '--ignored=matching' not in args:
+                return launch(args, **options)
+            child = launch([sys.executable, '-c', 'import time; time.sleep(10)'], **options)
+            children.append(child)
+
+            def reap_fixture():
+                if child.poll() is None:
+                    child.kill()
+                child.wait(timeout=5)
+
+            self.addCleanup(reap_fixture)
+            reader = patch.object(child.stdout, 'read1', side_effect=OSError(detail))
+            reader.start()
+            self.addCleanup(reader.stop)
+            return child
+
+        with patch.object(subprocess, 'Popen', side_effect=unreadable_status):
+            row = self.row(IDLE, entry_limit=1)
+
+        self.assert_held(row, 'checkout_observation_incomplete')
+        self.assert_held(row, 'path_consumer_observation_incomplete')
+        self.assertEqual(row['details']['checkout_observation_incomplete'], detail)
+        self.assertEqual(len(children), 1)
+        self.assertTrue(children[0].stdout.closed)
+        self.assertIsNotNone(children[0].returncode)
+        self.assertNotEqual(children[0].returncode, 0)
+
+    def test_retirement_preserves_small_inventory_names_and_untracked_dirty_state(self):
+        exclude = self.common / 'info/exclude'
+        exclude.parent.mkdir(exist_ok=True)
+        exclude.write_text('ignored*\n', encoding='utf-8')
+        name = 'ignored with space.txt' if os.name == 'nt' else 'ignored with tab\tand newline\n.txt'
+        (self.candidate / name).write_bytes(b'')
+
+        row = self.row(IDLE, entry_limit=1)
+        self.assertTrue(row['clean'])
+        self.assert_held(row, 'unretained_local_evidence')
+        self.assertEqual(row['details']['unretained_local_evidence'], [name])
+        self.assertTrue(row['local_evidence']['inventory_complete'])
+
+        (self.candidate / 'ordinary untracked.txt').write_bytes(b'')
+        row = self.row(IDLE, entry_limit=1)
+        self.assertFalse(row['clean'])
+        self.assert_held(row, 'dirty_checkout')
+        self.assertEqual(row['details']['unretained_local_evidence'], [name])
+
     def test_ignored_inventory_consumes_only_one_root_beyond_its_limit(self):
         consumed = []
         (self.candidate / 'ignored-00').write_bytes(b'')

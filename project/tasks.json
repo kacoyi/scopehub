@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-116",
   "tasks": [
     {
       "id": "M0-001",
@@ -20176,6 +20176,76 @@
           ],
           "data_plan": "Read the configured development archive and retain the original and new host observation bytes and their digests inside the task checkout for coordinator handoff.",
           "cleanup": "Use one limit for the existing entry point and remove the fixed traversal budget without introducing another configuration source."
+        }
+      }
+    },
+    {
+      "id": "M0-116",
+      "title": "Stop reading ignored worktree status after budget overflow",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": ["M0-115"],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "tests/project/test_worktree_retirement.py",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "The retirement entry retains the existing default and reports budget exhaustion after reading the ignored-root overflow witness, with bounded pipe read-ahead and a closed, reaped status child.",
+        "An independent ordinary status query preserves tracked and untracked dirtiness even when the ignored listing ends early. Small ignored inventories preserve Git pathname semantics and verify successful completion.",
+        "A measured real Git regression limits ignored records and bytes at a budget of one. Tail-dirty and failed or unreadable status streams preserve the applicable holds and process cleanup."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [],
+      "next_action": "Retain the failing measured status regression, split ordinary status from ignored intake, and archive the required checks on the corrected source.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A small retirement observation budget stops ignored pathname consumption at overflow while preserving dirty and incomplete observations.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-115 accepted limits and receipt.",
+          "Second independent Astra Standard review of 95f20e9.",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The ignored collector drains every status record to establish dirtiness and Git completion. Its accepted path is separable from the ordinary tracked and untracked status check."
+        ],
+        "risks": [
+          {
+            "failure": "An ignored overflow still consumes the rest of stdout or hides a tracked or untracked change.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Early cutoff hides a completed Git error, leaks a child or stream, or changes the ignored roots of a small checkout.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert this correction while preserving the accepted M0-115 task, receipts and conservative candidate rules.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Changes to accepted M0-115 records, publication, host observation, and worktree or file retirement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Git ignored matching, literal NUL-delimited paths, existing budget and holds, and status errors from incomplete observations."
+          ],
+          "change": [
+            "Observe ordinary dirtiness independently and stop accepting ignored input as soon as one excess root proves exhaustion."
+          ],
+          "data_plan": "Use temporary native Git fixtures and local task diagnostics. The coordinator owns the existing host capture and its report.",
+          "cleanup": "Close the ignored output stream and reap the child on success, overflow, failure and interruption."
         }
       }
     }
