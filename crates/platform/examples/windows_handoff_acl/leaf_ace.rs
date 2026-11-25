@@ -100,13 +100,14 @@ pub(super) fn read_leaf_allow(
         return Err(Malformed);
     }
 
-    // Preserve the prior type restriction for the red regression.
-    if kind == Kind::UnsupportedAccess {
-        return Err(AceError::UnsupportedEffectiveAccess);
-    }
     let mask = u32::from_le_bytes([*m0, *m1, *m2, *m3]);
+    // The managed leaf view drops these entries after decoding. Any
+    // surviving callback, object or compound access is still unsupported.
     if mask == 0 || flags & INHERIT_ONLY != 0 || kind == Kind::NonGrant {
         return Ok(None);
+    }
+    if kind == Kind::UnsupportedAccess {
+        return Err(AceError::UnsupportedEffectiveAccess);
     }
     Ok(Some(Allow {
         flags: *flags,
@@ -256,7 +257,7 @@ mod tests {
         for (kind, prefix, largest) in [(9, &[][..], 65_456), (11, &[0; 4][..], 65_420)] {
             let accepted = fixture(kind, 0, 0, prefix, &vec![0; largest]);
             let rejected = fixture(kind, 0, 0, prefix, &vec![0; largest + 4]);
-            assert_ne!(read_leaf_allow(&accepted, 4), Err(AceError::Malformed));
+            assert_eq!(read_leaf_allow(&accepted, 4), Ok(None));
             assert_eq!(read_leaf_allow(&rejected, 4), Err(AceError::Malformed));
         }
     }

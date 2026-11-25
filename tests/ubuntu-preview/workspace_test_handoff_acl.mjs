@@ -124,26 +124,47 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
   }
 }
 
-export async function assertIneffectiveWindowsHandoffsAccepted(profile) {
-  const prepare = await readFile(new URL('./workspace_test_handoff_ineffective_acl.ps1', import.meta.url), 'utf8');
-  const controls = ['zero-rights', 'inherit-only'];
-  const paths = Object.fromEntries(controls.map(control => [control, join(profile, `synthetic-acl-${control}.txt`)]));
+export async function assertWindowsLeafAclMatrix(profile) {
+  const prepare = await readFile(new URL('./workspace_test_handoff_leaf_acl.ps1', import.meta.url), 'utf8');
+  const layouts = [
+    { name: 'allow', effective: 58 },
+    { name: 'deny', deny: true, effective: 55 },
+    { name: 'callback-allow', callback: true, effective: 54 },
+    { name: 'callback-deny', callback: true, deny: true, effective: 54 },
+    { name: 'object-allow', objectFlags: 3, effective: 54 },
+    { name: 'object-deny', objectFlags: 1, deny: true, effective: 54 },
+    { name: 'object-callback-allow', objectFlags: 2, callback: true, effective: 54 },
+    { name: 'object-callback-deny', objectFlags: 0, callback: true, deny: true, effective: 54 },
+  ];
+  const modes = ['zero-mask', 'inherit-only', 'effective'];
+  const controls = layouts.flatMap(({ name, effective, ...layout }) => modes.map(mode => ({
+    ...layout, mode, name: `${name}-${mode}`,
+    path: join(profile, `synthetic-acl-${name}-${mode}.txt`),
+    expectedStage: mode === 'effective' ? effective : 0,
+  })));
   const owned = [];
   try {
-    for (const path of Object.values(paths)) {
+    for (const { path } of controls) {
       await writeFile(path, '', { flag: 'wx', mode: 0o600 });
       owned.push(path);
     }
     try {
-      await prepareAclFixture(prepare, profile, JSON.stringify(paths));
+      await prepareAclFixture(prepare, profile, JSON.stringify({ controls }));
     } catch (error) {
-      throw new Error(`Could not verify the synthetic ineffective ACL fixtures (${error.message}).`);
+      throw new Error(`Could not verify the synthetic leaf ACL matrix (${error.message}).`);
     }
-    for (const [control, path] of Object.entries(paths)) {
+    for (const { name, path, expectedStage } of controls) {
       try {
-        await assertWindowsPrivateHandoff(path);
+        if (expectedStage === 0) await assertWindowsPrivateHandoff(path);
+        else await assertRejectedHandoff(path, expectedStage);
       } catch (error) {
-        throw new Error(`The synthetic ${control} ACE should be ineffective. ${error.message}`);
+        // A mismatched native result must not obscure the isolated fixture.
+        // The expected stage is fixed and the observed output is bounded.
+        if (error instanceof assert.AssertionError) {
+          const actual = error.actual instanceof Error ? error.actual.message : 'unexpected acceptance';
+          throw new Error(`Synthetic leaf ACL case ${name} expected ${stages[expectedStage]}, got ${actual}.`);
+        }
+        throw new Error(`Synthetic leaf ACL case ${name} failed. ${error.message}`);
       }
     }
   } finally {
