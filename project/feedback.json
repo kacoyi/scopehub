@@ -7499,6 +7499,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "weekly-freshness-borrows-native-qualification-from-history",
+      "source": "Independent Astra Standard t10z CHANGES_REQUESTED at 5057e9d6e519c42821c2e65748647d0fee0d5d9d. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-145-5057e9d6/final-response.txt (SHA-256 78cf97f518ed720c44afc03a9947fc9ab25ab77370ae25d0486753e7fa1ba854). Original assistant response SHA-256 fdc96c36af12caf43e34a6538200df717c8dc3a36c77827eceb2e8567d89066a.",
+      "observation": "The public weekly commands credit an invalid current Windows report when matching eligible history exists. On single-job run 45389970933, adding split-job caches makes the original download fail native layout qualification. On run 45546767887, withholding the only applicable retained Git tree proof makes the original download fail historical publishing catalog qualification. In isolation neither download earns freshness. With the matching historical report, the original identity subset lets verify-maintenance advance the Windows pull_request scope.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-145"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
