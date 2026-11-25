@@ -5,7 +5,9 @@ from io import StringIO
 import json
 import os
 import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -68,6 +70,8 @@ class DiagnosticReferenceTests(ProjectFixture):
         spec['product'] = {'purpose': {'$source': {'path': 'contracts/contract.json', 'pointer': '/purpose'}}}
         spec_path.write_bytes(json_bytes(spec))
         contract_path.write_bytes(json_bytes({'purpose': 'Read the exact committed purpose.'}))
+        # The link expander resolves a referenced file before reading it.
+        contract_read_path = contract_path.resolve(strict=True)
         path = self.root / 'project/feedback.json'
         first = {
             'id': 'fixture-feedback', 'source': 'Exact reviewed fixture Git source.',
@@ -86,7 +90,7 @@ class DiagnosticReferenceTests(ProjectFixture):
         def transient_read(current, *args, **kwargs):
             if current == path:
                 return json_bytes({'schema_version': '1.0', 'items': [second]}).decode('utf-8')
-            if current == contract_path:
+            if current == contract_read_path:
                 return '{"purpose": "Stale working purpose."}'
             if current == self.root / 'project/tasks.json':
                 return json_bytes(current_ledger).decode('utf-8')
@@ -157,6 +161,80 @@ class DiagnosticReferenceTests(ProjectFixture):
             self.assertEqual(first, reopened['value'])
         current = self.project_command('source', 'project/feedback.json', '/items/0')
         self.assertEqual(second, current['value'])
+
+    def test_nested_public_source_distinguishes_working_and_committed_checkout_aliases(self):
+        checkout = self.root.resolve(strict=True)
+        shutil.copytree(Path(project.__file__).parent, checkout / 'scripts',
+                        ignore=shutil.ignore_patterns('__pycache__'))
+        spec_path = checkout / 'engineering-contract-v1.json'
+        spec = read_json(spec_path)
+        spec['product'] = {'purpose': {'$source': {'path': 'contracts/contract.json', 'pointer': '/purpose'}}}
+        spec_path.write_bytes(json_bytes(spec))
+        link_path = checkout / 'contracts/contract.json'
+        link_path.write_bytes(json_bytes({
+            'purpose': {'$source': {'path': 'contracts/purpose.json', 'pointer': '/text'}},
+        }))
+        leaf_path = checkout / 'contracts/purpose.json'
+        leaf_path.write_bytes(json_bytes({'text': 'Committed nested purpose.'}))
+        reviewed = self.commit()
+
+        aliases = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve(strict=True)
+
+        def directory_alias(target, alias):
+            if os.name == 'nt':
+                from _winapi import CreateJunction
+                CreateJunction(str(target), str(alias))
+                self.addCleanup(alias.rmdir)
+            else:
+                alias.symlink_to(target, target_is_directory=True)
+                self.addCleanup(alias.unlink)
+
+        alias = aliases / 'checkout alias'
+        directory_alias(checkout, alias)
+        self.assertNotEqual(checkout, alias)
+        self.assertTrue(alias.samefile(checkout))
+
+        def cli(workspace, *args, exit_code=0):
+            result = subprocess.run([sys.executable, '-B', 'scripts/project.py', *args], cwd=workspace,
+                                    capture_output=True, check=False, text=True)
+            self.assertEqual(exit_code, result.returncode, result.stderr or result.stdout)
+            return json.loads(result.stdout)
+
+        read = ('source', 'engineering-contract-v1.json', '/product/purpose')
+        context = ('context', 'M0-001', '--phase', 'verify', '--source', reviewed)
+        for workspace in (checkout, alias):
+            with self.subTest(path=workspace, phase='clean'):
+                bound = cli(workspace, *context)
+                self.assertEqual(reviewed, bound['review_source'])
+                self.assertEqual('Committed nested purpose.', bound['product']['purpose'])
+
+        leaf_path.write_bytes(json_bytes({'text': 'Changed working purpose.'}))
+        for workspace in (checkout, alias):
+            with self.subTest(path=workspace, phase='working'):
+                ordinary = cli(workspace, *read)
+                self.assertEqual('Changed working purpose.', ordinary['value'])
+                self.assertNotIn('source_commit', ordinary)
+                historical = cli(workspace, *read, '--source', reviewed)
+                self.assertEqual('Committed nested purpose.', historical['value'])
+                self.assertEqual(reviewed, historical['source_commit'])
+                self.assertIn('requires a clean checkout', cli(workspace, *context, exit_code=1)['error'])
+
+        outside = aliases / 'outside'
+        outside.mkdir()
+        (outside / 'purpose.json').write_bytes(json_bytes({'text': 'Outside fixture value.'}))
+        directory_alias(outside, checkout / 'contracts/redirected')
+        link_path.write_bytes(json_bytes({
+            'purpose': {'$source': {'path': 'contracts/redirected/purpose.json', 'pointer': '/text'}},
+        }))
+        for workspace in (checkout, alias):
+            with self.subTest(path=workspace, phase='outside'):
+                rejected = cli(workspace, *read, exit_code=1)
+                self.assertIn('Path escapes repository', rejected['error'])
+                self.assertNotIn('value', rejected)
+                self.assertNotIn('Outside fixture value.', json.dumps(rejected))
+                historical = cli(workspace, *read, '--source', reviewed)
+                self.assertEqual('Committed nested purpose.', historical['value'])
+                self.assertEqual(reviewed, historical['source_commit'])
 
     def test_diagnostic_archive_configuration_is_explicit_and_ordered(self):
         report_path = self.report()

@@ -6626,6 +6626,29 @@
         "prevention": "Execute the printed prompts and follow-up commands under a filesystem read-only constraint. Verify committed content after working-data substitution, reject dirty or moved bound context, and reopen historical Git facts and the configured original diagnostic. Preserve the unbound compact launch. The recorded Linux run and independent Astra review verify those boundaries."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "native-review-fixture-misses-resolved-contract-path",
+      "source": "Ordinary PR 113 attempt 1 and independent Linux path controls. Exact Windows diagnostic and original controls are indexed by archives/observations/repo-hygiene-20261125/pr113-windows-test-path-45621069041/SHA256SUMS (SHA-256 43505ed600b9b4ed00831dc0f3df7cfaa3a0f72021454f50116bd56520ac86be).",
+      "observation": "Windows Python on run 45621069041 failed the ordinary working purpose assertion at test_diagnostic_references.py:100 before bound checks ran. The test expected Stale working purpose. and received Read the exact committed purpose. The native temporary path spelling was not retained. In a separate Linux control the unmodified test passed on the physical temporary path and failed at the same assertion through a symlink to that directory. Real on-disk public commands passed their ordinary, committed and dirty-refusal controls through both checkout spellings.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-137"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45621069041-1",
+          "source_commit": "540aa72c18cf6bf0c1ba49ba965b8c26f229d1ad",
+          "report_sha256": "2dc65486c83de450a01a9eeda1bf2cd00a4607c3d07ab840ba4985e57eb2535c"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
