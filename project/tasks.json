@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-118",
   "tasks": [
     {
       "id": "M0-001",
@@ -21280,6 +21280,160 @@
           "cleanup": "Retain the unchanged original capture bytes and keep missing or conflicting links actionable."
         }
       }
+    },
+    {
+      "id": "M0-118",
+      "title": "Verify the matched Linux browser admission observation window",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-105"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Resolve the original d9102de diagnostic and verify that its complete logs and scoped browser attachments remain available. The two instrument.search TIMEOUT replies and the unexpected chart-opened BUSY retain their original disposition.",
+        "Verify the manifest and scoped observations for the unchanged ecb8477b79639fd43f06d302fd2ac4aa0ca999ab source. Keep one matched one-worker baseline and three ordinary two-worker workspace and one-worker desktop rounds, with the existing deadlines, isolated loopback services and complete fixture cleanup. Record all 204 case executions, the 12 matched outcomes and the search and admission counts, separating scripted BUSY from recurrence.",
+        "Archive a canonical M0-118 receipt for both existing browser checks on the clean investigation source. Keep the minor feedback open and assign M0-119 to capture the required evidence at the next actual recurrence."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043455.480016Z-7345748b",
+          "source_commit": "d9102de9c036fb6ae4b962a5dfa9529927110315",
+          "report_sha256": "a2e085cebc9e68548abe2867b906740299aea157dcfb59ee5762a8c5cf44e506"
+        }
+      ],
+      "next_action": "Verify the retained matched observations against their manifest, run the canonical M0-118 Linux task harness on a clean source, archive the passing receipt and hand any future recurrence to M0-119.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Deliver an independently reviewable investigation that preserves the first failure, distinguishes a finite matched window without recurrence from causal attribution, and leaves the next actual recurrence owned.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/feedback.json",
+          "archives/runs/20261125T043455.480016Z-7345748b/test-report.json",
+          "archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z/SHA256SUMS",
+          "archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z/scoped-results.json",
+          "archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z/fixture-cleanup.json",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "tests/ui/desktop-workspace.config.mjs"
+        ],
+        "hypotheses": [
+          "If either original terminal recurs under ordinary Linux concurrency, its retained scoped traces can identify the failing request phase or admission holder. A clean four-round window leaves those historical identities unknown."
+        ],
+        "risks": [
+          {
+            "failure": "Archived bytes, source, suite counts, deadlines or cleanup do not match the retained control. Verify the raw diagnostic, archive manifest, worker counts and scoped outcomes before recording completion.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A scripted held-reader BUSY is counted as spontaneous contention, or a clean comparison is reported as a cause or fix. Bind the outcomes to their test stages and leave the minor feedback open with a named recurrence task.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A passing log from another scope or different execution inputs is attached to this task. Require the canonical task selection, both configured commands and the recorded definition and log digests.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Keep the raw failure and observation archive. If any verification or provenance check fails, retain that attempt and keep the investigation active until the failed check is understood.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "scripts/integration.py",
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/ui/desktop-workspace.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Runtime or deadline changes, attribution of the original defect, and closing the minor feedback."
+          ],
+          "open_questions": [
+            "Which worker phase or admission holder is observed if the original terminal recurs?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep the original raw failure, M0-105 task and receipts, existing check commands and deadline settings."
+          ],
+          "change": [
+            "Add a canonical receipt for the investigation and name the task that owns the next recurrence."
+          ],
+          "data_plan": "Use the already retained synthetic, exact-source observations and a new canonical run with synthetic profiles. Bind originals by SHA-256.",
+          "cleanup": "Verify the archived counts for owned process trees, profile and temporary directories and listeners. Leave the archive and the original diagnostic available after disposable test fixtures close."
+        }
+      }
+    },
+    {
+      "id": "M0-119",
+      "title": "Attribute the next Linux browser admission recurrence",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-118"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "On the first actual ordinary Linux instrument.search TIMEOUT in either matched workspace journey or unexpected chart-opened BUSY in the desktop journey, retain the original report and scoped attachments before retry. Record exact source, worker counts, original deadlines and one same-source ordinary control.",
+        "For TIMEOUT, link preview and bridge to worker launch, hello, request send and terminal reply, with elapsed times and the last completed stage. For BUSY, identify the admitted operation and correlate its request with the refusal while separating the scripted held reader.",
+        "Assign the attributed regression to the task that owns the implicated entry point, with the original evidence and bounded scope. Keep any unresolved observation linked to live corrective work."
+      ],
+      "checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "next_action": "Wait for the first actual recurrence in an ordinary Linux verification run. The verification owner of that run takes this task and preserves the failing evidence before a retry or any corrective change.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
     }
   ]
 }
