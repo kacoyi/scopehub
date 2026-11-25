@@ -1,14 +1,16 @@
+#[cfg(any(windows, test))]
+use std::sync::Mutex as SyncMutex;
 use std::{
     future::Future,
     path::{Path, PathBuf},
-    sync::{Mutex as SyncMutex, atomic::Ordering},
+    sync::atomic::Ordering,
     time::Duration,
 };
 
 use scopehub_application::{
     AI_TEXT_CONNECTION, Actor, INDICATOR_CONFIRMATION, LIST_LOCAL_FOLDER_REVISIONS,
     LIST_LOCAL_IMPORT_REVISIONS, LOAD_LOCAL_IMPORT_MAPPING, LOCAL_API_CONNECTION,
-    LOCAL_WORKSPACE_OPERATIONS, LocalApiAdmission, MarketLifecycle, MarketPort, MarketRegistry,
+    LOCAL_WORKSPACE_OPERATIONS, LocalApiAdmission, MarketRegistry,
     PREPARE_LOCAL_FOLDER_PUBLICATION, PREVIEW_LOCAL_FOLDER_REFRESH, PREVIEW_LOCAL_IMPORT,
     PUBLISH_LOCAL_FOLDER_REFRESH, PUBLISH_LOCAL_IMPORT, READ_LOCAL_FOLDER_REVISION,
     READ_LOCAL_FOLDER_SOURCE_ROW, READ_LOCAL_IMPORT_REVISION, READ_LOCAL_IMPORT_SOURCE_ROW,
@@ -16,6 +18,8 @@ use scopehub_application::{
     SAVE_LOCAL_IMPORT_MAPPING, SELECT_EVIDENCE, TextModelProvider, TextModelWork, failure,
     is_sample_evidence_selection, is_sample_indicator_preview,
 };
+#[cfg(any(windows, test))]
+use scopehub_application::{MarketLifecycle, MarketPort};
 use scopehub_domain::{
     protocol::{Error, ErrorCode},
     wire::indicator_timeout,
@@ -27,7 +31,9 @@ use scopehub_worker_host::text_model;
 use serde_json::Value;
 #[cfg(windows)]
 use tauri::ipc::Channel;
-use tokio::sync::{Mutex, MutexGuard, oneshot};
+use tokio::sync::Mutex;
+#[cfg(any(windows, test))]
+use tokio::sync::{MutexGuard, oneshot};
 #[cfg(windows)]
 use {scopehub_worker_host::market::run_subscription, serde_json::json};
 
@@ -42,27 +48,33 @@ pub struct State {
     workspace: WorkspaceBridge,
     local_api_trial: Mutex<()>,
     trusted_jobs: Mutex<tokio::task::JoinSet<()>>,
+    #[cfg(any(windows, test))]
     replay: Mutex<()>,
+    #[cfg(any(windows, test))]
     cancellation: SyncMutex<Cancellation>,
 }
 
+#[cfg(any(windows, test))]
 #[derive(Default)]
 struct Cancellation {
     closing: bool,
     active: Option<(ReplayTask, oneshot::Sender<()>)>,
 }
 
+#[cfg(any(windows, test))]
 #[derive(PartialEq, Eq)]
 enum ReplayTask {
     Preparation(String),
     Subscription(String),
 }
 
+#[cfg(any(windows, test))]
 struct ReplaySlot<'a> {
     _lock: MutexGuard<'a, ()>,
     cancellation: &'a SyncMutex<Cancellation>,
 }
 
+#[cfg(any(windows, test))]
 impl Drop for ReplaySlot<'_> {
     fn drop(&mut self) {
         // Clear the sender before releasing admission for the next request.
@@ -122,7 +134,9 @@ fn state_with_profile(app_local_data: Option<&Path>, enable_workspace: bool) -> 
         ),
         local_api_trial: Mutex::new(()),
         trusted_jobs: Mutex::new(tokio::task::JoinSet::new()),
+        #[cfg(any(windows, test))]
         replay: Mutex::new(()),
+        #[cfg(any(windows, test))]
         cancellation: SyncMutex::default(),
     }
 }
@@ -364,6 +378,7 @@ impl State {
         registry.execute(Actor::LocalUser, operation, payload).await
     }
 
+    #[cfg(any(windows, test))]
     fn begin_replay(
         &self,
         task: ReplayTask,
@@ -393,6 +408,7 @@ impl State {
         ))
     }
 
+    #[cfg(any(windows, test))]
     fn cancel_replay(&self, task: ReplayTask) {
         let mut cancellation = self.cancellation.lock().expect("cancellation state");
         if let Some((_, send)) = cancellation.active.take_if(|(active, _)| *active == task) {
@@ -400,6 +416,7 @@ impl State {
         }
     }
 
+    #[cfg(any(windows, test))]
     async fn prepare<P: MarketPort + MarketLifecycle>(
         &self,
         id: String,
@@ -429,6 +446,7 @@ impl State {
 
     pub async fn shutdown(&self) {
         self.local_import.shutdown().await;
+        #[cfg(any(windows, test))]
         {
             let mut cancellation = self.cancellation.lock().expect("cancellation state");
             cancellation.closing = true;
@@ -438,6 +456,7 @@ impl State {
         }
         self.workspace.shutdown().await;
         while self.trusted_jobs.lock().await.join_next().await.is_some() {}
+        #[cfg(any(windows, test))]
         let _replay = self.replay.lock().await;
         let _ = self.reads.lock().await.shutdown().await;
     }
