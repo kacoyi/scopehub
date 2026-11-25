@@ -132,6 +132,25 @@
       "requested_at": "2026-11-25T16:18:02.498115+00:00",
       "request_id": "c044b0414b8b8789fd3416730978ab7db1303ecc4e5f67c36063c5f05e37c145",
       "evidence_sha256": "cf5c488f726cc6c571ab4e64aa0e24af34752d0411609daf8506db637f16b615"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d29a74cb885bacf84015c79653ed6201ece1248b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 d29a74cb885bacf84015c79653ed6201ece1248b",
+      "scope": "CHANGES_REQUESTED M0-136 d29a74cb885bacf84015c79653ed6201ece1248b",
+      "observation": "The M0-103 request stayed pending when a later structured approval differed from an earlier plain-text approval by one space inside the quoted filename.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "899d72081a5bfd3094572f642da7d3971dcdd0e93c05e5474de2dc81be73418a",
+      "response_id": "e210fc5fab7766aa6d614eb2e03ec715698348126f11b20c12cd217082f75876",
+      "response_sha256": "d517423dae282f0198b857f16e0cd0768b9da562ba4d656b9a94dcd2fa12f14f",
+      "observation_body_sha256": "f2297976ea7b64c8165e6ddc6ebc048d69d856a1efedaa2e09b230bf95bce80a",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b070c63880087d0bfae00798a99ed49",
+        "timestamp": "2026-11-25T16:27:27.322Z"
+      },
+      "supersedes": "c044b0414b8b8789fd3416730978ab7db1303ecc4e5f67c36063c5f05e37c145",
+      "evidence_sha256": "e671c77549af54f0e20e69e1ceea2d503b2bad48b03c03bc327d36f3ba131d27"
     }
   ]
 }
