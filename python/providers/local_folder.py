@@ -17,13 +17,14 @@ from dataclasses import dataclass, field
 from hashlib import sha256
 from io import StringIO
 from threading import Lock
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from contracts.generated.protocol import (
-    CsvPreview, LocalImportRowLocator, PreviewIssue, PreviewRow, PreviewSeries, PublishedLocalImportBar,
+    CsvDeclarationConflict, CsvPreview, LocalImportRowLocator, PreviewIssue, PreviewRow, PreviewSeries,
+    PublishedLocalImportBar,
 )
 from providers.csv_bar_mapping import (
-    BarFieldError, auxiliary_role, native_mapping, normalize_bar, preview_issue,
+    BarFieldError, auxiliary_role, declaration_conflicts, native_mapping, normalize_bar, preview_issue,
 )
 
 
@@ -58,6 +59,7 @@ class RawCsvSourceRow(TypedDict):
     locator: LocalImportRowLocator
     header: list[str]
     raw_fields: list[str]
+    declaration_conflicts: NotRequired[list[CsvDeclarationConflict] | None]
 
 
 class CsvReviewRequired(ValueError):
@@ -260,7 +262,8 @@ def inspect_folder_csv(content: bytes, mapping: Mapping[str, object]) -> Checked
     return _check_complete_csv(content, mapping, retain_conflicts=True)
 
 
-def read_csv_source_row(content: bytes, mapping: Mapping[str, object], record_number: int) -> RawCsvSourceRow:
+def read_csv_source_row(content: bytes, mapping: Mapping[str, object], record_number: int,
+                        *, review_declarations: bool = False) -> RawCsvSourceRow:
     """Read one logical record with the same CSV rules used at publication."""
     if len(content) > MAX_FILE_BYTES:
         raise CsvPublicationLimit
@@ -273,10 +276,16 @@ def read_csv_source_row(content: bytes, mapping: Mapping[str, object], record_nu
         if row['issues']:
             raise CsvSourceRowUnavailable
         if row['record_number'] == record_number:
-            return {
+            result: RawCsvSourceRow = {
                 'source_sha256': read.result['file_sha256'], 'locator': _locator(row),
                 'header': read.result['header'], 'raw_fields': row['raw_fields'],
             }
+            if review_declarations:
+                native = native_mapping(mapping, result['header'], [])
+                result['declaration_conflicts'] = (
+                    None if native is None else list(declaration_conflicts(result['raw_fields'], native))
+                )
+            return result
     raise CsvSourceRowUnavailable
 
 
