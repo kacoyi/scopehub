@@ -13,15 +13,15 @@ from uuid import uuid4
 
 if __package__:
     from .project import (
-        ProjectError, checkout_git_environment, digest, load_project, read_json, source_identity,
-        task_definition_hash, validate_model,
+        ProjectError, checkout_git_environment, committed_source_identity, digest, load_project, read_json,
+        source_identity, task_definition_hash, validate_model,
     )
     from .timing import ci_budget_status
     from .verification_scope import ScopeError, exact_commit, git, oid, require_ancestor, require_complete_history, resolve_commit
 else:
     from project import (
-        ProjectError, checkout_git_environment, digest, load_project, read_json, source_identity,
-        task_definition_hash, validate_model,
+        ProjectError, checkout_git_environment, committed_source_identity, digest, load_project, read_json,
+        source_identity, task_definition_hash, validate_model,
     )
     from timing import ci_budget_status
     from verification_scope import ScopeError, exact_commit, git, oid, require_ancestor, require_complete_history, resolve_commit
@@ -72,7 +72,7 @@ def expected_integration_tree(root, base, reviewed):
              'merge-tree', '--write-tree', '--no-messages', base, reviewed],
             cwd=root, capture_output=True, timeout=30,
             env={**checkout_git_environment(), 'GIT_OBJECT_DIRECTORY': folder,
-                 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1'},
+                 'GIT_GRAFT_FILE': os.devnull, 'GIT_NO_LAZY_FETCH': '1', 'GIT_ALLOW_PROTOCOL': ''},
         )
     if result.returncode == 1:
         raise ProjectError('The reviewed source conflicts with the intended base. Review the resolved integration first.')
@@ -125,7 +125,7 @@ def has_supplementary_dependency_receipt(root, base, intended, task, previous):
         # Allow the commit that records the receipt. Any other tree change needs its own observation.
         changed = git(root, 'diff', '--no-ext-diff', '--no-renames', '--name-only', '-z', commit, intended, '--',
                       '.', ':(exclude)project/tasks.json', ':(exclude)project/evidence/')
-        if not changed:
+        if not changed and committed_source_identity(root, commit) == source:
             return True
     return False
 
@@ -134,12 +134,14 @@ def dependency_binding(root, base, intended, dependency_id, reviewed_task):
     task = committed_tasks(root, intended).get(dependency_id)
     if not task or dependency_id == reviewed_task['id']:
         raise ProjectError(f'The named dependency {dependency_id} is absent from its base or is the selected task.')
+    previous = committed_tasks(root, base).get(dependency_id)
+    if task['status'] == 'cancelled' or (previous and previous['status'] == 'cancelled'):
+        raise ProjectError(f'Cancelled dependency {dependency_id} cannot be used for dispatch.')
     # Shared ledger and feedback edits cannot by themselves attribute a stack to a task.
     paths = [path for path in task['scope'] if path not in {'project/tasks.json', 'project/feedback.json'}]
     if not paths or not git(root, '--literal-pathspecs', 'diff', '--no-ext-diff', '--no-renames',
                             '--name-only', '-z', base, intended, '--', *paths):
         raise ProjectError(f'Dependency {dependency_id} at {intended} contributes no changes in its recorded scope.')
-    previous = committed_tasks(root, base).get(dependency_id)
     if previous and previous['status'] == 'done':
         if has_supplementary_dependency_receipt(root, base, intended, task, previous):
             return 'supplementary_receipt'

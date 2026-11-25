@@ -5272,6 +5272,28 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dependency-receipt-source-identity-unverified",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-cancelled-dependency-accepted",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

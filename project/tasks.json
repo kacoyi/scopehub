@@ -19992,6 +19992,8 @@
       ],
       "scope": [
         "scripts/ci.py",
+        "scripts/project.py",
+        "scripts/verification_scope.py",
         "tests/project/test_ci.py",
         "tests/project/test_verify_browser_setup.py",
         ".github/workflows/verify.yml",
@@ -20006,7 +20008,7 @@
       "acceptance": [
         "A coordinator can inspect the exact reviewed task, protected base and proposed candidate locally. The historical mismatched M1-040 candidate is refused and the intended reviewed source is identified. Incomplete history stays explicitly unverified.",
         "The opt-in entry attempts one submission after observing the expected protected base and branch tip. Mismatches observed in preflight cause zero submissions. GitHub resolves the branch separately. The guarded workflow checks the event commit and protected base before scheduling either verification job, checks out the exact expected commit, and binds evidence to it.",
-        "An explicitly named dependent base contributes scoped changes linked by a distinct task definition or an unfinished dependency declared by the reviewed task. A dependency already completed on the protected base needs a supplementary receipt for the proposed dependent source. The candidate must match the exact reviewed integration. Ordinary inspection, manual workflows and task receipt provenance keep their existing behavior.",
+        "An explicitly named dependent base contributes scoped changes linked by a distinct task definition or an unfinished dependency declared by the reviewed task. A dependency already completed on the protected base needs a supplementary receipt whose input digest and file count match its own committed source under that revision's execution-input rules. Cancelled dependencies are rejected before remote access. The candidate must match the exact reviewed integration. Ordinary inspection, manual workflows and task receipt provenance keep their existing behavior.",
         "A lost submission response is reported as unknown with enough information to locate the run, including a unique request identifier. A successful response retains the run ID when supplied. Guarded requests have isolated concurrency groups."
       ],
       "checks": [
@@ -20027,7 +20029,7 @@
           "sha256": "afe098883a0da1b2136d6f9314f702b0ad7ec5edbfe29275558ed02d990365d9"
         }
       ],
-      "next_action": "Independently re-review the completed-dependency attribution repair and the new exact-source regression evidence. The coordinator owns publication and hosted follow-up, including matching the dispatch ID, run head and evidence.",
+      "next_action": "Review the supplementary receipt fingerprint and cancelled-dependency repair and run native CI on its exact source. The coordinator owns publication and hosted dispatch follow-up.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -20083,6 +20085,12 @@
             ]
           },
           {
+            "failure": "A clean receipt's input digest, file count or exclusions disagree with its own Git commit, or a cancelled dependency is treated as unfinished work.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
             "failure": "A lost POST response hides possible acceptance or misdirects the operator into a second submission that cancels an existing run.",
             "checks": [
               "python-contracts-workers"
@@ -20102,6 +20110,7 @@
           ],
           "entrypoints": [
             "scripts/ci.py",
+            "scripts/project.py",
             "tests/project/test_ci.py",
             ".github/workflows/verify.yml"
           ],
