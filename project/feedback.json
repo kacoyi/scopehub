@@ -5244,7 +5244,7 @@
       "id": "frozen-chart-access-lifecycle-review",
       "source": "Independent Astra Standard at 2524629 and the retained hosted Linux Chromium diagnostic.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "A late CSV reply displays withdrawn evidence after source-only revocation or redaction of the same shared selection. A denied foreground folder read leaves cached chart and provenance visible until a status reply. A silent native folder status reply indefinitely blocks retry. Hosted Chromium captured a retryable snapshot admission failure leaving the authorized shared-selection clear disabled.",
       "task_ids": [
         "M2-035"
@@ -5263,7 +5263,11 @@
           "report_sha256": "ed7011eeea4600b13c8107606a4618e5e1fe7192afb7fa1de6bc507e7c27858e"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Authorization state was inferred from a narrow snapshot shape, direct denial had no immediate display fence, folder readback was unbounded, and snapshot admission was attempted once.",
+        "correction": "Fence stale chart reads on newer authority, withhold denied evidence until verified, bound and cancel reply waits, and retry positively identified snapshot admission without changing selection authorization.",
+        "prevention": "Chromium drives published CSV and folder workflows with delayed and failed responses, and the real Rust workspace test clears an authorized selection after one hosted-style 429."
+      },
       "deferral_reason": null
     }
   ]

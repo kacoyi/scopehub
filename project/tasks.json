@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-035",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20207,7 +20207,7 @@
       "id": "M2-035",
       "title": "Fence and recover frozen chart access through open, refresh and clear",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-034"
       ],
@@ -20237,7 +20237,12 @@
         "local-folder-import",
         "workspace-timeframe"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-035-4d46948abb80689a.json",
+          "sha256": "0902fabfad6a737b40258a4a904702fa0c668f106a102a5ff6d028cb403d28cc"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261125T050030.893328Z-8519eb03",
@@ -20245,9 +20250,9 @@
           "report_sha256": "ed7011eeea4600b13c8107606a4618e5e1fe7192afb7fa1de6bc507e7c27858e"
         }
       ],
-      "next_action": "Retain matching red and green regression checks for the review findings.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The clean source passed local build, market, publication, Chromium desktop transport and real workspace checks. The regressions fence late CSV replies on source revocation and selection redaction, hide denied folder evidence during status readback, recover a timed-out read, and clear a redacted selection after HTTP 429 through the original authorization and selection comparison. Native WebView2 and packaged acceptance remain separate.",
       "plan": {
         "outcome": "Frozen CSV and folder charts obey current profile access, and authorized shared selection clear remains available.",
         "change_types": [
