@@ -25277,10 +25277,13 @@
         "project-state",
         "python-contracts-workers",
         "market-worker-interruption",
-        "workspace-timeframe"
+        "workspace-timeframe",
+        "rust-format",
+        "rust-contracts-workers",
+        "python-types"
       ],
       "evidence": [],
-      "next_action": "Establish the replay and worker-exit ordering at the test boundary, prove the correction on Linux, then hand the exact candidate to independent review and the coordinator for ordinary Windows verification.",
+      "next_action": "Review the bounded Linux replay witness and verify the exact candidate on ordinary native Windows. Confirm both owned interruptions, the grouped frames and the later request.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25297,7 +25300,7 @@
         ],
         "hypotheses": [
           "The current mutation observer triggers asynchronously after the confirmed partial becomes visible. The worker emits the closing update independently and its bridge can reap it before the one-shot descendant scan. The failing native stream contains normal completion without any recovery frames. The original report does not identify the precise ordering of process exit and enumeration.",
-          "The portable control should distinguish a still-live original instance from a naturally completed replay, and require exact ownership through the actual Windows launcher and POSIX preview paths."
+          "The portable protocol and ordinary Linux browser red controls observed the normal final and bridge cleanup before the delayed observer, then reproduced the zero-candidate failure. The fixture holds the closing update only on the original development worker and uses a one-use witness bound to the preview, bridge command and interpreter."
         ],
         "risks": [
           {
@@ -25342,7 +25345,7 @@
             "Product or runner deadline changes, external dependencies, wider process authority, or changes to the accepted M1-019 and independent M0-119 and M0-144 records."
           ],
           "open_questions": [
-            "Can the test hold the confirmed synthetic replay between its real worker updates without affecting normal callers? The coordinator owns the eventual ordinary Windows verification."
+            "The actual Windows enumeration order in the original failure remains unknown. The coordinator owns ordinary Windows verification of the corrected fixture and native launcher lineage."
           ]
         },
         "evolution": {
@@ -25351,7 +25354,7 @@
             "Existing platform ownership, replay timing for ordinary callers, request and instance authority, exact protocol and browser assertions, and unrelated processes."
           ],
           "change": [
-            "Tie the interruption to a live owned replay witness instead of inferring worker liveness from a delayed browser render."
+            "Arm one stream on a private test preview. Keep the original worker live after its genuine partial and identify it through the exact bridge, executable, command witness and process ancestry. Run the replacement and subsequent request through their ordinary workers."
           ],
           "data_plan": "Use disposable synthetic fixtures and retain source-identified raw diagnostics and control artifacts in the private archive.",
           "cleanup": "Release every fixture-owned process and temporary resource on completion or refusal; preserve previous native originals."

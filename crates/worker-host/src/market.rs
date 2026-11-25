@@ -72,8 +72,16 @@ impl WorkerConfig {
         command
     }
 
-    fn command(&self) -> Command {
+    fn command(&self, interruption_witness: Option<Uuid>) -> Command {
         let mut command = self.python_command();
+        if let Some(witness) = interruption_witness {
+            command.arg(
+                self.root
+                    .join("tests/ubuntu-preview/market_interruption_worker.py"),
+            );
+            command.arg(witness.to_string());
+            return command;
+        }
         command.env("SCOPEHUB_WORKER_WIRE_VERSION", "1.1").args([
             "-m",
             "worker_runtime",
@@ -105,6 +113,7 @@ pub struct MarketWorker {
     session: Option<Session>,
     subscription: Option<(String, String)>,
     cleanup: Option<cleanup::PendingCleanup>,
+    interruption_witness: Option<Uuid>,
 }
 
 pub(super) fn protocol_failure(error: ProtocolError) -> Error {
@@ -124,7 +133,16 @@ impl MarketWorker {
             session: None,
             subscription: None,
             cleanup: None,
+            interruption_witness: None,
         }
+    }
+
+    /// Only the repository preview example runs the interruption fixture.
+    #[doc(hidden)]
+    pub fn preview_interruption(config: WorkerConfig, witness: Uuid) -> Self {
+        let mut worker = Self::new(Some(config));
+        worker.interruption_witness = Some(witness);
+        worker
     }
 
     pub fn process_id(&self) -> Option<u32> {
@@ -167,7 +185,8 @@ impl MarketWorker {
         let deadline = config.deadline;
         let permit = worker_slot()?;
         let mut child = config
-            .command()
+            // A replacement runs the ordinary synthetic worker, without the witness.
+            .command(self.interruption_witness.take())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -444,18 +463,26 @@ pub async fn run_subscription(
     cancelled: impl std::future::Future<Output = ()>,
     publish: impl FnMut(Value) -> Result<(), Error> + Send,
 ) -> Result<Value, Error> {
-    let deadline = config
-        .as_ref()
-        .map_or(Duration::from_secs(5), |config| config.deadline);
-    run_owned_subscription(
-        MarketWorker::new(config),
-        deadline,
-        actor,
-        payload,
-        cancelled,
-        publish,
-    )
-    .await
+    MarketWorker::new(config)
+        .run_subscription(actor, payload, cancelled, publish)
+        .await
+}
+
+impl MarketWorker {
+    #[doc(hidden)]
+    pub async fn run_subscription(
+        self,
+        actor: Actor,
+        payload: Value,
+        cancelled: impl std::future::Future<Output = ()>,
+        publish: impl FnMut(Value) -> Result<(), Error> + Send,
+    ) -> Result<Value, Error> {
+        let deadline = self
+            .config
+            .as_ref()
+            .map_or(Duration::from_secs(5), |config| config.deadline);
+        run_owned_subscription(self, deadline, actor, payload, cancelled, publish).await
+    }
 }
 
 async fn run_owned_subscription(

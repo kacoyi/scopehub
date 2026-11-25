@@ -8,11 +8,12 @@ use scopehub_application::{
 };
 use scopehub_domain::protocol::ErrorCode;
 use scopehub_worker_host::{
-    market::{MarketWorker, WorkerConfig, run_subscription},
+    market::{MarketWorker, WorkerConfig},
     max_message_bytes,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -37,6 +38,15 @@ fn reply(result: Result<Value, scopehub_domain::protocol::Error>) -> Value {
 #[tokio::main]
 async fn main() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    let witness = match args.as_slice() {
+        [] => None,
+        [flag, token] if flag == "--test-market-interruption" => Some(
+            Uuid::parse_str(token.to_str().expect("UTF-8 interruption witness"))
+                .expect("interruption witness"),
+        ),
+        _ => panic!("Invalid preview bridge arguments"),
+    };
     let mut registry =
         MarketRegistry::new(MarketWorker::new(Some(WorkerConfig::development(&root))));
     loop {
@@ -60,16 +70,21 @@ async fn main() {
                     let _ = std::io::stdin().read(&mut [0u8; 1]);
                     let _ = signal.send(());
                 });
-                let result = run_subscription(
-                    Some(WorkerConfig::development(&root)),
-                    Actor::User,
-                    request.payload,
-                    async {
-                        let _ = cancelled.await;
-                    },
-                    |frame| write_frame(frame).map_err(|_| failure(ErrorCode::CANCELLED)),
-                )
-                .await;
+                let config = WorkerConfig::development(&root);
+                let worker = match witness {
+                    Some(witness) => MarketWorker::preview_interruption(config, witness),
+                    None => MarketWorker::new(Some(config)),
+                };
+                let result = worker
+                    .run_subscription(
+                        Actor::User,
+                        request.payload,
+                        async {
+                            let _ = cancelled.await;
+                        },
+                        |frame| write_frame(frame).map_err(|_| failure(ErrorCode::CANCELLED)),
+                    )
+                    .await;
                 let _ = write_frame(reply(result));
                 break;
             }

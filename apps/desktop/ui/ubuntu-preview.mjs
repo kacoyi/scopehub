@@ -96,12 +96,13 @@ async function readOperation(request, stream) {
   }
 }
 
-function runOperation(root, line, maxReplyBytes, signal, streamResponse) {
+function runOperation(root, line, maxReplyBytes, signal, streamResponse, interruptionWitness) {
   signal.throwIfAborted();
   const windows = process.platform === 'win32';
   const executable = resolve(root, 'target/debug/examples', windows ? 'history_bridge.exe' : 'history_bridge');
   const command = windows ? resolve(root, '.venv/Scripts/python.exe') : executable;
   const args = windows ? ['-I', '-S', resolve(root, 'scripts/windows_job.py'), executable] : [];
+  if (interruptionWitness) args.push('--test-market-interruption', interruptionWitness);
   const child = spawn(command, args, {
     cwd: root, detached: !windows, windowsHide: true, stdio: ['pipe', 'pipe', 'inherit'],
   });
@@ -203,6 +204,10 @@ export function ubuntuPreview() {
       const root = resolve(server.config.root, '../../..');
       const limits = JSON.parse(readFileSync(resolve(root, 'contracts/generated/runtime.json'), 'utf8'));
       const active = new Map();
+      // The test process sets this while creating its private preview. HTTP
+      // requests and ordinary preview launches cannot supply a witness.
+      let interruptionWitness = process.env.SCOPEHUB_TEST_PREVIEW === '1'
+        ? process.env.SCOPEHUB_TEST_MARKET_INTERRUPTION : undefined;
       const shutdown = () => {
         for (const cancel of active.values()) cancel(new PreviewFailure(503, 'WORKER_EXITED'));
       };
@@ -250,7 +255,9 @@ export function ubuntuPreview() {
           const line = await readOperation(request, stream);
           controller.signal.throwIfAborted();
           trace('admitted');
-          const bytes = await runOperation(root, line, limits.max_message_bytes, controller.signal, stream ? response : undefined);
+          const witness = stream ? interruptionWitness : undefined;
+          if (stream) interruptionWitness = undefined;
+          const bytes = await runOperation(root, line, limits.max_message_bytes, controller.signal, stream ? response : undefined, witness);
           if (!response.destroyed && !response.writableEnded) {
             if (!stream) response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
             response.end(bytes);

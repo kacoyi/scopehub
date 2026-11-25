@@ -39,3 +39,64 @@ class MarketProbeOwnerTest(unittest.TestCase):
                 self.wrapper.cmdline.return_value = args
                 with self.assertRaises(RuntimeError):
                     probe.owned_test_runner(self.helper, pid, launcher)
+
+
+class MarketWorkerWitnessTest(unittest.TestCase):
+    def setUp(self):
+        self.root = SOURCE.parents[2]
+        self.executable = self.root / 'target' / 'debug' / 'examples' / 'history_bridge.exe'
+        self.interpreter = self.root / 'python.exe'
+        self.redirector = self.root / '.venv' / 'Scripts' / 'python.exe'
+        self.script = SOURCE.with_name('market_interruption_worker.py')
+        self.witness = '75b47087-ebfb-4c39-8ee0-e0169397fd37'
+        self.owner = Mock(pid=17)
+        self.bridge = self.process(self.executable, ['--test-market-interruption', self.witness])
+        self.bridge.parents.return_value = [self.owner]
+        self.owner.children.return_value = [self.bridge]
+        self.worker = self.process(self.interpreter, [str(self.script), self.witness])
+        self.worker.parents.return_value = [self.bridge, self.owner]
+        self.bridge.children.return_value = [self.worker]
+
+    def process(self, executable, args):
+        process = Mock()
+        process.name.return_value = executable.name
+        process.exe.return_value = str(executable)
+        process.cwd.return_value = str(self.root)
+        process.cmdline.return_value = [str(executable), *args]
+        process.children.return_value = []
+        return process
+
+    def select(self, redirector=None):
+        return probe.owned_worker(self.owner, self.root, self.executable, self.interpreter, redirector, self.witness)
+
+    def test_selects_only_the_admitted_original_direct_or_redirected(self):
+        self.assertIs(self.select(), self.worker)
+        wrapper = self.process(self.redirector, [str(self.script), self.witness])
+        self.bridge.children.return_value = [wrapper]
+        wrapper.children.return_value = [self.worker]
+        self.worker.parents.return_value = [wrapper, self.bridge, self.owner]
+        self.assertIs(self.select(self.redirector), self.worker)
+        wrapper.children.return_value = []
+        with self.assertRaisesRegex(RuntimeError, 'found 0'):
+            self.select(self.redirector)
+
+    def test_ordinary_replacement_and_decoys_do_not_supply_the_original(self):
+        replacement = self.process(self.interpreter, ['-m', 'worker_runtime', '--role', 'market', '--demo'])
+        wrong_witness = self.process(self.interpreter, [str(self.script), 'other'])
+        wrong_executable = self.process(self.interpreter.with_name('decoy.exe'), [str(self.script), self.witness])
+        bad_bridge = self.process(self.executable.with_suffix('.bak'), ['--test-market-interruption', self.witness])
+        bad_bridge.children.return_value = [self.worker]
+        self.bridge.children.return_value = [replacement, wrong_witness, wrong_executable]
+        self.owner.children.return_value = [self.bridge, bad_bridge, self.worker]
+        with self.assertRaisesRegex(RuntimeError, 'found 0'):
+            self.select()
+
+    def test_ambiguous_and_changed_ancestry_are_rejected(self):
+        second = self.process(self.interpreter, [str(self.script), self.witness])
+        self.bridge.children.return_value = [self.worker, second]
+        with self.assertRaisesRegex(RuntimeError, 'found 2'):
+            self.select()
+        self.bridge.children.return_value = [self.worker]
+        self.worker.parents.return_value = [self.owner]
+        with self.assertRaisesRegex(RuntimeError, 'no longer owns'):
+            self.select()
