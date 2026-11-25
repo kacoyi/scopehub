@@ -24029,6 +24029,100 @@
           "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
         }
       }
+    },
+    {
+      "id": "M0-135",
+      "title": "Make compatibility and recovery review follow-through visible and verifiable",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [],
+      "scope": [
+        "scripts/project.py",
+        "scripts/development.py",
+        "scripts/recovery.py",
+        "project/delivery.json",
+        "contracts/schemas/project.schema.json",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The ordinary startup view identifies an overdue or unsupported compatibility review, with a responsible role and the next verification command.",
+        "The existing protected project history gate rejects a date-only clearance. Historical baseline and valid bounded review receipts remain distinguishable.",
+        "Verify the calibrated date-only mutation, a genuine quiet review and an observation with a linked finding. Keep detailed records and unrelated event-driven work at their original scope."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Exercise the normal intake and history paths on the preserved 30-day date-only control, then verify a focused receipt-bound review.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Normal startup surfaces the outstanding compatibility review and protected history rejects unsupported clearance.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/development.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A single existing receipt reference can distinguish a performed compatibility review from a calendar edit without changing cadence."
+        ],
+        "risks": [
+          {
+            "failure": "An unsupported date advance clears review attention or passes protected history.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unrelated or stale receipt appears to prove compatibility. A matched open finding or event-triggered product work receives an incorrect disposition.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the gate and compact navigation together. Retain the historical date and original calibration.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Keep task dispatch, hosted timing measurements and product acceptance independent."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve historical cadence, accepted records, existing normal JSON fields and independent native and release evidence."
+          ],
+          "change": [
+            "Bind a new date for the 30-day compatibility review to a matching focused receipt and make its due state and follow-through actionable."
+          ],
+          "data_plan": "Read canonical task receipts and feedback. Leave the historic baseline unchanged and keep red and green controls in private validation outputs.",
+          "cleanup": "Keep the review scoped to compatibility and recovery. Reassess matched findings at the next comparable observation."
+        }
+      }
     }
   ]
 }

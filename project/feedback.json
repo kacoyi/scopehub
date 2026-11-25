@@ -6528,6 +6528,21 @@
         "prevention": "Keep the digested ordinary PR controls and require exact repair ancestry, complete producer clocks, matching outcomes and full warm cache evidence for any future disposition. The task-bound regression receipt and native provenance are indexed in contracts/reviews/2026-11-25-pr-timing-recurrences.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "compatibility-recovery-date-can-hide-missed-review",
+      "source": "Independent 30-day review calibration on protected source 6cf0d0dc87b344203ab194a2cd047d36bf801f3c. The original due and date-only controls were retained in the private audit.",
+      "observation": "In a disposable baseline fixture the compatibility and recovery review was due November 9. A date-only change postponed attention to December 25 while ordinary project validation and history both passed. This reproduces an inspection gap in the workflow.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
