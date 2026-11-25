@@ -276,6 +276,26 @@
       "requested_at": "2026-11-25T20:01:13.283136+00:00",
       "request_id": "1214b253b9aa77ab54eb6a97e79999d0ed27bcc5a635a79c601aec5d9132c7a4",
       "evidence_sha256": "7aea2044aad5f9f4a1f8b448eda0eb818290f7f6631136a86905a2445a95dfe4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-136 0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "scope": "APPROVE M0-136 0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "observation": "The M0-103 intake recorded different original file hashes for the LF and CRLF transcripts and assigned both the same normalized response ID.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "5b6a3a28619381dfdc04d4d7f6b3da7985a3092f2eba1a854369569025b56fc3",
+      "response_id": "50cbafd438708f4798c6cbcba54c27fd6b719229b971f3e931afd83307e30799",
+      "response_sha256": "f65154216cc310100e62a5a9ddb72c333286dd5a71d8b8461edc5cbe84e4a24e",
+      "legacy_response_sha256": "8e3619319b1360114f7e18a2248d8399178a8df8b1e883e16239a7c66bba91a4",
+      "observation_body_sha256": "38033b727a54644fc9c936ea93da55c061e7cd753081d9d3527f5376bc95a507",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b073f523c1887d09348bfd7e5a5213b",
+        "timestamp": "2026-11-25T20:04:43.984Z"
+      },
+      "supersedes": "1214b253b9aa77ab54eb6a97e79999d0ed27bcc5a635a79c601aec5d9132c7a4",
+      "evidence_sha256": "7eef5d230a547e1c77276e6d3252b064cdcd2f49a132cc3a76dbddcab4083e68"
     }
   ]
 }
