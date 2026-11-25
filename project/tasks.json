@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-124",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -22824,7 +22824,7 @@
       "id": "M0-124",
       "title": "Bound indicator read observations by the admission deadline",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-123"
       ],
@@ -22851,10 +22851,15 @@
         "indicator-declarative-preview",
         "workspace-timeframe"
       ],
-      "evidence": [],
-      "next_action": "Record exact-source red controls through the loopback read probe and the real fixture snapshot observer. Share the existing signal across the wait, verify cleanup and run combined Chromium and canonical task checks.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-124-ddb7ec94f8369b42.json",
+          "sha256": "8b6ceefb30e583aced1e2417f868df23fece11b1ed063bcdacc9c7958800f88e"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Canonical Linux run 20261125T090238.439791Z-34a6bf84 on 58191c3e15946cf2755a1edee23c04a6b00dbabd passed all four task checks and all 63 workspace cases. On the exact focused source, a 500 ms budget with late and withheld drain settled in 501 ms with the same HTTP 429 refusal. Explicit cancellation returned its original error in 3 ms. The observer exited with no remaining wait listener in each case. The admitted and nonretryable controls returned once and the arbitrary observer error retained its identity. The real obsolete indicator, reopened output, forwarding cleanup and PR 106 note scenarios passed. M0-122 and M0-123 retain their own acceptance and receipts.",
       "plan": {
         "outcome": "A stalled snapshot observation finishes within the indicator admission read budget and supplies the triggering refusal or caller cancellation.",
         "change_types": [

@@ -6343,7 +6343,7 @@
       "source": "Astra Standard repeat review of M0-123 source 75aca5612da59e6c4b415aee0e7b64edfff9171f, archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt (SHA-256 6924986d05b324f36249808fff84a530af3149bed1fe2616795925f10e7b21e1). Exact-base fixture regression at 2b20311687f1fabf734e5381fa48309c975e1d42: archives/observations/m0-124-indicator-observer/red-2b20311/SHA256SUMS (SHA-256 280d5864c42fd3b43e6d1173b9965d61e46c400cbfbd8164109d356c3fd414c7) and observed.json (SHA-256 bc5e9abd5415e6df7f73b964c7e53ac9cc5ee51f9cc7c7584e9949a60d9bcbfa).",
       "observation": "The actual probe awaited its undo observer after the first retryable HTTP 429. That callback started a separate 3-second drained wait. A drain after the read deadline settled in 3.807 seconds, and withholding drain settled in 4.206 seconds with an AbortError that omitted the refusal. An explicit caller cancellation at 161 milliseconds returned only at 813 milliseconds. The controls must separate deadline with late or withheld drain from early caller cancellation, and prove that admitted and nonretryable replies and arbitrary observer errors remain intact. With a 500 ms read budget the late case took 1013 ms and completed the wait after the late notification. The missing event took 3015 ms and lost the refusal. The explicit cancellation took 3016 ms and lost the original reason. The admitted and nonretryable controls each returned after one request. An unrelated observer error with the caller reason as its cause was replaced by that reason.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-124"
       ],
@@ -6351,7 +6351,11 @@
         "indicator-declarative-preview",
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The read probe started a single timeout, but the observer callback awaited an independent drained timeout. Its generic cause check could also turn an unrelated observer error into cancellation.",
+        "correction": "Pass the composed read signal into both real drain observers and the snapshot wait. Abort removes pending event subscriptions. Preserve the original reason of a caller abort and report the captured refusal on the internal deadline. Propagate other observer failures.",
+        "prevention": "The controlled loopback probe exercises late and withheld IPC, early caller cancellation, admitted and nonretryable replies, and an unrelated error sharing the caller abort as its cause. Each makes one request. In the two deadline cases the probe reports the retained HTTP 429 BUSY retryable fields. All three drain waiters clean their listeners. Exact source evidence: archives/observations/m0-124-indicator-observer/green-58191c3/observed.json (SHA-256 8f7e3598cdbb6e321334bab5e8df343775339dbce0585dc327a18a46770d4895)."
+      },
       "deferral_reason": null
     }
   ]
