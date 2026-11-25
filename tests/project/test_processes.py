@@ -815,7 +815,13 @@ time.sleep(30)
         self.assertFalse(escaped.exists())
 
     def test_cleanup_failure_cannot_become_a_pass(self):
-        with patch.object(processes, 'stop_tree', side_effect=OSError('cleanup fixture failure')):
+        stop_tree = processes.stop_tree
+
+        def unconfirmed(*args, **kwargs):
+            stop_tree(*args, **kwargs)
+            raise OSError('cleanup fixture failure')
+
+        with patch.object(processes, 'stop_tree', side_effect=unconfirmed):
             result = self.execute("print('root completed')")
         self.assertEqual('failed', result['status'])
         self.assertEqual('cleanup_failed', result['reason_code'])
@@ -946,3 +952,203 @@ class LogFinalizationTests(ProjectFixture):
         verified_retry = resolve_diagnostic(diagnostic_locator(retry_path), reports)
         self.assertEqual('passed', verified_retry['recorded_status'])
         self.assertEqual(resolved['source_commit'], verified_retry['source_commit'])
+
+
+class TerminalPublicationTests(ProjectFixture):
+    @unittest.skipUnless(sys.platform == 'linux', 'requires an owned Linux stdout pipe and POSIX SIGINT')
+    def test_single_sigint_releases_blocked_terminal_and_preserves_report(self):
+        import fcntl
+
+        reports = self.root / '.reports'
+        reports.mkdir()
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        by_id = {row['id']: row for row in catalog['checks']}
+        by_id['project-state']['command'] = [
+            '{python}', '-c', 'import os, sys, time; print("fixture command output", flush=True); '
+            'time.sleep(15) if os.environ.get("FIXTURE_EXIT") == "timeout" else None; '
+            'sys.exit(int(os.environ.get("FIXTURE_EXIT", "0")))',
+        ]
+        by_id['project-state']['timeout_seconds'] = 1
+        by_id['rust-lints']['command'] = ['{python}', '-c', 'print("selected later check")']
+        catalog['profiles']['fast'] = ['environment', 'project-state', 'rust-lints']
+        catalog_path.write_bytes(json_bytes(catalog))
+        driver = self.root / 'fixture-driver.py'
+        driver.write_text(f'''
+import os, signal, sys, time
+from pathlib import Path
+
+sys.path.insert(0, {str(Path(harness.__file__).resolve().parents[1])!r})
+from scripts import check, processes
+
+check.ROOT = Path.cwd()
+check.REPORTS = check.ROOT / '.reports'
+signal.signal(signal.SIGINT, signal.default_int_handler)
+emit = check.print_check
+stop_tree = processes.stop_tree
+
+def stop_fixture(process, *args, **kwargs):
+    result = stop_tree(process, *args, **kwargs)
+    if os.environ.get('FIXTURE_CLEANUP_FAILED') and process.args[-1].endswith('int(os.environ.get("FIXTURE_EXIT", "0")))'):
+        raise OSError('fixture could not confirm cleanup')
+    return result
+
+def gated_emit(record):
+    stage = os.environ.get('FIXTURE_BLOCK')
+    target = record.get('id') == 'project-state'
+    at_stage = (stage == 'terminal' and target and 'log_sha256' in record
+                or stage == 'tail' and target and 'log_tail' in record
+                or stage == 'summary' and 'report' in record
+                or stage == 'recovery' and 'failed_report' in record
+                or stage == 'running' and target and record.get('status') == 'running')
+    if at_stage:
+        (check.REPORTS / 'terminal-ready').touch()
+        deadline = time.monotonic() + 8
+        while not (check.REPORTS / 'write-now').exists():
+            if time.monotonic() >= deadline:
+                raise AssertionError('fixture did not release console gate')
+            time.sleep(.01)
+    return emit(record)
+
+check.print_check = gated_emit
+processes.stop_tree = stop_fixture
+check.main()
+''', encoding='utf-8')
+        subprocess.run(['git', 'add', '.'], cwd=self.root, check=True, capture_output=True)
+        subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org',
+                        'commit', '-m', 'Disposable terminal publication controls'],
+                       cwd=self.root, check=True, capture_output=True)
+        latest = reports / 'test-report.json'
+        ready = reports / 'terminal-ready'
+        gate = reports / 'write-now'
+
+        def wait_until(predicate, message):
+            deadline = time.monotonic() + 6
+            while not predicate():
+                self.assertLess(time.monotonic(), deadline, message)
+                time.sleep(.01)
+
+        def healthy(argv):
+            outcome = subprocess.run(argv, cwd=self.root, capture_output=True, timeout=12, check=False)
+            self.assertEqual(0, outcome.returncode, outcome.stderr)
+            rows = [json.loads(line) for line in outcome.stdout.splitlines()]
+            self.assertIn('project-state', {row['id'] for row in rows if row.get('status') == 'passed' and 'id' in row})
+            self.assertIn('report', rows[-1])
+            return read_json(latest)
+
+        def original(report):
+            return reports / 'runs' / report['run_id'] / 'test-report.json'
+
+        lock = reports / 'unrelated.lock'
+        stopped = reports / 'unrelated-stop'
+        unrelated = subprocess.Popen([sys.executable, '-c', '''
+import fcntl, time
+from pathlib import Path
+with open('.reports/unrelated.lock', 'w') as handle:
+    fcntl.flock(handle, fcntl.LOCK_EX)
+    Path('.reports/unrelated-ready').touch()
+    deadline = time.monotonic() + 30
+    while not Path('.reports/unrelated-stop').exists() and time.monotonic() < deadline:
+        time.sleep(.02)
+'''], cwd=self.root)
+        self.addCleanup(unrelated.wait, timeout=5)
+        self.addCleanup(stopped.touch)
+        wait_until((reports / 'unrelated-ready').exists, 'the independent fixture did not acquire its lock')
+
+        cases = [
+            (('--task', 'M0-001'), '0', 'terminal', False, 'interrupted', 0),
+            (('--profile', 'fast'), '23', 'tail', False, 'interrupted', 23),
+            (('--task', 'M0-001'), 'timeout', 'terminal', False, 'interrupted', None),
+            (('--profile', 'fast'), '0', 'terminal', True, 'cleanup_failed', None),
+            (('--task', 'M0-001'), '0', 'summary', False, None, 0),
+            (('--profile', 'fast'), '23', 'recovery', False, None, 23),
+            (('--task', 'M0-001'), '0', 'running', False, 'interrupted', None),
+        ]
+        for entry, outcome, stage, cleanup_failed, expected, exit_code in cases:
+            with self.subTest(entry=entry, outcome=outcome, stage=stage, cleanup_failed=cleanup_failed):
+                ready.unlink(missing_ok=True)
+                gate.unlink(missing_ok=True)
+                argv = [sys.executable, '-B', str(driver), *entry]
+                prior = healthy(argv)
+                original_prior = original(prior).read_bytes()
+                self.assertEqual(original_prior, latest.read_bytes())
+                before = {p.name for p in (reports / 'runs').iterdir()}
+                read_fd, write_fd = os.pipe()
+                env = dict(os.environ, FIXTURE_EXIT=outcome, FIXTURE_BLOCK=stage)
+                if cleanup_failed:
+                    env['FIXTURE_CLEANUP_FAILED'] = '1'
+                try:
+                    capacity = fcntl.fcntl(write_fd, fcntl.F_SETPIPE_SZ, 4096)
+                    with subprocess.Popen(argv, cwd=self.root, env=env, stdout=write_fd,
+                                          stderr=subprocess.PIPE, start_new_session=True) as caller:
+                        try:
+                            wait_until(ready.exists, 'completed check did not reach terminal console output')
+                            os.set_blocking(read_fd, False)
+                            transcript = os.read(read_fd, capacity)
+                            self.assertIn(b'"status": "running"', transcript)
+                            if stage != 'running':
+                                self.assertIn(b'"id": "project-state", "status": "running"', transcript)
+                            self.assertEqual(capacity, os.write(write_fd, b'F' * capacity))
+                            gate.touch()
+                            wait_until(lambda: any(name in Path(f'/proc/{caller.pid}/wchan').read_text()
+                                                   for name in ('pipe_write', 'poll', 'wait_for_space')),
+                                       'caller did not block in its owned console')
+                            if stage in ('summary', 'recovery'):
+                                published = latest.read_bytes()
+                                self.assertNotEqual(original_prior, published)
+                                self.assertEqual(published, original(json.loads(published)).read_bytes())
+                            caller.send_signal(signal.SIGINT)
+                            try:
+                                finished = caller.wait(timeout=4)
+                            except subprocess.TimeoutExpired:
+                                new_id, = {p.name for p in (reports / 'runs').iterdir()} - before
+                                self.fail(f'SIGINT did not release the console. '
+                                          f'Original report present: {(reports / "runs" / new_id / "test-report.json").exists()}. '
+                                          f'Latest unchanged: {latest.read_bytes() == original_prior}.')
+                            self.assertEqual(1, finished, 'one SIGINT must finish without draining stdout')
+                            self.assertEqual(b'F' * capacity, os.read(read_fd, capacity))
+                        finally:
+                            if caller.poll() is None:
+                                caller.kill()
+                            caller.wait(timeout=5)
+                finally:
+                    os.close(read_fd)
+                    os.close(write_fd)
+
+                self.assertEqual(1, len({p.name for p in (reports / 'runs').iterdir()} - before))
+                failed_bytes = latest.read_bytes()
+                failed = json.loads(failed_bytes)
+                self.assertNotEqual(prior['run_id'], failed['run_id'])
+                status = 'passed' if stage == 'summary' else 'failed'
+                self.assertEqual(status, failed['status'])
+                self.assertEqual(failed_bytes, original(failed).read_bytes())
+                if stage in ('summary', 'recovery'):
+                    self.assertEqual(published, failed_bytes)
+                rows = {row['id']: row for row in failed['checks']}
+                row = rows['project-state']
+                self.assertEqual((status, expected, exit_code), (row['status'], row.get('reason_code'), row['exit_code']))
+                if stage == 'summary':
+                    self.assertEqual('passed', rows['rust-lints']['status'])
+                else:
+                    self.assertEqual('earlier_failure', rows['rust-lints']['reason_code'])
+                log = (self.root / row['log']).read_bytes()
+                self.assertEqual(hashlib.sha256(log).hexdigest(), row['log_sha256'])
+                if outcome == 'timeout':
+                    self.assertIn(b'Check stopped: timeout.', log)
+                if stage == 'running':
+                    self.assertIn(b'Check stopped: interrupted.', log)
+                    self.assertNotIn(b'fixture command output', log)
+                if cleanup_failed:
+                    self.assertIn(b'Process cleanup failed:', log)
+                with lock.open('rb') as handle:
+                    with self.assertRaises(BlockingIOError):
+                        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.assertIsNone(unrelated.poll())
+                retry = healthy(argv)
+                self.assertNotIn(retry['run_id'], (prior['run_id'], failed['run_id']))
+                self.assertEqual(original_prior, original(prior).read_bytes())
+                self.assertEqual(failed_bytes, original(failed).read_bytes())
+                for result, status in ((failed, status), (retry, 'passed')):
+                    verified = resolve_diagnostic(diagnostic_locator(original(result)), reports)
+                    self.assertEqual(status, verified['recorded_status'])
+                    self.assertIn('project-state', verified['verified_logs'])

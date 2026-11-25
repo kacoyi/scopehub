@@ -24920,7 +24920,8 @@
         "tests/project/test_processes.py",
         "project/tasks.json",
         "project/feedback.json",
-        "project/evidence"
+        "project/evidence",
+        "scripts/recovery.py"
       ],
       "decision_refs": [
         "0004",
@@ -24932,7 +24933,8 @@
         "Verify the task checks and preserve the existing Linux market supervisor and Windows job behavior through the same public execution entry.",
         "Require explicit supervisor confirmation of finished cleanup across parent SIGCHLD dispositions, and record a late interruption after bounded cleanup.",
         "Publish a bounded stable snapshot before digesting the ordinary log when Linux cleanup is unconfirmed. Keep the failed diagnosis and a verified retry independently resolvable.",
-        "Record an interrupt arriving during serial log finalization and preserve any existing cleanup failure. Retain the terminal row, durable run report and ordinary stop behavior."
+        "Record an interrupt arriving during serial log finalization and preserve any existing cleanup failure. Retain the terminal row, durable run report and ordinary stop behavior.",
+        "A real SIGINT at a blocked console result write promptly stops output without losing its terminal row, log digest, original and latest reports or independent retry."
       ],
       "checks": [
         "project-state",
@@ -24962,7 +24964,8 @@
           "Only the market recovery check requests the Linux subreaper. The ordinary localization launcher starts descendants in separate sessions, which survive process-group cleanup.",
           "The early command result currently substitutes for cleanup evidence when the parent automatically reaps the supervisor. A late SIGINT can escape the final wait.",
           "A residual inherited writer can still mutate the original log inode after unconfirmed cleanup.",
-          "The serial digest and terminal result phase currently has no interrupt handling after the check runner returns."
+          "The serial digest and terminal result phase currently has no interrupt handling after the check runner returns.",
+          "Console emission currently precedes admission of terminal rows and is not part of durable report publication."
         ],
         "risks": [
           {
@@ -24998,6 +25001,12 @@
           },
           {
             "failure": "An interrupt during log finalization loses the terminal result, overwrites a cleanup failure, or allows a later selected check to start.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A blocked console write drops a finished row, continues to later checks, or blocks again during tail, report summary or recovery output.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -25040,14 +25049,15 @@
             "Apply process-tree lifetime ownership at the Linux verification boundary that runs the affected commands.",
             "Separate command readiness from final cleanup confirmation, and complete bounded teardown after a late interruption.",
             "Detach the published diagnostic inode from unconfirmed Linux output writers while retaining the existing archive bindings.",
-            "Carry a serial finalization interrupt into the ordinary check result and run report."
+            "Carry a serial finalization interrupt into the ordinary check result and run report.",
+            "Handle blocked console interruption independently of row admission and persist the original and latest reports without relying on stdout."
           ],
           "data_plan": "No persisted product data changes. Exercise synthetic local listeners and retain the original check diagnostics.",
           "cleanup": "Release test-owned processes and compare port ownership against an independent live listener. Retain raw diagnostic and regression logs."
         }
       },
       "closure_reason": null,
-      "next_action": "Obtain independent review of the bounded Linux log snapshot and terminal interruption report, then retain ordinary native Windows verification.",
+      "next_action": "Reproduce interruptible terminal output on the exact reviewed and protected sources, then verify separate durable reports and the ordinary task.",
       "blocker": null,
       "evidence": [
         {

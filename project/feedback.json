@@ -7005,6 +7005,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "serial-check-sigint-on-blocked-terminal-output-drops-report",
+      "source": "Astra Standard t10k on 325b32e48b03c034f6080dc53909b9cf3e8e5944. Original: archives/observations/repo-hygiene-20261125/independent-final-m0-138-325b32e4/final-response.txt (SHA-256 f6984eb538dcf7d69ffb19894ddd6beb6f4ae5265dc17605a1bb5bc29d57c288). Original event SHA-256 099069354f40cdbbbc1dcc56a6b23c7468db5ad1a6767444df451fff89c225e8.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-138"
+      ],
+      "observation": "After the check had completed and its log had been hashed, a single SIGINT delivered while the terminal result write was blocked on a full 4 KiB stdout pipe left only the running row. The run report was absent and the latest report still referenced the preceding pass. The protected parent e2fc0a995de65253264e26c6d07f9adf9f9c2949 reproduced this boundary. The separate log-snapshot and digest-time interruption controls passed on the reviewed candidate.",
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

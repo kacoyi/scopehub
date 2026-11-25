@@ -3,11 +3,14 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import contextmanager
+from contextvars import ContextVar, copy_context
 from datetime import datetime, timezone
+from io import UnsupportedOperation
 import json
 import os
 from pathlib import Path
 import platform
+import select
 import shutil
 import signal
 import subprocess
@@ -90,11 +93,68 @@ WINDOWS_LANE_CHECKS = {
 }
 WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 CHECK_OUTPUT_LOCK = Lock()
+CHECK_CONSOLE = ContextVar('check_console', default=None)
+
+
+class CheckConsole:
+    def __init__(self):
+        self.interrupted = False
+        self.muted = False
+        self.cooperative = False
+
+    def write_line(self, line):
+        if sys.platform == 'linux':
+            try:
+                fd = sys.stdout.fileno()
+            except (AttributeError, UnsupportedOperation):
+                pass
+            else:
+                # Flush directly. TextIOWrapper can leave buffered bytes that
+                # would retry a full pipe again at interpreter shutdown.
+                pending = memoryview((line + '\n').encode('ascii'))
+                writable = select.poll()
+                writable.register(fd, select.POLLOUT)
+                while pending and not self.muted:
+                    if (self.cooperative or self.interrupted) and not writable.poll(0 if self.interrupted else 50):
+                        if self.interrupted:
+                            self.muted = True
+                        continue
+                    # Do not request more than the pipe can accept atomically.
+                    written = os.write(fd, pending[:select.PIPE_BUF])
+                    if not written:
+                        raise OSError('Console write made no progress')
+                    pending = pending[written:]
+                return
+        print(line, flush=True)
+
+    def emit(self, record):
+        try:
+            with CHECK_OUTPUT_LOCK:
+                if not self.muted:
+                    self.write_line(json.dumps(record))
+        except KeyboardInterrupt:
+            self.interrupted = self.muted = True
+        except OSError:
+            # The console is optional. Run evidence is written separately.
+            self.muted = True
+        return self.muted and self.interrupted
+
+
+@contextmanager
+def check_console():
+    if CHECK_CONSOLE.get() is not None:
+        yield
+        return
+    token = CHECK_CONSOLE.set(CheckConsole())
+    try:
+        yield
+    finally:
+        CHECK_CONSOLE.reset(token)
 
 
 def print_check(record):
-    with CHECK_OUTPUT_LOCK:
-        print(json.dumps(record), flush=True)
+    console = CHECK_CONSOLE.get() or CheckConsole()
+    return console.emit(record)
 
 
 @contextmanager
@@ -118,6 +178,7 @@ def defer_finalization_sigint():
             signal.signal(signal.SIGINT, signal.default_int_handler)
 
 
+@check_console()
 def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
     started = time.monotonic()
     executable = shutil.which(argv[0])
@@ -125,7 +186,9 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
         return {'id': name, 'status': 'blocked', 'command': argv, 'reason_code': 'executable_unavailable',
                 'reason': f'Executable unavailable: {argv[0]}'}
     log_path = run_dir / f'{name}.log'
-    print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout})
+    console = CHECK_CONSOLE.get()
+    if print_check({'id': name, 'status': 'running', 'timeout_seconds': timeout}):
+        cancel = lambda: True
     private = name in PRIVATE_CHECK_LOGS
     # Check launchers can leave the initial process group on Linux.
     exit_code, reason = run_logged([executable, *argv[1:]], cwd=ROOT, env=env,
@@ -154,9 +217,15 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
         record['reason_code'] = reason
     if interrupted_finalization:
         record['reason'] = 'Interrupted while finalizing check diagnostics.'
-    print_check(record)
-    if status == 'failed' and tail is not None:
-        print_check({'id': name, 'log_tail': tail})
+    if reason == 'interrupted' or interrupted():
+        console.interrupted = True
+    output_interrupted = print_check(record)
+    if not output_interrupted and status == 'failed' and tail is not None:
+        output_interrupted = print_check({'id': name, 'log_tail': tail})
+    if output_interrupted:
+        if reason != 'cleanup_failed':
+            record.update(status='failed', reason_code='interrupted')
+        record.setdefault('reason', 'Interrupted while publishing check output.')
     return record
 
 
@@ -194,6 +263,7 @@ def build_window(catalog, selected, environment, index):
 
 def run_overlapped(checks, env, run_dir, *, system):
     cancel = Event()
+    console = CHECK_CONSOLE.get() or CheckConsole()
     interrupted = False
 
     def request_stop(_signum, _frame):
@@ -201,6 +271,7 @@ def run_overlapped(checks, env, run_dir, *, system):
         # Let each lane observe the request inside its normal cleanup path.
         nonlocal interrupted
         interrupted = True
+        console.interrupted = True
 
     def cancelled():
         return interrupted or cancel.is_set()
@@ -218,9 +289,11 @@ def run_overlapped(checks, env, run_dir, *, system):
 
     results = {}
     handlers = {signum: signal.signal(signum, request_stop) for signum in (signal.SIGINT, signal.SIGTERM)}
+    token = CHECK_CONSOLE.set(console)
+    console.cooperative = True
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            python = executor.submit(run, checks[0])
+            python = executor.submit(copy_context().run, run, checks[0])
 
             def wait_for_python():
                 # Service the main-thread signal handler even after the other check has returned.
@@ -246,6 +319,8 @@ def run_overlapped(checks, env, run_dir, *, system):
         if interrupted and not any(result.get('reason_code') in STOP_REASONS for result in results.values()):
             raise KeyboardInterrupt
     finally:
+        console.cooperative = False
+        CHECK_CONSOLE.reset(token)
         for signum, handler in handlers.items():
             signal.signal(signum, handler)
     return results
@@ -301,6 +376,7 @@ def checked_session(project, run_dir, key, source):
     return observation
 
 
+@check_console()
 def main():
     started = time.monotonic()
     parser = argparse.ArgumentParser()
@@ -503,28 +579,35 @@ def main():
         ).stdout.splitlines()
     validate_model(ROOT, 'HarnessReport', report)
     contents = json.dumps(report, indent=2) + '\n'
-    original = run_dir / 'test-report.tmp'
-    original.write_text(contents, encoding='utf-8')
-    original.replace(run_dir / 'test-report.json')
-    latest = REPORTS / f'{run_id}.tmp'
-    latest.write_text(contents, encoding='utf-8')
-    latest.replace(REPORTS / 'test-report.json')
-    print(json.dumps({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
-                      'status': report['status'], 'source_unchanged': source_unchanged,
-                      'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')}), flush=True)
+    # Complete both disk publications before attempting final notification.
+    # Limit deferral to disk I/O, so the console can always be interrupted.
+    with defer_finalization_sigint() as interrupted_publication:
+        original = run_dir / 'test-report.tmp'
+        original.write_text(contents, encoding='utf-8')
+        original.replace(run_dir / 'test-report.json')
+        latest = REPORTS / f'{run_id}.tmp'
+        latest.write_text(contents, encoding='utf-8')
+        latest.replace(REPORTS / 'test-report.json')
+    console = CHECK_CONSOLE.get()
+    if interrupted_publication():
+        console.interrupted = True
+    print_check({'report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix(),
+                 'status': report['status'], 'source_unchanged': source_unchanged,
+                 'm0_complete': next(item['status'] == 'passed' for item in milestones if item['id'] == 'M0')})
     local_blocked = any(r['status'] == 'blocked' and project['checks'][r['id']]['platforms'] == 'all' for r in implemented)
     selection_blocked = bool(args.task or args.profile) and any(r['status'] != 'passed' for r in results if r['id'] in selected)
     exit_code = 1 if failed or local_blocked or selection_blocked or native_blocked or integration_blocked else 0
     if exit_code:
         recovery_command = f'pnpm project:recover --task {args.task} --save' if args.task else RECOVERY_COMMAND
-        print(json.dumps({'recovery_command': recovery_command,
-                          'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()}), flush=True)
-    raise SystemExit(exit_code)
+        print_check({'recovery_command': recovery_command,
+                     'failed_report': (run_dir / 'test-report.json').relative_to(ROOT).as_posix()})
+    raise SystemExit(exit_code or int(console.interrupted))
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as error:
-        capture_failure(ROOT, error, 'verification', argv=sys.argv[1:])
-        raise SystemExit(1) from error
+    with check_console():
+        try:
+            main()
+        except Exception as error:
+            capture_failure(ROOT, error, 'verification', argv=sys.argv[1:], emit=print_check)
+            raise SystemExit(1) from error
