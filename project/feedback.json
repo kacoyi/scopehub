@@ -7425,6 +7425,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-fixture-io-overwrites-readback-diagnostic",
+      "source": "Independent Astra Standard review of dc5be1ffdcfa6bff97c9f309ea171d054881fbfd, recorded by the authoritative M0-147 decision. Original event SHA-256 ae6da1b3005baf69d6f210a6455965fc0b2518048c8fc6b9545035035a8aa46f. Retained final archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt SHA-256 62690b5ef252673a61ac1cc33be5353cbcaf0642d1ed106a1b21af1981498d22.",
+      "observation": "The public synthetic leaf matrix reported raw ENOENT with an absolute fixture path when the profile was unavailable. In the independent combined control, the row 19 ACL revision readback diagnosis was replaced by row 0 cleanup EPERM with an absolute fixture path. The 24 expected ACL outcomes, bounded marker vocabulary and native deadline were independently preserved.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

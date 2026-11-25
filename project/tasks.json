@@ -25619,7 +25619,8 @@
         "Validate each known raw ACE layout before applying the legacy leaf filter. Match the real regular-file matrix for allowed, denied, callback and object entries. Reject malformed entries and any surviving unsupported grant.",
         "The selected ordinary Rust workspace check must execute the existing seven windows_handoff_probe parser tests, including malformed and oversized inert entry refusal. Retain those results separately from the 24 real Windows file comparisons selected by workspace-timeframe.",
         "Retain the existing subprocess diagnostic controls, cleanup, launch rotation and platform semantics. Verify the exact repair with native Windows and Linux reports and inspect the next protected push.",
-        "A native failure preparing the 24 synthetic leaf fixtures names the fixture and the bounded write, raw readback, or managed comparison reason. Retain the exact on-disk comparison and the later native witness assertion for each fixture."
+        "A native failure preparing the 24 synthetic leaf fixtures names the fixture and the bounded write, raw readback, or managed comparison reason. Retain the exact on-disk comparison and the later native witness assertion for each fixture.",
+        "Fixture creation and cleanup report only a bounded stage and an isolated fixture name. The first readback error remains primary if cleanup also fails, removal is attempted for every owned file, and an existing file is left intact."
       ],
       "checks": [
         "project-state",
@@ -25645,7 +25646,7 @@
           "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
         }
       ],
-      "next_action": "Obtain a native result on the named readback calibration before changing fixture representation. Keep the original deadline, independent descriptor checks, and separate Linux observation.",
+      "next_action": "Verify the bounded fixture creation, readback and cleanup diagnostics on the exact corrected source. Then calibrate the unchanged 24-row descriptor comparison and live handoff with an ordinary native Windows run.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25666,7 +25667,8 @@
           "tests/ubuntu-preview/workspace_test_handoff_leaf_acl.ps1",
           "crates/platform/src/workspace_acl/windows/tests.rs",
           "archives/runs/windows-change-45689952772-1/test-report.json",
-          "archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json"
+          "archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt"
         ],
         "hypotheses": [
           "A test-owned interpreter startup shares the probe deadline with reading the descriptor. The original report identifies deadline expiry, and records no internal stage. Compare independently measured native paths before assigning the cause.",
@@ -25715,6 +25717,12 @@
               "rust-contracts-workers",
               "workspace-timeframe"
             ]
+          },
+          {
+            "failure": "A raw fixture creation or cleanup error exposes an absolute profile path, or a cleanup rejection overwrites the first calibration diagnostic or abandons remaining owned fixtures. Exclusive creation must preserve a pre-existing file.",
+            "checks": [
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Keep the original probe and native reports recoverable, and revert a replacement that cannot demonstrate equivalent acceptance and rejection.",
@@ -25753,7 +25761,8 @@
           ],
           "change": [
             "Repair the verification path identified by the protected Windows incident and retain its native evidence.",
-            "Require the existing Rust workspace check alongside the real Windows handoff comparison. Keep the existing example test target and native harness dispatch."
+            "Require the existing Rust workspace check alongside the real Windows handoff comparison. Keep the existing example test target and native harness dispatch.",
+            "Report fixed fixture creation and cleanup stages while preserving the first independently checked result and attempting cleanup for every acquired synthetic file."
           ],
           "data_plan": "Use isolated synthetic profiles and existing private diagnostic archives. Report fixed outcomes without retaining identities, file contents or process arguments.",
           "cleanup": "Remove temporary observation code and obsolete verification duplication after equivalent native controls pass. Keep the original failed report and log."
