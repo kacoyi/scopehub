@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-145",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review the normal weekly timing and verify-maintenance path. Check exact current acquisition and same-pipeline qualification before history, full/browser-only/other-attempt/missing controls, fail-closed missing catalog, and historical publishing objects through the scheduled checkout. Use the retained Windows 804-second wall and 2467-second runner observation and preserve conditional maintenance ownership.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:05.278684+00:00",
+      "request_id": "b5cea64e694395b6d28d585140eaba6667392657dad6cc808a24282caca2d0c7",
+      "evidence_sha256": "5a680216e620dc8f5da046d9d9854106a28a5cf0c92c131c951182cd05a0be02"
+    }
+  ]
+}

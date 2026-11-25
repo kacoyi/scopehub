@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-130",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review preserved Windows producer and platform separation through project:timing. Recheck authenticated PR 84 aggregate and distinct producers, producer-only ineligibility, historical scoped intake, a real complete conflict, and malformed inputs. Verify its imported task/receipt and coexistence with protected review record classification.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:02.167799+00:00",
+      "request_id": "e2a21721a95e3bfd35bab9269827f15176aa21b692e31fb563769576532bc962",
+      "evidence_sha256": "d6b04b0af5a943c81713586edc4e5e857197f460d34730fbbd3573389ce31bf5"
+    }
+  ]
+}
