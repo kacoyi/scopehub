@@ -192,6 +192,7 @@ class VerificationScopeTest(unittest.TestCase):
             LEDGER: {'tasks': ['fixture']},
             'project/feedback.json': {'feedback': []},
             'project/evidence/M0-060-0123456789abcdef.json': {'task_id': 'M0-060'},
+            'contracts/reviews/task-decisions/M0-060.json': {'task_id': 'M0-060'},
         }
         for path, data in paths.items():
             self.write(path, data)
