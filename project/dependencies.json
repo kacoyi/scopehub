@@ -23,7 +23,7 @@
       "reviewed_ref": "v10.4.0",
       "observed_at": "2026-11-25",
       "source": "https://github.com/astral-sh/setup-uv/tree/1db35dd8eee11c5894872e0b383ae6c406cf738d",
-      "review": "The immutable release runs Node 24 on hosted Ubuntu and Windows. The setup and successful post bundles retain the exact uv version-file, Python 3.12, supplied Linux and Windows archive checksums, GitHub Releases download and existing cache settings. The new optional strict-checksum input defaults to false, preserving the existing tool-cache behavior and explicit checksum validation on download. The optional Windows Python junction repair is for cache-python; this workflow leaves that input disabled. The bundled runtime dependency undici moves from 8.10.0 to 8.11.0 under MIT. Workflow permissions remain contents:read."
+      "review": "The immutable release runs Node 24 on hosted Ubuntu and Windows. The setup and successful post bundles retain the exact uv version-file, Python 3.12, supplied Linux and Windows archive checksums, GitHub Releases download and existing cache settings. The new optional require-checksums input defaults to false, preserving the existing tool-cache behavior and explicit checksum validation on download. The optional Windows Python junction repair is for cache-python; this workflow leaves that input disabled. The bundled runtime dependency undici moves from 8.10.0 to 8.11.0 under MIT. Workflow permissions remain contents:read."
     },
     {
       "repository": "pnpm/action-setup",
