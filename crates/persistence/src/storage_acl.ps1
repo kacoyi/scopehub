@@ -144,6 +144,7 @@ try {
             $attributes = Get-StorageAttributes $file
             if ($null -ne $attributes) { Confirm-StorageAcl $file $attributes $false $true }
         }
+        [Console]::WriteLine($user.Value)
     }
     exit 0
 } catch {

@@ -157,7 +157,7 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     // same owner ACL that a launcher bootstrap file receives.
     let ordinary = profile.db();
     fs::write(&ordinary, b"temporary synthetic launch fixture").unwrap();
-    assert!(storage::open_path(&profile.0).unwrap().1);
+    assert!(storage::open_path(&profile.0).unwrap().main_len.is_some());
     fs::remove_file(&ordinary).unwrap();
 
     let writer = profile.open().unwrap();
@@ -334,8 +334,11 @@ impl Profile {
     }
 
     fn raw_connection(&self) -> Connection {
-        let (path, _) = storage::open_path(&self.0).unwrap();
-        Connection::open(path).unwrap()
+        let location = storage::open_path(&self.0).unwrap();
+        if location.main_len.is_none() {
+            storage::create_database(&location.database).unwrap();
+        }
+        Connection::open(location.database).unwrap()
     }
 
     fn binding() -> WorkspaceBinding {
@@ -359,6 +362,60 @@ impl Drop for Profile {
 fn integer_pragma(conn: &Connection, name: &str) -> i64 {
     conn.pragma_query_value(None, name, |row| row.get(0))
         .unwrap()
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_anchor_requires_its_owner_and_original_database_before_open() {
+    let profile = Profile::new();
+    let binding = || WorkspaceBinding {
+        profile_id: format!("desktop-development:{}", "a".repeat(64)),
+        workspace_id: "workspace".into(),
+    };
+    drop(SqliteWorkspace::open(&profile.0, binding()).unwrap());
+    let (writer, identity) = SqliteWorkspace::open_desktop_profile(&profile.0, binding()).unwrap();
+    assert_eq!(identity, binding().profile_id);
+    drop(writer);
+    let anchor_path = profile.0.join(storage::PROFILE_ANCHOR);
+    let anchor = fs::read_to_string(&anchor_path).unwrap();
+    let mut fields = anchor.lines();
+    let version = fields.next().unwrap();
+    let owner = fields.next().unwrap();
+    let foreign_owner = if owner.starts_with('a') { 'b' } else { 'a' };
+    let foreign_anchor = format!(
+        "{version}\n{}\n{identity}\n",
+        foreign_owner.to_string().repeat(64)
+    );
+    fs::write(&anchor_path, &foreign_anchor).unwrap();
+    let db = fs::read(profile.db()).unwrap();
+    for error in [
+        SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
+        SqliteWorkspace::open(&profile.0, binding()).err(),
+    ] {
+        assert_eq!(error, Some(OpenWorkspaceError::ProfileMismatch));
+    }
+    assert_eq!(fs::read(profile.db()).unwrap(), db);
+    assert_eq!(fs::read_to_string(&anchor_path).unwrap(), foreign_anchor);
+
+    fs::write(&anchor_path, &anchor).unwrap();
+    let retained = profile.0.join("retained.sqlite3");
+    fs::rename(profile.db(), &retained).unwrap();
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert!(!profile.db().exists());
+    assert_eq!(fs::read(&retained).unwrap(), db);
+
+    storage::create_database(&profile.db()).unwrap();
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert!(fs::read(profile.db()).unwrap().is_empty());
+    fs::remove_file(profile.db()).unwrap();
+    fs::rename(retained, profile.db()).unwrap();
+    assert!(SqliteWorkspace::open(&profile.0, binding()).is_ok());
 }
 
 #[test]
@@ -441,7 +498,7 @@ fn unknown_formats_are_rejected_without_changing_database_bytes_or_journal_mode(
         drop(connection);
 
         let before = fs::read(profile.db()).unwrap();
-        assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 1);
+        assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 2);
         assert!(matches!(
             profile.open(),
             Err(OpenWorkspaceError::UnsupportedFormat)
@@ -455,7 +512,7 @@ fn unknown_formats_are_rejected_without_changing_database_bytes_or_journal_mode(
                 assert_eq!(fs::metadata(wal_path).unwrap().len(), 0);
             }
         } else {
-            assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 1);
+            assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 2);
         }
     }
 }
@@ -1086,3 +1143,150 @@ mod folder_manifest_migration_tests;
 
 #[path = "folder_manifest_tests.rs"]
 mod folder_manifest_tests;
+
+#[cfg(any(target_os = "linux", windows))]
+fn desktop_binding(digest: char) -> WorkspaceBinding {
+    WorkspaceBinding {
+        profile_id: format!("desktop-development:{}", digest.to_string().repeat(64)),
+        workspace_id: "workspace".into(),
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_open_preserves_wal_when_main_is_empty_or_missing() {
+    for missing in [false, true] {
+        let profile = Profile::new();
+        let mutation = "UPDATE workspaces SET revision = 13";
+        let (writer, _) =
+            SqliteWorkspace::open_desktop_profile(&profile.0, desktop_binding('a')).unwrap();
+        writer.connection.execute(mutation, []).unwrap();
+        writer
+            .connection
+            .set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, true)
+            .unwrap();
+        drop(writer);
+        let wal = profile.0.join("workspace.sqlite3-wal");
+        let original = fs::read(&wal).unwrap();
+        assert!(!original.is_empty());
+        if missing {
+            fs::remove_file(profile.db()).unwrap();
+            fs::remove_file(profile.0.join(storage::PROFILE_ANCHOR)).unwrap();
+        } else {
+            fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(profile.db())
+                .unwrap();
+        }
+
+        let result = SqliteWorkspace::open_desktop_profile(&profile.0, desktop_binding('a'));
+        assert!(
+            fs::read(&wal).is_ok_and(|bytes| bytes == original),
+            "damaged main changed the retained WAL"
+        );
+        assert!(result.is_err(), "the damaged profile was admitted");
+        assert_eq!(profile.db().exists(), !missing);
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_open_allocates_an_independent_identity_at_the_vacated_path() {
+    let parent = Profile::new();
+    let original = parent.0.join("first");
+    let relocated = parent.0.join("relocated");
+    SqliteWorkspace::prepare_profile_root(&original).unwrap();
+    let (store, first) =
+        SqliteWorkspace::open_desktop_profile(&original, desktop_binding('a')).unwrap();
+    drop(store);
+    fs::rename(&original, &relocated).unwrap();
+    SqliteWorkspace::prepare_profile_root(&original).unwrap();
+    let (store, fresh) =
+        SqliteWorkspace::open_desktop_profile(&original, desktop_binding('a')).unwrap();
+    drop(store);
+    let (restored, retained) =
+        SqliteWorkspace::open_desktop_profile(&relocated, desktop_binding('b')).unwrap();
+    assert_eq!(retained, first);
+    assert_ne!(fresh, first);
+    drop(restored);
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&original, desktop_binding('a'))
+            .unwrap()
+            .1,
+        fresh
+    );
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_open_serializes_initial_identity_and_anchor_publication() {
+    let profile = Profile::new();
+    let early = storage::open_path(&profile.0).unwrap();
+    assert!(early.main_len.is_none());
+    let entered = std::sync::Barrier::new(3);
+    std::thread::scope(|scope| {
+        let (done, results) = std::sync::mpsc::channel();
+        for _ in 0..2 {
+            let entered = &entered;
+            let done = done.clone();
+            let root = &profile.0;
+            scope.spawn(move || {
+                entered.wait();
+                let result = SqliteWorkspace::open_desktop_profile(root, desktop_binding('a')).map(
+                    |(writer, identity)| {
+                        drop(writer);
+                        identity
+                    },
+                );
+                done.send(result).unwrap();
+            });
+        }
+        entered.wait();
+        assert!(
+            results
+                .recv_timeout(std::time::Duration::from_millis(60))
+                .is_err()
+        );
+        drop(early);
+        let identity = results.recv().unwrap().unwrap();
+        assert_eq!(results.recv().unwrap().unwrap(), identity);
+        assert_eq!(
+            SqliteWorkspace::open_desktop_profile(&profile.0, desktop_binding('a'))
+                .unwrap()
+                .1,
+            identity
+        );
+    });
+}
+
+#[cfg(windows)]
+#[test]
+fn desktop_open_refuses_ntfs_hard_links_before_sqlite() {
+    for name in [
+        "workspace.sqlite3",
+        "workspace.sqlite3-wal",
+        "workspace.sqlite3-shm",
+        "workspace.sqlite3-journal",
+        storage::PROFILE_ANCHOR,
+    ] {
+        let source = Profile::new();
+        let destination = Profile::new();
+        let file = source.0.join(name);
+        let linked = destination.0.join(name);
+        let original = b"synthetic retained bytes";
+        fs::write(&file, original).unwrap();
+        if name != "workspace.sqlite3" {
+            fs::write(source.db(), b"synthetic main").unwrap();
+            fs::write(destination.db(), b"independent synthetic main").unwrap();
+        }
+        assert!(storage::open_path(&source.0).is_ok());
+        fs::hard_link(&file, &linked).unwrap();
+        assert!(
+            storage::open_path(&destination.0).is_err(),
+            "accepted hard-linked {name}"
+        );
+        assert_eq!(fs::read(&file).unwrap(), original);
+        assert_eq!(fs::read(&linked).unwrap(), original);
+    }
+}

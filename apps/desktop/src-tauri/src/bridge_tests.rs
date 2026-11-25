@@ -1744,7 +1744,7 @@ async fn published_revision_listing_requires_the_local_window_and_profile() {
 #[cfg(any(target_os = "linux", windows))]
 #[tokio::test]
 async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancellation() {
-    use scopehub_application::REVOKE_LOCAL_IMPORT_REVISION;
+    use scopehub_application::{READ_LOCAL_IMPORT_SOURCE_ROW, REVOKE_LOCAL_IMPORT_REVISION};
     use std::fs;
 
     let fixture = ImportFixture::new();
@@ -1780,7 +1780,7 @@ async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancell
 
     let added = format!("{initial}000418,2026-11-20,4,8,3,6,21\n");
     fs::write(&csv, &added).unwrap();
-    let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, preview_input)
+    let shown = execute_import(&state, PREVIEW_LOCAL_IMPORT, preview_input.clone())
         .await
         .unwrap();
     publish["expected_sha256"] = shown["sha256"].clone();
@@ -1831,6 +1831,22 @@ async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancell
     );
     state.shutdown().await;
 
+    // A legacy installation has only the path-derived database identity.
+    let anchor = profile.join("workspace-dev").join("desktop-profile.v1");
+    fs::remove_file(&anchor).unwrap();
+    let relocated = fixture.0.join("relocated");
+    fs::rename(&profile, &relocated).unwrap();
+    let unregistered = state_with_local_profile(Some(&relocated));
+    assert_eq!(
+        execute_import(&unregistered, READ_LOCAL_IMPORT_REVISION, read.clone())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::INTERNALERROR
+    );
+    unregistered.shutdown().await;
+    fs::rename(&relocated, &profile).unwrap();
+
     let restarted = state_with_local_profile(Some(&profile));
     assert_eq!(
         execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read.clone())
@@ -1838,6 +1854,14 @@ async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancell
             .unwrap(),
         frozen
     );
+    let retained = json!({"version": 1, "revision_id": next["revision"]["revision_id"]});
+    let retained_chart = execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, retained.clone())
+        .await
+        .unwrap();
+    let source_row = json!({
+        "version": 1, "revision_id": retained["revision_id"],
+        "locator": retained_chart["bars"][1]["locators"][0],
+    });
     let other = state_with_local_profile(Some(&fixture.0.join("other-profile")));
     assert_eq!(
         execute_import(&other, READ_LOCAL_IMPORT_REVISION, read.clone())
@@ -1853,7 +1877,7 @@ async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancell
         read
     );
     assert_eq!(
-        execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read)
+        execute_import(&restarted, READ_LOCAL_IMPORT_REVISION, read.clone())
             .await
             .unwrap_err()
             .code,
@@ -1861,6 +1885,43 @@ async fn local_publication_keeps_the_prior_chart_after_changed_bytes_and_cancell
     );
     restarted.shutdown().await;
     other.shutdown().await;
+
+    assert!(anchor.is_file());
+    fs::rename(&profile, &relocated).unwrap();
+    let restored = state_with_local_profile(Some(&relocated));
+    assert_eq!(
+        execute_import(&restored, PREVIEW_LOCAL_IMPORT, preview_input)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::STALECONTEXT
+    );
+    fs::remove_file(csv).unwrap();
+    assert_eq!(
+        execute_import(&restored, READ_LOCAL_IMPORT_REVISION, retained)
+            .await
+            .unwrap(),
+        retained_chart
+    );
+    let raw = execute_import(&restored, READ_LOCAL_IMPORT_SOURCE_ROW, source_row)
+        .await
+        .unwrap();
+    assert_eq!(
+        raw["source_sha256"],
+        retained_chart["revision"]["source_sha256"]
+    );
+    assert_eq!(
+        raw["raw_fields"],
+        json!(["000418", "2026-11-20", "4", "8", "3", "6", "21"])
+    );
+    assert_eq!(
+        execute_import(&restored, READ_LOCAL_IMPORT_REVISION, read)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::PERMISSIONDENIED
+    );
+    restored.shutdown().await;
 }
 
 #[cfg(any(target_os = "linux", windows))]
@@ -3101,4 +3162,58 @@ async fn native_private_record_uses_the_bound_writer_and_survives_restart() {
     assert_eq!(snapshot(&reopened).await["workspace"]["revision"], 1);
     assert!(reopened.reads.lock().await.status().process_id.is_none());
     reopened.shutdown().await;
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn relocated_and_recreated_profiles_have_independent_synthetic_credential_namespaces() {
+    use scopehub_application::WorkspaceBinding;
+    use scopehub_persistence::SqliteWorkspace;
+    use scopehub_platform::model_credentials::OpenAiCredentials;
+    use std::fs;
+
+    let fixture = ImportFixture::new();
+    let original = fixture.0.join("workspace");
+    let relocated = fixture.0.join("relocated");
+    let open = |path: &std::path::Path, digit: char| {
+        SqliteWorkspace::open_desktop_profile(
+            path,
+            WorkspaceBinding {
+                profile_id: format!("desktop-development:{}", digit.to_string().repeat(64)),
+                workspace_id: "main".into(),
+            },
+        )
+        .unwrap()
+        .1
+    };
+    let credentials = OpenAiCredentials::session_only();
+    SqliteWorkspace::prepare_profile_root(&original).unwrap();
+    let old = open(&original, 'a');
+    let retained = credentials
+        .replace(&old, "synthetic-original-token".into())
+        .unwrap();
+    fs::rename(&original, &relocated).unwrap();
+
+    SqliteWorkspace::prepare_profile_root(&original).unwrap();
+    let fresh = open(&original, 'a');
+    assert_ne!(fresh, old);
+    assert_eq!(credentials.revision(&fresh).unwrap(), None);
+    let added = credentials
+        .replace(&fresh, "synthetic-second-token".into())
+        .unwrap();
+    assert_eq!(
+        credentials.revision(&fresh).unwrap().as_deref(),
+        Some(added.as_str())
+    );
+    assert_eq!(open(&relocated, 'b'), old);
+    assert_eq!(
+        credentials.revision(&old).unwrap().as_deref(),
+        Some(retained.as_str())
+    );
+    credentials.remove(&fresh).unwrap();
+    assert_eq!(credentials.revision(&fresh).unwrap(), None);
+    assert_eq!(
+        credentials.revision(&old).unwrap().as_deref(),
+        Some(retained.as_str())
+    );
 }

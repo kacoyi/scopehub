@@ -3682,13 +3682,81 @@
       "deferral_reason": null
     },
     {
+      "id": "profile-admission-after-relocation-review",
+      "source": "Independent Astra Standard at d89a332 and archives/runs/20261125T042136.288677Z-f883380f/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The reviewed profile opener discarded a retained synthetic WAL when the main file was empty, reused the relocated identity at the old path, and rejected a valid anchor after sampling earlier existence.",
+      "task_ids": [
+        "M5-005"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T042136.288677Z-f883380f",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
+        }
+      ]
+    },
+    {
+      "id": "profile-lock-inventory-stale",
+      "source": "Hosted dependency-review at archives/runs/20261125T040109.068237Z-3777721b/test-report.json and archives/runs/windows-change-45543738130-1/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "Hosted run 45543738130 failed dependency-review on Linux and Windows. The reviewed Cargo.lock added a dependency edge and the retained inventory still recorded the previous lock digest.",
+      "task_ids": [
+        "M5-005"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T040109.068237Z-3777721b",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
+        },
+        {
+          "run_id": "windows-change-45543738130-1",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
+        }
+      ]
+    },
+    {
+      "id": "profile-ntfs-hard-link-admission",
+      "source": "Independent Astra Standard at d89a332, Windows workspace admission review.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The reviewed NTFS admission used owner and DACL checks without checking the number of names for the same file handle. A relocated folder could share a SQLite main file or journal with the original. Run the new granted and denied handle checks on Windows, then verify the exact package under M5-001.",
+      "task_ids": [
+        "M5-005",
+        "M5-001"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "windows-installation"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
       "id": "same-user-profile-restore",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding relocated-local-profile",
       "severity": "minor",
       "status": "open",
       "observation": "A synthetic same-user profile reopened its frozen data at the original location. Moving the complete profile made it return INTERNAL_ERROR until moved back. A supported recovery or explicit rebind must preserve the original database and access boundaries.",
       "task_ids": [
-        "M5-001"
+        "M5-001",
+        "M5-005"
       ],
       "regression_checks": [
         "state-migrations",

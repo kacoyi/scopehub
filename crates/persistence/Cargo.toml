@@ -10,7 +10,11 @@ scopehub-application = { path = "../application" }
 scopehub-domain = { path = "../domain" }
 rusqlite = { version = "0.43.0", default-features = false, features = ["bundled"] }
 serde_json.workspace = true
+sha2 = "0.10"
 uuid.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1"
 
 [lints]
 workspace = true
