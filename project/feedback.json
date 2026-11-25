@@ -7273,6 +7273,41 @@
           "report_sha256": "40f50f064608fe13b174f31ade14f78b697b1da6c97714653cfa77bbd8ffd96b"
         }
       ]
+    },
+    {
+      "id": "market-interruption-expired-child-hides-live-match",
+      "source": "Independent Astra Standard (t10k) on 793c179994333b3c6f4fab6771fa6f4c31901940. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-151-793c1799/original-assistant-response.jsonl, SHA-256 916b2c73ab7db14c964200b0d4832668cb457c2374e5a01872dad6553176d03d; recorded via project:review in 4b276c464d2b43a5c1934e90f94794283c1f66d2.",
+      "observation": "Two legitimate live workers matched the same witness under separate owned bridges. Adding an expired child ahead of the second worker caused its entire bridge scan to be skipped, leaving a false unique selection. The review inspected selection only and reaped both bridges by closing their input.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-151"
+      ],
+      "regression_checks": [
+        "python-contracts-workers",
+        "python-types",
+        "market-worker-interruption"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "market-interruption-fixture-exposed-by-default-library",
+      "source": "Independent Astra Standard (t10k) on 793c179994333b3c6f4fab6771fa6f4c31901940. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-151-793c1799/original-assistant-response.jsonl, SHA-256 916b2c73ab7db14c964200b0d4832668cb457c2374e5a01872dad6553176d03d; recorded via project:review in 4b276c464d2b43a5c1934e90f94794283c1f66d2.",
+      "observation": "A default external crate could call MarketWorker::preview_interruption. The constructor selected a repository tests directory absent from the packaged crate. Hidden documentation did not constrain the build or the callable surface.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-151"
+      ],
+      "regression_checks": [
+        "rust-format",
+        "rust-contracts-workers",
+        "market-worker-interruption",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

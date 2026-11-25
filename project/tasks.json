@@ -25455,7 +25455,10 @@
         "apps/desktop/ui/ubuntu-preview.mjs",
         "project/tasks.json",
         "project/feedback.json",
-        "project/evidence"
+        "project/evidence",
+        "crates/worker-host/Cargo.toml",
+        "crates/worker-host/examples/history_bridge_interruption.rs",
+        "crates/worker-host/examples/common/history_bridge.rs"
       ],
       "decision_refs": [
         "0004",
@@ -25463,7 +25466,9 @@
       ],
       "acceptance": [
         "Both ordinary interruption journeys observe a confirmed partial, terminate exactly the admitted original synthetic worker, verify the replacement witness, replay through one subscription and preserve the frozen history. An ordinary later request works.",
-        "An absent, ambiguous, stale or decoy worker is refused without terminating unrelated processes. Portable controls exercise disposable subprocesses and bounded waits. The original hosted Windows outcome and passing companion controls remain recoverable."
+        "An absent, ambiguous, stale or decoy worker is refused without terminating unrelated processes. Portable controls exercise disposable subprocesses and bounded waits. The original hosted Windows outcome and passing companion controls remain recoverable.",
+        "Expiring one enumerated child cannot hide its live siblings. Inspect both bridges before claiming uniqueness; refuse inaccessible and ambiguous identities without signalling them.",
+        "An ordinary external Rust build cannot call the test-only worker constructor. The separate opt-in preview bridge runs the same interruption journey, while ordinary builds and finite playback use the default worker."
       ],
       "checks": [
         "project-state",
@@ -25480,7 +25485,7 @@
           "sha256": "dd5787d5d2359a8a8e346aecfe9aff46b6e4c6ea0e8c6a6219d8e0b7ffcbad71"
         }
       ],
-      "next_action": "Review the bounded Linux replay witness and verify the exact candidate on ordinary native Windows. Confirm both owned interruptions, the grouped frames and the later request.",
+      "next_action": "Verify the two independent corrective controls and the exact ordinary and opt-in preview entries, then retain the corrected source for independent review and native Windows verification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25493,7 +25498,8 @@
           "tests/ubuntu-preview/interrupt_owned_worker.py",
           "crates/worker-host/examples/history_bridge.rs",
           "python/worker_runtime/replay.py",
-          "archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json"
+          "archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-151-793c1799/final-response.txt"
         ],
         "hypotheses": [
           "The current mutation observer triggers asynchronously after the confirmed partial becomes visible. The worker emits the closing update independently and its bridge can reap it before the one-shot descendant scan. The failing native stream contains normal completion without any recovery frames. The original report does not identify the precise ordering of process exit and enumeration.",
@@ -25510,6 +25516,23 @@
             "failure": "A missing, ambiguous or stale process identity terminates a decoy or a subsequent request, or a blocked worker increases existing deadlines.",
             "checks": [
               "python-contracts-workers",
+              "market-worker-interruption",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "Skipping the rest of a bridge after an expired child presents a live ambiguous witness as unique. Exercise direct and redirected children, access refusal, and two disposable bridge processes without signalling either ambiguous worker.",
+            "checks": [
+              "python-contracts-workers",
+              "python-types",
+              "market-worker-interruption"
+            ]
+          },
+          {
+            "failure": "A feature unification or shared preview build places the test fixture in ordinary runtime or overwrites the ordinary executable. Check a default external compile, ordinary finite replay, separate opt-in executable and real Chromium recovery.",
+            "checks": [
+              "rust-format",
+              "rust-contracts-workers",
               "market-worker-interruption",
               "workspace-timeframe"
             ]
