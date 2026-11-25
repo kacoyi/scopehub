@@ -267,6 +267,15 @@
       },
       "supersedes": "81f4bf51aff40fa0c22fee23898e5fa5c0573bcae5630d97d00e16da9db98177",
       "evidence_sha256": "b8f650e39655e0bb7e0670e3d4884372706e0fb44c112b3ed3a9c4eb2696d41c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "scope": "Verify native newline fixture bytes against independent on-disk evidence, original and normalized response identities, literal-space controls and historical recorded decisions for M0-136.",
+      "supersedes": "dcf1aa3c57bed6163510bc3f6fe374276e901b49523f3d000060d5da163cfb6a",
+      "requested_at": "2026-11-25T20:01:13.283136+00:00",
+      "request_id": "1214b253b9aa77ab54eb6a97e79999d0ed27bcc5a635a79c601aec5d9132c7a4",
+      "evidence_sha256": "7aea2044aad5f9f4a1f8b448eda0eb818290f7f6631136a86905a2445a95dfe4"
     }
   ]
 }
