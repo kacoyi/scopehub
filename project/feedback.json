@@ -5668,6 +5668,21 @@
           "report_sha256": "a2e085cebc9e68548abe2867b906740299aea157dcfb59ee5762a8c5cf44e506"
         }
       ]
+    },
+    {
+      "id": "native-acl-inert-common-callbacks",
+      "source": "Astra Standard exact review of PR 84 head 986168fde54c102acc38b5498f89c12e30378610 against protected main 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Original copy .reports/m0-105-callback-ace/astra-pr84-986168f.txt (SHA-256 be03f0e618a969ce484d48a0b857a90448941a61f0eab97c21714232bd100d76). Microsoft .NET Framework InspectAce: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1094.",
+      "observation": "The native DACL type dispatch refused structurally valid common callback entries before applying the object-specific normalization. The managed descriptor discarded a zero-mask callback on a directory and an inherit-only callback on a regular file before the storage policy rejected remaining callbacks. The managed comparison also skipped effective callbacks instead of refusing them. The review confirmed the difference in source. It did not observe these descriptors on a Windows run.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

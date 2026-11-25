@@ -18,7 +18,7 @@ use std::{
 use windows_sys::Win32::{
     Foundation::{ERROR_ALREADY_EXISTS, ERROR_SUCCESS, GENERIC_ALL, LocalFree},
     Security::{
-        ACCESS_ALLOWED_ACE, ACE_HEADER, ACL, ACL_SIZE_INFORMATION, AclSizeInformation,
+        ACE_HEADER, ACL, ACL_SIZE_INFORMATION, AclSizeInformation,
         Authorization::{
             ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW,
             GetSecurityInfo, SDDL_REVISION_1, SE_FILE_OBJECT,
@@ -39,8 +39,10 @@ use windows_sys::Win32::{
     System::{
         Memory::LocalSize,
         SystemServices::{
-            ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE, SID_MAX_SUB_AUTHORITIES, SID_REVISION,
-            SYSTEM_ALARM_ACE_TYPE, SYSTEM_AUDIT_ACE_TYPE,
+            ACCESS_ALLOWED_ACE_TYPE, ACCESS_ALLOWED_CALLBACK_ACE_TYPE, ACCESS_DENIED_ACE_TYPE,
+            ACCESS_DENIED_CALLBACK_ACE_TYPE, SID_MAX_SUB_AUTHORITIES, SID_REVISION,
+            SYSTEM_ALARM_ACE_TYPE, SYSTEM_ALARM_CALLBACK_ACE_TYPE, SYSTEM_AUDIT_ACE_TYPE,
+            SYSTEM_AUDIT_CALLBACK_ACE_TYPE,
         },
         Threading::{GetCurrentProcess, OpenProcessToken},
         WindowsProgramming::DRIVE_FIXED,
@@ -246,6 +248,69 @@ enum Entry {
     Ancestor,
     Profile,
     StorageFile,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CommonAceKind {
+    Allow,
+    Deny,
+    AccessCallback,
+    Audit,
+}
+
+struct CommonAce<'a> {
+    kind: CommonAceKind,
+    flags: u32,
+    mask: u32,
+    sid: &'a [u8],
+}
+
+fn common_ace(bytes: &[u8]) -> Result<CommonAce<'_>, u8> {
+    let [
+        ace_type,
+        flags,
+        size_low,
+        size_high,
+        mask_0,
+        mask_1,
+        mask_2,
+        mask_3,
+        sid_and_data @ ..,
+    ] = bytes
+    else {
+        return Err(27);
+    };
+    let size = usize::from(u16::from_le_bytes([*size_low, *size_high]));
+    if size != bytes.len() || !size.is_multiple_of(size_of::<u32>()) {
+        return Err(27);
+    }
+    let kind = match u32::from(*ace_type) {
+        ACCESS_ALLOWED_ACE_TYPE => CommonAceKind::Allow,
+        ACCESS_DENIED_ACE_TYPE => CommonAceKind::Deny,
+        ACCESS_ALLOWED_CALLBACK_ACE_TYPE | ACCESS_DENIED_CALLBACK_ACE_TYPE => {
+            CommonAceKind::AccessCallback
+        }
+        SYSTEM_AUDIT_ACE_TYPE
+        | SYSTEM_ALARM_ACE_TYPE
+        | SYSTEM_AUDIT_CALLBACK_ACE_TYPE
+        | SYSTEM_ALARM_CALLBACK_ACE_TYPE => CommonAceKind::Audit,
+        _ => return Err(27),
+    };
+    let [revision, count, ..] = sid_and_data else {
+        return Err(27);
+    };
+    if !sid_fits(*revision, *count, sid_and_data.len()) {
+        return Err(27);
+    }
+    // Common ACEs can carry opaque data after the complete SID. Admission
+    // never interprets it or relies on a callback's condition to deny access.
+    let sid_size = 8 + usize::from(*count) * size_of::<u32>();
+    Ok(CommonAce {
+        kind,
+        flags: u32::from(*flags),
+        mask: u32::from_le_bytes([*mask_0, *mask_1, *mask_2, *mask_3]),
+        sid: &sid_and_data[..sid_size],
+    })
 }
 
 fn normalize_access_flags(kind: Entry, mut flags: u32, mask: u32) -> Option<u32> {
@@ -546,43 +611,40 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
             return Err(27);
         }
         let ace_room = allocation_room(dacl.cast(), info.AclBytesInUse as usize, entry);
-        if ace_room < size_of::<ACE_HEADER>() || !entry.cast::<ACE_HEADER>().is_aligned() {
+        if ace_room < size_of::<ACE_HEADER>() || !entry.cast::<u32>().is_aligned() {
             return Err(27);
         }
         // SAFETY: GetAce returned an aligned header within the ACL's used extent.
         let header = unsafe { &*entry.cast::<ACE_HEADER>() };
         let ace_size = usize::from(header.AceSize);
-        const SID_OFFSET: usize = std::mem::offset_of!(ACCESS_ALLOWED_ACE, SidStart);
-        if !(SID_OFFSET + 8..=ace_room).contains(&ace_size)
-            || !entry.cast::<ACCESS_ALLOWED_ACE>().is_aligned()
-        {
+        if !(size_of::<ACE_HEADER>()..=ace_room).contains(&ace_size) {
             return Err(27);
         }
-        let flags = u32::from(header.AceFlags);
-        let ace_type = u32::from(header.AceType);
-        let rank = match ace_type {
-            ACCESS_DENIED_ACE_TYPE => 0,
-            ACCESS_ALLOWED_ACE_TYPE => 1,
-            SYSTEM_AUDIT_ACE_TYPE | SYSTEM_ALARM_ACE_TYPE => continue,
-            _ => return Err(27),
-        };
-        // SAFETY: ordinary allow and deny ACEs share the aligned, bounded layout.
-        let (mask, sid) = unsafe {
-            let ace = &*entry.cast::<ACCESS_ALLOWED_ACE>();
-            (
-                ace.Mask,
-                (&raw const ace.SidStart).cast_mut().cast::<c_void>(),
-            )
-        };
-        // SAFETY: the ACE bounds the SID tail for the duration of this read.
-        let sid = unsafe { sid_text(sid, ace_size - SID_OFFSET) }.map_err(|_| 27)?;
+        // SAFETY: the ACE lies entirely within the live ACL allocation.
+        let bytes = unsafe { std::slice::from_raw_parts(entry.cast::<u8>(), ace_size) };
+        let CommonAce {
+            kind: ace,
+            flags,
+            mask,
+            sid,
+        } = common_ace(bytes)?;
+        // SAFETY: the parser limits the SID to its exact extent in the live ACE.
+        let sid = unsafe { sid_text(sid.as_ptr().cast_mut().cast(), sid.len()) }.map_err(|_| 27)?;
         let Some(flags) = normalize_access_flags(kind, flags, mask) else {
             continue;
+        };
+        let rank = match ace {
+            CommonAceKind::Deny => 0,
+            CommonAceKind::Allow => 1,
+            CommonAceKind::Audit => continue,
+            // The managed DACL drops inert entries before the workspace
+            // policy refuses callbacks that remain.
+            CommonAceKind::AccessCallback => return Err(27),
         };
         let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
         canonical &= rank >= previous_rank;
         previous_rank = rank;
-        if ace_type != ACCESS_ALLOWED_ACE_TYPE {
+        if ace == CommonAceKind::Deny {
             continue;
         }
         let applies_here = flags & INHERIT_ONLY_ACE == 0;

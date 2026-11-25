@@ -7,7 +7,9 @@ use std::{
 
 use super::*;
 use crate::workspace_acl::{check, dispatch_test, use_test_host};
-use windows_sys::Win32::Security::{PROTECTED_DACL_SECURITY_INFORMATION, SetFileSecurityW};
+use windows_sys::Win32::Security::{
+    ACCESS_ALLOWED_ACE, PROTECTED_DACL_SECURITY_INFORMATION, SetFileSecurityW,
+};
 
 #[test]
 fn ordinary_profile_chain_keeps_one_drive_and_rejects_ambiguous_names() {
@@ -50,6 +52,36 @@ fn sid_documented_header_and_subauthority_extent() {
 }
 
 #[test]
+fn common_ace_rejects_malformed_bounds_and_unknown_layouts_before_normalization() {
+    let mut bytes = [
+        9, 8, 52, 0, 0, 0, 0, 0, // Callback allow, inherit-only, zero access.
+        1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, // Everyone SID.
+        0x61, 0x72, 0x74, 0x78, 0xf8, 0x0a, 0, 0, // Conditional expression.
+        0, 0x54, 0, 0x69, 0, 0x74, 0, 0x6c, 0, 0x65, 0, 0x10, 4, 0, 0, 0, 0x56, 0, 0x50, 0, 0x80,
+        0, 0, 0,
+    ];
+    let ace = common_ace(&bytes).unwrap();
+    assert_eq!(ace.kind, CommonAceKind::AccessCallback);
+    assert_eq!(ace.sid, &bytes[8..20]);
+    assert_eq!(
+        normalize_access_flags(Entry::StorageFile, ace.flags, ace.mask),
+        None
+    );
+    assert_eq!(common_ace(&bytes[..51]).err(), Some(27));
+    bytes[2] = 51;
+    assert_eq!(common_ace(&bytes[..51]).err(), Some(27));
+    bytes[2] = 52;
+    bytes[9] = 15;
+    assert_eq!(common_ace(&bytes).err(), Some(27));
+    bytes[9] = 1;
+    // The known object-specific callback layout is outside this common parser.
+    bytes[0] = 11;
+    assert_eq!(common_ace(&bytes).err(), Some(27));
+    bytes[0] = 0xff;
+    assert_eq!(common_ace(&bytes).err(), Some(27));
+}
+
+#[test]
 fn managed_principal_order_preserves_order_dependent_pairs() {
     let user = user_order("S-1-5-21-10-20-30-1001").unwrap();
     let inherited = |omitted: &[u32], add_system: bool| {
@@ -80,7 +112,7 @@ impl Drop for Scratch {
     }
 }
 
-fn raw_access_entries(path: &Path, kind: Entry) -> Vec<(u32, u32)> {
+fn raw_access_entries(path: &Path, kind: Entry) -> Vec<(u32, u32, u32)> {
     let file = open_entry(path, kind).unwrap().unwrap();
     let mut dacl = null_mut();
     let mut descriptor = Allocation(null_mut());
@@ -111,19 +143,22 @@ fn raw_access_entries(path: &Path, kind: Entry) -> Vec<(u32, u32)> {
             assert!(!entry.is_null());
             // SAFETY: GetAce returned an ACE header within the live descriptor.
             let header = unsafe { &*entry.cast::<ACE_HEADER>() };
-            assert_eq!(u32::from(header.AceType), ACCESS_ALLOWED_ACE_TYPE);
             assert!(usize::from(header.AceSize) >= size_of::<ACCESS_ALLOWED_ACE>());
             assert!(entry.cast::<ACCESS_ALLOWED_ACE>().is_aligned());
-            // SAFETY: the fixture allow entry has the expected size and alignment.
+            // SAFETY: the fixture common entry has the expected size and alignment.
             let ace = unsafe { &*entry.cast::<ACCESS_ALLOWED_ACE>() };
-            (u32::from(header.AceFlags), ace.Mask)
+            (
+                u32::from(header.AceType),
+                u32::from(header.AceFlags),
+                ace.Mask,
+            )
         })
         .collect()
 }
 
 #[test]
-fn native_storage_matches_managed_ordinary_rules() {
-    use windows_sys::Win32::Storage::FileSystem::FILE_GENERIC_READ;
+fn native_storage_matches_managed_common_rules() {
+    use windows_sys::Win32::Storage::FileSystem::{FILE_GENERIC_READ, FILE_READ_DATA};
 
     use_test_host("workspace_acl::windows::tests::policy_worker");
     let parent = env::temp_dir().join(format!("scopehub-acl-split-{}", uuid::Uuid::new_v4()));
@@ -218,68 +253,102 @@ fn native_storage_matches_managed_ordinary_rules() {
     .unwrap();
     let inherited_entries = raw_access_entries(&inherited, Entry::Profile);
     assert_eq!(inherited_entries.len(), 1);
-    assert_ne!(inherited_entries[0].0 & INHERITED_ACE, 0);
+    assert_ne!(inherited_entries[0].1 & INHERITED_ACE, 0);
     roots.push((inherited, Entry::Profile, None));
 
-    for (name, kind, flags, raw_flags, mask, refusal) in [
-        ("directory-zero", Entry::Profile, "", 0, 0, None),
+    // Use a data-only mask so even a conditional deny does not interfere
+    // with the policy worker's READ_CONTROL handle.
+    let scopes = [
+        ("directory-zero", Entry::Profile, "", 0, 0, false),
         (
             "directory-inherit-only",
             Entry::Profile,
             "OIIO",
             OBJECT_INHERIT_ACE | INHERIT_ONLY_ACE,
-            read,
-            Some("shared-access"),
+            FILE_READ_DATA,
+            true,
         ),
-        ("file-zero", Entry::StorageFile, "", 0, 0, None),
+        ("file-zero", Entry::StorageFile, "", 0, 0, false),
         (
             "file-inherit-only",
             Entry::StorageFile,
             "OIIO",
             OBJECT_INHERIT_ACE | INHERIT_ONLY_ACE,
-            read,
-            None,
+            FILE_READ_DATA,
+            false,
         ),
         (
-            "file-shared",
+            "file-effective",
             Entry::StorageFile,
             "OI",
             OBJECT_INHERIT_ACE,
-            read,
-            Some("shared-access"),
+            FILE_READ_DATA,
+            true,
         ),
-    ] {
-        let directory = scratch.0.join(name);
-        let path = if kind == Entry::Profile {
-            let sddl = format!("O:{user}D:P(A;OICI;FA;;;{user})(A;{flags};0x{mask:x};;;WD)");
-            create_directory(&directory, &security_descriptor(&sddl).unwrap()).unwrap();
-            directory
-        } else {
-            check(&directory, true, 0).unwrap();
-            let path = directory.join("workspace.sqlite3");
-            fs::write(&path, b"synthetic ACL control").unwrap();
-            let sddl = format!("D:P(A;;FA;;;{user})(A;{flags};0x{mask:x};;;WD)");
-            let descriptor = security_descriptor(&sddl).unwrap();
-            let filename = wide(path.as_os_str()).unwrap();
-            // SAFETY: the protected descriptor and terminated file name remain live.
-            assert_ne!(
-                unsafe {
-                    SetFileSecurityW(
-                        filename.as_ptr(),
-                        DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
-                        descriptor.0,
-                    )
-                },
-                0,
-                "{name}: {}",
-                io::Error::last_os_error()
+    ];
+    let everyone = ";(Member_of {SID(S-1-1-0)})";
+    let ace_types = [
+        ("A", ACCESS_ALLOWED_ACE_TYPE, "", Some("shared-access")),
+        ("D", ACCESS_DENIED_ACE_TYPE, "", None),
+        (
+            "XA",
+            ACCESS_ALLOWED_CALLBACK_ACE_TYPE,
+            everyone,
+            Some("acl-entry"),
+        ),
+        (
+            "XD",
+            ACCESS_DENIED_CALLBACK_ACE_TYPE,
+            everyone,
+            Some("acl-entry"),
+        ),
+    ];
+    for (scope, kind, flags, raw_flags, mask, effective) in scopes {
+        for (ace, raw_type, condition, effective_refusal) in ace_types {
+            let name = format!("{scope}-{ace}");
+            let directory = scratch.0.join(&name);
+            let fixture_ace = format!("({ace};{flags};0x{mask:x};;;WD{condition})");
+            let owner_flags = if kind == Entry::Profile { "OICI" } else { "" };
+            let owner_ace = format!("(A;{owner_flags};FA;;;{user})");
+            let dacl = if matches!(ace, "D" | "XD") {
+                format!("D:P{fixture_ace}{owner_ace}")
+            } else {
+                format!("D:P{owner_ace}{fixture_ace}")
+            };
+            let path = if kind == Entry::Profile {
+                let descriptor = security_descriptor(&format!("O:{user}{dacl}")).unwrap();
+                create_directory(&directory, &descriptor).unwrap();
+                directory
+            } else {
+                create_directory(&directory, &private_descriptor(&user).unwrap()).unwrap();
+                let path = directory.join("workspace.sqlite3");
+                fs::write(&path, b"synthetic ACL control").unwrap();
+                let descriptor = security_descriptor(&dacl).unwrap();
+                let filename = wide(path.as_os_str()).unwrap();
+                // SAFETY: the protected descriptor and terminated file name remain live.
+                assert_ne!(
+                    unsafe {
+                        SetFileSecurityW(
+                            filename.as_ptr(),
+                            DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                            descriptor.0,
+                        )
+                    },
+                    0,
+                    "{name}: {}",
+                    io::Error::last_os_error()
+                );
+                path
+            };
+            let entries = raw_access_entries(&path, kind);
+            assert_eq!(entries.len(), 2, "{name}");
+            assert!(
+                entries.contains(&(raw_type, raw_flags, mask)),
+                "{name}: {entries:?}"
             );
-            path
-        };
-        let entries = raw_access_entries(&path, kind);
-        assert_eq!(entries.len(), 2, "{name}");
-        assert!(entries.contains(&(raw_flags, mask)), "{name}: {entries:?}");
-        roots.push((path, kind, refusal));
+            let refusal = if effective { effective_refusal } else { None };
+            roots.push((path, kind, refusal));
+        }
     }
 
     for (path, kind, refusal) in &roots {
@@ -321,21 +390,38 @@ fn native_storage_matches_managed_ordinary_rules() {
                 $directory = [IO.Directory]::Exists($path)
                 $acl = if ($directory) { [IO.Directory]::GetAccessControl($path) } else { [IO.File]::GetAccessControl($path) }
                 $raw = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
+                if ($null -eq $raw.DiscretionaryAcl -or $null -eq $raw.Owner) {
+                    [Console]::WriteLine('acl-read')
+                    continue
+                }
+                $allowedOwners = if ($directory) { @($user.Value) } else { $privatePrincipals }
+                if ($raw.Owner.Value -notin $allowedOwners) {
+                    [Console]::WriteLine('profile-or-file-owner')
+                    continue
+                }
                 $applies = $false
                 $inherits = $false
-                $shared = $false
+                $verdict = 'admitted'
                 foreach ($ace in $raw.DiscretionaryAcl) {
-                    if ($ace -is [Security.AccessControl.CommonAce] -and !$ace.IsCallback -and
-                        $ace.AceQualifier -eq [Security.AccessControl.AceQualifier]::AccessAllowed) {
-                        $shared = $shared -or ($ace.SecurityIdentifier.Value -notin $privatePrincipals)
-                        if ($ace.SecurityIdentifier -ne $user) { continue }
-                        $flags = [int]$ace.AceFlags
-                        $applies = $applies -or (($flags -band 8) -eq 0)
-                        $inherits = $inherits -or ((($ace.AccessMask -band $full) -eq $full) -and
-                            (($flags -band 3) -eq 3))
+                    if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) {
+                        $verdict = 'acl-entry'
+                        break
                     }
+                    if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
+                    if ($ace.SecurityIdentifier.Value -notin $privatePrincipals) {
+                        $verdict = 'shared-access'
+                        break
+                    }
+                    if ($ace.SecurityIdentifier -ne $user) { continue }
+                    $flags = [int]$ace.AceFlags
+                    $applies = $applies -or (($flags -band 8) -eq 0)
+                    $inherits = $inherits -or ((($ace.AccessMask -band $full) -eq $full) -and
+                        (($flags -band 3) -eq 3))
                 }
-                [Console]::WriteLine((!$shared -and $applies -and (!$directory -or $inherits)))
+                if ($verdict -eq 'admitted' -and (!$applies -or ($directory -and !$inherits))) {
+                    $verdict = 'owner-or-inheritance'
+                }
+                [Console]::WriteLine($verdict)
             }
             ",
         ])
@@ -368,7 +454,7 @@ fn native_storage_matches_managed_ordinary_rules() {
     let observations = String::from_utf8_lossy(&managed.stdout);
     let expected: Vec<_> = roots
         .iter()
-        .map(|(_, _, refusal)| if refusal.is_none() { "True" } else { "False" })
+        .map(|(_, _, refusal)| refusal.unwrap_or("admitted"))
         .collect();
     assert_eq!(observations.lines().collect::<Vec<_>>(), expected);
     eprintln!("The legacy managed descriptors gave the same directory and file decisions.");
