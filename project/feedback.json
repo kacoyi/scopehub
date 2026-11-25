@@ -7590,7 +7590,7 @@
       "id": "windows-committed-weekly-publishing-catalog-control",
       "source": "PR #122 ordinary run 45673372424 attempt 1. The Windows original is archives/runs/windows-change-45673372424-1/test-report.json; the python-contracts-workers log has SHA-256 98cbda7dbec4bb9fc97bb116a67af326c2203c2c29c21420e39da7b7fb609e2f.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "At the expected valid case in test_selection_comes_from_committed_publishing_catalog the native Windows test received a rejection from native_report_issue. Python ran 814 tests with this one failure and 65 skips. The same preview passed the Ubuntu required job; Windows core, recovery and browser producers passed. The positive and rejected samples must be distinguished on both platforms.",
       "task_ids": [
         "M0-148"
@@ -7605,7 +7605,11 @@
           "report_sha256": "dc1627a9659d1d966f36d7b6501ae6c99974efc1eda82747063c6ee28b6789b6"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Text-mode input to Git plumbing translated the fixture delimiters to CRLF on Windows, storing carriage returns in path names and hiding the committed checks catalog.",
+        "correction": "Write the Git tree fixture inputs as bytes and verify the resulting path, blob and publishing digest before evaluating the weekly sample.",
+        "prevention": "The ordinary Python suite exercises the corrected committed-catalog positive and the missing, extra and incorrect-digest controls. The guarded Windows run executes the case on its native Git implementation."
+      },
       "deferral_reason": null
     }
   ]
