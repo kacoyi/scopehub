@@ -6024,6 +6024,172 @@
       "deferral_reason": null
     },
     {
+      "id": "manual-task-dispatch-used-unrelated-unmerged-stack",
+      "source": "Authenticated manual task workflow 45488642757 and both original reports retained in archives/runs. Its independently verified sources, terminal clock and source comparison are indexed at archives/observations/m1-040-integrated-task-45488642757/index.json (SHA-256 e75ef6ffa30803404ad81b8b246dc746930973b56e92e52df5748ccc620e2c72).",
+      "observation": "M1-040 was independently reviewed at 89143f000974b8d79720878e3c19f88d17ea7cb1 on protected main c4f07b38ad8040de9ffc950b8e98de315d956958. The coordinator dispatched the task at 484d684e0ba996643f4af5899f0aa2149e0ba6f8 on the unrelated unmerged PR 84 stack. Both jobs passed for that stack, consuming 1535 seconds wall and 1987 runner-seconds. The execution and project definition fingerprints differ on the intended independent product source, so those receipts cannot validate its delivery. Existing checkout and dispatch commands did not check the reviewed task source and intended base together before submitting.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T211355.720964Z-844198c3",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "abaa1fd8083e7e9877e5bf4f7bedc7fa68f3973a94e008f3f7d3c9ac1ba00b5e"
+        },
+        {
+          "run_id": "20261124T211433.427400Z-cd91d53d",
+          "source_commit": "484d684e0ba996643f4af5899f0aa2149e0ba6f8",
+          "report_sha256": "b2ee4089d5490e0404f314bbab7e5553c78e48dfe8909ab49d70d8b7bf9483ed"
+        }
+      ],
+      "resolution": {
+        "cause": "Dispatch did not compare the checkout to the reviewed task and intended integration.",
+        "correction": "Compare the exact reviewed tree and base before an authenticated dispatch attempt.",
+        "prevention": "Replay the historical wrong M1-040 stack and the accepted independent source. Verify the admitted head and artifact checkouts in run 45554455415."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-preflight-history-error-without-result",
+      "source": "Independent read-only Astra Standard review of fc2d22a464453a9082de7211f207de674b888bc8. Full transcript at archives/observations/m0-106-dispatch-review/astra-fc2d22a.txt (SHA-256 0ec04a979009bc1d3552f46a64d24085fe12631fcdc1e5381547a07c5cda4d54).",
+      "observation": "An unavailable named dependency or an existing dependency outside the protected ancestry caused the local task dispatch CLI to exit with a traceback and no structured result. A shallow history check also escaped the same reporting boundary. None submitted a workflow.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Missing commits and unverifiable ancestry escaped the preflight error boundary.",
+        "correction": "Report invalid or unavailable revisions and shallow history as structured local failures.",
+        "prevention": "Exercise missing dependency objects, mismatched ancestry and shallow history before any authenticated call."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-ref-moves-after-preflight",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The authenticated ref reads and GitHub's branch resolution are separate operations.",
+        "correction": "Include the expected head and base in the request. Gate the matrix on the event commit and a fresh protected base observation, then pin checkout and evidence to the expected head.",
+        "prevention": "Move the ref after the final GET in the dispatch regression. Confirm the guard and both pinned jobs passed for dispatch ID 1e59bf0010ca4bea9fca87fd92e12988 in run 45554455415."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-unbound-dependency-id",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "Membership in the task ledger did not attribute the changes in an explicit stack.",
+        "correction": "Require scoped changes and a distinct committed task definition or a legitimate declared dependency.",
+        "prevention": "Replay the mismatched M0-002 pairing and the legitimate explicit pairing at the same Git source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-lost-response-obscures-acceptance",
+      "source": "Independent Astra PR 91 review, Herdr t109, of 0f48eb9d5f31eca17bf55c7a73ebd70b2170f465 on 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Retained transcript SHA-256 0a48af36a2d42a291282b911a9d6e11784736d38f9ed445f82642e07614a0363.",
+      "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The CLI treated a lost POST response as ordinary failure and discarded response details.",
+        "correction": "Expose an unknown outcome and a correlation ID without retrying. Retain the returned run ID and isolate guarded dispatch concurrency.",
+        "prevention": "Drop a response after one accepted POST, verify successful response handling, and correlate run 45554455415 with its dispatch ID and reviewed source."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-completed-dependency-scope-overlap",
+      "source": "Second independent Astra Standard review of PR 91 at a3111a7154d20f371e8360289ab446b3ded0ae20. Retained transcript SHA-256 9cac411231a930422335e887a982dd02fd66c556ee7c52fdcaca462160fa0d9d.",
+      "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "Shared scope and an older completed declaration could attribute unrelated changes to a stack.",
+        "correction": "Require a supplementary receipt for an already completed dependency and check that it covers the proposed source.",
+        "prevention": "Replay the M2-002 and M1-039 wrong associations and the matching single and stacked receipt cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dependency-receipt-source-identity-unverified",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "A receipt file digest authenticated its bytes without recomputing its recorded source from Git.",
+        "correction": "Recompute the execution-input digest and file count from the receipt's own commit and historical snapshot rules.",
+        "prevention": "Reject a replaced digest, altered count, incorrect exclusions or a missing commit before remote access. Preserve real M0-074, M0-082 and M0-083 controls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-cancelled-dependency-accepted",
+      "source": "Independent Astra Standard review of PR 91 at 0ad3f5517f400548f32865e91535aa72fd152def. Retained transcript SHA-256 4ab94a100a3aec73cf4e8e031bcfb893e5b2c07fb0e586a0be1c81f07a7ac1d3.",
+      "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": {
+        "cause": "The dependency preflight treated a cancelled record as unfinished.",
+        "correction": "Reject cancelled dependencies on the protected base or the proposed base.",
+        "prevention": "Exercise the lifecycle transitions at the CLI boundary, including the cancelled cases with zero authenticated calls."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-diagnostic-test-reads-retained-history",
+      "source": "The protected main fast harness failed with retained timing inputs. The original report and its Python test log are retained at archives/runs/20261125T070713.869495Z-0ac1dff5/test-report.json.",
+      "observation": "At protected main fb8497ec64d276c4c14e36e518ef242125f0a984 the fast profile failed its Python test suite with one failure among 721 cases and four skips. The Actions diagnostics regression expected jobs.json at the first position, but the checkout had already produced a diagnostic for M0-078-hosted-observations.json from retained timing files.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-121"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070713.869495Z-0ac1dff5",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "0440984abd12d6d38a8535ecd6a5625ae41d08b4838b45228411ddef14770e68"
+        }
+      ],
+      "resolution": {
+        "cause": "The test loaded developer timing history through ordinary path discovery and assumed that the explicit jobs error was first. The CLI already included the correct explicit error after retained diagnostics.",
+        "correction": "Exercise the same Actions path with an isolated temporary timing root and then with a synthetic saved diagnostic. Compare the exact diagnostic identities and errors without assuming output order.",
+        "prevention": "Retain assertions for the failing input, legacy path redaction and save refusal. The regression also requires the existing historical diagnosis. Re-run the complete fast profile against the six unchanged genuine timing files."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "verification-pr-windows-feedback-budget-recurrence-45475965426",
       "source": "Ordinary offline status at f5bb2aeeebfc3964b420a9ffef8cc459c7f1f5bb and authenticated automatic first-attempt pull requests 45444242059, 45459661035 and 45475965426. Verified originals and compact clocks are indexed in archives/observations/pr-timing-recurrences-f5bb2ae/observations.json (SHA-256 b08f606009ce0edc625fdf96cd7511d69afe4b13e7b5627f9e6db1837fc3fedc).",
       "observation": "Three successful comparable ordinary full warm Windows pull requests took 869, 910 and 917 seconds under the 900-second objective. The latter two breach the objective. Each original selected 35 check identities with 28 passes and seven expected unimplemented omissions. The observed runs include both three- and four-producer layouts. This is a new PR recurrence after the repaired PR cohort; the protected main-push finding remains independent.",
