@@ -6286,14 +6286,18 @@
       "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
       "observation": "Injected route.fulfill threw the original error and disposed the fetched response, but the awaiting test still waited for forwarded. The worker could interrupt the test before the route, service and profile followed their owning finally blocks. Forwarding and the intercepted browser request completion share a finite verification window. The local replay observed the exact injected error and disposed response with the original forwarding waiter pending.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-123"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Only successful forwarding settled the deferred result. A thrown route error disposed the response but left the test waiting.",
+        "correction": "Settle the captured forwarding result on success or failure and keep the original failure through disposal. Use one bound for forwarding and captured request completion. Distinguish an already cancelled Chromium request from an ordinary missing response.",
+        "prevention": "Inject the original error into a live Chromium route and an independent absent response. Verify exact error identity, removal of the owned route, release of the listener and profile removal. The ordinary workflow observes genuine cancellation. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
       "deferral_reason": null
     },
     {
@@ -6301,14 +6305,18 @@
       "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
       "observation": "An injected freePort rejection occurred after profile allocation and before the owning try block. The review counted one created profile and zero close calls. Reserve the port before preparing the profile and verify the real profile still closes after a later failure. The local acquisition replay counted one prepared profile and zero closes while the same injected port error propagated.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-123"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture created the profile before awaiting the port outside the owning finally.",
+        "correction": "Reserve the loopback port before acquiring the profile; keep the existing owning finally for later failures.",
+        "prevention": "Injected port rejection preserves the original error and prepares zero profiles. Both later forwarding failures remove each actual profile. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
       "deferral_reason": null
     },
     {
@@ -6316,14 +6324,18 @@
       "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
       "observation": "Repeated retryable 429 BUSY responses exhausted the probe timeout with only a boolean poll assertion. Both obsolete status and shared accepted-output probes need attempted request count and the last numeric HTTP status, BUSY code and retryability without response body or capability text. The local replay observed three retryable 429 attempts and verified the old diagnostic did not identify HTTP 429 or code BUSY.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-123"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The former boolean poll assertion retained no transport fields when the admission budget expired.",
+        "correction": "Keep the original absolute deadline and retry only the supported retryable HTTP 429 BUSY envelope. At expiry report the attempted count and last validated refusal fields. Preserve caller cancellation and return every other response to the assertion.",
+        "prevention": "The shared accepted-output probe sees repeated real HTTP 429 while the Rust snapshot stays held. Its bounded failure records the attempt count, HTTP 429, BUSY and retryability. The stale and malformed requests are returned after one attempt each; cancellation and reopened output are still checked. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
       "deferral_reason": null
     }
   ]

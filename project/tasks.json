@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-123",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -22721,7 +22721,7 @@
       "id": "M0-123",
       "title": "Preserve indicator fixture cleanup and admission diagnostics",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-122"
       ],
@@ -22748,10 +22748,15 @@
         "indicator-declarative-preview",
         "workspace-timeframe"
       ],
-      "evidence": [],
-      "next_action": "Reproduce the three review findings with scoped failure injection, repair only the fixture boundaries and capture the red and exact-source green evidence.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-123-206c7134639ae7c1.json",
+          "sha256": "4b54f7f3be5e06769a8f559430bfd17f152cb695a06ed7dc0c3dd5ca948fe7ce"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Canonical Linux run 20261125T084825.263828Z-3f3b6b69 on 75aca5612da59e6c4b415aee0e7b64edfff9171f passed all four task checks and all 62 workspace cases. The local Chromium injected error reaches its owning finally, including route removal, listener release and profile removal. Port failure prepared zero profiles. A held real Rust snapshot exhausted the shared output read budget with a safe refusal summary. The obsolete indicator and PR 106 decision-note cases passed on the same combined source. The original semantic stale and exact reopened output checks remain covered. M0-122 acceptance retains its original scope and receipt.",
       "plan": {
         "outcome": "Failures in the obsolete indicator fixture report their own cause and release owned resources, while a persistent admission refusal provides safe bounded diagnostics.",
         "change_types": [
