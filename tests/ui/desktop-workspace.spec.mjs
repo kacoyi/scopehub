@@ -801,7 +801,7 @@ test('a retryable admission rejection cannot disable authorized selection clear'
 });
 
 for (const order of ['before the focus snapshot', 'after the replacement is visible', 'with the same source confirmed']) {
-  test(`first saved-chart reopen fences a held reply ${order}`, async ({ page, browser, baseURL }, testInfo) => {
+  test(`first saved-chart reopen fences a held reply ${order}`, async ({ page }, testInfo) => {
     test.setTimeout(180_000);
     await buildPreview();
     await withProfile(async profile => {
@@ -850,15 +850,19 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
         const selectedBar = price.getByLabel('Selected bar');
         let peer;
         try {
+          let peerPage;
+          if (!order.startsWith('with the same')) {
+            peerPage = await page.context().newPage();
+            await nativeTransport(peerPage, { optedIn: true }, ordinary);
+          }
           await page.goto('/');
           await expect.poll(() => capturedFirst, { timeout: 8000 }).toBe(true);
           await expect(selectedBar).toHaveCount(0);
           const peerChangesSource = !order.startsWith('with the same');
           if (peerChangesSource) {
-            peer = await browser.newContext({ baseURL, viewport: { width: 1366, height: 900 } });
-            const window = await peer.newPage();
-            await nativeTransport(window, { optedIn: true }, ordinary);
-            await window.goto('/');
+            peer = peerPage;
+            const window = peerPage;
+            await window.goto('/', { timeout: 8000 });
             const peerChart = window.getByRole('region', { name: 'Price chart' });
             await expect(peerChart.getByLabel('Selected bar')).toContainText('C 44');
             await control(peerChart, 'Open published CSV').click();
