@@ -25138,6 +25138,113 @@
           "cleanup": "Retain a planned M0-141 until the first eligible ordinary protected main push is independently verified."
         }
       }
+    },
+    {
+      "id": "M0-143",
+      "title": "Reduce repeated Git reads in periodic maintenance verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-135"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An unchanged small fixture and ordinary maintenance verification entry show fewer redundant immutable Git lookups on the candidate than on the exact reviewed source, with matching positive and rejected results.",
+        "Retain candidate and accepted provenance, freshness across invocations, working-tree inputs, ref and symbolic-link handling, rejected ancestry and recovery. Keep required verification and native coverage.",
+        "Record authenticated PR and protected-main Windows baselines separately from controlled local measurements. Native candidate timing remains a separately observed outcome."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-143-78af6ad100d64fa6.json",
+          "sha256": "dd816fbb34934cf10f8e3ab41d2a94643cc24119768a8049a7aa259258105e4d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved 0ead2ee1c7fd7d14c987c52390bcfc4af56061ce. Six paired public status observations kept byte-identical output while reducing reads of the same committed delivery policy from six to one per invocation. Positive and rejected ancestry cases both used five fewer Git processes. Native candidate wall time remains a separate measurement.",
+      "plan": {
+        "outcome": "Ordinary maintenance verification produces the same decisions with fewer Git children for identical immutable input.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "Reviewed maintenance source and closure 3144e2e82313716664873ac559e36cd921874d9c.",
+          "scripts/project.py",
+          "tests/project/test_delivery.py",
+          "archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/pr115-periodic-transition-process-cost.json",
+          "Controlled status comparison: .reports/audit-20261125/m0-143-status-read-cost/paired/measurement.json (SHA-256 0d1d757baf6a6dabe43acc6fb5a521226977aedb5f43319105287d877df097fc). The original and paired baseline use identical fixture state and standard output. Implementation commit eec9ce0ad0abb1f7993a6bf7a843893139d9e0a4 changes only scripts/project.py."
+        ],
+        "hypotheses": [
+          "Status resolves exact comparison commits, then reads the same committed delivery policy to find missing rules and again to validate each rule. Historical policy and observation paths may have separate repeated exact-commit reads.",
+          "For three repetitions on each identical dirty fixture checkpoint, the accepted descendant status used 41 then 36 Git processes and the rejected reversed ancestry status used 42 then 37. The only changed Git argv was the fixed commit delivery blob read, reduced from six to one. Exit and standard output were byte-identical. Fixture preparation ran outside the count."
+        ],
+        "risks": [
+          {
+            "failure": "Reuse a mutable ref, ancestry result, working-tree file or candidate input across changing checkouts, or lose verified and rejected maintenance outcomes.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Trade correctness or required coverage for fewer calls, obscure a missing file or recovery path, or attribute unrelated Windows timing changes to the measured optimization.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the read reuse and retain the timing finding and exact original observations.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "No required-check selection or native workflow changes, replacement for Git, or inferred hosted recovery."
+          ],
+          "open_questions": [
+            "Ordinary Windows candidate effect remains unobserved. Common-case Windows timing changes are separate from the repeated Git reads measured locally."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Required coverage and all original evidence, candidate and approved source distinctions, ref resolution, dirty paths, ancestry direction and recovery."
+          ],
+          "change": [
+            "Reuse the parsed successful exact-commit delivery policy in this status invocation. Preserve the original Git command on a missing read and keep current and historical validation separate."
+          ],
+          "data_plan": "Retain exact sources, fixed fixture identities, command counts and matching verdicts with original raw results.",
+          "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
+        }
+      }
     }
   ]
 }
