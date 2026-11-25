@@ -36,12 +36,21 @@ def partition(inventory):
     if (not isinstance(inventory, list) or not all(isinstance(case, str) and len(case) > 2 for case in inventory)
             or len(inventory) != len(set(inventory))):
         raise ValueError('Python discovery has invalid or duplicate test IDs.')
-    # Keep whole modules and their class/module fixtures in the original order.
-    boundary = next((i for i, case in enumerate(inventory) if case.startswith(CUTOFF + '.')), 0)
+    # Unittest represents discovery errors and module skips as test cases of its own.
+    # Give them the original module's position and keep the original IDs in evidence.
+    modules = []
+    for case in inventory:
+        for prefix in ('unittest.loader._FailedTest.', 'unittest.loader.ModuleSkipped.'):
+            if case.startswith(prefix):
+                modules.append(case.removeprefix(prefix))
+                break
+        else:
+            modules.append(case.rsplit('.', 2)[0])
+    boundary = next((i for i, module in enumerate(modules) if module == CUTOFF), 0)
     if not boundary:
         raise ValueError('Windows Python discovery is missing its partition boundary.')
-    if any(case.rsplit('.', 2)[0] >= CUTOFF for case in inventory[:boundary]) or any(
-            case.rsplit('.', 2)[0] < CUTOFF for case in inventory[boundary:]):
+    if any(module >= CUTOFF for module in modules[:boundary]) or any(
+            module < CUTOFF for module in modules[boundary:]):
         raise ValueError('Windows Python discovery is not ordered by module at the partition boundary.')
     return dict(zip(LANES, (inventory[:boundary], inventory[boundary:]), strict=True))
 

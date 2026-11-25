@@ -520,6 +520,8 @@ class WindowsLaneTests(ProjectFixture):
             '    def test_skipped(self): pass\n', encoding='utf-8')
         (self.root / 'tests/project/test_verification_scope.py').write_text(
             'import os, unittest\n'
+            'if "SCOPEHUB_BROKEN_PYTHON_IMPORT" in os.environ:\n'
+            '    raise RuntimeError("rejected actual suffix import")\n'
             'class Second(unittest.TestCase):\n'
             '    def test_suffix(self):\n'
             '        self.assertNotIn("SCOPEHUB_BAD_PYTHON", os.environ, "rejected actual suffix fixture")\n',
@@ -554,6 +556,11 @@ class WindowsLaneTests(ProjectFixture):
         self.assertLess(raw.index('test_skipped ('), raw.index('test_suffix ('))
         self.assertIn('Ran 3 tests', raw)
         self.assertIn('OK (skipped=1)', raw)
+        parts = ci_artifacts.python_parts(self.reports, report, windows_python.LANES)
+        record, part_raw, manifest = parts[0]
+        parts[0] = ({**record, 'started_at': '2000-01-01T00:00:00+00:00'}, part_raw, manifest)
+        late, _ = ci_artifacts.combined_python(harness.load_project(self.root), report, parts)
+        self.assertEqual(('failed', 'timeout', None), (late['status'], late['reason_code'], late['exit_code']))
         serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
                                 capture_output=True, text=True, encoding='utf-8', check=True)
         self.assertEqual([line for line in serial.stderr.splitlines() if ' ... ' in line],
@@ -590,6 +597,15 @@ class WindowsLaneTests(ProjectFixture):
 
     def test_partitioned_python_rejects_failed_and_interrupted_parts(self):
         self.partition_fixture()
+        with patch.dict(os.environ, {'SCOPEHUB_BROKEN_PYTHON_IMPORT': '1'}):
+            serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
+                                    capture_output=True, text=True, encoding='utf-8')
+            code, discovery = self.run_harness('--ci-windows-lane', 'recovery')
+        self.assertEqual((1, 1), (serial.returncode, code))
+        self.assertIn('RuntimeError: rejected actual suffix import', serial.stderr)
+        part = discovery['windows_python']['recovery']
+        self.assertIn(b'RuntimeError: rejected actual suffix import', (self.root / part['log']).read_bytes())
+        shutil.rmtree(self.reports)
         self.produce()
         recovery = self.downloads / 'verification-windows-2-recovery'
         shutil.rmtree(recovery)
