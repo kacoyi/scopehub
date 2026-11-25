@@ -25281,7 +25281,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Retain the public terminal boundary reproduction and verify the original terminal and structured evidence on the corrected source before independent review.",
+      "next_action": "Verify the exact receipt bytes and normalized response identity on both fixture newline forms, retain the original native failure, and prepare the corrected source for independent superseding review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25298,7 +25298,9 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-136-d29a74cb/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-136-bce7aece/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-136-4481eab5/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-d4c2ed99/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-136-d4c2ed99/final-response.txt",
+          "tests/project/test_review_acceptance.py",
+          "archives/runs/windows-change-45686340341-1/test-report.json"
         ],
         "hypotheses": [
           "The prior closure qualified engineering execution correctly. The missing link is independent review at task acceptance, so the same green report cannot qualify the new transition by itself.",
@@ -25364,6 +25366,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A native text-mode fixture translates LF to CRLF and compares the receipt with unsaved bytes. Exercise the affected public review command with deliberately written LF and CRLF files, check the raw digest separately from response identity, and preserve rejection of altered observation text and distinction of literal whitespace.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the acceptance addition and retain original independently observed decisions and the known early-closure reproduction.",
@@ -25411,7 +25420,14 @@
           "data_plan": "Keep reviewed Git identity, exact task scope and a bounded reviewer-owned observation plus digest-checked provenance. Keep raw local transcripts private.",
           "cleanup": "Retain independently rejected decisions for recovery and keep source changes visibly pending until an independent approval matches. Review only the amended outcome if the task changes."
         }
-      }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686340341-1",
+          "source_commit": "ff2167962e02d8bf919b8ce8e3d5d098bffe650d",
+          "report_sha256": "980f9b48c34cf1db47f964de8a614aa5d8afe442f15681adf06b4c60d0da9594"
+        }
+      ]
     }
   ]
 }

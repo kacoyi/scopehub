@@ -7174,6 +7174,29 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-fixture-hashes-unsaved-newlines",
+      "source": "Ordinary Windows PR126 run 45686340341 attempt 1. Preview ff2167962e02d8bf919b8ce8e3d5d098bffe650d, reviewed head b8f33ee368249f62c531af86590dc2849cbcfc32. Original archives/runs/windows-change-45686340341-1/test-report.json. The complete native collection is archives/observations/repo-hygiene-20261125/pr126-native-original-45686340341/manifest.json with SHA-256 f92949cafdd1e947673104090a4049ad9b88bf5198301bcef36ab65356039503.",
+      "observation": "The Windows Python suite ran 831 tests and failed the first-prose and footer-shaped-prose subtests at the original_sha256 comparison. The fixture hashes the LF string before text-mode output, while receipt intake hashes actual file bytes. The Linux Python check passed on the same preview. The observed failure is the fixture comparison, and the exact-byte and normalized-identity cases need independent portable reproduction.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45686340341-1",
+          "source_commit": "ff2167962e02d8bf919b8ce8e3d5d098bffe650d",
+          "report_sha256": "980f9b48c34cf1db47f964de8a614aa5d8afe442f15681adf06b4c60d0da9594"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
