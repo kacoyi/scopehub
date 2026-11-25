@@ -26095,6 +26095,7 @@
       "scope": [
         "scripts/timing.py",
         "scripts/project.py",
+        "scripts/execution_inputs.py",
         ".github/workflows/review-verification-timing.yml",
         "tests/project/test_timing.py",
         "project/tasks.json",
@@ -26115,7 +26116,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Exercise the packaged weekly script under system Python and the locked project interpreter with the retained historical attempt, then trace the dependency required by substitute input verification.",
+      "next_action": "Independently review the standard-library execution-input boundary and its real weekly replay before accepting the correction.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26127,6 +26128,7 @@
           ".github/workflows/review-verification-timing.yml",
           "scripts/timing.py",
           "scripts/project.py",
+          "scripts/execution_inputs.py",
           "tests/project/test_timing.py",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt"
         ],
@@ -26156,6 +26158,7 @@
           "entrypoints": [
             "scripts/timing.py",
             "scripts/project.py",
+            "scripts/execution_inputs.py",
             ".github/workflows/review-verification-timing.yml",
             "tests/project/test_timing.py"
           ],

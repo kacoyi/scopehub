@@ -18,6 +18,7 @@ from typing import NamedTuple
 
 if __package__:
     from .doctor import tool_version
+    from .execution_inputs import committed_source_identity
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
         require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
@@ -26,6 +27,7 @@ if __package__:
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
 else:
     from doctor import tool_version
+    from execution_inputs import committed_source_identity
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
         require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
@@ -1445,14 +1447,9 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
 
 @lru_cache(maxsize=128)
 def committed_publishing_inputs(revision, *, root=ROOT):
-    # The task harness already owns the historical execution-input digest.
-    if __package__:
-        from .project import ProjectError, committed_source_identity
-    else:
-        from project import ProjectError, committed_source_identity
     try:
         return committed_source_identity(root, revision)['sha256']
-    except (ProjectError, ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
+    except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
         return None
 
 

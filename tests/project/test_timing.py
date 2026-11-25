@@ -1309,7 +1309,19 @@ class PRMainComparisonTests(unittest.TestCase):
                                        side_effect=lambda revision: snapshot(revision, root=self.root)))
         report = fast_report(20, 190)
         report['environment'].update(system='Windows', machine='AMD64')
+        # The weekly job runs without the locked project environment. Exercise the
+        # script import mode in a fresh interpreter with no site packages.
+        weekly = subprocess.run(
+            [sys.executable, '-I', '-S', '-c',
+             'import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); '
+             'from timing import committed_publishing_inputs; '
+             'print(committed_publishing_inputs(sys.argv[3], root=Path(sys.argv[2])))',
+             str(timing.ROOT / 'scripts'), str(self.root), publisher],
+            text=True, capture_output=True,
+        )
+        self.assertEqual(weekly.returncode, 0, weekly.stderr)
         published_digest = snapshot(publisher, root=self.root)
+        self.assertEqual(weekly.stdout.strip(), published_digest)
         newer_digest = snapshot(newer_head, root=self.root)
         self.assertIsNotNone(published_digest)
         self.assertIsNotNone(newer_digest)
