@@ -6485,6 +6485,72 @@
         "prevention": "The guarded Ubuntu suite passed all eleven subprocess controls. The guarded native Windows suite passed ten applicable controls and named the POSIX child-signal skip separately. The controls cover retained streams after success and a declared exit, reaping at a genuine deadline and both output buffer limits."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verification-windows-partial-cache-main-push-budget-overrun",
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "push",
+        "profile": "full",
+        "platform": "Windows"
+      },
+      "source": "Authenticated GitHub Actions first attempts. Exact original verification reports and complete logs resolve under archives/runs at the listed diagnostic identities. Archived official artifact metadata and original downloads are indexed by archives/observations/m0-127-128-windows-partial-originals/SHA256SUMS (SHA-256 055080058e66d3dad9d7e9e93cdb9bb7fa128b9dc4ee01f93ce118ff70654688). Cohort comparison: archives/observations/repo-hygiene-20261125/timing-audit-45589767633/decision.json (SHA-256 17a273472b751222c74abc4b6e93a50c9a0025390574414e50fb5a2a4b7717aa).",
+      "observation": "Two successful ordinary first-attempt full partial-cache Windows main pushes with matching selections breached 900 seconds: 45560649687 at 1078 seconds and 45589767633 at 1284 seconds, median 1181. Critical synchronous Cargo cache saves were 288 seconds on core and 356 seconds on browser respectively. The latest core save occupied 274 seconds concurrently. Fixed-clock projections without critical synchronous save time are 790 and 928 seconds. Those projections do not establish recovery. Measure a reduction and its effect on subsequent reuse, then retain a comparable ordinary partial-cache main push.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-127"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45560649687-1",
+          "source_commit": "11c75525871bdac2b12c0785b781892a4e1f5004",
+          "report_sha256": "5caa48dcf7ee2e98993e3d04b250fdf939b2b954a86b8b90b15ce3abdfb40007"
+        },
+        {
+          "run_id": "windows-change-45589767633-1",
+          "source_commit": "486b674755033668b7e41d9d6d095599b627687b",
+          "report_sha256": "87d66e0a3b5a30873da2f85541b3f85dccffa894d95a7dbcb63e4899f0f327e3"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "verification-windows-partial-cache-pr-budget-overrun",
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "pull_request",
+        "profile": "full",
+        "platform": "Windows"
+      },
+      "source": "Authenticated GitHub Actions first attempts. Exact original verification reports and complete logs resolve under archives/runs at the listed diagnostic identities. Archived official artifact metadata and original downloads are indexed by archives/observations/m0-127-128-windows-partial-originals/SHA256SUMS (SHA-256 055080058e66d3dad9d7e9e93cdb9bb7fa128b9dc4ee01f93ce118ff70654688). Cohort comparison: archives/observations/repo-hygiene-20261125/timing-audit-45589767633/decision.json (SHA-256 17a273472b751222c74abc4b6e93a50c9a0025390574414e50fb5a2a4b7717aa).",
+      "observation": "Two successful ordinary first-attempt full partial-cache Windows PR runs with matching selections breached 900 seconds: 45587200035 at 904 seconds and 45589849179 at 921 seconds, median 912.5. Both belong to one Cargo key transition. The critical producer was core for PR 100 and browser for PR 108, whose run began before the main seed finished. Neither PR synchronously saved the Windows Cargo cache. A specific single removable PR cost remains unproven. Follow naturally occurring comparable partial first attempts and exact-hit controls independently of the main-push correction.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-128"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45587200035-1",
+          "source_commit": "838c479386092dbc98f97bd47b5baf3144a28fcb",
+          "report_sha256": "ea61d3df2ebebab5a47d005685831efa076c1fe8a13eb522d8ca6802731f7af8"
+        },
+        {
+          "run_id": "windows-change-45589849179-1",
+          "source_commit": "c1ecb69dd3896a9b047501fb469821d4a241efca",
+          "report_sha256": "f461303d4fb42a167ed82133cd844274579c2009bdd7514330c1f35fc200960e"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
