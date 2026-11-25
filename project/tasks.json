@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-037",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -22055,7 +22055,7 @@
       "id": "M2-037",
       "title": "Keep deletion list retries separate from the next note action",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-036"
       ],
@@ -22083,10 +22083,15 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
-      "next_action": "Extend the existing two-tab Chromium control to lose two list replies, recover the third and open the new editor. Record both failures before changing the component, then qualify the exact source through the task harness.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-037-1cfe50c94b246ad5.json",
+          "sha256": "05ef23dbc71c02898f35e5c83ec97d4e2dbc0ae3c98a5a26e608ac8dd33e04fe"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Canonical Linux task run 20261125T074141.517766Z-70f6c326 at c34d67ff1fc44863874433842efa9f310c6fa2c2 passed all five required checks, including 60 workspace and 8 desktop transport cases. The archived real Chromium red reproduced both independent review findings. The green retained success through two lost list replies with the same list alert, cleared the alert after the third successful read, and cleared the old success on opening a new note. A single approved delete correlated with the unchanged deletion marker and empty peer list. Cancellation, definite refusal and unknown-result controls passed. The accepted M2-036 definition and receipt retain their recorded source and scope.",
       "plan": {
         "outcome": "The initiating user can distinguish a confirmed delete from its failed list delivery, retry reads without another mutation, and start the next editor with a current status.",
         "change_types": [

@@ -6054,14 +6054,18 @@
       "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses. Real Linux Chromium with the recorded regression patch on clean base fa15ea7dc0d606ad03d375afd6d63797a118ccdc. The retained red manifest is archives/observations/m2-037-note-notice/red-fa15ea7/SHA256SUMS (SHA-256 0906e664ac9aca84d127aaf41c9f31b5f936b506072a2ee414d29af73d37fc6e); wire, SQLite and UI observations are in archives/observations/m2-037-note-notice/red-fa15ea7/observed-deletion.json (SHA-256 7153d33c0f5d681e107d4fb54fc5347f671c778c7ffa4c1a46c0839dc6da1497).",
       "observation": "After one confirmed deletion, the first lost list response produced the list-refresh alert and retained success. A second lost list response from Reload decision notes replaced the refresh alert with The local workspace could not verify the result. The deletion was already verified and no additional deletion request was sent. A successful list read should clear the list alert and retain the confirmed result. The real two-tab Linux control reproduced both list alerts in that order. All three reads returned an empty list from the server, the first two replies were lost, and the third reached the browser. There was one successful-phase approval request, and the deletion marker and missing rows were identical before and after retries. The peer displayed the empty list without the initiating tab notice.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-037"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Reload decision notes used the operation failure descriptor after the post-commit list refresh had already established a separate read failure.",
+        "correction": "Use the same list refresh descriptor for an explicit list retry after a verified deletion. Keep the existing note target and operation failure descriptor for detail retries and unverified outcomes.",
+        "prevention": "Real Chromium received two list-specific alerts after two lost replies. The third read cleared the list alert, the initiating success and peer empty list persisted, and only one successful-phase approval was sent with the durable rows unchanged by retries. The known cancellation and unknown-result controls passed. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
+      },
       "deferral_reason": null
     },
     {
@@ -6069,14 +6073,18 @@
       "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses. Real Linux Chromium with the recorded regression patch on clean base fa15ea7dc0d606ad03d375afd6d63797a118ccdc. The retained red manifest is archives/observations/m2-037-note-notice/red-fa15ea7/SHA256SUMS (SHA-256 0906e664ac9aca84d127aaf41c9f31b5f936b506072a2ee414d29af73d37fc6e); wire, SQLite and UI observations are in archives/observations/m2-037-note-notice/red-fa15ea7/observed-deletion.json (SHA-256 7153d33c0f5d681e107d4fb54fc5347f671c778c7ffa4c1a46c0839dc6da1497).",
       "observation": "After the list recovered following a confirmed deletion, opening New decision note left the old Decision note deleted. status visible in the new editor. It remained until draft review. Opening an editor starts a new action, so retire the earlier notice at that user gesture while read-only retries retain it. The real two-tab Linux control observed the old status in the new editor after the third list read had cleared the alert. The draft was then discarded. No extra approved delete was sent and the stored deletion marker remained identical.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-037"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The new-note button opened its editor without clearing the previous action notice.",
+        "correction": "Clear the old notice when the user starts a new note. Keep the current notice during read-only recovery.",
+        "prevention": "The real Chromium case retains success until the new-note gesture, then observes the editor without the earlier delete notice. Discarding the draft leaves the deletion marker and empty peer list intact. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
+      },
       "deferral_reason": null
     }
   ]
