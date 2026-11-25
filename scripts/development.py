@@ -6,6 +6,7 @@ authority or upgrades archived evidence into current verification.
 
 from functools import cache
 import json
+import os
 from pathlib import Path
 
 if __package__:
@@ -240,12 +241,32 @@ def feedback_for_task(items, task_id):
                                              severity.get(entry[1]['severity'], 3)))
 
 
+def read_only_project_command(*arguments, source_commit=None):
+    """Render the repository-root command used by the read-only review role."""
+    python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+    command = ' '.join((python, '-B', 'scripts/project.py', *arguments))
+    return f'{command} --source {source_commit}' if source_commit is not None else command
+
+
+def bound_review_navigation(task_id, source_commit, current_commands):
+    context = ('context', task_id, '--phase', 'verify')
+    return {
+        'commands': [read_only_project_command(*context, '--detail', source_commit=source_commit),
+                     read_only_project_command(*context, source_commit=source_commit)],
+        'source_command': read_only_project_command('source', '"<path>"', '"<json-pointer>"',
+                                                    source_commit=source_commit),
+        'current_checkout_commands': current_commands,
+    }
+
+
 def feedback_source_command(index, source_commit=None):
-    command = f'pnpm project:source project/feedback.json /items/{index}'
-    return f'{command} --source {source_commit}' if source_commit else command
+    pointer = f'/items/{index}'
+    if source_commit is None:
+        return f'pnpm project:source project/feedback.json {pointer}'
+    return read_only_project_command('source', 'project/feedback.json', pointer, source_commit=source_commit)
 
 
-def diagnostic_commands(records):
+def diagnostic_commands(records, *, read_only=False):
     for record in records:
         locators = record.get('diagnostic_reports')
         for locator in locators if isinstance(locators, list) else ():
@@ -253,8 +274,11 @@ def diagnostic_commands(records):
                 validate_locator(locator)
             except DiagnosticArchiveError:
                 continue  # Historical rows can predate the current locator validation.
-            yield ('pnpm project:diagnostic resolve '
-                   f'{locator["run_id"]} {locator["source_commit"]} {locator["report_sha256"]}')
+            arguments = (locator['run_id'], locator['source_commit'], locator['report_sha256'])
+            if read_only:
+                yield read_only_project_command('diagnostic', 'resolve', *arguments)
+            else:
+                yield 'pnpm project:diagnostic resolve ' + ' '.join(arguments)
 
 
 def excerpt(text, limit, *, observation=False):
@@ -286,7 +310,7 @@ def task_launch_excerpt(task, linked_feedback, source_commit=None):
         resolution = item.get('resolution')
         if isinstance(resolution, dict) and resolution.get('cause'):
             finding['recorded_cause'] = excerpt(resolution['cause'], 210, observation=True)
-        original = next(diagnostic_commands((item,)), None)
+        original = next(diagnostic_commands((item,), read_only=source_commit is not None), None)
         if original:
             finding['original_diagnostic'] = original
             finding['archive_configuration'] = ARCHIVE_CONFIGURATION
@@ -319,7 +343,7 @@ def causal_context(task, linked_feedback, source_commit=None):
     for key, records in (('diagnostic_commands', (item for _, item in linked_feedback)),
                          ('related_task_diagnostics', (task,))):
         commands = []
-        for command in diagnostic_commands(records):
+        for command in diagnostic_commands(records, read_only=source_commit is not None):
             if command not in commands:
                 commands.append(command)
             if len(commands) == 3:
@@ -354,12 +378,18 @@ def focused_context(project, key, phase, *, source_commit=None):
         decisions.append(entry)
     items = project['feedback']['items']
     linked_feedback = feedback_for_task(items, key)
+    product_source = {'path': 'engineering-contract-v1.json', 'pointer': '/product'}
+    product = {'purpose': project['spec'].get('product', {}).get('purpose'), 'source': product_source}
+    if source_commit is None:
+        product['brief_command'] = 'pnpm project:brief'
+    else:
+        product['source_command'] = read_only_project_command(
+            'source', product_source['path'], product_source['pointer'], source_commit=source_commit,
+        )
     result = {
         'task': task,
         'phase': phase,
-        'product': {'purpose': project['spec'].get('product', {}).get('purpose'),
-                    'source': {'path': 'engineering-contract-v1.json', 'pointer': '/product'},
-                    'brief_command': 'pnpm project:brief'},
+        'product': product,
         'context_paths': list(dict.fromkeys([*plan.get('context', []), 'project/development.json'
                                            if development else 'project/delivery.json'])),
         'dependencies': [{'id': item, 'title': project['tasks'][item]['title'],
@@ -376,11 +406,12 @@ def focused_context(project, key, phase, *, source_commit=None):
         'policy_sources': [{'path': 'project/development.json', 'pointer': '/quality'}] if development else [],
         'source_command': 'pnpm project:source <path> <json-pointer>',
         'commands': ['pnpm project:impact', 'pnpm check:changed', f'pnpm check --task {key}',
-                     'pnpm project:doctor', 'pnpm check:fast',
-                     f'pnpm project:context {key} --detail', f'pnpm project:context {key} --phase verify'],
+                     'pnpm project:doctor', 'pnpm check:fast'],
         'limitations': ['Navigation is an index; inspect implementation and referenced rules.',
                         'Development collaboration does not specify embedded-AI interactions.'],
     }
+    if source_commit is None:
+        result['commands'] += [f'pnpm project:context {key} --detail', f'pnpm project:context {key} --phase verify']
     herdr = development.get('herdr')
     if herdr:
         result['development_host'] = {
@@ -390,12 +421,15 @@ def focused_context(project, key, phase, *, source_commit=None):
             'policy': {'path': 'project/development.json', 'pointer': '/herdr'},
             'launch': f'pnpm project:herdr {key} <implement|review|coordinate> --assignment "<scope>"',
         }
+        if source_commit is not None:
+            result['development_host']['launch_scope'] = 'Launches a role on the current checkout.'
         if 'reasoning_efforts' in herdr:
             result['development_host']['default_reasoning_effort'] = herdr['reasoning_efforts'][0]
     if linked_feedback or plan.get('hypotheses') or task.get('diagnostic_reports'):
         result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
     if phase in {'verify', 'handoff'} and herdr and task['status'] in {'planned', 'active', 'blocked'}:
-        review_launch = f'pnpm project:herdr {key} review --source <full-commit> --assignment "<scope>"'
+        review_commit = source_commit or '<full-commit>'
+        review_launch = f'pnpm project:herdr {key} review --source {review_commit} --assignment "<scope>"'
         result['review_handoff'] = {
             'launch': review_launch,
             'when': 'For a consequential caller, data or recovery change, send a clean active-task source to '
@@ -407,6 +441,8 @@ def focused_context(project, key, phase, *, source_commit=None):
                          'An additive receipt can cite the same reviewed source when the reviewed behavior '
                          'and task definition are unchanged. Keep the existing history and evidence checks.',
         }
+        if source_commit is not None:
+            result['review_handoff']['launch_scope'] = 'Launches on the current checkout after clean-source admission.'
         result['commands'].append(review_launch)
     if phase == 'verify':
         result['quality_review'] = development.get('quality', {}).get('review', [])
@@ -419,6 +455,8 @@ def focused_context(project, key, phase, *, source_commit=None):
                              'Inspect live CI and PR integration; merge and release need applicable authorization.']
         result['commands'] += ['pnpm project:checkpoint', 'pnpm project:ci',
                                'pnpm project:integration --pr <number>']
+    if source_commit is not None:
+        result.update(bound_review_navigation(key, source_commit, result['commands']))
     return result
 
 

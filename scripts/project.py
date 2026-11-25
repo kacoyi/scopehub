@@ -817,9 +817,13 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
 
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if __package__:
-        from .development import effective_decisions, focused_context
+        from .development import (
+            bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
+        )
     else:
-        from development import effective_decisions, focused_context
+        from development import (
+            bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
+        )
     project = load_project(root)
     key = task_id or project['ledger']['focus_task_id']
     if key not in project['tasks']:
@@ -827,10 +831,11 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     task = project['tasks'][key]
     if phase not in {'implement', 'verify', 'handoff'}:
         raise ProjectError(f'Unknown context phase: {phase}')
+    source_commit = getattr(root, 'commit', None)
     if not detail:
-        return focused_context(project, key, phase, source_commit=getattr(root, 'commit', None))
+        return focused_context(project, key, phase, source_commit=source_commit)
     decision_ids = effective_decisions(project, task)
-    return {
+    result = {
         'task': task,
         'development': project.get('development'),
         'context_paths': list(dict.fromkeys([*project['delivery']['context'], *task.get('plan', {}).get('context', [])])),
@@ -852,6 +857,13 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
                      'pnpm project:history --base <reviewed-commit>', f'pnpm project:record {key} --report <run-report>',
                      'pnpm project:readiness'],
     }
+    if source_commit is not None:
+        result['phase'] = phase
+        result.update(bound_review_navigation(key, source_commit, result['commands']))
+        linked_feedback = feedback_for_task(project['feedback']['items'], key)
+        if linked_feedback or task.get('plan', {}).get('hypotheses') or task.get('diagnostic_reports'):
+            result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
+    return result
 
 
 def checkpoint(root=ROOT):

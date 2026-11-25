@@ -4,6 +4,7 @@ from contextlib import chdir, redirect_stdout
 from io import StringIO
 import json
 import os
+import shlex
 import subprocess
 import tempfile
 from pathlib import Path
@@ -52,6 +53,14 @@ class DiagnosticReferenceTests(ProjectFixture):
                 project.main()
         return json.loads(output.getvalue())
 
+    def follow_review_command(self, command, *, replacements=None, exit_code=0):
+        arguments = shlex.split(command)
+        python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+        self.assertEqual([python, '-B', 'scripts/project.py'], arguments[:3], command)
+        substitutions = replacements or {}
+        return self.project_command(*(substitutions.get(argument, argument) for argument in arguments[3:]),
+                                    exit_code=exit_code)
+
     def test_bound_context_and_reopen_use_one_immutable_project_tree(self):
         spec_path = self.root / 'engineering-contract-v1.json'
         contract_path = self.root / 'contracts/contract.json'
@@ -69,6 +78,9 @@ class DiagnosticReferenceTests(ProjectFixture):
         path.write_bytes(json_bytes({'schema_version': '1.0', 'items': [first]}))
         reviewed = self.commit()
         second = {**first, 'observation': 'Changed worktree observation.'}
+        current_ledger = self.ledger()
+        earlier_action = task_by_id(current_ledger, 'M0-001')['next_action']
+        task_by_id(current_ledger, 'M0-001')['next_action'] = 'Observe the changed worktree action.'
         read_text = Path.read_text
 
         def transient_read(current, *args, **kwargs):
@@ -76,31 +88,73 @@ class DiagnosticReferenceTests(ProjectFixture):
                 return json_bytes({'schema_version': '1.0', 'items': [second]}).decode('utf-8')
             if current == contract_path:
                 return '{"purpose": "Stale working purpose."}'
+            if current == self.root / 'project/tasks.json':
+                return json_bytes(current_ledger).decode('utf-8')
             return read_text(current, *args, **kwargs)
 
         with patch.object(Path, 'read_text', transient_read):
             args = ('context', 'M0-001', '--phase', 'verify')
             working = self.project_command(*args)
             self.assertEqual([second], working['feedback'])
+            self.assertEqual('Observe the changed worktree action.', working['task']['next_action'])
             self.assertEqual('Stale working purpose.', working['product']['purpose'])
+            self.assertEqual('pnpm project:source <path> <json-pointer>', working['source_command'])
+            self.assertIn('pnpm project:context M0-001 --detail', working['commands'])
+            self.assertIn('pnpm project:context M0-001 --phase verify', working['commands'])
             for options in ((), ('--detail',)):
                 bound = self.project_command(*args, '--source', reviewed, *options)
                 self.assertEqual([first], bound['feedback'])
                 self.assertEqual(reviewed, bound['review_source'])
+                for detail in (False, True):
+                    with self.subTest(emitting_detail=bool(options), following_detail=detail):
+                        links = [command for command in bound['commands']
+                                 if 'context M0-001 ' in command and ('--detail' in command) == detail]
+                        self.assertEqual(1, len(links))
+                        followed = self.follow_review_command(links[0])
+                        self.assertEqual(reviewed, followed['review_source'])
+                        self.assertEqual([first], followed['feedback'])
+                        self.assertEqual(earlier_action, followed['task']['next_action'])
+                        self.assertEqual(detail, 'development' in followed)
+                with self.subTest(emitting_detail=bool(options), following='generic source'):
+                    self.assertIn('source_command', bound)
+                    template = bound['source_command']
+                    self.assertIn('"<path>" "<json-pointer>"', template)
+                    section = self.follow_review_command(template, replacements={
+                        '<path>': 'engineering-contract-v1.json', '<json-pointer>': '/product/purpose',
+                    })
+                    self.assertEqual(reviewed, section['source_commit'])
+                    self.assertEqual('Read the exact committed purpose.', section['value'])
+                route = bound.get('causal_investigation', {}).get('original_records', [])
+                with self.subTest(emitting_detail=bool(options), following='feedback'):
+                    self.assertEqual(1, len(route))
+                    full_record = self.follow_review_command(route[0]['command'])
+                    self.assertEqual(reviewed, full_record['source_commit'])
+                    self.assertEqual(first, full_record['value'])
+                with self.subTest(emitting_detail=bool(options), checking='command scope'):
+                    self.assertEqual(2, len(bound['commands']))
+                    self.assertTrue(all('context M0-001 ' in command for command in bound['commands']))
+                    self.assertIn('pnpm project:impact', bound['current_checkout_commands'])
                 if not options:
-                    self.assertEqual('Read the exact committed purpose.', bound['product']['purpose'])
-                    route = bound['causal_investigation']['original_records'][0]['command']
-                    self.assertTrue(route.endswith(f'/items/0 --source {reviewed}'))
+                    focused = bound
+                    with self.subTest(following='product source'):
+                        self.assertEqual('Read the exact committed purpose.', bound['product']['purpose'])
+                        self.assertNotIn('brief_command', bound['product'])
+                        product = self.follow_review_command(bound['product']['source_command'])
+                        self.assertEqual(reviewed, product['source_commit'])
+                        self.assertEqual({'purpose': 'Read the exact committed purpose.'}, product['value'])
 
         path.write_bytes(json_bytes({'schema_version': '1.0', 'items': [second]}))
-        dirty = self.project_command(*args, '--source', reviewed, exit_code=1)
+        repeat, = (command for command in focused['commands'] if '--detail' not in command)
+        dirty = self.follow_review_command(repeat, exit_code=1)
         self.assertIn('requires a clean checkout', dirty['error'])
         self.commit()
-        moved = self.project_command(*args, '--source', reviewed, exit_code=1)
+        moved = self.follow_review_command(repeat, exit_code=1)
         self.assertIn('does not match checkout HEAD', moved['error'])
-        reopened = self.project_command('source', 'project/feedback.json', '/items/0', '--source', reviewed)
-        self.assertEqual(reviewed, reopened['source_commit'])
-        self.assertEqual(first, reopened['value'])
+        with self.subTest(following='feedback after worktree changes'):
+            command = focused['causal_investigation']['original_records'][0]['command']
+            reopened = self.follow_review_command(command)
+            self.assertEqual(reviewed, reopened['source_commit'])
+            self.assertEqual(first, reopened['value'])
         current = self.project_command('source', 'project/feedback.json', '/items/0')
         self.assertEqual(second, current['value'])
 
@@ -118,6 +172,10 @@ class DiagnosticReferenceTests(ProjectFixture):
             (retained / log.name).write_bytes(log.read_bytes())
         locator = project.diagnostic_locator(original)
         args = ('diagnostic', 'resolve', locator['run_id'], locator['source_commit'], locator['report_sha256'])
+        self.change_task(diagnostic_reports=[locator])
+        reviewed = self.commit()
+        bound = self.project_command('context', 'M0-001', '--phase', 'verify', '--source', reviewed)
+        diagnostic, = bound['causal_investigation']['related_task_diagnostics']
         with patch.dict(os.environ, {'SCOPEHUB_ARCHIVE_ROOT': ''}):
             missing = self.project_command(*args, exit_code=1)
             self.assertIn('git config --local scopehub.archiveRoot', missing['error'])
@@ -126,6 +184,7 @@ class DiagnosticReferenceTests(ProjectFixture):
             verified = self.project_command(*args)
             self.assertEqual(locator['report_sha256'], verified['report_sha256'])
             self.assertEqual(str(original.resolve()), verified['report_path'])
+            self.assertEqual(verified, self.follow_review_command(diagnostic))
         with patch.dict(os.environ, {'SCOPEHUB_ARCHIVE_ROOT': str(archive / 'missing')}):
             self.assertEqual('failed', self.project_command(*args, exit_code=1)['status'])
             self.assertEqual(verified, self.project_command(*args, '--archive-root', str(archive)))

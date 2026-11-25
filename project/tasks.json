@@ -24055,14 +24055,15 @@
       "acceptance": [
         "Focused implementation and verification expose the original observation, proposed mechanism, distinguishing evidence, verification escape and unresolved next owner or trigger through the existing plan and feedback records.",
         "The ordinary Herdr review role opens verification context. A consequential handoff can bind a full clean source commit, reject dirty or moved source and tell the reviewer what independent behavior to exercise before acceptance.",
-        "Exercise the public support commands with a representative timing capture and reopen finding, the confirmed M4-018 read boundary, the unresolved M0-119 recurrence and the exact-source profile admission control. Keep a routine path and existing evidence and history checks usable."
+        "Exercise the public support commands with a representative timing capture and reopen finding, the confirmed M4-018 read boundary, the unresolved M0-119 recurrence and the exact-source profile admission control. Keep a routine path and existing evidence and history checks usable.",
+        "Follow the actual commands printed by a bound review through focused and detailed context, reopened source links and the original archive in a read-only launch. Keep current checkout operations distinct and retain ordinary and historical query admission."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Correct the cold review findings on active source. Replay transient worktree reads, the real origin and closure-state controls, optional-feedback repair and explicit archive resolution. Send the clean source and task checks for a new independent verdict before completion.",
+      "next_action": "Repair the printed immutable review navigation and replay its emitted commands in a read-only role, including original archive and historical sources. Retain the exact checked candidate for independent rereview.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24080,7 +24081,8 @@
           "M0-130 and M0-131 had passing receipts before independent review found capture and reopen disagreement. Existing checks qualified their exercised cases. The routine role launch selected implementation context, which did not make the first independent reproduction and its acceptance timing explicit.",
           "A clean review source and an independent entry-point outcome can surface this class earlier. Compare launch inputs, a moved or dirty source, and the unchanged routine path. One pilot cannot establish a change in recurrence rates.",
           "Shared stages can disagree on the same data. For a supported mechanism, compare independent observations at the boundary. A green run where runtime conditions differ can establish a successful control while leaving the original cause open.",
-          "A clean Git observation can bracket stale file reads. Use one immutable commit tree for every labeled review read and keep current-checkout admission separate. Compare bound and ordinary reads with the same transient substitutions."
+          "A clean Git observation can bracket stale file reads. Use one immutable commit tree for every labeled review read and keep current-checkout admission separate. Compare bound and ordinary reads with the same transient substitutions.",
+          "The original reader admits the exact clean commit, but follow-on navigation can lose its bound source or reach pnpm and uv. Compose nested review reads with the same cache-free entrypoint and compare workflow state, transient working records and Git facts."
         ],
         "risks": [
           {
@@ -24113,6 +24115,13 @@
           },
           {
             "failure": "A portable diagnostic command cannot find an explicitly configured host archive, or routine status unexpectedly reads the archive.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A printed review command loses the source after a detail or repeated verification read, reads mutable data, or needs a writable dependency cache. An archive locator or historical query can be accidentally rebound to current checkout admission.",
             "checks": [
               "project-state",
               "python-contracts-workers"

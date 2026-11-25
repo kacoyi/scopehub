@@ -6560,6 +6560,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "bound-review-navigation-loses-source-and-read-only-entry",
+      "source": "Astra Standard cold rereview of 5b6c61a3cb84ae3fedb5a12a79d96f80ac06ebe6. Original transcript: archives/observations/m0-134-navigation-finding-5b6c61a/astra-cold-review-5b6c61a.txt (SHA-256 bdb799cc76324b100e62f1b70044faac42021b7bb257f9654336b363581e9cf0).",
+      "observation": "A reader following the bound context\u2019s printed detail, repeat verification and generic source navigation can lose the reviewed SHA and read substituted worktree feedback or the linked engineering product record. Feedback links retained the SHA but used pnpm and uv. The normal read-only role could not create the uv cache lock. Explicitly bound reads and dirty or moved checkout admission controls succeeded.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-134"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

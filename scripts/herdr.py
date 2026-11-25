@@ -10,12 +10,16 @@ import sys
 from uuid import uuid4
 
 if __package__:
-    from .development import HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, task_launch_excerpt
+    from .development import (
+        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
+    )
     from .review_tree import CommittedPath
     from .verification_scope import ScopeError
     from .storage import maintain_automatically
 else:
-    from development import HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, task_launch_excerpt
+    from development import (
+        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
+    )
     from review_tree import CommittedPath
     from verification_scope import ScopeError
     from storage import maintain_automatically
@@ -225,10 +229,7 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     phase = HERDR_ROLE_PHASES[args.role]
     if args.role == 'review':
         command.extend(['--sandbox', 'read-only', '--ask-for-approval', 'never'])
-        python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
-        context = f'{python} -B scripts/project.py context {args.task_id} --phase {phase}'
-        if args.source is not None:
-            context += f' --source {args.source}'
+        context = read_only_project_command('context', args.task_id, '--phase', phase, source_commit=args.source)
     else:
         command.append('--approve-for-me')
         context = f'pnpm project:context {args.task_id} --phase {phase}'
