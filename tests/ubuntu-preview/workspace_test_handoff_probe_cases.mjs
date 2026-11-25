@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inspect } from 'node:util';
-import { runHandoffProbe } from './workspace_test_handoff_acl.mjs';
+import { assertWindowsPrivateHandoff, runHandoffProbe } from './workspace_test_handoff_acl.mjs';
 
 const sentinel = 'synthetic-handoff-private-marker';
 const sid = 'S-1-5-21-123-456-789-1011';
@@ -67,7 +67,39 @@ async function reapsRunningChild() {
   });
 }
 
+async function runPrivateHandoffWitness(exit) {
+  await withProbeMarker(async handoff => {
+    let calls = 0;
+    const check = async (executable, args, options) => {
+      calls += 1;
+      assert.match(executable, /[\\/]target[\\/]debug[\\/]examples[\\/]windows_handoff_probe\.exe$/);
+      assert.deepEqual(args, [], 'The handoff name must stay out of the command line.');
+      assert.equal(options.env.SCOPEHUB_TEST_HANDOFF, handoff);
+      assert.equal(options.timeout, undefined, 'Use the shared ten-second deadline.');
+      // Portable launch control. The Windows workspace journey exercises the
+      // compiled descriptor reader against the actual handoff and ACL fixtures.
+      const body = "const fs = require('node:fs');"
+        + "fs.writeFileSync(process.env.SCOPEHUB_TEST_HANDOFF, 'called');"
+        + "process.exit(" + exit + ");";
+      return runHandoffProbe(process.execPath, ['-e', body], options);
+    };
+    if (exit === 0) {
+      await assertWindowsPrivateHandoff(handoff, check);
+    } else {
+      await assert.rejects(assertWindowsPrivateHandoff(handoff, check), {
+        message: 'Private handoff ACL verification failed (unexpected ACL trustee).',
+      });
+    }
+    assert.equal(calls, 1);
+    assert.equal(await readFile(handoff, 'utf8'), 'called');
+  });
+}
+
 export const handoffProbeCases = [
+  { name: 'the independent private handoff witness accepts and rejects through the bounded launcher', run: async () => {
+    await runPrivateHandoffWitness(0);
+    await runPrivateHandoffWitness(58);
+  } },
   { name: 'success with retained output pipes', run: () => exitsWithHeldOutput(0) },
   { name: 'a declared exit with retained output pipes', run: () => exitsWithHeldOutput(58) },
   { name: 'reaping a live child at its deadline', run: reapsRunningChild },
