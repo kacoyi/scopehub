@@ -7080,10 +7080,10 @@
     },
     {
       "id": "project-check-reopens-verified-evidence-receipt",
-      "source": "The ordinary project check at b2b865d706a33eb1937d6be32ef942cc017a127b. Python's open audit records the exact relative paths and counts in archives/observations/repo-hygiene-20261125/m0-104-receipt-open-intake-b2b865d/SHA256SUMS (SHA-256 5aacdbae4990810efbba8329038a9e482537b4177a9a0e2972fa23b4d6314231).",
+      "source": "The ordinary project check at b2b865d706a33eb1937d6be32ef942cc017a127b. Python's open audit records the exact relative paths and counts in archives/observations/repo-hygiene-20261125/m0-104-receipt-open-intake-b2b865d/SHA256SUMS (SHA-256 5aacdbae4990810efbba8329038a9e482537b4177a9a0e2972fa23b4d6314231). Same-command before/after controls and raw red and green results: archives/observations/repo-hygiene-20261125/m0-104-receipt-read-control-d77043c/SHA256SUMS (SHA-256 0a7609ec14b60785ffe33490432efa93ae8de6d32248119dc92ab13ee755c465).",
       "severity": "major",
       "status": "open",
-      "observation": "A passing ordinary project check opened each of 412 archived evidence receipts twice, totaling 824 opens. The reader checks the digest of its first read and parses a separate read. The duplicate work is observed; the two reads can bind different bytes across a file change. This finding does not establish the hosted Linux timing growth mechanism.",
+      "observation": "A passing ordinary project check opened each of 412 archived evidence receipts twice, totaling 824 opens. The reader checks the digest of its first read and parses a separate read. The duplicate work is observed; the two reads can bind different bytes across a file change. This finding does not establish the hosted Linux timing growth mechanism. The candidate parses the digest-verified bytes and reuses the admitted receipt for same-invocation history checks. Four paired ordinary checks opened all 412 receipt paths once, down from twice, with identical public output. The focused check and history passed after one open and retained digest and malformed-JSON rejection. These local observations do not establish a hosted elapsed improvement.",
       "task_ids": [
         "M0-104"
       ],

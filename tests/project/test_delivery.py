@@ -2828,6 +2828,35 @@ class DeliveryTests(ProjectFixture):
         self.save_ledger(ledger)
         return base, ref
 
+    def test_check_and_history_parse_the_verified_receipt_once(self):
+        base, ref = self.append_native_receipt()
+        receipt = self.root / ref['path']
+        verified_bytes = receipt.read_bytes()
+        ledger = self.ledger()
+        receipt.write_bytes(b'{')
+        self.assertIn('Evidence digest mismatch', self.project_command('check')['error'])
+
+        updated = self.ledger()
+        task_by_id(updated, 'M0-001')['evidence'][-1]['sha256'] = digest(b'{')
+        self.save_ledger(updated)
+        self.assertIn('Cannot read JSON record', self.project_command('check')['error'])
+
+        receipt.write_bytes(verified_bytes)
+        self.save_ledger(ledger)
+        original_open = Path.open
+        for args in (('check',), ('history', '--base', base)):
+            with self.subTest(command=args[0]):
+                modes = []
+
+                def record_open(path, mode='r', *options, **kwargs):
+                    if path == receipt:
+                        modes.append(mode)
+                    return original_open(path, mode, *options, **kwargs)
+
+                with patch.object(Path, 'open', record_open):
+                    self.assertEqual('passed', self.project_command(*args)['status'])
+                self.assertEqual(['rb'], modes)
+
     def test_history_allows_validated_append_only_receipts_on_completed_task(self):
         base, _ = self.append_native_receipt()
         self.assertEqual('passed', review_history(self.root, base)['status'])
