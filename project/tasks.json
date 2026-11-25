@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-133",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24234,7 +24234,7 @@
       "id": "M0-133",
       "title": "Reconcile timing evidence consistently across capture and review",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-131"
       ],
@@ -24273,10 +24273,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Verify admissible endpoint orderings for incomplete, disputed and ordered fragments through ordinary review, capture, indexing, reopening and the exact canonical task.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-133-3666436f89823c88.json",
+          "sha256": "f7209fee99a21733329e27f9404771822ed239841b5581322e6371cdae366a10"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra Standard approved the exact clean source e05d089b5d63a7a852792d44ee82e456afa5af93. The original full local task report passed and binds the report, clock and measurement qualification, bounded capture, linked indexing and reopen regressions to that revision. Independent authentic run 45546767887 replay preserved 804 seconds of Windows wall time, 2467 seconds of runner work and one platform budget sample. Admissible publishing endpoints retained 760 seconds of execution and a 10-second tail. Impossible orderings stayed partial through capture and reopen. Approval is scoped to timing reconciliation. Physical disk replacement, cross-process locking, native verification and new performance acceptance remain outside this closure.",
       "plan": {
         "outcome": "A timing observation and any dispute produce the same eligibility and attribution before and after capture, indexing and reopening.",
         "change_types": [
