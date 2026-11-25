@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-133",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review shared capture, linked indexing and the ordinary timing/archive path for the 23 attached findings. Cover conflict and enrichment precedence, scoped publisher membership and lane/harness/architecture binding, component cache and job clocks, plus preservation on failed or oversized capture. Confirm protected review classification and the timing imports coexist.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:04.261667+00:00",
+      "request_id": "4df9099892473d3768c0d347809b710f8bbf1cb71cbb6829ff7017a2bebe2de9",
+      "evidence_sha256": "b91b1c5c56b5e3c44c17709cb330170da9d4ebeb431a06082a24c41bed37e506"
+    }
+  ]
+}

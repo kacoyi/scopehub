@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-148",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review committed publisher catalog and execution-input hashing across CRLF/LF controls. Verify genuine full Windows selection, reject omission, surplus, unavailable catalog and mismatched substitute digest, and inspect the retained Linux and native Windows receipts and pinned protected setup. Keep M0-150 reassigned producer work outside this review.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:06.190742+00:00",
+      "request_id": "5c9dbb5b351adff08ec437fcc939b96068c5d0d2e979b2720d5a2f663b815b5d",
+      "evidence_sha256": "8d5bfa6d573af8aa31b876c7f0199ea2856ab61fed6d581252ea7dd12c93970e"
+    }
+  ]
+}

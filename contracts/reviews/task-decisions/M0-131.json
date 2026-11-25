@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-131",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "Independently review Windows producer role, exact checkout/run/attempt and job-clock binding, complementary partial observations in both orders, compact sibling discovery, and contradictory cache handling. Verify invalid lane and platform selections remain refused under the combined verification_scope imports and the historical receipt is unchanged.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:44:03.166069+00:00",
+      "request_id": "b1e12ef38501d0f32f3e504f6d928ab5c3ad1400803e24316986709d4bff3582",
+      "evidence_sha256": "c18f5250627f03c2c6b4f5e394bb1bad197c1f4d1dafb34111ddb5d7d1572bab"
+    }
+  ]
+}
