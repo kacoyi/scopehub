@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-130",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -23930,7 +23930,7 @@
       "id": "M0-130",
       "title": "Preserve producer timing without substituting Windows platform coverage",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-111"
       ],
@@ -23954,10 +23954,15 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Add the CLI and capture regressions for the confirmed boundary, then replay the authenticated Windows reports and scoped control with the pinned toolchain.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-130-551f0d11168f1236.json",
+          "sha256": "c986cf0bef3eebcaa1530181261b4a316d9c359bc7c39ab0991d3cb7d2a2d6e2"
+        }
+      ],
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Canonical Linux task run 20261125T110041.077240Z-44392ea1 on 3ac0da8bdce7c9e2c836fa5cf9852f1ae66e1cb4 passed both required checks. The exact historical PR 84 artifacts preserve separate browser and recovery jobs and the accepted 28-check Windows aggregate. The scoped records control qualified once. Competing complete platform inputs remained disputed and malformed inputs still refused explicit archive publication.",
       "plan": {
         "outcome": "Timing intake identifies full Windows producers from authentic selection identity, retaining their own work without treating them as protected platform outcomes.",
         "change_types": [
