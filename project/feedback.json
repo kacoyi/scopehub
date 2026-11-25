@@ -6048,6 +6048,36 @@
           "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
         }
       ]
+    },
+    {
+      "id": "decision-note-delete-list-retry-verification-alert",
+      "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses.",
+      "observation": "After one confirmed deletion, the first lost list response produced the list-refresh alert and retained success. A second lost list response from Reload decision notes replaced the refresh alert with The local workspace could not verify the result. The deletion was already verified and no additional deletion request was sent. A successful list read should clear the list alert and retain the confirmed result.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-037"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "decision-note-delete-notice-at-new-editor",
+      "source": "Independent Astra review at 74103f67291fec9bbfde359ccbc991586003345b, archived as archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt (SHA-256 c2487452b7d0b43085f7f6781d2cd3d7c6f57983e11158f441261f6d1ad5d2ae). The actual component and transport ran with synthetic replay responses.",
+      "observation": "After the list recovered following a confirmed deletion, opening New decision note left the old Decision note deleted. status visible in the new editor. It remained until draft review. Opening an editor starts a new action, so retire the earlier notice at that user gesture while read-only retries retain it.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M2-037"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

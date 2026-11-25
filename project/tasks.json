@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M2-037",
   "tasks": [
     {
       "id": "M0-001",
@@ -22048,6 +22048,106 @@
           ],
           "data_plan": "Use synthetic local profiles and read-only verification of live SQLite rows. No migration.",
           "cleanup": "Close owned browser contexts and services, release any held reply, and remove temporary profiles after assertions."
+        }
+      }
+    },
+    {
+      "id": "M2-037",
+      "title": "Keep deletion list retries separate from the next note action",
+      "milestone": "M2",
+      "status": "active",
+      "depends_on": [
+        "M2-036"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "After a verified delete, lose two successive list replies. Both alerts identify the list failure and retain the success notice. A third successful read clears the alert while leaving success visible. Verify one successful-phase approval request, the durable deletion marker and the peer empty list.",
+        "Open New decision note after recovery and verify the earlier delete notice leaves the editor immediately. A read-only retry preserves its usual detail or draft target. Cancelled, definitively rejected and unknown-result approvals stay distinct and never claim unverified success.",
+        "Retain both pre-correction failures in Linux Chromium, run the existing consent and peer scenarios and archive the canonical task receipt. The M2-036 definition, prior evidence and original diagnostics remain historical."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "next_action": "Extend the existing two-tab Chromium control to lose two list replies, recover the third and open the new editor. Record both failures before changing the component, then qualify the exact source through the task harness.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The initiating user can distinguish a confirmed delete from its failed list delivery, retry reads without another mutation, and start the next editor with a current status.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt"
+        ],
+        "hypotheses": [
+          "The fallback list reload loses the error descriptor chosen for the post-commit read. Starting a new note opens an editor without consuming the prior action notice."
+        ],
+        "risks": [
+          {
+            "failure": "The second list error implies an uncertain deletion or a list retry sends another approval. Verify two lost replies, the third real response, exactly one approved request in the success phase, the marker and the empty peer list.",
+            "checks": [
+              "workspace-timeframe",
+              "decision-note-lifecycle"
+            ]
+          },
+          {
+            "failure": "Clearing the previous notice also clears it on read-only retries or changes detail and draft recovery targets, peer refresh or consent. Verify manual retries and the new-editor boundary independently, and keep the cancellation, stale-approval and unknown-result controls.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the independent and Chromium red observations. If the patch blurs list refresh and operation uncertainty, revert it while preserving M2-036 and the recorded regression.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to persistence, deadlines, confirmation authority, or unrelated Windows observations."
+          ],
+          "open_questions": [
+            "Will the real Chromium fixture expose both replay findings under the existing bounds?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep the existing retry target, receipt validation, consent, drafts and peer behavior."
+          ],
+          "change": [
+            "Apply the post-delete list error consistently and clear the prior notice when a new note editor opens."
+          ],
+          "data_plan": "Use disposable synthetic profiles, real wire replies and read-only SQLite assertions. No data migration.",
+          "cleanup": "Release held responses, remove interceptors, close owned profiles and services, and retain the original failures."
         }
       }
     }
