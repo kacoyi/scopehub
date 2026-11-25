@@ -6898,6 +6898,32 @@
       ]
     },
     {
+      "id": "confirmed-peer-decision-note-delete-misses-initiator-list",
+      "source": "Ordinary PR 115 first attempt 45650476275 on Linux. The original report is archives/runs/20261125T160307.507960Z-afd0f7cf/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "One of 74 workspace cases failed. In the decision-note draft and peer-timeframe journey the deleting page first observed the deletion notice and a response matching its request, committed state and expected target. Its New decision note button was then absent for 5 seconds. The retained screenshot shows a list with a dated row but does not identify which document was captured. The original run did not report the final stored rows or subsequent read order. The historical M2-036 failure stopped earlier, at deletion confirmation.",
+      "task_ids": [
+        "M2-038"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "In the controlled two-window reproduction a successful deletion depended on another snapshot before loading the list. A busy peer caused that snapshot to fail before the list read was sent. The original hosted run did not record the read sequence.",
+        "correction": "Use the verified deletion receipt revision as the lower bound for the list read. A retryable busy reply can repeat that same read within its original deadline. Keep a committed deletion distinct from a failed list refresh and retain manual reload.",
+        "prevention": "Exercise a real peer-held writer, cancellation, stale rejection, dropped list responses and normal deletion through the Chromium desktop entry. Correlate the request IDs, both windows, the SQLite rows and a single matching deletion record."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T160307.507960Z-afd0f7cf",
+          "source_commit": "e6f2c917bccd4506e0227bf1d966eabadc538154",
+          "report_sha256": "30cd3108ea869b8d055739e809cc55dc517c13d15cc4286fa3cb26379135fecf"
+        }
+      ]
+    },
+    {
       "id": "consequential-task-completed-without-independent-decision",
       "source": "Observed disposable ordinary project check and history on 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a with authentic passing run 20261125T115836.374177Z-fc7c2887. Observation SHA-256 b8c778557d02d2371e5273f6e3bb8e869cef813ead01479843a8a20389d6da9a. Independent cold review transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Prior local completed task sources 97fedb3771bcdbcbf1030d32d4eec1c69401d656 and ecf48f65a02b94967e0813fec4e9cbbec360ffbf.",
       "observation": "The normal project check and history accepted a simulated completed corrective task and addressed finding in a disposable checkout with a genuine green harness receipt and zero independent approval. The actual independent review requested changes on that exact source. Earlier local M0-130 and M0-131 similarly reached an accepted state before reviewer reproduction of timing capture and reopen disagreement. Passing engineering checks and immutable historical receipts establish their verified scope. They do not establish the independent decision.",
