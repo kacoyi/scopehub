@@ -1,17 +1,18 @@
 //! Independent, test-only witness for the generated Windows launcher handoff.
 
+#[cfg(windows)]
 fn main() -> std::process::ExitCode {
-    #[cfg(windows)]
-    {
-        let result = std::env::var_os("SCOPEHUB_TEST_HANDOFF")
-            .ok_or(windows::Stage::FileType)
-            .and_then(|path| windows::check(path.as_ref()));
-        return result.map_or_else(
-            |stage| std::process::ExitCode::from(stage as u8),
-            |_| std::process::ExitCode::SUCCESS,
-        );
-    }
-    #[cfg(not(windows))]
+    let result = std::env::var_os("SCOPEHUB_TEST_HANDOFF")
+        .ok_or(windows::Stage::FileType)
+        .and_then(|path| windows::check(path.as_ref()));
+    result.map_or_else(
+        |stage| std::process::ExitCode::from(stage as u8),
+        |_| std::process::ExitCode::SUCCESS,
+    )
+}
+
+#[cfg(not(windows))]
+fn main() -> std::process::ExitCode {
     std::process::ExitCode::FAILURE
 }
 
