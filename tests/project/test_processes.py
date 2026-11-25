@@ -212,6 +212,9 @@ def controlled_reap():
         # Only this fixture supervisor loses the ability to open its child list.
         resource.setrlimit(resource.RLIMIT_NOFILE, (3, resource.getrlimit(resource.RLIMIT_NOFILE)[1]))
     reap()
+    if os.environ['FIXTURE_MODE'] == 'fallback-sigint':
+        Path('reaped').touch()
+        time.sleep(15)
     if os.environ['FIXTURE_MODE'] == 'partial-confirmation':
         os.write(int(sys.argv[1]), b'[0, nul')
         os._exit(0)
@@ -268,6 +271,7 @@ raise SystemExit(int(sys.argv[2]))
             ('ignored-nonzero', ('failed', 23, None)),
             ('partial-confirmation', ('failed', None, 'cleanup_failed')),
             ('invalid-confirmation', ('failed', None, 'cleanup_failed')),
+            ('fallback-sigint', ('failed', None, 'cleanup_failed')),
             ('late-sigint', ('failed', None, 'interrupted')),
             ('late-cancel', ('failed', None, 'interrupted')),
         ]
@@ -318,6 +322,30 @@ raise SystemExit(int(sys.argv[2]))
                     finally:
                         (work / 'finish-reaping').touch()
 
+                stop_tree = processes.stop_tree
+                kill = subprocess.Popen.kill
+                failed_supervisor = None
+                fallback_interrupted = False
+
+                def stop_for_fixture(process, *args, **kwargs):
+                    nonlocal failed_supervisor
+                    if mode != 'fallback-sigint':
+                        return stop_tree(process, *args, **kwargs)
+                    deadline = time.monotonic() + 5
+                    while not (work / 'reaped').exists():
+                        self.assertLess(time.monotonic(), deadline, 'fixture did not finish child reaping')
+                        time.sleep(.01)
+                    process.stdin.close()
+                    failed_supervisor = process
+                    raise subprocess.TimeoutExpired(process.args, 0)
+
+                def interrupt_fallback(process):
+                    nonlocal fallback_interrupted
+                    kill(process)
+                    if process is failed_supervisor and not fallback_interrupted:
+                        fallback_interrupted = True
+                        signal.raise_signal(signal.SIGINT)
+
                 cleanup.callback(finish_fixture)
                 controller = cleanup.enter_context(ThreadPoolExecutor(max_workers=1))
                 ready = controller.submit(release_reaping)
@@ -327,6 +355,8 @@ raise SystemExit(int(sys.argv[2]))
                 try:
                     with (patch.object(harness, 'ROOT', work),
                           patch.object(process_tree, '__file__', str(shim)),
+                          patch.object(processes, 'stop_tree', stop_for_fixture),
+                          patch.object(subprocess.Popen, 'kill', interrupt_fallback),
                           redirect_stdout(StringIO())):
                         result = harness.execute(
                             'desktop-localization', [sys.executable, '-c', command, worker,
@@ -354,6 +384,9 @@ raise SystemExit(int(sys.argv[2]))
                         self.assertIn(b'did not confirm cleanup', log)
                     if mode == 'invalid-confirmation':
                         self.assertIn(b'Invalid Linux check cleanup confirmation', log)
+                    if mode == 'fallback-sigint':
+                        self.assertTrue(fallback_interrupted)
+                        self.assertIn(b'Process cleanup failed:', log)
                     if mode.startswith('late-'):
                         self.assertIn(b'Check stopped: interrupted.', log)
                     self.assertTrue(lock_is_free(work / 'owned.lock'))

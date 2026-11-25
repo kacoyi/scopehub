@@ -36,6 +36,19 @@ def _wait_for_check(process, timeout, cancel, *, result_pipe=None):
     raise KeyboardInterrupt
 
 
+def _terminate_failed_check(process):
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=max(0, deadline - time.monotonic()))
+            return
+        except KeyboardInterrupt:
+            if time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired(process.args, 10) from None
+
+
 def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_tree=False):
     """Write directly to disk instead of accumulating an entire build in RAM."""
     log_path = Path(log_path)
@@ -93,9 +106,10 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
             except (OSError, subprocess.SubprocessError) as cleanup_error:
                 output.write(f'Process cleanup failed: {cleanup_error}\n'.encode('utf-8'))
                 reason = 'cleanup_failed'
-                if process.poll() is None:
-                    process.kill()
-                    process.wait(timeout=10)
+                try:
+                    _terminate_failed_check(process)
+                except (OSError, subprocess.SubprocessError) as termination_error:
+                    output.write(f'Could not confirm failed check termination: {termination_error}\n'.encode('utf-8'))
             finally:
                 if result_pipe is not None:
                     result_pipe.close()
