@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-120",
+  "task_definition_sha256": "59101dd01d0eff419628b6cb9586e49add9009b1f694918d2eb58272bce1fad4",
+  "run_id": "20261125T070553.661056Z-9c47181b",
+  "recorded_at": "2026-11-25T07:09:42.853445+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "1987a255bc6932d93feb8a4a1bb6a4fc58b1da54405637c8c7a083c686d4637b",
+    "file_count": 601,
+    "git_head": "d93cfee7a7958afba3746d235c0f6623bebf22d8",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "f3e774336e24ddb05d07fd888782b40eefdbb5f69399dc832e505ece0d24f4ae",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/m0-120-portable-bridge-warnings/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/m0-120-portable-bridge-warnings/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "112c3aca4ab36a37fe287ed87ba232e8d93b350dcfd87d2c860d43bf264d7c96"
+    },
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/m0-120-portable-bridge-warnings/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/m0-120-portable-bridge-warnings/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1100e4185cfa43bfc6318661caf647a6eca959d90572d242e8e2d3856619490e"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/m0-120-portable-bridge-warnings/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2a43e75aeb2dc450fb1e9dffd8f09671e3aa8a391b63354a5f4e2d2513056965"
+    },
+    {
+      "id": "local-import-publication",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/m0-120-portable-bridge-warnings/.venv/bin/python",
+        "scripts/check_local_import_publication.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8ceabc5c3f9266453d6efd437dc2abd098428301157808a5fe760fbf42e4a933"
+    }
+  ],
+  "project_definition_sha256": "47af04a5cce51be31ddeeae3f0fcb98b7ee41b8d31229d324869d52c13b66d0b",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee."
+}

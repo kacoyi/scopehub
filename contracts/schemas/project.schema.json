@@ -625,6 +625,68 @@
       "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
       "uniqueItems": true
     },
+    "ExternalClientLeg": {
+      "type": "object",
+      "properties": {
+        "kind": {"enum": ["cli", "desktop"]},
+        "family": {"type": "string", "pattern": "^[a-z][a-z-]{1,31}(?![\\s\\S])"},
+        "version": {"type": "string", "pattern": "^[0-9]{1,6}(\\.[0-9]{1,6}){0,3}(-(alpha|beta|rc)\\.[0-9]{1,6})?(?![\\s\\S])"},
+        "host": {
+          "type": "object",
+          "properties": {
+            "os": {"enum": ["linux", "macos", "windows"]},
+            "version": {"type": "string", "pattern": "^[0-9]{1,6}(\\.[0-9]{1,6}){0,3}(?![\\s\\S])"},
+            "arch": {"enum": ["x64", "arm64"]}
+          },
+          "required": ["os", "version", "arch"],
+          "additionalProperties": false
+        },
+        "workspace_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}(?![\\s\\S])"},
+        "revision_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}(?![\\s\\S])"},
+        "selection_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}(?![\\s\\S])"},
+        "consent_observation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}(?![\\s\\S])"},
+        "publication_consent": {"const": true},
+        "observed_at": {"type": "string", "format": "date-time", "maxLength": 40},
+        "outcome": {
+          "type": "object",
+          "properties": {
+            "read": {"const": "matched"},
+            "read_only_mutation": {"const": "denied"},
+            "write_consent": {"const": "granted"},
+            "annotation": {"const": "visible-and-attributed"},
+            "undo": {"const": "removed"},
+            "disclosure": {"const": "approved-only"}
+          },
+          "required": ["read", "read_only_mutation", "write_consent", "annotation", "undo", "disclosure"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "kind", "family", "version", "host", "workspace_sha256", "revision_sha256", "selection_sha256",
+        "consent_observation_sha256", "publication_consent", "observed_at", "outcome"
+      ],
+      "additionalProperties": false
+    },
+    "ExternalClientObservation": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"const": 1},
+        "check": {"const": "configured-external-ai-clients"},
+        "method": {"const": "hands-on"},
+        "sharing_scope": {"const": "redacted"},
+        "dataset": {"const": "synthetic"},
+        "commit": {"type": "string", "pattern": "^[a-f0-9]{40}(?![\\s\\S])"},
+        "inputs_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}(?![\\s\\S])"},
+        "clients": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/ExternalClientLeg"},
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": ["schema_version", "check", "method", "sharing_scope", "dataset", "commit", "inputs_sha256", "clients"],
+      "additionalProperties": false
+    },
     "Evidence": {
       "type": "object",
       "properties": {
@@ -706,6 +768,15 @@
         },
         "ci": {
           "$ref": "#/$defs/CIProvenance"
+        },
+        "external_client_observation": {
+          "type": "object",
+          "properties": {
+            "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "observation": {"$ref": "#/$defs/ExternalClientObservation"}
+          },
+          "required": ["evidence_sha256", "observation"],
+          "additionalProperties": false
         },
         "field_observations": {
           "type": "object",

@@ -933,16 +933,16 @@ def verified_candidate_files(root, project, report, results, source, report_path
     if __package__:
         from .verification_evidence import (
             release_artifacts,
-            collect_session,
+            collect_run_observation,
             integration_validation,
-            SESSION_CHECKS,
+            RUN_OBSERVATION_CHECKS,
         )
     else:
         from verification_evidence import (
             release_artifacts,
-            collect_session,
+            collect_run_observation,
             integration_validation,
-            SESSION_CHECKS,
+            RUN_OBSERVATION_CHECKS,
         )
     reports_root = (root / '.reports').resolve()
     report_path = (root / report_path).resolve()
@@ -993,7 +993,7 @@ def verified_candidate_files(root, project, report, results, source, report_path
             or file_digest(local_path(run_dir, key + '.log')) != result.get('log_sha256')
         ):
             raise ProjectError(f'Missing or changed release check evidence: {key}')
-        if key in SESSION_CHECKS and result.get('observation') != collect_session(run_dir, key, source):
+        if key in RUN_OBSERVATION_CHECKS and result.get('observation') != collect_run_observation(root, run_dir, key, source):
             raise ProjectError(f'Changed external-session evidence: {key}')
     verify_primary_model(project, results)
     if report.get('integration_validation') != integration_validation(results.values()):
@@ -1484,11 +1484,18 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError('Task completion has unfinished dependencies')
     results = indexed(report['checks'], 'report check')
     if __package__:
-        from .verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, collect_session, field_observation
+        from .verification_evidence import (
+            EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
+            collect_run_observation, field_observation, redacted_check_log,
+        )
     else:
-        from verification_evidence import FIELD_ACTIONS, SESSION_CHECKS, collect_session, field_observation
+        from verification_evidence import (
+            EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS,
+            collect_run_observation, field_observation, redacted_check_log,
+        )
     selected = []
     field_records = {}
+    external_client_observation = None
     for key in task['checks']:
         result = results.get(key, {})
         if project['checks'][key]['status'] != 'implemented' or result.get('status') != 'passed' or result.get('exit_code') != 0:
@@ -1505,11 +1512,16 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
                if artifact_root is not None else local_path(root, result['log']))
         if not log.is_file():
             raise ProjectError(f'Missing verification log: {key}')
-        if key in SESSION_CHECKS:
+        if key in RUN_OBSERVATION_CHECKS:
             if result['log'] != f".reports/runs/{report['run_id']}/{key}.log":
                 raise ProjectError(f'External-session log belongs to another run: {key}')
-            if result.get('observation') != collect_session(log.parent, key, report['source']):
+            observation = collect_run_observation(root, log.parent, key, report['source'])
+            if result.get('observation') != observation:
                 raise ProjectError(f'Changed external-session evidence: {key}')
+            if key == EXTERNAL_CLIENT_CHECK:
+                if log.read_bytes() != redacted_check_log(result['exit_code']):
+                    raise ProjectError('External-client log contains more than its redacted exit status.')
+                external_client_observation = observation
         if key in FIELD_ACTIONS:
             observed = field_observation(root, key, artifact_root, hosted=artifact_root is not None)
             if result.get('field_observation') != observed:
@@ -1531,6 +1543,8 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     }
     if 'observed_feedback' in report:
         receipt['observed_feedback'] = report['observed_feedback']
+    if external_client_observation is not None:
+        receipt['external_client_observation'] = external_client_observation
     if field_records:
         receipt['field_observations'] = field_records
     if ci:
