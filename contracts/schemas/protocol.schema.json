@@ -9724,6 +9724,23 @@
       ],
       "additionalProperties": false
     },
+    "LocalApiConnectionDisconnectInput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "disconnect"
+        },
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "id"
+      ],
+      "additionalProperties": false
+    },
     "LocalApiConnectionInput": {
       "oneOf": [
         {
@@ -9734,6 +9751,9 @@
         },
         {
           "$ref": "#/$defs/LocalApiConnectionTrialInput"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionDisconnectInput"
         }
       ]
     },
@@ -9799,6 +9819,23 @@
       ],
       "additionalProperties": false
     },
+    "LocalApiConnectionDisconnectOutput": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "disconnect"
+        },
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "action",
+        "id"
+      ],
+      "additionalProperties": false
+    },
     "LocalApiConnectionOutput": {
       "oneOf": [
         {
@@ -9809,6 +9846,9 @@
         },
         {
           "$ref": "#/$defs/LocalApiConnectionTrialOutput"
+        },
+        {
+          "$ref": "#/$defs/LocalApiConnectionDisconnectOutput"
         }
       ]
     },

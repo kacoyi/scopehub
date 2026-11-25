@@ -238,6 +238,9 @@ pub trait WorkspaceTransaction {
     fn save_local_api_connection(&mut self, _connection: &LocalApiConnection) -> Result<(), Error> {
         Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY))
     }
+    fn disconnect_local_api_connection(&mut self, _id: &str) -> Result<bool, Error> {
+        Err(failure(ErrorCode::UNSUPPORTEDCAPABILITY))
+    }
     fn state(&self) -> Result<WorkspaceState, Error>;
     fn set_source_preference(&mut self, source: &WorkspaceSourcePreference) -> Result<(), Error>;
     fn layouts(&self) -> Result<WorkspaceLayoutState, Error>;

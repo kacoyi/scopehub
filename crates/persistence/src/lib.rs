@@ -618,6 +618,16 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         ).map_err(store_error)?;
         Ok(())
     }
+    fn disconnect_local_api_connection(&mut self, id: &str) -> Result<bool, Error> {
+        self.connection
+            .execute(
+                "DELETE FROM local_api_connection WHERE singleton = 1 AND id = ?1",
+                [id],
+            )
+            .map(|removed| removed == 1)
+            .map_err(store_error)
+    }
+
     fn state(&self) -> Result<WorkspaceState, Error> {
         state(self.connection, &self.binding.workspace_id)
     }

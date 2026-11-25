@@ -4218,7 +4218,7 @@
       "source": "Authenticated ordinary main pushes 45371103989, 45376798249, 45383842961, 45389486376 and 45394539742. The original Windows reports and their logs are retained under archives/runs at the listed diagnostic identities.",
       "observation": "Five successful full main pushes using the previous Windows scheduler and a warm Cargo cache took 1720, 1940, 1970, 1588 and 1932 seconds. The objective is 900 seconds. A successful ordinary full main push containing the repair must establish its own elapsed time, coverage, cache state and runner occupancy.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-087",
         "M0-091"
@@ -4253,7 +4253,11 @@
           "report_sha256": "50a25780275ae0a3c8fdec5beef84e63d9177d1db0fa5405df725e38f1cd1bd7"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The previous Windows scheduler serialized independent checks. After the first repair, later protected main observations still exceeded the budget or failed. The retained original attempts show their own elapsed times and verdicts.",
+        "correction": "The repaired main ran the original groups through separate Windows producers with a protected aggregate. The exact comparable push 45478822360 succeeded in 897 seconds with 3236 runner seconds. See archives/observations/m0-091-closure-c4f07b3/review.json (SHA-256 2246234ef554b05453ea89e011d6bc76e18b9a7caea48d43bf9322011ce7ba49).",
+        "prevention": "The coordinator follows repeat overruns in ordinary status and CI and assigns corrective work. The active development AI resolves the first failed original and verifies the affected regression. Before closure, confirm that the latest specific protected main is successful, full, warm, comparable and within budget, with a matching exact Windows receipt."
+      },
       "deferral_reason": null
     },
     {
