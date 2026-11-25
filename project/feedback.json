@@ -5186,6 +5186,21 @@
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "manual-timing-archive-exceeds-own-read-limit",
+      "source": "Independent Astra Standard review of PR 94 and the coordinator review archive timing-green-prs-94-91.json (SHA-256 371c07c21f89b41e4a382933a0e7ac032bbf5d0d57a9a4b50a11429dd870574a).",
+      "observation": "Protected main wrote a v1 manual review archive with 5838434 bytes, 564 samples and 56 clocks. The ordinary explicit reader rejected it at the 2 MiB compact timing limit and yielded zero samples. Removing exact duplicate rows still exceeded that limit.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

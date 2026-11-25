@@ -778,24 +778,104 @@ class TimingRegressionTests(unittest.TestCase):
         )
 
     def test_explicit_local_archive_round_trip_stays_offline(self):
-        def invoke(*args):
-            output = StringIO()
-            with (patch.object(sys, 'argv', ['timing.py', *args]), redirect_stdout(output),
-                  patch.object(timing, 'github_identity', side_effect=AssertionError('Unexpected hosted inspection'))):
-                timing.main()
-            return json.loads(output.getvalue())
-
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / 'test-report.json'
             archive = Path(directory) / 'timing.json'
             report.write_text(json.dumps(fast_report(19, 120)), encoding='utf-8')
-            original = invoke('--report', str(report), '--save', str(archive))
-            recovered = invoke('--report', str(archive))
+            original = self.invoke_timing('--report', report, '--save', archive)
+            recovered = self.invoke_timing('--report', archive)
 
         self.assertEqual(original['samples'], recovered['samples'])
         self.assertEqual(original['reviews'], recovered['reviews'])
         self.assertEqual(7, recovered['weekly_review']['interval_days'])
         self.assertEqual([], recovered['input_issues'])
+
+    def invoke_timing(self, *args, expected_exit=None):
+        output, errors = StringIO(), StringIO()
+        with (patch.object(sys, 'argv', ['timing.py', *map(str, args)]), redirect_stdout(output), redirect_stderr(errors),
+              patch.object(timing, 'github_identity', side_effect=AssertionError('Unexpected hosted inspection'))):
+            if expected_exit is None:
+                timing.main()
+            else:
+                with self.assertRaises(SystemExit) as raised:
+                    timing.main()
+                self.assertEqual(expected_exit, raised.exception.code)
+        return json.loads(output.getvalue()) if output.getvalue() else errors.getvalue()
+
+    def test_large_v1_manual_archive_preserves_observations_and_redacts_legacy_paths(self):
+        sample = timing.report_sample(fast_report(19, 120))
+        samples = [sample] * 2400
+        run = hosted_run()
+        clock = timing.hosted_timing(run, [])
+        clocks = [clock]
+        private = '/private/review/missing-timing.json'
+        data = {'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': clocks,
+                'input_issues': [{'run_id': '42', 'path': private, 'error': f'Missing original {private}.'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / 'old-review.json'
+            archive = root / 'new-review.json'
+            report.write_bytes(timing.json_bytes(data))
+            self.assertGreater(report.stat().st_size, 2 * 1024 * 1024)
+            with self.assertRaisesRegex(timing.TimingError, 'compact timing read limit'):
+                timing.read_bounded_timing(report)
+            original = self.invoke_timing('--report', report, '--save', archive)
+            reopened = self.invoke_timing('--report', archive)
+            stored = json.loads(archive.read_bytes())
+        self.assertEqual(samples, stored['samples'])
+        self.assertEqual(clocks, stored['hosted'])
+        self.assertEqual(original['samples'], reopened['samples'])
+        self.assertEqual(original['hosted'], reopened['hosted'])
+        first_issue, = reopened['input_issues']
+        self.assertEqual(('42', 'missing-timing.json', 'Missing original missing-timing.json.'),
+                         (first_issue['run_id'], first_issue['path'], first_issue['error']))
+        self.assertNotIn(private, json.dumps(stored))
+
+    def test_bad_explicit_input_cannot_publish_an_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / 'input.json'
+            archive = root / 'output.json'
+            with report.open('wb') as stream:
+                stream.truncate(timing.MANUAL_ARCHIVE_LIMIT + 1)
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertEqual([{'file': report.name, 'error': 'Report exceeds the manual timing archive limit.'}],
+                             description['input_issues'])
+            self.assertFalse(archive.exists())
+            report.write_bytes(b'{"kind":')
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertNotIn(str(root), json.dumps(description))
+            self.assertFalse(archive.exists())
+            report.write_bytes(timing.json_bytes({'kind': timing.ARCHIVE_KIND, 'samples': {}, 'hosted': []}))
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertIn('sample and clock lists', description['input_issues'][0]['error'])
+            self.assertFalse(archive.exists())
+            report.write_bytes(timing.json_bytes(fast_report(19, 120)))
+            with patch.object(timing, 'REVIEW_READ_LIMIT', report.stat().st_size):
+                description = self.invoke_timing('--report', report, '--report', report, '--save', archive,
+                                                 expected_exit=1)
+            self.assertIn('combined timing read limit', description['input_issues'][0]['error'])
+            self.assertFalse(archive.exists())
+            report.write_bytes(timing.json_bytes({**fast_report(19, 120), 'padding': 'x' * timing.TIMING_READ_LIMIT}))
+            description = self.invoke_timing('--report', report, '--save', archive, expected_exit=1)
+            self.assertIn('compact timing read limit', description['input_issues'][0]['error'])
+            self.assertFalse(archive.exists())
+
+    def test_archive_save_publishes_only_a_complete_new_file(self):
+        data = {'kind': timing.ARCHIVE_KIND, 'samples': [], 'hosted': []}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive = root / 'timing.json'
+            with patch.object(timing, 'MANUAL_ARCHIVE_LIMIT', 30):
+                with self.assertRaisesRegex(timing.TimingError, 'manual timing archive limit'):
+                    timing.save_review_archive(archive, data)
+            self.assertEqual([], list(root.iterdir()))
+            timing.save_review_archive(archive, data)
+            snapshot = archive.read_bytes()
+            with self.assertRaises(FileExistsError):
+                timing.save_review_archive(archive, {**data, 'input_issues': [{'error': 'different'}]})
+            self.assertEqual(snapshot, archive.read_bytes())
+            self.assertEqual([archive], list(root.iterdir()))
 
 
 class RecentTimingTests(unittest.TestCase):

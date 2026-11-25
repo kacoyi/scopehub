@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-111",
   "tasks": [
     {
       "id": "M0-001",
@@ -19979,6 +19979,97 @@
           ],
           "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
           "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
+        }
+      }
+    },
+    {
+      "id": "M0-111",
+      "title": "Round-trip bounded manual verification timing archives",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Read and resave the original 5838434-byte v1 review offline, preserving all 564 samples and 56 clocks, and retain previously readable reports and diagnostic records.",
+        "Reject oversized, malformed or mislabeled input with bounded reads and path-safe diagnoses. Keep automatic capture and hosted artifact limits, and bound aggregate manual review input.",
+        "An unsuccessful save leaves the destination absent or preserves an existing file. Rejected explicit input must not produce a replacement archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Exercise the original review archive and a rejected explicit input through the CLI. Qualify the exact independent candidate and retain its local evidence.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A maintainer can reload a manual timing review above the compact capture limit and securely save it for another offline review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A separate bounded manual archive reader and matching writer can retain full v1 data without relaxing automatic capture limits."
+        ],
+        "risks": [
+          {
+            "failure": "A file written by the tool cannot be read back, or flattening and deduplication change observation or error identities.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Malformed or oversized input consumes unbounded resources, exposes a local path, or leaves a partial destination.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the reader and writer together and retain original v1 archives and failed input diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Changes to hosted collection, protected workflow selection, linked timing conflict handling or the CI budget objective are outside this repair."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep the v1 archive format, observed rows and diagnostics, compact automatic capture limits, and create-only save semantics."
+          ],
+          "change": [
+            "Use one bounded manual archive representation for reading and atomic saving."
+          ],
+          "data_plan": "Read the archived coordinator review offline and exercise malformed input with synthetic data. Never change the archived original.",
+          "cleanup": "Stage saves in the destination directory and remove staging files when publication succeeds or fails."
         }
       }
     }

@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 from statistics import median
 import subprocess
 from tempfile import TemporaryDirectory
@@ -65,6 +66,9 @@ HOSTED_BUDGET = 15 * 60
 MAX_RECENT = 12
 DEFAULT_RECENT = 8
 COMPACT_LIMIT = 128 * 1024
+TIMING_READ_LIMIT = 2 * 1024 * 1024
+MANUAL_ARCHIVE_LIMIT = 16 * 1024 * 1024
+REVIEW_READ_LIMIT = 64 * 1024 * 1024
 GENERATED_CHECK = 'generated-contracts'
 GENERATED_COMMAND = ['{python}', 'scripts/generate_contracts.py', '--check']
 GENERATOR_VERSIONS = {
@@ -1209,13 +1213,58 @@ def incremental_timing_paths(directories):
             for path in entries[run]]
 
 
-def read_bounded_timing(path):
-    limit = 2 * 1024 * 1024
-    with path.open('rb') as content:
+class TimingReadBudget:
+    def __init__(self):
+        self.remaining = REVIEW_READ_LIMIT
+
+
+def read_bounded_timing(path, *, manual_archive=False, budget=None):
+    file_limit = MANUAL_ARCHIVE_LIMIT if manual_archive else TIMING_READ_LIMIT
+    limit = min(file_limit, budget.remaining) if budget is not None else file_limit
+    if limit < file_limit:
+        limit_error = 'Review inputs exceed the combined timing read limit.'
+    elif manual_archive:
+        limit_error = 'Report exceeds the manual timing archive limit.'
+    else:
+        limit_error = 'Report exceeds the compact timing read limit.'
+    if not limit:
+        raise TimingError(limit_error)
+    # Opening a FIFO must not wait for a writer, including if the path changes before this open.
+    flags = os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+    if not stat.S_ISREG(path.stat().st_mode):
+        raise TimingError('Expected a regular timing input file.')
+    with os.fdopen(os.open(path, flags), 'rb') as content:
+        info = os.fstat(content.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise TimingError('Expected a regular timing input file.')
+        if info.st_size > limit:
+            raise TimingError(limit_error)
         raw = content.read(limit + 1)
+    if budget is not None:
+        budget.remaining = max(0, budget.remaining - len(raw))
     if len(raw) > limit:
+        raise TimingError(limit_error)
+    data = json.loads(raw)
+    if len(raw) > TIMING_READ_LIMIT and (not isinstance(data, dict) or data.get('kind') != ARCHIVE_KIND):
         raise TimingError('Report exceeds the compact timing read limit.')
-    return json.loads(raw)
+    return data
+
+
+def input_error(error):
+    # OSError's formatted representation includes the full file path.
+    return (error.strerror or type(error).__name__) if isinstance(error, OSError) else str(error)
+
+
+def collection_issue(note, label):
+    issue = {**note, 'file': label}
+    # Older manual archives may have saved the writer's absolute input path.
+    for field in ('path', 'file'):
+        if isinstance(location := note.get(field), str) and location:
+            name = location.replace('\\', '/').rsplit('/', 1)[-1]
+            issue['error'] = issue['error'].replace(location, name)
+            if field == 'path':
+                issue[field] = name
+    return issue
 
 
 def archive_inputs(data, label, issues, *, collection_issues=True):
@@ -1227,7 +1276,7 @@ def archive_inputs(data, label, issues, *, collection_issues=True):
                                  f'collection issue in {label}', issues)
         failed = {clock['run_id'] for clock in hosted if clock['conclusion'] != 'success' and clock_capture_complete(clock)
                   and failed_capture_is_complete(clock, samples, hosted)}
-        issues.extend({**note, 'file': label} for note in notes
+        issues.extend(collection_issue(note, label) for note in notes
                       if not (isinstance(note.get('run_id'), str) and note['run_id'] in failed
                               and note['error'] in {MISSING_COMPACT, MISSING_CLOCK}))
     return samples, hosted
@@ -1275,9 +1324,13 @@ def retained_budget_inputs(root):
     archives = [path for _, path in sorted(archives)[-4:]]
     local = sorted(root.glob('.reports/runs/*/test-report.json'), reverse=True)[:MAX_RECENT]
     samples, hosted = [], []
+    review_budget = TimingReadBudget()
     for path in [*recent, *archives, *local]:
         try:
-            data = read_bounded_timing(path)
+            if path in archives:
+                data = read_bounded_timing(path, manual_archive=True, budget=review_budget)
+            else:
+                data = read_bounded_timing(path)
             if data.get('kind') == ARCHIVE_KIND:
                 archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
                 samples.extend(archive_samples)
@@ -1285,7 +1338,7 @@ def retained_budget_inputs(root):
             elif path in local and not data.get('ci') and (data.get('selection') or {}).get('profile') == 'fast':
                 samples.append(report_sample(data))
         except (OSError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'file': path.name, 'error': str(error)})
+            issues.append({'file': path.name, 'error': input_error(error)})
     hosted.extend(retained_failures_for_clocks(directories, hosted, recent, issues))
     return samples, hosted, issues
 
@@ -1646,6 +1699,24 @@ def review_summary(view):
     return '\n'.join(lines) + '\n'
 
 
+def save_review_archive(path, archive):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    encoder = json.JSONEncoder(separators=(',', ':'), allow_nan=False)
+    with TemporaryDirectory(prefix='.scopehub-timing-', dir=path.parent) as folder:
+        staged = Path(folder) / 'archive.json'
+        remaining = MANUAL_ARCHIVE_LIMIT - 1
+        with staged.open('xb') as output:
+            for part in encoder.iterencode(archive):
+                encoded = part.encode('ascii')
+                remaining -= len(encoded)
+                if remaining < 0:
+                    raise TimingError('Review archive exceeds the manual timing archive limit.')
+                output.write(encoded)
+            output.write(b'\n')
+        # Publish a complete file with create-only semantics, even if another writer raced us.
+        os.link(staged, path)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--report', action='append', type=Path, help='Harness report, timing sample, or saved archive; repeatable')
@@ -1670,11 +1741,21 @@ def main():
         parser.error('--github-actions requires --recent and cannot accompany --run')
     samples, workflows, issues = [], [], []
     recent = None
+    explicit_input_failed = False
+    read_budget = TimingReadBudget()
     try:
+        if args.save and args.summary and args.save.resolve() == args.summary.resolve():
+            raise TimingError('The review archive and job summary must use different files.')
         for path in args.report if args.report is not None else local_paths(ROOT):
             try:
-                data = read_bounded_timing(path)
+                manual = args.report is not None or (
+                    path.parent == ROOT / '.reports/timing' and not CI_TIMING_NAME.fullmatch(path.name))
+                data = read_bounded_timing(path, manual_archive=manual, budget=read_budget)
+                if not isinstance(data, dict):
+                    raise TimingError('Expected a timing report, sample or saved archive.')
                 if data.get('kind') == ARCHIVE_KIND:
+                    if not isinstance(data.get('samples'), list) or not isinstance(data.get('hosted'), list):
+                        raise TimingError('Expected a timing archive with sample and clock lists.')
                     archive_samples, archive_hosted = archive_inputs(data, path.name, issues)
                     samples.extend(archive_samples)
                     workflows.extend(archive_hosted)
@@ -1682,13 +1763,23 @@ def main():
                 else:
                     samples.append(data if data.get('kind') == SAMPLE_KIND else report_sample(data))
             except (OSError, *TIMING_INPUT_ERRORS) as error:
-                issues.append({'path': str(path), 'error': str(error)})
+                explicit_input_failed = args.report is not None
+                issues.append({'file': path.name, 'error': input_error(error)})
+                if not read_budget.remaining:
+                    break
         for run_path, jobs_path in args.actions or []:
             try:
-                run, jobs = read_bounded_timing(run_path), read_bounded_timing(jobs_path)
+                run = read_bounded_timing(run_path, budget=read_budget)
+                jobs = read_bounded_timing(jobs_path, budget=read_budget)
                 workflows.append(hosted_timing(run, jobs if isinstance(jobs, list) else jobs['jobs']))
             except (OSError, *TIMING_INPUT_ERRORS) as error:
-                issues.append({'path': str(jobs_path), 'error': str(error)})
+                explicit_input_failed = True
+                issues.append({'file': jobs_path.name, 'error': input_error(error)})
+                if not read_budget.remaining:
+                    break
+        if args.save and explicit_input_failed:
+            print(json.dumps({'input_issues': issues}, indent=2))
+            parser.exit(1, 'Could not save the review because an explicit timing input could not be read.\n')
         if args.run or args.recent is not None:
             repository = hosted_repository(args.github_actions)
         if args.run:
@@ -1701,17 +1792,15 @@ def main():
         feedback = read_json(ROOT / 'project/feedback.json')['items']
         view.update(weekly_review=weekly_review(), input_issues=issues, recent_collection=recent,
                     budget_follow_up=budget_follow_up(view, feedback, tasks))
-        if args.save:
-            args.save.parent.mkdir(parents=True, exist_ok=True)
-            with args.save.open('xb') as output:
-                output.write(json_bytes({'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
-                                         'recent_collection': recent, 'input_issues': issues}))
         if args.summary:
             with args.summary.open('a', encoding='utf-8') as output:
                 output.write(review_summary(view))
+        if args.save:
+            save_review_archive(args.save, {'kind': ARCHIVE_KIND, 'samples': samples, 'hosted': workflows,
+                                            'recent_collection': recent, 'input_issues': issues})
         print(json.dumps(view, indent=2))
     except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
-        parser.exit(1, f'Timing inspection failed: {error}\n')
+        parser.exit(1, f'Timing inspection failed: {input_error(error)}\n')
 
 
 if __name__ == '__main__':
