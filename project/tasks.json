@@ -25297,7 +25297,8 @@
           "A faster single Linux observation can reduce the median temporarily without resolving sustained growth.",
           "The three later successful full warm Linux PRs have identical named outcomes and show Python durations of 236.728, 196.162 and 150.093 seconds. Compare queue, setup, harness, tail and test composition before attributing the elapsed median increase.",
           "The original-to-latest median harness step grew from 513 to 638 seconds. The logs show more named Python and Rust cases and broadly slower common Python and named browser cases. Rust observations are limited to check, build and suite durations and case counts. The three latest Linux jobs had identical exact Cargo keys and runner image versions but different hosts and source trees. Those observations establish neither an isolated runner effect nor duplicate maintenance work.",
-          "The natural PR 122 pair matches all 607 execution inputs, Linux selection and outcomes, exact Cargo key and VM image. With different runner instances it varied by seven elapsed seconds. Compare named Python and browser timings and the separately reported Rust builds and suites."
+          "The natural PR 122 pair matches all 607 execution inputs, Linux selection and outcomes, exact Cargo key and VM image. With different runner instances it varied by seven elapsed seconds. Compare named Python and browser timings and the separately reported Rust builds and suites.",
+          "The ordinary project check opened each of its 412 evidence receipt files twice. Parsing the digest-verified bytes within the same project load should remove the second open while preserving all acceptance and rejection checks."
         ],
         "risks": [
           {
@@ -25357,9 +25358,10 @@
             "Original authenticated reports, existing full check outcomes, timing budgets and independent PR and push scopes."
           ],
           "change": [
-            "Remove only an attributed source of avoidable Linux verification time, then let the existing trend comparison govern recovery."
+            "Remove only an attributed source of avoidable Linux verification time, then let the existing trend comparison govern recovery.",
+            "Bind normal evidence parsing to its verified bytes, and compare actual file reads and unchanged outcomes before and after."
           ],
-          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified. The renewed cohort, authenticated job clocks, original baselines and negative control resolve through archives/observations/repo-hygiene-20261125/m0-104-linux-warm-recurrence-b2b2b28/SHA256SUMS (SHA-256 75690780378a3c01cf975f7d5ccef6c1fd3e5b8945ddf1e74502a168ad836688).",
+          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified. The renewed cohort, authenticated job clocks, original baselines and negative control resolve through archives/observations/repo-hygiene-20261125/m0-104-linux-warm-recurrence-b2b2b28/SHA256SUMS (SHA-256 75690780378a3c01cf975f7d5ccef6c1fd3e5b8945ddf1e74502a168ad836688). The duplicate receipt-read trace is in archives/observations/repo-hygiene-20261125/m0-104-receipt-open-intake-b2b865d/SHA256SUMS (SHA-256 5aacdbae4990810efbba8329038a9e482537b4177a9a0e2972fa23b4d6314231).",
           "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
         }
       },
