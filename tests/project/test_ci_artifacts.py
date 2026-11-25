@@ -1,8 +1,9 @@
 """Exercise the hosted publication boundary with isolated synthetic evidence."""
 
 from contextlib import redirect_stderr, redirect_stdout
+from copy import deepcopy
 import base64
-from io import StringIO
+from io import BytesIO, StringIO
 import json
 import os
 from pathlib import Path
@@ -503,6 +504,228 @@ class PublicationTests(ProjectFixture):
         with self.assertRaisesRegex(PublicationError, 'more than its redacted exit status'):
             stage_artifacts(self.root, rejected, self.env)
         self.assertFalse((rejected / relative).exists())
+
+    def external_client_fixture(self, *, additional_checks=()):
+        # These ephemeral hand-authored records exercise the retention contract.
+        # The test run reports software verification only.
+        check = 'configured-external-ai-clients'
+        self.add_catalog_checks(check, *additional_checks)
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['checks'].append(check)
+        self.save_ledger(ledger)
+        report = self.hosted_report(event='workflow_dispatch')
+        record = {
+            'schema_version': 1, 'check': check, 'method': 'hands-on', 'sharing_scope': 'redacted',
+            'dataset': 'synthetic', 'commit': report['source']['git_head'],
+            'inputs_sha256': report['source']['sha256'],
+            'clients': [
+                {
+                    'kind': kind, 'family': family, 'version': '1.2.3',
+                    'host': {'os': system, 'version': '24.04', 'arch': 'x64'},
+                    'workspace_sha256': 'a' * 64, 'revision_sha256': 'b' * 64,
+                    'selection_sha256': 'c' * 64, 'consent_observation_sha256': consent * 64,
+                    'publication_consent': True, 'observed_at': '2026-01-01T12:00:00Z',
+                    'outcome': {'read': 'matched', 'read_only_mutation': 'denied', 'write_consent': 'granted',
+                                'annotation': 'visible-and-attributed', 'undo': 'removed',
+                                'disclosure': 'approved-only'},
+                }
+                for kind, family, system, consent in (
+                    ('cli', 'codex-cli', 'linux', 'd'), ('desktop', 'fixture-desktop', 'windows', 'e')
+                )
+            ],
+        }
+        result = next(row for row in report['checks'] if row['id'] == check)
+        return check, report, record, result
+
+    def test_run_observation_publication_uses_the_validated_bytes(self):
+        legacy_checks = {
+            'configured-model-session': ('text', 'synthetic-model-qualification'),
+            'configured-voice-session': ('voice', 'synthetic-voice-qualification'),
+            'configured-market-source': ('market', 'authorized-market-verification'),
+        }
+        external, baseline, pair, _ = self.external_client_fixture(additional_checks=legacy_checks)
+        original_open = Path.open
+
+        for check in (*legacy_checks, external):
+            report = deepcopy(baseline)
+            if check == external:
+                first = pair
+                later = deepcopy(pair)
+                later['clients'][1]['version'] = '1.2.4'
+            else:
+                report['checks'] = [row for row in report['checks'] if row['id'] != external]
+                self.add_result(report, check)
+                modality, scope = legacy_checks[check]
+                first = {
+                    'check': check, 'modality': modality, 'commit': report['source']['git_head'],
+                    'inputs_sha256': report['source']['sha256'], 'provider': 'fixture-provider',
+                    'route': 'fixture-route', 'data_revision': 'fixture-revision',
+                    'authorized_scope': scope, 'observed_at': '2026-01-01T12:00:00Z',
+                }
+                if modality == 'market':
+                    first['dataset'] = 'fixture-a'
+                    later = dict(first, dataset='fixture-b')
+                else:
+                    first.update(model='fixture-a', deployment='local', qualification=observed_case('local'))
+                    if modality == 'text':
+                        del first['qualification']['voice']
+                    later = dict(first, model='fixture-b')
+            first_bytes, later_bytes = map(json_bytes, (first, later))
+            relative = f'runs/fixture/{check}.observation.json'
+            manifest = self.write(relative, first_bytes)
+            observation = verification_evidence.collect_run_observation(
+                self.root, manifest.parent, check, report['source'])
+            self.assertEqual(digest(first_bytes), observation['evidence_sha256'])
+            result = next(row for row in report['checks'] if row['id'] == check)
+
+            for reported_bytes in ('first', 'later'):
+                with self.subTest(check=check, reported_digest=reported_bytes):
+                    expected_digest = digest(first_bytes if reported_bytes == 'first' else later_bytes)
+                    result['observation'] = dict(observation, evidence_sha256=expected_digest)
+                    self.save_report(report)
+                    target = self.destination.with_name(f'{check}-{reported_bytes}')
+                    reads = []
+
+                    def interleaved(path, *args, **kwargs):
+                        if path != manifest:
+                            return original_open(path, *args, **kwargs)
+                        reads.append(path)
+                        return BytesIO(first_bytes if len(reads) == 1 else later_bytes)
+
+                    with patch.object(Path, 'open', interleaved):
+                        if reported_bytes == 'first':
+                            self.assertTrue(stage_artifacts(self.root, target, self.env))
+                        else:
+                            try:
+                                stage_artifacts(self.root, target, self.env)
+                            except PublicationError as error:
+                                self.assertIn('differs from the reported observation', str(error))
+                            else:
+                                staged = (target / relative).read_bytes()
+                                self.fail(f'Published later bytes: {staged == later_bytes}; report retained first fields.')
+                    self.assertEqual([manifest], reads)
+                    if reported_bytes == 'first':
+                        self.assertEqual(first_bytes, (target / relative).read_bytes())
+                    else:
+                        self.assertFalse((target / relative).exists())
+                        self.assertFalse((target / 'test-report.json').exists())
+
+    def admit_external_client_fixture(self, check, path=None):
+        env = {'SCOPEHUB_RUN_DIR': str(self.reports / 'runs/fixture'),
+               'SCOPEHUB_EXTERNAL_CLIENT_OBSERVATION_FILE': str(path) if path is not None else ''}
+        with (patch.dict(os.environ, env), patch.object(sys, 'argv', ['verification_evidence.py', check]),
+              redirect_stdout(StringIO()), redirect_stderr(StringIO())):
+            verification_evidence.main(self.root)
+
+    def test_external_client_observations_round_trip_without_private_session_files(self):
+        check, report, record, result = self.external_client_fixture()
+        local = self.write('private/consented-summary.json', json_bytes(record))
+        raw_leg = self.write('runs/fixture/cli-private.jsonl', self.sentinel)
+        self.write('runs/fixture/desktop-private.log', self.sentinel)
+        self.admit_external_client_fixture(check, local)
+        relative = f'runs/fixture/{check}.observation.json'
+        result['observation'] = verification_evidence.collect_run_observation(
+            self.root, raw_leg.parent, check, report['source'])
+        self.save_report(report)
+        self.assertTrue(stage_artifacts(self.root, self.destination, self.env))
+        self.assertEqual((self.reports / relative).read_bytes(), (self.destination / relative).read_bytes())
+        self.assertEqual(self.sentinel, raw_leg.read_bytes())
+        self.assertFalse((self.destination / 'private').exists())
+        self.assertFalse((self.destination / raw_leg.relative_to(self.reports)).exists())
+        self.assertFalse((self.destination / 'runs/fixture/desktop-private.log').exists())
+
+        stale = json_bytes(dict(record, inputs_sha256='f' * 64))
+        (self.reports / relative).write_bytes(stale)
+        claimed = json.loads(json.dumps(report))
+        claimed['source']['sha256'] = 'f' * 64
+        next(row for row in claimed['checks'] if row['id'] == check)['observation'] = (
+            verification_evidence.collect_run_observation(
+                self.root, self.reports / 'runs/fixture', check, claimed['source']))
+        self.save_report(claimed)
+        rejected = self.destination.with_name('stale-inputs')
+        with self.assertRaisesRegex(PublicationError, 'current source inputs'):
+            stage_artifacts(self.root, rejected, self.env)
+        self.assertFalse((rejected / relative).exists())
+        shutil.copyfile(self.destination / relative, self.reports / relative)
+        self.save_report(report)
+
+        imported = self.reports / 'ci/10/linux'
+        shutil.copytree(self.destination, imported)
+        receipt = archive_evidence(self.root, 'M0-001', imported / 'test-report.json', imported)
+        self.assertEqual(result['observation'], read_json(self.root / receipt['path'])['external_client_observation'])
+        client_rows = result['observation']['observation']['clients']
+        self.assertEqual(['cli', 'desktop'], [leg['kind'] for leg in client_rows])
+        self.assertEqual([f'{check}.observation.json'], resolve_diagnostic(
+            diagnostic_locator(imported / 'test-report.json'), imported)['verified_observations'])
+        downloaded_report = imported / 'test-report.json'
+        downloaded_log = imported / f'runs/fixture/{check}.log'
+        downloaded_log.write_bytes(self.sentinel)
+        changed_report = read_json(downloaded_report)
+        next(row for row in changed_report['checks'] if row['id'] == check)['log_sha256'] = digest(self.sentinel)
+        downloaded_report.write_bytes(json_bytes(changed_report))
+        with self.assertRaisesRegex(ProjectError, 'more than its redacted exit status'):
+            archive_evidence(self.root, 'M0-001', downloaded_report, imported)
+        shutil.copyfile(self.destination / 'test-report.json', downloaded_report)
+        shutil.copyfile(self.destination / downloaded_log.relative_to(imported), downloaded_log)
+        changed = read_json(imported / relative)
+        changed['clients'][1]['version'] = '1.2.4'
+        (imported / relative).write_bytes(json_bytes(changed))
+        with self.assertRaisesRegex(ProjectError, 'Changed external-session evidence'):
+            archive_evidence(self.root, 'M0-001', imported / 'test-report.json', imported)
+
+    def test_external_client_observation_missing_or_private_records_do_not_qualify(self):
+        check, report, record, result = self.external_client_fixture()
+        with self.assertRaises(SystemExit) as blocked:
+            self.admit_external_client_fixture(check)
+        self.assertEqual(77, blocked.exception.code)
+        relative = f'runs/fixture/{check}.observation.json'
+        first, second = record['clients']
+        cases = {
+            'simulated': dict(record, method='simulated'),
+            'missing': dict(record, clients=[first]),
+            'same-kind': dict(record, clients=[first, dict(second, kind='cli')]),
+            'shared-consent': dict(record, clients=[first, dict(second, consent_observation_sha256='d' * 64)]),
+            'unconsented': dict(record, clients=[first, dict(second, publication_consent=False)]),
+            'different-workspace': dict(record, clients=[first, dict(second, workspace_sha256='f' * 64)]),
+            'different-revision': dict(record, clients=[first, dict(second, revision_sha256='f' * 64)]),
+            'different-selection': dict(record, clients=[first, dict(second, selection_sha256='f' * 64)]),
+            'stale-source': dict(record, commit='f' * 40),
+            'stale-inputs': dict(record, inputs_sha256='f' * 64),
+            'private-client-field': dict(record, clients=[first, dict(second, session_log=self.sentinel.decode())]),
+            'private-host': dict(record, clients=[first, dict(second, host=dict(second['host'], name='private'))]),
+            'unbounded-version': dict(record, clients=[first, dict(second, version='file:///private/session')]),
+            'control-character': dict(record, clients=[first, dict(second, version='1.2.3\n')]),
+            'failed-outcome': dict(record, clients=[first, dict(second, outcome=dict(second['outcome'], undo='failed'))]),
+        }
+        for name, payload in cases.items():
+            with self.subTest(name=name):
+                local = self.write('private/input.json', json_bytes(payload))
+                with self.assertRaises(SystemExit) as invalid:
+                    self.admit_external_client_fixture(check, local)
+                self.assertNotIn('Synthetic stand-in', str(invalid.exception))
+                self.assertFalse((self.reports / relative).exists())
+
+        local = self.write('private/input.json', json_bytes(record))
+        self.admit_external_client_fixture(check, local)
+        accepted = self.reports / relative
+        result['observation'] = verification_evidence.collect_run_observation(
+            self.root, accepted.parent, check, report['source'])
+        original = accepted.read_bytes()
+        blocked_payloads = (
+            ('private-field', json_bytes(cases['private-client-field']), 'Invalid redacted external-client observation'),
+            ('duplicate-key', b'{"schema_version":1,' + original[1:], 'Invalid redacted external-client observation'),
+            ('oversized', b' ' * 8192 + original, 'exceeds the redacted size limit'),
+        )
+        for name, raw, problem in blocked_payloads:
+            with self.subTest(publication=name):
+                accepted.write_bytes(raw)
+                result['observation']['evidence_sha256'] = digest(raw)
+                self.save_report(report)
+                rejected = self.destination.with_name(name)
+                with self.assertRaisesRegex(ProjectError, problem):
+                    stage_artifacts(self.root, rejected, self.env)
+                self.assertFalse((rejected / relative).exists())
+                self.assertFalse((rejected / 'test-report.json').exists())
 
     def record_session(self, report, *, deployment='local'):
         check = 'configured-model-session'
