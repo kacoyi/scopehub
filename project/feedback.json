@@ -6337,6 +6337,109 @@
         "prevention": "Interleave two synthetic byte sequences through the actual stage_artifacts entry for model, voice, market and the external-client pair. Preserve duplicate-key, private-field and size rejections."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "indicator-obsolete-status-probe-admission",
+      "source": "Authenticated PR 107 attempt 1, checkout 78860de6b1786b91a73feed4c0c6bc822e6dfaa4. Original archives/runs/20261125T080802.632754Z-2f17cbc5/test-report.json. Workspace log SHA-256 f86da8ff8b42c525ba95fef3ea9a9b3d126f02402d673eedb6dfd89e91f632c5. Paired artifacts and screenshot are indexed at archives/observations/repo-hygiene-20261125/pr107-native-original-45573475685/manifest.json (SHA-256 01e0af05e881344e57d6dcf2d8f4430d5d3f7d9c59774e8bec36c091c50bc428). Controlled Linux Chromium red on unchanged application and the retained fixture patch at 048199d. See archives/observations/m0-122-obsolete-indicator-status-red-048199d/SHA256SUMS (SHA-256 f55f474695cb1c7bef0ee1411c24a7613cf1c92ef52182e595567ca7162c3fc3) and observed-status.json (SHA-256 a9644bb66d79f651302709910dd2033d09bf21eddadb946723a2a1f091742c73).",
+      "observation": "The obsolete-input browser case failed when its direct indicator_preview_status response body reported BUSY instead of STALE_CONTEXT after the cancel exchange. The probe discarded HTTP status and did not record the competing request or registry stage. Windows passed on the same preview checkout. The ordinary product already polls BUSY within its existing deadline. The failing assertion was in the one-shot test probe, and its original BUSY stage remains unknown. In the controlled Chromium red, the original held ready request settled after invalidation, with acceptance absent. A separately tagged snapshot reached the actual Rust writer. The obsolete status probe against that holder returned HTTP 429 with retryable BUSY, and the matching writer reply drained at revision 1. Treating this refusal as the semantic answer reproduced the assertion failure.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-122"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The direct test probed obsolete status once and discarded HTTP status. In Chromium a separately tagged Rust snapshot held the writer, and the probe was refused with HTTP 429 before the stale check; the original hosted holder and stage were unobserved.",
+        "correction": "Use one bounded read-only probe which retries only an explicit retryable HTTP 429 BUSY. Keep admitted replies, the expected STALE_CONTEXT, mutation and UI assertions, and exact output comparison.",
+        "prevention": "The real control observes a cancelled late browser delivery, a still-held snapshot and one refused read stopped by caller cancellation. A subsequent read receives 429, the exact snapshot drains, and the same task returns HTTP 200 STALE_CONTEXT. Stale mutations are refused and the earlier document is identical after restart. The outcome is retained at archives/observations/m0-122-obsolete-indicator-status-green-5b66ac2/observed-status.json (SHA-256 f04d68833b21c2cc1a1fd00f952018ec2613bc94d86ea162845a830afd4f9a8c)."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T080802.632754Z-2f17cbc5",
+          "source_commit": "78860de6b1786b91a73feed4c0c6bc822e6dfaa4",
+          "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
+        }
+      ]
+    },
+    {
+      "id": "obsolete-indicator-forwarding-does-not-settle-on-error",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Injected route.fulfill threw the original error and disposed the fetched response, but the awaiting test still waited for forwarded. The worker could interrupt the test before the route, service and profile followed their owning finally blocks. Forwarding and the intercepted browser request completion share a finite verification window. The local replay observed the exact injected error and disposed response with the original forwarding waiter pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Only successful forwarding settled the deferred result. A thrown route error disposed the response but left the test waiting.",
+        "correction": "Settle the captured forwarding result on success or failure and keep the original failure through disposal. Use one bound for forwarding and captured request completion. Distinguish an already cancelled Chromium request from an ordinary missing response.",
+        "prevention": "Inject the original error into a live Chromium route and an independent absent response. Verify exact error identity, removal of the owned route, release of the listener and profile removal. The ordinary workflow observes genuine cancellation. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "obsolete-indicator-port-failure-leaks-profile",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "An injected freePort rejection occurred after profile allocation and before the owning try block. The review counted one created profile and zero close calls. Reserve the port before preparing the profile and verify the real profile still closes after a later failure. The local acquisition replay counted one prepared profile and zero closes while the same injected port error propagated.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The fixture created the profile before awaiting the port outside the owning finally.",
+        "correction": "Reserve the loopback port before acquiring the profile; keep the existing owning finally for later failures.",
+        "prevention": "Injected port rejection preserves the original error and prepares zero profiles. Both later forwarding failures remove each actual profile. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-probe-timeout-loses-last-refusal",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Repeated retryable 429 BUSY responses exhausted the probe timeout with only a boolean poll assertion. Both obsolete status and shared accepted-output probes need attempted request count and the last numeric HTTP status, BUSY code and retryability without response body or capability text. The local replay observed three retryable 429 attempts and verified the old diagnostic did not identify HTTP 429 or code BUSY.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-123"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The former boolean poll assertion retained no transport fields when the admission budget expired.",
+        "correction": "Keep the original absolute deadline and retry only the supported retryable HTTP 429 BUSY envelope. At expiry report the attempted count and last validated refusal fields. Preserve caller cancellation and return every other response to the assertion.",
+        "prevention": "The shared accepted-output probe sees repeated real HTTP 429 while the Rust snapshot stays held. Its bounded failure records the attempt count, HTTP 429, BUSY and retryability. The stale and malformed requests are returned after one attempt each; cancellation and reopened output are still checked. See archives/observations/m0-123-indicator-fixture/green-75aca56/observed.json (SHA-256 1fc528499e2d229bf4e6edb314091c0581fcfb11e6de377fecda04bb7c19d1b3)."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-admission-observer-outlives-read-deadline",
+      "source": "Astra Standard repeat review of M0-123 source 75aca5612da59e6c4b415aee0e7b64edfff9171f, archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt (SHA-256 6924986d05b324f36249808fff84a530af3149bed1fe2616795925f10e7b21e1). Exact-base fixture regression at 2b20311687f1fabf734e5381fa48309c975e1d42: archives/observations/m0-124-indicator-observer/red-2b20311/SHA256SUMS (SHA-256 280d5864c42fd3b43e6d1173b9965d61e46c400cbfbd8164109d356c3fd414c7) and observed.json (SHA-256 bc5e9abd5415e6df7f73b964c7e53ac9cc5ee51f9cc7c7584e9949a60d9bcbfa).",
+      "observation": "The actual probe awaited its undo observer after the first retryable HTTP 429. That callback started a separate 3-second drained wait. A drain after the read deadline settled in 3.807 seconds, and withholding drain settled in 4.206 seconds with an AbortError that omitted the refusal. An explicit caller cancellation at 161 milliseconds returned only at 813 milliseconds. The controls must separate deadline with late or withheld drain from early caller cancellation, and prove that admitted and nonretryable replies and arbitrary observer errors remain intact. With a 500 ms read budget the late case took 1013 ms and completed the wait after the late notification. The missing event took 3015 ms and lost the refusal. The explicit cancellation took 3016 ms and lost the original reason. The admitted and nonretryable controls each returned after one request. An unrelated observer error with the caller reason as its cause was replaced by that reason.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-124"
+      ],
+      "regression_checks": [
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The read probe started a single timeout, but the observer callback awaited an independent drained timeout. Its generic cause check could also turn an unrelated observer error into cancellation.",
+        "correction": "Pass the composed read signal into both real drain observers and the snapshot wait. Abort removes pending event subscriptions. Preserve the original reason of a caller abort and report the captured refusal on the internal deadline. Propagate other observer failures.",
+        "prevention": "The controlled loopback probe exercises late and withheld IPC, early caller cancellation, admitted and nonretryable replies, and an unrelated error sharing the caller abort as its cause. Each makes one request. In the two deadline cases the probe reports the retained HTTP 429 BUSY retryable fields. All three drain waiters clean their listeners. Exact source evidence: archives/observations/m0-124-indicator-observer/green-58191c3/observed.json (SHA-256 8f7e3598cdbb6e321334bab5e8df343775339dbce0585dc327a18a46770d4895)."
+      },
+      "deferral_reason": null
     }
   ]
 }

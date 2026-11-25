@@ -23470,6 +23470,335 @@
           "cleanup": "Remove extra reads of the run observation at the shared publication boundary."
         }
       }
+    },
+    {
+      "id": "M0-122",
+      "title": "Distinguish obsolete indicator status from workspace admission in the browser contract",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-069",
+        "M0-099",
+        "M0-101"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Retain the authenticated Linux failure and paired Windows result. Preserve the difference between the hosted BUSY body and its unknown origin.",
+        "In real Chromium, cancel a held ready response and bind a different snapshot to the actual Rust writer. The exact direct status probe first receives retryable HTTP 429 while the snapshot owns admission. After its reply drains, the same obsolete task is rejected as STALE_CONTEXT. The old preview and challenges remain unacceptably stale, and the exact original accepted output survives a writer restart.",
+        "Bound the read by its existing deadline and stop on caller cancellation while the holder remains. Other responses and mutations receive no admission retry from this probe. Archive the focused control and canonical task receipt."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-122-cad66da4094c3ec1.json",
+          "sha256": "2a7d80021092eedef908a6059ad16597178b0dc81010b291dc4c27643b3adef8"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T080802.632754Z-2f17cbc5",
+          "source_commit": "78860de6b1786b91a73feed4c0c6bc822e6dfaa4",
+          "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T082915.991200Z-b2f075c2 at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6 passed all four task checks and all 59 workspace cases. Controlled real Chromium distinguished a retryable pre-admission HTTP 429 from the HTTP 200 STALE_CONTEXT after the matching Rust snapshot drained. Caller cancellation stopped while admission remained occupied, the old ready response stayed ineligible, obsolete acceptance was refused, and the exact saved document survived restart. The separate native indicator_lifecycle tests passed, with log SHA-256 9774aad3a4c99d653cf378d95e9ff8ff1889e2392fb8f1ea9ff67bb7e602241c. The authenticated PR 107 pair, earlier feedback and controlled red and green are retained. The original hosted BUSY stage and holder remain unknown.",
+      "plan": {
+        "outcome": "The ordinary obsolete-preview test verifies the real stale result and preserved output even if the read-only diagnostic probe briefly loses admission.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/runs/20261125T080802.632754Z-2f17cbc5/test-report.json",
+          "archives/observations/repo-hygiene-20261125/pr107-native-original-45573475685/manifest.json",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/ui/src/indicator-preview.tsx"
+        ],
+        "hypotheses": [
+          "The direct single-shot test conflates a possible admission refusal with the semantic answer. A held real snapshot can reproduce that distinction without attributing the original hosted holder."
+        ],
+        "risks": [
+          {
+            "failure": "A generic BUSY or lost mutation result gets replayed, or a status probe loses its original deadline. Check the HTTP status and retryable envelope with one bound and explicit cancellation while a holder is still active.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A late ready artifact or stale acceptance changes what the user can accept or replaces the original document. Observe the held browser request, stale status and stale mutation, and inspect exact output after restart.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain the original and controlled failure. Revert a change that masks one of the stale or persistence assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+            "crates/persistence/src/bin/workspace_bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to product polling, admission, mutation semantics, deadlines, timing PR 107 or M0-119."
+          ],
+          "open_questions": [
+            "The original hosted trace did not identify the BUSY status or writer owner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing deadlines, stale semantic and approval checks, and exact durable output."
+          ],
+          "change": [
+            "Use a bounded read-only diagnostic probe and record the transport response separately."
+          ],
+          "data_plan": "Use an isolated synthetic browser profile, the normal Vite HTTP route and the real Rust writer.",
+          "cleanup": "Release held replies and the tagged writer on any exit, observe drain and remove the fixture profile."
+        }
+      }
+    },
+    {
+      "id": "M0-123",
+      "title": "Preserve indicator fixture cleanup and admission diagnostics",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-122"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real Chromium route forwarding fault reaches the waiting test as its original error and the route, Vite listener and profile are cleaned through the owning finally blocks. Bound forwarding and intercepted browser request completion together. Distinguish genuine browser cancellation from an absent response.",
+        "An injected port failure has no prepared profile. A profile acquired before any later fixture failure is closed.",
+        "Hold a real snapshot through several rejected output reads, exhaust only the test probe deadline and report attempts plus the last retryable 429 BUSY fields. Unexpected responses terminate immediately and caller cancellation stops without another read. Keep obsolete STALE_CONTEXT and exact reopened accepted output.",
+        "Run the combined obsolete-indicator and decision-note browser cases, workspace-timeframe and the canonical task harness. Retain both histories, the original review and M0-122 acceptance."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-123-206c7134639ae7c1.json",
+          "sha256": "4b54f7f3be5e06769a8f559430bfd17f152cb695a06ed7dc0c3dd5ca948fe7ce"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux run 20261125T084825.263828Z-3f3b6b69 on 75aca5612da59e6c4b415aee0e7b64edfff9171f passed all four task checks and all 62 workspace cases. The local Chromium injected error reaches its owning finally, including route removal, listener release and profile removal. Port failure prepared zero profiles. A held real Rust snapshot exhausted the shared output read budget with a safe refusal summary. The obsolete indicator and PR 106 decision-note cases passed on the same combined source. The original semantic stale and exact reopened output checks remain covered. M0-122 acceptance retains its original scope and receipt.",
+      "plan": {
+        "outcome": "Failures in the obsolete indicator fixture report their own cause and release owned resources, while a persistent admission refusal provides safe bounded diagnostics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The missing forwarding result, acquisition order and boolean polling diagnostics are fixture defects independent of the product status semantics."
+        ],
+        "risks": [
+          {
+            "failure": "A route error or absent response is hidden as cancellation, or the test times out before its own cleanup. Inject a live route failure, observe same error identity and check route removal, closed listener and removed profile.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A failing port allocation builds a disposable profile, or the new deadline retries admitted errors. Count acquisitions, hold a real writer for a persistent refusal, and keep admitted and cancelled controls.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain exact red observations and accepted M0-122 evidence. Revert any fixture correction that suppresses semantic failure or changes PR 106 behavior.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Runtime, authorization, persistence or deadline changes, and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Which already-settled Chromium cancellation and no-response outcomes does the real route expose?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original stale and reopened output assertions, admitted status shape, local receipt history and combined note code."
+          ],
+          "change": [
+            "Settle owned routing failures, acquire the port first and retain the minimal bounded refusal summary."
+          ],
+          "data_plan": "Use synthetic application profiles, actual loopback Vite and a tagged native snapshot. Record only failure labels and permitted metadata.",
+          "cleanup": "Release the held response and any tagged snapshot, unregister routes, terminate the service and remove each owned profile."
+        }
+      }
+    },
+    {
+      "id": "M0-124",
+      "title": "Bound indicator read observations by the admission deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-123"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real indicator probe and snapshot observer share one absolute deadline. Controlled late and withheld drained notifications release the wait and its listeners. The deadline retains the attempts and last HTTP 429 BUSY retryability.",
+        "An explicit early caller cancellation stops the same observation with the original reason and no further request. Admitted and nonretryable controls return their exact first replies; an unrelated observer error survives cancellation.",
+        "Preserve the existing forwarding fault cleanup, semantic STALE_CONTEXT, exact reopened output and PR 106 note test. Run the targeted browser cases and canonical M0-124, archive the reports, and preserve both accepted indicator tasks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-124-ddb7ec94f8369b42.json",
+          "sha256": "8b6ceefb30e583aced1e2417f868df23fece11b1ed063bcdacc9c7958800f88e"
+        },
+        {
+          "path": "project/evidence/M0-124-6a2e7624c628ac9b.json",
+          "sha256": "0b41b2cd6c28a6e67faf5280be54a6df9014d40c244d00c59bbdf34b010c8f58"
+        },
+        {
+          "path": "project/evidence/M0-124-b4ea2fd06ede7cef.json",
+          "sha256": "5c6fd20964e264baf468ab4c611b5df1d568d0d544302b3ffd34abbee89d6c7d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux run 20261125T090238.439791Z-34a6bf84 on 58191c3e15946cf2755a1edee23c04a6b00dbabd passed all four task checks and all 63 workspace cases. On the exact focused source, a 500 ms budget with late and withheld drain settled in 501 ms with the same HTTP 429 refusal. Explicit cancellation returned its original error in 3 ms. The observer exited with no remaining wait listener in each case. The admitted and nonretryable controls returned once and the arbitrary observer error retained its identity. The real obsolete indicator, reopened output, forwarding cleanup and PR 106 note scenarios passed. M0-122 and M0-123 retain their own acceptance and receipts.",
+      "plan": {
+        "outcome": "A stalled snapshot observation finishes within the indicator admission read budget and supplies the triggering refusal or caller cancellation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The independently timed drained wait survives the outer deadline and caller cancellation because the observer never receives the read signal."
+        ],
+        "risks": [
+          {
+            "failure": "A late or missing drain overruns the read budget, loses the last refusal, or leaves listeners. Drive the actual gate with controlled IPC and a bounded loopback read; check one refusal on deadline and no late success.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A caller cancellation is wrapped, an arbitrary observer error is disguised, or a nonretryable reply is retried. Check exact object identity and the admitted and nonretryable controls. Keep the existing native snapshot, stale, output and note scenarios.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the reviewed source, red witness and both earlier receipts. Reverse a fixture correction if it alters native admission or the operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Product code, protocol changes, longer waits and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Verify that the actual event waiter removes its abort listener and returns through the observer finally when the read signal expires."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing probe timeout and backoff, standalone snapshot wait defaults, stale/accepted-output assertions, forwarding cleanup, PR 106 note case and accepted M0-122 and M0-123 records."
+          ],
+          "change": [
+            "Pass the read signal to the observation and use it for the drained wait. Bound only the existing read operation."
+          ],
+          "data_plan": "Use loopback HTTP with synthetic replies and controlled IPC notifications for the shortest regression. Run the existing real Rust and Chromium scenarios on the exact candidate.",
+          "cleanup": "Verify listener disposal before attempting late notification, close the loopback listener, and preserve original and passing reports."
+        }
+      }
     }
   ]
 }
