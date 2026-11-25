@@ -40,9 +40,15 @@ function observeReplay(path) {
   };
 }
 
+function attachSampleStartup(observation) {
+  const body = JSON.stringify(observation);
+  if (observation.stage !== 'sample-verified') console.info('Sample startup', body);
+  return test.info().attach('sample-startup', { contentType: 'application/json', body });
+}
+
 async function openRepairSample(page, selected) {
   await page.addInitScript(observeReplay, stream);
-  await openDefaultSample(page);
+  await openDefaultSample(page, { reportStartup: attachSampleStartup });
   await openPanel(page, 'Data sources');
   await expect(revision(page)).toHaveValue('normal');
   await revision(page).selectOption(selected);
@@ -154,6 +160,86 @@ test('the real unrepaired sample keeps the missing interval visible and the char
   await expect(fact(page, 'Coverage')).toHaveText('Gapped');
   await page.screenshot({ path: testInfo.outputPath('unresolved-closed-bar-gap.png'), animations: 'disabled' });
   await readFrozenRows(page);
+});
+
+test('sample startup reports a terminal document before any committed sample', async ({ page }) => {
+  await page.route(url => url.pathname === '/', route => route.abort('connectionreset'));
+  try {
+    let observation;
+    await expect(openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } })).rejects.toThrow('Sample document GET failed (net::ERR_CONNECTION_RESET)');
+    expect(observation).toMatchObject({ stage: 'document-terminal',
+      document: { failure: 'net::ERR_CONNECTION_RESET' }, pending_count: 0 });
+    expect(observation.document.committed_ms).toBeUndefined();
+    expect(observation.catalog_verified_ms).toBeUndefined();
+  } finally {
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
+test('sample startup identifies a committed document with a held required module at the original deadline', async ({ page }) => {
+  const release = Promise.withResolvers();
+  const reload = page.getByRole('button', { name: 'Reload window' });
+  await page.route(url => url.pathname === '/src/workspace-start.ts', async route => {
+    await release.promise;
+    await route.abort().catch(() => {});
+  });
+  try {
+    let observation;
+    const stopped = expect(openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } })).rejects.toThrow('Timeout 10000ms exceeded');
+    await expect(reload).toBeEnabled();
+    await stopped;
+    expect(observation).toMatchObject({ stage: 'document-committed',
+      document: { http: 200, committed_ms: expect.any(Number) },
+      pending: expect.arrayContaining([expect.objectContaining({ type: 'script', asset: '/src/workspace-start.ts' })]),
+    });
+    expect(observation.document.dom_content_loaded_ms).toBeUndefined();
+    expect(observation.catalog_verified_ms).toBeUndefined();
+    await expect(chart(page)).toHaveCount(0);
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+  await openDefaultSample(page, { trigger: () => reload.click() });
+  await expect(chart(page)).toHaveAttribute('data-bars', '40');
+});
+
+test('DOMContentLoaded with a held dynamic entry still waits for the verified sample', async ({ page }) => {
+  const release = Promise.withResolvers();
+  await page.route(url => url.pathname === '/src/main.tsx', async route => {
+    await release.promise;
+    await route.continue().catch(() => {});
+  });
+  let observation;
+  try {
+    const dom = page.waitForEvent('domcontentloaded', { timeout: 10_000 });
+    const sample = openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } });
+    void sample.catch(() => {});
+    await dom;
+    await expect(page.getByRole('button', { name: 'Reload window' })).toBeEnabled();
+    await expect(chart(page)).toHaveCount(0);
+    expect(observation).toBeUndefined();
+    release.resolve();
+    await sample;
+    expect(observation).toMatchObject({ stage: 'sample-verified',
+      document: { http: 200, committed_ms: expect.any(Number), dom_content_loaded_ms: expect.any(Number) },
+      catalog_verified_ms: expect.any(Number), history_verified_ms: expect.any(Number), sample_verified_ms: expect.any(Number),
+    });
+    expect(observation.catalog_verified_ms).toBeGreaterThanOrEqual(observation.document.dom_content_loaded_ms);
+    expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+    await expect(chart(page)).toHaveAttribute('data-bars', '40');
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
 });
 
 async function routeCompletedRepair(page, rewrite, headers) {

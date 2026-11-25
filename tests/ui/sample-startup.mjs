@@ -19,6 +19,11 @@ export const sampleHistoryCall = (timeframe = '1m') => ({
   },
 });
 
+function requestFailure(request) {
+  const code = request.failure()?.errorText;
+  return /^(?:net::)?ERR_[A-Z0-9_]+$/.test(code ?? '') ? code : 'request failed';
+}
+
 export function observeSampleRequests(page, { marketOnly = false, poll = expect.poll } = {}) {
   const attempts = new Map();
   let order = 0;
@@ -40,8 +45,7 @@ export function observeSampleRequests(page, { marketOnly = false, poll = expect.
     if (attempt) attempt.finished = ++order;
   };
   const failed = request => {
-    const code = request.failure()?.errorText;
-    const failure = /^(?:net::)?ERR_[A-Z0-9_]+$/.test(code ?? '') ? code : 'request failed';
+    const failure = requestFailure(request);
     const attempt = attempts.get(request);
     if (attempt) attempt.failure = failure;
     if (request.isNavigationRequest() && request.resourceType() === 'document' && request.method() === 'GET') {
@@ -94,25 +98,113 @@ export function observeSampleRequests(page, { marketOnly = false, poll = expect.
   return { attempts, read, stop, get navigationFailure() { return navigationFailure; } };
 }
 
-export async function openDefaultSample(page, {
-  trigger = () => page.goto('/#demo', { waitUntil: 'domcontentloaded', timeout: 10_000 }),
-  verifyChart,
-} = {}) {
+function observeSampleDocument(page) {
+  const began = performance.now();
+  const elapsed = () => Math.round(performance.now() - began);
+  const marks = {};
+  const pending = new Map();
+  const failures = [];
+  let documentRequest;
+  let document = {};
+  let origin;
+  let omitted = 0;
+
+  const isMainFrame = request => {
+    // Some browser-owned requests have no associated page frame.
+    try { return request.frame() === page.mainFrame(); }
+    catch { return false; }
+  };
+  const listeners = {
+    request(request) {
+      const type = request.resourceType();
+      if (request.method() !== 'GET' || !['document', 'script', 'stylesheet'].includes(type) || !isMainFrame(request)) return;
+      const url = new URL(request.url());
+      if (type === 'document' && request.isNavigationRequest()) {
+        documentRequest = request;
+        document = { requested_ms: elapsed() };
+        origin = url.origin;
+        pending.clear();
+        return;
+      }
+      if (type === 'document' || url.origin !== origin) return;
+      if (pending.size === 96) {
+        omitted++;
+        return;
+      }
+      // Record only recognized code routes, without host, query, fragment or a filesystem path.
+      const pathname = url.pathname;
+      const asset = url.hostname === '127.0.0.1' && /^\/(?:src\/|assets\/|node_modules\/\.vite\/|@vite\/|@react-refresh$|workspace-reload\.js$)[\w./@-]{0,120}$/.test(pathname)
+        ? pathname : undefined;
+      pending.set(request, { type, asset, requested_ms: elapsed() });
+    },
+    response(response) {
+      const request = response.request();
+      const entry = request === documentRequest ? document : pending.get(request);
+      if (entry) Object.assign(entry, { http: response.status(), response_ms: elapsed() });
+    },
+    requestfinished(request) {
+      if (request === documentRequest) document.finished_ms = elapsed();
+      const entry = pending.get(request);
+      if (entry?.http >= 400 && failures.length < 8) failures.push(entry);
+      pending.delete(request);
+    },
+    requestfailed(request) {
+      if (request === documentRequest) document.failure = requestFailure(request);
+      const entry = pending.get(request);
+      if (entry && failures.length < 8) failures.push({ ...entry, failure: requestFailure(request) });
+      pending.delete(request);
+    },
+    framenavigated(frame) {
+      if (frame !== page.mainFrame() || !documentRequest) return;
+      const url = new URL(frame.url());
+      url.hash = '';
+      if (url.href === documentRequest.url()) document.committed_ms = elapsed();
+    },
+    domcontentloaded() {
+      if (document.committed_ms !== undefined) document.dom_content_loaded_ms = elapsed();
+    },
+  };
+  for (const [event, observe] of Object.entries(listeners)) page.on(event, observe);
+  return {
+    mark(stage) { marks[stage] = elapsed(); },
+    finish() {
+      for (const [event, observe] of Object.entries(listeners)) page.off(event, observe);
+      let stage = 'document-not-committed';
+      if (document.failure || document.http >= 400) stage = 'document-terminal';
+      else if (document.dom_content_loaded_ms !== undefined) stage = 'dom-content-loaded';
+      else if (document.committed_ms !== undefined) stage = 'document-committed';
+      if (marks.catalog_verified_ms !== undefined) stage = 'catalog-verified';
+      if (marks.history_verified_ms !== undefined) stage = 'history-verified';
+      if (marks.sample_verified_ms !== undefined) stage = 'sample-verified';
+      return {
+        stage, elapsed_ms: elapsed(), document, ...marks,
+        pending_count: pending.size, pending: [...pending.values()].slice(0, 8), failures, omitted,
+      };
+    },
+  };
+}
+
+export async function openDefaultSample(page, { trigger, verifyChart, reportStartup } = {}) {
   const historyCall = sampleHistoryCall();
   const observer = observeSampleRequests(page);
+  const startup = reportStartup && !trigger ? observeSampleDocument(page) : undefined;
   try {
-    const navigation = await trigger().catch(cause => {
+    const navigation = await (trigger ? trigger() : page.goto('/#demo', {
+      waitUntil: 'domcontentloaded', timeout: 10_000,
+    })).catch(cause => {
       if (!observer.navigationFailure) throw cause;
       throw new Error(`Sample document GET failed (${observer.navigationFailure})`, { cause });
     });
     if (navigation?.status() >= 400) throw new Error(`Sample document GET returned HTTP ${navigation.status()}`);
     const catalog = await observer.read(sampleCatalogCall.operation);
     expect(catalog.instruments.map(item => item.id)).toContain(future);
+    startup?.mark('catalog_verified_ms');
     const history = await observer.read(historyCall.operation);
     expect(history.snapshot.series).toEqual(historyCall.payload.series);
     expect(history.snapshot.dataset_revision).toBe(normalRevision);
     expect(history.total_bars).toBe(40);
     expect(history.bars).toHaveLength(40);
+    startup?.mark('history_verified_ms');
 
     await expect(chart(page)).toBeVisible();
     await expect(chart(page)).toHaveAttribute('data-instrument', future);
@@ -140,8 +232,17 @@ export async function openDefaultSample(page, {
       }
     }
     expect(phase, 'catalog and history each completed once').toBe(expected.length);
+    startup?.mark('sample_verified_ms');
     return history.snapshot;
   } finally {
     observer.stop();
+    if (startup) {
+      const observation = startup.finish();
+      try { await reportStartup(observation); }
+      catch (error) {
+        if (observation.stage === 'sample-verified') throw error;
+        console.warn('Could not attach sample startup observation.');
+      }
+    }
   }
 }
