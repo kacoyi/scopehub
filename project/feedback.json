@@ -6942,6 +6942,44 @@
         "prevention": "The paired public status fixture keeps the accepted successor and reversed ancestor, checks the full output bytes and traces the actual Git calls. The three pairs per case retained 41 to 36 and 42 to 37 total Git invocations."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "verification-windows-warm-pr-python-budget",
+      "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298).",
+      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45665595957-1",
+          "source_commit": "e5616997231794386ccf8a0a0966e7d9c3bfe263",
+          "report_sha256": "73eac4d40ec039769490fd41b5544076ea8a9b865de7fae8b3f3656fe4b093d7"
+        },
+        {
+          "run_id": "windows-change-45666385494-1",
+          "source_commit": "025ab3d0795fa075f184d796e52b2081f622d810",
+          "report_sha256": "4d30be363e019f8ef0a1b859bfe74e05a1d0d948f4ea10aaf098f38c9e630bb8"
+        },
+        {
+          "run_id": "windows-change-45667368453-1",
+          "source_commit": "08457feb3e6ee8a049aa70f652d35455de73765e",
+          "report_sha256": "99b9ccca4c5baec4abbb303f12cea70349bf6ed13c5a8a8bcd60347b99a4b07f"
+        }
+      ],
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "pull_request",
+        "profile": "full",
+        "platform": "Windows"
+      },
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

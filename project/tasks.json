@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-146",
   "tasks": [
     {
       "id": "M0-001",
@@ -25009,6 +25009,131 @@
           ],
           "data_plan": "Retain exact sources, fixed fixture identities, command counts and matching verdicts with original raw results.",
           "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
+        }
+      }
+    },
+    {
+      "id": "M0-146",
+      "title": "Recover the Windows Python critical path on full warm pull requests",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-143"
+      ],
+      "scope": [
+        "scripts",
+        "tests/project",
+        ".github/workflows/verify.yml",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the three authenticated ordinary full warm Windows PR reports, their job clocks, identical 35 selected outcomes, and per-test Python durations for the recurring overrun.",
+        "Reproduce a specific removable verification cost or scheduling bottleneck with actual inputs. Exercise equivalent positive, rejected and interrupted work through the owning public entry, preserving every required result, original attachments and native semantics.",
+        "Verify the proposed change with a successful comparable ordinary full warm Windows PR that contains the corrective revision and retains coverage within 900 seconds. Preserve an open finding and a measured next action if that evidence is absent."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Compare the three original Windows Python logs and producer timings, identify a repeatable cost, and run the narrowest representative positive and rejected verification before changing the scheduler or shared reader.",
+      "blocker": null,
+      "closure_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45665595957-1",
+          "source_commit": "e5616997231794386ccf8a0a0966e7d9c3bfe263",
+          "report_sha256": "73eac4d40ec039769490fd41b5544076ea8a9b865de7fae8b3f3656fe4b093d7"
+        },
+        {
+          "run_id": "windows-change-45666385494-1",
+          "source_commit": "025ab3d0795fa075f184d796e52b2081f622d810",
+          "report_sha256": "4d30be363e019f8ef0a1b859bfe74e05a1d0d948f4ea10aaf098f38c9e630bb8"
+        },
+        {
+          "run_id": "windows-change-45667368453-1",
+          "source_commit": "08457feb3e6ee8a049aa70f652d35455de73765e",
+          "report_sha256": "99b9ccca4c5baec4abbb303f12cea70349bf6ed13c5a8a8bcd60347b99a4b07f"
+        }
+      ],
+      "plan": {
+        "outcome": "Identify and reduce the measured work that puts the Windows Python verifier on the critical path of ordinary full warm pull requests. Preserve the full set of checks and the actual passing and rejected outcomes.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/check.py",
+          "scripts/project.py",
+          "tests/project",
+          "project/delivery.json",
+          "archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json"
+        ],
+        "hypotheses": [
+          "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
+          "A bounded improvement to a measured costly path, or a supported allocation of independent work on the existing producers, can reduce elapsed time while keeping every test observable. The median wall time alone cannot distinguish those mechanisms."
+        ],
+        "risks": [
+          {
+            "failure": "A reduced time comes from missing, duplicated, reordered stateful, or incorrectly aggregated tests, or from changed fault, interrupt and retry behavior.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unrelated main push, partial cache, cold run, or local timing is credited as recovery of the ordinary full warm PR cohort.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original reports, revert a change that loses coverage or increases measured cost, and keep the open budget finding assigned until a qualifying observation is available.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "scripts/timing.py",
+            "tests/project/test_delivery.py",
+            "tests/project/test_verification_scheduling.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changes to product semantics, check deadlines, paid runner capacity or the 900-second objective."
+          ],
+          "open_questions": [
+            "Which independently measured cost on the Windows critical path can be removed or scheduled with equivalent verification and acceptable aggregate runner work?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The original 35 selected checks, individual Python test outcomes, accurate native artifact imports and failures, and the complete M0-143 status behavior."
+          ],
+          "change": [
+            "Apply the smallest measured improvement supported by equivalent positive and rejected controls, then observe its actual Windows PR effect."
+          ],
+          "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison.",
+          "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
         }
       }
     }
