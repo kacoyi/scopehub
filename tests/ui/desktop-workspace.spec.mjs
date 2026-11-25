@@ -919,3 +919,138 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
     });
   });
 }
+
+for (const scenario of [
+  { name: 'focus before the startup snapshot', heldNumber: 1, changeSource: true, events: 1 },
+  { name: 'repeated focus during the first confirmation', heldNumber: 2, changeSource: true, events: 4 },
+  { name: 'repeated focus confirms the unchanged source', heldNumber: 2, changeSource: false, events: 4 },
+  { name: 'the old startup snapshot reaches its ordinary deadline', heldNumber: 1, changeSource: true, events: 3, timeout: true },
+]) {
+  test(`latest workspace focus survives ${scenario.name}`, async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
+    await buildPreview();
+    await withProfile(async profile => {
+      const a = randomUUID();
+      const b = randomUUID();
+      const bar = (day, close) => ({
+        time_ms: Date.parse(day + 'T00:00:00Z'), trading_day: day,
+        open: close - 3, high: close + 3, low: close - 5, close, volume: 13, is_closed: true,
+      });
+      await seedDisplayOnlyChart(profile, a, bar('2026-02-03', 44));
+      await seedDisplayOnlyChart(profile, b, bar('2026-02-04', 106));
+      await withWorkspaceTransport(profile, async ({ dispatch }) => {
+        const selectA = await dispatch({ type: 'workspace_source', request_id: randomUUID(),
+          expected_selection_revision: 0, source: { kind: 'frozen', revision_id: a } });
+        expect(selectA).toMatchObject({ ok: true, result: { selection_revision: 1 } });
+
+        const heldSnapshot = Promise.withResolvers();
+        const firstChart = Promise.withResolvers();
+        const snapshots = [];
+        const trace = [];
+        const ordinary = ({ operation, payload }) => operation === 'market.listLocalImportRevisions'
+          ? { result: { version: 1, revisions: [], next_after_revision_id: null } } : dispatch(payload);
+        let snapshotCalls = 0;
+        let chartHeld = false;
+        await nativeTransport(page, { optedIn: true }, async args => {
+          const { payload } = args;
+          if (payload.type === 'snapshot') {
+            const number = ++snapshotCalls;
+            const reply = await ordinary(args);
+            snapshots.push({ number, source: reply.result?.source, selection: reply.result?.selection_revision });
+            if (number === scenario.heldNumber) await heldSnapshot.promise;
+            trace.push({ deliveredSnapshot: number });
+            return reply;
+          }
+          if (payload.type === 'frozen_chart' && !chartHeld && scenario.heldNumber === 2) {
+            chartHeld = true;
+            const reply = await ordinary(args);
+            expect(reply.result.bars[0].bar.close).toBe(44);
+            await firstChart.promise;
+            trace.push({ deliveredChart: 44 });
+            return reply;
+          }
+          return ordinary(args);
+        });
+        const chart = page.getByRole('region', { name: 'Price chart' });
+        const selectedBar = chart.getByLabel('Selected bar');
+        const focus = count => page.evaluate(count => {
+          if (document.visibilityState !== 'visible') throw new Error('The first workspace must be visible at focus.');
+          for (let i = 0; i < count; i++) window.dispatchEvent(new Event('focus'));
+        }, count);
+        let peer;
+        try {
+          if (scenario.changeSource) {
+            peer = await page.context().newPage();
+            await nativeTransport(peer, { optedIn: true }, ordinary);
+          }
+          if (scenario.timeout) await page.clock.install();
+          await page.goto('/');
+          if (scenario.heldNumber === 2) {
+            await expect.poll(() => chartHeld).toBe(true);
+            await focus(1);
+          }
+          await expect.poll(() => snapshots.find(row => row.number === scenario.heldNumber)).toMatchObject({
+            source: { revision_id: a }, selection: 1,
+          });
+          if (peer) {
+            await peer.goto('/');
+            const peerChart = peer.getByRole('region', { name: 'Price chart' });
+            await expect(peerChart.getByLabel('Selected bar')).toContainText('C 44');
+            await openPanel(peer, 'Data sources');
+            const sources = peer.getByRole('complementary', { name: 'Data sources' });
+            await control(sources, 'Open published CSV').click({ timeout: 8000 });
+            const dialog = peer.getByRole('dialog', { name: 'Open published CSV' });
+            await dialog.getByLabel('Revision ID').fill(b);
+            await control(dialog, 'Open frozen chart').click();
+            await expect(dialog.getByLabel('Selected bar')).toContainText('C 106');
+            await control(dialog, 'Use as workspace source').click();
+            await expect(dialog).toHaveCount(0);
+            await expect(peerChart.getByLabel('Selected bar')).toContainText('C 106');
+            const current = await dispatch({ type: 'snapshot' });
+            expect(current.result).toMatchObject({ source: { revision_id: b }, selection_revision: 2 });
+            trace.push({ peerCommitted: b, close: 106, selection: 2 });
+          }
+          await page.evaluate(() => {
+            window.focusGenerationBars = [];
+            const observer = new MutationObserver(() => {
+              const bar = document.querySelector('[aria-label="Selected bar"]');
+              if (bar) window.focusGenerationBars.push(bar.textContent);
+            });
+            observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+            window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+          });
+          await focus(scenario.events);
+          trace.push({ focusEvents: scenario.events });
+          expect(snapshotCalls).toBe(scenario.heldNumber);
+          await expect(selectedBar).toHaveCount(0);
+          firstChart.resolve();
+          if (scenario.timeout) await page.clock.fastForward(16_000);
+          else heldSnapshot.resolve();
+          await expect.poll(() => snapshotCalls, { timeout: 4500 }).toBe(scenario.heldNumber + 1);
+          await expect(selectedBar).toContainText(scenario.changeSource ? 'C 106' : 'C 44');
+          heldSnapshot.resolve();
+          if (scenario.timeout) {
+            await expect.poll(() => trace.some(row => row.deliveredSnapshot === 1)).toBe(true);
+            await page.clock.runFor(50);
+          }
+          const confirmed = snapshots.find(row => row.number === scenario.heldNumber + 1);
+          expect(confirmed).toMatchObject({ source: { revision_id: scenario.changeSource ? b : a }, selection: scenario.changeSource ? 2 : 1 });
+          if (scenario.changeSource) {
+            expect((await page.evaluate(() => window.focusGenerationBars)).some(text => text.includes('C 44'))).toBe(false);
+          }
+          expect(snapshotCalls).toBe(scenario.heldNumber + 1);
+        } finally {
+          heldSnapshot.resolve();
+          firstChart.resolve();
+          const visible = page.isClosed() ? [] : await selectedBar.allTextContents();
+          const observed = page.isClosed() ? [] : await page.evaluate(() => window.focusGenerationBars ?? []);
+          await testInfo.attach('latest-focus-generation', {
+            body: JSON.stringify({ scenario, a, b, snapshots, trace, visible, observed }, null, 2),
+            contentType: 'application/json',
+          });
+          await peer?.close();
+        }
+      });
+    });
+  });
+}
