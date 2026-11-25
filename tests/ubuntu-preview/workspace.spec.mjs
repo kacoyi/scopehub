@@ -2537,7 +2537,7 @@ test('decision-note draft keeps its text and date across peer timeframe changes'
         await outcome.fill(deletedDraft);
         await inFreshBrowser(browser, server, async peer => {
           await control(peer, 'Decision notes').click();
-          await deleteBackupTestNote(peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
+          await deleteBackupTestNote(peer, peer.getByRole('dialog', { name: 'Decision notes' }), fixture.date);
           await observer.bringToFront();
           await expect(outcome).toHaveCount(0);
           await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
@@ -2547,6 +2547,132 @@ test('decision-note draft keeps its text and date across peer timeframe changes'
       });
     });
   } finally {
+    await profile.close();
+  }
+});
+
+test('a confirmed decision-note deletion stays visible when its refreshed list response is lost', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const fixture = { date: '2026-02-03', thesis: 'Synthetic deletion feedback', choice: 'Wait',
+    outcomes: [{ date: '2026-03-04', body: 'Synthetic later outcome' }] };
+  const observation = {};
+  try {
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        await control(page, 'Decision notes').click();
+        const notes = page.getByRole('dialog', { name: 'Decision notes' });
+        const status = notes.getByRole('status').filter({ hasText: 'Decision note deleted.' });
+        const confirm = notes.getByRole('button', { name: 'Delete decision note' });
+        const review = notes.getByRole('button', { name: 'Review deletion' });
+        await saveBackupTestNote(notes, fixture);
+        await assertBackupTestNote(notes, fixture);
+        const persisted = () => {
+          const db = new DatabaseSync(join(profile.root, 'workspace.sqlite3'), { readOnly: true });
+          try {
+            return {
+              notes: db.prepare('SELECT note_id FROM decision_notes').all().map(row => row.note_id),
+              outcomes: db.prepare('SELECT count(*) AS count FROM decision_note_outcomes').get().count,
+              deleted: db.prepare('SELECT note_id, revision FROM decision_note_deletions').all()
+                .map(row => ({ note_id: row.note_id, revision: row.revision })),
+            };
+          } finally {
+            db.close();
+          }
+        };
+        const [noteId] = persisted().notes;
+        expect(persisted()).toEqual({ notes: [expect.any(String)], outcomes: 1, deleted: [] });
+        // Hold one tab's request while its peer uses the same profile through an independent listener.
+        await inService(await freePort(), profile, 'ubuntu-workspace', async peerServer => {
+          await inFreshBrowser(browser, peerServer, async peer => {
+            await review.click();
+            const allowApproval = Promise.withResolvers();
+            let approvalHeld = false;
+            const holdApproval = async route => {
+              if (isDecisionNoteDeleteApproval(route.request().postDataJSON())) {
+                approvalHeld = true;
+                await allowApproval.promise;
+              }
+              await route.continue();
+            };
+            const workspaceUrl = server.url + endpoint;
+            await page.route(workspaceUrl, holdApproval);
+            try {
+              const rejected = await onDecisionNoteDeleteApproval(page, async () => {
+                await confirm.click();
+                await expect.poll(() => approvalHeld).toBe(true);
+                await expect(status).toHaveCount(0);
+                expect(persisted()).toEqual({ notes: [noteId], outcomes: 1, deleted: [] });
+                expect((await act(peer, '5m', 'chart.setTimeframe')).result.outcome.state).toBe('committed');
+                allowApproval.resolve();
+              });
+              observation.refused = (await rejected.json()).result.outcome;
+              expect(observation.refused).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
+              await expect(notes.getByRole('alert')).toHaveText('The workspace changed. Reload its current state and review again.');
+              await expect(status).toHaveCount(0);
+              observation.afterRefusal = persisted();
+              expect(observation.afterRefusal).toEqual({ notes: [noteId], outcomes: 1, deleted: [] });
+            } finally {
+              allowApproval.resolve();
+              await page.unroute(workspaceUrl, holdApproval);
+            }
+
+            await review.click();
+            const releaseProjection = Promise.withResolvers();
+            const holdProjection = async route => {
+              const intent = route.request().postDataJSON()?.intent;
+              if (intent?.operation !== 'decisionNote.read' || intent.arguments.note_id !== null) return route.continue();
+              const response = await route.fetch();
+              try {
+                observation.projection = (await response.json()).result.outcome;
+              } finally {
+                await response.dispose();
+              }
+              await releaseProjection.promise;
+              await route.abort();
+            };
+            await page.route(workspaceUrl, holdProjection);
+            const reload = notes.getByRole('button', { name: 'Reload decision notes' });
+            try {
+              const accepted = await onDecisionNoteDeleteApproval(page, () => confirm.click());
+              const approved = accepted.request().postDataJSON();
+              const frame = await accepted.json();
+              expect(frame.result.request_id).toBe(approved.request_id);
+              observation.committed = frame.result.outcome;
+              expect(observation.committed).toMatchObject({ state: 'committed', receipt: {
+                undoable: false, target: { kind: 'decision_note', object_id: noteId },
+                committed_workspace_revision: approved.scope.expected_workspace_revision + 1,
+              } });
+              observation.afterCommit = persisted();
+              expect(observation.afterCommit).toEqual({ notes: [], outcomes: 0,
+                deleted: [{ note_id: noteId, revision: observation.committed.receipt.committed_workspace_revision }] });
+              await expect.poll(() => observation.projection).toMatchObject({
+                state: 'completed', result: { note: null, notes: [] },
+              });
+              await expect(status).toBeVisible();
+              await control(peer, 'Decision notes').click();
+              const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
+              await expect(peerNotes.getByText('No saved decision notes.')).toBeVisible();
+              await expect(peerNotes.getByText('Decision note deleted.')).toHaveCount(0);
+              releaseProjection.resolve();
+              await expect(reload).toBeVisible();
+              await expect(notes.getByRole('alert')).toHaveText('The local workspace could not verify the result.');
+              observation.noticeAfterLostProjection = await status.count();
+              await expect(status).toBeVisible();
+            } finally {
+              releaseProjection.resolve();
+              await page.unroute(workspaceUrl, holdProjection);
+            }
+            await reload.click();
+            await expect(notes.getByText('No saved decision notes.')).toBeVisible();
+            await expect(notes.getByText(fixture.thesis)).toHaveCount(0);
+          });
+        });
+      });
+    });
+  } finally {
+    await testInfo.attach('decision-note-deletion-observation', {
+      contentType: 'application/json', body: JSON.stringify(observation),
+    });
     await profile.close();
   }
 });
@@ -2576,7 +2702,7 @@ test('decision-note list removes peer deletions after focus and a rejected detai
             expect(await writerPid(peerServer)).not.toBe(await writerPid(server));
             await control(peer, 'Decision notes').click();
             const peerNotes = peer.getByRole('dialog', { name: 'Decision notes' });
-            await deleteBackupTestNote(peerNotes, first.date);
+            await deleteBackupTestNote(peer, peerNotes, first.date);
             await observer.evaluate(() => window.dispatchEvent(new Event('focus')));
             await expect(firstRow).toHaveCount(0);
             await expect(secondRow).toBeVisible();
@@ -2594,7 +2720,7 @@ test('decision-note list removes peer deletions after focus and a rejected detai
             try {
               await secondRow.click();
               await expect.poll(() => intercepted, { message: 'The observer detail read was held before peer deletion.' }).toBe(true);
-              await deleteBackupTestNote(peerNotes, second.date);
+              await deleteBackupTestNote(peer, peerNotes, second.date);
             } finally {
               resume.resolve();
               await observer.unrouteAll({ behavior: 'wait' });
@@ -4323,11 +4449,27 @@ async function saveBackupTestNote(notes, fixture) {
   await notes.getByRole('button', { name: 'All decision notes' }).click();
 }
 
-async function deleteBackupTestNote(notes, date) {
+function isDecisionNoteDeleteApproval(payload) {
+  return payload?.intent?.operation === 'decisionNote.delete' && payload.confirmation?.decision === 'approve';
+}
+
+function onDecisionNoteDeleteApproval(page, action) {
+  return duringPageEvent(page, 'response', response => new URL(response.url()).pathname === endpoint
+    && isDecisionNoteDeleteApproval(response.request().postDataJSON()), action, 5_000);
+}
+
+async function deleteBackupTestNote(page, notes, date) {
   await notes.getByRole('button', { name: new RegExp(date) }).click();
   await notes.getByRole('button', { name: 'Review deletion' }).click();
-  await notes.getByRole('button', { name: 'Delete decision note' }).click();
+  const reply = await onDecisionNoteDeleteApproval(page, () =>
+    notes.getByRole('button', { name: 'Delete decision note' }).click());
+  const request = reply.request().postDataJSON();
+  const frame = await reply.json();
+  expect(frame).toMatchObject({ ok: true, result: { request_id: request.request_id, outcome: {
+    state: 'committed', receipt: { target: request.scope.target, undoable: false },
+  } } });
   await expect(notes.getByText('Decision note deleted.')).toBeVisible();
+  await expect(notes.getByRole('button', { name: new RegExp(date) })).toHaveCount(0);
 }
 
 async function assertBackupTestNote(notes, fixture) {
