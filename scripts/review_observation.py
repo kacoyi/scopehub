@@ -8,6 +8,7 @@ from marko import Markdown, block, inline
 QUOTE_END = r"""["'”’»」』）)]*"""
 SENTENCE_END = re.compile(rf'[。！？]{QUOTE_END}|[.!?]{QUOTE_END}(?=\s|$)')
 UNBALANCED_MARKER = re.compile(r'(?<![\w\\])(?:`|[*_]{1,3})(?=\S)')
+PROSE_WHITESPACE = re.compile(r'\s+')
 TEXT = (inline.RawText, inline.Literal)
 FORMATTING = (inline.StrongEmphasis, inline.Emphasis)
 PROSE_INLINE = (*TEXT, inline.LineBreak, inline.CodeSpan)
@@ -17,7 +18,7 @@ ATOMIC_INLINE = (*FORMATTING, inline.CodeSpan)
 def terminal_body(body):
     # The terminal retains line wraps and replaces Markdown list bullets.
     # Undo that layout before asking CommonMark to classify the reply.
-    lines = (line.removeprefix('  ') for line in body.splitlines())
+    lines = (line.removeprefix('  ') for line in body.split('\n'))
     return '\n'.join('- ' + line[2:] if line.startswith('• ') else line for line in lines)
 
 
@@ -44,6 +45,41 @@ def emphasis_terminator(node, source):
     return ''
 
 
+def inline_code_spans(node):
+    if isinstance(node, inline.CodeSpan):
+        yield node
+    elif isinstance(node, FORMATTING):
+        for child in node.children:
+            yield from inline_code_spans(child)
+
+
+def code_spelling(node, source):
+    raw = source[node.start_pos:node.end_pos]
+    if '\n' not in raw:
+        return raw
+    # Use CommonMark's logical code text across a line break so container
+    # indentation is not added to a filename. Keep the authored delimiters
+    # and any single boundary padding that the parser removed.
+    (opening, content_start), (content_end, closing) = node.syntax_spans
+    content = node.children
+    if content.strip() and source[content_start] in ' \n' and source[content_end - 1] in ' \n':
+        content = f' {content} '
+    return source[opening:content_start] + content + source[content_end:closing]
+
+
+def project_sentence(source, start, stop, code_spans):
+    pieces = []
+    for node in code_spans:
+        if node.start_pos >= stop:
+            break
+        if node.end_pos <= start:
+            continue
+        pieces.extend((PROSE_WHITESPACE.sub(' ', source[start:node.start_pos]), code_spelling(node, source)))
+        start = node.end_pos
+    pieces.append(PROSE_WHITESPACE.sub(' ', source[start:stop]))
+    return ''.join(pieces).strip()
+
+
 def sentences(paragraph, source, *, skip_first):
     nodes = paragraph.children
     if len(nodes) > 1 and isinstance(nodes[0], FORMATTING) and isinstance(nodes[1], inline.LineBreak):
@@ -52,7 +88,7 @@ def sentences(paragraph, source, *, skip_first):
     if not nodes or nodes[0].source_span is None:
         return
     origin = cursor = nodes[0].start_pos
-    mask, visible = [], []
+    mask, visible, code_spans = [], [], []
     for node in nodes:
         if node.source_span is None or not is_prose_inline(node):
             # Citations and other non-prose end the selectable part of this paragraph.
@@ -68,6 +104,7 @@ def sentences(paragraph, source, *, skip_first):
             plaintext = '\0' * len(raw)
             mark = emphasis_terminator(node, source)
             punctuation = plaintext[:-1] + mark if mark else plaintext
+        code_spans.extend(inline_code_spans(node))
         mask.extend((gap, punctuation))
         visible.extend((gap, plaintext))
         cursor = end
@@ -79,13 +116,16 @@ def sentences(paragraph, source, *, skip_first):
         plaintext = visible_text[start:stop]
         if (not (skip_first and index == 0) and any(character.isalpha() for character in plaintext)
                 and not UNBALANCED_MARKER.search(plaintext)):
-            yield ' '.join(source[origin + start:origin + stop].split())
+            left, right = origin + start, origin + stop
+            yield left, right, project_sentence(source, left, right, code_spans)
         start = stop
 
 
-def body_passages(body, *, rendered):
-    source = terminal_body(body) if rendered else body
-    source = source.replace('\r\n', '\n').replace('\r', '\n').replace('\0', '\ufffd')
+def markdown_source(body):
+    return body.replace('\r\n', '\n').replace('\r', '\n').replace('\0', '\ufffd')
+
+
+def passage_spans(source, *, rendered):
     try:
         document = Markdown(extensions=['gfm']).parse(source)
         for paragraph, starts_item in paragraphs(document):
@@ -93,3 +133,19 @@ def body_passages(body, *, rendered):
     except RecursionError:
         # Excessively nested input supplies no structurally verifiable observation.
         return
+
+
+def body_passages(body, *, rendered):
+    source = markdown_source(body)
+    if rendered:
+        source = terminal_body(source)
+    for _, _, passage in passage_spans(source, rendered=rendered):
+        yield passage
+
+
+def standalone_passage(text):
+    source = markdown_source(text).strip()
+    for start, stop, passage in passage_spans(source, rendered=False):
+        if start == 0 and stop == len(source):
+            return passage
+    return None

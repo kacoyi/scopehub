@@ -515,6 +515,36 @@ class TaskReviewTests(ProjectFixture):
         self.assertEqual('passed', self.command('history', '--base', base)['status'])
         self.assertEqual([TASK], delivery_scope(self.root, project.load_project(self.root), base)['completed_task_ids'])
 
+    def test_observation_projection_keeps_code_spelling_and_folds_only_prose(self):
+        _, source = self.open_review()
+        trace = self.root / '.reports/reply.txt'
+        trace.parent.mkdir()
+        cases = (
+            ('The legacy  report\r\nremains readable.', 'The legacy report remains readable.',
+             'The legacy\r\nreport remains readable.'),
+            ('- A second read confirmed `April \r\n  close.csv` in the output.',
+             'A second read confirmed `April  close.csv` in the output.',
+             'A second read\r\nconfirmed `April  close.csv` in the output.'),
+            ('The output saved **`` April  close`.csv ``**\r\nwithout changes.',
+             'The output saved **`` April  close`.csv ``** without changes.',
+             'The output saved **`` April  close`.csv ``**\r\nwithout changes.'),
+            ('The exact UTF-8 filename was `四月\u3000\t收盘.csv`.',
+             'The exact UTF-8 filename was `四月\u3000\t收盘.csv`.',
+             'The exact UTF-8 filename was `四月\u3000\t收盘.csv`.'),
+            ('The reported name was `  April \r\nclose.csv  `.',
+             'The reported name was `  April  close.csv  `.',
+             'The reported name was `  April  close.csv  `.'),
+        )
+        for body, expected, selection in cases:
+            with self.subTest(body=body):
+                trace.write_bytes(f'APPROVE {TASK} {source}\r\n\r\n{body}\r\n'.encode('utf-8'))
+                self.assertEqual([expected], list(review_acceptance.body_passages(body, rendered=False)))
+                receipt = review_acceptance.create_decision(
+                    self.root, TASK, source, trace, 'Independent reviewer', None, selection)
+                self.assertEqual(expected, receipt['observation'])
+                self.assertTrue(review_acceptance.observed_statement(
+                    receipt['observation'], receipt['decision'], receipt['scope']))
+
     def test_observation_file_preserves_unicode_markup_and_accepts_windows_line_endings(self):
         base, source = self.open_review()
         opened = self.command('review', TASK, '--source', source, '--request',
@@ -522,7 +552,7 @@ class TaskReviewTests(ProjectFixture):
         pending = self.command('context', TASK, '--phase', 'handoff')['independent_review']
         self.assertIn('--observation-file "review-observation.txt"', pending['coordination_command'])
         self.assertNotIn('--observation "', pending['coordination_command'])
-        exact = '再次打开时返回 `recovered`，输出为“已恢复。”'
+        exact = '再次打开时返回 `April  close.csv`，输出为“已恢复。”'
         capture = self.root / '.reports'
         capture.mkdir()
         trace, observation = capture / 'final response.jsonl', capture / 'selected observation.txt'
@@ -541,6 +571,13 @@ class TaskReviewTests(ProjectFixture):
         self.command(*args, error='Save the observation file as UTF-8.')
         observation.write_bytes(b'a' * (review_acceptance.OBSERVATION_FILE_LIMIT + 1))
         self.command(*args, error='exceeds the one-sentence input limit')
+        ledger = self.root / opened['path']
+        before = ledger.read_bytes()
+        wrong = exact.replace('April  close.csv', 'April close.csv')
+        observation.write_bytes((wrong + '\r\n').encode('utf-8-sig'))
+        self.command(*args, error='post-verdict body')
+        self.assertEqual(before, ledger.read_bytes())
+        self.assertEqual('pending', self.command('context', TASK)['independent_review']['status'])
         observation.write_bytes((exact + '\r\n').encode('utf-8-sig'))
         published = self.command(*args)['decision']
         self.assertEqual(exact, published['observation'])

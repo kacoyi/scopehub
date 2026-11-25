@@ -6,10 +6,10 @@ import json
 import re
 
 if __package__:
-    from .review_observation import body_passages
+    from .review_observation import body_passages, markdown_source, standalone_passage
     from .verification_scope import EVIDENCE_FILE, TASK_REVIEW_FILE, ScopeError, changes, exact_commit, git, inspect_index, require_ancestor
 else:
-    from review_observation import body_passages
+    from review_observation import body_passages, markdown_source, standalone_passage
     from verification_scope import EVIDENCE_FILE, TASK_REVIEW_FILE, ScopeError, changes, exact_commit, git, inspect_index, require_ancestor
 
 
@@ -189,7 +189,7 @@ def final_response(text):
         except (KeyError, TypeError, ValueError) as error:
             raise ReviewError('Expected one retained completed final assistant export.') from error
 
-    lines = text.splitlines()
+    lines = markdown_source(text).split('\n')
     if not any(line.startswith(('› ', '• ')) for line in lines):
         return text, None, False
     turns = [index for index, line in enumerate(lines)
@@ -203,11 +203,18 @@ def final_response(text):
     return '\n'.join([lines[final].removeprefix('• '), *lines[final + 1:end]]), None, True
 
 
+def selected_observation(text, heading, scope):
+    passage = standalone_passage(text)
+    if passage is None or passage == scope:
+        return None
+    plain = passage.strip(' `*_#>•.!?。！？')
+    if plain.casefold() in heading.casefold() or COMMIT.fullmatch(plain) or SUBJECT_TASK.fullmatch(plain):
+        return None
+    return passage
+
+
 def observed_statement(text, heading, scope):
-    plain = text.strip(' `*_#>•.!?。！？')
-    return (text != scope and plain.casefold() not in heading.casefold()
-            and not (COMMIT.fullmatch(plain) or SUBJECT_TASK.fullmatch(plain))
-            and text in body_passages(text, rendered=False))
+    return text == selected_observation(text, heading, scope)
 
 
 def read_observation_file(path):
@@ -228,7 +235,7 @@ def create_decision(root, task, source, transcript, reviewer, scope, observation
     if len(data) > TRANSCRIPT_LIMIT:
         raise ReviewError('The independent response exceeds the intake limit.')
     response, event, rendered = final_response(data.decode('utf-8'))
-    lines = response.strip().splitlines()
+    lines = markdown_source(response).strip().split('\n')
     heading = lines[0].strip() if lines else ''
     consumed = 1
     for line in lines[1:4]:
@@ -238,12 +245,13 @@ def create_decision(root, task, source, transcript, reviewer, scope, observation
         consumed += 1
     body = '\n'.join(lines[consumed:])
     scope = compact(scope) if scope else heading
-    observation = compact(observation)
+    observation = selected_observation(observation, heading, scope)
+    # The legacy replay fingerprint and scope locator are independent of quotation matching.
     whole = compact(response)
     verdict = bound_decision(heading, task, source, scope)
     if not verdict:
         raise ReviewError('The final independent verdict must identify this task and exact full source in its heading.')
-    if (scope not in whole or not observed_statement(observation, heading, scope)
+    if (scope not in whole or observation is None
             or observation not in body_passages(body, rendered=rendered)):
         raise ReviewError('Select a complete factual observation from the post-verdict body, separate from the heading.')
     response_hash = hashlib.sha256(whole.encode('utf-8')).hexdigest()
