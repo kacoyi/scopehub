@@ -754,8 +754,11 @@ impl WorkspaceTransaction for SqliteTransaction<'_> {
         }
     }
 
-    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error> {
-        local_dataset::display_allowed(self.connection, revision_id)
+    fn local_evidence_display_status(
+        &self,
+        revision_id: &str,
+    ) -> Result<scopehub_application::FrozenWorkspaceSourceStatus, Error> {
+        local_dataset::display_status(self.connection, revision_id)
     }
 
     fn indicator_trusted_python_allowed(&self, instrument_id: &str) -> Result<bool, Error> {

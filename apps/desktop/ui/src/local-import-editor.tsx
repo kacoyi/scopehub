@@ -318,18 +318,18 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const publishedId = publishedRecord?.revision_id;
   const lostAccess = publishedId !== undefined && revisionAccess.revoked.has(publishedId);
   const revokedSourceHash = lostAccess ? publishedRecord?.source_sha256 : undefined;
-  const published = lostAccess ? undefined : publishedRecord;
-  const frozen = frozenChart && !revisionAccess.revoked.has(frozenChart.revision.revision_id) ? frozenChart : undefined;
+  const published = publishedId && revisionAccess.canDisplay(publishedId) ? publishedRecord : undefined;
+  const frozen = frozenChart && revisionAccess.canDisplay(frozenChart.revision.revision_id) ? frozenChart : undefined;
   const publishedFolderId = publishedFolderRecord?.revision_id;
   const folderAccessLost = publishedFolderId !== undefined && revisionAccess.revoked.has(publishedFolderId);
-  const publishedFolder = folderAccessLost ? undefined : publishedFolderRecord;
-  const frozenFolder = folderAccessLost ? undefined : frozenFolderRecord;
+  const publishedFolder = publishedFolderId && revisionAccess.canDisplay(publishedFolderId) ? publishedFolderRecord : undefined;
+  const frozenFolder = frozenFolderRecord && revisionAccess.canDisplay(frozenFolderRecord.revision.revision_id) ? frozenFolderRecord : undefined;
   const refreshRevisionId = folderRefresh?.folder_base?.revision_id ?? folderRefresh?.base?.revision_id;
   const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.revoked.has(refreshRevisionId);
-  useWatchPublishedRevision(published?.revision_id, revisionAccess.verify, workspace);
-  useWatchPublishedRevision(publishedFolder?.revision_id, revisionAccess.verifyFolder, undefined);
+  useWatchPublishedRevision(lostAccess ? undefined : publishedId, revisionAccess.verify, workspace);
+  useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, revisionAccess.verifyFolder, undefined);
   useWatchPublishedRevision(
-    refreshRevoked || refreshRevisionId === published?.revision_id || refreshRevisionId === publishedFolder?.revision_id ? undefined : refreshRevisionId,
+    refreshRevoked || refreshRevisionId === publishedId || refreshRevisionId === publishedFolderId ? undefined : refreshRevisionId,
     folderRefresh?.folder_base ? revisionAccess.verifyFolder : revisionAccess.verify,
     folderRefresh?.folder_base ? undefined : workspace,
   );
@@ -646,7 +646,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       try {
         return await readLocalFolderRevision({ version: 1, revision_id: revisionId }, id);
       } catch (error) {
-        if (displayAccessDenied(error)) revisionAccess.revoke(revisionId);
+        if (displayAccessDenied(error)) void revisionAccess.verifyFolder(revisionId);
         throw error;
       }
     }, reply => {
@@ -683,7 +683,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         return controller ? await openAuthenticatedFrozenChart(revisionId, id, controller.signal)
           : await readLocalImportRevision({ version: 1, revision_id: revisionId }, id);
       } catch (error) {
-        if (!controller?.signal.aborted && displayAccessDenied(error)) revisionAccess.revoke(revisionId);
+        if (!controller?.signal.aborted && displayAccessDenied(error)) void revisionAccess.verify(revisionId);
         throw error;
       }
     }, reply => {

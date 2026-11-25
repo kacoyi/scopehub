@@ -307,9 +307,7 @@ fn serve(
                         ..*access
                     };
                     if request["type"] == "frozen_chart_status" {
-                        registry
-                            .evidence_chart_display_allowed(&display, id)
-                            .map(|available| json!({"available": available}))
+                        registry.evidence_chart_display_status(&display, id)
                     } else {
                         registry.open_evidence_chart(&display, id)
                     }

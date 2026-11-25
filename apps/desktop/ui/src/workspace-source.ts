@@ -41,15 +41,17 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   const id = source?.kind === 'frozen' ? source.revision_id : undefined;
   const status = source?.kind === 'frozen' ? source.status : undefined;
   const revoked = id !== undefined && (status === 'revoked' || access.revoked.has(id));
-  const openable = id && status === 'available' && !revoked ? id : undefined;
+  const missing = id !== undefined && access.unavailable.has(id);
+  const openable = id && status === 'available' && !revoked && !missing ? id : undefined;
   const [loaded, setLoaded] = useState<RestoredChartSource>();
   const [attempt, setAttempt] = useState(0);
   const canDisplay = access.canDisplay;
-  const refreshAccess = useEffectEvent(() => {
-    if (!workspace?.sourceRecovery) workspace?.reload();
+  const refreshAccess = useEffectEvent((revision: string) => {
+    workspace?.refreshPublishedAccess(revision);
   });
 
-  useWatchPublishedRevision(loaded?.status === 'ready' && loaded.revision_id === openable ? openable : undefined, access.verify, workspace);
+  const watched = id && !revoked && (missing || loaded?.status === 'ready' && loaded.revision_id === id) ? id : undefined;
+  useWatchPublishedRevision(watched, access.verify, workspace);
   useEffect(() => {
     if (!openable) {
       setLoaded(undefined);
@@ -67,17 +69,18 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
       setLoaded({ kind: 'frozen', revision_id: openable, status: 'unavailable' });
       // The first read can lose access before the open chart's watcher starts.
       // The current snapshot distinguishes a withdrawal from missing data.
-      if (displayAccessDenied(error)) refreshAccess();
+      if (displayAccessDenied(error)) refreshAccess(openable);
     });
     return () => controller.abort();
   }, [openable, canDisplay, attempt]);
 
   const retry = () => {
-    if (openable) setAttempt(value => value + 1);
+    if (id && missing) void access.verify(id);
+    else if (openable) setAttempt(value => value + 1);
     else workspace?.reload();
   };
   if (!id) return { retry, restored: undefined };
-  if (revoked || status === 'unavailable') return {
+  if (revoked || missing || status === 'unavailable') return {
     retry, restored: { kind: 'frozen', revision_id: id, status: revoked ? 'revoked' : 'unavailable' } satisfies RestoredChartSource,
   };
   return {

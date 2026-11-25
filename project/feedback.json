@@ -3708,6 +3708,33 @@
       "deferral_reason": null
     },
     {
+      "id": "frozen-access-refresh-admission-review",
+      "source": "Independent Astra Standard at 185f90d and archives/runs/20261125T043224.802985Z-a835f859/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A frozen read denial can lose its refresh during a held layout operation. A native refresh with no reply can hold the UI lane. The live boolean status also conflates a missing revision with revocation and can permanently suppress later recovery.",
+      "task_ids": [
+        "M2-034"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "state-migrations"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043224.802985Z-a835f859",
+          "source_commit": "185f90dff6008e7c54e3088f799253e24c602d12",
+          "report_sha256": "643938f819c14c07be74fc60d110743d95d32945ae4217be0363a7be35d8576f"
+        }
+      ],
+      "resolution": {
+        "cause": "The automatic refresh used an opportunistic, unbounded snapshot. The status endpoint collapsed absence and withdrawal into one boolean.",
+        "correction": "Queue access readback by revision, bound the native wait, hide stale shared state, and record a permanent revocation only when the registry confirms it.",
+        "prevention": "Desktop IPC cases exercise a held layout, an abandoned and late reply, and a temporary live absence followed by recovery and revocation. SQLite verifies the private status response for each disposition."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "same-user-profile-restore",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding relocated-local-profile",
       "severity": "minor",

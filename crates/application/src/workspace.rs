@@ -280,7 +280,16 @@ pub trait WorkspaceTransaction {
         &self,
         revision_id: &str,
     ) -> Result<Option<crate::StoredLocalDataset>, Error>;
-    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error>;
+    fn local_evidence_display_status(
+        &self,
+        revision_id: &str,
+    ) -> Result<FrozenWorkspaceSourceStatus, Error>;
+    fn local_evidence_display_allowed(&self, revision_id: &str) -> Result<bool, Error> {
+        Ok(matches!(
+            self.local_evidence_display_status(revision_id)?,
+            FrozenWorkspaceSourceStatus::Available
+        ))
+    }
     fn indicator_trusted_python_allowed(&self, _instrument_id: &str) -> Result<bool, Error> {
         Ok(false)
     }

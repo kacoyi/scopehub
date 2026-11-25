@@ -179,8 +179,8 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
 
 export const exchangeWorkspace: <T>(body: LocalRequest, signal: AbortSignal) => Promise<T> = exchange;
 
-async function waitForWorkspaceReply<T>(body: SourceRequest | AdmissionRead, signal: AbortSignal,
-  onAdmissionBusy: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {
+async function waitForWorkspaceReply<T>(body: LocalRequest, signal: AbortSignal,
+  onAdmissionBusy?: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {
   signal.throwIfAborted();
   let stopWaiting: (() => void) | undefined;
   try {
@@ -191,7 +191,7 @@ async function waitForWorkspaceReply<T>(body: SourceRequest | AdmissionRead, sig
       // Fetch can abort its delivery wait. Native invoke can still settle later,
       // so keep both handlers attached and discard any result after the deadline.
       void exchange<T>(body, signal, () => {
-        if (!signal.aborted) onAdmissionBusy();
+        if (!signal.aborted) onAdmissionBusy?.();
       }).finally(() => {
         if (nativeWrite) nativeWrite.pending = false;
       }).then(resolve, reject);
@@ -220,7 +220,13 @@ function validWorkspace(value: Workspace | undefined) {
 }
 
 export async function readWorkspaceSnapshot(signal: AbortSignal): Promise<Snapshot> {
-  return validateSnapshot(await exchangeWorkspace<Snapshot>({ type: 'snapshot' }, signal));
+  return validateSnapshot(await exchangeSourceStage<Snapshot>({ type: 'snapshot' }, signal, () => {}));
+}
+
+export function readFrozenRevisionStatus(revision_id: string, signal: AbortSignal) {
+  return waitForWorkspaceReply<{ available: boolean; revoked?: true }>({
+    type: 'frozen_chart_status', request_id: crypto.randomUUID(), revision_id,
+  }, signal);
 }
 
 function validateSnapshot(snapshot: Snapshot): Snapshot {
@@ -416,6 +422,9 @@ export function useLocalWorkspace() {
   const sourceReadback = useRef<SourceReadback | null>(null);
   const mounted = useRef(false);
   const queuedRecovery = useRef<{ revision: number; start: () => void } | null>(null);
+  const queuedAccess = useRef<{ revisions: Set<string>; start?: () => void }>({ revisions: new Set() });
+  const unconfirmedAccess = useRef(new Set<string>());
+  const [unconfirmedRevisions, setUnconfirmedRevisions] = useState<ReadonlySet<string>>(unconfirmedAccess.current);
   const [view, setView] = useState<View>({ snapshot: undefined, pending: 'open', errorId: undefined });
   const release = useCallback((controller: AbortController) => {
     if (active.current !== controller) return;
@@ -423,15 +432,29 @@ export function useLocalWorkspace() {
     if (sourceReadback.current) return;
     const next = queuedRecovery.current;
     queuedRecovery.current = null;
-    next?.start();
+    if (next) next.start();
+    else {
+      const { start } = queuedAccess.current;
+      delete queuedAccess.current.start;
+      start?.();
+    }
   }, []);
   const run = useCallback((work: (signal: AbortSignal) => Promise<Snapshot>, pending: View['pending']) => {
     if (active.current || sourceReadback.current) return;
     const controller = new AbortController();
     active.current = controller;
+    const checkedAccess = pending === 'open' ? [...unconfirmedAccess.current] : [];
     setView(previous => ({ ...previous, pending, errorId: undefined, selectionNotice: undefined }));
     return work(controller.signal).then(snapshot => {
       if (controller.signal.aborted) return false;
+      if (checkedAccess.length) {
+        const next = new Set(unconfirmedAccess.current);
+        for (const id of checkedAccess) {
+          if (!queuedAccess.current.revisions.has(id)) next.delete(id);
+        }
+        unconfirmedAccess.current = next;
+        setUnconfirmedRevisions(next);
+      }
       setView(previous => ({ snapshot, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice }));
       return true;
     }, error => {
@@ -446,6 +469,20 @@ export function useLocalWorkspace() {
       return false;
     }).finally(() => release(controller));
   }, [release]);
+  const refreshPublishedAccess = useCallback((id: string) => {
+    if (!mounted.current) return;
+    const entry = queuedAccess.current;
+    if (entry.revisions.has(id)) return;
+    entry.revisions.add(id);
+    unconfirmedAccess.current = new Set(unconfirmedAccess.current).add(id);
+    setUnconfirmedRevisions(unconfirmedAccess.current);
+    const start = () => {
+      entry.revisions.clear();
+      void run(readWorkspaceSnapshot, 'open');
+    };
+    if (active.current || sourceReadback.current) entry.start = start;
+    else start();
+  }, [run]);
   const canCheckRevision = useCallback(() => !sourceActive.current, []);
   const runSource = useCallback(async (work: (signal: AbortSignal) => Promise<void>) => {
     if (active.current) throw { code: 'BUSY' };
@@ -504,6 +541,8 @@ export function useLocalWorkspace() {
     return () => {
       mounted.current = false;
       queuedRecovery.current = null;
+      queuedAccess.current = { revisions: new Set() };
+      unconfirmedAccess.current = new Set();
       sourceActive.current = false;
       sourceReadback.current = null;
       active.current?.abort();
@@ -565,7 +604,7 @@ export function useLocalWorkspace() {
     }
   }
   return {
-    ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource,
+    ...view, reload, refreshAfterIndicatorCommit, canCheckRevision, recoverSource, refreshPublishedAccess, unconfirmedRevisions,
     error: view.errorId && t(view.errorId),
     selectionNotice: view.selectionNotice && t(view.selectionNotice),
     sourceNotice: view.sourceNotice && t(view.sourceNotice),

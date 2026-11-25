@@ -196,6 +196,138 @@ for (const fault of [
   });
 }
 
+function restoreSnapshot(id, status = 'available') {
+  return {
+    ...ready('1m', 0), selection_revision: 2,
+    source: { kind: 'frozen', revision_id: id, status },
+    chart_evidence: status === 'available'
+      ? { revision_id: id, range: { from_ms: 1, to_ms: 2 } } : { unavailable: true },
+    layouts: {
+      active: { name: null, definition: {
+        version: 1, panels: [], theme: 'dark', gain_color: '#138a61', loss_color: '#b73348',
+        link_selection: true, pinned_instrument: null,
+      } },
+      saved: [], undo: null,
+    },
+  };
+}
+
+test('frozen access refresh waits for a held layout preview', async ({ page }) => {
+  const id = randomUUID();
+  const denyChart = Promise.withResolvers();
+  const layoutStarted = Promise.withResolvers();
+  const releaseLayout = Promise.withResolvers();
+  let snapshots = 0;
+  await nativeTransport(page, { optedIn: true }, async ({ operation, payload }) => {
+    if (operation === 'workspace.previewLayout') {
+      layoutStarted.resolve();
+      await releaseLayout.promise;
+      return { error: { code: 'INVALID_ARGUMENT' } };
+    }
+    if (payload.type === 'snapshot') return { result: restoreSnapshot(id, ++snapshots === 1 ? 'available' : 'revoked') };
+    expect(payload).toMatchObject({ type: 'frozen_chart', revision_id: id });
+    await denyChart.promise;
+    return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+  });
+  try {
+    await page.goto('/');
+    await control(page, 'Edit layout').click();
+    const dialog = page.getByRole('dialog', { name: 'Edit workspace layout' });
+    await control(dialog, 'Preview default layout').click();
+    await layoutStarted.promise;
+    denyChart.resolve();
+    await expect(page.locator('.connection')).toHaveText('Source unavailable');
+    await expect(page.getByText('The shared selection is unavailable.')).toBeVisible();
+    expect(snapshots).toBe(1);
+    releaseLayout.resolve();
+    await control(dialog, 'Close').click();
+    await expect(page.getByText('Access to this published CSV was revoked.')).toBeVisible();
+    expect(snapshots).toBe(2);
+    await expect(page.getByText('The shared selection is unavailable.')).toBeVisible();
+  } finally {
+    denyChart.resolve();
+    releaseLayout.resolve();
+  }
+});
+
+test('frozen access refresh releases a silent native reply and ignores its late result', async ({ page }) => {
+  const id = randomUUID();
+  const waiting = Promise.withResolvers();
+  const late = Promise.withResolvers();
+  let snapshots = 0;
+  await nativeTransport(page, { optedIn: true }, async ({ payload }) => {
+    if (payload.type === 'snapshot') {
+      if (++snapshots === 1) return { result: restoreSnapshot(id) };
+      if (snapshots === 2) {
+        waiting.resolve();
+        return late.promise;
+      }
+      return { result: restoreSnapshot(id, 'revoked') };
+    }
+    expect(payload).toMatchObject({ type: 'frozen_chart', revision_id: id });
+    return { error: { code: 'SNAPSHOT_UNAVAILABLE' } };
+  });
+  await page.clock.install();
+  try {
+    await page.goto('/');
+    await waiting.promise;
+    await page.clock.fastForward(16_000);
+    await expect(page.getByText('Loading local workspace…')).toHaveCount(0);
+    await expect(page.getByText('The shared selection is unavailable.')).toBeVisible();
+    await control(page, 'Reload workspace state').click();
+    await expect(page.getByText('Access to this published CSV was revoked.')).toBeVisible();
+    late.resolve({ result: restoreSnapshot(id) });
+    await page.clock.runFor(50);
+    await expect(page.getByText('Access to this published CSV was revoked.')).toBeVisible();
+    expect(snapshots).toBe(3);
+  } finally {
+    late.resolve({ result: restoreSnapshot(id) });
+  }
+});
+
+test('a briefly missing live frozen revision can recover before a confirmed revocation', async ({ page }) => {
+  await buildPreview();
+  await withProfile(async profile => {
+    const id = randomUUID();
+    await seedDisplayOnlyChart(profile, id, {
+      time_ms: Date.parse('2026-02-03T00:00:00Z'), trading_day: '2026-02-03', open: 73, high: 75, low: 72, close: 74,
+      volume: 13, is_closed: true,
+    });
+    await withWorkspaceTransport(profile, async ({ dispatch }) => {
+      let state = 'available';
+      let chartReads = 0;
+      await nativeTransport(page, { optedIn: true }, ({ payload }) => {
+        if (payload.type === 'snapshot') return { result: restoreSnapshot(id) };
+        if (payload.type === 'frozen_chart_status') {
+          return { result: state === 'revoked' ? { available: false, revoked: true } : { available: state === 'available' } };
+        }
+        expect(payload).toMatchObject({ type: 'frozen_chart', revision_id: id });
+        chartReads += 1;
+        return dispatch(payload);
+      });
+      await page.clock.install();
+      await page.goto('/');
+      const chart = page.getByRole('region', { name: 'Price chart' });
+      const plotted = chart.getByRole('img', { name: /Candlestick and volume chart/ });
+      await expect(plotted).toBeVisible();
+      state = 'missing';
+      await page.clock.fastForward(2200);
+      await expect(chart.getByText('The published CSV is unavailable.')).toBeVisible();
+      await expect(plotted).toHaveCount(0);
+      state = 'available';
+      await page.clock.fastForward(2200);
+      await expect(plotted).toBeVisible();
+      expect(chartReads).toBeGreaterThan(1);
+      state = 'revoked';
+      await page.clock.fastForward(2200);
+      await expect(chart.getByText('Access to this published CSV was revoked.')).toBeVisible();
+      state = 'available';
+      await page.clock.fastForward(2200);
+      await expect(plotted).toHaveCount(0);
+    });
+  });
+});
+
 test('an outstanding native source invoke needs revision proof and a late reply stays inert', async ({ page, browser, baseURL }, testInfo) => {
   test.setTimeout(180_000);
   await buildPreview();

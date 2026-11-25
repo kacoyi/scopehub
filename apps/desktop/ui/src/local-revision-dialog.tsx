@@ -86,7 +86,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const watchedId = opening?.id ?? frozen?.result.revision.revision_id;
   const watchedKind = opening?.kind ?? frozen?.kind;
   const lostAccess = watchedId !== undefined && revisionAccess.revoked.has(watchedId);
-  const visibleFrozen = lostAccess ? undefined : frozen;
+  const visibleFrozen = frozen && revisionAccess.canDisplay(frozen.result.revision.revision_id) ? frozen : undefined;
   const visibleRevisions = library.status === 'ready'
     ? library.result.revisions.filter(entry => !revisionAccess.revoked.has(entry.revision_id)) : [];
   useWatchPublishedRevision(lostAccess ? undefined : watchedId,
@@ -180,6 +180,9 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
       setOpening({ id, kind });
       const denied = { code: workspace && kind === 'csv' ? 'SNAPSHOT_UNAVAILABLE' : 'PERMISSION_DENIED' };
       try {
+        if (revisionAccess.unavailable.has(id)) {
+          await (kind === 'folder' ? revisionAccess.verifyFolder(id) : revisionAccess.verify(id));
+        }
         if (!revisionAccess.canDisplay(id)) throw denied;
         const opened: OpenedRevision = kind === 'folder'
           ? { kind, result: await readLocalFolderRevision({ version: 1, revision_id: id }, crypto.randomUUID()) }
@@ -198,8 +201,8 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
         if (displayAccessDenied(error)) {
           if (fromLibrary) libraryTitle.current?.focus();
           removeFromLibrary(id);
-          revisionAccess.revoke(id);
-          workspace?.reload();
+          void (kind === 'folder' ? revisionAccess.verifyFolder(id) : revisionAccess.verify(id));
+          workspace?.refreshPublishedAccess(id);
         }
         throw error;
       } finally {

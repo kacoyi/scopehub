@@ -894,13 +894,10 @@ impl BoundWorkspace {
             Request::FrozenChart(revision_id) => self
                 .registry
                 .open_evidence_chart(&local_import_access(&self.profile_id), &revision_id),
-            Request::FrozenChartStatus(revision_id) => {
-                let available = self.registry.evidence_chart_display_allowed(
-                    &local_import_access(&self.profile_id),
-                    &revision_id,
-                )?;
-                Ok(json!({"available": available}))
-            }
+            Request::FrozenChartStatus(revision_id) => self.registry.evidence_chart_display_status(
+                &local_import_access(&self.profile_id),
+                &revision_id,
+            ),
             Request::IndicatorPreviewStatus(task_id) => {
                 self.registry.indicator_preview_status(&access, &task_id)
             }

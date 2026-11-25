@@ -19952,6 +19952,114 @@
       }
     },
     {
+      "id": "M2-034",
+      "title": "Retain and bound frozen access refresh after independent review",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-033"
+      ],
+      "scope": [
+        "apps/desktop",
+        "crates/application",
+        "crates/persistence",
+        "tests/ui",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0016"
+      ],
+      "acceptance": [
+        "A denied initial frozen read queues a single authoritative snapshot while another operation owns the workspace lane. Hide its stale shared selection and preserve source write recovery.",
+        "Bound a denied-read refresh and discard a late native snapshot. Manual retry can still obtain current access.",
+        "Hide a missing live revision while retaining a recovery path. Only confirmed revocation becomes permanent for the session."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "desktop-workspace-transport",
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-034-03b4ea9e42cc5bda.json",
+          "sha256": "365a5b206ba1c14cd14763ad9b4b3b688984baa468da20373e2dd36ddae9ebbc"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043224.802985Z-a835f859",
+          "source_commit": "185f90dff6008e7c54e3088f799253e24c602d12",
+          "report_sha256": "643938f819c14c07be74fc60d110743d95d32945ae4217be0363a7be35d8576f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "All thirteen Chromium desktop transport cases and the selected market, persistence and Rust checks passed. The held layout control concealed the stale selection and refreshed once. The clock test released a silent native reply after its deadline and ignored its late snapshot. A live frozen source became temporarily unavailable, reopened once authorized again, then remained hidden after confirmed withdrawal. The Rust registry independently distinguished an authorized, absent, and revoked synthetic revision. Actual Windows and release acceptance remain separate.",
+      "plan": {
+        "outcome": "Restore and monitor a published chart without retaining stale selection or freezing the workspace.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/published-revision-access.ts",
+          "apps/desktop/ui/src/workspace-source.ts"
+        ],
+        "hypotheses": [
+          "Readback must be queued by affected revision and bounded at the native delivery boundary. The registry already has the records needed to distinguish an absent revision from a revocation."
+        ],
+        "risks": [
+          {
+            "failure": "A busy request, stopped reply or a transient missing source loses recovery or hides a permission change.",
+            "checks": [
+              "desktop-workspace-transport",
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert this software change. Storage format and record contents remain unchanged.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop",
+            "application",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "crates/application/src/lib.rs",
+            "crates/persistence/src/lib.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Packaged Windows or physical-device acceptance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Exactly-once source mutations, assigned recovery ownership, desktop role checks and published records."
+          ],
+          "change": [
+            "Queue and bound read-only authorization refresh, and preserve support for a temporary missing revision."
+          ],
+          "data_plan": "Use synthetic frozen records, controlled IPC and a disposable Rust profile.",
+          "cleanup": "Discard late reads and cancel queued work when the host unmounts."
+        }
+      }
+    },
+    {
       "id": "M1-040",
       "title": "Disconnect the saved local API in My data sources",
       "milestone": "M1",
