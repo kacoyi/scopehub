@@ -10,7 +10,9 @@ import unittest
 from unittest.mock import patch
 
 from scripts import integration, timing, verification_scope
-from scripts.project import ProjectError, archive_evidence, feedback_fingerprint, json_bytes, load_project, read_json, source_identity
+from scripts.project import (
+    ProjectError, archive_evidence, digest, feedback_fingerprint, json_bytes, load_project, read_json, source_identity,
+)
 from tests.project.test_continuity import ProjectFixture
 from tests.project.fixtures import task_by_id
 
@@ -182,7 +184,7 @@ class IntegrationAssessmentTests(unittest.TestCase):
         self.assertEqual('not_evaluated', result['authorization'])
 
 
-class IntegrationHistoryTests(ProjectFixture):
+class IntegrationFixture(ProjectFixture):
     def git(self, *args):
         return subprocess.run(['git', '-c', 'user.name=Test Fixture', '-c', 'user.email=fixture@example.invalid',
                                '-c', 'commit.gpgsign=false', *args], cwd=self.root, capture_output=True,
@@ -198,6 +200,8 @@ class IntegrationHistoryTests(ProjectFixture):
         merge = self.git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Merge fixture')
         return {'sha': merge, 'parents': [{'sha': base}, {'sha': head}], 'tree': {'sha': tree}}
 
+
+class IntegrationHistoryTests(IntegrationFixture):
     def test_completed_slice_can_reach_review_without_completing_future_product_tasks(self):
         base = self.commit()
         self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
@@ -841,3 +845,288 @@ class IntegrationHistoryTests(ProjectFixture):
         with patch.object(integration, 'github_identity', return_value='unrelated/project'):
             with self.assertRaisesRegex(ProjectError, 'another repository'):
                 integration.inspect(self.root, 1)
+
+
+class RecurringBudgetHandoffTests(IntegrationFixture):
+    # Use the usual delivery-scope entry with a committed protected binding and authenticated
+    # observations supplied by the existing workflow and timing readers.
+    def recurring_fixture(self, *, protected=True):
+        path = self.root / 'project/delivery.json'
+        ledger = self.ledger()
+        for task, identity in (('M0-001', 'M0-139'), ('M0-002', 'M0-141')):
+            task_by_id(ledger, task)['id'] = identity
+            for row in ledger['tasks']:
+                row['depends_on'] = [identity if dependency == task else dependency for dependency in row['depends_on']]
+        ledger['focus_task_id'] = 'M0-139'
+        follow_up = task_by_id(ledger, 'M0-141')
+        follow_up.update(depends_on=['M0-139'], next_action='Observe the next protected main push.',
+                         checks=['project-state', 'rust-lints'], plan=deepcopy(task_by_id(ledger, 'M0-139')['plan']))
+        self.save_ledger(ledger)
+        rule = {'main_push_feedback_id': 'recurring-push-budget', 'repair_task_id': 'M0-139',
+                'follow_up_task_id': 'M0-141', 'next_action': follow_up['next_action'],
+                'finding_sha256': '3' * 64, 'control_reports_sha256': '2' * 64, 'selected_check_count': 3}
+        configured = read_json(path)
+        configured['source_control']['recurring_main_push_budget'] = rule
+        if protected:
+            path.write_bytes(json_bytes(configured))
+        base = self.commit()
+        path.write_bytes(json_bytes(configured))
+        (self.root / 'implementation.py').write_text('value = 2\n', encoding='utf-8')
+        repair = self.commit()
+        push = {'id': rule['main_push_feedback_id'], 'source': 'Fixture main-push controls.',
+                'observation': 'Ordinary Windows main timing exceeded the objective.',
+                'severity': 'major', 'status': 'open', 'task_ids': ['M0-139', 'M0-141'],
+                'regression_checks': ['rust-lints'], 'resolution': None, 'deferral_reason': None,
+                'diagnostic_reports': [{'run_id': 'windows-change-42-1', 'source_commit': base, 'report_sha256': '1' * 64}],
+                'verification_budget': {'repository': 'fixture/project', 'event': 'push', 'profile': 'full',
+                                        'platform': 'Windows', 'repair_commit': repair}}
+        feedback = self.root / 'project/feedback.json'
+        feedback.write_bytes(json_bytes({'schema_version': '1.0', 'items': [push]}))
+        self.commit()
+        report = self.report('M0-139')
+        data = read_json(report)
+        data['observed_feedback'] = [feedback_fingerprint(push)]
+        report.write_bytes(json_bytes(data))
+        receipt = archive_evidence(self.root, 'M0-139', report)
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-139').update(status='done', evidence=[receipt], next_action=None)
+        ledger['focus_task_id'] = 'M0-141'
+        self.save_ledger(ledger)
+        self.commit()
+        return base, rule, push
+
+    def recurring_scope(self, base, *, wrong=None, current=None):
+        head = source_identity(self.root)
+        study = self.merge_observation(base, head['git_head'])
+        workflow = {'status': 'passed', 'expected_profile': 'full',
+                    'run': {'id': 100, 'run_attempt': 1, 'head_sha': head['git_head'], 'event': 'pull_request'},
+                    'checkout': {'head': head['git_head'], 'base': base, 'commit': study['sha'], 'pull_request': 1},
+                    'required_checkouts': [{'name': name, 'job_id': index, 'commit': study['sha'], 'pull_request': 1}
+                                           for index, name in enumerate((UBUNTU, WINDOWS), 1000)]}
+        args = observations()
+        jobs = [dict(job, id=index, head_sha=head['git_head'], verification_profile='full')
+                for index, job in enumerate(args['jobs'], 1000)]
+        if wrong == 'head':
+            workflow['checkout']['head'] = '1' * 40
+        elif wrong == 'base':
+            workflow['checkout']['base'] = '1' * 40
+        elif wrong == 'checkout':
+            workflow['required_checkouts'][1]['commit'] = '1' * 40
+        elif wrong == 'job':
+            jobs[1]['conclusion'] = 'failure'
+        elif wrong == 'profile':
+            jobs[0]['verification_profile'] = 'tooling'
+        elif wrong == 'scope':
+            workflow['expected_profile'] = 'tooling'
+        elif wrong == 'source':
+            head['working_tree_dirty'] = True
+        project = load_project(self.root)
+        if current:
+            current(project)
+        with patch.object(integration, 'recurring_pr_evidence', return_value=wrong != 'evidence', create=True):
+            return integration.delivery_scope(self.root, project, base, source=head,
+                                              policy=args['policy'], workflow=workflow, jobs=jobs)
+
+    def test_recurring_binding_allows_only_its_open_push_after_protected_adoption(self):
+        base, _, push = self.recurring_fixture()
+        result = self.recurring_scope(base)
+        self.assertEqual([], result['blockers'])
+        handoff = result['recurring_main_push_budget']
+        self.assertEqual((push['id'], 'M0-141', 'pending'),
+                         (handoff['feedback_id'], handoff['follow_up_task_id'], handoff['status']))
+        for wrong in ('head', 'base', 'checkout', 'job', 'profile', 'scope', 'source', 'evidence'):
+            with self.subTest(wrong=wrong):
+                self.assertIn(f"Unresolved major feedback: {push['id']}",
+                              self.recurring_scope(base, wrong=wrong)['blockers'])
+        for severity, owner in (('major', 'M0-139'), ('critical', 'M0-004')):
+            with self.subTest(severity=severity):
+                result = self.recurring_scope(base, current=lambda project: project['feedback']['items'].append({
+                    'id': 'other-blocker', 'severity': severity, 'status': 'open', 'task_ids': [owner]}))
+                self.assertEqual([f'Unresolved {severity} feedback: other-blocker'], result['blockers'])
+        planned = self.recurring_scope(base, current=lambda project: project['tasks']['M0-139'].update(status='planned'))
+        self.assertIn('The PR has no completed delivery task with archived evidence.', planned['blockers'])
+        self.assertNotIn('recurring_main_push_budget', planned)
+        feedback = self.root / 'project/feedback.json'
+        items = read_json(feedback)
+        items['items'][0].update(status='addressed', resolution={
+            'cause': 'Fixture.', 'correction': 'Fixture.', 'prevention': 'Fixture.'})
+        # Isolate the closure gate from the ordinary accepted-feedback check.
+        closure = self.recurring_scope(base, current=lambda project: project['feedback']['items'].__setitem__(
+            0, items['items'][0]))
+        self.assertIn(f"Main-push timing closure lacks a verified main-push observation: {push['id']}", closure['blockers'])
+
+    def test_recurring_binding_cannot_be_adopted_by_its_repair_candidate(self):
+        base, _, push = self.recurring_fixture(protected=False)
+        result = self.recurring_scope(base)
+        self.assertNotIn('recurring_main_push_budget', result)
+        self.assertIn('The recurring main-push budget binding requires separate protected adoption.', result['blockers'])
+        self.assertIn(f"Unresolved major feedback: {push['id']}", result['blockers'])
+
+
+    def test_recurring_policy_adoption_can_deliver_the_independent_policy_task(self):
+        base = self.commit()
+        path = self.root / 'project/delivery.json'
+        delivery = read_json(path)
+        delivery['source_control']['recurring_main_push_budget'] = {
+            'main_push_feedback_id': 'recurring-push-budget', 'repair_task_id': 'M0-139',
+            'follow_up_task_id': 'M0-141', 'next_action': 'Observe the later protected main push.',
+            'finding_sha256': '1' * 64, 'control_reports_sha256': '2' * 64, 'selected_check_count': 3,
+        }
+        path.write_bytes(json_bytes(delivery))
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.commit()
+        result = self.recurring_scope(base)
+        self.assertEqual(['M0-001'], result['completed_task_ids'])
+        self.assertEqual([], result['blockers'])
+        self.assertNotIn('recurring_main_push_budget', result)
+
+    def native_observation(self, root, revision, *, run, elapsed, platform='Windows', event='push', head=None):
+        report = read_json(self.report('M0-139', system=platform))
+        run_id = f'windows-change-{run}-1' if platform == 'Windows' else f'fixture-linux-{run}'
+        report.update(run_id=run_id, generated_at='2026-11-25T13:00:00Z', timing={'elapsed_seconds': elapsed - 30},
+                      selection={'profile': 'full', 'checks': [row['id'] for row in report['checks']]},
+                      native_requirement={'requested': platform == 'Windows', 'satisfied': True})
+        report['source']['git_head'] = revision
+        report['ci'] = {'repository': 'fixture/project', 'run_id': str(run), 'run_attempt': '1', 'event': event,
+                        'head_sha': head or revision, 'checkout_sha': revision}
+        directory = root / 'runs' / run_id
+        directory.mkdir(parents=True)
+        for row in report['checks']:
+            original = self.root / row['log']
+            (directory / f"{row['id']}.log").write_bytes(original.read_bytes())
+            row['log'] = f".reports/runs/{run_id}/{row['id']}.log"
+        raw = json_bytes(report)
+        (directory / 'test-report.json').write_bytes(raw)
+        locator = {'run_id': run_id, 'source_commit': revision, 'report_sha256': digest(raw)}
+        sample = timing.report_sample(report, cache='warm')
+        sample.update(
+            job={'job_id': run, 'runner_label': 'windows-latest' if platform == 'Windows' else 'ubuntu-latest',
+                 'status': 'completed', 'identity_issues': {'missing': []}},
+            workflow_conclusion='success', hosted_head_branch='main' if event == 'push' else 'task',
+            review_exclusion=None, windows_caches={'core': 'warm', 'browser': 'warm', 'recovery': 'warm',
+                                                   'python': 'not_requested'},
+        )
+        sample['seconds']['total'] = elapsed
+        return locator, sample
+
+    def test_recurring_controls_require_three_bound_originals_and_identical_outcomes(self):
+        base, rule, push = self.recurring_fixture()
+        archive = self.root / '.reports' / 'archive-fixture'
+        controls = [self.native_observation(archive, base, run=run, elapsed=elapsed)
+                    for run, elapsed in enumerate((886, 938, 913), 41)]
+        locators, samples = map(list, zip(*controls))
+        push['diagnostic_reports'] = locators
+        rule['control_reports_sha256'] = digest(json_bytes(sorted(
+            (row['run_id'], row['source_commit'], row['report_sha256']) for row in locators)))
+        rule['finding_sha256'] = feedback_fingerprint(push)
+        rule['selected_check_count'] = len(samples[0]['selected'])
+        project = load_project(self.root)
+        result = {'budget_recovery': [{'feedback_id': push['id'], 'recovery': {
+            'unavailable_reports': [], 'conflicting_reports': [], 'comparisons': [{'history_missing': False}]}}]}
+        view = {'samples': samples, 'input_issues': []}
+
+        def verify():
+            return integration.recurring_budget_evidence(self.root, project, base, rule, push)
+
+        with (patch.object(integration, 'diagnostic_archive_root', return_value=archive),
+              patch.object(timing, 'retained_budget_inputs', return_value=([], [], [])),
+              patch.object(timing, 'timing_view', return_value=view),
+              patch.object(timing, 'budget_follow_up', return_value=result)):
+            self.assertIsNotNone(verify())
+            for change in ('missing', 'failed', 'partial-cache', 'changed-coverage'):
+                with self.subTest(change=change):
+                    view['samples'] = deepcopy(samples)
+                    if change == 'missing':
+                        view['samples'].pop()
+                    elif change == 'failed':
+                        view['samples'][1]['workflow_conclusion'] = 'failure'
+                    elif change == 'partial-cache':
+                        view['samples'][1]['windows_caches']['recovery'] = 'partial'
+                    else:
+                        view['samples'][1]['checks'][0]['reason_code'] = 'unrelated'
+                    self.assertIsNone(verify())
+            view['samples'] = samples
+            changed = deepcopy(locators)
+            changed[0]['report_sha256'] = '9' * 64
+            push['diagnostic_reports'] = changed
+            self.assertIsNone(verify())
+            push['diagnostic_reports'] = locators
+            push['regression_checks'] = ['project-state']
+            self.assertIsNone(verify())
+            push['regression_checks'] = ['rust-lints']
+            log = next((archive / 'runs' / locators[-1]['run_id']).glob('*.log'))
+            log.write_bytes(log.read_bytes() + b'changed')
+            with self.assertRaisesRegex(ValueError, 'Missing or changed diagnostic bytes'):
+                verify()
+
+    def test_recurring_pr_reads_both_exact_native_reports_without_a_pr_finding(self):
+        base, rule, push = self.recurring_fixture()
+        candidate = source_identity(self.root)
+        head = candidate['git_head']
+        merge = self.merge_observation(base, head)['sha']
+        project = load_project(self.root)
+        selected = sorted(key for key, check in project['checks'].items()
+                          if check.get('cadence', 'change') == 'change' and check['status'] != 'retired')
+        archive = self.root / '.reports' / 'fixture'
+        rows = [self.native_observation(archive, merge, run=100, elapsed=880, platform=platform,
+                                        event='pull_request', head=head)[1] for platform in ('Linux', 'Windows')]
+        for job, row in enumerate(rows, 1000):
+            row['job']['job_id'] = job
+            row['inputs_sha256'] = candidate['sha256']
+            row['selected'] = selected
+            row['checks'] = [{'id': key, 'status': 'passed', 'reason_code': None} for key in selected]
+        coverage = timing.coverage_key(rows[1])
+        rows[0]['report_status'] = 'blocked'
+        for row in rows[0]['checks']:
+            if project['checks'][row['id']]['platforms'] == 'windows-x64':
+                row.update(status='blocked', reason_code='unsupported_platform')
+        workflow = {'run': {'id': 100}, 'checkout': {'head': head, 'commit': merge},
+                    'required_checkouts': [{'name': UBUNTU, 'job_id': 1000}, {'name': WINDOWS, 'job_id': 1001}]}
+        recovery = {'status': 'pending', 'comparisons': [{'latest_attempt': None}]}
+        with patch.object(integration, 'recurring_budget_evidence') as evidence:
+            evidence.return_value = rows, coverage, archive, recovery
+
+            def verify():
+                return integration.recurring_pr_evidence(self.root, project, base, rule, push, candidate, workflow)
+
+            self.assertTrue(verify())
+            for changes in ({'source_commit': base}, {'inputs_sha256': '3' * 64}, {'selected': selected[:-1]},
+                            {'profile': 'tooling'}, {'workflow_conclusion': 'failure'}):
+                with self.subTest(changes=changes):
+                    evidence.return_value = [rows[0], {**rows[1], **changes}], coverage, archive, recovery
+                    self.assertFalse(verify())
+            evidence.return_value = rows[1:], coverage, archive, recovery
+            self.assertFalse(verify())
+
+    def test_recurring_closure_requires_the_later_protected_push_and_original_receipt(self):
+        base, rule, previous = self.recurring_fixture()
+        main = self.merge_observation(base, source_identity(self.root)['git_head'])['sha']
+        project = load_project(self.root)
+        project['tasks']['M0-141']['status'] = 'done'
+        push = dict(previous, status='addressed')
+        repair = previous['verification_budget']['repair_commit']
+        archive = self.root / '.reports' / 'archive-close'
+        locator, sample = self.native_observation(archive, main, run=101, elapsed=899)
+        witness = timing.recovery_observation(sample)
+        recovery = {'status': 'recovered', 'repair_commit': repair, 'comparisons': [{'latest_attempt': witness}]}
+        receipt = {'ci': {**sample['ci']}, 'source': {'git_head': main, 'sha256': sample['inputs_sha256']},
+                   'environment': {'system': 'Windows', 'machine': 'AMD64'}, 'run_id': locator['run_id'],
+                   'report_sha256': locator['report_sha256']}
+        with (patch.object(integration, 'recurring_budget_evidence', return_value=(
+                  [sample], timing.coverage_key(sample), archive, recovery)),
+              patch.object(integration, 'budget_regression_receipts', return_value=[('receipt.json', receipt)])):
+            def verify(revision=main):
+                return integration.main_push_budget_closure(
+                    self.root, project, revision, rule, push, previous, observations()['policy'])
+
+            self.assertTrue(verify())
+            self.assertFalse(verify(base))
+            receipt['ci']['event'] = 'pull_request'
+            self.assertFalse(verify())
+            receipt['ci']['event'] = 'push'
+            for excess in (901, None):
+                witness['elapsed_seconds'] = excess
+                self.assertFalse(verify())
+            witness['elapsed_seconds'] = 899
+            receipt['report_sha256'] = '5' * 64
+            self.assertFalse(verify())
