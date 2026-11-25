@@ -25748,9 +25748,14 @@
           "run_id": "windows-change-45702463807-1",
           "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
           "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        },
+        {
+          "run_id": "20261125T212742.962266Z-3ed42067",
+          "source_commit": "e88bbef8f302d785fc1075f760e4786bbca4567d",
+          "report_sha256": "402b254a10b4c31621490f12658803f9f42553e7d1023dfdcaac41cbbd2bb557"
         }
       ],
-      "next_action": "Review the exact isolated fixture correction and its before/after and rejection controls. Qualify the unchanged ordinary Windows Python check on the corrected source, then retain the first eligible protected main-push result within the original deadline.",
+      "next_action": "Qualify the isolated fixture with native Windows observations and compare the complete serial check against both retained first-attempt timeouts and their ordinary PR controls. Measure setup and total work separately. Keep the finding open pending a complete protected main-push result within the existing deadline.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
