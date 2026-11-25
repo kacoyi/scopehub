@@ -21024,6 +21024,14 @@
         {
           "path": "project/evidence/M0-120-f3e774336e24ddb0.json",
           "sha256": "220958dbbd211fdf14928f52ad6112df364a30afaecad4f134c2ac454587e2b1"
+        },
+        {
+          "path": "project/evidence/M0-120-4fa6123379752819.json",
+          "sha256": "f380bbca748f8b7daffe323d483d4933aafb75742ff81d00f0260a9488696fd3"
+        },
+        {
+          "path": "project/evidence/M0-120-ef4a2365c7379f31.json",
+          "sha256": "a3e0d700029e52da2573b47e96c8deeb3e56744d423909f759918e9c3d29b8d1"
         }
       ],
       "closure_reason": "The exact locked offline example build on protected main reproduced three dead-code warnings; the Linux candidate built with none. The local task harness passed the ordinary local-import-publication browser check and the Rust suite, including real worker replay cancellation. An isolated build with the previously reviewed opt-in fixture also verified both profile modes. Native Windows execution remains an independent review scope."
