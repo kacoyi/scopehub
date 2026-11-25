@@ -19,6 +19,11 @@ SUBJECT_TASK = re.compile(r'(?<![\w-])M[0-9]+-[0-9]{3}(?![\w-])')
 BOUNDARY_TYPES = {'permissions', 'model-connection'}
 DECISION = re.compile(r'^(?:• )?(\*\*(?:APPROVED?|CHANGES[_ ]REQUESTED)\*\*|(?:APPROVED?|CHANGES[_ ]REQUESTED)\b)')
 COMMIT = re.compile(r'(?<![a-f0-9])(?:[a-f0-9]{64}|[a-f0-9]{40})(?![a-f0-9])')
+TERMINAL_CONTROL = re.compile(
+    r'(?P<idle>› Ask Codex to do anything\s*)|(?P<prompt>› .*)|(?P<reply>• .*)'
+    r'|(?P<footer>  Worked for (?:[0-9]+h(?: [0-9]+m)?(?: [0-9]+s)?|[0-9]+m(?: [0-9]+s)?|[0-9]+s)'
+    r' • (?:[1-9]|1[0-2]):[0-5][0-9] [AP]M[ \t]*)'
+)
 TRANSCRIPT_LIMIT = 4 * 1024 * 1024
 OBSERVATION_FILE_LIMIT = 4096
 TASK_ADMIN = {'status', 'evidence', 'next_action', 'blocker', 'closure_reason'}
@@ -216,20 +221,22 @@ def terminal_exchange(lines, prose, indented):
     if opening not in prose or not lines[opening].startswith(('› ', '• ')):
         return None
 
-    # Only outer authored lines participate in the terminal frame. A Unicode
-    # bullet in a document does not establish a transcript by itself.
-    controls = [(index, line) for index, line in enumerate(lines[opening:], opening)
-                if index in prose and line.startswith(('› ', '• ', '  Worked for '))]
-    turns = [index for index, line in controls
-             if line.startswith('› ') and line.strip() != '› Ask Codex to do anything']
-    if not turns and not any(line.startswith('  Worked for ') for _, line in controls):
+    # The terminal's elapsed duration and clock form one control line.
+    # Markdown examples and ordinary prose are outside the control grammar.
+    controls = [(index, match.lastgroup) for index, line in enumerate(lines[opening:], opening)
+                if index in prose and (match := TERMINAL_CONTROL.fullmatch(line))]
+    turns = [index for index, kind in controls if kind == 'prompt']
+    if not turns and not any(kind == 'footer' for _, kind in controls):
         return (opening, len(lines)) if DECISION.match(lines[opening]) else None
     start = turns[-1] + 1 if turns else opening
-    final = next((index for index, line in reversed(controls) if index >= start and line.startswith('• ')), None)
+    final = next((index for index, kind in reversed(controls) if index >= start and kind == 'reply'), None)
     if final is None:
         raise ReviewError('The last terminal exchange has no final independent verdict.')
-    end = next((index for index, line in controls
-                if index > final and line.startswith(('› ', '  Worked for '))), len(lines))
+    next_prompt = next((index for index, kind in controls if index > final and kind in ('prompt', 'idle')), len(lines))
+    # Only the closing footer of the selected exchange ends the answer.
+    # An earlier authored clock-shaped line stays in the selected body.
+    end = next((index for index, kind in reversed(controls)
+                if kind == 'footer' and final < index < next_prompt), next_prompt)
     return final, end
 
 

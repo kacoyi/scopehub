@@ -72,7 +72,7 @@ class TaskReviewTests(ProjectFixture):
             body = (f'› Report APPROVE or CHANGES_REQUESTED for {task} at {source}.\n'
                     f'• Ran git show historical-output\n  └ APPROVE — quoted {source}\n'
                     f'• {verdict} — independent decision for {task} at\n'
-                    f'  {source}.\n\n  {observation}\n  Worked for 1m • today\n')
+                    f'  {source}.\n\n  {observation}\n  Worked for 1m 0s • 7:39 PM\n')
         trace.write_text(body + suffix, encoding='utf-8')
         args = ['review', TASK, '--source', source, '--transcript', str(trace),
                 '--reviewer', 'Synthetic independent reviewer', '--observation', observation]
@@ -262,7 +262,7 @@ class TaskReviewTests(ProjectFixture):
         observed = 'I reopened `四月\u3000\t收盘.csv` and counted 11 rows.'
         quoted = 'I reopened `四月\u3000\t收盘.csv` and counted 12 rows.'
         example = (f'```text\n› Reopen the old result.\n• APPROVE {TASK} {source}\n\n'
-                   f'  {quoted}\n  Worked for 1m • today\n```\n')
+                   f'  {quoted}\n  Worked for 1m 0s • 7:39 PM\n```\n')
         plain = f'{heading}\n\n{observed}\n\n{example}'
         args = ('review', TASK, '--source', source, '--transcript', str(trace),
                 '--reviewer', 'Synthetic independent reviewer', '--observation-file', str(selected))
@@ -313,7 +313,7 @@ class TaskReviewTests(ProjectFixture):
                 '--reviewer', 'Synthetic independent reviewer', '--observation', OUTCOME)
         transcript = ('    + Show details\n\n• Ran the previous check\n  └ Process exited normally.\n'
                       '› Reopen the fixture.\n\n'
-                      f'• {heading}\n\n  {OUTCOME}\n  Worked for 1m • today\n')
+                      f'• {heading}\n\n  {OUTCOME}\n  Worked for 1m 0s • 7:39 PM\n')
         trace.write_text(transcript, encoding='utf-8')
         result = self.command(*args)
         self.assertEqual(heading, result['decision']['decision'])
@@ -329,7 +329,7 @@ class TaskReviewTests(ProjectFixture):
         trace.parent.mkdir()
         claim = 'Both saved exports contained 12 rows.'
         heading = f'APPROVE {TASK} {source}'
-        exchange = f'› Inspect the examples.\n• {heading}\n\n  {claim}\n  Worked for 1m • today\n'
+        exchange = f'› Inspect the examples.\n• {heading}\n\n  {claim}\n  Worked for 1m 0s • 7:39 PM\n'
         docs = '• Examples of archived review output\n\n'
         fenced = f'```text\n{exchange}```\n'
         samples = (
@@ -341,11 +341,11 @@ class TaskReviewTests(ProjectFixture):
             '• `Copied syntax\n' + exchange.replace('\n\n', '\n') + '`\n',
             docs + '<pre>\n' + exchange + '</pre>\n',
             f'• [Archived example\n› Prior request.\n• {heading}\n](https://example.test)\n\n'
-            f'  {claim}\n  Worked for 1m • today\n',
+            f'  {claim}\n  Worked for 1m 0s • 7:39 PM\n',
             f'• **Archived example\n› Prior request.\n• {heading}**\n\n'
-            f'  {claim}\n  Worked for 1m • today\n',
+            f'  {claim}\n  Worked for 1m 0s • 7:39 PM\n',
             f'• Archived example\n› Prior request.\n• {heading}\n---\n\n'
-            f'  {claim}\n  Worked for 1m • today\n',
+            f'  {claim}\n  Worked for 1m 0s • 7:39 PM\n',
             f'    {heading}\n\n{claim}\n',
             f'APPROVE {TASK}\n  ```text\n  {source}\n  ```\n\n{claim}\n',
         )
@@ -370,11 +370,11 @@ class TaskReviewTests(ProjectFixture):
         quoted = 'Both saved exports contained 12 rows.'
         reject = f'CHANGES_REQUESTED {TASK} {source}'
         example = (f'```text\n› Prior request.\n• APPROVE {TASK} {source}\n\n'
-                   f'{quoted}\n  Worked for 1m • example\n```')
+                   f'{quoted}\n  Worked for 1m 0s • 6:22 PM\n```')
         plain = f'{reject}\n\n{observed}\n\n{example}\n'
         terminal = (f'› Inspect the current fixture.\n\n• {reject}\n\n  {observed}\n\n'
                     + ''.join('  ' + line + '\n' for line in example.splitlines())
-                    + '\n  Worked for 1m • today\n')
+                    + '\n  Worked for 1m 0s • 7:39 PM\n')
         args = ('review', TASK, '--source', source, '--transcript', str(trace),
                 '--reviewer', 'Synthetic independent reviewer', '--observation')
         trace.write_text(terminal, encoding='utf-8')
@@ -394,6 +394,59 @@ class TaskReviewTests(ProjectFixture):
         self.command(*args, observed, error='last terminal exchange')
         self.assertEqual(before, ledger.read_bytes())
         self.assertEqual('changes_requested', self.command('context', TASK)['independent_review']['status'])
+
+    def test_terminal_footer_preserves_authored_prose_and_response_identity(self):
+        _, source = self.open_review()
+        trace = self.root / '.reports/worked-for.txt'
+        trace.parent.mkdir()
+        heading = f'APPROVE {TASK} {source}'
+        before = 'The earlier capture preserved the original result.'
+        worked = 'Worked for 2m appeared above the input prompt in the first capture.'
+        observation = 'I reopened `四月\u3000\t收盘.csv` and counted 11 rows.'
+        chrome = 'The terminal display showed the next input prompt.'
+        cases = (
+            ('first-prose', (worked, before), '1m 54s • 8:04 PM', True, False),
+            ('middle-prose', (before, worked), '54s • 9:55 PM', True, True),
+            ('footer-shaped-prose', ('Worked for 2m 0s • 8:04 PM', before), '2m 42s • 9:16 PM', False, False),
+            ('cropped-no-footer', (before, worked), None, True, True),
+        )
+        args = ('review', TASK, '--source', source, '--transcript', str(trace),
+                '--reviewer', 'Synthetic independent reviewer', '--observation')
+        ledger = self.root / f'{review_acceptance.DIRECTORY}/{TASK}.json'
+        for label, paragraphs, elapsed, prompt, structured_first in cases:
+            with self.subTest(label=label):
+                ledger.unlink(missing_ok=True)
+                body = '\n\n'.join((*paragraphs, observation))
+                plain = f'{heading}\n\n{body}\n'
+                rendered = '\n'.join('  ' + line if line else '' for line in body.split('\n'))
+                terminal = ('› Inspect the capture.\n\n' if prompt else '') + f'• {heading}\n\n{rendered}\n'
+                if elapsed:
+                    terminal += f'\n  Worked for {elapsed}\n\n  {chrome}\n'
+                if prompt:
+                    terminal += '\n› Ask Codex to do anything\n'
+                export = json.dumps({
+                    'type': 'response_item', 'timestamp': '2026-11-25T13:00:00Z',
+                    'payload': {'type': 'message', 'phase': 'final_answer', 'role': 'assistant',
+                                'status': 'completed', 'id': f'msg_{label}',
+                                'content': [{'type': 'output_text', 'text': plain}]},
+                })
+                original, replay = (export, terminal) if structured_first else (terminal, export)
+                trace.write_text(original, encoding='utf-8')
+                receipt = self.command(*args, observation)
+                self.assertEqual(ledger, self.root / receipt['path'])
+                saved = ledger.read_bytes()
+                decision = receipt['decision']
+                self.assertEqual(observation, decision['observation'])
+                self.assertEqual(sha256(original.encode('utf-8')).hexdigest(), decision['original_sha256'])
+                for equivalent in (replay, plain):
+                    trace.write_text(equivalent, encoding='utf-8')
+                    duplicate = self.command(*args, observation)
+                    self.assertFalse(duplicate['recorded'])
+                    self.assertEqual(decision, duplicate['decision'])
+                trace.write_text(terminal, encoding='utf-8')
+                self.command(*args, chrome, error='post-verdict body')
+                self.assertEqual(saved, ledger.read_bytes())
+                ledger.unlink()
 
     def test_stale_predecessor_and_reordered_event_cannot_replace_rejection(self):
         _, source = self.open_review()
