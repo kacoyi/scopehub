@@ -5188,6 +5188,25 @@
       "deferral_reason": null
     },
     {
+      "id": "local-api-observation-time-rounding",
+      "source": "Controlled native loopback trial based on 9180963. The original local transcript .reports/m1-044-red-local-api.log has SHA-256 bebb8d80077be2a4f156dc7f992b08bb5173c2ad92493aad0f7f98fd7f5cf017. The pre-repair Playwright regression .reports/m1-044-red-api-regression.log has SHA-256 3aa64cc7763375aafaf48b9f97a5efd89942161f22453452a9615e5194559798.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The ordinary local API trial accepted 1770076800000.00001, 1e-999 and 8640000000000000.1 as valid millisecond observations. The displayed times acquired integer values through rounding or underflow before validation.",
+      "task_ids": [
+        "M1-044"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The HTTP adapter decoded the observation time through a binary JSON numeric representation before checking whole milliseconds.",
+        "correction": "Validate the original decimal token using exact integer arithmetic within the existing schema range. Keep the separate original price token intact.",
+        "prevention": "A controlled HTTP peer drives the ordinary native settings trial with exact integers, equivalent decimal and exponent forms, rounded fractions, underflow, an out-of-range number and a quoted value."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "manual-timing-archive-exceeds-own-read-limit",
       "source": "Independent Astra Standard review of PR 94 and the coordinator review archive timing-green-prs-94-91.json (SHA-256 371c07c21f89b41e4a382933a0e7ac032bbf5d0d57a9a4b50a11429dd870574a).",
       "observation": "Protected main wrote a v1 manual review archive with 5838434 bytes, 564 samples and 56 clocks. The ordinary explicit reader rejected it at the 2 MiB compact timing limit and yielded zero samples. Removing exact duplicate rows still exceeded that limit.",

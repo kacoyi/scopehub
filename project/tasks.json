@@ -19983,6 +19983,119 @@
       }
     },
     {
+      "id": "M1-044",
+      "title": "Keep local API sample observation timestamps exact",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-040"
+      ],
+      "scope": [
+        "crates/worker-host/src/local_api.rs",
+        "tests/ui/local-api-connection.spec.mjs",
+        "contracts/contract.json",
+        "project"
+      ],
+      "decision_refs": [
+        "0015",
+        "0023",
+        "0028"
+      ],
+      "acceptance": [
+        "At the explicit saved loopback API trial, accept only observation tokens whose exact mathematical value is a whole millisecond in the supported range.",
+        "Reject a fractional value that would round to an allowed date, a nonzero value that would underflow to zero, quoted dates and out-of-range times. Accept exact decimal or exponent forms when their values are valid integer milliseconds.",
+        "Preserve the exact quote-value token and the existing current-connection admission through a controlled loopback trial."
+      ],
+      "checks": [
+        "architecture",
+        "generated-contracts",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-fixtures",
+        "market-recovery",
+        "local-api-connection"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-044-e73617b8af1322b4.json",
+          "sha256": "b4d2518547a8c07e84d617b7869d197b591b5f68157069f11dc57db276a1d21e"
+        },
+        {
+          "path": "project/evidence/M1-044-c69083a05caea6de.json",
+          "sha256": "25c234bbb51c6da0b898187f8f25c818a60c2b56a8c7214a99ceb1ca3c02736e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The controlled native API trial accepted exact whole-millisecond forms and preserved the quote token. It rejected rounding, underflow, an above-limit fraction, an out-of-range integer and a quoted timestamp before exposing a sample. The attached Linux task receipt covers the delivered scope.",
+      "plan": {
+        "outcome": "The local API trial displays an observation time only when its original numeric token exactly identifies an allowed millisecond.",
+        "change_types": [
+          "market"
+        ],
+        "context": [
+          "crates/worker-host/src/local_api.rs",
+          "contracts/schemas/protocol.schema.json",
+          "tests/ui/local-api-connection.spec.mjs"
+        ],
+        "hypotheses": [
+          "The JSON parser can retain the raw observation token as it already does for price; exact decimal arithmetic can then validate the range without binary rounding."
+        ],
+        "risks": [
+          {
+            "failure": "A fractional or out-of-range observation acquires a plausible integer time through binary64 conversion.",
+            "checks": [
+              "local-api-connection",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Exact observations or quote-value spellings regress when a compatible provider uses decimal or exponent notation.",
+            "checks": [
+              "local-api-connection",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the sample validation change. The operation stores no sample records.",
+        "implementation": {
+          "modules": [
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_api.rs",
+            "tests/ui/local-api-connection.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/LocalApiSample"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/external_api"
+            }
+          ],
+          "non_goals": [
+            "New providers, timestamp inference or dated CSV evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact integer observation time forms, quote-value lexemes, saved connection settings and the loopback permission boundary."
+          ],
+          "change": [
+            "Reject observation timestamps that are fractional or unrepresentable in the declared time range before they cross the native bridge."
+          ],
+          "data_plan": "Use temporary profiles and synthetic loopback responses; the trial remains read-only.",
+          "cleanup": "Replace binary64 parsing of the provider observation token. Keep the existing wire type and schema validation."
+        }
+      }
+    },
+    {
       "id": "M0-111",
       "title": "Round-trip bounded manual verification timing archives",
       "milestone": "M0",
