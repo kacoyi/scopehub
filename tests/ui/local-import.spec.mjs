@@ -1485,7 +1485,7 @@ base('stages additions, aliases, conflicts and withdrawals against a frozen loca
     await control(page, 'Cancel folder refresh').click();
     releaseRefresh.resolve();
     holdRefresh = false;
-    await expect(page.getByText('Folder refresh cancelled.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Stopped waiting for the folder refresh.', { exact: true })).toBeVisible();
     await expect(changes).toHaveCount(0);
     await expect.poll(() => calls.find(call => call.command === 'cancel_local_import_preview')?.args)
       .toEqual({ requestId: refreshes()[1].args.requestId });
@@ -1651,7 +1651,7 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
         }
       }
       const reply = await bridge.request(command, args);
-      calls.push({ args, reply });
+      calls.push({ command, args, reply });
       if (observation) {
         observation.stages.push({ phase: 'native-settled', code: reply.error?.code ?? 'OK',
           elapsedMs: Math.round(performance.now() - observation.started) });
@@ -1712,22 +1712,14 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
       stages.push({ label, stages: observed.stages });
       observed.stages.push({ phase: 'click' });
       await stage.click();
-      const deadline = AbortSignal.timeout(15_000);
-      const reply = await new Promise((resolve, reject) => {
-        const expire = () => reject(new Error('The folder stage did not settle within its reply budget.'));
-        deadline.addEventListener('abort', expire, { once: true });
-        void (loseBeforeNative ? entered : completed).promise.then(reply => {
-          deadline.removeEventListener('abort', expire);
-          resolve(reply);
-        });
-      });
+      const reply = await (loseBeforeNative ? entered : completed).promise;
       return { reply, delivery, stages: observed.stages };
     }
 
     await page.clock.install();
     const completedStage = await stageWithWitness('completed stage with delayed delivery');
     expect(completedStage.reply.error).toBeUndefined();
-    await page.clock.fastForward(5_100);
+    await page.clock.fastForward(15_100);
     await expect(changes).toHaveCount(0);
     await expect(page.getByText('Checking complete files in the selected folder…')).toBeVisible();
     completedStage.delivery.resolve();
@@ -1784,15 +1776,19 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     rejected.stages.push({ phase: 'rejection-rendered' });
 
     await input.fill(acceptedId);
-    const expired = await stageWithWitness('completed native stage with lost delivery');
-    expect(expired.reply.error).toBeUndefined();
-    await page.clock.fastForward(15_000);
-    await expect(page.getByRole('alert')).toContainText('Unable to stage the folder refresh.');
+    const lostDelivery = await stageWithWitness('completed native stage with lost delivery');
+    expect(lostDelivery.reply.error).toBeUndefined();
+    const cancel = control(page, 'Cancel folder refresh');
+    const stopped = page.getByText('Stopped waiting for the folder refresh.', { exact: true });
+    await page.clock.fastForward(15_100);
+    await expect(stage).toBeDisabled();
+    await cancel.click();
+    await expect(stopped).toBeVisible();
     await expect(stage).toBeEnabled();
     await expect(changes).toHaveCount(0);
-    expired.stages.push({ phase: 'deadline-rendered' });
-    expired.delivery.resolve();
-    await expect.poll(() => expired.stages.at(-1)?.phase).toBe('delivered');
+    lostDelivery.stages.push({ phase: 'stopped-waiting' });
+    lostDelivery.delivery.resolve();
+    await expect.poll(() => lostDelivery.stages.at(-1)?.phase).toBe('delivered');
     await page.clock.runFor(50);
     await expect(changes).toHaveCount(0);
     await expect(frozen.getByLabel('Selected bar')).toContainText('C 5');
@@ -1800,12 +1796,16 @@ base('reviews explicit CSV declarations and competing bars with source provenanc
     const notDelivered = await stageWithWitness('invoke never reaches the native worker', true);
     expect(notDelivered.stages.map(entry => entry.phase)).toEqual(['click', 'invoke-entered']);
     await expect(page.getByText('Checking complete files in the selected folder…')).toBeVisible();
-    await page.clock.fastForward(15_000);
-    await expect(page.getByRole('alert')).toContainText('Unable to stage the folder refresh.');
+    await page.clock.fastForward(15_100);
+    await expect(stage).toBeDisabled();
+    await cancel.click();
+    await expect(stopped).toBeVisible();
     await expect(stage).toBeEnabled();
     await expect(changes).toHaveCount(0);
-    notDelivered.stages.push({ phase: 'deadline-rendered' });
+    notDelivered.stages.push({ phase: 'stopped-waiting' });
     notDelivered.delivery.resolve();
+    await expect.poll(() => calls.filter(call => call.command === 'cancel_local_import_preview')).toHaveLength(2);
+    expect(stages.map(entry => entry.stages.filter(({ phase }) => phase === 'invoke-entered').length)).toEqual([1, 1, 1, 1]);
   } finally {
     stageObservation?.delivery.resolve();
     await testInfo.attach('folder-stage-boundaries', { body: JSON.stringify(stages), contentType: 'application/json' });

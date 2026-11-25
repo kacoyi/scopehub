@@ -59,7 +59,7 @@ const actionText = {
   load: { running: 'Checking for a reviewed mapping…', label: 'load', cancelled: 'Load cancelled.', failure: 'Unable to load a reviewed mapping.' },
   publish: { running: 'Checking the complete CSV and publishing…', label: 'publication', cancelled: 'Publication cancelled.', failure: 'Unable to publish this CSV file.' },
   read: { running: 'Opening frozen chart…', label: 'chart', cancelled: 'Chart opening cancelled.', failure: 'Unable to open the frozen chart.' },
-  refresh: { running: 'Checking complete files in the selected folder…', label: 'folder refresh', cancelled: 'Folder refresh cancelled.', failure: 'Unable to stage the folder refresh.' },
+  refresh: { running: 'Checking complete files in the selected folder…', label: 'folder refresh', cancelled: 'Stopped waiting for the folder refresh.', failure: 'Unable to stage the folder refresh.' },
   revoke: { running: 'Removing access to the revision…', label: 'removal', cancelled: 'Removal cancelled.', failure: 'Unable to remove access to this revision.' },
   'prepare-folder': { running: 'Preparing the reviewed folder…', label: 'folder review', cancelled: 'Folder review cancelled.', failure: 'Unable to prepare the folder publication.' },
   'publish-folder': { running: 'Checking current files and publishing the folder…', label: 'folder publication', cancelled: 'Folder publication cancelled.', failure: 'Unable to confirm the folder publication.' },
@@ -133,8 +133,7 @@ function importErrorCode(error: unknown) {
 }
 
 function describeImportFailure(error: unknown, fallback: string, action?: ImportAction): Failure {
-  if (!error || typeof error !== 'object' || (action === 'refresh'
-    && error instanceof DOMException && error.name === 'TimeoutError')) return { message: message(fallback) };
+  if (!error || typeof error !== 'object') return { message: message(fallback) };
   const code = importErrorCode(error);
   if ((code === 'STALE_CONTEXT' || code === 'SNAPSHOT_UNAVAILABLE') && (action === 'prepare-folder' || action === 'publish-folder')) {
     return { message: message('The folder or accepted revision changed. Stage the folder refresh again.') };
@@ -734,8 +733,15 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   function cancel() {
     const request = active.current;
     if (!request) return;
-    setProgress({ action: request.action, phase: 'cancelling' });
     cancelPending(request);
+    if (request.action === 'refresh') {
+      // Staging is read-only. Stop waiting even when the native reply is lost.
+      // Native admission still owns an in-flight operation until it drains.
+      active.current = undefined;
+      setProgress({ action: request.action, phase: 'cancelled' });
+    } else {
+      setProgress({ action: request.action, phase: 'cancelling' });
+    }
   }
 
   const progressText = opening ? t('Waiting for folder selection…') : progress?.phase === 'running' ? t(actionText[progress.action].running)

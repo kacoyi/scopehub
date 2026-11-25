@@ -382,13 +382,10 @@ export async function revokeLocalImportRevision(payload: RevokeLocalImportRevisi
 
 export async function previewLocalFolderRefresh(payload: PreviewLocalFolderRefreshInput, requestId: string) {
   requireNative();
-  return withReplyDeadline(localRevisionReplyDeadlineMs, () => invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
+  // A folder stage can inspect up to 64 files. Its worker and native
+  // cancellation rules apply while the comparison is being prepared.
+  return invoke<PreviewLocalFolderRefreshOutput>('execute_operation', {
     operation: 'market.previewLocalFolderRefresh', payload, requestId,
-  })).catch(error => {
-    if (error instanceof DOMException && error.name === 'TimeoutError') {
-      void cancelLocalPreview(requestId).catch(() => undefined);
-    }
-    throw error;
   });
 }
 
