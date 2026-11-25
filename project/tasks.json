@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-106",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -19986,7 +19986,7 @@
       "id": "M0-106",
       "title": "Check the reviewed source before submitting a hosted task",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-092"
       ],
@@ -20031,11 +20031,19 @@
         {
           "path": "project/evidence/M0-106-33a260ee0e4c3f81.json",
           "sha256": "f4a2ea366a066a142970b99c498dc53cd1f354d82644ec7975dd900f9caa5500"
+        },
+        {
+          "path": "project/evidence/M0-106-fa231894d650876c.json",
+          "sha256": "67b3a1a8165657c63ff67f277a12bd95dd076a820816c72ee1863685237212dd"
+        },
+        {
+          "path": "project/evidence/M0-106-b3d6bf14e3b06602.json",
+          "sha256": "f40f39fc4940de8c6026d44a3cbfca19b4da508932110f4ab13e3306ad0f82f2"
         }
       ],
-      "next_action": "Review the supplementary receipt fingerprint and cancelled-dependency repair and run native CI on its exact source. The coordinator owns publication and hosted dispatch follow-up.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "PR 91 reviewed head bc0af9581d75588dccdd290b764e6a6c3f568313 on protected base 9180963fb3185dbceaafcaf19ee5f2dc78ae3649 passed the guard and both native task jobs in authenticated dispatch 45554455415. Dispatch ID 1e59bf0010ca4bea9fca87fd92e12988 matched the run title, expected head and both artifact checkouts. Ordinary run 45552460066 passed both protected jobs on the reviewed head.",
       "diagnostic_reports": [
         {
           "run_id": "20261124T211355.720964Z-844198c3",
