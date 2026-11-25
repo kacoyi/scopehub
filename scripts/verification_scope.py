@@ -1,8 +1,10 @@
 """Select a verification profile from a verified Git comparison."""
 
 import argparse
+import ast
 from collections import Counter
 from dataclasses import dataclass
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -39,12 +41,12 @@ WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
 LEGACY_WINDOWS_LANES = WINDOWS_LANES[:-1]
 
 
-def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES):
+def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES, *, assignment=WINDOWS_LANE_CHECKS):
     if lane not in lanes:
         return set()
     if lane == 'core':
-        return selected.difference(*(WINDOWS_LANE_CHECKS[name] for name in lanes if name != 'core'))
-    return selected & WINDOWS_LANE_CHECKS[lane]
+        return selected.difference(*(assignment[name] for name in lanes if name != 'core'))
+    return selected & assignment[lane]
 
 
 SCOPED_PROFILES = frozenset({'records', 'tooling', 'localization'})
@@ -55,14 +57,15 @@ def hosted_check_selection(catalog, profile):
             if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
 
 
-def windows_published_scope(selected, profile, lanes, catalog):
+def windows_published_scope(selected, profile, lanes, catalog, *, assignment=WINDOWS_LANE_CHECKS):
     if profile in SCOPED_PROFILES:
         expected = hosted_check_selection(catalog, profile)
     else:
         expected = hosted_check_selection(catalog, None)
         if profile != 'full':
             lane = profile.removeprefix('ci-windows-')
-            expected = windows_lane_checks(expected, lane, lanes) if profile.startswith('ci-windows-') else set()
+            expected = (windows_lane_checks(expected, lane, lanes, assignment=assignment)
+                        if profile.startswith('ci-windows-') else set())
     return bool(expected) and len(selected) == len(expected) and set(selected) == expected
 
 
@@ -191,6 +194,134 @@ def git(root, *args, input=None):
     if result.returncode:
         raise ScopeError('Git could not verify the comparison.')
     return result.stdout
+
+
+# These are the released selector forms. Recognize the small partition expression
+# before reading its literals. A new execution strategy must define how to verify
+# its assignment; merely finding a constant or a claimed lane is insufficient.
+_LOCAL_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane):
+    if lane == 'core':
+        return selected.difference(*WINDOWS_LANE_CHECKS.values())
+    return selected & WINDOWS_LANE_CHECKS[lane]"""
+_INITIAL_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane):
+    python = {'python-contracts-workers'}
+    if lane == 'python':
+        return selected & python
+    if lane == 'browser':
+        return selected & WINDOWS_BROWSER_CHECKS
+    return selected - python - WINDOWS_BROWSER_CHECKS"""
+_LEGACY_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane):
+    if lane == 'python':
+        return selected & WINDOWS_PYTHON_CHECKS
+    if lane == 'browser':
+        return selected & WINDOWS_BROWSER_CHECKS
+    return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS"""
+_SHARED_WINDOWS_SELECTOR = """def windows_lane_checks(selected, lane, lanes=WINDOWS_LANES):
+    if lane not in lanes:
+        return set()
+    if lane == 'core':
+        return selected.difference(*(WINDOWS_LANE_CHECKS[name] for name in lanes if name != 'core'))
+    return selected & WINDOWS_LANE_CHECKS[lane]"""
+_CURRENT_WINDOWS_SELECTOR = _SHARED_WINDOWS_SELECTOR.replace(
+    'lanes=WINDOWS_LANES', 'lanes=WINDOWS_LANES, *, assignment=WINDOWS_LANE_CHECKS',
+).replace('WINDOWS_LANE_CHECKS[name]', 'assignment[name]').replace('WINDOWS_LANE_CHECKS[lane]', 'assignment[lane]')
+
+
+def _publishing_module(root, revision, file):
+    path = f'{revision}:scripts/{file}'
+    if int(git(root, 'cat-file', '-s', path)) > 256 * 1024:
+        raise ValueError('Oversized Windows publishing source')
+    return ast.parse(git(root, 'cat-file', 'blob', path))
+
+
+def _publishing_selector(module):
+    functions = [node for node in module.body
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == 'windows_lane_checks']
+    if len(functions) > 1:
+        raise ValueError('Ambiguous Windows publishing selector')
+    return functions[0] if functions else None
+
+
+def _publishing_assignment_node(module, name):
+    matches = [
+        stmt for stmt in module.body
+        if isinstance(stmt, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == name for target in stmt.targets)
+    ]
+    assignment, = matches
+    if len(assignment.targets) != 1:
+        raise ValueError('Ambiguous Windows publishing assignment')
+    return assignment.value
+
+
+def _publishing_ids(node):
+    if not isinstance(node, ast.Set):
+        raise ValueError('Expected literal Windows publishing check IDs')
+    ids = [ast.literal_eval(item) for item in node.elts]
+    if (not all(isinstance(key, str) and CHECK_ID.fullmatch(key) for key in ids)
+            or len(set(ids)) != len(ids)):
+        raise ValueError('Invalid Windows publishing check IDs')
+    return frozenset(ids)
+
+
+@lru_cache(maxsize=128)
+def committed_windows_assignment(root, revision):
+    """Read a known publisher's assignment as bounded Git data, without importing it."""
+    try:
+        if not isinstance(revision, str) or not OBJECT_ID.fullmatch(revision):
+            return None
+        harness = _publishing_module(root, revision, 'check.py')
+        main, = (node for node in harness.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
+        calls = [node for node in ast.walk(main) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == 'windows_lane_checks']
+        call, = calls
+        if not any(isinstance(node, ast.Assign) and node.value is call
+                   and ast.unparse(node) == 'selected = windows_lane_checks(selected, args.ci_windows_lane)'
+                   for node in ast.walk(main)):
+            return None
+        module = harness
+        selector = _publishing_selector(harness)
+        imports = {(node.module, name.name) for node in ast.walk(harness) if isinstance(node, ast.ImportFrom)
+                   for name in node.names if (name.asname or name.name) == 'windows_lane_checks'}
+        if selector is None and imports == {('verification_scope', 'windows_lane_checks')}:
+            module = _publishing_module(root, revision, 'verification_scope.py')
+            selector = _publishing_selector(module)
+        elif imports:
+            return None
+        if selector is None:
+            return None
+        shape = ast.unparse(selector)
+        if module is harness and shape in {_INITIAL_WINDOWS_SELECTOR, _LEGACY_WINDOWS_SELECTOR}:
+            python = (selector.body[0].value if shape == _INITIAL_WINDOWS_SELECTOR
+                      else _publishing_assignment_node(module, 'WINDOWS_PYTHON_CHECKS'))
+            assignment = {
+                'browser': _publishing_ids(_publishing_assignment_node(module, 'WINDOWS_BROWSER_CHECKS')),
+                'python': _publishing_ids(python),
+            }
+        elif shape in ({_LOCAL_WINDOWS_SELECTOR} if module is harness
+                       else {_SHARED_WINDOWS_SELECTOR, _CURRENT_WINDOWS_SELECTOR}):
+            declared = _publishing_assignment_node(module, 'WINDOWS_LANE_CHECKS')
+            if not isinstance(declared, ast.Dict):
+                return None
+            names = [ast.literal_eval(key) for key in declared.keys]
+            if sorted(names) != ['browser', 'python', 'recovery']:
+                return None
+            assignment = {
+                name: _publishing_ids(_publishing_assignment_node(module, node.id)
+                                      if isinstance(node, ast.Name) and node.id == 'WINDOWS_BROWSER_CHECKS' else node)
+                for name, node in zip(names, declared.values, strict=True)
+            }
+        else:
+            return None
+        lanes = ast.unparse(_publishing_assignment_node(module, 'WINDOWS_LANES'))
+        if lanes != ("('core', 'browser', 'python')" if len(assignment) == 2
+                     else "('core', *WINDOWS_LANE_CHECKS)"):
+            return None
+        if sum(map(len, assignment.values())) != len(set().union(*assignment.values())):
+            return None
+        return assignment
+    except (ScopeError, OSError, subprocess.SubprocessError, SyntaxError, ValueError, TypeError, RecursionError):
+        return None
 
 
 def oid(value):

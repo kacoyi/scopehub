@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from scripts import ci, ci_artifacts, timing
+from scripts import ci, ci_artifacts, timing, verification_scope
 from tests.project.fixtures import isolated_git_environment
 
 
@@ -112,8 +112,10 @@ SPLIT_CATALOG = fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS), records=RECORDS_
 OLD_FULL_CATALOG = fixture_catalog(OLD_FULL_CHECKS, non_change=('release-artifacts',))
 
 
-def use_catalog(test, catalog):
+def use_catalog(test, catalog, *, lanes=timing.WINDOWS_LANES):
     test.enterContext(patch.object(timing, 'native_publishing_catalog', return_value=(True, catalog)))
+    assignment = {lane: checks for lane, checks in verification_scope.WINDOWS_LANE_CHECKS.items() if lane in lanes}
+    test.enterContext(patch.object(timing, 'publisher_lane_assignment', return_value=assignment))
 
 
 def split_harness_report(elapsed, *, profile='full'):
@@ -265,7 +267,7 @@ class ReportTimingTests(unittest.TestCase):
 
 class HostedTimingTests(unittest.TestCase):
     def setUp(self):
-        use_catalog(self, SPLIT_CATALOG)
+        use_catalog(self, SPLIT_CATALOG, lanes=timing.LEGACY_WINDOWS_LANES)
 
     def split_windows_jobs(self, *, scoped=False):
         full = 'Run uv run python scripts/check.py --require-windows'
@@ -530,8 +532,8 @@ class HostedTimingTests(unittest.TestCase):
         # The public replay also exercises the real published Git catalog.
         def catalog(sample):
             if sample['run_id'] == single['run_id']:
-                return OLD_FULL_CATALOG
-            return SPLIT_CATALOG if sample.get('generated_contracts') else None
+                return sample['source_commit'], OLD_FULL_CATALOG
+            return (sample['source_commit'], SPLIT_CATALOG) if sample.get('generated_contracts') else None
 
         for name, original, invalid, clock, wall in (
             ('single job', single, with_wrong_layout, single_clock, 360),
@@ -561,7 +563,7 @@ class HostedTimingTests(unittest.TestCase):
                           patch.object(timing, 'recent_runs', return_value=[run]),
                           patch.object(timing, 'download_timing', return_value=[received]),
                           patch.object(timing, 'inspect_jobs', return_value=clock),
-                          patch.object(timing, 'published_catalog', side_effect=catalog)):
+                          patch.object(timing, 'publishing_catalog_source', side_effect=catalog)):
                         timing.main()
                     view = json.loads(out.getvalue())
                     self.assertEqual(expected, view['recent_collection']['collected_samples'])
@@ -723,6 +725,7 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertIsNone(observed['review_exclusion'])
 
     def test_windows_producer_clocks_do_not_fill_the_protected_platform_capture(self):
+        use_catalog(self, SPLIT_CATALOG)
         *siblings, aggregate = self.split_windows_jobs()
         aggregate = dict(aggregate, steps=[
             aggregate['steps'][0], {'name': timing.WINDOWS_RECOVERY_MARKER, 'conclusion': 'success'},
@@ -776,6 +779,7 @@ class HostedTimingTests(unittest.TestCase):
         self.assertEqual([], view['input_issues'])
 
     def test_split_producer_evidence_rejects_role_conflicts_and_keeps_complementary_jobs(self):
+        use_catalog(self, SPLIT_CATALOG)
         from copy import deepcopy
 
         *siblings, aggregate = self.split_windows_jobs()
@@ -1341,6 +1345,124 @@ class PRMainComparisonTests(unittest.TestCase):
         self.assertTrue(timing.native_report_issue(dict(expired, ci=dict(expired['ci'], head_sha=missing)), None, issues))
         self.assertIn('publishing catalog is unavailable', issues[0]['error'])
 
+    def test_producer_scope_uses_the_bound_publisher_assignment(self):
+        full = (*BASIC_CHECKS, 'workspace-timeframe', 'market-recovery', 'market-recovery-ui', 'python-contracts-workers')
+        scripts = self.root / 'scripts'
+        scripts.mkdir()
+        project = self.root / 'project'
+        project.mkdir()
+        (project / 'checks.json').write_bytes(timing.json_bytes(fixture_catalog(full)))
+        (scripts / 'project.py').write_bytes(b'INPUT_EXCLUSIONS = []\n')
+        launch = """
+def main(args, selected):
+    if args.ci_windows_lane:
+        selected = windows_lane_checks(selected, args.ci_windows_lane)
+    return selected
+"""
+
+        def publish(label, definition, *, shared=None):
+            (scripts / 'check.py').write_bytes((definition + '\n' + launch).encode())
+            scope_file = scripts / 'verification_scope.py'
+            if shared is None:
+                scope_file.unlink(missing_ok=True)
+            else:
+                scope_file.write_bytes(shared.encode())
+            self.git('add', '-A')
+            return self.commit(label, self.head, tree=self.git('write-tree'))
+
+        def old_owner(browser, recovery):
+            return (f'WINDOWS_BROWSER_CHECKS = {browser!r}\n'
+                    f'WINDOWS_LANE_CHECKS = {{"browser": WINDOWS_BROWSER_CHECKS, "python": {{"python-contracts-workers"}},'
+                    f' "recovery": {recovery!r}}}\n'
+                    """WINDOWS_LANES = ('core', *WINDOWS_LANE_CHECKS)
+def windows_lane_checks(selected, lane):
+    if lane == 'core':
+        return selected.difference(*WINDOWS_LANE_CHECKS.values())
+    return selected & WINDOWS_LANE_CHECKS[lane]
+""")
+
+        earlier = old_owner({'workspace-timeframe', 'market-recovery-ui'}, {'market-recovery'})
+        later = old_owner({'workspace-timeframe'}, {'market-recovery', 'market-recovery-ui'})
+        previous = publish('Four producers before the reassignment', earlier)
+        next_source = publish('Four producers after the reassignment', later)
+        invalid = publish('The same check claimed by two producers',
+                          old_owner({'workspace-timeframe', 'market-recovery-ui'}, {'market-recovery', 'market-recovery-ui'}))
+        unsupported = publish('Unknown executable assignment', later.replace('return selected & WINDOWS_LANE_CHECKS[lane]', 'return selected'))
+        three = publish('Original three producers', """WINDOWS_BROWSER_CHECKS = {'market-recovery-ui', 'workspace-timeframe'}
+WINDOWS_PYTHON_CHECKS = {'market-recovery', 'python-contracts-workers'}
+WINDOWS_LANES = ('core', 'browser', 'python')
+def windows_lane_checks(selected, lane):
+    if lane == 'python':
+        return selected & WINDOWS_PYTHON_CHECKS
+    if lane == 'browser':
+        return selected & WINDOWS_BROWSER_CHECKS
+    return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS
+""")
+        delegated = publish('The shared selector owns current publishing',
+                            'from verification_scope import windows_lane_checks',
+                            shared=Path(verification_scope.__file__).read_text(encoding='utf-8'))
+
+        missing = publish('Missing shared publishing definition', 'from verification_scope import windows_lane_checks')
+        (scripts / 'project.py').write_bytes(b"INPUT_EXCLUSIONS = ['scripts/check.py']\n")
+        excluded = publish('A digest that omits the publishing assignment', later)
+
+        load, snapshot = timing.native_publishing_catalog, timing.committed_publishing_inputs
+        self.enterContext(patch.object(timing, 'ROOT', self.root))
+        self.enterContext(patch.object(timing, 'native_publishing_catalog',
+                                       side_effect=lambda revision, **kw: load(revision, root=self.root, **kw)))
+        self.enterContext(patch.object(timing, 'committed_publishing_inputs',
+                                       side_effect=lambda revision: snapshot(revision, root=self.root)))
+
+        def report(revision, lane, keys, *, checkout=None, digest=None):
+            commit = checkout or revision
+            report = fast_report(20, 190)
+            report.update(run_id='windows-change-11-1',
+                          environment={'system': 'Windows', 'machine': 'AMD64'},
+                          source={'git_head': commit, 'working_tree_dirty': False,
+                                  'sha256': digest if digest is not None else snapshot(revision, root=self.root)},
+                          ci={'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                              'event': 'pull_request', 'head_sha': revision, 'checkout_sha': commit},
+                          selection={'profile': 'ci-windows-' + lane, 'checks': list(keys)},
+                          checks=[dict(report['checks'][0], id=key) for key in dict.fromkeys(keys)])
+            return timing.report_sample(report, cache='warm')
+
+        browser_old = ['market-recovery-ui', 'workspace-timeframe']
+        recovery_new = ['market-recovery', 'market-recovery-ui']
+        self.assertEqual(verification_scope.WINDOWS_LANE_CHECKS,
+                         verification_scope.committed_windows_assignment(self.root, delegated))
+        for sample in (
+            report(previous, 'browser', browser_old),
+            report(previous, 'recovery', ['market-recovery']),
+            report(next_source, 'browser', ['workspace-timeframe'], checkout='f' * 40),
+            report(next_source, 'recovery', recovery_new),
+            report(three, 'python', ['market-recovery', 'python-contracts-workers']),
+        ):
+            view = timing.timing_view([sample])
+            self.assertEqual([], view['input_issues'])
+            self.assertEqual('warm', view['samples'][0]['cache'])
+
+        for name, sample in (
+            ('wrong generation', report(next_source, 'browser', browser_old)),
+            ('swapped role', report(next_source, 'browser', recovery_new)),
+            ('omitted', report(next_source, 'recovery', ['market-recovery'])),
+            ('surplus', report(next_source, 'recovery', [*recovery_new, 'workspace-timeframe'])),
+            ('duplicate', report(next_source, 'recovery', [*recovery_new, 'market-recovery-ui'])),
+            ('reordered', report(next_source, 'recovery', recovery_new[::-1])),
+            ('double assignment', report(invalid, 'recovery', recovery_new)),
+            ('unknown selector', report(unsupported, 'recovery', recovery_new)),
+            ('missing assignment', report(missing, 'recovery', recovery_new)),
+            ('assignment excluded from digest', report(excluded, 'recovery', recovery_new, digest='b' * 64)),
+            ('wrong source digest', report(next_source, 'recovery', recovery_new, digest=snapshot(previous, root=self.root))),
+            ('wrong head digest', report(previous, 'browser', browser_old, checkout='f' * 40,
+                                         digest=snapshot(next_source, root=self.root))),
+            ('role absent in old publisher', report(three, 'recovery', ['market-recovery'])),
+        ):
+            with self.subTest(name=name):
+                view = timing.timing_view([sample])
+                self.assertTrue(view['input_issues'])
+                self.assertEqual('unknown', view['samples'][0]['cache'])
+                self.assertIsNone(view['samples'][0]['job'])
+
     def observe(self, commit, *, push=False, edit_report=None, rustfmt=None, platform='ubuntu', ref=None):
         run_id = 12 if push else 11
         run = dict(hosted_run(run_id=run_id), event='push' if push else 'pull_request',
@@ -1818,7 +1940,7 @@ class TimingRegressionTests(unittest.TestCase):
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
             'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40,
         }
-        report['selection']['checks'].append('future-check')
+        report['selection']['checks'] = sorted([*report['selection']['checks'], 'future-check'])
         report['checks'].append({'id': 'future-check', 'status': 'blocked', 'reason_code': 'not_implemented'})
         sample = timing.report_sample(report, cache='partial')
         self.assertFalse(sample['coverage_complete'])

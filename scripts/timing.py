@@ -20,7 +20,7 @@ if __package__:
     from .doctor import tool_version
     from .verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
-        require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
+        committed_windows_assignment, require_complete_history, windows_lane_report_matches, windows_published_scope,
         windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
@@ -28,7 +28,7 @@ else:
     from doctor import tool_version
     from verification_scope import (
         LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
-        require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
+        committed_windows_assignment, require_complete_history, windows_lane_report_matches, windows_published_scope,
         windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
@@ -245,12 +245,14 @@ def report_sample(report, *, cache=None):
          'reason_code': short_label(check.get('reason_code')), 'duration_seconds': duration(check.get('duration_seconds'))}
         for check in report.get('checks', [])
     ]
-    selected = sorted(filter(None, (short_label(key) for key in selection.get('checks', []))))
-    rows = {item['id']: item for item in checks}
-    omitted = [rows[key] for key in selected if key in rows and rows[key]['status'] != 'passed']
     profile = selection.get('profile')
     if profile is not None and short_label(profile) is None:
         raise TimingError('Invalid verification profile in harness report.')
+    selected = list(filter(None, (short_label(key) for key in selection.get('checks', []))))
+    if not (profile and profile.startswith('ci-windows-')):
+        selected.sort()
+    rows = {item['id']: item for item in checks}
+    omitted = [rows[key] for key in selected if key in rows and rows[key]['status'] != 'passed']
     status = short_label(report.get('status'))
     platform = short_label(environment.get('system'))
     expected = (profile == 'full' and all(
@@ -1377,21 +1379,6 @@ def split_windows_report(sample):
     )
 
 
-def producer_measurements(sample, lanes, selected):
-    if not split_windows_report(sample):
-        return None
-    lane = sample['profile'].removeprefix('ci-windows-')
-    claimed = set(sample['selected'])
-    if not claimed or len(claimed) != len(sample['selected']):
-        return None
-    if claimed != windows_lane_checks(selected, lane, lanes):
-        return None
-    measurements = [row for row in sample['checks'] if row['id'] in claimed]
-    if len(measurements) != len(claimed) or {row['id'] for row in measurements} != claimed:
-        return None
-    return measurements
-
-
 def matched_producer_caches(sample, producers, run):
     if sample['profile'] != 'full' or not sample_identity_complete(sample) or not split_windows_report(sample):
         return {}
@@ -1403,13 +1390,18 @@ def matched_producer_caches(sample, producers, run):
         return {}
     rows = {row['id']: row for row in sample['checks'] if row['id'] in sample['selected']}
     states = defaultdict(list)
-    selected = set(sample['selected'])
     for producer in producers:
-        if producer['ci'] != sample['ci'] or not sample_eligible(producer) or producer.get('inputs_sha256') != digest:
+        # The caller has already verified the publisher's lane selection.
+        # Join its measurements only to the very same aggregate input.
+        lane = producer['profile'].removeprefix('ci-windows-')
+        if (lane not in lanes or producer['ci'] != sample['ci'] or not sample_eligible(producer)
+                or producer.get('inputs_sha256') != digest):
             continue
-        measurements = producer_measurements(producer, lanes, selected)
-        if measurements is not None and all(rows.get(row['id']) == row for row in measurements):
-            states[producer['profile'].removeprefix('ci-windows-')].append(producer['cache'])
+        claimed = set(producer['selected'])
+        measurements = [row for row in producer['checks'] if row['id'] in claimed]
+        if (len(measurements) == len(claimed) and {row['id'] for row in measurements} == claimed
+                and all(rows.get(row['id']) == row for row in measurements)):
+            states[lane].append(producer['cache'])
     return states
 
 
@@ -1447,31 +1439,47 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
 def committed_publishing_inputs(revision, *, root=ROOT):
     # The task harness already owns the historical execution-input digest.
     if __package__:
-        from .project import ProjectError, committed_source_identity
+        from .project import ProjectError, committed_source_identity, is_source_input
     else:
-        from project import ProjectError, committed_source_identity
+        from project import ProjectError, committed_source_identity, is_source_input
     try:
-        return committed_source_identity(root, revision)['sha256']
+        source = committed_source_identity(root, revision)
+        publishing_paths = ('project/checks.json', 'scripts/check.py', 'scripts/verification_scope.py')
+        if not all(is_source_input(path, source['exclusions']) for path in publishing_paths):
+            return None
+        return source['sha256']
     except (ProjectError, ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
         return None
 
 
-def published_catalog(sample):
+def publishing_catalog_source(sample):
     ci = sample['ci']
-    present, catalog = native_publishing_catalog(ci['checkout_sha'])
-    if present or ci['event'] != 'pull_request' or not sample.get('inputs_sha256'):
-        return catalog
+    checkout = ci['checkout_sha']
+    present, catalog = native_publishing_catalog(checkout)
+    if present:
+        return (checkout, catalog) if catalog is not None else None
+    if ci['event'] != 'pull_request' or not sample.get('inputs_sha256'):
+        return None
     # An expired PR merge commit can have the same inputs as its exact head,
     # or a retained merge-tree proof. Bind the catalog to the reported digest.
-    _, catalog = native_publishing_catalog(ci['head_sha'])
-    if catalog is not None and committed_publishing_inputs(ci['head_sha']) == sample['inputs_sha256']:
-        return catalog
+    head = ci['head_sha']
+    _, catalog = native_publishing_catalog(head)
+    if catalog is not None and committed_publishing_inputs(head) == sample['inputs_sha256']:
+        return head, catalog
     proof = generated_contracts_proof(sample, eligible_only=False)
     if proof:
-        _, catalog = native_publishing_catalog(proof['tree'], object_type=b'tree')
-        if catalog is not None and committed_publishing_inputs(proof['tree']) == sample['inputs_sha256']:
-            return catalog
+        tree = proof['tree']
+        _, catalog = native_publishing_catalog(tree, object_type=b'tree')
+        if catalog is not None and committed_publishing_inputs(tree) == sample['inputs_sha256']:
+            return tree, catalog
     return None
+
+
+def publisher_lane_assignment(sample, revision):
+    if (sample.get('working_tree_dirty') is not False or not sample.get('inputs_sha256')
+            or committed_publishing_inputs(revision) != sample['inputs_sha256']):
+        return None
+    return committed_windows_assignment(ROOT, revision)
 
 
 def native_report_issue(sample, run, issues):
@@ -1499,15 +1507,29 @@ def native_report_issue(sample, run, issues):
                 and row['id'] in selected]
     extra_result = any(row['id'] not in selected and row['status'] in {'passed', 'failed'}
                        for row in sample['checks'])
-    catalog = published_catalog(sample) if identity and sample['task_id'] is None else None
-    if catalog is not None and not extra_result and len(measured) == len(selected) and set(measured) == selected:
-        if windows_published_scope(sample['selected'], profile, lanes or WINDOWS_LANES, catalog):
-            return False
+    publishing = publishing_catalog_source(sample) if identity and sample['task_id'] is None else None
+    assignment = None
+    if publishing and producer:
+        assignment = publisher_lane_assignment(sample, publishing[0])
+    if publishing and not extra_result and len(measured) == len(selected) and set(measured) == selected:
+        _, catalog = publishing
+        if not producer:
+            if windows_published_scope(sample['selected'], profile, lanes or WINDOWS_LANES, catalog):
+                return False
+        elif assignment:
+            expected_lanes = tuple(lane for lane in WINDOWS_LANES if lane == 'core' or lane in assignment)
+            if ((not lanes or lanes == expected_lanes)
+                    and sample['selected'] == sorted(selected)
+                    and len({row['id'] for row in sample['checks']}) == len(sample['checks'])
+                    and windows_published_scope(sample['selected'], profile, expected_lanes, catalog, assignment=assignment)):
+                return False
     issue = {'run_id': observation_id(sample), 'platform': 'Windows'}
     if producer:
         issue['producer'] = producer
-    if identity and sample['task_id'] is None and catalog is None:
+    if identity and sample['task_id'] is None and not publishing:
         error = 'Native timing check selection is unknown because the publishing catalog is unavailable.'
+    elif publishing and producer and assignment is None:
+        error = 'Native timing producer selection is unknown because its publishing assignment is unavailable.'
     else:
         kind = 'producer' if producer else 'aggregate' if (lanes or split_report) else 'report'
         error = f'Timing {kind} does not match its native publisher identity, job layout or check scope.'
