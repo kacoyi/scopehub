@@ -6314,6 +6314,28 @@
         "prevention": "Both native Git regressions reproduced an eligible dirty checkout before the fix. The original log is retained at .reports/audit-20261125/m0-117-red.log with SHA-256 d7ebf206e12a4a0084bf3b53e456a6cbdbb6853613a3c0750a3926983803e694. The coordinator confirmed Astra Standard approval of 37cb4e896e8a99f8af07eb7829d2550d84c99c19 after both second-read replays were held, a small clean checkout stayed eligible, and ignored status remained bounded. The required regression checks are retained in the attached task receipt."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-opaque-process-failure",
+      "source": "Windows browser producer job 139085466034 on protected-main push 45579441190. Canonical aggregate in archives/runs/windows-change-45579441190-1/test-report.json.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The first private-handoff assertion at workspace.spec.mjs:3404 failed with only PowerShell execution. The probe did not retain the stage for startup, timeout, signal, buffer limit or an undeclared nonzero exit. The archived failure does not identify which disposition occurred.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45579441190-1",
+          "source_commit": "c678d0e53a5546138ebf9673af8c627f64446c6c",
+          "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

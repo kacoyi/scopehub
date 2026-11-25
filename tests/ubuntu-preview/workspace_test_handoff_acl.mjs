@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { rm, writeFile } from 'node:fs/promises';
+import { constants } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -17,11 +18,42 @@ const stages = {
   59: 'current user identity',
 };
 
+const startupCodes = new Set(['EACCES', 'EAGAIN', 'EINVAL', 'EMFILE', 'ENFILE', 'ENOENT', 'ENOEXEC', 'ENOMEM', 'ENOTDIR', 'EPERM']);
+
+function probeFailure(error, deadline, exitStages) {
+  if (error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') return 'subprocess output limit exceeded';
+  if (deadline.aborted) return 'subprocess deadline exceeded';
+  if (error.signal && Object.hasOwn(constants.signals, error.signal)) {
+    return `subprocess terminated by ${error.signal}`;
+  }
+  if (Number.isInteger(error.code)) {
+    return exitStages[error.code] ?? `subprocess exited with code ${error.code}`;
+  }
+  if (startupCodes.has(error.code)) return `subprocess startup failed (${error.code})`;
+  return 'subprocess startup failed';
+}
+
+export async function runHandoffProbe(executable, args, { timeout = 10_000, maxBuffer = 8192, env, exitStages = stages } = {}) {
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(), timeout);
+  try {
+    await exec(executable, args, { signal: deadline.signal, killSignal: 'SIGKILL', maxBuffer, windowsHide: true, env });
+  } catch (error) {
+    // execFile errors can carry the command, stdout and stderr. Retain only
+    // the enumerated outcome, without chaining the original error.
+    throw new Error(probeFailure(error, deadline.signal, exitStages));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function runPowerShell(check, handoff, fixture) {
-  const powershell = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
-  return exec(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
-    timeout: 10_000, maxBuffer: 8192, windowsHide: true,
+  const systemRoot = process.env.SystemRoot;
+  if (!systemRoot) throw new Error('subprocess startup failed (missing system root)');
+  const powershell = join(systemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
+  return runHandoffProbe(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
     env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture ?? '' },
+    exitStages: fixture === undefined ? stages : { 1: 'fixture preparation' },
   });
 }
 
@@ -77,7 +109,7 @@ export async function assertWindowsPrivateHandoff(handoff) {
   try {
     await runPowerShell(check, handoff);
   } catch (error) {
-    throw new Error(`Private handoff ACL verification failed (${stages[error.code] ?? 'PowerShell execution'}).`);
+    throw new Error(`Private handoff ACL verification failed (${error.message}).`);
   }
 }
 
@@ -110,8 +142,8 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
     try {
       try {
         await runPowerShell(prepare, path, fixture);
-      } catch {
-        throw new Error(`Could not prepare the synthetic ${fixture} ACL fixture.`);
+      } catch (error) {
+        throw new Error(`Could not prepare the synthetic ${fixture} ACL fixture (${error.message}).`);
       }
       await assert.rejects(assertWindowsPrivateHandoff(path), {
         message: `Private handoff ACL verification failed (${stages[stage]}).`,
