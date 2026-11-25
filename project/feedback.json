@@ -7287,6 +7287,39 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "explicit-source-recovery-status-holder-ownership-is-unverified",
+      "source": "Guarded M2-039 run 45692413910 at b19c3dfd0d858f28cd532daf699c09fe7936fb79, observation archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json (SHA-256 fbe36161ad816056deaf7c524cd5c60b9bdfa3bda202c76382ba1712c008abe6). The ordinary Windows check at tested merge 6a097e2e65900cc1d8e7afb5340189d4a09ea221 repeated the same assertion failure.",
+      "observation": "The guarded Linux proof snapshot received BUSY. After releasing the status holder, its designated reply was ok:false at desktop-workspace.spec.mjs:1216; the original error code and held writer identity were not recorded. The attached snapshots and writes show exactly one save at revision 1 and one peer save at revision 2, which snapshot 4 recorded as B, and the peer displayed close 106. The first window had no displayed bar at the failed assertion. The guarded Windows control completed with B=106 only. The existing test gate claims the next matching Rust reply without correlating its request identity. The original failure cause remains unclassified.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "model-connection-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T201234.860341Z-bd5fbdf1",
+          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
+          "report_sha256": "2dd69813fe0ef21881ef3f649c89cad3d5eb06eca4b217d6ed7cfd42e674f133"
+        },
+        {
+          "run_id": "20261125T201214.312321Z-a6291ef7",
+          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
+          "report_sha256": "6f9657e07bab71b55b5c8f91b5ec844ec449b5df13c4fddee2048383013c2ed9"
+        },
+        {
+          "run_id": "windows-change-45692309700-1",
+          "source_commit": "6a097e2e65900cc1d8e7afb5340189d4a09ea221",
+          "report_sha256": "5bcff0e3f345072560b5a0c3e3bd9a71536fd73c078763545f12e7768010f7ac"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

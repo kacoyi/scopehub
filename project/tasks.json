@@ -25639,7 +25639,10 @@
         "apps/desktop/ui/src/local-import-editor.tsx",
         "apps/desktop/ui/src/local-import-transport.ts",
         "apps/desktop/ui/src/private-record-transport.ts",
-        "apps/desktop/ui/src/i18n/locales/zh-Hans/data.json"
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/data.json",
+        "tests/ui/ai-workflow-fixture.mjs",
+        "tests/ui/workspace-writer-gate.mjs",
+        "tests/ui/workspace-source.spec.mjs"
       ],
       "decision_refs": [
         "0004",
@@ -25655,7 +25658,8 @@
         "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts.",
         "For manually selected published CSV and folder revisions, delay delivery of a real native comparison across focus. Nothing from that comparison is displayed until the latest focus has an authoritative access confirmation. A real peer withdrawal prevents publication details from appearing even temporarily.",
         "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts.",
-        "Restore the second conflict choice, one bar withdrawal and one source withdrawal after same-stage authorization is confirmed, keeping the private comparison out of the DOM during rechecks. A revision or stage change, cancellation of staging, or durable revocation discards the old decisions and prepared authority. Edit and reconfirm binds the visible choices to the exact native digest and one explicit publication."
+        "Restore the second conflict choice, one bar withdrawal and one source withdrawal after same-stage authorization is confirmed, keeping the private comparison out of the DOM during rechecks. A revision or stage change, cancellation of staging, or durable revocation discards the old decisions and prepared authority. Edit and reconfirm binds the visible choices to the exact native digest and one explicit publication.",
+        "The test-owned Rust status gate holds and releases only a designated request, including when an unrelated same-revision status finishes first. Recover the proof snapshot after a genuine pre-admission refusal, propagate other failures, and retain ordinary explicit recovery and exact durable selection and rendering checks."
       ],
       "checks": [
         "ui-build",
@@ -25664,7 +25668,8 @@
         "local-import-ui",
         "local-folder-refresh-preview",
         "state-migrations",
-        "workspace-timeframe"
+        "workspace-timeframe",
+        "model-connection-workflow"
       ],
       "evidence": [
         {
@@ -25672,7 +25677,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Replay the refused review choice and confirmation journey, validate the matching stage and candidate lifecycle, and hand off the exact local result for independent review and native qualification.",
+      "next_action": "Repair and verify the test-owned status gate, report exact local and original guarded evidence, then hand off for independent review and fresh native qualification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25689,7 +25694,8 @@
           "tests/ui/local-import.spec.mjs",
           "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json",
           "archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json",
-          "tests/ubuntu-preview/workspace.spec.mjs"
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
@@ -25775,6 +25781,13 @@
               "local-folder-refresh-preview",
               "ui-build"
             ]
+          },
+          {
+            "failure": "An unrelated UI status can claim the test gate, leaving the designated read rejected while the snapshot proof treats the wrong holder as admitted. Prove request identity, interleaving, pre-admission and terminal failures, bounded timeout cleanup, and ordinary and contended explicit recovery without additional writes or stale rendering.",
+            "checks": [
+              "desktop-workspace-transport",
+              "model-connection-workflow"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -25788,7 +25801,9 @@
             "apps/desktop/ui/src/use-local-workspace.ts",
             "apps/desktop/ui/src/local-revision-dialog.tsx",
             "apps/desktop/ui/src/local-import-editor.tsx",
-            "apps/desktop/ui/src/folder-refresh-review.tsx"
+            "apps/desktop/ui/src/folder-refresh-review.tsx",
+            "tests/ui/ai-workflow-fixture.mjs",
+            "tests/ui/workspace-writer-gate.mjs"
           ],
           "rules": [
             {
@@ -25810,7 +25825,8 @@
             "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
             "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs.",
             "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read.",
-            "Keep unpublished choices with their staged review and retain the prepared digest only for those decisions. Visibility rechecks hide the comparison without discarding authorized choices."
+            "Keep unpublished choices with their staged review and retain the prepared digest only for those decisions. Visibility rechecks hide the comparison without discarding authorized choices.",
+            "Correlate the test-only status gate with the designated Rust request. Keep durable selection and readback semantics separate from proof admission and fixture diagnostics."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."
@@ -25831,6 +25847,21 @@
           "run_id": "windows-change-45671281695-1",
           "source_commit": "265703a505f9bba6161d3cd9378f0639b79d8d20",
           "report_sha256": "c6947b6ce7f6e55a8cf84975b0254b473e152592315493dd06f2090bd5783e9f"
+        },
+        {
+          "run_id": "20261125T201234.860341Z-bd5fbdf1",
+          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
+          "report_sha256": "2dd69813fe0ef21881ef3f649c89cad3d5eb06eca4b217d6ed7cfd42e674f133"
+        },
+        {
+          "run_id": "20261125T201214.312321Z-a6291ef7",
+          "source_commit": "b19c3dfd0d858f28cd532daf699c09fe7936fb79",
+          "report_sha256": "6f9657e07bab71b55b5c8f91b5ec844ec449b5df13c4fddee2048383013c2ed9"
+        },
+        {
+          "run_id": "windows-change-45692309700-1",
+          "source_commit": "6a097e2e65900cc1d8e7afb5340189d4a09ea221",
+          "report_sha256": "5bcff0e3f345072560b5a0c3e3bd9a71536fd73c078763545f12e7768010f7ac"
         }
       ]
     }
