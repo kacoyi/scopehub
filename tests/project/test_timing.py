@@ -140,16 +140,18 @@ class ReportTimingTests(unittest.TestCase):
                 with self.subTest(first_cache=observations[0]['cache']):
                     issues = []
                     samples, clocks, _, _, ambiguous = timing.capture_observations(identity, observations, [], issues)
-                    self.assertTrue(ambiguous)
+                    self.assertFalse(ambiguous)
                     timing.save_timing_capture(path, 1, samples, clocks, issues)
                     reload_issues = []
                     _, retained, retained_clocks, _ = timing.read_timing_capture(path, reload_issues)
-                    self.assertEqual(observations, retained)
+                    self.assertCountEqual(observations, retained)
                     self.assertEqual([], reload_issues)
                     _, _, _, _, remains_ambiguous = timing.capture_observations(
                         identity, retained, retained_clocks, reload_issues,
                     )
-                    self.assertTrue(remains_ambiguous)
+                    self.assertFalse(remains_ambiguous)
+                    self.assertEqual([[unknown]], timing.coalesce_samples(retained, reload_issues))
+                    self.assertEqual([], reload_issues)
 
     def test_explicit_harness_clock_is_independent_of_overlapping_check_work(self):
         report = historical_report()
@@ -443,6 +445,109 @@ class HostedTimingTests(unittest.TestCase):
                 row, = timing.timing_view([sample], hosted=[observed])['samples']
                 self.assertIsNone(row['job'])
                 self.assertIsNone(row['seconds']['total'])
+
+    def test_shared_capture_preserves_job_and_checkout_evidence_in_both_orders(self):
+        jobs = self.split_windows_jobs()
+        run = hosted_run()
+        clock = timing.hosted_timing(run, jobs)
+        browser_job = next(job for job in jobs if job['id'] == 33)
+        known = timing.hosted_timing(run, [dict(job, checkout_sha='a' * 40) if job is browser_job else job
+                                          for job in jobs])
+        wrong_job = dict(browser_job, id=39)
+        partial = timing.hosted_timing(run, [jobs[0], wrong_job])
+        self.assertTrue(timing.clock_complete(known))
+        self.assertFalse(timing.clock_capture_complete(partial))
+
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        report['environment']['system'] = 'Windows'
+        windows = timing.report_sample(report)
+        browser = dict(windows, profile='ci-windows-browser')
+        linux = dict(windows, platform='Linux', run_id=fast_report(21, 675)['run_id'])
+        other = dict(browser, source_commit='d' * 40, ci=dict(browser['ci'], checkout_sha='d' * 40))
+        samples = [linux, windows, browser]
+        self.enterContext(isolated_git_environment())
+        for case, extra_clock, extra_samples, expected_status, expected_wall, expected_browser in (
+            ('compatible checkout', known, [], 'retained', 765, 720),
+            ('incompatible job', partial, [], 'ambiguous', 765, None),
+            ('incompatible checkout', known, [other], 'ambiguous', None, None),
+        ):
+            results = []
+            for clocks in ([clock, extra_clock], [extra_clock, clock]):
+                with self.subTest(case=case, reversed=clocks[0] is not clock), tempfile.TemporaryDirectory() as path:
+                    root = Path(path)
+                    subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
+                    shared = timing.shared_timing_directory(root)
+                    capture = shared / 'ci-pull_request-11-1.json'
+                    repository = 'fixture/scopehub'
+                    with (patch.object(timing, 'download_timing', side_effect=AssertionError('Unexpected artifact request')),
+                          patch.object(timing, 'inspect_jobs', side_effect=AssertionError('Unexpected jobs request'))):
+                        self.assertEqual('retained', timing.collect_new_ci_timing(root, repository, run, samples, [clock])[0])
+                        self.assertEqual(2, len(list(shared.glob('linked-harness/*/ci-*.json'))))
+                        for rows, evidence in (([*samples, *extra_samples], clocks), (extra_samples, clocks[::-1])):
+                            self.assertEqual(expected_status, timing.collect_new_ci_timing(
+                                root, repository, run, rows, evidence,
+                            )[0])
+                    _, retained, hosted, _ = timing.read_timing_capture(capture, [])
+                    self.assertCountEqual([*samples, *extra_samples], retained)
+                    self.assertCountEqual(clocks, hosted)
+                    reindex = timing.index_retained_captures(root)
+                    self.assertEqual((0 if extra_samples else 1, 0),
+                                     (reindex['indexed_captures'], reindex['new_links']))
+                    markers = list(shared.glob('linked-harness/*/ci-*.json'))
+                    self.assertEqual(0 if extra_samples else 2, len(markers))
+                    view = timing.timing_view(retained, hosted=hosted)
+                    observed = {(sample['platform'], sample['profile']): sample for sample in view['samples']}
+                    self.assertEqual(expected_wall, observed['Windows', 'full']['seconds']['total'])
+                    if not extra_samples:
+                        self.assertEqual(expected_browser, observed['Windows', 'ci-windows-browser']['seconds']['total'])
+                    linked, linked_clocks = timing.linked_capture_inputs(
+                        [shared], {timing.report_key(windows)}, [], [],
+                    )
+                    if extra_samples:
+                        self.assertEqual([], linked)
+                        self.assertEqual([], linked_clocks)
+                        self.assertTrue(all(row['seconds']['total'] is None for row in view['samples']))
+                        self.assertEqual('Conflicting timing checkouts for this attempt.', view['input_issues'][0]['error'])
+                    else:
+                        linked_view = timing.timing_view(linked, hosted=linked_clocks)
+                        self.assertEqual(view, linked_view)
+                        if expected_browser is None:
+                            self.assertEqual('Conflicting Windows producer job observations.', view['input_issues'][0]['error'])
+                        else:
+                            self.assertEqual([], view['input_issues'])
+                            self.assertEqual('a' * 40, observed['Windows', 'ci-windows-browser']['job']['checkout_sha'])
+                    results.append(capture.read_bytes())
+            if len(results) == 2:
+                self.assertEqual(results[0], results[1])
+
+    def test_component_cache_union_preserves_protected_elapsed_observation(self):
+        jobs = self.split_windows_jobs()
+        clock = timing.hosted_timing(hosted_run(), jobs)
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        states = dict(core='warm', browser='warm', python='not_requested', recovery='warm')
+        full = dict(timing.report_sample(report, cache='warm'), windows_caches=states)
+        browser_unknown = dict(full, cache='unknown', windows_caches=dict(states, browser='unknown'))
+        recovery_unknown = dict(full, cache='unknown', windows_caches=dict(states, recovery='unknown'))
+        browser_cold = dict(full, cache='unknown', windows_caches=dict(states, browser='cold'))
+        for rows, cache, conflict in (([browser_unknown, recovery_unknown], 'warm', False),
+                                      ([full, browser_cold], 'unknown', True)):
+            for observations in ([*rows, rows[0]], rows[::-1]):
+                view = timing.timing_view(observations, hosted=[clock])
+                observed, = view['samples']
+                self.assertEqual((765, cache, conflict), (observed['seconds']['total'], observed['cache'],
+                                                         observed.get('cache_conflict', False)))
+                self.assertEqual('full', view['objective_reviews'][0]['profile'])
+                if conflict:
+                    self.assertEqual([], view['reviews'])
+                    self.assertEqual(timing.WINDOWS_PRODUCERS['browser'], view['input_issues'][0]['producer'])
+                else:
+                    self.assertEqual(['warm'], [review['cache'] for review in view['reviews']])
+                    self.assertEqual([], view['input_issues'])
 
     def test_producer_cache_dispute_preserves_wall_objective_without_cache_cohort(self):
         *siblings, aggregate = self.split_windows_jobs()
@@ -1985,7 +2090,7 @@ class RecentTimingTests(unittest.TestCase):
     def test_conflicting_complete_sample_remains_ambiguous_after_shared_handoff_in_both_orders(self):
         run, rows, clock = self.budget_run(14, '17:00')
         linux, warm = rows
-        cold = dict(warm, cache='cold')
+        cold = dict(warm, cache='cold', seconds={**warm['seconds'], 'harness': warm['seconds']['harness'] + 1})
         _, control_rows, control_clock = self.budget_run(15, '17:00')
         _, unrelated_rows, unrelated_clock = self.budget_run(16, '17:00')
         for first, second in ((warm, cold), (cold, warm)):

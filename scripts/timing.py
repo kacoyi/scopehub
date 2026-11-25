@@ -366,7 +366,7 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
             'browser_step': elapsed(browser_start, browser_end),
         },
     }
-    if 'checkout_sha' in job:
+    if job.get('checkout_sha') is not None:
         row['checkout_sha'] = job['checkout_sha']
         if not commit_id(row['checkout_sha']):
             conflicts.append('checkout_sha')
@@ -504,7 +504,7 @@ def hosted_timing(run, jobs):
             'runner_work_seconds': sum(runners) if complete_clocks and all(value is not None for value in runners) else None,
         },
     }
-    if 'checkout_sha' in run:
+    if run.get('checkout_sha') is not None:
         result['checkout_sha'] = run['checkout_sha']
     if split:
         result['sibling_jobs'] = siblings
@@ -585,7 +585,7 @@ def valid_clock(run):
     if not labels(run, ('repository', 'run_id', 'run_attempt', 'event', 'head_sha', 'conclusion')):
         return False
     if (run.get('head_branch') is not None and short_label(run['head_branch']) is None
-            or ('checkout_sha' in run and not commit_id(run['checkout_sha']))):
+            or (run.get('checkout_sha') is not None and not commit_id(run['checkout_sha']))):
         return False
     workflow, jobs = run['workflow'], run['jobs']
     siblings = run.get('sibling_jobs', [])
@@ -604,7 +604,7 @@ def valid_clock(run):
                 labels(job, ('job_id', 'platform', 'runner_label', 'status', 'conclusion'))
                 and (job.get('name') is None or isinstance(job['name'], str))
                 and all(isinstance(job['identity_issues'][key], list) for key in ('missing', 'conflicts'))
-                and ('checkout_sha' not in job or commit_id(job['checkout_sha']))
+                and (job.get('checkout_sha') is None or commit_id(job['checkout_sha']))
                 and valid_seconds(job['seconds'], ATTEMPT_SECONDS) for job in [*jobs, *siblings]
             ) and all(job.get('name') not in WINDOWS_PRODUCERS.values() for job in jobs))
 
@@ -674,6 +674,32 @@ def sample_eligible(sample):
     return sample['coverage_complete'] and sample_identity_complete(sample)
 
 
+def timing_issue(issues, issue):
+    if not any({key: value for key, value in note.items() if key != 'file'} == issue for note in issues):
+        issues.append(issue)
+
+
+def has_job_identity(job):
+    return positive_id(job['job_id']) and not any(job['identity_issues'].values())
+
+
+def timing_checkout_conflicts(samples, hosted, issues):
+    observed = defaultdict(set)
+    for sample in samples:
+        if sample['ci'] and sample_identity_complete(sample) and (
+                platform_timing_identity(sample) or windows_producer_job_name(sample)):
+            observed[ci_key(sample['ci'])].add(sample['source_commit'])
+    for run in hosted:
+        checkouts = [run.get('checkout_sha'), *(job.get('checkout_sha')
+                    for job in [*run['jobs'], *run.get('sibling_jobs', [])] if has_job_identity(job))]
+        observed[ci_key(run)].update(sha for sha in checkouts if commit_id(sha))
+    disputes = {attempt for attempt, claims in observed.items() if len(claims) > 1}
+    for attempt in sorted(disputes, key=repr):
+        timing_issue(issues, {'run_id': attempt[1], 'checkouts': sorted(observed[attempt]),
+                              'error': 'Conflicting timing checkouts for this attempt.'})
+    return disputes
+
+
 def attempt_clocks(hosted, issues):
     failures = defaultdict(dict)
     for run in hosted:
@@ -703,9 +729,9 @@ def attempt_clocks(hosted, issues):
             if clock_signature(previous) != clock_signature(run) or len(branches) > 1:
                 conflicting.add(key)
                 del clocks[key]
-                issues.append({'run_id': run['run_id'], 'error': 'Conflicting complete attempt clocks.'})
-            elif run.get('head_branch') and not previous.get('head_branch'):
-                clocks[key] = run
+                timing_issue(issues, {'run_id': run['run_id'], 'error': 'Conflicting complete attempt clocks.'})
+            else:
+                clocks[key] = enrich_clock_identity(previous, run)
     for key, outcomes in failures.items():
         if len(outcomes) == 1:
             clocks.setdefault(key, next(iter(outcomes.values())))
@@ -723,7 +749,7 @@ def clock_preference(run):
 
 def job_clock_signature(job):
     return (job.get('name'), job['job_id'], job['platform'], job['runner_label'], job['status'],
-            job['conclusion'], job.get('checkout_sha'),
+            job['conclusion'],
             tuple(tuple(sorted(map(str, job['identity_issues'][name]))) for name in ('missing', 'conflicts')),
             tuple(duration(job['seconds'].get(key)) for key in (*ATTEMPT_SECONDS, *SPLIT_SECONDS)))
 
@@ -731,10 +757,28 @@ def job_clock_signature(job):
 def clock_signature(run):
     jobs = [job_clock_signature(job) for job in [*run['jobs'], *run.get('sibling_jobs', [])]]
     return (
-        run['conclusion'], run.get('checkout_sha'),
+        run['conclusion'],
         *(duration(run['workflow'].get(key)) for key in ('total_elapsed_seconds', 'runner_work_seconds')),
         tuple(sorted(jobs, key=repr)),
     )
+
+
+def enrich_clock_identity(previous, other):
+    result = dict(previous)
+    for field in ('head_branch', 'checkout_sha'):
+        if other.get(field) and not result.get(field):
+            result[field] = other[field]
+    for field in ('jobs', 'sibling_jobs'):
+        if field not in previous:
+            continue
+        known = {job_clock_signature(job): job['checkout_sha']
+                 for job in other.get(field, []) if job.get('checkout_sha')}
+        result[field] = [
+            {**job, 'checkout_sha': known[job_clock_signature(job)]}
+            if not job.get('checkout_sha') and job_clock_signature(job) in known else job
+            for job in previous[field]
+        ]
+    return result
 
 
 def producer_job_observations(hosted, clocks, issues):
@@ -748,8 +792,7 @@ def producer_job_observations(hosted, clocks, issues):
                 or len({row.get('checkout_sha') for row in (authority, run)} - {None}) > 1):
             continue
         for job in [*run['jobs'], *run.get('sibling_jobs', [])]:
-            identity = job['identity_issues']
-            if not positive_id(job['job_id']) or identity['missing'] or identity['conflicts']:
+            if not has_job_identity(job):
                 continue
             role = job.get('name') or job['platform']
             roles[attempt, job['job_id']].add(role)
@@ -760,14 +803,27 @@ def producer_job_observations(hosted, clocks, issues):
                 continue
             if checkouts:
                 job = {**job, 'checkout_sha': next(iter(checkouts))}
-            jobs[attempt, role][job_clock_signature(job)] = job
-    observed = {}
+            candidates = jobs[attempt, role]
+            signature = job_clock_signature(job)
+            if signature not in candidates or job.get('checkout_sha'):
+                candidates[signature] = job
+    observed, disputes = {}, set()
     for (attempt, role), candidates in sorted(jobs.items(), key=lambda item: repr(item[0])):
         if len(candidates) != 1 or any(len(roles[attempt, job['job_id']]) > 1 for job in candidates.values()):
-            issues.append({'run_id': attempt[1], 'producer': role, 'error': 'Conflicting Windows producer job observations.'})
+            timing_issue(issues, {'run_id': attempt[1], 'producer': role,
+                                  'error': 'Conflicting Windows producer job observations.'})
+            disputes.add(attempt)
         else:
             observed[attempt, role] = next(iter(candidates.values()))
-    return observed
+    return observed, disputes
+
+
+def reconcile_timing_clocks(samples, hosted, issues):
+    checkouts = timing_checkout_conflicts(samples, hosted, issues)
+    consistent = [clock for clock in hosted if ci_key(clock) not in checkouts]
+    clocks = attempt_clocks(consistent, issues)
+    producers, producer_disputes = producer_job_observations(consistent, clocks, issues)
+    return clocks, producers, checkouts | producer_disputes
 
 
 def coalesce_samples(samples, issues):
@@ -790,33 +846,62 @@ def coalesce_sample_group(group, issues):
         best = max(group, key=lambda row: (sample_identity_complete(row) is True, row['recorded_at'] or '',
                                            json.dumps(sample_core(row), sort_keys=True)))
         candidates = [row for row in group if sample_core(row) == sample_core(best)]
-    previous, *rest = candidates
+    previous = candidates[0]
     producer = windows_producer_job_name(previous)
-    for sample in rest:
-        previous_proof, proof = (row.get('generated_contracts') for row in (previous, sample))
-        previously_observed, observed = (row.get('windows_caches') for row in (previous, sample))
-        caches = {previous['cache'], sample['cache']} - {'unknown'}
-        issue = {'run_id': observation_id(sample), 'platform': sample['platform']}
-        if producer:
-            issue['producer'] = producer
-        if (sample_core(previous) != sample_core(sample)
-                or (previous_proof is not None and proof is not None and previous_proof != proof)):
-            issue['error'] = ('Conflicting complete timing samples for this Windows producer.' if producer else
-                              'Conflicting complete timing samples for this run and platform.')
-        elif (len(caches) > 1
-                or (previously_observed is not None and observed is not None and previously_observed != observed)
-                or ((lane_caches := observed or previously_observed) is not None
-                    and windows_aggregate_cache(lane_caches) != next(iter(caches), 'unknown'))):
-            issue['error'] = ('Conflicting cache observations for this Windows producer.' if producer else
-                              'Conflicting Windows producer and aggregate cache observations.' if observed or previously_observed
-                              else 'Conflicting complete timing samples for this run and platform.')
-        if 'error' in issue:
-            issues.append(issue)
-            return [previous, sample]
-        previous = {**previous, **sample, 'cache': next(iter(caches), 'unknown')}
-        if previous_proof is not None and proof is None:
-            previous['generated_contracts'] = previous_proof
-    return [previous]
+    proofs = {}
+    for sample in candidates:
+        if (proof := sample.get('generated_contracts')) is not None:
+            proofs[json.dumps(proof, sort_keys=True)] = sample
+        if sample_core(previous) != sample_core(sample) or len(proofs) > 1:
+            issue = {'run_id': observation_id(sample), 'platform': sample['platform'],
+                     'error': 'Conflicting complete timing samples for this run and platform.'}
+            if producer:
+                issue.update(producer=producer, error='Conflicting complete timing samples for this Windows producer.')
+            timing_issue(issues, issue)
+            if sample_core(previous) != sample_core(sample):
+                return [previous, sample]
+            return list(proofs.values())
+    result = reconcile_cache_metadata(previous, candidates, issues)
+    if proofs:
+        result['generated_contracts'] = next(iter(proofs.values()))['generated_contracts']
+    return [result]
+
+
+def cache_conflict_issue(sample, producer, issues):
+    error = 'Conflicting cache observations for this timing sample.'
+    issue = {'run_id': observation_id(sample), 'platform': sample['platform']}
+    if producer:
+        issue['producer'] = producer
+        error = ('Conflicting Windows producer and aggregate cache observations.' if sample['profile'] == 'full'
+                 else 'Conflicting cache observations for this Windows producer.')
+    timing_issue(issues, {**issue, 'error': error})
+
+
+def reconcile_cache_metadata(sample, observations, issues):
+    scalar = {row['cache'] for row in observations if 'windows_caches' not in row} - {'unknown'}
+    vectors = [row['windows_caches'] for row in observations if 'windows_caches' in row]
+    result = dict(sample)
+    conflict = len(scalar) > 1
+    if conflict:
+        cache_conflict_issue(sample, windows_producer_job_name(sample), issues)
+    cache = next(iter(scalar), 'unknown') if not conflict else 'unknown'
+    if vectors:
+        resolved = {}
+        for lane, role in WINDOWS_PRODUCERS.items():
+            known = {vector[lane] for vector in vectors} - {'unknown'}
+            scalar_state = {'not_requested'} if lane == 'python' else scalar
+            if len(known) > 1 or (known and len(scalar) == 1 and known != scalar_state):
+                cache_conflict_issue(sample, role, issues)
+                conflict = True
+                resolved[lane] = 'unknown'
+            else:
+                resolved[lane] = next(iter(known), 'unknown')
+        cache = windows_aggregate_cache(resolved)
+        result['windows_caches'] = resolved
+    if conflict:
+        result['cache_conflict'] = True
+    result['cache'] = 'unknown' if conflict else cache
+    return result
 
 
 def platform_cache_conflicts(sample, producers, issues):
@@ -840,23 +925,17 @@ def platform_cache_conflicts(sample, producers, issues):
     for lane, observed in sorted(states.items()):
         expected = vector.get(lane, 'not_requested' if lane == 'python' else sample['cache'])
         if len(observed) > 1 or (expected in CACHE_STATES and expected not in observed):
-            issues.append({'run_id': observation_id(sample), 'platform': 'Windows', 'producer': WINDOWS_PRODUCERS[lane],
-                           'error': 'Conflicting Windows producer and aggregate cache observations.'})
+            cache_conflict_issue(sample, WINDOWS_PRODUCERS[lane], issues)
             conflict = True
     return conflict
 
 
 def merge_samples(samples, hosted, issues):
-    clocks = attempt_clocks(hosted, issues)
-    producer_jobs = producer_job_observations(hosted, clocks, issues)
-    producers, checkouts = defaultdict(list), defaultdict(set)
+    clocks, producer_jobs, _ = reconcile_timing_clocks(samples, hosted, issues)
+    producers = defaultdict(list)
     for sample in samples:
-        if sample['ci']:
-            attempt = ci_key(sample['ci'])
-            if windows_producer_job_name(sample):
-                producers[attempt].append(sample)
-            elif platform_timing_identity(sample):
-                checkouts[attempt].add(sample['source_commit'])
+        if sample['ci'] and windows_producer_job_name(sample):
+            producers[ci_key(sample['ci'])].append(sample)
     for group in coalesce_samples(samples, issues):
         if len(group) > 1:
             continue
@@ -872,14 +951,12 @@ def merge_samples(samples, hosted, issues):
             elif ci['event'] not in NORMAL_EVENTS or sample['profile'] in AUTOMATIC_PROFILES:
                 matching = [row for row in run['jobs'] if row['platform'] == sample['platform']]
                 job = matching[0] if len(matching) == 1 else None
-        if job and (not positive_id(job['job_id']) or any(job['identity_issues'].values())):
+        if job and not has_job_identity(job):
             if producer:
                 issues.append({'run_id': observation_id(sample), 'producer': producer,
                                'error': 'Windows producer job identity is incomplete or invalid.'})
             job = None
-        checkout = sample['source_commit']
-        if job and (not sample_identity_complete(sample) or checkouts[attempt] - {checkout}
-                    or any(row.get('checkout_sha', checkout) != checkout for row in (run, job))):
+        if job and not sample_identity_complete(sample):
             issue = {'run_id': observation_id(sample), 'platform': sample['platform'],
                      'error': 'Timing sample checkout or identity does not match the retained job evidence.'}
             if producer:
@@ -893,7 +970,8 @@ def merge_samples(samples, hosted, issues):
         if (run and run['workflow'].get('windows_recovery_producer') and sample['platform'] == 'Windows'
                 and sample['profile'] == 'full' and 'windows_caches' not in sample):
             cache = 'unknown'
-        cache_conflict = platform_cache_conflicts(sample, producers[attempt], issues)
+        producer_conflict = platform_cache_conflicts(sample, producers[attempt], issues)
+        cache_conflict = sample.get('cache_conflict') or producer_conflict
         yield {**sample, 'seconds': seconds, 'cache': 'unknown' if cache_conflict else cache,
                **({'cache_conflict': True} if cache_conflict else {}),
                'job': {key: value for key, value in job.items() if key != 'seconds'} if job else None,
@@ -1581,19 +1659,31 @@ def sample_belongs_to_capture(sample, path):
             and path.name == f"ci-{ci['event']}-{ci['run_id']}-1.json")
 
 
-def index_capture(path, samples):
+def indexable_capture_samples(path, samples, hosted, issues):
+    disputes = timing_checkout_conflicts(samples, hosted, issues)
+    return [row for row in samples if sample_belongs_to_capture(row, path) and ci_key(row['ci']) not in disputes]
+
+
+def index_capture(path, samples, hosted=(), issues=None):
     # The empty markers refer to original files beside this index. Existing capture bytes are kept in place.
+    indexable = {report_key(row) for row in indexable_capture_samples(path, samples, hosted,
+                                                                   [] if issues is None else issues)}
+    keys = {report_key(row) for row in samples if sample_belongs_to_capture(row, path)}
     count = 0
-    for key in {report_key(row) for row in samples if sample_belongs_to_capture(row, path)}:
+    for key in sorted(keys):
         directory = link_directory(path.parent, key)
         require_plain_index_directory(directory)
+        marker = directory / path.name
+        if key not in indexable:
+            marker.unlink(missing_ok=True)
+            continue
         directory.mkdir(parents=True, exist_ok=True)
         try:
-            with (directory / path.name).open('xb'):
+            with marker.open('xb'):
                 count += 1
         except FileExistsError:
             pass
-    return count
+    return bool(indexable), count
 
 
 def index_retained_captures(root):
@@ -1606,14 +1696,18 @@ def index_retained_captures(root):
         if not CANONICAL_CAPTURE.fullmatch(path.name):
             continue
         try:
-            if path.is_symlink():
-                raise TimingError('Expected a plain original compact timing capture.')
-            data = read_bounded_timing(path)
-            if data.get('kind') != ARCHIVE_KIND:
-                raise TimingError('Expected an original compact timing capture.')
-            samples, _ = archive_inputs(data, path.name, issues, collection_issues=False)
-            links += index_capture(path, samples)
-            captures += 1
+            with exclusive_git_lock(path.with_suffix('.lock')):
+                if path.is_symlink():
+                    raise TimingError('Expected a plain original compact timing capture.')
+                data = read_bounded_timing(path)
+                if data.get('kind') != ARCHIVE_KIND:
+                    raise TimingError('Expected an original compact timing capture.')
+                samples, hosted = archive_inputs(data, path.name, issues, collection_issues=False)
+                indexed, new_links = index_capture(path, samples, hosted, issues)
+                captures += indexed
+                links += new_links
+        except BlockingIOError:
+            issues.append({'file': path.name, 'error': 'Capture is being updated. Retry indexing when it finishes.'})
         except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'error': str(error)})
     return {'indexed_captures': captures, 'new_links': links, 'input_issues': issues}
@@ -1657,12 +1751,15 @@ def linked_capture_inputs(directories, keys, recent, issues):
             if data.get('kind') != ARCHIVE_KIND:
                 raise TimingError('Expected an original compact timing capture.')
             rows, clocks = archive_inputs(data, path.name, issues, collection_issues=False)
-            matching = [row for row in rows if report_key(row) in captures[path] and sample_belongs_to_capture(row, path)]
+            qualified = indexable_capture_samples(path, rows, clocks, issues)
+            matching = [row for row in qualified if report_key(row) in captures[path]]
             missing = captures[path] - {report_key(row) for row in matching}
             if missing:
                 issues.append({'file': path.name, 'reports': sorted(missing), 'error': 'Indexed timing identities are absent.'})
-            attempts = {ci_key(row['ci']) for row in matching}
-            samples.extend(matching)
+            # Linked review needs the same attempt evidence as ordinary reopen.
+            candidates = [row for row in rows if report_key(row) in captures[path] and sample_belongs_to_capture(row, path)]
+            attempts = {ci_key(row['ci']) for row in candidates}
+            samples.extend(row for row in rows if row['ci'] and ci_key(row['ci']) in attempts)
             hosted.extend(clock for clock in clocks if ci_key(clock) in attempts)
         except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'reports': sorted(captures[path]), 'error': str(error)})
@@ -1747,27 +1844,34 @@ def offline_budget_status(root, feedback, tasks):
     return budget_status(*retained_budget_inputs(root, feedback), feedback, tasks, root=root)
 
 
+def distinct_observations(rows):
+    unique = {json.dumps(row, sort_keys=True): row for row in rows}
+    return [unique[key] for key in sorted(unique)]
+
+
 def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
-    groups = coalesce_samples([row for row in samples if ci_key(row['ci'] or {}) == identity], issues)
+    samples = [row for row in samples if ci_key(row['ci'] or {}) == identity]
+    clocks = distinct_observations(row for row in hosted if ci_key(row) == identity)
+    choices, _, disputes = reconcile_timing_clocks(samples, clocks, issues)
+    clock = choices.get(identity)
+    groups = coalesce_samples(samples, issues)
     platforms = [group for group in groups if platform_timing_identity(group[0])]
-    ambiguous = any(len(group) > 1 for group in platforms)
-    # Retain distinct observations for diagnostics and future attempts. Incompatible complete clocks
-    # must remain visibly incompatible even if an exact retry agrees with one of them.
-    clocks = list({(clock_capture_complete(clock), clock_signature(clock), clock.get('head_branch'),
-                    clock.get('authenticated_failure')): clock
-                   for clock in hosted if ci_key(clock) == identity}.values())
-    clock = attempt_clocks(clocks, issues).get(identity)
+    ambiguous = identity in disputes or any(len(group) > 1 for group in platforms)
     outcome = conclusion or (clock['conclusion'] if clock else None)
     diagnostic = outcome not in {None, 'success'}
     # Failed artifacts can carry complete diagnostic identity despite failed or skipped check outcomes.
     qualify = sample_identity_complete if diagnostic else sample_eligible
     present = {group[0]['platform'] for group in platforms if qualify(group[0])}
+    if clock is None and identity in disputes:
+        present.clear()
     missing = set(PLATFORMS.values()) - present
     complete_clock = (clock is not None and clock['conclusion'] == outcome
                       and (clock_capture_complete(clock) if diagnostic else clock_complete(clock)))
-    if complete_clock:
-        clocks = [clock, *(row for row in clocks if row.get('authenticated_failure'))]
-    return [row for group in groups for row in group], clocks, missing, complete_clock, ambiguous
+    # Derivation may enrich or mark a dispute; the archive retains all
+    # distinct, attributable originals so reopening makes the same decision.
+    retained = [row for row in samples if sample_identity_complete(row)]
+    retained.extend(group[0] for group in groups if not sample_identity_complete(group[0]))
+    return distinct_observations(retained), clocks, missing, complete_clock, ambiguous
 
 
 def failed_capture_is_complete(clock, samples, hosted):
@@ -1782,7 +1886,7 @@ def save_timing_capture(path, attempts, samples, clocks, issues):
                'hosted': clocks, 'input_issues': issues}
     with TemporaryDirectory(dir=path.parent, prefix='.timing-') as temporary:
         staged = Path(temporary) / path.name
-        staged.write_bytes(json_bytes(archive))
+        staged.write_text(json.dumps(archive, indent=2, sort_keys=True) + '\n', encoding='utf-8', newline='')
         staged.replace(path)
 
 
@@ -1845,7 +1949,7 @@ def collect_new_ci_timing(root, repository, run, samples, hosted):
             # Re-read after locking because another worktree may have captured this attempt.
             result = update_timing_capture(path, repository, observed, identity, samples, hosted)
             try:
-                index_capture(path, result[1])
+                index_capture(path, result[1], result[2], result[3])
             except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
                 result[3].append({'run_id': run_id, 'error': f'Could not index the retained capture: {error}'})
             return result
@@ -1863,7 +1967,7 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     combined_samples, combined_clocks, missing, complete_clock, ambiguous = capture_observations(
         identity, [*prior_samples, *samples], known_clocks, retained_notes, conclusion=run['conclusion'],
     )
-    if not missing and complete_clock:
+    if ambiguous or (not missing and complete_clock):
         persisted_issues = retained_notes if ambiguous else []
         if (prior_samples, prior_clocks, prior_issues) != (combined_samples, combined_clocks, persisted_issues):
             save_timing_capture(path, attempts, combined_samples, combined_clocks, persisted_issues)
@@ -1901,12 +2005,17 @@ def update_timing_capture(path, repository, run, identity, samples, hosted):
     captured_samples, captured_clocks, missing_after, complete_clock, ambiguous = capture_observations(
         identity, [*combined_samples, *new_samples], [*combined_clocks, *new_clocks], issues, conclusion=run['conclusion'],
     )
-    if missing_after:
-        issues.append({'run_id': run_id, 'error': MISSING_COMPACT})
-    if not complete_clock:
-        issues.append({'run_id': run_id, 'error': MISSING_CLOCK})
+    if ambiguous:
+        status = 'ambiguous'
+    elif missing_after or not complete_clock:
+        status = 'partial'
+        if missing_after:
+            issues.append({'run_id': run_id, 'error': MISSING_COMPACT})
+        if not complete_clock:
+            issues.append({'run_id': run_id, 'error': MISSING_CLOCK})
+    else:
+        status = 'captured'
     save_timing_capture(path, attempts, captured_samples, captured_clocks, issues)
-    status = 'partial' if missing_after or not complete_clock else 'ambiguous' if ambiguous else 'captured'
     return status, captured_samples, captured_clocks, [*retained_notes, *issues]
 
 
@@ -1929,7 +2038,7 @@ def ci_budget_status(root, repository, run):
             samples.extend(new_samples)
             hosted.extend(new_clocks)
             issues.extend(new_issues)
-            affected = {report_key(row) for row in new_samples if sample_belongs_to_capture(row, capture)}
+            affected = {report_key(row) for row in indexable_capture_samples(capture, new_samples, new_clocks, issues)}
             affected.intersection_update(linked_timing_keys(feedback))
             if affected:
                 # Collection may have published a second claimant after the first index read.
