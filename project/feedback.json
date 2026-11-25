@@ -7074,7 +7074,7 @@
       "source": "Guarded native Windows M2-039 run 45671346099, attempt 1, job 139407201082. The report is archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json. Its local-folder-refresh-preview log has SHA-256 52a4e8104206e7f2b99e19063c177efa98c4509fe9cde682d72af60c67cd713d.",
       "severity": "major",
       "status": "open",
-      "observation": "After staging conflicting CSV declarations in the real portable bridge journey, the source changes table was still absent at the five-second UI assertion. The Windows folder suite passed six other cases, including entitlement rechecks; state migrations, transport and six other selected rows collectively produced seven passes. The Linux task passed all eight. The original log records neither the stage reply nor the last UI state that could distinguish a pending operation from a product failure.",
+      "observation": "After staging conflicting CSV declarations in the real portable bridge journey, the source changes table was still absent at the five-second UI assertion. The Windows folder suite passed six other cases, including entitlement rechecks; seven of eight selected checks passed, including state migrations and desktop transport. The Linux task passed all eight. The original log records neither the stage reply nor the last UI state that could distinguish a pending operation from a product failure.",
       "task_ids": [
         "M2-039"
       ],
