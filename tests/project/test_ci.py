@@ -189,11 +189,10 @@ class TaskDispatchTests(ProjectFixture):
         (self.root / 'project/branch-protection.json').write_bytes(json_bytes({'branch': 'main', 'repository': self.repository}))
         self.git('remote', 'add', 'origin', f'https://github.com/{self.repository}.git')
         self.git('config', '--local', 'github.account', 'fixture-owner')
-        self.ledger = self.root / 'project/tasks.json'
-        ledger = read_json(self.ledger)
+        ledger = self.ledger()
         for task_id in ('M0-002', 'M0-004'):
             task_by_id(ledger, task_id)['scope'] = ['dependency.py']
-        self.ledger.write_bytes(json_bytes(ledger))
+        self.save_ledger(ledger)
         self.base = self.commit('Protected task base')
         self.git('update-ref', 'refs/remotes/origin/main', self.base)
         self.git('checkout', '-qb', 'product')
@@ -203,7 +202,7 @@ class TaskDispatchTests(ProjectFixture):
         (self.root / 'dependency.py').write_text('other = True\n', encoding='utf-8')
         self.declared_dependency = self.commit('Implement the declared dependency in its recorded scope')
         task_by_id(ledger, 'M0-002')['acceptance'] = ['Exercise the separately reviewed dependency.']
-        self.ledger.write_bytes(json_bytes(ledger))
+        self.save_ledger(ledger)
         self.dependency = self.commit('Record the reviewed cross-task dependency')
         self.git('merge', '--no-ff', '--quiet', '-m', 'Record both changes', self.reviewed)
         self.stack = self.git('rev-parse', 'HEAD')
@@ -330,6 +329,68 @@ class TaskDispatchTests(ProjectFixture):
                                            self.declared_dependency, '--submit', task_id='M0-003')
         self.assertEqual((1, 'failed'), (result, view['status']))
         self.assertIn('scope', view['error'])
+        self.assertEqual([], calls)
+
+    def complete_shared_dependency_on_protected_base(self):
+        self.git('checkout', '-qb', 'completed-base', self.base)
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['scope'] = ['dependency.py']
+        self.save_ledger(ledger)
+        (self.root / 'dependency.py').write_text('base = True\n', encoding='utf-8')
+        self.commit('Implement the original shared dependency')
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.base = self.commit('Close the original dependency on protected main')
+        self.git('update-ref', 'refs/remotes/origin/main', self.base)
+        self.git('checkout', '-qb', 'completed-product')
+        (self.root / 'implementation.py').write_text('value = 3\n', encoding='utf-8')
+        self.reviewed = self.commit('Implement the selected task after its dependency completed')
+
+    def test_completed_dependency_cannot_borrow_another_tasks_shared_path(self):
+        self.complete_shared_dependency_on_protected_base()
+        self.git('checkout', '-qb', 'other-stack', self.base)
+        (self.root / 'dependency.py').write_text('unrelated = True\n', encoding='utf-8')
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-002')['acceptance'] = ['Observe the unrelated task in the same file.']
+        self.save_ledger(ledger)
+        unrelated = self.commit('Implement the other task in the shared path')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-001', unrelated, '--submit',
+                                           task_id='M0-003', remote_head=self.git('rev-parse', 'HEAD'))
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('Completed dependency M0-001', view['error'])
+        self.assertIn(unrelated, view['error'])
+        self.assertEqual([], calls)
+        result, view, calls = self.request('--ref', 'other-stack', '--dependency', 'M0-002',
+                                           unrelated, task_id='M0-003')
+        self.assertEqual((0, 'committed_definition'), (result, view['dependency']['binding']))
+        self.assertEqual([], calls)
+
+    def test_completed_dependency_requires_a_new_receipt_for_the_same_source(self):
+        self.complete_shared_dependency_on_protected_base()
+        self.git('checkout', '-qb', 'supplementary', self.base)
+        path = self.root / 'dependency.py'
+        path.write_text('refined = True\n', encoding='utf-8')
+        evidenced = self.commit('Prepare the supplementary check source')
+        receipt = archive_evidence(self.root, 'M0-001', self.report())
+        ledger = self.ledger()
+        task_by_id(ledger, 'M0-001')['evidence'].append(receipt)
+        self.save_ledger(ledger)
+        intended = self.commit('Archive the supplementary result for the exact source')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'supplementary', '--dependency', 'M0-001',
+                                           intended, task_id='M0-003')
+        self.assertEqual((0, 'supplementary_receipt'), (result, view['dependency']['binding']))
+        self.assertEqual(evidenced, read_json(self.root / receipt['path'])['source']['git_head'])
+        self.assertEqual([], calls)
+
+        self.git('checkout', '-qb', 'beyond-receipt', intended)
+        path.write_text('unrelated = True\n', encoding='utf-8')
+        unrelated = self.commit('Change the shared file past the evidenced source')
+        self.git('merge', '--no-ff', '--quiet', '-m', 'Integrate the reviewed product', self.reviewed)
+        result, view, calls = self.request('--ref', 'stack', '--dependency', 'M0-001', unrelated, '--submit',
+                                           task_id='M0-003', remote_head=self.git('rev-parse', 'HEAD'))
+        self.assertEqual((1, 'failed'), (result, view['status']))
+        self.assertIn('supplementary receipt', view['error'])
         self.assertEqual([], calls)
 
     def test_unverifiable_dependency_and_shallow_history_report_before_dispatch(self):

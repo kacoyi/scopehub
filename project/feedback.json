@@ -5261,6 +5261,17 @@
       "regression_checks": ["python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "manual-task-dispatch-completed-dependency-scope-overlap",
+      "source": "Second independent Astra Standard review of PR 91 at a3111a7154d20f371e8360289ab446b3ded0ae20. Retained transcript SHA-256 9cac411231a930422335e887a982dd02fd66c556ee7c52fdcaca462160fa0d9d.",
+      "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

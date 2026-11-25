@@ -12,11 +12,17 @@ from urllib.parse import quote
 from uuid import uuid4
 
 if __package__:
-    from .project import ProjectError, checkout_git_environment, load_project, read_json, source_identity, task_definition_hash
+    from .project import (
+        ProjectError, checkout_git_environment, digest, load_project, read_json, source_identity,
+        task_definition_hash, validate_model,
+    )
     from .timing import ci_budget_status
     from .verification_scope import ScopeError, exact_commit, git, oid, require_ancestor, require_complete_history, resolve_commit
 else:
-    from project import ProjectError, checkout_git_environment, load_project, read_json, source_identity, task_definition_hash
+    from project import (
+        ProjectError, checkout_git_environment, digest, load_project, read_json, source_identity,
+        task_definition_hash, validate_model,
+    )
     from timing import ci_budget_status
     from verification_scope import ScopeError, exact_commit, git, oid, require_ancestor, require_complete_history, resolve_commit
 
@@ -88,6 +94,42 @@ def remote_branch_tip(root, repository, branch):
     return oid(target.get('sha'))
 
 
+def has_supplementary_dependency_receipt(root, base, intended, task, previous):
+    # Accepted tasks may append receipts while retaining their record and prior evidence.
+    prior_evidence = previous['evidence']
+    evidence = task['evidence']
+    if task != {**previous, 'evidence': evidence} or evidence[:len(prior_evidence)] != prior_evidence:
+        return False
+    prior_paths = {ref['path'] for ref in prior_evidence}
+    definition = task_definition_hash(task)
+    for ref in evidence[len(prior_evidence):]:
+        path = ref['path']
+        if path in prior_paths or not re.fullmatch(rf'project/evidence/{task["id"]}-[0-9a-f]{{16}}\.json', path):
+            continue
+        data = git(root, 'show', f'{intended}:{path}')
+        if digest(data) != ref['sha256']:
+            raise ProjectError(f'Evidence digest mismatch at {intended}: {path}')
+        receipt = json.loads(data)
+        validate_model(root, 'Evidence', receipt)
+        source = receipt['source']
+        if (receipt['task_id'] != task['id'] or receipt['task_definition_sha256'] != definition
+                or source['working_tree_dirty'] or source['git_head'] == base
+                or not set(task['checks']).issubset(check['id'] for check in receipt['checks'])):
+            continue
+        try:
+            commit = exact_commit(root, source['git_head'])
+            require_ancestor(root, base, commit)
+            require_ancestor(root, commit, intended)
+        except ScopeError:
+            continue
+        # Allow the commit that records the receipt. Any other tree change needs its own observation.
+        changed = git(root, 'diff', '--no-ext-diff', '--no-renames', '--name-only', '-z', commit, intended, '--',
+                      '.', ':(exclude)project/tasks.json', ':(exclude)project/evidence/')
+        if not changed:
+            return True
+    return False
+
+
 def dependency_binding(root, base, intended, dependency_id, reviewed_task):
     task = committed_tasks(root, intended).get(dependency_id)
     if not task or dependency_id == reviewed_task['id']:
@@ -97,11 +139,16 @@ def dependency_binding(root, base, intended, dependency_id, reviewed_task):
     if not paths or not git(root, '--literal-pathspecs', 'diff', '--no-ext-diff', '--no-renames',
                             '--name-only', '-z', base, intended, '--', *paths):
         raise ProjectError(f'Dependency {dependency_id} at {intended} contributes no changes in its recorded scope.')
-    if dependency_id in reviewed_task['depends_on']:
-        return 'declared_dependency'
     previous = committed_tasks(root, base).get(dependency_id)
+    if previous and previous['status'] == 'done':
+        if has_supplementary_dependency_receipt(root, base, intended, task, previous):
+            return 'supplementary_receipt'
+        raise ProjectError(f'Completed dependency {dependency_id} at {intended} needs a supplementary receipt '
+                           'for that source. Use the task that owns the stack in the reviewed integration order.')
     if previous is None or task_definition_hash(task) != task_definition_hash(previous):
         return 'committed_definition'
+    if dependency_id in reviewed_task['depends_on']:
+        return 'declared_dependency'
     raise ProjectError(f'Dependency {dependency_id} at {intended} has no distinct task definition in the stack '
                        f'and is not declared by {reviewed_task["id"]}.')
 
