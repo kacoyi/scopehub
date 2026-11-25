@@ -16055,6 +16055,173 @@
       "closure_reason": "On clean source 27b0d0a the environment, project and Python task checks passed. The suite ran 580 tests with three platform skips. Three interleaved comparisons against 8bf926a reproduced 430 versus 212 Git launches for the same three scenarios. The timing reader also handled both platforms of the previous protected pair with insufficient proof marked unknown. The first workbench demonstration remains assigned to M2-003."
     },
     {
+      "id": "M0-113",
+      "title": "Refresh the Rust schema and worker encoding dependency graph",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-040",
+        "M0-081"
+      ],
+      "scope": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/worker-host/Cargo.toml",
+        "project/dependencies.json",
+        "project/dependency-inventory.json",
+        "THIRD_PARTY_NOTICES",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Independently reproduce the bounded Cargo resolution for original proposals 89 and 90 from reviewed main, compare the original diffs and retain their red dependency-review evidence. Verify published archive checksums, license expressions and supported build feature graphs.",
+        "Retain Draft 2020-12 and format validation with default retrieval disabled. Run existing positive and negative shared protocol and operation-schema checks at their actual Rust entrypoints.",
+        "Retain padded standard-alphabet raw-byte transfer, input bounds and rejection of malformed frames or reply identity and digest. Exercise the Rust worker host with the real worker and the receiver with malformed chunk controls.",
+        "Pass the ordinary dependency review and task checks with a matching license inventory. Retain combined candidate Ubuntu and Windows workflow results before integration."
+      ],
+      "checks": [
+        "project-state",
+        "dependency-review",
+        "generated-contracts",
+        "architecture",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "rust-lints"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T003719.050402Z-4de5a0e5",
+          "source_commit": "4d42bcbfd528fa089143b33e81c314e4e3da9370",
+          "report_sha256": "9bb1099756379aeeba669281c69f9abe1f2f115c316194d5e889bdccd67f837b"
+        },
+        {
+          "run_id": "windows-change-45519296584-1",
+          "source_commit": "4d42bcbfd528fa089143b33e81c314e4e3da9370",
+          "report_sha256": "7b28612a4d717495a6534dcbdb05ecdfd1dd17bbf33dcdda5ede14488435d3cc"
+        },
+        {
+          "run_id": "20261125T003708.448058Z-67e6b0d0",
+          "source_commit": "b3ead63731816f21b4c2232d7d89f08e3f6693ea",
+          "report_sha256": "3772945ee93d8514867de62a15e368281839f00b5b4f9246d1fd2c1716dd0481"
+        },
+        {
+          "run_id": "windows-change-45519317188-1",
+          "source_commit": "b3ead63731816f21b4c2232d7d89f08e3f6693ea",
+          "report_sha256": "060a807c3b4e95f307926c9a7b44f7e5ed0b4d61ac3b76509deae778be3f16bd"
+        }
+      ],
+      "plan": {
+        "outcome": "One reviewed native lock aligns jsonschema 0.62.0 and the worker-host base64 0.23.1 edge with the existing security gates and Rust callers.",
+        "change_types": [
+          "dependencies"
+        ],
+        "context": [
+          "Cargo.toml",
+          "Cargo.lock",
+          "crates/worker-host/Cargo.toml",
+          "crates/worker-host/src/local_import.rs",
+          "crates/worker-host/tests/protocol.rs",
+          "project/dependencies.json",
+          "scripts/dependencies.py"
+        ],
+        "hypotheses": [
+          "Cargo resolves the two proposals together with seven package updates in the schema and regex family and one existing base64 edge change.",
+          "Disabling jsonschema defaults preserves local schema resolution. The worker's explicit standard general-purpose engine preserves the existing scalar encoding despite SIMD features already selected elsewhere."
+        ],
+        "risks": [
+          {
+            "failure": "Cargo changes an unrelated package, supported target features, license obligation or advisory disposition.",
+            "checks": [
+              "dependency-review",
+              "project-state",
+              "architecture"
+            ]
+          },
+          {
+            "failure": "Schema validation accepts an invalid request, rejects a valid one or changes operation authorization.",
+            "checks": [
+              "generated-contracts",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Worker transport alters byte encoding, frame bounds or rejection paths.",
+            "checks": [
+              "rust-contracts-workers",
+              "python-contracts-workers",
+              "rust-lints"
+            ]
+          }
+        ],
+        "rollback": "Keep both updater heads and the reviewed main graph recoverable. Revert the manifests, lock and reviewed inventory together if the combined candidate fails.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "domain",
+            "application",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "Cargo.toml",
+            "crates/worker-host/Cargo.toml",
+            "crates/worker-host/tests/protocol.rs",
+            "crates/worker-host/src/local_import.rs",
+            "scripts/dependencies.py",
+            "scripts/rust_workspace.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Workflow action updates, dependency exceptions, protocol or product behavior changes, and packaged release acceptance."
+          ],
+          "open_questions": [
+            "Does the combined graph preserve features and validation across the supported Ubuntu and native Windows hosted jobs?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Wire schemas, exact source byte encoding, package license rules and existing advisory dispositions."
+          ],
+          "change": [
+            "Refresh the shared schema and regex packages and move the worker host to the already locked base64 0.23.1 package."
+          ],
+          "data_plan": "The dependency update keeps stored data and wire representations. Verification sends synthetic worker input only.",
+          "cleanup": "Retain both failed updater runs. Confirm the combined candidate before substituting the original proposals."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-113-3a9a3e14e9c9f6c5.json",
+          "sha256": "e074c60d6752e681f20b77a8fcb7891601e837effe943e34102181a22094710f"
+        },
+        {
+          "path": "project/evidence/M0-113-23454099b43519bd.json",
+          "sha256": "915fb561ccae51514facd05b270c0f07557b62148dec98718ee19333623e125f"
+        },
+        {
+          "path": "project/evidence/M0-113-69965730d37b26ff.json",
+          "sha256": "7267526c6f0bde8c72ddb1ffcf7cc53e5eaf1e42e56dc27c84734d900f581bbc"
+        }
+      ],
+      "closure_reason": "Independent Astra Standard review approved ff5af89. Authenticated Linux and Windows run 45556728459 passed every required task check on the reviewed source."
+    },
+    {
       "id": "M0-081",
       "title": "Update the locked cookie dependency for RUSTSEC-2026-0594",
       "milestone": "M0",
