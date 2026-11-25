@@ -25630,7 +25630,7 @@
           "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
         }
       ],
-      "next_action": "Compare the original Windows case durations with focused public checks, identify a measured source of repeated work, and verify a correction on the ordinary main-push path with the same coverage.",
+      "next_action": "Reuse the completed standalone test seed, verify isolated copies, rejection, cleanup and unchanged discovery, then retain the ordinary task report and the native qualification boundary.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25647,7 +25647,8 @@
         ],
         "hypotheses": [
           "The same-tree 1171.172-second success leaves little headroom. Repeated setup or verification work across cases may be measurable before the last recorded test.",
-          "The failed original supplies no individual-case time. Compare representative complete native timings and short controlled runs before attributing the failure to one test."
+          "The failed original supplies no individual-case time. Compare representative complete native timings and short controlled runs before attributing the failure to one test.",
+          "The successful Windows control reported 47 worktree retirement cases totaling 161.612 seconds at the named-case boundary. The Linux same-entry focused control directly counted six identical standalone Git bootstraps in six separate fixtures, requiring 36 local Git launches. One completed case-independent seed may eliminate those repeated launches while keeping real linked worktrees."
         ],
         "risks": [
           {
@@ -25659,6 +25660,12 @@
           },
           {
             "failure": "A shared fixture or cache could hide a per-case state change, mutation or cleanup failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Copying a seeded repository shares mutable objects, imports another test's path or makes a standalone initialization failure suppress later test outcomes.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -25689,7 +25696,7 @@
             "Changing product behavior, check deadlines, the coverage catalog, paid runner capacity or the independently owned indicator recovery."
           ],
           "open_questions": [
-            "Which public verification operation or fixture is repeatedly expensive on equivalent inputs? The pull-request-only Python partition and first post-repair main timing have separate owners."
+            "Can a fully constructed standalone test seed remove repeated setup while every case still owns its Git object files, index, config and linked registrations? Can the next case recover after a rejected seed initialization?"
           ]
         },
         "evolution": {
@@ -25700,7 +25707,7 @@
           "change": [
             "Remove a verified cost on the ordinary Windows push route after observing it in an affected public check."
           ],
-          "data_plan": "Use test-owned synthetic repositories and the retained native reports and logs. Production data is outside this change.",
+          "data_plan": "Use test-owned synthetic repositories and the retained native reports and logs. Production data is outside this change. The unmodified focused Git trace and native custody are in archives/observations/repo-hygiene-20261125/m0-153-fixture-baseline-60d80696/SHA256SUMS (SHA-256 31c54d95a8181caef2c1ffd905baa6e27898893278464ded3ebecf78aa94132a).",
           "cleanup": "Leave each fixture independent and remove its owned processes and files. Retain the original failed report and the new native evidence."
         }
       }
