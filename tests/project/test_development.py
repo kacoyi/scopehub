@@ -260,6 +260,43 @@ class DevelopmentTests(ProjectFixture):
         with self.assertRaisesRegex(ProjectError, 'profiles/supervise/family'):
             load_project(self.root)
 
+    def test_focused_causal_context_routes_retained_evidence_without_closing_an_unknown(self):
+        task_id = 'M0-001'
+        locator = {'run_id': 'original-1', 'source_commit': '1' * 40, 'report_sha256': '2' * 64}
+        finding = {
+            'id': 'synthetic-attribution-open', 'source': 'Synthetic first failure.',
+            'observation': 'Admission was refused. The holder is unknown. Verification owner captures the next refusal.',
+            'severity': 'minor', 'status': 'open', 'task_ids': [task_id], 'regression_checks': ['project-state'],
+            'diagnostic_reports': [locator], 'resolution': None, 'deferral_reason': None,
+        }
+        self.save('project/feedback.json', {'schema_version': '1.0', 'items': [finding]})
+        self.record['herdr'] = {
+            'host': 'Herdr', 'profiles': {'implement': {'family': 'sol'}, 'supervise': {'family': 'astra'}},
+            'reasoning_efforts': ['medium'], 'model_selection': ['Use the default family.'],
+            'parallel': ['Keep review independent.'], 'tooling': ['Use synthetic fixtures.'],
+        }
+        self.save_record()
+        for phase in ('implement', 'verify', 'handoff'):
+            with self.subTest(phase=phase):
+                context = task_context(self.root, task_id, phase=phase)
+                self.assertEqual([finding], context['feedback'])
+                investigation = context['causal_investigation']
+                self.assertIn('task.next_action', investigation['next_observation'])
+                self.assertIn('Keep unproven attribution open', investigation['next_observation'])
+                self.assertEqual([{'feedback': finding['id'],
+                                   'command': 'pnpm project:source project/feedback.json /items/0'}],
+                                 investigation['original_records'])
+                self.assertEqual([f"pnpm project:diagnostic resolve original-1 {'1' * 40} {'2' * 64}"],
+                                 investigation['diagnostic_commands'])
+                self.assertEqual(phase != 'implement', 'review_handoff' in context)
+                if phase == 'verify':
+                    launch = context['review_handoff']['launch']
+                    self.assertLess(context['commands'].index(launch),
+                                    context['commands'].index(f'pnpm project:record {task_id} --report <run-report>'))
+        routine = task_context(self.root, 'M0-002')
+        self.assertNotIn('causal_investigation', routine)
+        self.assertNotIn('review_handoff', routine)
+
     def test_context_omits_dependency_history_but_keeps_effective_rule_sources(self):
         ledger = self.ledger()
         task_by_id(ledger, 'M0-002')['acceptance'] = ['Large historical prerequisite. ' * 1000]
