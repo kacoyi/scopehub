@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-126",
+  "task_definition_sha256": "41ee60e21b27969d0210db2f822cd84008ea2c32985f6197b5ac85da91ed6bd8",
+  "run_id": "20261125T101519.925712Z-7390e57a",
+  "recorded_at": "2026-11-25T10:18:28.057557+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "59e0137fd0b5d28c08485e4b153a73936b681cca69f771ac6911050a4a3ba22d",
+    "file_count": 604,
+    "git_head": "2b0e9b44870c02571352337c69e3eda18f1895ce",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "b5bb1ae9c69f1412c660047fcbcd415e1d42d6ab75f9f62f1cd97880371baa2f",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-publisher-quota-diagnostics/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-publisher-quota-diagnostics/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5ca84f3014f88e0f49f4ce8ad531b81c17bf3297182950c7ab33079ac866b762"
+    },
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-publisher-quota-diagnostics/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9b266a427d79b7b7aee831559352ae9f136adf939c66328d1ddb8f81bd754e08"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-publisher-quota-diagnostics/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b646b8bc40e2ec1bf9e3963541d97e4ccd57083feb257de6cc66c3ed0c78d7ec"
+    }
+  ],
+  "project_definition_sha256": "6d9213cdf0ae64a32baf9a1a9d10267ebcaa316beb5563c3ebf3b93052b0893e",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "6b1842d2d2051c7977d90a80b2d911b9e71058ba62cde10bf6dc810d9cc4e011"
+  ]
+}
