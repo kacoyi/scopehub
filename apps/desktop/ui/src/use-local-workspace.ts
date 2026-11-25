@@ -31,8 +31,9 @@ type WorkspaceSource = Exclude<WorkspaceSourceChoice, { kind: 'frozen' }>
   | { kind: 'frozen'; revision_id: string; status: 'available' | 'revoked' | 'unavailable' };
 type SourceRequest = { type: 'workspace_source'; request_id: string; expected_selection_revision: number; source: WorkspaceSourceChoice };
 type SnapshotRequest = { type: 'snapshot' };
-type AdmissionRead = SnapshotRequest | { type: 'frozen_chart'; request_id: string; revision_id: string };
-type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteReadCommand11 | DecisionNoteSaveCommand11
+type AdmissionRead = SnapshotRequest | DecisionNoteReadCommand11
+  | { type: 'frozen_chart'; request_id: string; revision_id: string };
+type LocalRequest = SourceRequest | AdmissionRead | Command | DecisionNoteSaveCommand11
   | AiTextConnectionCommand11
   | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11 | DecisionNoteExportBackupCommand11
   | DecisionNotePreviewRestoreCommand11 | DecisionNoteRestoreBackupCommand11

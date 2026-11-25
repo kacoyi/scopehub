@@ -46,11 +46,25 @@ def inspect(root=ROOT):
     repository = github_identity(root)
     if repository != policy['repository']:
         raise ProjectError('The protection policy belongs to another repository')
-    endpoint = f"repos/{repository}/branches/{policy['branch']}/protection"
-    actual = json.loads(command(['gh', 'api', endpoint], root))
+    prefix = f'repos/{repository}'
+    branch = policy['branch']
+    ref = f'refs/heads/{branch}'
+
+    def tip():
+        info = json.loads(command(['gh', 'api', f'{prefix}/git/ref/heads/{branch}'], root))
+        if (info['ref'] != ref or info['object']['type'] != 'commit'
+                or not isinstance(info['object']['sha'], str)
+                or len(info['object']['sha']) != 40 or any(c not in '0123456789abcdef' for c in info['object']['sha'])):
+            raise ProjectError('The checked branch ref did not return its exact commit.')
+        return info['object']['sha']
+
+    before = tip()
+    actual = json.loads(command(['gh', 'api', f'{prefix}/branches/{branch}/protection'], root))
+    if tip() != before:
+        raise ProjectError('The branch changed during protection inspection. Reinspect.')
     errors = violations(actual, policy['configuration'])
     return {'status': 'failed' if errors else 'passed', 'observed_at': datetime.now(timezone.utc).isoformat(),
-            'repository': repository, 'branch': policy['branch'], 'errors': errors, 'observed': actual,
+            'repository': repository, 'branch': branch, 'branch_sha': before, 'errors': errors, 'observed': actual,
             'claim_scope': 'Live read of branch protection at the recorded time, not a merge authorization or permanent guarantee.'}
 
 

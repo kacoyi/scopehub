@@ -36,10 +36,19 @@ class ProtectionTests(unittest.TestCase):
         self.assertTrue(violations(self.actual, self.expected))
 
     def test_read_only_observation_checks_identity_and_does_not_claim_missing_access(self):
+        ref = json.dumps({'ref': 'refs/heads/main', 'object': {'type': 'commit', 'sha': '1' * 40}})
         with (patch('scripts.protection.github_identity', return_value='kacoyi/scopehub'),
-              patch('scripts.protection.command', return_value=json.dumps(self.actual)) as command):
-            self.assertEqual('passed', inspect(ROOT)['status'])
-            self.assertEqual(['gh', 'api', 'repos/kacoyi/scopehub/branches/main/protection'], command.call_args.args[0])
+              patch('scripts.protection.command', side_effect=[ref, json.dumps(self.actual), ref]) as command):
+            report = inspect(ROOT)
+            self.assertEqual('passed', report['status'])
+            self.assertEqual('1' * 40, report['branch_sha'])
+            self.assertEqual(['gh', 'api', 'repos/kacoyi/scopehub/branches/main/protection'],
+                             command.call_args_list[1].args[0])
+        moved = json.dumps({'ref': 'refs/heads/main', 'object': {'type': 'commit', 'sha': '2' * 40}})
+        with (patch('scripts.protection.github_identity', return_value='kacoyi/scopehub'),
+              patch('scripts.protection.command', side_effect=[ref, json.dumps(self.actual), moved])):
+            with self.assertRaisesRegex(ProjectError, 'changed during'):
+                inspect(ROOT)
         with patch('scripts.protection.github_identity', return_value='unrelated/repository'):
             with self.assertRaisesRegex(ProjectError, 'another repository'):
                 inspect(ROOT)

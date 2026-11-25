@@ -24522,6 +24522,624 @@
       }
     },
     {
+      "id": "M0-135",
+      "title": "Verify follow-through for the five periodic reviews",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts/project.py",
+        "scripts/development.py",
+        "AGENTS.md",
+        "project/delivery.json",
+        "contracts/schemas/project.schema.json",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/maintenance.py",
+        "scripts/protection.py",
+        "tests/project/test_protection.py",
+        ".github/workflows/verify.yml",
+        "scripts/ci.py",
+        "scripts/timing.py",
+        "scripts/worktree_retirement.py",
+        "tests/project/test_retained_failures.py",
+        "tests/project/test_verify_browser_setup.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary startup provides a bounded whole-project outlook and identifies overdue, unsupported or actionable periodic reviews without changing authoritative detailed output.",
+        "Existing protected history rejects date-only clearance for each of the five lanes while preserving the inherited baseline and type-appropriate review observations.",
+        "Exercise the five calibrated negative cases, genuine scoped observations, removal and cross-category replay, and a quiet week that becomes due in ordinary startup and the existing scheduled Linux summary."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-135-fb9039bcd3db6012.json",
+          "sha256": "98c8f6c7bd30f9628c2dc34d8a1c7f00578bfd9c4269ba265c136ab44f4cc56e"
+        },
+        {
+          "path": "project/evidence/M0-135-cc8cfc95f5bc5b07.json",
+          "sha256": "87e8076cad4ea6028a7a3967cb1b74857a6a391b637cc6edfa1d4156d98700be"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved ddb5f6e44cb7fc2fa3a7520332bde0da1fbddfd2. The attached clean local Linux task and successful Windows PR 115 report cover the required project and worker checks, including seven observed maintenance defects. The weekly-summary write failure control executed on Linux. The next scheduled verification supplies its own dated result.",
+      "plan": {
+        "outcome": "A single evidence-bound invariant protects all five periodic reviews at startup and in protected history. The existing weekly Linux run retains the startup attention without changing product-result semantics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/development.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The calendar flag can clear independently of observation bytes in all five review lanes. Typed bounded projections of existing observations can share the same guard.",
+          "Full source deltas, source-bound consumer checks and independently checked observation facts can close the review gaps without inferring cross-lane recovery.",
+          "A separate original-byte check at protected intake can bind private source observations without publishing inventory details. Later offline review can reuse that accepted exact projection.",
+          "A common observation transition with immutable predecessor references can admit new findings and verified closure without changing previously accepted bytes."
+        ],
+        "risks": [
+          {
+            "failure": "An unsupported date advance clears review attention or passes protected history.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unrelated or stale receipt appears to prove compatibility. Exercise native Rust and Python consumers, an unrelated valid receipt, and changed, unchanged or unavailable history. Verify that a new adverse observation after a verified repair requires reopening.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A compatibility reader change is omitted, an unbound or stale observation overclaims coverage, or a review transition or startup precedence hides unfinished work.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Self-generated projection hashes substitute for original bytes, retirement loses a staging obligation, a same-day update loses a predecessor, recovery is unqualified, or a cold reader cannot route one critical finding.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A capture source is inferred from a proposal, an independently known obligation is lost, historical evidence is changed, or an urgent assignment route is hidden by another urgent item.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A due transfer loses its calendar obligation, fresh standalone fast runs are mistaken for a replay, or partially traced branch tips cannot progress without hiding adverse evidence. A bounded handoff can also omit retained failures, and weekly summary I/O can suppress product verification.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A hosted run can advance the calendar again after an intervening scope, or a same-day inventory rejects exact branch progress after verified main ancestry advances. Exercise overlap, replay, reversal, independent protection and unrelated histories.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the gate and compact navigation together. Retain the historical date and original calibration.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Keep task dispatch, hosted timing measurements and product acceptance independent."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve historical cadence, accepted records, existing normal JSON fields and independent native and release evidence."
+          ],
+          "change": [
+            "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations.",
+            "Review completeness and subsequent recovery are separate claims. Keep unsupported dimensions and both urgent and calendar follow-through visible.",
+            "Separate original verification from protected acceptance of minimized records. Admit named staging and source-qualified later timing, retain monotone supplements, and expose stable read-only navigation.",
+            "Separate observation identity from checkout context and preserve independent pending scopes and assignment routes through capture, transfer, confirmation and closure.",
+            "Keep transferred calendar and exact observation identities until verified follow-through. Expose a bounded retained-failure route and keep the scheduled product verdict independent of summary publication."
+          ],
+          "data_plan": "Read canonical task receipts and feedback. Compare changed consumer boundaries from accepted Git history and retain unverified scopes. Leave the historic baseline unchanged and keep controls in private validation outputs.",
+          "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."
+        }
+      }
+    },
+    {
+      "id": "M0-126",
+      "title": "Report confirmed anonymous publisher advisory quota exhaustion",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-027"
+      ],
+      "scope": [
+        "scripts/publisher_advisory.py",
+        "tests/project/test_dependencies.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The ordinary local dependency review fails with exit 1 and identifies anonymous HTTP 403 quota exhaustion only when the same approved TLS response contains a complete header block with zero remaining requests. A strictly valid optional reset is formatted as UTC.",
+        "Missing, ambiguous, or malformed response data do not establish quota exhaustion or disclose raw server text. Preserve the existing live check, failure exits, credentials, route, redirects, fallback, and request limits."
+      ],
+      "checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-126-b5bb1ae9c69f1412.json",
+          "sha256": "0597e370afc519a8f79134c4c9024cdcc0dfef9d0de6b4c4897b2c7c8568e676"
+        },
+        {
+          "path": "project/evidence/M0-126-c4f09feb69227a31.json",
+          "sha256": "371df27f7f21af84d2ae30bde4e7e63458dadbde60e20726f0f9d3c751ee3265"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved ddafe1e07d6cc040824f331108cd31041410723c. All four local task checks passed after the observed publisher reset. The 34 independent transport cases distinguish a complete zero-remaining response from ambiguous headers, premature EOF and generic HTTP 403. The original two unclassified responses retain their observed status.",
+      "plan": {
+        "outcome": "The failed local dependency report distinguishes a proven anonymous quota limit from an unclassified HTTP 403.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "Accepted M0-027 hosted isolation and fail-closed policy.",
+          "scripts/publisher_advisory.py",
+          "scripts/dependencies.py",
+          "tests/project/test_dependencies.py",
+          "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json",
+          "Astra Standard CHANGES_REQUESTED for 2b0e9b44870c02571352337c69e3eda18f1895ce.",
+          "Independent CHANGES_REQUESTED for d5dd6c49057382afa3bd8f7ac4970b2b0988c496. The retained wire replays expose an EOF that Python accepts without a header parser defect."
+        ],
+        "hypotheses": [
+          "The publisher transport discards non-200 headers. The dependency report already persists the resulting error."
+        ],
+        "risks": [
+          {
+            "failure": "The ordinary dependency report still conflates confirmed quota and a plain 403.",
+            "checks": [
+              "dependency-review",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Incomplete or repeated headers produce false attribution, legitimate HTTP field whitespace loses an accurate diagnosis, or malformed values disclose server text.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "EOF before the response header terminator or inside a reset field produces a false quota diagnosis or a false UTC reset in the ordinary dependency report.",
+            "checks": [
+              "dependency-review",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The diagnostic changes hosted credentials, fallback, live gates, or request counts.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the added diagnostic while retaining the originals, hosted isolation, and required online check.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py",
+            "scripts/publisher_advisory.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to hosted handling, service permissions, cache, fallback, API or report schema, or accepted history."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The approved exact GET, redirect refusal, bounded response and retry behavior, hosted matching evidence and failure exits."
+          ],
+          "change": [
+            "Derive a bounded local quota diagnosis and optional UTC reset from the same anonymous 403 after observing its header terminator in the standard HTTP transport."
+          ],
+          "data_plan": "Use offline fixtures from retained public response headers. Archive original red, green and required check output.",
+          "cleanup": "Use the existing dependency report error field and preserve the generic error for unclassified responses."
+        }
+      }
+    },
+    {
+      "id": "M2-038",
+      "title": "Recover the deleting decision-note window after a verified peer workflow",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-037"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "apps/desktop/ui/src/decision-note-transport.ts",
+        "apps/desktop/ui/src/use-local-workspace.ts",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Exercise the original ordinary two-window draft and peer-timeframe journey. After a matched committed deletion, correlate the initiating document, its list read, the saved note and the peer window. Retain the case within the original assertion deadline.",
+        "Demonstrate the specific cause with independent observable outcomes, preserve the original Linux failure, and verify the supported UX under normal and delayed reads. Refusal and uncommitted operations preserve the existing row."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-038-51fcd3bb4e68e255.json",
+          "sha256": "199eb6758140227b660727a026ceabc40938d0c036d3ce4d73ddd0d23119fcc3"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T160307.507960Z-afd0f7cf",
+          "source_commit": "e6f2c917bccd4506e0227bf1d966eabadc538154",
+          "report_sha256": "30cd3108ea869b8d055739e809cc55dc517c13d15cc4286fa3cb26379135fecf"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 9958a93f218d592ade27a005626d19fc29fe7c0c. The combined five-check run passed all 75 workspace cases. Both Chromium windows returned to the list after the committed deletion and the retryable refusal, using the original read request ID. SQLite retained one matching deletion at revision five. Cancellation and rejected writes preserved the original note and outcome. The original hosted screenshot does not identify the window or the cause of that occurrence.",
+      "plan": {
+        "outcome": "A confirmed deletion in the actual paired-window workflow returns the initiating window to its list and removes the original row and stale peer draft, with exact diagnostic coverage of the failed stage.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The hosted case observed deletion confirmation and matched its committed receipt before the initiating list button timed out. A stale detail read, handoff or post-commit list transition may explain which window retained its detail view. The retained screenshot does not identify that window.",
+          "A controlled observer snapshot owned the shared writer after an actual commit. Its concurrent deleting-window snapshot was refused with HTTP 429; no initiating list read followed. Use the verified commit revision and bounded read-only admission handling. The unlabelled hosted screenshot does not establish this timing occurred in CI."
+        ],
+        "risks": [
+          {
+            "failure": "A test-only retry, proactive reset, shared screenshot or previous deletion-notice fix hides the actual missing list transition. Match each page, operation, receipt, list timing and independently observed stored values; verify both valid and rejected transitions.",
+            "checks": [
+              "ui-build",
+              "market-workflow",
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Keep the original raw source, native screenshot and logs. Revert the identified UI or fixture correction independently if it alters existing confirmed, refused or delayed paths.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing delete authorization, persistence formats, user data, production instrumentation or assertion deadlines."
+          ],
+          "open_questions": [
+            "Which document and response order account for the missing list button after the verified receipt?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing note dates, draft handling, consent and deletion markers; actual two-window behavior and both accepted prior repairs."
+          ],
+          "change": [
+            "Correct the identified transition and retain an independent two-window regression."
+          ],
+          "data_plan": "Use synthetic temporary per-run profiles and retain only business-independent diagnostic timings, states and hashes.",
+          "cleanup": "Terminate private workers and windows and retain original traces before disposing the synthetic profiles."
+        }
+      }
+    },
+    {
+      "id": "M0-140",
+      "title": "Measure worker protocol cost in complete synthetic user workflows",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-132"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain matching source, commands, original timings and response parity for a short real chart history journey and ordinary CSV source-row and folder refresh journeys with synthetic data. Count requests per actual product worker, cold first response and end-to-end completion; report retained memory and unavailable dimensions.",
+        "Attribute reference resolution separately from other worker and UI time. Compare the observed journeys with the accepted M0-132 evidence and record whether these workloads satisfy its reopen condition. Separate the observed synthetic interaction mix from field usage."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-140-5b59f130567ac0ac.json",
+          "sha256": "3811f9cbe69106c3d4831b8328d58d36b4bd1675bf782a25c01d45678e8c4c8f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 9d13f946b101d4978599106e7b2333d5fd5b1403. Eight trials per synthetic journey measured visible chart and CSV latency, worker lifetime, lookup CPU, value parity and cleanup. Applying the strict chart RSS window retained both reported medians. Keep the accepted validator and the deferred finding. M0-144 owns a representative longer session with material lookup-related delay.",
+      "plan": {
+        "outcome": "Give the deferred worker-lookup finding a verifiable product-workload decision without changing the accepted validator.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/src/local_import.rs",
+          "python/worker_runtime/protocol.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A complete chart interaction can reuse one market worker across paging operations, while source-row and folder refresh may pay fresh-worker startup. The actual product routes determine that mix."
+        ],
+        "risks": [
+          {
+            "failure": "A standalone codec timing or an imposed page loop is presented as a user workflow. Exercise the ordinary chart and import routes, bind measurements to their real workers and verify independent expected replies.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the original M0-132 observation, source and measurement files. Retain the existing validator until a separately reviewed change demonstrates product improvement.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "worker-runtime",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "crates/worker-host/src/local_import.rs",
+            "python/worker_runtime/protocol.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Production telemetry, customer files, provider calls and shipping the withdrawn optimization."
+          ],
+          "open_questions": [
+            "Which worker lifetimes does each observed product interaction actually use, and how much of end-to-end elapsed time is attributable to reference resolution?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing wire values, worker ownership, historical measurements and accepted M0-132 decision."
+          ],
+          "change": [
+            "Assign the deferred observation and retain the measured scope and decision."
+          ],
+          "data_plan": "Use synthetic local sources and locally retained measurements; publish a small evidence index with qualified results.",
+          "cleanup": "Keep observations in the development archive, remove temporary instrumentation from the delivered tree and stop any workers started by the measurement."
+        }
+      }
+    },
+    {
+      "id": "M0-144",
+      "title": "Qualify lookup cost when a longer chart session shows visible delay",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-140"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "For the first representative longer chart session in which profiling shows material user-visible delay from protocol reference lookup, retain the source, session duration, actions, per-worker request counts and time to the visible result. Keep private market content local and retain synthetic comparison fixtures.",
+        "Measure lookup CPU alongside end-to-end latency and retained memory for the observed request mix. Compare fresh one-shot CSV source inspection and folder refresh. Preserve chart, CSV and protocol response parity and identify any unavailable measurements.",
+        "Use the M0-132 baseline and M0-140 measurements to decide whether the evidence justifies a separately reviewed change. Record the decision and link any corrective task to the deferred finding."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "The development AI takes this task when a representative longer chart session first shows material lookup-related visible delay. Retain the observation before evaluating an optimization.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M0-142",
+      "title": "Gate recurring main-push budget handoffs on protected evidence",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-091"
+      ],
+      "scope": [
+        "scripts/integration.py",
+        "tests/project/test_integration.py",
+        "contracts/schemas/project.schema.json",
+        "project/delivery.json",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the original M0-087/M0-091 handoff. Adopt the distinct recurring Windows push binding independently on protected main before any repair can use it.",
+        "A completed reviewed repair with bound regression evidence, authentic comparable push controls, exact successful full native PR evidence and a distinct planned M0-141 can hand off only the named open observation.",
+        "Close that observation only with a subsequent successful comparable protected main push containing the repair and its original observation receipt. Reject changed source, evidence, scope, planned-only delivery and other applicable findings."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-142-4fc22866ae992e38.json",
+          "sha256": "c95712c0a559f63348e8b9212b786f924a4305ab9b5fcfca18fdceab84a559af"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved e7992133d4e39e210691fb74536d67384d4dab34. All three task checks passed. The delivery rule distinguishes protected adoption, a complete and current repair receipt, matched native PR results and a later protected push containing the repair. The M0-139 observation stays open until the separate M0-141 qualification.",
+      "plan": {
+        "outcome": "A reviewed Windows warm-main repair can pass pre-integration verification while the post-integration elapsed observation has its own open owner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/integration.py",
+          "scripts/timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The existing one-off rule does not govern the 886, 938 and 913 second cohort. Its receipt and protected-history checks can be reused."
+        ],
+        "risks": [
+          {
+            "failure": "A candidate grants itself an exception, substitutes the observed source or unrelated evidence, skips a required native job, or closes the main observation prematurely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A completed repair loses its named owner, binds an older ancestor, relies on a native projection without its original or a timely wall clock, or combines separate incomplete receipts to appear current.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the legacy rule and retain the unresolved recurrence and original built reports. Remove the unused extension under separate reviewed policy if it cannot qualify the actual delivery.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            }
+          ],
+          "non_goals": [
+            "Changing required checks, approving a merge, resetting the latency objective, or changing product behavior."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve original task and finding IDs and the M0-087/M0-091 rule."
+          ],
+          "change": [
+            "Add a separate protected binding for an evidence-bound recurring push handoff."
+          ],
+          "data_plan": "Reuse the existing task, feedback, timing and receipt records. Preserve raw observations and their exact locators.",
+          "cleanup": "Retain a planned M0-141 until the first eligible ordinary protected main push is independently verified."
+        }
+      }
+    },
+    {
       "id": "M0-139",
       "title": "Recover the recurring warm Windows main verification budget",
       "milestone": "M0",

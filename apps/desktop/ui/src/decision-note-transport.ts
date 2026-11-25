@@ -6,7 +6,7 @@ import type {
   DecisionNotePreviewRestoreCommand11, DecisionNotePreviewRestoreReply11, DecisionNoteRestoreBackupCommand11,
   DecisionNoteRestoreBackupInput, DecisionNoteRestoreBackupReply11, DecisionNoteRestoreScope11, DecisionNoteRestoreSummary,
 } from '../../../../contracts/generated/protocol';
-import { exchangeWorkspace } from './use-local-workspace';
+import { exchangeWorkspace, readWorkspaceAfterAdmission } from './use-local-workspace';
 
 type WriteCommand = DecisionNoteSaveCommand11 | DecisionNoteAppendOutcomeCommand11 | DecisionNoteDeleteCommand11;
 type WriteReply = DecisionNoteSaveReply11 | DecisionNoteAppendOutcomeReply11 | DecisionNoteDeleteReply11;
@@ -28,10 +28,9 @@ function envelope() {
   } as const;
 }
 
-async function send<T extends DecisionNoteReadReply11 | WriteReply | BackupReply>(
-  command: DecisionNoteReadCommand11 | WriteCommand | BackupCommand, signal: AbortSignal,
-): Promise<T['outcome']> {
-  const reply = await exchangeWorkspace<T>(command, signal);
+function checkedOutcome<T extends DecisionNoteReadReply11 | WriteReply | BackupReply>(
+  command: DecisionNoteReadCommand11 | WriteCommand | BackupCommand, reply: T,
+): T['outcome'] {
   if (reply.protocol_version !== '1.1' || reply.type !== 'response' || reply.request_id !== command.request_id) {
     throw { code: 'OUTPUT_INVALID' };
   }
@@ -40,12 +39,22 @@ async function send<T extends DecisionNoteReadReply11 | WriteReply | BackupReply
   return reply.outcome;
 }
 
-export async function readNotes(workspaceId: string, noteId: string | null, offset: number, signal: AbortSignal)
-  : Promise<DecisionNoteReadOutput> {
-  const response = await send<DecisionNoteReadReply11>({
+async function send<T extends DecisionNoteReadReply11 | WriteReply | BackupReply>(
+  command: DecisionNoteReadCommand11 | WriteCommand | BackupCommand, signal: AbortSignal,
+): Promise<T['outcome']> {
+  return checkedOutcome(command, await exchangeWorkspace<T>(command, signal));
+}
+
+export async function readNotes(workspaceId: string, noteId: string | null, offset: number, signal: AbortSignal,
+  { waitForAdmission = false } = {},
+): Promise<DecisionNoteReadOutput> {
+  const command: DecisionNoteReadCommand11 = {
     ...envelope(), scope: { workspace_id: workspaceId },
     intent: { operation: 'decisionNote.read', arguments: { note_id: noteId, offset } },
-  }, signal);
+  };
+  const response = waitForAdmission
+    ? checkedOutcome(command, await readWorkspaceAfterAdmission<DecisionNoteReadReply11>(command, signal))
+    : await send<DecisionNoteReadReply11>(command, signal);
   if (response.state !== 'completed' || !response.result || (response.result.note?.note_id ?? null) !== noteId) {
     throw { code: 'OUTPUT_INVALID' };
   }
@@ -85,7 +94,7 @@ export async function resolveNote(prepared: PreparedNote, decision: 'approve' | 
         && outcome.receipt.workspace_id === command.scope.workspace_id
         && outcome.receipt.target?.kind === 'decision_note'
         && outcome.receipt.target.object_id === command.scope.target.object_id
-        && outcome.receipt.committed_workspace_revision === command.scope.expected_workspace_revision + 1) return;
+        && outcome.receipt.committed_workspace_revision === command.scope.expected_workspace_revision + 1) return outcome.receipt;
     throw { code: 'OUTPUT_INVALID' };
   } catch (error) {
     if (decision === 'decline' && noteErrorCode(error) === 'CANCELLED') return;
