@@ -24031,6 +24031,397 @@
       }
     },
     {
+      "id": "M0-129",
+      "title": "Observe Windows Cargo cache composition on ordinary verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-094"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/cache_composition.py",
+        "tests/project/test_cache_composition.py",
+        "project/evidence",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Use the existing ordinary full Windows core and browser producers on the designated reviewed internal pull request first attempt. Preserve check coverage, protected results, cache use and action pins.",
+        "Emit only bounded aggregate counts with exact run, source, producer job, lane, match and phase. Use current non-following Windows metadata for each regular file path and report the labeled coverage and inner-entry counts of each fixed root.",
+        "Verify both complete native snapshots for each producer against the same official run, job, selection, checkout and matched cache key. Treat restored and post-check records as runner directory observations, including any preexisting files. Producer and aggregate elapsed times include probe overhead. Assess whether a private native A/B is justified without claiming hosted timing recovery.",
+        "Preserve the exact probed Git revision and authenticated raw native results. Remove the temporary workflow steps and any now-unused helper and tests before final integration unless native findings support a separately reviewed lasting use."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-129-c8128b3975393efa.json",
+          "sha256": "c8eec6d53f0d25e7271e44bc93590580f256d31af5b75232e0c8c51edc56d75b"
+        },
+        {
+          "path": "project/evidence/M0-129-6568e37a7309aa55.json",
+          "sha256": "a2bcbb77250e00597e0b48fc9beb5a58259d8f9c0f2c94195d55148b22f1830f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Astra Standard t10n independently approved the exact clean cleanup at db18a986a6d19cd316fcd23c1f9741f484e55212. The review package is archives/observations/repo-hygiene-20261125/independent-final-m0-129-db18a986/SHA256SUMS (SHA-256 fe3eb4369d6664745a49725eac270790d383ce136ed916148f2b4e1a25427d8f). Ordinary full Windows PR 112 run 45606747991 attempt 1 records complete restored and post-check primary-exact snapshots in both core and browser and the passing native regressions. The original reports, private producer logs and source are indexed in archives/observations/m0-129-native-intake-45606747991/manifest.json (SHA-256 1784cb9e9529414c06affa97b93241b6e77880380ba346de7fbc4c9b9f9fcb9a). The two existing receipts separately cover the native probe and the executable cleanup. The single instrumented warm sample gives no sound basis for a cache exclusion or timing recovery. Reopen a private native A/B only after identifying a material, specifically attributable and reproducibly disposable file class and obtaining an equivalent isolated native seed. M0-127 partial main recovery and the M0-104 native trend remain separate observations.",
+      "plan": {
+        "outcome": "A verifiable sample of real ordinary Windows Cargo cache composition supports a concrete payload experiment decision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/verification_scope.py",
+          "scripts/timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Fixed-root metadata counts and separate restored and post-check observations can show which components dominate and whether an inherited payload warrants further investigation.",
+          "The private replay found 26 hardlink aliases, so path-byte totals cannot quantify stored or removable bytes."
+        ],
+        "risks": [
+          {
+            "failure": "The probe exports filenames, traverses links, or reuses a wrong source, event, scope, lane or cache class.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The diagnostic runs outside the intended PR, affects protected results, or changes cache or verification behavior.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stopped scan or a filesystem size proxy is mistaken for complete native proof or hosted timing recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Stale Windows directory metadata gives different logical lengths for aliases of the same resized file, or obtaining fresh metadata follows a reparse point or overruns the scan budget.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Aggregated skips conceal an excluded, unobserved or failed cache root, allowing an ambiguous or incomplete observation to qualify as complete.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Remove the temporary measurement steps or skip incomplete measurements. Preserve the original verification and cached state.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No additional jobs, permissions, artifact uploads, cache mutations, forced misses, key or retention changes, externally triggered runs, or hosted timing closure."
+          ],
+          "open_questions": [
+            "Can both existing producers emit complete measurements within the bound? Does either expose a specific reusable-output experiment worth testing natively?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing producer and aggregate verification, check selection, runner clocks, cache trust and all cache policies."
+          ],
+          "change": [
+            "Measure matching cache roots with a bounded opted-in diagnostic in the two designated Windows producers."
+          ],
+          "data_plan": "Keep only fixed aggregate observations in the diagnostic log; authenticate and archive original evidence in the private project archive.",
+          "cleanup": "Preserve the exact probed commit and authenticated raw native results privately. Remove both workflow steps and any unused collector and tests from the final merge candidate. A lasting use requires concrete native evidence and separate review."
+        }
+      }
+    },
+    {
+      "id": "M0-134",
+      "title": "Route consequential findings to review before task closure",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts/development.py",
+        "scripts/herdr.py",
+        "scripts/project.py",
+        "tests/project/test_development.py",
+        "tests/project/test_herdr.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "scripts/review_tree.py",
+        "tests/project/test_diagnostic_references.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Focused implementation and verification expose the original observation, proposed mechanism, distinguishing evidence, verification escape and unresolved next owner or trigger through the existing plan and feedback records.",
+        "The ordinary Herdr review role opens verification context. A consequential handoff can bind a full clean source commit, reject dirty or moved source and tell the reviewer what independent behavior to exercise before acceptance.",
+        "Exercise the public support commands with a representative timing capture and reopen finding, the confirmed M4-018 read boundary, the unresolved M0-119 recurrence and the exact-source profile admission control. Keep a routine path and existing evidence and history checks usable.",
+        "Follow the actual commands printed by a bound review through focused and detailed context, reopened source links and the original archive in a read-only launch. Keep current checkout operations distinct and retain ordinary and historical query admission."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-134-8d0249321fd966d9.json",
+          "sha256": "153a53da0291b6115ba4346a5ae34dc8796f9f1d5a8a18ac90863f62052beaf3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Astra Standard t10k independently approved the read-only review handoff on clean exact c9bae572bcb74f76c63325556bb472f183944376. The original approval begins at line 978 in archives/observations/m0-134-astra-approval-c9bae57/astra-cold-c9bae57-original.txt (SHA-256 7e97c1651931ca4cfeeccd3e2931f4947a21c70d9053aee310c39d7f78875ddb). The review exercised emitted navigation, committed-record substitutions, dirty and moved source rejection, historical Git lookup, original archive resolution and ordinary repair. The existing task receipt binds the passing Linux run 20261125T125118.920277Z-85351a8d to the same execution inputs and task definition. Windows command, path and JSON Pointer controls were exercised. Native Windows execution remains outstanding with the coordinator.",
+      "plan": {
+        "outcome": "Independent review can test a consequential caller or data invariant on the named committed candidate before administrative completion. Investigation keeps an unproven cause open with a concrete next observation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/development.py",
+          "scripts/herdr.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "M0-130 and M0-131 had passing receipts before independent review found capture and reopen disagreement. Existing checks qualified their exercised cases. The routine role launch selected implementation context, which did not make the first independent reproduction and its acceptance timing explicit.",
+          "A clean review source and an independent entry-point outcome can surface this class earlier. Compare launch inputs, a moved or dirty source, and the unchanged routine path. One pilot cannot establish a change in recurrence rates.",
+          "Shared stages can disagree on the same data. For a supported mechanism, compare independent observations at the boundary. A green run where runtime conditions differ can establish a successful control while leaving the original cause open.",
+          "A clean Git observation can bracket stale file reads. Use one immutable commit tree for every labeled review read and keep current-checkout admission separate. Compare bound and ordinary reads with the same transient substitutions.",
+          "The original reader admits the exact clean commit, but follow-on navigation can lose its bound source or reach pnpm and uv. Compose nested review reads with the same cache-free entrypoint and compare workflow state, transient working records and Git facts."
+        ],
+        "risks": [
+          {
+            "failure": "A live role reads a different commit, dirty index or dirty checkout than the one named for review.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Phase guidance confuses an unobserved original mechanism with a confirmed causal outcome or a successful rerun with closure.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The handoff creates mandatory work for routine changes, requires renewed review for additive receipts, or weakens exact hosted source and historical evidence checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Launch claims a task report as finding origin, infers mechanism from workflow status, loses an evidence caveat, or blocks maintenance on an unrelated malformed optional record.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A portable diagnostic command cannot find an explicitly configured host archive, or routine status unexpectedly reads the archive.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A printed review command loses the source after a detail or repeated verification read, reads mutable data, or needs a writable dependency cache. An archive locator or historical query can be accidentally rebound to current checkout admission.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the phase and launch change. Keep the original receipts, diagnostic evidence and open finding.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Hosted gate or permissions changes, product behavior changes, retroactive acceptance, a review receipt or another feedback classification."
+          ],
+          "open_questions": [
+            "At the next comparable task, did the first independent round find the defect before closure, and did only changed behavior require another round?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing routine launch, evidence digests, history enforcement, diagnostic locators and role permissions."
+          ],
+          "change": [
+            "Make causal investigation visible during implementation and review source identity actionable at the normal handoff."
+          ],
+          "data_plan": "Keep original diagnostic bytes privately. Use existing observation, hypothesis, risk, source locator and resolution fields.",
+          "cleanup": "Capture future feedback through the existing review loop. No historical rewrite or temporary compatibility entry."
+        }
+      }
+    },
+    {
+      "id": "M0-137",
+      "title": "Verify bound review with portable linked-source fixture paths",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-134"
+      ],
+      "scope": [
+        "tests/project/test_diagnostic_references.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain and distinguish the original Windows ordinary-context failure from the independent Linux physical and same-directory alias control.",
+        "Exercise transient working and immutable committed reads through the fixture on both input spellings without changing product navigation or suppressing assertions.",
+        "Exercise real working and historical source reads through a nested reference on canonical and directory-alias checkout paths. Preserve dirty review refusal and rejected outside references.",
+        "Verify exact local task and accepted history. Keep native PR retry and independent review pending."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45621069041-1",
+          "source_commit": "540aa72c18cf6bf0c1ba49ba965b8c26f229d1ad",
+          "report_sha256": "2dc65486c83de450a01a9eeda1bf2cd00a4607c3d07ab840ba4985e57eb2535c"
+        }
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-137-22efa1517d36b068.json",
+          "sha256": "10a8136ed443b6c7ff006b48f61c87b39241f162a3d75e7eb9ae3fea033d55d4"
+        },
+        {
+          "path": "project/evidence/M0-137-86b86a1936e409de.json",
+          "sha256": "d7432c2ba7c555babc008a5d5c8917cbe87f52c5324e90235d7041b671c8703f"
+        },
+        {
+          "path": "project/evidence/M0-137-a365f310b60f517d.json",
+          "sha256": "5278557f5c4463c42dd19f1bf60ba061010f422f70cc02bfd7e58e7144334275"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 015cbda17b259cbffe7908af03c5cf1ee9493782. Ordinary PR 113 run 45627611541 executed the original working-value assertion and the new nested source check successfully on native Windows and Linux at f986d231a0e2f8fe07c90d3806a892296ef88430. The original Windows failure from run 45621069041 remains linked to its retained diagnostic.",
+      "plan": {
+        "outcome": "The ordinary native verification fixture reliably distinguishes transient working data from immutable committed reads across checkout spellings.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_diagnostic_references.py",
+          "tests/project/test_continuity.py",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The transient fixture compares the original contract pathname, while the engineering link expander reads the resolved file. A Linux same-directory alias reproduces the failed working assertion.",
+          "The native log establishes the same assertion failure before bound checks. Its exact temporary path spelling is unavailable. Real file and CLI controls support a test-owned correction."
+        ],
+        "risks": [
+          {
+            "failure": "A test fix bypasses the transient injection or fails to distinguish ordinary and committed reads across aliases.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The repair weakens nested source bounds, dirty review rejection or accepted M0-134 evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original failed report and revert the test-only adjustment if the preserved controls diverge.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/project/test_diagnostic_references.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Runtime navigation changes, reinterpretation of accepted M0-134, publication, dispatch or another task closure."
+          ],
+          "open_questions": [
+            "Does the same ordinary native PR entry pass the adjusted fixture on the reviewed candidate?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing product path handling, comparison and rejection semantics, approved M0-134 history and native failed evidence."
+          ],
+          "change": [
+            "Match injected contract reads by the resolved fixture identity and exercise actual nested source reads on canonical and aliased checkout paths."
+          ],
+          "data_plan": "Use synthetic local fixtures and retain genuine failure artifacts privately by their original diagnostic locator.",
+          "cleanup": "Keep the task active for independent review and a native ordinary rerun. Remove only temporary fixture-owned directories and their aliases."
+        }
+      }
+    },
+    {
       "id": "M0-135",
       "title": "Verify follow-through for the five periodic reviews",
       "milestone": "M0",

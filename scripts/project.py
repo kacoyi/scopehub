@@ -21,16 +21,18 @@ if __package__:
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import checkout_git_environment, git, nul_fields
-    from .worktree import WorktreeError, has_git_metadata
+    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
+    from .review_tree import CommittedPath
+    from .worktree import WorktreeError, git as worktree_git, has_git_metadata
 else:
     import maintenance
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import checkout_git_environment, git, nul_fields
-    from worktree import WorktreeError, has_git_metadata
+    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
+    from review_tree import CommittedPath
+    from worktree import WorktreeError, git as worktree_git, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 # These records describe work and evidence; they are not executable test inputs.
@@ -275,6 +277,38 @@ def checkout_status(root, env):
     return files, None if head == b'(initial)' else head.decode('ascii'), dirty
 
 
+def require_review_source(root, requested):
+    """Bind a local review to the named clean checkout, without hashing its evidence."""
+    try:
+        requested = oid(requested)
+    except ScopeError as error:
+        raise ProjectError('Pass the full commit ID for --source.') from error
+    _, head, dirty = checkout_status(root, checkout_git_environment())
+    if head != requested:
+        raise ProjectError(f'Review source {requested} does not match checkout HEAD {head}.')
+    if dirty:
+        raise ProjectError(f'Review source {requested} requires a clean checkout.')
+
+
+def diagnostic_archive_root(root, explicit=None):
+    if explicit is not None:
+        return explicit
+    if configured := os.environ.get('SCOPEHUB_ARCHIVE_ROOT'):
+        return configured
+    try:
+        setting = worktree_git(root, 'config', '--local', '--null', '--type=path', '--get-all',
+                               'scopehub.archiveRoot', allowed=(0, 1))
+    except WorktreeError as error:
+        raise ProjectError('Could not read the repository-local scopehub.archiveRoot setting.') from error
+    if setting.returncode == 1:
+        raise ProjectError('Set --archive-root, SCOPEHUB_ARCHIVE_ROOT, or '
+                           'git config --local scopehub.archiveRoot <absolute-path> to resolve a diagnostic.')
+    paths = os.fsdecode(setting.stdout).removesuffix('\0').split('\0')
+    if len(paths) != 1 or not Path(paths[0]).is_absolute():
+        raise ProjectError('Set exactly one absolute scopehub.archiveRoot with git config --local.')
+    return Path(paths[0])
+
+
 def is_source_input(relative, exclusions):
     return not any(relative == item or (item.endswith('/') and relative.startswith(item)) for item in exclusions)
 
@@ -442,7 +476,7 @@ def load_project(root=ROOT):
         require_refs(binding['checks'], checks, 'Product acceptance')
     decisions = []
     decision_paths = {}
-    for path in sorted((root / 'contracts/decisions').glob('*.json')):
+    for path in sorted((root / 'contracts/decisions').glob('*.json'), key=lambda path: path.name):
         decision = read_json(path)
         validate_model(root, 'Decision', decision)
         if not path.name.startswith(decision['id'] + '-'):
@@ -1486,9 +1520,15 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
 
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if __package__:
-        from .development import effective_decisions, focused_context
+        from .development import (
+            bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
+            project_navigation,
+        )
     else:
-        from development import effective_decisions, focused_context
+        from development import (
+            bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
+            project_navigation,
+        )
     project = load_project(root)
     key = task_id or project['ledger']['focus_task_id']
     if key not in project['tasks']:
@@ -1496,9 +1536,19 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     task = project['tasks'][key]
     if phase not in {'implement', 'verify', 'handoff'}:
         raise ProjectError(f'Unknown context phase: {phase}')
+    source_commit = getattr(root, 'commit', None)
     if not detail:
-        context = focused_context(project, key, phase)
-        if any(row.get('follow_through_task') == key for row in maintenance.periodic_records(project['delivery']).values()):
+        context = focused_context(project, key, phase, source_commit=source_commit)
+        reviews = project['delivery']['scaffold_maintenance']['periodic_reviews']
+        transfers = [(index, row) for index, row in enumerate(reviews) if row.get('follow_through_task') == key]
+        if transfers and source_commit is not None:
+            context['transferred_reviews'] = [
+                {'id': row['id'], 'scope': 'recorded transfer policy',
+                 'policy_command': project_navigation('source', 'project/delivery.json',
+                    f'/scaffold_maintenance/periodic_reviews/{index}', source_commit=source_commit)}
+                for index, row in transfers
+            ]
+        elif transfers:
             context['transferred_reviews'] = [
                 {'id': row['id'], 'obligations': row.get('problem'), 'trigger': row.get('trigger')}
                 for row in observed_periodic_reviews(root, project, compare=True)
@@ -1506,7 +1556,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
             ]
         return context
     decision_ids = effective_decisions(project, task)
-    return {
+    result = {
         'task': task,
         'development': project.get('development'),
         'context_paths': list(dict.fromkeys([*project['delivery']['context'], *task.get('plan', {}).get('context', [])])),
@@ -1528,6 +1578,13 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
                      'pnpm project:history --base <reviewed-commit>', f'pnpm project:record {key} --report <run-report>',
                      'pnpm project:readiness'],
     }
+    if source_commit is not None:
+        result['phase'] = phase
+        result.update(bound_review_navigation(key, source_commit, result['commands']))
+        linked_feedback = feedback_for_task(project['feedback']['items'], key)
+        if linked_feedback or task.get('plan', {}).get('hypotheses') or task.get('diagnostic_reports'):
+            result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
+    return result
 
 
 def checkpoint(root=ROOT):
@@ -2293,13 +2350,40 @@ def unassigned_source(root, *, after=None, read_only=False):
     start = identities.index(after) + 1 if after else 0
     rows = unassigned[start:start + 5]
     prefix = ('source', 'project/feedback.json')
+    source_commit = getattr(root, 'commit', None)
     result = {'total': len(unassigned), 'items': [
         {'id': row['id'], 'severity': row['severity'],
-         'command': project_navigation(*prefix, '--id', row['id'], read_only=read_only)}
+         'command': project_navigation(*prefix, '--id', row['id'], read_only=read_only, source_commit=source_commit)}
         for row in rows]}
     if rows and start + len(rows) < len(unassigned):
         result['more'] = project_navigation(*prefix, '--unassigned', '--after', rows[-1]['id'],
-                                            *(['--read-only'] if read_only else []), read_only=read_only)
+                                            *(['--read-only'] if read_only else []), read_only=read_only,
+                                            source_commit=source_commit)
+    return result
+
+
+
+def source_navigation(root, args):
+    records = CommittedPath.at(root, args.source) if args.source is not None else root
+    reference = {'path': args.path, 'pointer': args.pointer}
+    if args.after and not args.unassigned:
+        raise ValueError('Use --after only with --unassigned.')
+    if (args.unassigned or args.id is not None) and (args.path != 'project/feedback.json' or args.pointer):
+        flag = '--unassigned' if args.unassigned else '--id'
+        raise ValueError(f'Use {flag} with the canonical feedback file and no JSON pointer.')
+    if args.unassigned:
+        result = unassigned_source(records, after=args.after, read_only=args.read_only)
+    elif args.id is not None:
+        matches = [row for row in resolve_source(records, {**reference, 'pointer': '/items'}) if row['id'] == args.id]
+        if len(matches) != 1:
+            raise ValueError('Expected one canonical feedback item with that ID.')
+        result = {'source': {'path': args.path, 'id': args.id}, 'value': matches[0]}
+        if matches[0]['status'] == 'open':
+            result['follow_through'] = 'Link this existing finding to an unfinished corrective task and verify its assigned checks.'
+    else:
+        result = {'source': reference, 'value': resolve_source(records, reference)}
+    if args.source is not None:
+        result['source_commit'] = records.commit
     return result
 
 
@@ -2328,6 +2412,7 @@ def main():
     context.add_argument('task_id', nargs='?')
     context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
     context.add_argument('--phase', choices=['implement', 'verify', 'handoff'], default='implement')
+    context.add_argument('--source', metavar='COMMIT', help='Require this clean commit in verification context')
     sub.add_parser('brief')
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
     source.add_argument('path')
@@ -2337,6 +2422,7 @@ def main():
     source_lookup.add_argument('--unassigned', action='store_true', help='List open feedback requiring assignment')
     source.add_argument('--after', help='Continue an unassigned list after its last stable feedback ID')
     source.add_argument('--read-only', action='store_true', help='Render continuation commands using pinned Python')
+    source.add_argument('--source', metavar='COMMIT', help='Read a record from this exact local Git commit')
     ready = sub.add_parser('readiness')
     ready.add_argument('--candidate', help='Exact release candidate commit')
     ready.add_argument('--report', type=Path, help='Retained Windows release report')
@@ -2358,8 +2444,10 @@ def main():
     resolve.add_argument('run_id')
     resolve.add_argument('source_commit')
     resolve.add_argument('report_sha256')
-    resolve.add_argument('--archive-root', type=Path, help='Host archive root (defaults to SCOPEHUB_ARCHIVE_ROOT)')
+    resolve.add_argument('--archive-root', type=Path, help='Host archive root (then SCOPEHUB_ARCHIVE_ROOT, then local Git scopehub.archiveRoot)')
     args = parser.parse_args()
+    if args.command == 'context' and args.source is not None and args.phase != 'verify':
+        context.error('--source requires --phase verify.')
     try:
         if args.command == 'check':
             project = load_project(ROOT)
@@ -2381,7 +2469,14 @@ def main():
             result = verify_maintenance(ROOT, load_project(ROOT), args.record, args.report,
                                         args.staging, args.staging_digest, args.dispositions)
         elif args.command == 'context':
-            result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
+            records = ROOT
+            if args.source is not None:
+                require_review_source(ROOT, args.source)
+                records = CommittedPath.at(ROOT, args.source)
+            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase)
+            if args.source is not None:
+                require_review_source(ROOT, args.source)
+                result['review_source'] = records.commit
         elif args.command == 'brief':
             if __package__:
                 from .development import product_brief
@@ -2389,32 +2484,7 @@ def main():
                 from development import product_brief
             result = product_brief(load_project())
         elif args.command == 'source':
-            if __package__:
-                from .development import resolve_source
-            else:
-                from development import resolve_source
-            reference = {'path': args.path, 'pointer': args.pointer}
-            try:
-                if args.after and not args.unassigned:
-                    raise ValueError('Use --after only with --unassigned.')
-                if args.unassigned:
-                    if args.path != 'project/feedback.json' or args.pointer:
-                        raise ValueError('Use --unassigned with the canonical feedback file and no JSON pointer.')
-                    result = unassigned_source(ROOT, after=args.after, read_only=args.read_only)
-                elif args.id is not None:
-                    if args.path != 'project/feedback.json' or args.pointer:
-                        raise ValueError('Use --id with the canonical feedback file and no numeric JSON pointer.')
-                    matches = [row for row in resolve_source(ROOT, {**reference, 'pointer': '/items'})
-                               if row['id'] == args.id]
-                    if len(matches) != 1:
-                        raise ValueError('Expected one canonical feedback item with that ID.')
-                    result = {'source': {'path': args.path, 'id': args.id}, 'value': matches[0]}
-                    if matches[0]['status'] == 'open':
-                        result['follow_through'] = 'Link this existing finding to an unfinished corrective task and verify its assigned checks.'
-                else:
-                    result = {'source': reference, 'value': resolve_source(ROOT, reference)}
-            except ValueError as error:
-                raise ProjectError(str(error)) from error
+            result = source_navigation(ROOT, args)
         elif args.command == 'readiness':
             result = readiness(report_path=args.report, artifact_root=args.artifact_root, candidate=args.candidate)
         elif args.command == 'history':
@@ -2428,8 +2498,8 @@ def main():
                     result = diagnostic_locator(args.report)
                 else:
                     locator = {key: getattr(args, key) for key in ('run_id', 'source_commit', 'report_sha256')}
-                    archive_root = args.archive_root or os.environ.get('SCOPEHUB_ARCHIVE_ROOT')
-                    result = resolve_diagnostic(locator, archive_root)
+                    validate_locator(locator)
+                    result = resolve_diagnostic(locator, diagnostic_archive_root(ROOT, args.archive_root))
             except DiagnosticArchiveError as error:
                 raise ProjectError(str(error)) from error
         else:
@@ -2442,7 +2512,7 @@ def main():
         print(json.dumps(result, indent=2))
         if args.command == 'readiness' and not result['release_ready']:
             raise SystemExit(1)
-    except (ProjectError, subprocess.CalledProcessError, OSError, KeyError, ValueError) as error:
+    except (ProjectError, ScopeError, subprocess.CalledProcessError, OSError, KeyError, ValueError) as error:
         print(json.dumps({'status': 'failed', 'error': str(error)}))
         raise SystemExit(1) from error
 

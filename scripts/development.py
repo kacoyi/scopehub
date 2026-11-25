@@ -11,6 +11,16 @@ import shlex
 import subprocess
 from pathlib import Path
 
+if __package__:
+    from .diagnostic_archive import DiagnosticArchiveError, validate_locator
+else:
+    from diagnostic_archive import DiagnosticArchiveError, validate_locator
+
+
+HERDR_ROLE_PHASES = {'implement': 'implement', 'review': 'verify', 'coordinate': 'handoff'}
+ARCHIVE_CONFIGURATION = ('Use --archive-root, SCOPEHUB_ARCHIVE_ROOT, or git config --local '
+                         'scopehub.archiveRoot <absolute-path>, in that order.')
+
 
 # Budgets apply to the repository navigation view, including repeated subtrees.
 MAX_ENGINEERING_DEPTH = 64
@@ -217,7 +227,132 @@ def effective_decisions(project, task):
     return sorted(ids)
 
 
-def focused_context(project, key, phase):
+def feedback_row_routable(item):
+    return (isinstance(item, dict)
+            and isinstance(item.get('task_ids'), list)
+            and all(isinstance(key, str) for key in item['task_ids'])
+            and isinstance(item.get('severity'), str)
+            and isinstance(item.get('status'), str))
+
+
+def feedback_for_task(items, task_id):
+    severity = {'critical': 0, 'major': 1, 'minor': 2}
+    linked = [(index, item) for index, item in enumerate(items)
+              if feedback_row_routable(item) and task_id in item['task_ids']]
+    return sorted(linked, key=lambda entry: (entry[1]['status'] != 'open',
+                                             severity.get(entry[1]['severity'], 3)))
+
+
+def read_only_project_command(*arguments, source_commit=None):
+    """Render the pinned interpreter form used by the read-only review role."""
+    python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+    command = [python, '-B', 'scripts/project.py', *arguments]
+    if source_commit is not None:
+        command += ['--source', source_commit]
+    return subprocess.list2cmdline(command) if os.name == 'nt' else shlex.join(command)
+
+
+def bound_review_navigation(task_id, source_commit, current_commands):
+    context = ('context', task_id, '--phase', 'verify')
+    return {
+        'commands': [read_only_project_command(*context, '--detail', source_commit=source_commit),
+                     read_only_project_command(*context, source_commit=source_commit)],
+        'source_command': read_only_project_command('source') + f' "<path>" "<json-pointer>" --source {source_commit}',
+        'current_checkout_commands': current_commands,
+    }
+
+
+def feedback_source_command(index, source_commit=None):
+    pointer = f'/items/{index}'
+    return project_navigation('source', 'project/feedback.json', pointer, source_commit=source_commit)
+
+
+def diagnostic_commands(records, *, read_only=False):
+    for record in records:
+        locators = record.get('diagnostic_reports')
+        for locator in locators if isinstance(locators, list) else ():
+            try:
+                validate_locator(locator)
+            except DiagnosticArchiveError:
+                continue  # Historical rows can predate the current locator validation.
+            arguments = (locator['run_id'], locator['source_commit'], locator['report_sha256'])
+            yield project_navigation('diagnostic', 'resolve', *arguments, read_only=read_only)
+
+
+def excerpt(text, limit, *, observation=False):
+    if not isinstance(text, str):
+        return ''
+    line = ' '.join(''.join(char if char.isprintable() else ' ' for char in text).split())
+    if len(line) <= limit:
+        return line
+    if observation:
+        # Quote whole sentences so that a qualification can stay with its assertion.
+        prefix, stop, _ = line[:limit + 1].rpartition('. ')
+        return prefix + stop + '…' if prefix else 'Read the exact observation in the full record.'
+    return line[:limit].rstrip() + '…'
+
+
+def task_launch_excerpt(task, linked_feedback, source_commit=None):
+    """Start with recorded facts and a lookup. The full task context stays separate."""
+    result = {
+        'task_status': excerpt(task.get('status'), 16),
+        'outcome': excerpt(task.get('plan', {}).get('outcome') or task.get('title'), 210),
+        'next_action': excerpt(task.get('next_action'), 280),
+    }
+    if linked_feedback:
+        index, item = linked_feedback[0]
+        finding = {
+            'status': excerpt(item.get('status'), 16),
+            'observation': excerpt(item.get('observation'), 360, observation=True),
+        }
+        resolution = item.get('resolution')
+        if isinstance(resolution, dict) and resolution.get('cause'):
+            finding['recorded_cause'] = excerpt(resolution['cause'], 210, observation=True)
+        original = next(diagnostic_commands((item,), read_only=source_commit is not None), None)
+        if original:
+            finding['original_diagnostic'] = original
+            finding['archive_configuration'] = ARCHIVE_CONFIGURATION
+        else:
+            finding['original_source'] = excerpt(item.get('source'), 240)
+            finding['raw_evidence'] = 'This record cites its source. Raw bytes require a separately retained original.'
+        finding['full_record'] = feedback_source_command(index, source_commit)
+        result['finding'] = finding
+        if len(linked_feedback) > 1:
+            result['additional_findings_in_task_context'] = len(linked_feedback) - 1
+    return {name: value for name, value in result.items() if value}
+
+
+def causal_context(task, linked_feedback, source_commit=None):
+    context = {
+        'observation': 'Record the failure and impact in feedback.observation. Preserve the original in diagnostic_reports.',
+        'mechanism': 'Use plan.hypotheses and risks for the proposed mechanism, its distinguishing test and the verification '
+                     'boundary that let the failure through. Use resolution.cause, correction and prevention for supported findings.',
+    }
+    if task['status'] in {'planned', 'active', 'blocked'}:
+        context['next_observation'] = (
+            'Follow task.next_action. Keep unproven attribution open. '
+            'A passing rerun establishes its own outcome.'
+        )
+    if linked_feedback:
+        context['original_records'] = [
+            {'feedback': item['id'], 'command': feedback_source_command(index, source_commit)}
+            for index, item in linked_feedback[:3]
+        ]
+    for key, records in (('diagnostic_commands', (item for _, item in linked_feedback)),
+                         ('related_task_diagnostics', (task,))):
+        commands = []
+        for command in diagnostic_commands(records, read_only=source_commit is not None):
+            if command not in commands:
+                commands.append(command)
+            if len(commands) == 3:
+                break
+        if commands:
+            context[key] = commands
+            context['archive_configuration'] = ARCHIVE_CONFIGURATION
+    return context
+
+
+def focused_context(project, key, phase, *, source_commit=None):
     task = project['tasks'][key]
     development = project.get('development', {})
     plan = task.get('plan', {})
@@ -239,12 +374,20 @@ def focused_context(project, key, phase):
         if decision['status'] == 'accepted' and successor is None:
             entry['revisit_when'] = decision['revisit_when']
         decisions.append(entry)
+    items = project['feedback']['items']
+    linked_feedback = feedback_for_task(items, key)
+    product_source = {'path': 'engineering-contract-v1.json', 'pointer': '/product'}
+    product = {'purpose': project['spec'].get('product', {}).get('purpose'), 'source': product_source}
+    if source_commit is None:
+        product['brief_command'] = 'pnpm project:brief'
+    else:
+        product['source_command'] = read_only_project_command(
+            'source', product_source['path'], product_source['pointer'], source_commit=source_commit,
+        )
     result = {
         'task': task,
         'phase': phase,
-        'product': {'purpose': project['spec'].get('product', {}).get('purpose'),
-                    'source': {'path': 'engineering-contract-v1.json', 'pointer': '/product'},
-                    'brief_command': 'pnpm project:brief'},
+        'product': product,
         'context_paths': list(dict.fromkeys([*plan.get('context', []), 'project/development.json'
                                            if development else 'project/delivery.json'])),
         'dependencies': [{'id': item, 'title': project['tasks'][item]['title'],
@@ -252,7 +395,7 @@ def focused_context(project, key, phase):
         'decisions': decisions,
         'checks': [project['checks'][item] for item in task['checks']],
         'scenarios': [item for item in project['delivery']['scenarios'] if key in item['task_ids']],
-        'feedback': [item for item in project['feedback']['items'] if key in item['task_ids']],
+        'feedback': [item for _, item in sorted(linked_feedback)],
         'modules': modules,
         'data_ownership': [item for item in development.get('data_ownership', [])
                            if item['owner'] in navigation.get('modules', [])
@@ -261,21 +404,44 @@ def focused_context(project, key, phase):
         'policy_sources': [{'path': 'project/development.json', 'pointer': '/quality'}] if development else [],
         'source_command': 'pnpm project:source <path> <json-pointer>',
         'commands': ['pnpm project:impact', 'pnpm check:changed', f'pnpm check --task {key}',
-                     'pnpm project:doctor', 'pnpm check:fast',
-                     f'pnpm project:context {key} --detail', f'pnpm project:context {key} --phase verify'],
+                     'pnpm project:doctor', 'pnpm check:fast'],
         'limitations': ['Navigation is an index; inspect implementation and referenced rules.',
                         'Development collaboration does not specify embedded-AI interactions.'],
     }
+    if source_commit is None:
+        result['commands'] += [f'pnpm project:context {key} --detail', f'pnpm project:context {key} --phase verify']
     herdr = development.get('herdr')
     if herdr:
         result['development_host'] = {
             'host': herdr['host'],
+            'role_phases': HERDR_ROLE_PHASES,
             'profiles': herdr['profiles'],
             'policy': {'path': 'project/development.json', 'pointer': '/herdr'},
             'launch': f'pnpm project:herdr {key} <implement|review|coordinate> --assignment "<scope>"',
         }
+        if source_commit is not None:
+            result['development_host']['launch_scope'] = 'Launches a role on the current checkout.'
         if 'reasoning_efforts' in herdr:
             result['development_host']['default_reasoning_effort'] = herdr['reasoning_efforts'][0]
+    if linked_feedback or plan.get('hypotheses') or task.get('diagnostic_reports'):
+        result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
+    if phase in {'verify', 'handoff'} and herdr and task['status'] in {'planned', 'active', 'blocked'}:
+        review_commit = source_commit or '<full-commit>'
+        review_launch = f'pnpm project:herdr {key} review --source {review_commit} --assignment "<scope>"'
+        result['review_handoff'] = {
+            'launch': review_launch,
+            'when': 'For a consequential caller, data or recovery change, send a clean active-task source to '
+                    'an independent reviewer before attaching completion evidence or marking the task done.',
+            'assignment': 'Name the caller or data invariant, its independent expected outcome, and a real '
+                          'control or plausible failure boundary. Include any remaining causal uncertainty and next observation.',
+            'follow_up': 'Use the reviewed source and its matching checks for closure. If substantive source '
+                         'or scope changes after review, send the changed boundary on its new clean source. '
+                         'An additive receipt can cite the same reviewed source when the reviewed behavior '
+                         'and task definition are unchanged. Keep the existing history and evidence checks.',
+        }
+        if source_commit is not None:
+            result['review_handoff']['launch_scope'] = 'Launches on the current checkout after clean-source admission.'
+        result['commands'].append(review_launch)
     if phase == 'verify':
         result['quality_review'] = development.get('quality', {}).get('review', [])
         result['commands'] += [f'pnpm project:record {key} --report <run-report>',
@@ -287,6 +453,8 @@ def focused_context(project, key, phase):
                              'Inspect live CI and PR integration; merge and release need applicable authorization.']
         result['commands'] += ['pnpm project:checkpoint', 'pnpm project:ci',
                                'pnpm project:integration --pr <number>']
+    if source_commit is not None:
+        result.update(bound_review_navigation(key, source_commit, result['commands']))
     return result
 
 
@@ -322,20 +490,11 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
             'claim_scope': 'Explanatory view only. Readiness and current verification still use their original strict gates.'}
 
 
-def read_only_project_command(*arguments, source_commit=None):
-    """Render the pinned interpreter form used by the read-only review role."""
-    python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
-    command = [python, '-B', 'scripts/project.py', *arguments]
-    if source_commit is not None:
-        command += ['--source', source_commit]
-    return subprocess.list2cmdline(command) if os.name == 'nt' else shlex.join(command)
-
-
-def project_navigation(*arguments, read_only=False):
-    if read_only:
+def project_navigation(*arguments, read_only=False, source_commit=None):
+    if read_only or source_commit is not None:
         if arguments[0] == 'status':
             arguments += ('--read-only',)
-        return read_only_project_command(*arguments)
+        return read_only_project_command(*arguments, source_commit=source_commit)
     return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
 
 

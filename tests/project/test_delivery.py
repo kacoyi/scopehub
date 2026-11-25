@@ -748,6 +748,67 @@ class DeliveryTests(ProjectFixture):
                              'critical-from-a-new-session',
                              read_only_project_command('source', 'project/feedback.json', '--id', item['id']))
 
+    def test_bound_feedback_lookup_and_paged_queue_read_the_same_committed_tree(self):
+        self.periodic_fixture()
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        path = self.root / 'project/feedback.json'
+        feedback = read_json(path)
+        rows = [{'id': f'fixture-unassigned-{index}', 'source': 'Synthetic review input.',
+                 'observation': f'Observed state {index}.', 'severity': 'critical', 'status': 'open',
+                 'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+                 'resolution': None, 'deferral_reason': None} for index in range(7)]
+        path.write_bytes(json_bytes({**feedback, 'items': list(reversed(rows))}))
+        reviewed = self.commit_fixture()
+        args = ('source', 'project/feedback.json')
+        live_args = (*args, '--unassigned')
+        bound_args = (*live_args, '--source', reviewed)
+        self.assertEqual(7, self.project_command(*live_args)['total'])
+        initial = self.project_command(*bound_args, '--read-only')
+        self.assertEqual(reviewed, initial['source_commit'])
+        self.assertEqual([row['id'] for row in rows[:5]], [row['id'] for row in initial['items']])
+        self.assertIn(f'--source {reviewed}', initial['more'])
+        # Existing scoped review commands reopen the named tree even when the working data differs.
+        changed = {**rows[0], 'observation': 'Changed and assigned in the working tree.', 'task_ids': ['M0-002']}
+        path.write_bytes(json_bytes({**feedback, 'items': [changed, *rows[1:]]}))
+        self.assertEqual(6, self.project_command(*live_args)['total'])
+        self.assertEqual(changed, self.project_command(*args, '--id', changed['id'])['value'])
+        self.assertEqual(7, self.project_command(*bound_args)['total'])
+        for mode in ((), ('--read-only',)):
+            queue = self.project_command(*bound_args, *mode)
+            continued = self.project_command(*shlex.split(queue['more'])[3:])
+            self.assertEqual(reviewed, continued['source_commit'])
+            self.assertEqual([row['id'] for row in rows[5:]], [row['id'] for row in continued['items']])
+            detail = self.project_command(*shlex.split(queue['items'][0]['command'])[3:])
+            self.assertEqual(reviewed, detail['source_commit'])
+            self.assertEqual(rows[0], detail['value'])
+        dirty = self.project_command('context', 'M0-002', '--phase', 'verify', '--source', reviewed)
+        self.assertIn('requires a clean checkout', dirty['error'])
+        self.commit_fixture()
+        self.assertEqual(7, self.project_command(*bound_args)['total'])
+        moved = self.project_command('context', 'M0-002', '--phase', 'verify', '--source', reviewed)
+        self.assertIn('does not match checkout HEAD', moved['error'])
+        self.assertIn('no JSON pointer', self.project_command(*args, '/items', '--unassigned', '--source', reviewed)['error'])
+
+    def test_bound_context_routes_transferred_scope_to_immutable_policy(self):
+        path, delivery = self.periodic_fixture()
+        ledger = self.ledger()
+        owner = task_by_id(ledger, 'M0-001')
+        owner['scope'].append('project/delivery.json')
+        self.save_ledger(ledger)
+        row = delivery['scaffold_maintenance']['periodic_reviews'][3]
+        row.update(retired_reason='Keep the staging scope assigned to the successor.', follow_through_task=owner['id'])
+        path.write_bytes(json_bytes(delivery))
+        reviewed = self.commit_fixture()
+        args = ('context', owner['id'], '--phase', 'verify')
+        ordinary = self.project_command(*args)
+        self.assertIn('staging outside registered worktrees', ordinary['transferred_reviews'][0]['obligations'])
+        result = self.project_command(*args, '--source', reviewed)
+        transfer, = result['transferred_reviews']
+        self.assertEqual('recorded transfer policy', transfer['scope'])
+        policy = self.project_command(*shlex.split(transfer['policy_command'])[3:])
+        self.assertEqual(row, policy['value'])
+        self.assertEqual(reviewed, policy['source_commit'])
+
     def test_chart_and_prototype_passes_cannot_satisfy_the_v1_workbench_gate(self):
         project = load_project(project_cli.ROOT)
         gate = 'chart-free-workbench'
