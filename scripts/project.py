@@ -10,24 +10,27 @@ import json
 import os
 import re
 from pathlib import Path, PurePosixPath
+from tempfile import NamedTemporaryFile
 import subprocess
 
 from jsonschema import Draft202012Validator, FormatChecker
 
 if __package__:
+    from . import review_acceptance
     from .development import expand_engineering_sources, resolve_source
     from .diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from .verification_scope import checkout_git_environment, git, nul_fields
-    from .worktree import WorktreeError, has_git_metadata
+    from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields
+    from .worktree import WorktreeError, exclusive_git_lock, git_path, has_git_metadata
 else:
+    import review_acceptance
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
-    from verification_scope import checkout_git_environment, git, nul_fields
-    from worktree import WorktreeError, has_git_metadata
+    from verification_scope import ScopeError, checkout_git_environment, git, nul_fields
+    from worktree import WorktreeError, exclusive_git_lock, git_path, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 # These records describe work and evidence; they are not executable test inputs.
@@ -748,6 +751,7 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
     state = {
         'status': 'passed', 'focus': tasks.get(project['ledger']['focus_task_id']),
         'status_scope': 'Project-record consistency only; inspect verification, evidence_overview and release readiness separately.',
+        'independent_review': task_review_status(root, project, local=True),
         'active_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'active'],
         'ready_task_ids': [task['id'] for task in tasks.values() if task['status'] == 'planned'
                            and all(tasks[key]['status'] == 'done' for key in task['depends_on'])],
@@ -781,6 +785,16 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
     return state
 
 
+def review_context(project, task, review):
+    plan = task.get('plan', {})
+    return {**review, 'record_basis': 'current_checkout',
+            'evolution': plan.get('evolution'), 'hypotheses': plan.get('hypotheses', []),
+            'evolution_policy': {'path': 'project/development.json', 'pointer': '/quality/evolution'}
+            if project.get('development') else None,
+            'next_action': task['next_action'],
+            'intake_command': f'pnpm project:review {task["id"]} --help'}
+
+
 def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if __package__:
         from .development import effective_decisions, focused_context
@@ -793,11 +807,16 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     task = project['tasks'][key]
     if phase not in {'implement', 'verify', 'handoff'}:
         raise ProjectError(f'Unknown context phase: {phase}')
+    review = task_review_status(root, project, local=True).get(key)
     if not detail:
-        return focused_context(project, key, phase)
+        result = focused_context(project, key, phase)
+        if review:
+            result['independent_review'] = review_context(project, task, review)
+        return result
     decision_ids = effective_decisions(project, task)
     return {
         'task': task,
+        **({'independent_review': review_context(project, task, review)} if review else {}),
         'development': project.get('development'),
         'context_paths': list(dict.fromkeys([*project['delivery']['context'], *task.get('plan', {}).get('context', [])])),
         'dependencies': [project['tasks'][item] for item in task['depends_on']],
@@ -1321,6 +1340,75 @@ def reviewed_feedback_imports(items, reviewed, head):
     return {}
 
 
+def load_task_reviews(root):
+    try:
+        return review_acceptance.load_records(root, lambda name, value: validate_model(root, name, value))
+    except review_acceptance.ReviewError as error:
+        raise ProjectError(str(error)) from error
+
+
+def task_review_status(root, project, *, base=None, local=False, enforce=False):
+    if not (root / '.git').exists():
+        return {}
+    try:
+        head = feedback_commit(root, 'HEAD')
+        revisions = [base]
+        if local:
+            explicit = os.environ.get('SCOPEHUB_REVIEW_BASE')
+            protected = protected_feedback_base(root, head).get('commit')
+            revisions.extend([protected, feedback_commit(root, explicit), head])
+        snapshots = [(sha, tasks_at_feedback_checkpoint(root, sha), list(feedback_at(root, sha).values()))
+                     for sha in dict.fromkeys(revisions) if sha]
+        records = load_task_reviews(root)
+        if unknown := records.keys() - project['tasks'].keys():
+            raise ProjectError(f'Independent decisions refer to unknown tasks: {sorted(unknown)}')
+        return review_acceptance.assess(root, project, records, head, snapshots, enforce=enforce)
+    except (review_acceptance.ReviewError, ScopeError) as error:
+        raise ProjectError(str(error)) from error
+
+
+def record_task_review(root, task, source, transcript, reviewer, scope, observation):
+    if not review_acceptance.TASK_ID.fullmatch(task):
+        raise ProjectError('Supply a tracked task ID.')
+    project = load_project(root)
+    if task not in project['tasks']:
+        raise ProjectError(f'Unknown task: {task}')
+    try:
+        decision = review_acceptance.create_decision(root, task, source, transcript, reviewer, scope, observation)
+        reviewed_tasks = tasks_at_feedback_checkpoint(root, decision['source_commit'])
+        if task not in reviewed_tasks:
+            raise ProjectError(f'{task} did not exist at the reviewed source.')
+    except (review_acceptance.ReviewError, ScopeError, UnicodeError) as error:
+        raise ProjectError(str(error)) from error
+    path = local_path(root, f'{review_acceptance.DIRECTORY}/{task}.json')
+    try:
+        lock = git_path(root, '--git-dir') / f'scopehub-review-{task}.lock'
+        with exclusive_git_lock(lock):
+            decisions = load_task_reviews(root).get(task, [])
+            previous = next((row for row in decisions
+                             if (row['source_commit'], row['original_sha256'])
+                             == (decision['source_commit'], decision['original_sha256'])), None)
+            if previous is not None:
+                decision = previous
+            else:
+                value = {'version': 1, 'task_id': task, 'decisions': [*decisions, decision]}
+                validate_model(root, 'TaskReviewDecisions', value)
+                require_portable_report_paths(root, value, f'Independent review for {task}')
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with NamedTemporaryFile(dir=path.parent, delete=False) as output:
+                    pending = Path(output.name)
+                try:
+                    pending.write_bytes(json_bytes(value))
+                    pending.replace(path)
+                finally:
+                    pending.unlink(missing_ok=True)
+    except (BlockingIOError, WorktreeError) as error:
+        raise ProjectError(f'Cannot safely update independent review for {task}. Retry after the other intake.') from error
+    return {'path': path.relative_to(root).as_posix(), 'decision': decision,
+            'claim_scope': 'Local transcript intake binds the verdict and verbatim excerpts. Reviewer identity and '
+                           'independence rely on the coordinator who retained the original.'}
+
+
 def local_feedback_history(root, project):
     """Report the local comparison inputs. A cached tracking ref only supplies its common history."""
     if not (root / '.git').exists():
@@ -1379,6 +1467,7 @@ def compare_history(root, base, inherited=None):
         if old.get('status') not in {'done', 'cancelled'}:
             validate_report_references(root, task, f'Task {key}')
     feedback = validate_feedback_checkpoint(root, project, resolved, inherited)
+    task_review_status(root, project, base=resolved, enforce=True)
     review_operational_report_paths(root, resolved)
     catalog = previous('project/checks.json')
     previous_commands = {check['id']: check.get('command') for check in catalog['checks']} if catalog else {}
@@ -1592,6 +1681,14 @@ def main():
     record.add_argument('task_id')
     record.add_argument('--report', type=Path, default=ROOT / '.reports/test-report.json')
     record.add_argument('--artifact-root', type=Path, help='Isolated downloaded artifact directory containing runs/')
+    review = sub.add_parser('review', help='Retain a separate independent decision from a local transcript')
+    review.add_argument('task_id')
+    review.add_argument('--source', required=True, metavar='COMMIT')
+    review.add_argument('--transcript', required=True, type=Path, help='Original retained private transcript')
+    review.add_argument('--reviewer', required=True, help='Independently observed reviewer or session identity')
+    review.add_argument('--scope', help='Verbatim transcript excerpt naming the task if the verdict line omits it')
+    review.add_argument('--observation', required=True, help='Verbatim excerpt reporting an independent observation')
+
     diagnostic = sub.add_parser('diagnostic', help='Identify or explicitly verify a retained diagnostic')
     diagnostic_commands = diagnostic.add_subparsers(dest='diagnostic_command', required=True)
     identify = diagnostic_commands.add_parser('identify', help='Derive a portable locator from a report')
@@ -1607,7 +1704,8 @@ def main():
             project = load_project(ROOT)
             feedback_history = local_feedback_history(ROOT, project)
             result = {'status': 'passed', 'tasks': len(project['tasks']), 'decisions': len(project['decisions']),
-                      'checks': len(project['checks']), 'feedback_history': feedback_history}
+                      'checks': len(project['checks']), 'feedback_history': feedback_history,
+                      'independent_review': task_review_status(ROOT, project, local=True, enforce=True)}
         elif args.command == 'status':
             if __package__:
                 from .development import status_view
@@ -1639,6 +1737,11 @@ def main():
                                     fetch_missing_checkpoint=args.fetch_missing_checkpoint)
         elif args.command == 'checkpoint':
             result = checkpoint()
+        elif args.command == 'review':
+            original = os.environ.get('INIT_CWD') if os.environ.get('npm_lifecycle_event') == 'project:review' else None
+            caller = Path(original) if original else Path.cwd()
+            result = record_task_review(ROOT, args.task_id, args.source, caller / args.transcript, args.reviewer,
+                                        args.scope, args.observation)
         elif args.command == 'diagnostic':
             try:
                 if args.diagnostic_command == 'identify':
