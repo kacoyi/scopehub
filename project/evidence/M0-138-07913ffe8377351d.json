@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-138",
+  "task_definition_sha256": "2d6113df6d64ccc64e81305ede8a2f0dba51c37cc5b79c737eecca0a2082dc5b",
+  "run_id": "20261125T155515.281699Z-f88fb007",
+  "recorded_at": "2026-11-25T15:58:07.450124+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "f1a3fbbeb1e8e13c362e7f77e91b88f64a89ee849a26888b229fdde0bf2d68fa",
+    "file_count": 606,
+    "git_head": "e3cde3137a16b221e513d26765775170e9e9aa60",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "07913ffe8377351d5554230cf56d4ffe794e2fd392ba07a448afd56b1635e1cf",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/browser-check-cleanup/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/browser-check-cleanup/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "229c41d0685d349d990d665cd297c0129d00d147f97b0cbf732211fc82c10849"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/browser-check-cleanup/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3ad262e208f02c08516603ee74bf9f4cac355f8d0772b232353d5a68462dbd38"
+    },
+    {
+      "id": "desktop-localization",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/localization/desktop.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9a703f7c23bbb840550891968fd0b964228f9dcf5a29d192ac6bb70872189a4a"
+    }
+  ],
+  "project_definition_sha256": "7f06e0381eaf84817f2bb12bea8678bb57f081bd9caf28c52be79bac81fa5100",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "5d04363bdd3b4dd235dddf69977ed9554373eb30869b792aead24d3a8ce890c1"
+  ]
+}
