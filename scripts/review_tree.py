@@ -43,6 +43,10 @@ class CommittedPath:
     def name(self):
         return self.relative.name
 
+    @property
+    def parent(self):
+        return replace(self, relative=self.relative.parent)
+
     def resolve(self):
         return self  # Only tree entries and regular blobs are navigable.
 

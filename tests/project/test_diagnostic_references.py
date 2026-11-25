@@ -53,6 +53,12 @@ class DiagnosticReferenceTests(ProjectFixture):
         return json.loads(output.getvalue())
 
     def test_bound_context_and_reopen_use_one_immutable_project_tree(self):
+        spec_path = self.root / 'engineering-contract-v1.json'
+        contract_path = self.root / 'contracts/contract.json'
+        spec = read_json(spec_path)
+        spec['product'] = {'purpose': {'$source': {'path': 'contracts/contract.json', 'pointer': '/purpose'}}}
+        spec_path.write_bytes(json_bytes(spec))
+        contract_path.write_bytes(json_bytes({'purpose': 'Read the exact committed purpose.'}))
         path = self.root / 'project/feedback.json'
         first = {
             'id': 'fixture-feedback', 'source': 'Exact reviewed fixture Git source.',
@@ -68,17 +74,21 @@ class DiagnosticReferenceTests(ProjectFixture):
         def transient_read(current, *args, **kwargs):
             if current == path:
                 return json_bytes({'schema_version': '1.0', 'items': [second]}).decode('utf-8')
+            if current == contract_path:
+                return '{"purpose": "Stale working purpose."}'
             return read_text(current, *args, **kwargs)
 
         with patch.object(Path, 'read_text', transient_read):
             args = ('context', 'M0-001', '--phase', 'verify')
             working = self.project_command(*args)
             self.assertEqual([second], working['feedback'])
+            self.assertEqual('Stale working purpose.', working['product']['purpose'])
             for options in ((), ('--detail',)):
                 bound = self.project_command(*args, '--source', reviewed, *options)
                 self.assertEqual([first], bound['feedback'])
                 self.assertEqual(reviewed, bound['review_source'])
                 if not options:
+                    self.assertEqual('Read the exact committed purpose.', bound['product']['purpose'])
                     route = bound['causal_investigation']['original_records'][0]['command']
                     self.assertTrue(route.endswith(f'/items/0 --source {reviewed}'))
 
