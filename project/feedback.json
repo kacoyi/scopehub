@@ -6162,6 +6162,32 @@
         "prevention": "Exercise the lifecycle transitions at the CLI boundary, including the cancelled cases with zero authenticated calls."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-diagnostic-test-reads-retained-history",
+      "source": "The protected main fast harness failed with retained timing inputs. The original report and its Python test log are retained at archives/runs/20261125T070713.869495Z-0ac1dff5/test-report.json.",
+      "observation": "At protected main fb8497ec64d276c4c14e36e518ef242125f0a984 the fast profile failed its Python test suite with one failure among 721 cases and four skips. The Actions diagnostics regression expected jobs.json at the first position, but the checkout had already produced a diagnostic for M0-078-hosted-observations.json from retained timing files.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-121"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070713.869495Z-0ac1dff5",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "0440984abd12d6d38a8535ecd6a5625ae41d08b4838b45228411ddef14770e68"
+        }
+      ],
+      "resolution": {
+        "cause": "The test loaded developer timing history through ordinary path discovery and assumed that the explicit jobs error was first. The CLI already included the correct explicit error after retained diagnostics.",
+        "correction": "Exercise the same Actions path with an isolated temporary timing root and then with a synthetic saved diagnostic. Compare the exact diagnostic identities and errors without assuming output order.",
+        "prevention": "Retain assertions for the failing input, legacy path redaction and save refusal. The regression also requires the existing historical diagnosis. Re-run the complete fast profile against the six unchanged genuine timing files."
+      },
+      "deferral_reason": null
     }
   ]
 }
