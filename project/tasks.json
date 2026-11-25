@@ -25178,7 +25178,7 @@
           "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
         }
       ],
-      "next_action": "Reproduce the confirmed leaf ACL mismatch, then compare the native witness and legacy managed view against raw Windows fixtures.",
+      "next_action": "Obtain independent review of the checked leaf ACL equivalence and retain exact native Windows results for real handoff, ineffective entries, effective broad grants, inherited rights and effective read/write.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

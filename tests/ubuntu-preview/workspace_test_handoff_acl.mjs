@@ -127,10 +127,10 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
 export async function assertIneffectiveWindowsHandoffsAccepted(profile) {
   const prepare = await readFile(new URL('./workspace_test_handoff_ineffective_acl.ps1', import.meta.url), 'utf8');
   const controls = ['zero-rights', 'inherit-only'];
-  const paths = controls.map(control => join(profile, `synthetic-acl-${control}.txt`));
+  const paths = Object.fromEntries(controls.map(control => [control, join(profile, `synthetic-acl-${control}.txt`)]));
   const owned = [];
   try {
-    for (const path of paths) {
+    for (const path of Object.values(paths)) {
       await writeFile(path, '', { flag: 'wx', mode: 0o600 });
       owned.push(path);
     }
@@ -139,9 +139,9 @@ export async function assertIneffectiveWindowsHandoffsAccepted(profile) {
     } catch (error) {
       throw new Error(`Could not verify the synthetic ineffective ACL fixtures (${error.message}).`);
     }
-    for (const [index, control] of controls.entries()) {
+    for (const [control, path] of Object.entries(paths)) {
       try {
-        await assertWindowsPrivateHandoff(paths[index]);
+        await assertWindowsPrivateHandoff(path);
       } catch (error) {
         throw new Error(`The synthetic ${control} ACE should be ineffective. ${error.message}`);
       }

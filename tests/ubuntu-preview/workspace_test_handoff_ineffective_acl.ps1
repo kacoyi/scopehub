@@ -15,8 +15,9 @@ public static class HandoffFixtureAcl
 
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern uint SetNamedSecurityInfoW(
-        string path, int type, uint information, IntPtr owner, IntPtr group, byte[] dacl, IntPtr sacl);
+        string path, int type, uint information, IntPtr owner, IntPtr group, [In] byte[] dacl, IntPtr sacl);
 
+    private const int FileObject = 1;
     private const uint Dacl = 4;
 
     public static byte[] Read(string path)
@@ -33,14 +34,14 @@ public static class HandoffFixtureAcl
 
     public static void Write(string path, byte[] dacl)
     {
-        uint error = SetNamedSecurityInfoW(path, 1, Dacl, IntPtr.Zero, IntPtr.Zero, dacl, IntPtr.Zero);
+        uint error = SetNamedSecurityInfoW(path, FileObject, Dacl, IntPtr.Zero, IntPtr.Zero, dacl, IntPtr.Zero);
         if (error != 0)
             throw new Win32Exception((int)error);
     }
 }
 '@
-  $paths = @(ConvertFrom-Json $env:SCOPEHUB_TEST_ACL_FIXTURE)
-  if ($paths.Count -ne 2) { exit $failure }
+  $paths = ConvertFrom-Json $env:SCOPEHUB_TEST_ACL_FIXTURE
+  if (!$paths.'zero-rights' -or !$paths.'inherit-only') { exit $failure }
   $world = [Security.Principal.SecurityIdentifier]::new('S-1-1-0')
   $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
   $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
@@ -50,8 +51,8 @@ public static class HandoffFixtureAcl
   $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
   $sections = [Security.AccessControl.AccessControlSections]'Owner, Access'
   $controls = @(
-    @{ Path = $paths[0]; Flags = [Security.AccessControl.AceFlags]::None; Mask = 0 },
-    @{ Path = $paths[1]; Flags = [Security.AccessControl.AceFlags]'ObjectInherit, InheritOnly';
+    @{ Path = $paths.'zero-rights'; Flags = [Security.AccessControl.AceFlags]::None; Mask = 0 },
+    @{ Path = $paths.'inherit-only'; Flags = [Security.AccessControl.AceFlags]'ObjectInherit, InheritOnly';
        Mask = [int][Security.AccessControl.FileSystemRights]::Read }
   )
   foreach ($control in $controls) {

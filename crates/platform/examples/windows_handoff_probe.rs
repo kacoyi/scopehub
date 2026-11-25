@@ -17,8 +17,9 @@ fn main() -> std::process::ExitCode {
 }
 
 #[cfg(any(windows, test))]
-fn grants_to_unexpected_trustee(_mask: u32, _inherit_only: bool, private_trustee: bool) -> bool {
-    !private_trustee
+fn grants_to_unexpected_trustee(mask: u32, inherit_only: bool, private_trustee: bool) -> bool {
+    // The legacy managed leaf ACL discarded both kinds of ineffective allow.
+    mask != 0 && !inherit_only && !private_trustee
 }
 
 #[cfg(test)]
