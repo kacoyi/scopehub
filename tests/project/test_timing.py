@@ -752,6 +752,27 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertIn('protected platform coverage', observed['review_exclusion'])
                 self.assertEqual([], view['reviews'])
 
+        browser_job = next(job for job in siblings if job['name'] == timing.WINDOWS_PRODUCERS['browser'])
+        single = timing.hosted_timing(hosted_run(), [browser_job])
+        saved = deepcopy(single)
+        del saved['workflow']['windows_layout_identified']
+        paired = timing.hosted_timing(hosted_run(), [browser_job, recovery_job])
+        for case, incomplete in (('single job', single), ('legacy saved clock', saved), ('two jobs', paired)):
+            view = timing.timing_view([dict(browser, cache='warm')], hosted=[incomplete])
+            observed, = view['samples']
+            with self.subTest(case=case):
+                self.assertEqual(('warm', '33', 720),
+                                 (observed['cache'], (observed['job'] or {}).get('job_id'), observed['seconds']['total']))
+                self.assertEqual([], view['input_issues'])
+                self.assertFalse(observed['hosted_identity_complete'])
+                self.assertEqual([], view['reviews'])
+
+        legacy = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
+        view = timing.timing_view([dict(browser, cache='warm')], hosted=[legacy])
+        self.assertEqual('unknown', view['samples'][0]['cache'])
+        self.assertIsNone(view['samples'][0]['job'])
+        self.assertTrue(view['input_issues'])
+
         unbound = dict(recovery_job, run_attempt=None)
         partial = timing.hosted_timing(hosted_run(), [*siblings, unbound, aggregate])
         observed, = timing.timing_view([recovery], hosted=[partial])['samples']
@@ -1388,6 +1409,17 @@ def windows_lane_checks(selected, lane):
         invalid = publish('The same check claimed by two producers',
                           old_owner({'workspace-timeframe', 'market-recovery-ui'}, {'market-recovery', 'market-recovery-ui'}))
         unsupported = publish('Unknown executable assignment', later.replace('return selected & WINDOWS_LANE_CHECKS[lane]', 'return selected'))
+        mutations = (
+            "WINDOWS_BROWSER_CHECKS -= {'market-recovery-ui'}\n"
+            "WINDOWS_LANE_CHECKS['recovery'] |= {'market-recovery-ui'}",
+            "WINDOWS_BROWSER_CHECKS.remove('market-recovery-ui')\n"
+            "WINDOWS_LANE_CHECKS['recovery'].add('market-recovery-ui')",
+            "browser = WINDOWS_LANE_CHECKS['browser']\n"
+            "browser.remove('market-recovery-ui')\n"
+            "WINDOWS_LANE_CHECKS['recovery'] = {'market-recovery', 'market-recovery-ui'}",
+        )
+        mutated = [publish('Unsupported lane amendment ' + str(index), earlier + mutation)
+                   for index, mutation in enumerate(mutations)]
         three = publish('Original three producers', """WINDOWS_BROWSER_CHECKS = {'market-recovery-ui', 'workspace-timeframe'}
 WINDOWS_PYTHON_CHECKS = {'market-recovery', 'python-contracts-workers'}
 WINDOWS_LANES = ('core', 'browser', 'python')
@@ -1440,6 +1472,24 @@ def windows_lane_checks(selected, lane):
             view = timing.timing_view([sample])
             self.assertEqual([], view['input_issues'])
             self.assertEqual('warm', view['samples'][0]['cache'])
+
+        for revision in mutated:
+            stale = report(revision, 'browser', browser_old)
+            final_selection = report(revision, 'browser', ['workspace-timeframe'])
+            checks = {row['id']: row for row in stale['checks']}
+            aggregate = {
+                **stale, 'profile': 'full', 'cache': 'unknown', 'selected': sorted(full),
+                'checks': [dict(stale['checks'][0], id=key) if key not in checks else checks[key] for key in sorted(full)],
+                'windows_caches': {'core': 'warm', 'browser': 'unknown',
+                                   'python': 'not_requested', 'recovery': 'warm'},
+            }
+            with self.subTest(mutation=revision):
+                view = timing.timing_view([aggregate, stale])
+                self.assertEqual(['unknown', 'unknown'], sorted(row['cache'] for row in view['samples']))
+                self.assertIn('publishing assignment is unavailable', view['input_issues'][0]['error'])
+                view = timing.timing_view([final_selection])
+                self.assertEqual('unknown', view['samples'][0]['cache'])
+                self.assertIn('publishing assignment is unavailable', view['input_issues'][0]['error'])
 
         for name, sample in (
             ('wrong generation', report(next_source, 'browser', browser_old)),

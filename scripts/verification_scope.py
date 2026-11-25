@@ -251,7 +251,52 @@ def _publishing_assignment_node(module, name):
     assignment, = matches
     if len(assignment.targets) != 1:
         raise ValueError('Ambiguous Windows publishing assignment')
-    return assignment.value
+    return assignment
+
+
+def _require_static_publishing_references(module, declarations=(), *, delegated_harness=False):
+    # The mutable containers may only appear in the recognized declarations and
+    # selector, or in the reader's explicit default that forwards to that selector.
+    # Reject even alias reads elsewhere: the historical interpreter could mutate
+    # the same set through an alias after the literal declaration.
+    owned = {'WINDOWS_BROWSER_CHECKS', 'WINDOWS_PYTHON_CHECKS', 'WINDOWS_LANE_CHECKS', 'windows_lane_checks'}
+    protected = owned | {'WINDOWS_LANES'}
+    known = {item for declaration in declarations for item in ast.walk(declaration)}
+    for function in module.body:
+        if not isinstance(function, ast.FunctionDef) or function.name != 'windows_published_scope':
+            continue
+        calls = [node for node in ast.walk(function) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == 'windows_lane_checks']
+        known.update(call.func for call in calls)
+        for parameter, default in zip(function.args.kwonlyargs, function.args.kw_defaults, strict=True):
+            if (parameter.arg == 'assignment' and isinstance(default, ast.Name)
+                    and default.id == 'WINDOWS_LANE_CHECKS'):
+                known.add(default)
+                forwarded = {keyword.value for call in calls for keyword in call.keywords
+                             if keyword.arg == 'assignment'}
+                if any(isinstance(node, ast.Name) and node.id == 'assignment' and node not in forwarded
+                       for node in ast.walk(function)):
+                    raise ValueError('Unsupported Windows publishing assignment consumer')
+    for node in ast.walk(module):
+        if node in known:
+            continue
+        if isinstance(node, ast.Name) and (
+                node.id in owned or (node.id in protected and not isinstance(node.ctx, ast.Load))):
+            raise ValueError('Unsupported reference to Windows publishing assignment')
+        if isinstance(node, ast.Attribute) and node.attr in protected:
+            raise ValueError('Unsupported attribute access to Windows publishing assignment')
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name in protected:
+            raise ValueError('Unsupported definition of Windows publishing assignment')
+        if (isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant)
+                and node.slice.value in protected):
+            raise ValueError('Unsupported lookup of Windows publishing assignment')
+        if isinstance(node, ast.ImportFrom):
+            aliases = {'WINDOWS_LANES', 'windows_lane_checks'} if delegated_harness and node.module == 'verification_scope' else set()
+            if any((name.name == '*' or {name.name, name.asname} & protected)
+                   and not (name.name in aliases and name.asname is None) for name in node.names):
+                raise ValueError('Unsupported import of Windows publishing assignment')
+        if isinstance(node, ast.Import) and any(name.asname in protected for name in node.names):
+            raise ValueError('Unsupported import of Windows publishing assignment')
 
 
 def _publishing_ids(node):
@@ -290,33 +335,43 @@ def committed_windows_assignment(root, revision):
             return None
         if selector is None:
             return None
+        declarations = [selector, call] if module is harness else [selector]
+
+        def literal(name):
+            statement = _publishing_assignment_node(module, name)
+            declarations.append(statement)
+            return statement.value
+
         shape = ast.unparse(selector)
         if module is harness and shape in {_INITIAL_WINDOWS_SELECTOR, _LEGACY_WINDOWS_SELECTOR}:
             python = (selector.body[0].value if shape == _INITIAL_WINDOWS_SELECTOR
-                      else _publishing_assignment_node(module, 'WINDOWS_PYTHON_CHECKS'))
+                      else literal('WINDOWS_PYTHON_CHECKS'))
             assignment = {
-                'browser': _publishing_ids(_publishing_assignment_node(module, 'WINDOWS_BROWSER_CHECKS')),
+                'browser': _publishing_ids(literal('WINDOWS_BROWSER_CHECKS')),
                 'python': _publishing_ids(python),
             }
         elif shape in ({_LOCAL_WINDOWS_SELECTOR} if module is harness
                        else {_SHARED_WINDOWS_SELECTOR, _CURRENT_WINDOWS_SELECTOR}):
-            declared = _publishing_assignment_node(module, 'WINDOWS_LANE_CHECKS')
+            declared = literal('WINDOWS_LANE_CHECKS')
             if not isinstance(declared, ast.Dict):
                 return None
             names = [ast.literal_eval(key) for key in declared.keys]
             if sorted(names) != ['browser', 'python', 'recovery']:
                 return None
             assignment = {
-                name: _publishing_ids(_publishing_assignment_node(module, node.id)
+                name: _publishing_ids(literal(node.id)
                                       if isinstance(node, ast.Name) and node.id == 'WINDOWS_BROWSER_CHECKS' else node)
                 for name, node in zip(names, declared.values, strict=True)
             }
         else:
             return None
-        lanes = ast.unparse(_publishing_assignment_node(module, 'WINDOWS_LANES'))
+        lanes = ast.unparse(literal('WINDOWS_LANES'))
         if lanes != ("('core', 'browser', 'python')" if len(assignment) == 2
                      else "('core', *WINDOWS_LANE_CHECKS)"):
             return None
+        _require_static_publishing_references(module, declarations)
+        if module is not harness:
+            _require_static_publishing_references(harness, (call,), delegated_harness=True)
         if sum(map(len, assignment.values())) != len(set().union(*assignment.values())):
             return None
         return assignment

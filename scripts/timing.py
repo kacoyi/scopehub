@@ -559,10 +559,15 @@ def windows_parent_profile(job):
     return known_value(observed)
 
 
-def windows_clock_lanes(run):
+def windows_clock_lanes(run, *, identified=False):
     if not run or not (run['workflow'].get('windows_split') or 'sibling_jobs' in run):
         return ()
-    return WINDOWS_LANES if run['workflow'].get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
+    workflow = run['workflow']
+    # Older compact captures had no explicit layout flag. Their complete
+    # matrix already required an identified layout and all of its members.
+    if identified and not workflow.get('windows_layout_identified', workflow['matrix_complete']):
+        return ()
+    return WINDOWS_LANES if workflow.get('windows_recovery_producer') else LEGACY_WINDOWS_LANES
 
 
 def split_windows_clock(run):
@@ -1518,7 +1523,10 @@ def native_report_issue(sample, run, issues):
                 return False
         elif assignment:
             expected_lanes = tuple(lane for lane in WINDOWS_LANES if lane == 'core' or lane in assignment)
-            if ((not lanes or lanes == expected_lanes)
+            # An incomplete listing can still prove the identity of this producer's job.
+            # Compare widths only when the Actions capture actually identified the layout.
+            observed_lanes = windows_clock_lanes(run, identified=True)
+            if ((not observed_lanes or observed_lanes == expected_lanes)
                     and sample['selected'] == sorted(selected)
                     and len({row['id'] for row in sample['checks']}) == len(sample['checks'])
                     and windows_published_scope(sample['selected'], profile, expected_lanes, catalog, assignment=assignment)):
