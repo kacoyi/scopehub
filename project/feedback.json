@@ -3704,15 +3704,19 @@
       "id": "external-client-observation-publication",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding external-client-evidence",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The current private-log and hosted observation formats cannot retain the two independent client observations required for qualification. The executable release check itself is still planned.",
       "task_ids": [
-        "M4-005"
+        "M4-017"
       ],
       "regression_checks": [
-        "configured-external-ai-clients"
+        "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The external-client check had no run-bound observation format, and private-check logs retained only exit codes.",
+        "correction": "Retain a bounded redacted pair with independent publication consents, the same synthetic workspace and exact source identity. Validate it again when staging hosted artifacts and importing receipts.",
+        "prevention": "Exercise a synthetic publish and import round trip. Reject missing observations, shared or absent consent, wrong source and workspace bindings, changed bytes and private fields. The ordinary M4-005 unsupplied check remained blocked with exit 77."
+      },
       "deferral_reason": null
     },
     {
@@ -6312,6 +6316,25 @@
         "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
         "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
         "prevention": "Both native Git regressions reproduced an eligible dirty checkout before the fix. The original log is retained at .reports/audit-20261125/m0-117-red.log with SHA-256 d7ebf206e12a4a0084bf3b53e456a6cbdbb6853613a3c0750a3926983803e694. The coordinator confirmed Astra Standard approval of 37cb4e896e8a99f8af07eb7829d2550d84c99c19 after both second-read replays were held, a small clean checkout stayed eligible, and ignored status remained bounded. The required regression checks are retained in the attached task receipt."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "run-observation-publication-inconsistent-reads",
+      "source": "Independent Astra Standard review of PR 101 at 62114cc3dc3655b017a565a33e7cc10115faa551. Retained transcript SHA-256 b56d19308977f0134e367670af9c13fac4aa653c9f60b004c91e4a933fea962c.",
+      "observation": "A synthetic interleaving at hosted session staging parsed a market observation named fixture-a, used the SHA-256 of fixture-b, and published fixture-b under a report naming fixture-a. The shared model, voice and market collector read the file separately for parsing and digest calculation, and staging read it again.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M4-018"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Parsing, digest calculation and hosted staging opened the same observation path independently.",
+        "correction": "Capture the observation once and derive its validated summary and digest from those bytes. Publish only that capture after comparing it with the report.",
+        "prevention": "Interleave two synthetic byte sequences through the actual stage_artifacts entry for model, voice, market and the external-client pair. Preserve duplicate-key, private-field and size rejections."
       },
       "deferral_reason": null
     }
