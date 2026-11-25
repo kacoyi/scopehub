@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T21:44:02.167799+00:00",
       "request_id": "e2a21721a95e3bfd35bab9269827f15176aa21b692e31fb563769576532bc962",
       "evidence_sha256": "d6b04b0af5a943c81713586edc4e5e857197f460d34730fbbd3573389ce31bf5"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "APPROVE M0-130 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "I replayed PR 84 attempt 1 and observed separate browser, recovery, and aggregate timings of 645, 321, and 804 seconds, with only the aggregate qualifying for Windows platform review.",
+      "reviewer": "Independent Astra Standard (t10v)",
+      "original_sha256": "d2146e77b5db52380a8238dca7686230912e998d39050c68c908d4479d67f2ce",
+      "response_id": "6ad289339d245b7b21c97af05ea22d525a08df3ab01721827c3ec9aed4a702fe",
+      "response_sha256": "3b8c97102742f7042864a6d99235d7e5705494ba845df8e3cca0e1f670969f93",
+      "legacy_response_sha256": "bb0d94dffd756c13502bc614d099e11eecdc9a7f897aa7c8852028552af23277",
+      "observation_body_sha256": "1663414035ef6d0b82685d2a2e97443d7383976cb7ec654de107398b14a0281e",
+      "event": {
+        "id": "msg_09a82ffb2622b907016b075cb16fec87d09d5fcc2c4bd45e1e",
+        "timestamp": "2026-11-25T22:10:08.152Z"
+      },
+      "supersedes": "e2a21721a95e3bfd35bab9269827f15176aa21b692e31fb563769576532bc962",
+      "evidence_sha256": "252333058a6235ae4a58fe738fce7514a4cd0d46d81a1234c63d6464afd12ac1"
     }
   ]
 }

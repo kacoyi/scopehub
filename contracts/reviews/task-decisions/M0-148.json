@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T21:44:06.190742+00:00",
       "request_id": "5c9dbb5b351adff08ec437fcc939b96068c5d0d2e979b2720d5a2f663b815b5d",
       "evidence_sha256": "8d5bfa6d573af8aa31b876c7f0199ea2856ab61fed6d581252ea7dd12c93970e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "CHANGES_REQUESTED M0-148 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "Using the same system Python and the archived Windows sample from run 45546767887, I obtained a timing receipt on the timing parent and a missing Marko error on the merged commit.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "ef9d057a1730ec8b1cf45796792f3fd315895c247abad00b6d1b29f9b73160f7",
+      "response_id": "80abbff37302adebad63f1a4b05447303286db1af91625c047c238484467e090",
+      "response_sha256": "6e6abcdb531d7e38cb473732cb07f11361447b3c56ca9a7802648c2337f2594a",
+      "legacy_response_sha256": "2fc4ee6402be4b2206d3584a174b5c678e86025263b90c07059720176718c00f",
+      "observation_body_sha256": "ce0934f6be9d40e2abe9a561b83979bc16c55d92701667826852abb6c6ccc328",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b076216603c87d0911f00036de6dfd6",
+        "timestamp": "2026-11-25T22:33:07.282Z"
+      },
+      "supersedes": "5c9dbb5b351adff08ec437fcc939b96068c5d0d2e979b2720d5a2f663b815b5d",
+      "evidence_sha256": "a354005da09c90ee653be215fed7be9e5ec7b7668244ce5554a7d0bac93c41e9"
     }
   ]
 }

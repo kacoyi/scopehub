@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T21:44:03.166069+00:00",
       "request_id": "b1e12ef38501d0f32f3e504f6d928ab5c3ad1400803e24316986709d4bff3582",
       "evidence_sha256": "c18f5250627f03c2c6b4f5e394bb1bad197c1f4d1dafb34111ddb5d7d1572bab"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "approved",
+      "decision": "APPROVE M0-131 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "APPROVE M0-131 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "Replaying the two partial job lists in either order preserved the 645-second browser clock and the 321-second recovery clock without qualifying either list as complete Windows coverage.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "8ffd463a6dd68dd2848bcb17a69201c3f46bec27d04a94370e67f5c3da710baf",
+      "response_id": "9af8462bd0267281b8c63c84f617f261ac941d2541f9224cd2a47add1d77bf27",
+      "response_sha256": "b13ed6b93137c8e98ca141c37781c07e2e06124da2b5c83d1d5ace6eece4c196",
+      "legacy_response_sha256": "6c493fd873e0b11524adb7002576eee17d2f58c5ed3c2bd76d2bed5100eee952",
+      "observation_body_sha256": "deaa2f7ba1d4ddb7dadeb0ffefe27b8e996a9f79a20a9e5e950bf704370fc14b",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b075dbaebf087d08cb353fcc8962569",
+        "timestamp": "2026-11-25T22:14:27.277Z"
+      },
+      "supersedes": "b1e12ef38501d0f32f3e504f6d928ab5c3ad1400803e24316986709d4bff3582",
+      "evidence_sha256": "7caa3d2770e9d068a19d3c6318cd14f976323479c325acd3f43cb83a41024176"
     }
   ]
 }

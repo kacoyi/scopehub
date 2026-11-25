@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T21:44:04.261667+00:00",
       "request_id": "4df9099892473d3768c0d347809b710f8bbf1cb71cbb6829ff7017a2bebe2de9",
       "evidence_sha256": "b91b1c5c56b5e3c44c17709cb330170da9d4ebeb431a06082a24c41bed37e506"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "CHANGES_REQUESTED M0-133 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "After 12 newer pull-request captures moved run 45546767887 outside the recent window, ordinary timing review restored its disputed 645-second browser attribution from an older saved review even though the shared capture still contained the conflict.",
+      "reviewer": "Independent Astra Standard (t10z)",
+      "original_sha256": "771564d2e43f336db5942be3df2f3736598d0791c0807c4cbc655668744ba33f",
+      "response_id": "f64f38437f2fd64db8cf26da7fcc6ffd5f4be5a039faf686400703421cb2e065",
+      "response_sha256": "ceb0a769b71c137008e75c6274a53c9a23807de919c86df903cad93c88c8b464",
+      "legacy_response_sha256": "77989b14609654dda39717cd612ecebb4251ce490ec276a80ee52e0b3d25b3e8",
+      "observation_body_sha256": "ec0473d8fcfc5a2edbaba4397c08e5f5af75381dc5be94050bcc265ab36d528d",
+      "event": {
+        "id": "msg_0dc31d302fb4c8f6016b075f888f3c87d0b76a9489c952574e",
+        "timestamp": "2026-11-25T22:22:15.425Z"
+      },
+      "supersedes": "4df9099892473d3768c0d347809b710f8bbf1cb71cbb6829ff7017a2bebe2de9",
+      "evidence_sha256": "b37d4327da83ee49544b624ec07f79c830e91ef0f9f7b5debda05ca5de29cc34"
     }
   ]
 }

@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T21:44:05.278684+00:00",
       "request_id": "b5cea64e694395b6d28d585140eaba6667392657dad6cc808a24282caca2d0c7",
       "evidence_sha256": "5a680216e620dc8f5da046d9d9854106a28a5cf0c92c131c951182cd05a0be02"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "scope": "APPROVE M0-145 57f1c772c2c8fa7cbf67e545f36d9e66365aa041",
+      "observation": "In my replay of run 45546767887, the full Windows report earned one fresh receipt at 804 seconds of wall time and 2467 runner-seconds, while the browser fragment earned none even with the full report in history.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "b712be880136f667db14ffaf884818252afbc61de90502ebd97aef5c5171de35",
+      "response_id": "1d7dceae3b15948870cb2d27b5eb9e855f0c1a69e5f0cd8f85e4a3a4425ecbe4",
+      "response_sha256": "17e45f01a2fcb10e5ad1b8de31165f075954cb5c32e29a8252a8f7c1c2c8b415",
+      "legacy_response_sha256": "5d411bf6d0962f081300a84de01693be98e5fc1be79d8776c7f8f0425515e52f",
+      "observation_body_sha256": "9594b1b2ff04d2a9a5b96ab1b30bf72f245cd684b30134dd2ca6f7e64640af1f",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b075f86412087d09df3e965b3736f6b",
+        "timestamp": "2026-11-25T22:22:07.222Z"
+      },
+      "supersedes": "b5cea64e694395b6d28d585140eaba6667392657dad6cc808a24282caca2d0c7",
+      "evidence_sha256": "045ce84f749991a460f191b3aee7dad9cce16474ce28c7ceb0e1b5231feaea5d"
     }
   ]
 }
