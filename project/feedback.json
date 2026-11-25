@@ -3309,7 +3309,7 @@
       "source": "Original Windows run 45046352101, archives/runs/20261122T165618.491721Z-d3e98934/test-report.json. Recurrence in run 45387261521, archives/runs/windows-change-45387261521-1/test-report.json. Earlier related finding: windows-desktop-fixture-acl-preparation-timeout. Third occurrence: PR 84 run 45468479291, archives/observations/pr-84-45468479291/index.json (SHA-256 399e91e184e8742b868013470e7b32f53890b4bc651d4d14dec5752058392f65). Windows workspace-timeframe log SHA-256 ffe18daefd5643711fa8cc8c29da1765ca07845151d9e2cec85f157936895521. Fourth occurrence: PR 84 run 45489014243, archives/runs/windows-change-45489014243-1/test-report.json. Windows workspace-timeframe log SHA-256 3983a2e110c148f7de8f3123bf32a07742115f22b613300633cdf96b3cf9556d. Fifth occurrence: authenticated Windows pull request run 45543157570, attempt 1, https://github.com/kacoyi/scopehub/actions/runs/45543157570. The report and all bound logs were verified by the diagnostic resolver. The workspace-timeframe log SHA-256 is 116aa1c7ccb5b25ed312da8caf40f272614331063745bc9b075172d4164eee54.",
       "occurrence": 5,
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The first occurrence reported two explicit fixture preparations and one application provisioning timeout while Rust and Python overlapped. M0-071 removed redundant fixture calls and verified native refusal, cleanup and recovery. In the second occurrence, cargo test --locked --workspace ran with Python on a separate runner. Four native desktop library tests failed at prepare/powershell-timeout before their expected assertions, with 24 of 28 passing. One failure was explicit fixture preparation and the others reached application provisioning outside its slot. Prior instrumented Windows logs show up to four overlapping ACL helpers, but the recurrence lacks timing inside the PowerShell process. The core Rust log SHA-256 is ded2d67bbfd496c03ff04f9e0b715eb8f76d44523dc49a81fe6c20cf42a35dfa. Independent Astra review of 0739be2 found that the release regression uses an arbitrary mutex and cannot catch the two actual paths losing their shared slot. Third occurrence: four originally independent workspace-timeframe fixtures (:144, :215, :556 and :652) stopped in workspace_bridge --prepare-profile-root with (prepare, powershell-timeout), before Vite or SQLite. The fourth failed with no other workspace case running. The browser launches separate bridge processes outside the prior Tauri test-only mutex. The same four Linux cases and the three Windows indicator delivery and recovery controls passed. The failed Windows process contains no measured internal stage beyond the PowerShell timeout. Fourth occurrence: the same reviewed native Windows inputs used one 64-profile setup before both workers. The ordinary PR producer returned prepare/powershell-timeout after 10.290 seconds and started zero browser cases. The same-input task had prepared 64 roots in 735 ms. The native Rust controls passed on a different Windows host. Fifth occurrence: three ordinary workspace fixtures (workspace.spec.mjs:144, :215 and :556) stopped in workspace_bridge --prepare-profile-root at prepare/powershell-timeout. The other cases recorded 54 passes and one skip. No original log reports first script execution or exact slow ACL work.",
       "task_ids": [
         "M0-071",
@@ -3321,7 +3321,11 @@
         "rust-contracts-workers",
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Ordinary workspace preparation depended on a PowerShell child reaching completion under the existing timeout. The archived failures do not identify the internal stage that stalled.",
+        "correction": "Use the same supervised native Windows ACL policy for preparation and opening in the ordinary desktop and workspace bridge. Keep the existing deadlines and refusal controls.",
+        "prevention": "The hosted workspace and desktop transport checks ran the ordinary browser paths, and Rust exercised native refusal and supervised cleanup. The resolved archive reports windows-change-45554913043-1 (source 1a71e272d3abd9fabb8ce49ed3316289f264786a, SHA-256 744a0d549a2beaae9de5976e09269ce28afe31ddb9d8625ca9c9bc45eceac7c7) and windows-change-45555389370-1 (source 150a733a91a160455582c1e485b2f8db25a66f83, SHA-256 0b0814940fac485a6e3655ce94cb15c264c4d8566328bdbd737699c5d45d5736) each retain two prepare/powershell-timeout failures before chart execution. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
@@ -5562,14 +5566,18 @@
       "source": "Independent Astra Standard early source review of M0-105 at intake 8206dd8b450da3935965b86dab25ab8cf884140e. Retained at archives/observations/m0-105-native-workspace-acl/astra-early-design-8206dd8.txt.",
       "observation": "The Windows libtest draft registered its ACL worker only in Profile::new. The original writer and decision-note restoration interruption fixtures start fresh libtest processes and call support::store directly, so their ordinary open would use the executable worker arguments with no libtest entry selected.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Fresh libtest processes entering support::store directly missed the ACL worker registration installed by the profile fixture.",
+        "correction": "Register the test worker at the direct store entry so the fresh processes resolve the Windows ACL worker through the ordinary writer path.",
+        "prevention": "The Rust suite exercises interrupted writer and decision-note restore before commit in fresh processes. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5577,7 +5585,7 @@
       "source": "Independent Astra Standard early source review of M0-105 at intake 8206dd8b450da3935965b86dab25ab8cf884140e. Retained at archives/observations/m0-105-native-workspace-acl/astra-early-design-8206dd8.txt.",
       "observation": "The native draft called Job::new and Command::spawn synchronously, and captured no entry-through-ready duration. The desktop has no Node startup fence. The caller therefore could not withdraw authorization and return by its existing admission deadline while cold launch remained in flight.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
@@ -5586,7 +5594,11 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Synchronous Job and child startup could outlast the caller before it could withdraw authority.",
+        "correction": "Bound the caller wait through launch and worker readiness. Only a ready worker holding caller authorization can proceed, and the owned launch path cleans up an abandoned worker.",
+        "prevention": "The Rust cold-launch test exercises withdrawal before readiness and rejects a late grant. Hosted workspace and desktop transport also exercise ordinary admission. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5594,7 +5606,7 @@
       "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
       "observation": "The native draft validated a drive, then reinterpreted the validated path components as new paths while assembling each ancestor. The source allows the resolved path to leave the checked ancestor chain. No unsafe hosted access was observed.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
@@ -5602,7 +5614,11 @@
         "rust-contracts-workers",
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Rebuilding Windows paths could reinterpret a component outside the previously checked drive and ancestor chain.",
+        "correction": "Construct the chain only from validated ordinary components on one drive and keep the checked ancestor handles through admission.",
+        "prevention": "The Rust path-chain regression checks drive confinement and rejection of ambiguous names. Native ancestor and ordinary workspace checks exercise admission and refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5610,14 +5626,18 @@
       "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6).",
       "observation": "The native draft called GetLengthSid on an ACE SID before validating the SID and the full bounded representation. The query requires a valid SID. No malformed NTFS descriptor was observed.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The draft passed an unbounded, unvalidated ACE SID to a Win32 length routine that requires a valid SID.",
+        "correction": "Bound the SID header and subauthority extent by the enclosing ACE before native validation and use.",
+        "prevention": "The Rust SID header and subauthority regression and malformed ACE tests cover rejection before normalization. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5625,14 +5645,18 @@
       "source": "Independent Windows ACL semantic review of commit 5c655b5801fe92eee3017f9fca0e033288443e9f, windows.rs blob f6c1075bc479368c069cd12e8bbc2112f5ce318f. Original at archives/observations/m0-105-native-workspace-acl/specialist-windows-acl-5c655b5.txt (SHA-256 4bb21216db961cca4124e390ad5f74c3ef1de1e8277ebb1267f7117a48fcccc6). Exact-candidate Astra Standard and specialist follow-ups at 4411815c5f24f927b8f8a44dda96fbc7bf474c4e: archives/observations/m0-105-native-workspace-acl/astra-4411815.txt (SHA-256 ffb83e69eb9d48bfd3f64428f3d265eb23e1e10e7717661a065bfeb02da5579a) and archives/observations/m0-105-native-workspace-acl/specialist-4411815.txt (SHA-256 c7a10797559b88274e50bc48017c513dd032d820af07879f716c669060d163b5). Exact 537dd6ad5333ba58d54daa4f58a9092e857954e9 specialist follow-up: archives/observations/m0-105-native-workspace-acl/specialist-537dd6a.txt (SHA-256 253e3fa6221cb8114268fa037e5cf7ed897eb07364cf483d0c7b23e58a1c9408). The coordinator retained two narrow source approvals of 0d0495b8e953cb41f4cb1dcef497e220374c7b91 and the ordered-rule red and green probe artifacts in archives/observations/m0-105-native-workspace-acl/index-0d0495.json (SHA-256 543ae7cbdf91a1b19ec272e43b809483d159119f745dcf6866745c543e89dd91). The index records that the standalone approval transcripts were unavailable.",
       "observation": "The managed ACL reader can compact ordinary equivalent explicit rules before the former inheritance predicate. The native draft applies that predicate to raw individual rules. Native compatibility for split same-user inheritance grants needs a differential check. The two-ACE limit rejects a canonical same-user group where any two of three equal-scope grants supply full control. The equal-flags requirement also rejects same-user full control split into separately representable child object and child container scopes. These are source-review findings and require the normal Windows comparison. A canonical private ACL can still pass the prior ordered adjacent compaction even when not every two rules cover full control. The four-rule review example necessarily has a full compacted pair. Preserve the actual same-principal sort and one-pass compaction across ordinary rule counts, including order-dependent refusal. The integrated source still folds a merged pair into subsequent ACEs and discards an already complete inherited grant. The two exact-source controls in .reports/m0-105-compatibility/red.log observed an incorrect admit and refusal. The historical DirectorySecurity export normalizes once, while the candidate differential applied a second normalization. Microsoft .NET Framework reference source: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1144-L1181 and https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/nativeobjectsecurity.cs#L157.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Raw ACE checks and repeated folding diverged from the managed export order and one-pass adjacent compaction, including complete inherited grants.",
+        "correction": "Preserve the managed same-principal order and apply adjacent compaction once before the private access predicate. The differential consumes the baseline managed export once.",
+        "prevention": "The Windows Rust regressions check principal order, inherited grants and both the allowed and refused managed-layout outcomes through native admission. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5640,14 +5664,18 @@
       "source": "Independent Astra Standard exact review of 4411815c5f24f927b8f8a44dda96fbc7bf474c4e. Original at archives/observations/m0-105-native-workspace-acl/astra-4411815.txt (SHA-256 ffb83e69eb9d48bfd3f64428f3d265eb23e1e10e7717661a065bfeb02da5579a).",
       "observation": "The post-grant timeout test immediately checked for no late marker after releasing its worker. That observation can occur before a still-running worker polls again. Preserve the actual worker handle and require it to be signaled when the supervisor returns.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The immediate marker check could succeed before a still-running worker had another opportunity to write.",
+        "correction": "Retain the exact worker process handle and require it to be signaled when the supervisor returns after timeout.",
+        "prevention": "The Rust timed-out worker regression verifies process exit at return. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5655,20 +5683,24 @@
       "source": "Astra Standard source review of PR 84 head d9102de9c036fb6ae4b962a5dfa9529927110315 against protected main 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Original copy .reports/m0-105-file-ace/astra-pr84-d9102de.txt (SHA-256 dc41ecc5c1c497bf50791f78d36611921e74a2f1fda5011564882655e4e199dc). Microsoft .NET Framework InspectAce: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1073.",
       "observation": "The reviewed native path refused a foreign SID before filtering an ordinary ACE with no granted rights. It also treated inheritance flags as meaningful on a regular file. The historical managed ACL export drops zero masks and leaf inherit-only entries, while a directory inherit-only grant with object or container inheritance still comes under the private-principal policy. This is a source-confirmed compatibility defect. The passing Windows run for d9102de did not exercise these descriptors.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The first native predicate rejected foreign principals and file inheritance flags before the managed inert-entry filtering.",
+        "correction": "Validate first, then discard zero-mask entries and regular-file inherit-only entries before access evaluation. Keep applicable directory inheritance and actual file grants under the private principal rule.",
+        "prevention": "The Windows Rust differential runs same-user reopen and rejected sharing through ordinary admission and verifies byte-identical DB and WAL after refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
       "id": "m0-105-linux-browser-concurrent-admission",
       "source": "Local M0-105 task .reports/runs/20261125T043455.480016Z-7345748b/test-report.json on d9102de9c036fb6ae4b962a5dfa9529927110315. The desktop Playwright admission attachment preserves the BUSY reply. Matched single-worker loopback rerun: .reports/m0-105-file-ace/browser-d9102de/check.log (SHA-256 55588a18fec2c72c7865a05dbbb7acbf8c532cf0457fb05d9586aeedcba7ef18).",
-      "observation": "Two ordinary Linux workspace journeys received TIMEOUT from instrument.search. The desktop chart-opened snapshot received BUSY after the frozen-chart reply showed opened. The Linux browser paths are independent of the Windows ACL worker. All three matching cases passed sequentially on the same Linux browser and service code with isolated loopback ports, one Playwright worker and the original deadlines. This establishes a nonrecurrence in isolation. The original run did not attribute the TIMEOUT to a particular worker phase or identify the other request occupying admission when the snapshot returned BUSY.",
+      "observation": "Two ordinary Linux workspace journeys received TIMEOUT from instrument.search. The desktop chart-opened snapshot received BUSY after the frozen-chart reply showed opened. The Linux browser paths are independent of the Windows ACL worker. All three matching cases passed sequentially on the same Linux browser and service code with isolated loopback ports, one Playwright worker and the original deadlines. This establishes a nonrecurrence in isolation. The original run did not attribute the TIMEOUT to a particular worker phase or identify the other request occupying admission when the snapshot returned BUSY. Follow-up: compare the three matched cases in one isolated one-worker run and three runs with ordinary Linux workspace and desktop test concurrency, using isolated ports and the original deadlines. Record the pass, TIMEOUT and BUSY count for each case and the worker count for every run. For any recurrence, capture the last instrument.search worker stage or the operation holding writer admission at the BUSY response, then assign the corrective work to the entry point that owns that stage.",
       "severity": "minor",
       "status": "open",
       "task_ids": [
@@ -5693,14 +5725,18 @@
       "source": "Astra Standard exact review of PR 84 head 986168fde54c102acc38b5498f89c12e30378610 against protected main 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Original copy .reports/m0-105-callback-ace/astra-pr84-986168f.txt (SHA-256 be03f0e618a969ce484d48a0b857a90448941a61f0eab97c21714232bd100d76). Microsoft .NET Framework InspectAce: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1094.",
       "observation": "The native DACL type dispatch refused structurally valid common callback entries before applying the object-specific normalization. The managed descriptor discarded a zero-mask callback on a directory and an inherit-only callback on a regular file before the storage policy rejected remaining callbacks. The managed comparison also skipped effective callbacks instead of refusing them. The review confirmed the difference in source. It did not observe these descriptors on a Windows run.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Type dispatch rejected inert common callback layouts before the managed object-specific filtering, while the comparison skipped effective callbacks.",
+        "correction": "Decode and bound known callback layouts before inert-entry filtering and reject any unsupported callback that survives. Align the managed differential with that rejection stage.",
+        "prevention": "The Windows Rust layout and managed access regressions cover inert and effective common callbacks on files and directories, including malformed bounds. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5708,14 +5744,18 @@
       "source": "Astra Standard PR 84 source review at 070818f04c41c4dccffd7b2356039199aa198035. Original copy .reports/m0-105-object-ace/astra-pr84-070818f.txt (SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1). Layout coverage is recorded in contracts/reviews/2026-11-25-windows-workspace-acl-layouts.json.",
       "observation": "The native decoder refused ObjectAce layouts before the managed baseline would remove inert known entries. The existing negative test changed a common ACE type without adding object flags and optional GUIDs, so it represented a malformed object buffer. Reference-source review also identified the legacy CompoundAce known layout and the distinct opaque CustomAce envelope. No NTFS outcome for these added cases was observed in the source review.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The draft rejected valid object layouts before inert-entry filtering, and its type-byte mutation did not construct a valid object ACE.",
+        "correction": "Decode recognized ObjectAce, object callback and CompoundAce layouts with their own bounds before applying inert-entry rules. Keep surviving unsupported grants and unknown layouts refused.",
+        "prevention": "Windows Rust covers all four object GUID-presence combinations and malformed or unknown controls. The managed differential exercises structurally valid directory and file entries and verifies ordinary reopen and byte-stable refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     },
     {
@@ -5723,14 +5763,18 @@
       "source": "Astra Standard exact PR 84 review at f0be71a2226185114f8e738e4dd02b7c49aec991. Original copy .reports/m0-105-opaque-ace/astra-pr84-f0be71a.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819). Microsoft reference source QualifiedAce.SetOpaque and CommonAce/ObjectAce.MaxOpaqueLength.",
       "observation": "The bounded native decoder accepted trailing data past the managed layout-specific limit and could discard such an entry as inert. In the managed path construction of the qualified ACE rejects that length before DACL normalization, even when its access mask is zero. The exact aligned maxima are 65456 bytes for CommonAce and 65420 for ObjectAce with either callback setting. This is a source-confirmed difference pending native execution.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-105"
       ],
       "regression_checks": [
         "rust-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "An oversized opaque tail could pass structural decoding and disappear as inert before the historical managed limit was applied.",
+        "correction": "Enforce the layout-specific CommonAce and ObjectAce opaque-length limits before Ace normalization, for ordinary and callback shapes.",
+        "prevention": "The Windows Rust opaque-length regression tests the aligned maxima and the first aligned lengths above them. The ordinary Windows storage differential exercises private-workspace compatibility and byte-stable refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
       "deferral_reason": null
     }
   ]

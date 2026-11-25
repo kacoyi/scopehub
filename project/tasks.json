@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-105",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20923,7 +20923,7 @@
       "id": "M0-105",
       "title": "Remove the Windows storage admission dependency on PowerShell startup",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-102"
       ],
@@ -20970,6 +20970,10 @@
         {
           "path": "project/evidence/M0-105-4d5050a2660a498a.json",
           "sha256": "e71987be995358b29376a58c26588cda0c9b278fb3bb6b9600976c5aff19844e"
+        },
+        {
+          "path": "project/evidence/M0-105-1441cab6f7c78975.json",
+          "sha256": "4c0e26314f958adfca218188db75ae766352f4fdb66c70eb1f59521c26008a37"
         }
       ],
       "diagnostic_reports": [
@@ -20984,9 +20988,9 @@
           "report_sha256": "f8b5cc2f1913d5252a732a8c33796dec03e02d348a1438545950a1fc1e8e2329"
         }
       ],
-      "next_action": "Obtain independent review and coordinator-owned PR #84 protected Linux and Windows checks plus M0-105 verification for the exact descriptor-layout and opaque-length correction. Compare inert and effective access entries in real file and directory DACLs, including object GUID fields, and review the coverage of the remaining recognized layouts. Observe same-user reopen and unchanged database and WAL bytes after refusal. Run 45546767887 remains historical evidence of d9102de and its checked merge.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Official PR 84 run 45556094486 passed all six jobs for the independently reviewed head 04f20c9beb2365edb21c874ea30dd905d89b117f and its checked merge 9bf3476a4f7c71abc88cff6d0a00008e9299de2d. The canonical Windows receipt records all eleven task checks, including native build, the original workspace and desktop journeys under existing deadlines, and private-workspace admission and unchanged DB and WAL bytes after sharing refusal. The Linux aggregate passed 27 checks and reports the Windows-only native-build check blocked (original report SHA-256 212b2b5965ec8e10666c27d790a3c3bd679fe0af2df41fd756fd6e04ffb40f3c). The earlier Windows receipt remains historical. The two pre-chart setup-timeout archive reports are identified in the resolved Windows ACL timeout finding. The separate Linux browser concurrency finding remains open with a matched follow-up. Physical Windows and packaged release acceptance remain separate gates.",
       "plan": {
         "outcome": "A Windows user can prepare and open an owner-only workspace without relying on repeated interpreter startup and with the existing failure and cleanup contract.",
         "change_types": [
