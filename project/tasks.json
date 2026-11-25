@@ -25282,7 +25282,12 @@
         "rust-contracts-workers",
         "python-types"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-151-198d2da411d886a5.json",
+          "sha256": "dd5787d5d2359a8a8e346aecfe9aff46b6e4c6ea0e8c6a6219d8e0b7ffcbad71"
+        }
+      ],
       "next_action": "Review the bounded Linux replay witness and verify the exact candidate on ordinary native Windows. Confirm both owned interruptions, the grouped frames and the later request.",
       "blocker": null,
       "closure_reason": null,
