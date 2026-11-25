@@ -6733,6 +6733,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-heading-and-observation-argument",
+      "source": "Independent Astra Standard final on 874b08b9ad95c1a496ca6a708aeba8b12b9b22d7. Original final SHA-256 9c6c0a50bb8789815ddbb7dcbec050e2c0f4dec0b8a73e2810cb93180416ef32. Package manifest SHA-256 5a9a6cfe478545a2858919b8412c149fce38abfa99f0aa8951afcda9138b8d23.",
+      "observation": "The ordinary M0-129 acceptance paths treated a partial bold section heading as independent evidence. The generated observation argument also lost the literal backtick terms from the genuine Chinese M0-103 observation under ordinary shell parsing.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
