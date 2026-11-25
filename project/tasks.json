@@ -16069,9 +16069,14 @@
           "cleanup": "Retain both failed updater runs. Confirm the combined candidate before substituting the original proposals."
         }
       },
-      "next_action": "Run exact worker-host and schema cases, then the local task harness on the committed combined graph. Hand off the head for hosted verification.",
+      "next_action": "Have the coordinator obtain hosted Ubuntu and native Windows verification on this candidate. Attach the matching reports and close the task before integration.",
       "blocker": null,
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-113-3a9a3e14e9c9f6c5.json",
+          "sha256": "e074c60d6752e681f20b77a8fcb7891601e837effe943e34102181a22094710f"
+        }
+      ],
       "closure_reason": null
     },
     {
