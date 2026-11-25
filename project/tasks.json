@@ -22601,6 +22601,248 @@
           "cleanup": "Release held responses, remove interceptors, close owned profiles and services, and retain the original failures."
         }
       }
+    },
+    {
+      "id": "M0-115",
+      "title": "Bound operator-selected worktree retirement observation budgets",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": ["M0-035"],
+      "scope": [
+        "AGENTS.md",
+        "scripts/worktree.py",
+        "scripts/worktree_retirement.py",
+        "tests/project",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "The existing read-only retirement command accepts an explicit bounded per-checkout entry limit, rejects invalid input before observation, and retains the 20,000-entry default.",
+        "The same selected limit applies to the directory and consumer scans. A real downstream consumer past the default is observed with a sufficient explicit limit, and genuinely exhausted scans retain their holds.",
+        "A real checkout with many ignored sibling roots retains at most one entry beyond the supplied limit to detect overflow before sorting. Independent tracked dirty status and Git failures remain observable.",
+        "A retained read-only inventory using the development archive observes the three affected registrations with a sufficient explicit limit, records the report digest and distinguishes candidates, process visibility, observed activity and unresolved evidence."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-115-6305e120f6261f97.json",
+          "sha256": "5453c86f99f99c7f7ed06bf9133fe53f0d23c5fd9189f35ed0f1ab9912bec51e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The corrected source d2c15146bb2f8c3606f4df3e12fca469d775f9b7 passed both required Linux checks. The already-running 200,000-entry read-only capture used 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a and cleared all three prior consumer budget errors. It classified all 92 registrations as held, with zero candidates or review intake and eight rows with observed activity. Host process visibility was unavailable. The invoking checkout's sandbox mount and changes to registrations and recovery references produced additional holds. The raw capture remains at .reports/audit-20261125/retirement-after-entry-limit.json with SHA-256 64e394ada899cdb84aa109920a66dc18e9bc30dc3c95038cdc48464fa7f5800c. The coordinator owns supported-host review and publication.",
+      "plan": {
+        "outcome": "An operator can complete retirement consumer observation on large worktrees while every uncertain checkout remains held.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-035 worktree protection and evidence semantics.",
+          "The 2026-11-25 retirement observation of 88 Git registrations.",
+          "scripts/worktree.py",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The same fixed ignored entry limit stops three consumer passes. An explicit larger limit can complete those passes without changing the evidence or candidacy rules.",
+          "Git status initially materializes every ignored root and the directory walk sorts those paths before applying the selected limit. Reading the status incrementally and bounding retained roots before sorting can preserve the independent dirty and error observations."
+        ],
+        "risks": [
+          {
+            "failure": "A larger budget permits an incomplete traversal to claim eligibility, or one pass silently keeps using the fixed limit.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Invalid input admits unbounded enumeration, or incomplete process and evidence observations are mistaken for viable retirement.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "A tiny limit permits unbounded ignored path intake, or an overflow or interrupted status process loses dirty or incomplete observation holds.",
+            "checks": ["project-state", "python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert the new option and retain the original reports. The command only observes filesystem and Git state.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Worktree, ref or file retirement, publication and supported host qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Read-only operation, the conservative default, fail-closed mount, identity, process and evidence observations, and the review intake and candidate criteria."
+          ],
+          "change": [
+            "Accept and report one operator-selected entry limit and use it in each per-checkout directory scan, including ignored-root intake before sorting."
+          ],
+          "data_plan": "Read the configured development archive and retain the original and new host observation bytes and their digests inside the task checkout for coordinator handoff.",
+          "cleanup": "Use one limit for the existing entry point and remove the fixed traversal budget without introducing another configuration source."
+        }
+      }
+    },
+    {
+      "id": "M0-116",
+      "title": "Stop reading ignored worktree status after budget overflow",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": ["M0-115"],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "tests/project/test_worktree_retirement.py",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "The retirement entry retains the existing default and reports budget exhaustion after reading the ignored-root overflow witness, with bounded pipe read-ahead and a closed, reaped status child.",
+        "An independent ordinary status query preserves tracked and untracked dirtiness even when the ignored listing ends early. Small ignored inventories preserve Git pathname semantics and verify successful completion.",
+        "A measured real Git regression limits ignored records and bytes at a budget of one. Tail-dirty and failed or unreadable status streams preserve the applicable holds and process cleanup."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-116-36fa036d0b2cb670.json",
+          "sha256": "46f11fc5ae0eaf18315003ce5bc65e8147d244df2668b24c6e0dd67c1967086c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "A real Git fixture with 2,048 sibling ignored roots and a budget of one fell from 2,048 records and 165,888 bytes consumed to two records and 4,096 bytes read from stdout. The tail-dirty, status failure, unreadable pipe, cleanup and small-tree controls passed. Both required Linux checks passed on 4e54112a55a00764b0a268a53f925c9536592a09. The existing retirement default and holds were preserved. M0-115's accepted definition and receipt were verified unchanged. The coordinator owns the separate host capture and publication.",
+      "plan": {
+        "outcome": "A small retirement observation budget stops ignored pathname consumption at overflow while preserving dirty and incomplete observations.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-115 accepted limits and receipt.",
+          "Second independent Astra Standard review of 95f20e9.",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The ignored collector drains every status record to establish dirtiness and Git completion. Its accepted path is separable from the ordinary tracked and untracked status check."
+        ],
+        "risks": [
+          {
+            "failure": "An ignored overflow still consumes the rest of stdout or hides a tracked or untracked change.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Early cutoff hides a completed Git error, leaks a child or stream, or changes the ignored roots of a small checkout.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert this correction while preserving the accepted M0-115 task, receipts and conservative candidate rules.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Changes to accepted M0-115 records, publication, host observation, and worktree or file retirement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Git ignored matching, literal NUL-delimited paths, existing budget and holds, and status errors from incomplete observations."
+          ],
+          "change": [
+            "Observe ordinary dirtiness independently and stop accepting ignored input as soon as one excess root proves exhaustion."
+          ],
+          "data_plan": "Use temporary native Git fixtures and local task diagnostics. The coordinator owns the existing host capture and its report.",
+          "cleanup": "Close the ignored output stream and reap the child on success, overflow, failure and interruption."
+        }
+      }
+    },
+    {
+      "id": "M0-117",
+      "title": "Retain dirty worktree observations across status queries",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": ["M0-116"],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "tests/project/test_worktree_retirement.py",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "A tracked modification or ordinary untracked path introduced between the two status queries produces a dirty checkout hold when Git reports it through the retirement entry.",
+        "Any ordinary status record observed by either query keeps the dirty result true. The ignored-root cutoff, pathname handling, status errors, and process cleanup retain their established behavior.",
+        "The coordinator receives the clean implementation revision for independent review. Task closure follows confirmed review approval and required evidence."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-117-f629b37066178251.json",
+          "sha256": "1c4d1dd6d97a5388db3ae39753f2af4be72e6976d09417493d9b877e129f11c9"
+        },
+        {
+          "path": "project/evidence/M0-117-a8410a801fe4f7fb.json",
+          "sha256": "51393afaafaf924589cc1f39a1ce88f9d8a2ef2d40f8d6ac248027dbc9497c34"
+        },
+        {
+          "path": "project/evidence/M0-117-2782445a2d24932b.json",
+          "sha256": "fe4c37e77d4a61730b96124c922998c2255bfd8f3437c7d32c1731b4d2795a38"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The coordinator confirmed Astra Standard approval of exact source 37cb4e896e8a99f8af07eb7829d2550d84c99c19. Both full-entry replays held a tracked or ordinary untracked change observed on the second read. The small clean fixture remained eligible. At a limit of one the 2,048-path fixture consumed two ignored records and 4,096 bytes. All 47 retirement tests were confirmed, and the attached receipt covers both required Linux checks on the approved source.",
+      "plan": {
+        "outcome": "A retirement observation retains every dirty status it actually observes while keeping bounded ignored-path intake.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-116 accepted bounds, process cleanup, and receipt.",
+          "Astra Standard review of the M0-116 retirement entry.",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The ordinary query result initializes the dirty flag. The second query reads ordinary status before the ignored cutoff but currently leaves the flag unchanged."
+        ],
+        "risks": [
+          {
+            "failure": "An observed intervening tracked or ordinary untracked change leaves an otherwise eligible worktree marked clean.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Retaining ordinary observations expands the ignored read or changes error, literal pathname, or cleanup behavior.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert the dirty observation correction as a separate change while retaining the accepted earlier records.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Changes to accepted history, the separate host inventory, publication, and checkout retirement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The two status queries, the existing overflow cutoff, process lifecycle, and conservative error holds."
+          ],
+          "change": [
+            "A valid ordinary status record consumed in the second query also sets the dirty observation."
+          ],
+          "data_plan": "Exercise independent native Git fixtures with intervening filesystem changes. Retain local regression and required check evidence for coordinator review.",
+          "cleanup": "Reuse the current status loop and existing dirty hold."
+        }
+      }
     }
   ]
 }

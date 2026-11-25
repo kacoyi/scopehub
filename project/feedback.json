@@ -6254,6 +6254,66 @@
         "prevention": "The real Chromium case retains success until the new-note gesture, then observes the editor without the earlier delete notice. Discarding the draft leaves the deletion marker and empty peer list intact. See archives/observations/m2-037-note-notice/green-c34d67f/observed-deletion.json (SHA-256 3f6b7e6bf95cea46da1166e3040b92a4b533c675d1de94bccf328f327c5ba9f5)."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-consumer-entry-budget",
+      "source": "2026-11-25 coordinator read-only retirement inventory, retained as .reports/audit-20261125/retirement-before-entry-limit.json. SHA-256 273a8ef78d3c137fc1eb7265c134f0832df700d2941bc1a31b78985c2aa29558.",
+      "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
+        "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
+        "prevention": "A native Git fixture reaches a real nested link with an explicit 20,001-entry budget and confirms the unchanged default still reports exhaustion. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-unbounded-ignored-root-intake",
+      "source": "Astra Standard independent review of 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a on 2026-11-25.",
+      "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
+        "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
+        "prevention": "A real 64-root Git fixture with a dirty tracked file measures two retained roots with a budget of one. Additional regressions measure the initial iterator and exercise a native rename whose source begins with an ignored-status prefix. The pre-fix regression log is retained at .reports/audit-20261125/retirement-root-intake-red.log with SHA-256 f4e4c66619ab3dbe3b469437d91af1923bc37af9ca5dea9e7912ba0e204f1228. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-ignored-status-drains-past-budget",
+      "source": "Second Astra Standard independent review of 95f20e913f2d4d91f347156af10d72467b4b3f74 on 2026-11-25.",
+      "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-116"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
+        "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
+        "prevention": "The measured native Git fixture reduced ignored stdout consumption from 2,048 records and 165,888 bytes to two records and 4,096 bytes. Separate regressions cover tail dirtiness, nonzero exits before and at overflow, an unreadable pipe, child cleanup and complete small trees. The original regression log is retained at .reports/audit-20261125/m0-116-red.log with SHA-256 1ac03d8cccb3442841c31fa74ed607f675e0c8b193664f88ed8b1c30906cb001."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-drops-observed-second-status-dirtiness",
+      "source": "Astra Standard independent review of the M0-116 retirement entry at handoff 936615e6e937cec013fa4edec2089858fc5196fd.",
+      "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": ["M0-117"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": {
+        "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
+        "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
+        "prevention": "Both native Git regressions reproduced an eligible dirty checkout before the fix. The original log is retained at .reports/audit-20261125/m0-117-red.log with SHA-256 d7ebf206e12a4a0084bf3b53e456a6cbdbb6853613a3c0750a3926983803e694. The coordinator confirmed Astra Standard approval of 37cb4e896e8a99f8af07eb7829d2550d84c99c19 after both second-read replays were held, a small clean checkout stayed eligible, and ignored status remained bounded. The required regression checks are retained in the attached task receipt."
+      },
+      "deferral_reason": null
     }
   ]
 }
