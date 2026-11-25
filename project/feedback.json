@@ -6337,6 +6337,35 @@
         "prevention": "Interleave two synthetic byte sequences through the actual stage_artifacts entry for model, voice, market and the external-client pair. Preserve duplicate-key, private-field and size rejections."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "local-publisher-advisory-403-drops-confirmed-quota",
+      "source": "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json (SHA-256 ca812dcd5b0e98a62c3f2378efea97d9343435a93bd7156345b8072cc21b6d2e). The 486b674 original log is .reports/runs/20261125T095828.866735Z-186642bb/dependency-review.log in the coordinator checkout (SHA-256 ff4a3df0716c6864661ea36b29d1b9558b58e76c30067df61e3ca282a533fe08).",
+      "observation": "Both original local reviews retained a generic HTTP 403 after validating 587 packages. The originals alone do not establish their cause. A separate 486b674 observation at 10:02:04 UTC proved anonymous exhaustion with zero remaining and reset at 10:14:58 UTC. A subsequent anonymous 200 and passing same-source review on 5d93d80 establish recovery there. Offline replays of the ordinary command on both sources produce the same failed report and exit for confirmed quota headers and a plain 403 because the publisher transport discards non-200 headers.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-126"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T090808.094431Z-146d8e97",
+          "source_commit": "5d93d80a9393830cf9779bcb6495d1c2af4c9180",
+          "report_sha256": "e1eaeb0ba922392de4b51e39510b7c17d73cc6f454b6b6cbf1b1c82007905f25"
+        },
+        {
+          "run_id": "20261125T091948.282573Z-25b5ae6c",
+          "source_commit": "5d93d80a9393830cf9779bcb6495d1c2af4c9180",
+          "report_sha256": "dd58004bdd84b2a3396a9683a421a69facbfad7de3c5649e3af010cfbb1952c6"
+        }
+      ]
     }
   ]
 }
