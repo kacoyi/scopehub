@@ -48,6 +48,25 @@
       "requested_at": "2026-11-25T14:26:02.691905+00:00",
       "request_id": "1bba51ce07786290365c81c64779e153c4516d57ae2009afd50a91dcf45361d1",
       "evidence_sha256": "ceafe956eb5f04c770c66c4915967965f87f02d2a44a006c58730faf753a2f76"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "scope": "CHANGES_REQUESTED M0-136 874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "observation": "The ordinary acceptance checks allowed M0-129 to close with only a section heading from its genuine approval as the recorded observation.",
+      "reviewer": "Independent Astra Standard (t10y)",
+      "original_sha256": "165606cb1f938c8841d9af03ed642686252399a6fdbdc9de1dbf54ae07241360",
+      "response_id": "cabe65f3f778f2cb724b9e2f5a8c2da15de5613aee556c94c21ab25d02f0df50",
+      "response_sha256": "aa6f2dccd8145e88dd72baa7ebd4ed3e5897b2ad495b9fd1381ec7a0b340d1d5",
+      "observation_body_sha256": "f512b60105da40175fdb54e38d76baef0c96a7691718db1bc8441187fc7fc0d3",
+      "event": {
+        "id": "msg_0730117d32ecb5af016b06f249d66887d09579abd976ef1d57",
+        "timestamp": "2026-11-25T14:36:12.963Z"
+      },
+      "supersedes": "1bba51ce07786290365c81c64779e153c4516d57ae2009afd50a91dcf45361d1",
+      "evidence_sha256": "eca4c1d1e1f40eca55b12bb6882546bcea6c736ff51a457f798d11c055a24b76"
     }
   ]
 }
