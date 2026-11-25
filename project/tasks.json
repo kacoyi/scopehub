@@ -24671,6 +24671,136 @@
       }
     },
     {
+      "id": "M0-126",
+      "title": "Report confirmed anonymous publisher advisory quota exhaustion",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-027"
+      ],
+      "scope": [
+        "scripts/publisher_advisory.py",
+        "tests/project/test_dependencies.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "The ordinary local dependency review fails with exit 1 and identifies anonymous HTTP 403 quota exhaustion only when the same approved TLS response contains a complete header block with zero remaining requests. A strictly valid optional reset is formatted as UTC.",
+        "Missing, ambiguous, or malformed response data do not establish quota exhaustion or disclose raw server text. Preserve the existing live check, failure exits, credentials, route, redirects, fallback, and request limits."
+      ],
+      "checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-126-b5bb1ae9c69f1412.json",
+          "sha256": "0597e370afc519a8f79134c4c9024cdcc0dfef9d0de6b4c4897b2c7c8568e676"
+        },
+        {
+          "path": "project/evidence/M0-126-c4f09feb69227a31.json",
+          "sha256": "371df27f7f21af84d2ae30bde4e7e63458dadbde60e20726f0f9d3c751ee3265"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved ddafe1e07d6cc040824f331108cd31041410723c. All four local task checks passed after the observed publisher reset. The 34 independent transport cases distinguish a complete zero-remaining response from ambiguous headers, premature EOF and generic HTTP 403. The original two unclassified responses retain their observed status.",
+      "plan": {
+        "outcome": "The failed local dependency report distinguishes a proven anonymous quota limit from an unclassified HTTP 403.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "Accepted M0-027 hosted isolation and fail-closed policy.",
+          "scripts/publisher_advisory.py",
+          "scripts/dependencies.py",
+          "tests/project/test_dependencies.py",
+          "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json",
+          "Astra Standard CHANGES_REQUESTED for 2b0e9b44870c02571352337c69e3eda18f1895ce.",
+          "Independent CHANGES_REQUESTED for d5dd6c49057382afa3bd8f7ac4970b2b0988c496. The retained wire replays expose an EOF that Python accepts without a header parser defect."
+        ],
+        "hypotheses": [
+          "The publisher transport discards non-200 headers. The dependency report already persists the resulting error."
+        ],
+        "risks": [
+          {
+            "failure": "The ordinary dependency report still conflates confirmed quota and a plain 403.",
+            "checks": [
+              "dependency-review",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Incomplete or repeated headers produce false attribution, legitimate HTTP field whitespace loses an accurate diagnosis, or malformed values disclose server text.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "EOF before the response header terminator or inside a reset field produces a false quota diagnosis or a false UTC reset in the ordinary dependency report.",
+            "checks": [
+              "dependency-review",
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The diagnostic changes hosted credentials, fallback, live gates, or request counts.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the added diagnostic while retaining the originals, hosted isolation, and required online check.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/dependencies.py",
+            "scripts/publisher_advisory.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/advisory_dispositions"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Changes to hosted handling, service permissions, cache, fallback, API or report schema, or accepted history."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The approved exact GET, redirect refusal, bounded response and retry behavior, hosted matching evidence and failure exits."
+          ],
+          "change": [
+            "Derive a bounded local quota diagnosis and optional UTC reset from the same anonymous 403 after observing its header terminator in the standard HTTP transport."
+          ],
+          "data_plan": "Use offline fixtures from retained public response headers. Archive original red, green and required check output.",
+          "cleanup": "Use the existing dependency report error field and preserve the generic error for unclassified responses."
+        }
+      }
+    },
+    {
       "id": "M0-143",
       "title": "Reduce repeated Git reads in periodic maintenance verification",
       "milestone": "M0",
