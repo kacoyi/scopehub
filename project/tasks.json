@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-036",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -21421,7 +21421,7 @@
       "id": "M2-036",
       "title": "Keep decision-note deletion feedback attributable across two tabs",
       "milestone": "M2",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M2-001"
       ],
@@ -21450,7 +21450,12 @@
         "workspace-timeframe",
         "desktop-workspace-transport"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-036-d6508ff3885c6790.json",
+          "sha256": "8f9540fb212c4070e2fc9a13b185b5dce34f2b4421376199207e7b2f69dbab8c"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261125T070439.970641Z-5b827275",
@@ -21458,9 +21463,9 @@
           "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
         }
       ],
-      "next_action": "Correlate the approved delete, verified receipt, stored rows and visible notice in the normal Chromium case. Exercise delayed projection and a definite rejection to identify the smallest correction before recording acceptance.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Linux canonical task run 20261125T073135.898153Z-97188447 on 74103f67291fec9bbfde359ccbc991586003345b passed all five required checks, including all 60 workspace cases and all 8 desktop transport cases. The retained Chromium red and green observations distinguish a rejected approval from a confirmed deletion whose follow-up read fails. The accepted operation correlates with the exact deletion marker, missing note and outcome, and empty peer projection. The initiating notice remains visible through the failed list delivery and explicit reload. The original hosted ordering remains unknown. The older Windows failure was a missing empty-list assertion on the observer after the delete helper returned.",
       "plan": {
         "outcome": "The initiating tab makes the confirmed deletion visible and both tabs reflect the authoritative list even when projection and peer actions interleave. Definite or uncertain failures retain their own messages and consent rules.",
         "change_types": [

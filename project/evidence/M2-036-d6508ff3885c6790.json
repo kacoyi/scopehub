@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-036",
+  "task_definition_sha256": "fb735bdac8581766459856a248c9bc1179f66f40a9a818e976cdd277f5d2b9c0",
+  "run_id": "20261125T073135.898153Z-97188447",
+  "recorded_at": "2026-11-25T07:34:19.741822+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "e93315a2d53efbb34be42a5062fad02155b04bd3537b0cd8d3f05d167bfffcce",
+    "file_count": 601,
+    "git_head": "74103f67291fec9bbfde359ccbc991586003345b",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "d6508ff3885c6790d69bec65a78c45607291730b87ff5ba7bf0a5a98643bcb9a",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/m2-036-note-deletion-feedback/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "dca0e7e8932fb624256074162e23b0267d70ab047e77ecdcd92acf2f1e58b1c6"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c3964b5854f8f05368ec9ed501d3e77a8f4d40ebd2c725a9e6086b8d556c2fdd"
+    },
+    {
+      "id": "decision-note-lifecycle",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-application",
+        "-p",
+        "scopehub-persistence",
+        "decision_note"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c2c886d694cbd4c5bc83def2d1c111f9b7ad37bfdf5f2a1a90fc69e6dcb05ba7"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fd95f7aee4efbb1be62921e374599717f6a8f518a1ba80ac3bf4f0dd695ae99e"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "89e2a76d753d7bd5cda4369d0f84e658fbc4c952d1209c365573a8c30eb3dfcd"
+    }
+  ],
+  "project_definition_sha256": "e6e7a48ea5083e8bf1ccf82c2f90b4413eaee49e8423921d196845ed4bec69b5",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "e9c6a867be07b30196102ebf9cf5651d8ecb1faf451d0760754e004d7e2c8be2"
+  ]
+}

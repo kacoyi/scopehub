@@ -5937,14 +5937,18 @@
       "source": "Authenticated Ubuntu main run 45565130414 at fb8497ec64d276c4c14e36e518ef242125f0a984, archives/runs/20261125T070439.970641Z-5b827275/test-report.json. The retained workspace log SHA-256 is 8dd2f2b50cdfa005464727379f6bd7db7d4240c5d6e78e7951d87fd2bbe73c59. Older Windows run 45547568595 at 33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d has a separate assertion in its workspace log (SHA-256 cabc26415102ec2b5ec73004a75d95cdc456cc48bf81bc1f3de38b85685a812f). Controlled Linux Chromium failure on the unchanged application at base 507cc7c91bebe385d77109faa5f8852985cdfa43 with the archived regression patch: archives/observations/m2-036-note-deletion-507cc7c/SHA256SUMS (SHA-256 765732f864879fd3935803953854c74ad3ceb7fe91d785e914eb0b70905cf62d). The captured receipt, read-only SQLite observation, projection and notice count are in archives/observations/m2-036-note-deletion-507cc7c/observed-deletion.json (SHA-256 850a0734be0b45f79c2da03cb64ae7534ee7b1ac4b72c6f312bea4e899dd1aa7).",
       "observation": "One of 59 Ubuntu workspace cases failed after two peer timeframe changes and an outcome save. The deleting tab timed out waiting for the visible Decision note deleted. status after the confirmation click. The retained screenshot shows the dated note in a decision-note list. The original artifacts contain no correlated delete receipt or persisted row observation. The older Windows case reached the observer assertion for No saved decision notes. after the delete helper returned, so it establishes a different missing UI observation. The controlled two-tab Chromium run first delayed approval until a peer committed 5m. Approval returned STALE_CONTEXT, the note and outcome remained and no success appeared. A newly reviewed approval then returned a matching non-undoable receipt. SQLite contained the deletion marker at the committed revision and neither the note nor its outcome. The held list reply contained no notes and the peer displayed the empty list. The initiating tab showed success while that reply was delayed, then removed it when the list response was lost. Both existing peer scenarios passed in that run. The exact operation outcome and refresh ordering in the original hosted failure remain unknown.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M2-036"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "In controlled Linux Chromium, the deletion had a verified receipt, then a lost list response cleared the selection and its already-confirmed action notice together. The original hosted operation outcome and ordering were not captured.",
+        "correction": "Retain the confirmed deletion notice while refreshing or recovering the list. A failed post-commit list read reports its own error and exposes the existing reload action. A rejected or unverified approval cannot set the deletion notice.",
+        "prevention": "The two-tab Chromium control verifies peer STALE_CONTEXT refusal and intact rows, then a matching committed receipt, removal of note and outcome, a revision-bound deletion marker and a peer empty list. Dropping the initiating list response retains success through the explicit reload. The ordinary draft, consent and peer removal assertions are still checked. The positive observation is in archives/observations/m2-036-note-deletion-74103f6/observed-deletion.json (SHA-256 7b384646ae7d1e6905711fa60d776455e76c4d4dde36a81a669bb86eef7d62fe)."
+      },
       "deferral_reason": null,
       "diagnostic_reports": [
         {
