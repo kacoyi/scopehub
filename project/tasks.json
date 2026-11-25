@@ -24065,7 +24065,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Request Astra Standard review of the five-lane startup and history candidate. The coordinator assesses the next comparable observation and routes changed or still-adverse findings to their corrective task.",
+      "next_action": "Repair the independent Astra findings, replay the retained and genuine scoped controls, and send a clean revised source for re-review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24080,7 +24080,8 @@
           "project/feedback.json"
         ],
         "hypotheses": [
-          "The calendar flag can clear independently of observation bytes in all five review lanes. Typed bounded projections of existing observations can share the same guard."
+          "The calendar flag can clear independently of observation bytes in all five review lanes. Typed bounded projections of existing observations can share the same guard.",
+          "Full source deltas, source-bound consumer checks and independently checked observation facts can close the review gaps without inferring cross-lane recovery."
         ],
         "risks": [
           {
@@ -24091,6 +24092,12 @@
           },
           {
             "failure": "An unrelated or stale receipt appears to prove compatibility. Exercise native Rust and Python consumers, an unrelated valid receipt, and changed, unchanged or unavailable history. Verify that a new adverse observation after a verified repair requires reopening.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A compatibility reader change is omitted, an unbound or stale observation overclaims coverage, or a review transition or startup precedence hides unfinished work.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -24122,7 +24129,8 @@
             "Preserve historical cadence, accepted records, existing normal JSON fields and independent native and release evidence."
           ],
           "change": [
-            "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations."
+            "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations.",
+            "Review completeness and subsequent recovery are separate claims. Keep unsupported dimensions and both urgent and calendar follow-through visible."
           ],
           "data_plan": "Read canonical task receipts and feedback. Compare changed consumer boundaries from accepted Git history and retain unverified scopes. Leave the historic baseline unchanged and keep controls in private validation outputs.",
           "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."

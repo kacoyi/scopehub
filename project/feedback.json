@@ -6543,6 +6543,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "periodic-maintenance-overclaims-and-loses-follow-through",
+      "source": "Independent Astra Standard review of f020f93145c2479a4f97edf93fca03ea649cd04c against 6cf0d0dc87b344203ab194a2cd047d36bf801f3c. Original verdict SHA-256 5635aa8bac30829484421388ca1ab127bcd0a112ce438b15fb722a9fe9d33a8c. Dated original and control reports retained privately.",
+      "observation": "The compatibility path filter hid the actual M4-018 publication reader change and rejected its scoped receipt. A modified branch projection and an obsolete compatibility endpoint could clear review. Unrelated and incomplete observations could claim recovery. Retirement and routine-calendar priority could suppress pending or serious work.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
