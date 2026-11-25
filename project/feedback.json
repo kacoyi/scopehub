@@ -6592,6 +6592,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-citation-provenance-and-replacement-source",
+      "source": "Independent Astra Standard final on 226fac00b657b876ed893a3f2e2118cd655daf61. Original final SHA-256 b90b4e4af1bafd0db8c3b5f770426dad4a80d58d0ef16792eb4bac564123adea. Private package manifest SHA-256 c5e28990658d80bed3088cc735e0282c2f8f83d513aafe5b77255425c5b7b9c4.",
+      "observation": "The M0-103 review accepted a rendered citation caption as the full observation and check, history, and integration allowed closure. The normal handoff recovery command could not replace an open request from the combined Windows and Linux source with the reviewed sibling Windows-only source.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
