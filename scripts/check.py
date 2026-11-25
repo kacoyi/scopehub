@@ -139,7 +139,8 @@ def execute(name, argv, env, run_dir, timeout=900, *, cancel=None):
             seal_unconfirmed_log(log_path)
         log_sha256 = file_digest(log_path)
         tail = log_tail(log_path) if exit_code != 0 or reason is not None or interrupted() else None
-    interrupted_finalization = interrupted() or (cancel is not None and cancel())
+    interrupted_finalization = interrupted() or (
+        reason not in STOP_REASONS and cancel is not None and cancel())
     if interrupted_finalization and reason not in STOP_REASONS:
         reason = 'interrupted'
     status = 'passed' if exit_code == 0 and reason is None else 'failed'

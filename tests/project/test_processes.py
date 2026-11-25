@@ -89,6 +89,44 @@ class ProcessTests(unittest.TestCase):
             processes.seal_unconfirmed_log(path)
         self.assertEqual(b'available\n[Log snapshot ended before the captured extent.]\n', path.read_bytes())
 
+    @unittest.skipUnless(sys.platform == 'linux', 'requires Linux failure-log publication')
+    def test_partial_snapshot_write_preserves_cleanup_failure_and_stable_fallback(self):
+        create = processes.NamedTemporaryFile
+        writer = None
+
+        def unconfirmed(*args, log_path, **kwargs):
+            nonlocal writer
+            log_path.parent.mkdir(parents=True)
+            writer = self.enterContext(log_path.open('wb', buffering=0))
+            writer.write(b'Original output without confirmed cleanup.')
+            return None, 'cleanup_failed'
+
+        def fail_once(*args, **kwargs):
+            staged = create(*args, **kwargs)
+            write = staged.write
+
+            def partial(data):
+                write(data[:10])
+                raise OSError(errno.ENOSPC, 'synthetic snapshot storage limit')
+
+            staged.write = partial
+            return staged
+
+        with (patch.object(harness, 'run_logged', unconfirmed),
+              patch.object(processes, 'NamedTemporaryFile', side_effect=fail_once) as failed_copy):
+            def create_snapshot(*args, **kwargs):
+                factory = fail_once if failed_copy.call_count == 1 else create
+                return factory(*args, **kwargs)
+
+            failed_copy.side_effect = create_snapshot
+            result = self.execute('')
+        self.assertEqual(2, failed_copy.call_count)
+        self.assertEqual(('failed', 'cleanup_failed'), (result['status'], result.get('reason_code')))
+        writer.write(b'late output')
+        log = (self.root / result['log']).read_bytes()
+        self.assertEqual(b'Process cleanup failed. Original log snapshot unavailable after an I/O error.\n', log)
+        self.assertEqual(result['log_sha256'], hashlib.sha256(log).hexdigest())
+
     @unittest.skipUnless(sys.platform == 'linux', 'requires Linux sessions and child reaping')
     def test_public_browser_check_owns_detached_listener_on_every_exit(self):
         listener = self.root / 'listener.py'

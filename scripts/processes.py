@@ -121,12 +121,25 @@ def run_logged(argv, *, cwd, env, log_path, timeout, cancel=None, contain_linux_
     return exit_code, reason
 
 
-def seal_unconfirmed_log(path: Path) -> None:
-    """Publish a bounded snapshot on an inode unavailable to surviving writers."""
+def _publish_log_snapshot(path, write):
     staged = None
     try:
-        with path.open('rb') as capture, NamedTemporaryFile(dir=path.parent, delete=False) as snapshot:
+        with NamedTemporaryFile(dir=path.parent, delete=False) as snapshot:
             staged = Path(snapshot.name)
+            write(snapshot)
+        # Closing the staged file first confirms all bytes were written.
+        # A surviving descriptor still refers to the old, unlinked file.
+        staged.replace(path)
+        staged = None
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
+
+
+def seal_unconfirmed_log(path: Path) -> None:
+    """Publish a bounded snapshot on an inode unavailable to surviving writers."""
+    def copy_extent(snapshot):
+        with path.open('rb') as capture:
             size = os.fstat(capture.fileno()).st_size
             remaining = min(size, FAILED_LOG_LIMIT)
             omitted = size - remaining
@@ -140,13 +153,14 @@ def seal_unconfirmed_log(path: Path) -> None:
                     break
                 snapshot.write(chunk)
                 remaining -= len(chunk)
-        # Closing the staged file first confirms all bytes were written.
-        # A surviving descriptor still refers to the old, unlinked file.
-        staged.replace(path)
-        staged = None
-    finally:
-        if staged is not None:
-            staged.unlink(missing_ok=True)
+
+    try:
+        _publish_log_snapshot(path, copy_extent)
+    except OSError:
+        # Discard a partial copy. If a small replacement still fits, retain
+        # the failure without certifying the output of an unconfirmed writer.
+        _publish_log_snapshot(path, lambda snapshot: snapshot.write(
+            b'Process cleanup failed. Original log snapshot unavailable after an I/O error.\n'))
 
 
 def log_tail(path, limit=6000):
