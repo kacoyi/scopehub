@@ -209,6 +209,15 @@
       },
       "supersedes": "69bd392b8070585c23fa8c28aecc4f3e63d40b96e12a0838fb6d6c4085430811",
       "evidence_sha256": "e400c293677a468989764eb8299bd23554ba1841bca13d06243be931a36592c1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "scope": "Review the corrected document and terminal exchange boundaries on the exact merged input, including standalone verdicts, authored quoted examples, original legacy transcripts, structured finals, replay identity, retained decision chronology and protected maintenance history.",
+      "supersedes": "592d39279ea733fd6c5e1e0cc382507e3fb9c33df37f5830a5c415b9a6e9908d",
+      "requested_at": "2026-11-25T18:04:20.552542+00:00",
+      "request_id": "5dbfb798d7373a9ee941d869f24cb8ecf946e337a2d890b4d6896018b661bcbf",
+      "evidence_sha256": "2fcbe557a92dfe2a37517780b691aac0e43d042449b9ae4aad36e2c6c0e0695d"
     }
   ]
 }
