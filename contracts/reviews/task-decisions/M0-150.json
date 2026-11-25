@@ -21,6 +21,15 @@
       },
       "supersedes": null,
       "evidence_sha256": "0b5d3a5063edeb06e23bf7e3735ca5809dcd5c6dd0e406f7b160380c1be01c3d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "73fd47738b1dfb2c3e2497565a5eb0a43e2d2456",
+      "scope": "Review the exact publisher-source merge and the historical Windows single-job and full-platform distinctions. Recheck both earlier independent findings against authentic report/job permutations and unsupported static lane mutations; distinguish parent timing reviews from this task.",
+      "supersedes": "b71d8c10195bf4f9d605bc57c5e57419a4affee280d0d8c33834dfebd7c3ab37",
+      "requested_at": "2026-11-25T22:14:45.961218+00:00",
+      "request_id": "146865d5117e855c05346abd84b47a155e91f72b1556969797dac1dc73646ca0",
+      "evidence_sha256": "005852f7cd4797c19460718d5faae9f7e004497886825eb1cb41e29b21d8fbce"
     }
   ]
 }
