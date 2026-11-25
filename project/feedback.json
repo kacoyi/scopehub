@@ -5211,10 +5211,14 @@
       "source": "2026-11-25 coordinator read-only retirement inventory, retained as .reports/audit-20261125/retirement-before-entry-limit.json. SHA-256 273a8ef78d3c137fc1eb7265c134f0832df700d2941bc1a31b78985c2aa29558.",
       "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M0-115"],
       "regression_checks": ["project-state", "python-contracts-workers"],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
+        "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
+        "prevention": "A native Git fixture reaches a real nested link with an explicit 20,001-entry budget and confirms the unchanged default still reports exhaustion. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
       "deferral_reason": null
     },
     {
@@ -5222,10 +5226,14 @@
       "source": "Astra Standard independent review of 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a on 2026-11-25.",
       "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": ["M0-115"],
       "regression_checks": ["project-state", "python-contracts-workers"],
-      "resolution": null,
+      "resolution": {
+        "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
+        "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
+        "prevention": "A real 64-root Git fixture with a dirty tracked file measures two retained roots with a budget of one. Additional regressions measure the initial iterator and exercise a native rename whose source begins with an ignored-status prefix. The pre-fix regression log is retained at .reports/audit-20261125/retirement-root-intake-red.log with SHA-256 f4e4c66619ab3dbe3b469437d91af1923bc37af9ca5dea9e7912ba0e204f1228. The required checks passed on d2c15146bb2f8c3606f4df3e12fca469d775f9b7."
+      },
       "deferral_reason": null
     }
   ]

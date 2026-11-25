@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-115",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20099,7 +20099,7 @@
       "id": "M0-115",
       "title": "Bound operator-selected worktree retirement observation budgets",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": ["M0-035"],
       "scope": [
         "AGENTS.md",
@@ -20122,9 +20122,9 @@
           "sha256": "5453c86f99f99c7f7ed06bf9133fe53f0d23c5fd9189f35ed0f1ab9912bec51e"
         }
       ],
-      "next_action": "Retain and classify the 200,000-entry read-only host capture initiated on 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a and hand off the separately verified correction for coordinator review.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "The corrected source d2c15146bb2f8c3606f4df3e12fca469d775f9b7 passed both required Linux checks. The already-running 200,000-entry read-only capture used 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a and cleared all three prior consumer budget errors. It classified all 92 registrations as held, with zero candidates or review intake and eight rows with observed activity. Host process visibility was unavailable. The invoking checkout's sandbox mount and changes to registrations and recovery references produced additional holds. The raw capture remains at .reports/audit-20261125/retirement-after-entry-limit.json with SHA-256 64e394ada899cdb84aa109920a66dc18e9bc30dc3c95038cdc48464fa7f5800c. The coordinator owns supported-host review and publication.",
       "plan": {
         "outcome": "An operator can complete retirement consumer observation on large worktrees while every uncertain checkout remains held.",
         "change_types": ["tooling"],
