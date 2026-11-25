@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-148",
   "tasks": [
     {
       "id": "M0-001",
@@ -25663,6 +25663,116 @@
           ],
           "data_plan": "Replay retained public artifacts and disposable local clones. Keep accepted originals and retain rejected evidence.",
           "cleanup": "Keep private red and green reports and preserve the independent task branch."
+        }
+      }
+    },
+    {
+      "id": "M0-148",
+      "title": "Verify the committed publishing catalog acceptance control on native Windows",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-145"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/project.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Explain the failure of the original native Windows committed publishing catalog control and demonstrate the first observable difference using the same Git objects or equivalent input bytes.",
+        "Verify that a full Windows sample for its actual publishing checkout qualifies. An omitted or extra check, missing catalog, and mismatched substitute digest must still be rejected. Preserve the existing expired-preview and current collection controls.",
+        "Retain the original Windows failure, independent source review, and a passing original native Windows Python check alongside the matching Linux controls. Preserve the existing M0-145 record and earlier weekly timing decisions."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45673372424-1",
+          "source_commit": "f1c7442f33129951de5d779b06e965bb124efac0",
+          "report_sha256": "dc1627a9659d1d966f36d7b6501ae6c99974efc1eda82747063c6ee28b6789b6"
+        }
+      ],
+      "next_action": "Locate the first differing input between the Windows and Linux positive control, correct its owner, and qualify the same public behavior on native Windows.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "The same committed publishing catalog and authenticated full sample yield the expected qualification on Linux and native Windows, and invalid samples preserve their rejection.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_timing.py",
+          "scripts/timing.py",
+          "scripts/project.py",
+          "archives/runs/windows-change-45673372424-1/test-report.json"
+        ],
+        "hypotheses": [
+          "Possible boundaries include Git fixture object bytes, checkout identity and the platform-specific native report selection. The Windows assertion alone does not identify which boundary differs."
+        ],
+        "risks": [
+          {
+            "failure": "A valid full native publisher is rejected, or a malformed catalog, incorrect digest or partial selection gains attribution.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test-only observation conceals a difference in the normal timing command or changes accepted weekly history.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Preserve the failed report and original Git trees, revert a correction that fails either native control and retain the separate weekly timing history.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/project/test_timing.py",
+            "scripts/timing.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changes to timing budgets, CI coverage, historic acceptance or release requirements."
+          ],
+          "open_questions": [
+            "Do both platforms construct and read the same Git tree, exact catalog, input digest and selected check set?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The weekly current-collection qualification, historical trend visibility, full native layout, and earlier accepted receipts."
+          ],
+          "change": [
+            "Correct the observed divergence at its first verified boundary."
+          ],
+          "data_plan": "Use disposable fixture repositories and the exact preserved native CI artifacts. No product profile data is involved.",
+          "cleanup": "Release the fixture repositories after retaining the required red and green observations and native evidence."
         }
       }
     }
