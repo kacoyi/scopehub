@@ -6855,6 +6855,66 @@
       "resolution": null,
       "deferral_reason": null,
       "observation": "The baseline and reviewed candidate give the split-Windows x64 aggregate job 804 seconds of protected timing to reports that change their own architecture or publisher harness ID."
+    },
+    {
+      "id": "timing-child-profile-relabel-can-claim-platform-scope",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Relabeling the recovery-only report full or records grants an 804-second protected attribution or transfers lane cache to a platform cohort. The false full claimant also suppresses the independent 35-check report."
+    },
+    {
+      "id": "timing-incompatible-member-contributes-to-aggregate-endpoints",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "A wrong-head core member fills missing aggregate runner work with 2457 seconds or suppresses a correct 2467-second observation despite the member identity conflict."
+    },
+    {
+      "id": "timing-cross-member-endpoint-union-cannot-complete-capture",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Two six-job lists omit different producer harness starts. Their joint known endpoints establish the Windows 32-second setup and 760-second harness span, but review leaves them blank and intake exhausts both attempts."
+    },
+    {
+      "id": "timing-partial-legacy-layout-falls-back-to-single-job-coverage",
+      "source": "Independent Astra review of 4356c546397200858e432ba913fb49325ed0c33b. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt (SHA-256 88fd8e9dbe8aba65777e8ca580f596f4b6fe12db2ce0ae5430ef832145e337dc).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Two incomplete 45493294184 legacy listings show part of the split membership and a short protected-only view. The single Windows job contributes 37 runner seconds and a five-second step as aggregate coverage despite missing split members."
     }
   ]
 }
