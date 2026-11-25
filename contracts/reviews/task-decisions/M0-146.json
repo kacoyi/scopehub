@@ -21,6 +21,15 @@
       },
       "supersedes": null,
       "evidence_sha256": "0a89cbb4644e54c39ae4567d26a0576a0c189de4eaf236e730f1da672994a6cb"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a3d2030997def2937ac28e961a243809fe0b40fb",
+      "scope": "Review the exact current Windows PR Python partition with its verified main-push scheduler, reject unsupported events, stale logs and missing runner exits, reconstruct ordered coverage and authenticate the original producer inventory and clocks.",
+      "supersedes": "8c4996ac74773cda44ad24b8bd6e62f20ce124758c50215ac543d5e1e83c2d09",
+      "requested_at": "2026-11-25T22:01:21.594204+00:00",
+      "request_id": "ae68dac1ede08fc747c8c141f486ef9d1f84fdedb54ed5e37cc2ab50eb069323",
+      "evidence_sha256": "bbab3bab48776cdb9754d8a06a7e55b6243214cafb3a633aeb9479219c623d3f"
     }
   ]
 }
