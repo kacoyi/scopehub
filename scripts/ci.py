@@ -372,6 +372,7 @@ def status(root=ROOT, run_id=None):
         weekly['requires_review'] = weekly['status'] != 'passed' or weekly['freshness'] != 'recent'
         result['weekly_regression'] = weekly
     result.update(repository=repository, head_sha=source['git_head'],
+                  observed_at=datetime.now(timezone.utc).isoformat(),
                   claim_scope='The run covers its reported check selection for this commit. Task and release acceptance have separate evidence.')
     if result['run']:
         if result['run']['event'] == 'workflow_dispatch':

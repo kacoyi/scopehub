@@ -6678,6 +6678,139 @@
       "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
     },
     {
+      "id": "compatibility-recovery-date-can-hide-missed-review",
+      "source": "Five independent periodic-review calibrations on protected source 6cf0d0dc87b344203ab194a2cd047d36bf801f3c. Original before/after startup, local validation and history for all five lanes are indexed under periodic-all-five-control-6cf0d0d/observation.json in the private audit.",
+      "observation": "Each of the five disposable controls advanced one overdue review with only a date edit. Each cleared the corresponding alert and passed ordinary project validation and history. No new observation was recorded. These controls establish a verification gap and do not assert that a review on protected main was missed.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The cadence reader used the stored date even when no observation accompanied the advance.",
+        "correction": "Bind changes in all five calendars to the appropriate scoped observation in public status and both history paths.",
+        "prevention": "The five date-only controls must fail. A valid new observation and a quiet week are exercised separately."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "periodic-maintenance-overclaims-and-loses-follow-through",
+      "source": "Independent Astra Standard review of f020f93145c2479a4f97edf93fca03ea649cd04c against 6cf0d0dc87b344203ab194a2cd047d36bf801f3c. Original verdict SHA-256 5635aa8bac30829484421388ca1ab127bcd0a112ce438b15fb722a9fe9d33a8c. Dated original and control reports retained privately.",
+      "observation": "The compatibility path filter hid the actual M4-018 publication reader change and rejected its scoped receipt. A modified branch projection and an obsolete compatibility endpoint could clear review. Unrelated and incomplete observations could claim recovery. Retirement and routine-calendar priority could suppress pending or serious work. In a later observed quota incident, three local runs hit EDQUOT outside the registered worktrees. The coordinator independently retained the completed M0-120 staging evidence and reclaimed its verified inactive cache. A registered-worktree inventory does not cover that boundary.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The original scope filter omitted product readers and accepted evidence with insufficient source or coverage. Priority and retirement could hide independent pending work.",
+        "correction": "Classify the changed consumer paths, verify original observations and preserve independent pending coverage through aging and retirement.",
+        "prevention": "Compatibility, branch, timing and worktree controls cover changed inputs, unrelated receipts, incomplete original evidence and outstanding work."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-review-intake-and-cold-handoff-gaps",
+      "source": "Independent Astra Standard t10m CHANGES_REQUESTED on 39921eb80c5892e5be8a8bede96ceb993ae75e33. Final manifest cc4e60bdfa549a71f3eec8af43e2e77f233b68ebd24a4bdeb85f65d2e305f3e8 and earlier findings manifest 6c2810a51a74d58d21c46c2bbbccef37f4a4f567860f0bcd5a54723bfae31a77 retained privately.",
+      "observation": "A freshly rehashed branch projection can omit all nine unique-history rows without invalidating protected history. Named retained staging cannot be admitted, legacy retirement can hide its obligation, qualified Windows recovery is not reflected, and valid same-day protection supplementation is rejected. Stable critical intake expands the full ledger and documented startup and module navigation require a writable uv cache.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Projection integrity alone did not establish completeness against original bytes. Intake and cold lookup omitted named or supplemental observations.",
+        "correction": "Verify minimized observations against originals at admission and retain source-qualified scope, follow-up and a bounded read-only route to exact records.",
+        "prevention": "Exercise incomplete branch projections, staged storage, timing recovery, same-day supplements and cold critical lookup."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "periodic-maintenance-identity-and-obligation-transitions",
+      "source": "Independent Astra Standard changes requested on b9e6a9b43dd14a475d18f83ef5869701d848d847. Original manifest 4686d7bd79e31b1b3d19ad3d8a50addf30e82bc9b6b9611cf18cff80980e318e retained privately with the concurrent intake control.",
+      "observation": "The same timing producer bytes verified with two substituted capture sources. Verified successor work could not close the final transfer. Same-day adverse evidence with new feedback was rejected and older accepted observations could be dropped after another checkpoint. Several canonical review scopes and a concurrent assignment route were omitted.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Capture identity and checkout identity could be conflated, while transfer and same-day updates could lose admitted obligations or observations.",
+        "correction": "Bind producer identities independently, preserve admitted predecessors, and follow verified successor ownership for remaining scope.",
+        "prevention": "Replay source-substitution, adverse supplements, retained predecessors and a completed successor together with urgent lookup."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "maintenance-lifecycle-and-verification-independence",
+      "source": "Independent Astra Standard changes requested on adfa09a1f9143e2a82eccdf09540a3d9852e219a against protected 21bb9dcf89b1044341cc0d37f40d537481286987. Original review manifest SHA-256 49077b8cb2fca7980c10919e3bc896d286cfd42632e193436071f31d8410ca51. The separate product calibration manifest SHA-256 3366d36f0626905cdf7936e63c5dc88f85507e805056b57f564f104db1b3edea and source-matched runs are retained privately.",
+      "observation": "A calendar-due branch review disappeared on retirement with a successor. Two verified local fast reports on successive days were considered the same observation. A new exact disposition reduced nine outstanding branch tips to eight but was rejected. Cold startup counted both matching failed checks after a narrower pass but exposed only the newest failure path. A failing weekly summary destination stopped the independent Linux product check.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Retirement, same-day transitions and compact startup could lose independent pending work. A failing scheduled summary could stop product verification.",
+        "correction": "Preserve transferred cycles, exact tip progress, local timing identity and retained-failure navigation. Publish weekly maintenance after the ordinary Linux product steps.",
+        "prevention": "Exercise transfer, distinct local runs, partial branch progress, retained failures and the Linux summary write failure with an independent product verdict."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "periodic-timing-recounts-admitted-hosted-runs",
+      "observation": "Three retained Linux PR runs were accepted on November 25, and a distinct Linux push cohort was accepted on December 2. A December 9 replay of the original PR runs then passed ordinary project and history checks and advanced the review even though every PR run had already been admitted.",
+      "source": "Independent Astra Standard changes requested on 27478e862115a1f6b33e21d2bcdb832655fb32ca. Verified original manifest SHA-256 3dd9f6160a5a8ae38e900896814e1329769e3e6347681926fd452b31ea85f38e. Original retained privately.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Freshness compared only the adjacent timing scope, allowing a previously admitted cohort to advance a later review.",
+        "correction": "Compare hosted execution identities against all admitted scoped checkpoints and require new matching observations for progress.",
+        "prevention": "Exercise nonadjacent replay, row permutations and a real new overlapping run through status and both protected history paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "same-day-branch-review-rejects-verified-default-descendant",
+      "observation": "Two retained same-day inventories on 6cf0d0dc and its verified default-branch descendant 87dd0796 both contained nine unique tips. An exact recoverable disposition verified against the later inventory reduced the pending set to eight. The same-source control was accepted, but ordinary project, history and startup rejected the verified descendant observation.",
+      "source": "Independent Astra Standard changes requested on 27478e862115a1f6b33e21d2bcdb832655fb32ca. Verified original manifest SHA-256 3dd9f6160a5a8ae38e900896814e1329769e3e6347681926fd452b31ea85f38e. Original retained privately.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Same-day progress treated changed protected revisions as unrelated before evaluating default-branch ancestry and independent protection evidence.",
+        "correction": "Accept a verified descendant with an exact newly recoverable tip disposition while retaining independent protection and outstanding tip identities.",
+        "prevention": "Exercise forward verified ancestry, unrelated and reversed histories, missing protection and a changed tip set."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "linux-browser-check-retains-preview-server-after-timeout",
       "source": "archives/runs/20261125T144154.618344Z-990d4693/test-report.json and archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/resumed-browser-processes-87dd079.json (SHA-256 4eef9030afd8ef2525a1aea1c779d0d2386d03b8b6c90d87ba1cb3885a591a2c).",
       "severity": "major",
