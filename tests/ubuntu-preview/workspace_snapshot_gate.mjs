@@ -122,10 +122,11 @@ export function observeSnapshotGate(child) {
     return {
       id,
       headers: { [snapshotTag]: id },
-      async wait(stage) {
+      async wait(stage, signal = AbortSignal.timeout(3_000)) {
+        signal.throwIfAborted();
         const key = `${id}:${stage}`;
         if (observed.has(key)) return observed.get(key);
-        const [event] = await once(events, key, { signal: AbortSignal.timeout(3_000) });
+        const [event] = await once(events, key, { signal });
         return event;
       },
       release() {

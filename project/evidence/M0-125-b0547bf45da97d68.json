@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-125",
+  "task_definition_sha256": "89a4166d0cec4de9f84648b6a3f8d726431d757c2bcc094cab4d1ce6f5607425",
+  "run_id": "20261125T091951.174516Z-6d8c68fc",
+  "recorded_at": "2026-11-25T09:23:47.914871+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "794e9318fde1e1d814ba6da85ea6d377c44d09c2ad99b6037d3412779e79ed36",
+    "file_count": 605,
+    "git_head": "ae3e770a252d670b785365e2964093e26550335a",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "b0547bf45da97d68c099d3efb70a0baa70c23b3c0f7eac3fe64e306df43adbe2",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-windows-probe-diagnostics/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-windows-probe-diagnostics/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0d734f4a41fd9814dce6e0fb4b198627d6357ac4515c9f19bda00d7fe6b1391e"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-windows-probe-diagnostics/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2f62a0bb938b886e280a57011c928d9f5ff604b57ddee9cec8fca52e3c5b7e53"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5d270e992cdeed0f91d652005d6c9f9140ed6360cf5b78fc9fb7bea2d5c0f103"
+    }
+  ],
+  "project_definition_sha256": "60e8965c5b1801b7bdc852810bae270890730613b618574e02ab3ae068d17df0",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "0d1ebb76ff37ffed4e7d7f3271096edd84e242360fda0ebadb14dc4e4db9e2fb",
+    "4ecd9fe25690a559d86325a0bc2ab228dfa5aad171e9c5735d19a927866ee3cf"
+  ]
+}

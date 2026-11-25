@@ -23472,6 +23472,1056 @@
       }
     },
     {
+      "id": "M0-122",
+      "title": "Distinguish obsolete indicator status from workspace admission in the browser contract",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-069",
+        "M0-099",
+        "M0-101"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Retain the authenticated Linux failure and paired Windows result. Preserve the difference between the hosted BUSY body and its unknown origin.",
+        "In real Chromium, cancel a held ready response and bind a different snapshot to the actual Rust writer. The exact direct status probe first receives retryable HTTP 429 while the snapshot owns admission. After its reply drains, the same obsolete task is rejected as STALE_CONTEXT. The old preview and challenges remain unacceptably stale, and the exact original accepted output survives a writer restart.",
+        "Bound the read by its existing deadline and stop on caller cancellation while the holder remains. Other responses and mutations receive no admission retry from this probe. Archive the focused control and canonical task receipt."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-122-cad66da4094c3ec1.json",
+          "sha256": "2a7d80021092eedef908a6059ad16597178b0dc81010b291dc4c27643b3adef8"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T080802.632754Z-2f17cbc5",
+          "source_commit": "78860de6b1786b91a73feed4c0c6bc822e6dfaa4",
+          "report_sha256": "e28d6079773f1f1d8cbc59a819a2783a1509acbbb79789baaad45c8d3c95d26f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T082915.991200Z-b2f075c2 at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6 passed all four task checks and all 59 workspace cases. Controlled real Chromium distinguished a retryable pre-admission HTTP 429 from the HTTP 200 STALE_CONTEXT after the matching Rust snapshot drained. Caller cancellation stopped while admission remained occupied, the old ready response stayed ineligible, obsolete acceptance was refused, and the exact saved document survived restart. The separate native indicator_lifecycle tests passed, with log SHA-256 9774aad3a4c99d653cf378d95e9ff8ff1889e2392fb8f1ea9ff67bb7e602241c. The authenticated PR 107 pair, earlier feedback and controlled red and green are retained. The original hosted BUSY stage and holder remain unknown.",
+      "plan": {
+        "outcome": "The ordinary obsolete-preview test verifies the real stale result and preserved output even if the read-only diagnostic probe briefly loses admission.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/runs/20261125T080802.632754Z-2f17cbc5/test-report.json",
+          "archives/observations/repo-hygiene-20261125/pr107-native-original-45573475685/manifest.json",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+          "crates/persistence/src/bin/workspace_bridge.rs",
+          "apps/desktop/ui/src/indicator-preview.tsx"
+        ],
+        "hypotheses": [
+          "The direct single-shot test conflates a possible admission refusal with the semantic answer. A held real snapshot can reproduce that distinction without attributing the original hosted holder."
+        ],
+        "risks": [
+          {
+            "failure": "A generic BUSY or lost mutation result gets replayed, or a status probe loses its original deadline. Check the HTTP status and retryable envelope with one bound and explicit cancellation while a holder is still active.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A late ready artifact or stale acceptance changes what the user can accept or replaces the original document. Observe the held browser request, stale status and stale mutation, and inspect exact output after restart.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain the original and controlled failure. Revert a change that masks one of the stale or persistence assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+            "crates/persistence/src/bin/workspace_bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to product polling, admission, mutation semantics, deadlines, timing PR 107 or M0-119."
+          ],
+          "open_questions": [
+            "The original hosted trace did not identify the BUSY status or writer owner."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing deadlines, stale semantic and approval checks, and exact durable output."
+          ],
+          "change": [
+            "Use a bounded read-only diagnostic probe and record the transport response separately."
+          ],
+          "data_plan": "Use an isolated synthetic browser profile, the normal Vite HTTP route and the real Rust writer.",
+          "cleanup": "Release held replies and the tagged writer on any exit, observe drain and remove the fixture profile."
+        }
+      }
+    },
+    {
+      "id": "M0-123",
+      "title": "Preserve indicator fixture cleanup and admission diagnostics",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-122"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real Chromium route forwarding fault reaches the waiting test as its original error and the route, Vite listener and profile are cleaned through the owning finally blocks. Bound forwarding and intercepted browser request completion together. Distinguish genuine browser cancellation from an absent response.",
+        "An injected port failure has no prepared profile. A profile acquired before any later fixture failure is closed.",
+        "Hold a real snapshot through several rejected output reads, exhaust only the test probe deadline and report attempts plus the last retryable 429 BUSY fields. Unexpected responses terminate immediately and caller cancellation stops without another read. Keep obsolete STALE_CONTEXT and exact reopened accepted output.",
+        "Run the combined obsolete-indicator and decision-note browser cases, workspace-timeframe and the canonical task harness. Retain both histories, the original review and M0-122 acceptance."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-123-206c7134639ae7c1.json",
+          "sha256": "4b54f7f3be5e06769a8f559430bfd17f152cb695a06ed7dc0c3dd5ca948fe7ce"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux run 20261125T084825.263828Z-3f3b6b69 on 75aca5612da59e6c4b415aee0e7b64edfff9171f passed all four task checks and all 62 workspace cases. The local Chromium injected error reaches its owning finally, including route removal, listener release and profile removal. Port failure prepared zero profiles. A held real Rust snapshot exhausted the shared output read budget with a safe refusal summary. The obsolete indicator and PR 106 decision-note cases passed on the same combined source. The original semantic stale and exact reopened output checks remain covered. M0-122 acceptance retains its original scope and receipt.",
+      "plan": {
+        "outcome": "Failures in the obsolete indicator fixture report their own cause and release owned resources, while a persistent admission refusal provides safe bounded diagnostics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The missing forwarding result, acquisition order and boolean polling diagnostics are fixture defects independent of the product status semantics."
+        ],
+        "risks": [
+          {
+            "failure": "A route error or absent response is hidden as cancellation, or the test times out before its own cleanup. Inject a live route failure, observe same error identity and check route removal, closed listener and removed profile.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A failing port allocation builds a disposable profile, or the new deadline retries admitted errors. Count acquisitions, hold a real writer for a persistent refusal, and keep admitted and cancelled controls.",
+            "checks": [
+              "workspace-timeframe",
+              "indicator-declarative-preview"
+            ]
+          }
+        ],
+        "rollback": "Retain exact red observations and accepted M0-122 evidence. Revert any fixture correction that suppresses semantic failure or changes PR 106 behavior.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Runtime, authorization, persistence or deadline changes, and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Which already-settled Chromium cancellation and no-response outcomes does the real route expose?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original stale and reopened output assertions, admitted status shape, local receipt history and combined note code."
+          ],
+          "change": [
+            "Settle owned routing failures, acquire the port first and retain the minimal bounded refusal summary."
+          ],
+          "data_plan": "Use synthetic application profiles, actual loopback Vite and a tagged native snapshot. Record only failure labels and permitted metadata.",
+          "cleanup": "Release the held response and any tagged snapshot, unregister routes, terminate the service and remove each owned profile."
+        }
+      }
+    },
+    {
+      "id": "M0-124",
+      "title": "Bound indicator read observations by the admission deadline",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-123"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_snapshot_gate.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "A real indicator probe and snapshot observer share one absolute deadline. Controlled late and withheld drained notifications release the wait and its listeners. The deadline retains the attempts and last HTTP 429 BUSY retryability.",
+        "An explicit early caller cancellation stops the same observation with the original reason and no further request. Admitted and nonretryable controls return their exact first replies; an unrelated observer error survives cancellation.",
+        "Preserve the existing forwarding fault cleanup, semantic STALE_CONTEXT, exact reopened output and PR 106 note test. Run the targeted browser cases and canonical M0-124, archive the reports, and preserve both accepted indicator tasks."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "indicator-declarative-preview",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-124-ddb7ec94f8369b42.json",
+          "sha256": "8b6ceefb30e583aced1e2417f868df23fece11b1ed063bcdacc9c7958800f88e"
+        },
+        {
+          "path": "project/evidence/M0-124-6a2e7624c628ac9b.json",
+          "sha256": "0b41b2cd6c28a6e67faf5280be54a6df9014d40c244d00c59bbdf34b010c8f58"
+        },
+        {
+          "path": "project/evidence/M0-124-b4ea2fd06ede7cef.json",
+          "sha256": "5c6fd20964e264baf468ab4c611b5df1d568d0d544302b3ffd34abbee89d6c7d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux run 20261125T090238.439791Z-34a6bf84 on 58191c3e15946cf2755a1edee23c04a6b00dbabd passed all four task checks and all 63 workspace cases. On the exact focused source, a 500 ms budget with late and withheld drain settled in 501 ms with the same HTTP 429 refusal. Explicit cancellation returned its original error in 3 ms. The observer exited with no remaining wait listener in each case. The admitted and nonretryable controls returned once and the arbitrary observer error retained its identity. The real obsolete indicator, reopened output, forwarding cleanup and PR 106 note scenarios passed. M0-122 and M0-123 retain their own acceptance and receipts.",
+      "plan": {
+        "outcome": "A stalled snapshot observation finishes within the indicator admission read budget and supplies the triggering refusal or caller cancellation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "archives/observations/m0-124-indicator-observer/astra-m0-123-75aca56.txt",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+        ],
+        "hypotheses": [
+          "The independently timed drained wait survives the outer deadline and caller cancellation because the observer never receives the read signal."
+        ],
+        "risks": [
+          {
+            "failure": "A late or missing drain overruns the read budget, loses the last refusal, or leaves listeners. Drive the actual gate with controlled IPC and a bounded loopback read; check one refusal on deadline and no late success.",
+            "checks": [
+              "indicator-declarative-preview",
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A caller cancellation is wrapped, an arbitrary observer error is disguised, or a nonretryable reply is retried. Check exact object identity and the admitted and nonretryable controls. Keep the existing native snapshot, stale, output and note scenarios.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain the reviewed source, red witness and both earlier receipts. Reverse a fixture correction if it alters native admission or the operation assertions.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_snapshot_gate.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Product code, protocol changes, longer waits and edits to PR 106 note interactions."
+          ],
+          "open_questions": [
+            "Verify that the actual event waiter removes its abort listener and returns through the observer finally when the read signal expires."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing probe timeout and backoff, standalone snapshot wait defaults, stale/accepted-output assertions, forwarding cleanup, PR 106 note case and accepted M0-122 and M0-123 records."
+          ],
+          "change": [
+            "Pass the read signal to the observation and use it for the drained wait. Bound only the existing read operation."
+          ],
+          "data_plan": "Use loopback HTTP with synthetic replies and controlled IPC notifications for the shortest regression. Run the existing real Rust and Chromium scenarios on the exact candidate.",
+          "cleanup": "Verify listener disposal before attempting late notification, close the loopback listener, and preserve original and passing reports."
+        }
+      }
+    },
+    {
+      "id": "M0-125",
+      "title": "Identify Windows handoff probe subprocess failures safely",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-121"
+      ],
+      "scope": [
+        "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_test_handoff_probe_cases.mjs",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0029"
+      ],
+      "acceptance": [
+        "Distinguish startup errors, deadline expiry, signal termination, buffer exhaustion, declared stage exits and other exit codes in the common subprocess runner.",
+        "Report only bounded and allowlisted diagnostics. Preserve the existing PowerShell probe, timing limits and native acceptance rules.",
+        "Retain the original aggregate report and reproduce missing classifications with benign controlled children before verifying the correction.",
+        "When a finished child leaves inherited output pipes open, keep its success or declared exit and bound the wait as Node execFile does. Confirm a genuinely timed-out child is gone and verify both buffer controls emit bytes."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-125-b0547bf45da97d68.json",
+          "sha256": "55bebd5496d2958908610eb5a8470653d8978f22702c0acc61f5e03b909e9569"
+        },
+        {
+          "path": "project/evidence/M0-125-ea92b5d99d5bcfa2.json",
+          "sha256": "59f4049b42b3de6117e0eaa4191674019887d2bc8c679947e52b823f8ac7341e"
+        },
+        {
+          "path": "project/evidence/M0-125-9d255cf982f84023.json",
+          "sha256": "fb58eb29c61f4440b81cb394c493ccb106ef8034632fea16f9587a45b932944b"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45579441190-1",
+          "source_commit": "c678d0e53a5546138ebf9673af8c627f64446c6c",
+          "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Guarded attempt 1 of run 45585469848 passed all M0-125 checks on 42c420f against protected base 25b4ac9. Ubuntu passed 71 workspace cases, including all eleven subprocess controls. Native Windows passed 70 workspace cases, including the private handoff ACL probe, both unsafe handoff fixtures, the profile pool ACL case, and ten subprocess controls. The POSIX child-signal control and POSIX CLI SIGINT/SIGTERM rehearsal were the two platform skips. The authentic local ae3e770 receipt remains supplementary evidence. The original c678d0e PowerShell execution failure remains unclassified. On an actual recurrence, preserve the original run, bounded diagnostic and stage before retry, then reopen the incident with the new evidence.",
+      "plan": {
+        "outcome": "A failed test-owned Windows handoff probe explains its observed subprocess disposition without exposing process inputs.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/windows-change-45579441190-1/test-report.json"
+        ],
+        "hypotheses": [
+          "A common subprocess wrapper can safely classify diagnostics previously collapsed by the caller. The failed hosted operation did not retain enough information to attribute its original cause.",
+          "Use execFile to own both its timeout and stream closure. A direct child can exit while inherited pipes remain open, so a late timeout flag alone cannot determine its outcome."
+        ],
+        "risks": [
+          {
+            "failure": "Raw child output, process arguments, a profile path or an identity is attached to a failure.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A signal, startup error or deadline is mistaken for a declared ACL rejection, or native acceptance changes.",
+            "checks": [
+              "workspace-timeframe",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Retained descendant pipes extend a completed result beyond the deadline or replace an observed declared exit. Asynchronous fixtures may emit no bytes and fail to prove buffer classification.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Revert the test-runner change and retain the hosted incident and controlled subprocess reproducers.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/ubuntu-preview/workspace_test_handoff_acl.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Product behavior, ACL policy, runner timeout expansion or an attribution unsupported by the original report."
+          ],
+          "open_questions": [
+            "Does exact hosted evidence identify measurable contention in the test-owned subprocess?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing positive and negative Windows ACL probes, native timing limits and product behavior.",
+            "Node execFile deadline and stream closure, including precedence for a completed child outcome."
+          ],
+          "change": [
+            "Expose the safe subprocess disposition on probe failures.",
+            "Retain a direct exit while inherited streams drain and verify actual overflow with synchronous writes."
+          ],
+          "data_plan": "Keep only fixed diagnostic labels and bounded numeric codes. Use synthetic subprocess inputs and retain archived original logs privately.",
+          "cleanup": "Keep the original report unchanged and discard raw child output and failure objects at the runner boundary."
+        }
+      }
+    },
+    {
+      "id": "M0-103",
+      "title": "Recover the recurrent full warm Windows PR feedback budget",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-094",
+        "M0-098"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/check.py",
+        "scripts/timing.py",
+        "project/feedback.json",
+        "tests/project",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the three original PR identities and all named outcomes. Attribute any shortening to the actual critical producer, setup or aggregate tail and account for runner work.",
+        "Record the first comparable successful ordinary post-correction PR at or below 900 seconds with exact repair ancestry. Keep failed, cold, unrelated or over-budget attempts distinct from recovery."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-103-2f19109871b6a09a.json",
+          "sha256": "23765e0d7706634ebce020e684cc4d0cb87c9cf93c95c5957a7103be793a4dfe"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Authenticated PR 96 first attempt 45563183277 passed at 876 seconds on Windows with all Cargo producers warm and the reviewed ACL correction in both tested merge parents. The 35 selected identities and outcomes matched all three originals. Browser setup explains the measured critical-path gain, chiefly Cargo restore. The original clocks, exact ancestry, job and runner work, and separate task-bound local receipt are recorded in contracts/reviews/2026-11-25-pr-timing-recurrences.json.",
+      "plan": {
+        "outcome": "A successful ordinary full warm Windows PR containing an attributable correction has feedback elapsed within 900 seconds with intact coverage.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/timing.py",
+          "project/feedback.json",
+          "archives/observations/pr-timing-recurrences-f5bb2ae/observations.json"
+        ],
+        "hypotheses": [
+          "The 910-second four-producer PR and the 917-second three-producer PR can have different critical lanes. Splitting one lane does not establish relief of the same bottleneck.",
+          "A Windows profile correctness change may prevent failures or change a timeout path. Its dedicated task and the later protected main push cannot establish this PR cohort's elapsed recovery."
+        ],
+        "risks": [
+          {
+            "failure": "A faster noncritical lane is credited for improvement of the protected feedback clock.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A manual task, main push, failed or differently covered run is passed off as comparable Windows PR recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the finding and its original evidence open. Revert any proposed optimization that changes a named outcome or cannot be attributed in comparable ordinary timing.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/check.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No new timing gate, additional hosted dispatch, reduced coverage, synthetic timings or change to protected main or historical findings."
+          ],
+          "open_questions": [
+            "Which producer gates each 910- and 917-second run, and which upcoming ordinary PR includes both the candidate change and the intended workflow base?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original authenticated reports, existing full check outcomes, timing budgets and independent PR and push scopes."
+          ],
+          "change": [
+            "Shorten the measured Windows critical segment while preserving the full checks, then use existing timing recovery handling."
+          ],
+          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified.",
+          "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
+        }
+      }
+    },
+    {
+      "id": "M0-129",
+      "title": "Observe Windows Cargo cache composition on ordinary verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-094"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/cache_composition.py",
+        "tests/project/test_cache_composition.py",
+        "project/evidence",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Use the existing ordinary full Windows core and browser producers on the designated reviewed internal pull request first attempt. Preserve check coverage, protected results, cache use and action pins.",
+        "Emit only bounded aggregate counts with exact run, source, producer job, lane, match and phase. Use current non-following Windows metadata for each regular file path and report the labeled coverage and inner-entry counts of each fixed root.",
+        "Verify both complete native snapshots for each producer against the same official run, job, selection, checkout and matched cache key. Treat restored and post-check records as runner directory observations, including any preexisting files. Producer and aggregate elapsed times include probe overhead. Assess whether a private native A/B is justified without claiming hosted timing recovery.",
+        "Preserve the exact probed Git revision and authenticated raw native results. Remove the temporary workflow steps and any now-unused helper and tests before final integration unless native findings support a separately reviewed lasting use."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-129-c8128b3975393efa.json",
+          "sha256": "c8eec6d53f0d25e7271e44bc93590580f256d31af5b75232e0c8c51edc56d75b"
+        },
+        {
+          "path": "project/evidence/M0-129-6568e37a7309aa55.json",
+          "sha256": "a2bcbb77250e00597e0b48fc9beb5a58259d8f9c0f2c94195d55148b22f1830f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Astra Standard t10n independently approved the exact clean cleanup at db18a986a6d19cd316fcd23c1f9741f484e55212. The review package is archives/observations/repo-hygiene-20261125/independent-final-m0-129-db18a986/SHA256SUMS (SHA-256 fe3eb4369d6664745a49725eac270790d383ce136ed916148f2b4e1a25427d8f). Ordinary full Windows PR 112 run 45606747991 attempt 1 records complete restored and post-check primary-exact snapshots in both core and browser and the passing native regressions. The original reports, private producer logs and source are indexed in archives/observations/m0-129-native-intake-45606747991/manifest.json (SHA-256 1784cb9e9529414c06affa97b93241b6e77880380ba346de7fbc4c9b9f9fcb9a). The two existing receipts separately cover the native probe and the executable cleanup. The single instrumented warm sample gives no sound basis for a cache exclusion or timing recovery. Reopen a private native A/B only after identifying a material, specifically attributable and reproducibly disposable file class and obtaining an equivalent isolated native seed. M0-127 partial main recovery and the M0-104 native trend remain separate observations.",
+      "plan": {
+        "outcome": "A verifiable sample of real ordinary Windows Cargo cache composition supports a concrete payload experiment decision.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/verification_scope.py",
+          "scripts/timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "Fixed-root metadata counts and separate restored and post-check observations can show which components dominate and whether an inherited payload warrants further investigation.",
+          "The private replay found 26 hardlink aliases, so path-byte totals cannot quantify stored or removable bytes."
+        ],
+        "risks": [
+          {
+            "failure": "The probe exports filenames, traverses links, or reuses a wrong source, event, scope, lane or cache class.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The diagnostic runs outside the intended PR, affects protected results, or changes cache or verification behavior.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A stopped scan or a filesystem size proxy is mistaken for complete native proof or hosted timing recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Stale Windows directory metadata gives different logical lengths for aliases of the same resized file, or obtaining fresh metadata follows a reparse point or overruns the scan budget.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Aggregated skips conceal an excluded, unobserved or failed cache root, allowing an ambiguous or incomplete observation to qualify as complete.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Remove the temporary measurement steps or skip incomplete measurements. Preserve the original verification and cached state.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No additional jobs, permissions, artifact uploads, cache mutations, forced misses, key or retention changes, externally triggered runs, or hosted timing closure."
+          ],
+          "open_questions": [
+            "Can both existing producers emit complete measurements within the bound? Does either expose a specific reusable-output experiment worth testing natively?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing producer and aggregate verification, check selection, runner clocks, cache trust and all cache policies."
+          ],
+          "change": [
+            "Measure matching cache roots with a bounded opted-in diagnostic in the two designated Windows producers."
+          ],
+          "data_plan": "Keep only fixed aggregate observations in the diagnostic log; authenticate and archive original evidence in the private project archive.",
+          "cleanup": "Preserve the exact probed commit and authenticated raw native results privately. Remove both workflow steps and any unused collector and tests from the final merge candidate. A lasting use requires concrete native evidence and separate review."
+        }
+      }
+    },
+    {
+      "id": "M0-134",
+      "title": "Route consequential findings to review before task closure",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts/development.py",
+        "scripts/herdr.py",
+        "scripts/project.py",
+        "tests/project/test_development.py",
+        "tests/project/test_herdr.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence",
+        "scripts/review_tree.py",
+        "tests/project/test_diagnostic_references.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Focused implementation and verification expose the original observation, proposed mechanism, distinguishing evidence, verification escape and unresolved next owner or trigger through the existing plan and feedback records.",
+        "The ordinary Herdr review role opens verification context. A consequential handoff can bind a full clean source commit, reject dirty or moved source and tell the reviewer what independent behavior to exercise before acceptance.",
+        "Exercise the public support commands with a representative timing capture and reopen finding, the confirmed M4-018 read boundary, the unresolved M0-119 recurrence and the exact-source profile admission control. Keep a routine path and existing evidence and history checks usable.",
+        "Follow the actual commands printed by a bound review through focused and detailed context, reopened source links and the original archive in a read-only launch. Keep current checkout operations distinct and retain ordinary and historical query admission."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-134-8d0249321fd966d9.json",
+          "sha256": "153a53da0291b6115ba4346a5ae34dc8796f9f1d5a8a18ac90863f62052beaf3"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Astra Standard t10k independently approved the read-only review handoff on clean exact c9bae572bcb74f76c63325556bb472f183944376. The original approval begins at line 978 in archives/observations/m0-134-astra-approval-c9bae57/astra-cold-c9bae57-original.txt (SHA-256 7e97c1651931ca4cfeeccd3e2931f4947a21c70d9053aee310c39d7f78875ddb). The review exercised emitted navigation, committed-record substitutions, dirty and moved source rejection, historical Git lookup, original archive resolution and ordinary repair. The existing task receipt binds the passing Linux run 20261125T125118.920277Z-85351a8d to the same execution inputs and task definition. Windows command, path and JSON Pointer controls were exercised. Native Windows execution remains outstanding with the coordinator.",
+      "plan": {
+        "outcome": "Independent review can test a consequential caller or data invariant on the named committed candidate before administrative completion. Investigation keeps an unproven cause open with a concrete next observation.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/project.py",
+          "scripts/development.py",
+          "scripts/herdr.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "M0-130 and M0-131 had passing receipts before independent review found capture and reopen disagreement. Existing checks qualified their exercised cases. The routine role launch selected implementation context, which did not make the first independent reproduction and its acceptance timing explicit.",
+          "A clean review source and an independent entry-point outcome can surface this class earlier. Compare launch inputs, a moved or dirty source, and the unchanged routine path. One pilot cannot establish a change in recurrence rates.",
+          "Shared stages can disagree on the same data. For a supported mechanism, compare independent observations at the boundary. A green run where runtime conditions differ can establish a successful control while leaving the original cause open.",
+          "A clean Git observation can bracket stale file reads. Use one immutable commit tree for every labeled review read and keep current-checkout admission separate. Compare bound and ordinary reads with the same transient substitutions.",
+          "The original reader admits the exact clean commit, but follow-on navigation can lose its bound source or reach pnpm and uv. Compose nested review reads with the same cache-free entrypoint and compare workflow state, transient working records and Git facts."
+        ],
+        "risks": [
+          {
+            "failure": "A live role reads a different commit, dirty index or dirty checkout than the one named for review.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Phase guidance confuses an unobserved original mechanism with a confirmed causal outcome or a successful rerun with closure.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The handoff creates mandatory work for routine changes, requires renewed review for additive receipts, or weakens exact hosted source and historical evidence checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Launch claims a task report as finding origin, infers mechanism from workflow status, loses an evidence caveat, or blocks maintenance on an unrelated malformed optional record.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A portable diagnostic command cannot find an explicitly configured host archive, or routine status unexpectedly reads the archive.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A printed review command loses the source after a detail or repeated verification read, reads mutable data, or needs a writable dependency cache. An archive locator or historical query can be accidentally rebound to current checkout admission.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the phase and launch change. Keep the original receipts, diagnostic evidence and open finding.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/herdr.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/review"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Hosted gate or permissions changes, product behavior changes, retroactive acceptance, a review receipt or another feedback classification."
+          ],
+          "open_questions": [
+            "At the next comparable task, did the first independent round find the defect before closure, and did only changed behavior require another round?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing routine launch, evidence digests, history enforcement, diagnostic locators and role permissions."
+          ],
+          "change": [
+            "Make causal investigation visible during implementation and review source identity actionable at the normal handoff."
+          ],
+          "data_plan": "Keep original diagnostic bytes privately. Use existing observation, hypothesis, risk, source locator and resolution fields.",
+          "cleanup": "Capture future feedback through the existing review loop. No historical rewrite or temporary compatibility entry."
+        }
+      }
+    },
+    {
+      "id": "M0-137",
+      "title": "Verify bound review with portable linked-source fixture paths",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-134"
+      ],
+      "scope": [
+        "tests/project/test_diagnostic_references.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain and distinguish the original Windows ordinary-context failure from the independent Linux physical and same-directory alias control.",
+        "Exercise transient working and immutable committed reads through the fixture on both input spellings without changing product navigation or suppressing assertions.",
+        "Exercise real working and historical source reads through a nested reference on canonical and directory-alias checkout paths. Preserve dirty review refusal and rejected outside references.",
+        "Verify exact local task and accepted history. Keep native PR retry and independent review pending."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45621069041-1",
+          "source_commit": "540aa72c18cf6bf0c1ba49ba965b8c26f229d1ad",
+          "report_sha256": "2dc65486c83de450a01a9eeda1bf2cd00a4607c3d07ab840ba4985e57eb2535c"
+        }
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-137-22efa1517d36b068.json",
+          "sha256": "10a8136ed443b6c7ff006b48f61c87b39241f162a3d75e7eb9ae3fea033d55d4"
+        },
+        {
+          "path": "project/evidence/M0-137-86b86a1936e409de.json",
+          "sha256": "d7432c2ba7c555babc008a5d5c8917cbe87f52c5324e90235d7041b671c8703f"
+        },
+        {
+          "path": "project/evidence/M0-137-a365f310b60f517d.json",
+          "sha256": "5278557f5c4463c42dd19f1bf60ba061010f422f70cc02bfd7e58e7144334275"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 015cbda17b259cbffe7908af03c5cf1ee9493782. Ordinary PR 113 run 45627611541 executed the original working-value assertion and the new nested source check successfully on native Windows and Linux at f986d231a0e2f8fe07c90d3806a892296ef88430. The original Windows failure from run 45621069041 remains linked to its retained diagnostic.",
+      "plan": {
+        "outcome": "The ordinary native verification fixture reliably distinguishes transient working data from immutable committed reads across checkout spellings.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_diagnostic_references.py",
+          "tests/project/test_continuity.py",
+          "scripts/development.py"
+        ],
+        "hypotheses": [
+          "The transient fixture compares the original contract pathname, while the engineering link expander reads the resolved file. A Linux same-directory alias reproduces the failed working assertion.",
+          "The native log establishes the same assertion failure before bound checks. Its exact temporary path spelling is unavailable. Real file and CLI controls support a test-owned correction."
+        ],
+        "risks": [
+          {
+            "failure": "A test fix bypasses the transient injection or fails to distinguish ordinary and committed reads across aliases.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The repair weakens nested source bounds, dirty review rejection or accepted M0-134 evidence.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the original failed report and revert the test-only adjustment if the preserved controls diverge.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/project/test_diagnostic_references.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Runtime navigation changes, reinterpretation of accepted M0-134, publication, dispatch or another task closure."
+          ],
+          "open_questions": [
+            "Does the same ordinary native PR entry pass the adjusted fixture on the reviewed candidate?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing product path handling, comparison and rejection semantics, approved M0-134 history and native failed evidence."
+          ],
+          "change": [
+            "Match injected contract reads by the resolved fixture identity and exercise actual nested source reads on canonical and aliased checkout paths."
+          ],
+          "data_plan": "Use synthetic local fixtures and retain genuine failure artifacts privately by their original diagnostic locator.",
+          "cleanup": "Keep the task active for independent review and a native ordinary rerun. Remove only temporary fixture-owned directories and their aliases."
+        }
+      }
+    },
+    {
+      "id": "M0-132",
+      "title": "Investigate Python worker schema reference lookup cost",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M1-047"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence/",
+        "contracts/reviews/2026-11-25-worker-schema-lookup.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Bind the authenticated Linux observation, local static lookup profile and rejected experiment to their original source and evidence digests.",
+        "Compare protected and experimental sources on the fixed shared vectors, typed codec outcomes, frame boundaries and actual one-shot and reused worker paths.",
+        "Retain the protected runtime, public exports, dependencies, checks and lock bytes. Record the independent disposition, user-workload reopening trigger and separate M0-104 hosted qualification."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-132-338cb5191f54e8d2.json",
+          "sha256": "ce304d717b633c6b650f86b5766a725d66e2d1ec68caa89843fa90f426b42e5b"
+        }
+      ],
+      "closure_reason": "Completed the investigation and retained the protected validator. Independent Astra Standard approved the evidence disposition at c6c5d6f36ea24afd4839ab044564a9f593fd572b. The candidate saved 0.514 seconds in the shared-vector test and improved 32-page worker reuse. Three distinct cold CSV observations favored the baseline. The review record separates their retained samples and specifies the product workload, latency and memory evidence needed to reopen. M0-104 retains its hosted timing qualification.",
+      "plan": {
+        "outcome": "Complete a source-bound investigation and retain the protected validator after measuring end-to-end worker costs.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+          "python/worker_runtime/protocol.py",
+          "crates/worker-host/src/local_import.rs"
+        ],
+        "hypotheses": [
+          "One-time schema preparation can reduce repeated static lookup work. Ordinary short-lived and reused worker paths determine whether that benefit outweighs process startup cost."
+        ],
+        "risks": [
+          {
+            "failure": "The investigation handoff accidentally carries experimental runtime, dependencies or changed protocol coverage.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Local timing or pre-withdrawal evidence is presented as baseline acceptance or hosted recovery.",
+            "checks": [
+              "project-state"
+            ]
+          }
+        ],
+        "rollback": "Use the exact protected execution inputs and retain the reviewed Git bundle and raw evidence privately.",
+        "implementation": {
+          "modules": [
+            "worker-runtime"
+          ],
+          "entrypoints": [
+            "python/worker_runtime/protocol.py",
+            "python/worker_runtime/local_import.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/worker-runtime-v1.json",
+              "pointer": "/protocol"
+            }
+          ],
+          "non_goals": [
+            "Product or dependency changes, new external observations, and M0-104 hosted recovery qualification."
+          ],
+          "open_questions": [
+            "Do real reused worker sessions spend meaningful user-visible time in protocol reference resolution?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Protected runtime, schema, tests, dependencies and accepted milestone history."
+          ],
+          "change": [
+            "Add the investigation disposition and a receipt for the baseline checks."
+          ],
+          "data_plan": "Use the existing privately retained raw observations and rejected source by digest.",
+          "cleanup": "Keep experimental code and experimental verification evidence only in private recovery history."
+        }
+      }
+    },
+    {
       "id": "M0-126",
       "title": "Report confirmed anonymous publisher advisory quota exhaustion",
       "milestone": "M0",
