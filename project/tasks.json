@@ -25447,8 +25447,13 @@
         "local-folder-refresh-preview",
         "state-migrations"
       ],
-      "evidence": [],
-      "next_action": "Request exact-source independent review of the source-save and recovery focus ordering alongside the preserved startup, folder and protected peer-note behavior.",
+      "evidence": [
+        {
+          "path": "project/evidence/M2-039-eaa0902ef1ea965e.json",
+          "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
+        }
+      ],
+      "next_action": "Diagnose the guarded Windows multi-file stage through the existing native operation and UI. Exercise a completed, rejected and bounded pending reply, preserve the source and provenance checks and repeat native task verification on the reviewed correction.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25462,7 +25467,8 @@
           "apps/desktop/ui/src/use-local-workspace.ts",
           "apps/desktop/ui/src/local-revision-dialog.tsx",
           "tests/ui/desktop-workspace.spec.mjs",
-          "tests/ui/local-import.spec.mjs"
+          "tests/ui/local-import.spec.mjs",
+          "archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
@@ -25502,6 +25508,12 @@
               "local-folder-refresh-preview",
               "ui-build"
             ]
+          },
+          {
+            "failure": "The native folder stage can still be pending or can return an error while an unrelated UI assertion checks only for a rendered table. A missing or rejected response must not look successful.",
+            "checks": [
+              "local-folder-refresh-preview"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -25537,7 +25549,14 @@
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."
         }
-      }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T180605.452785Z-ff5c1439",
+          "source_commit": "1a7cec7c3043bb3a061b81dd89a58d84487b25d4",
+          "report_sha256": "ec13514b46a70cbec55dac1f91936a0689e1742e8dd9616ac48d49ed517cb6c3"
+        }
+      ]
     }
   ]
 }

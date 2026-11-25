@@ -7068,6 +7068,28 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-folder-declarations-staging-verdict-unobserved",
+      "source": "Guarded native Windows M2-039 run 45671346099, attempt 1, job 139407201082. The report is archives/runs/20261125T180605.452785Z-ff5c1439/test-report.json. Its local-folder-refresh-preview log has SHA-256 52a4e8104206e7f2b99e19063c177efa98c4509fe9cde682d72af60c67cd713d.",
+      "severity": "major",
+      "status": "open",
+      "observation": "After staging conflicting CSV declarations in the real portable bridge journey, the source changes table was still absent at the five-second UI assertion. The Windows folder suite passed six other cases, including entitlement rechecks; state migrations, transport and six other selected rows collectively produced seven passes. The Linux task passed all eight. The original log records neither the stage reply nor the last UI state that could distinguish a pending operation from a product failure.",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T180605.452785Z-ff5c1439",
+          "source_commit": "1a7cec7c3043bb3a061b81dd89a58d84487b25d4",
+          "report_sha256": "ec13514b46a70cbec55dac1f91936a0689e1742e8dd9616ac48d49ed517cb6c3"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
