@@ -30,6 +30,26 @@
       "requested_at": "2026-11-25T21:59:35.363746+00:00",
       "request_id": "c67f8eb17b79997e4eaf195cd2f35f24e86cf11650e74b129ff782fd7760b66d",
       "evidence_sha256": "f150899de64610a61bc354d4451ccebce29de838083c4c979544d0d2d33188e8"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "verdict": "approved",
+      "decision": "APPROVE M0-149 a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "scope": "APPROVE M0-149 a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "observation": "I verified that the retained Chromium control delivered two 429 refusals, recorded the browser deadline on the final unforwarded status request, and then cancelled the original task exactly once.",
+      "reviewer": "Independent Astra Standard (t111)",
+      "original_sha256": "8e9e4848e15df9552eb2cc0345bff17a10608e92ce10a6fbf96e381df959d942",
+      "response_id": "acc1ac293c15b5435352dde6194df5997727d989f5ea98a59ab11369aa04accf",
+      "response_sha256": "56c9a38dcecbc80e4286292cb4f98cd9f77452600db5f9c4e0a43cb2dcb2915b",
+      "legacy_response_sha256": "eea6f215c8f11fd5230c5c672dd510d1c44a55b7fc515c7a4c7d67a93bc679d1",
+      "observation_body_sha256": "c1aa3a8abc8dd65f04990a333bb3b05b3178af1c2108a8584bb6f603eb2e4548",
+      "event": {
+        "id": "msg_01a7f09ec8c5b980016b075bc8472887d0b8dd0a066fece226",
+        "timestamp": "2026-11-25T22:06:11.325Z"
+      },
+      "supersedes": "c67f8eb17b79997e4eaf195cd2f35f24e86cf11650e74b129ff782fd7760b66d",
+      "evidence_sha256": "1c4fa2de60220d9a7b63dbe3e9b6ed2238fb3fd55ed85c413b2b14994ceef4b6"
     }
   ]
 }
