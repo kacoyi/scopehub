@@ -4,7 +4,7 @@ import argparse
 from ast import literal_eval
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
-from functools import cache
+from functools import cache, lru_cache
 from hashlib import sha256
 import json
 import os
@@ -19,7 +19,7 @@ from typing import NamedTuple
 if __package__:
     from .doctor import tool_version
     from .verification_scope import (
-        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
         require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
         windows_x64,
     )
@@ -27,7 +27,7 @@ if __package__:
 else:
     from doctor import tool_version
     from verification_scope import (
-        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit, git, json_object,
         require_complete_history, windows_lane_checks, windows_lane_report_matches, windows_published_scope,
         windows_x64,
     )
@@ -56,6 +56,7 @@ JOB_INTERVALS = {
     'browser_step': ('browser_start', 'browser_end'),
 }
 JOB_ENDPOINTS = frozenset(endpoint for pair in JOB_INTERVALS.values() for endpoint in pair)
+STEP_KINDS = ('harness', 'browser')
 SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
 WORKFLOW_SECONDS = ('total_elapsed_seconds', 'runner_work_seconds')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
@@ -93,6 +94,7 @@ BROWSER_STEPS = {
     'Start the pinned chart-test browser on Linux',
     'Install and start the pinned chart-test browser',
 }
+TIMED_STEPS = HARNESS_STEPS | BROWSER_STEPS | {f'Verify the Windows {lane} lane' for lane in WINDOWS_LANES}
 EXPECTED_FULL_OMISSIONS = {'not_implemented', 'unsupported_platform'}
 WINDOW = 3
 MIN_GROWTH_SECONDS = 60
@@ -343,12 +345,30 @@ def eligible_step(step):
             and step.get('status') not in {'queued', 'pending', 'waiting'})
 
 
+def step_identity(identities):
+    number, number_disputed = known_value(row[0] for row in identities)
+    name, name_disputed = known_value(row[1] for row in identities)
+    return ([number, name] if name else None), number_disputed or name_disputed
+
+
 def active_step(steps, names):
-    matches = [step for step in steps if step.get('name') in names and eligible_step(step)
-               and (timestamp(step.get('started_at')) or timestamp(step.get('completed_at')))]
-    if len(matches) != 1:
-        return None, None
-    return timestamp(matches[0].get('started_at')), timestamp(matches[0].get('completed_at'))
+    facts = []
+    for step in steps:
+        if step.get('name') in names and eligible_step(step):
+            start, end = timestamp(step.get('started_at')), timestamp(step.get('completed_at'))
+            if start is not None or end is not None:
+                number = step.get('number')
+                facts.append(([number if type(number) is int and number > 0 else None, step['name']], start, end))
+    identity, identity_disputed = step_identity([fact[0] for fact in facts])
+    points = {}
+    disputed = set()
+    for index, field in enumerate(('start', 'end'), start=1):
+        point, conflict = known_value(fact[index] for fact in facts)
+        if identity_disputed or conflict:
+            disputed.add(field)
+        else:
+            points[field] = point
+    return identity, points, disputed
 
 
 def job_seconds(points):
@@ -404,11 +424,15 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     if label and job.get('labels') and label not in job['labels']:
         conflicts.append('runner_label')
     start, end = timestamp(job.get('started_at')), timestamp(job.get('completed_at'))
-    harness_start, harness_end = active_step(job.get('steps', []), harness_steps)
-    browser_start, browser_end = active_step(job.get('steps', []), BROWSER_STEPS)
-    points = {'requested': requested, 'start': start, 'end': end,
-              'harness_start': harness_start, 'harness_end': harness_end,
-              'browser_start': browser_start, 'browser_end': browser_end}
+    points = {'requested': requested, 'start': start, 'end': end}
+    steps, disputed = {}, set()
+    for kind, names in zip(STEP_KINDS, (harness_steps, BROWSER_STEPS), strict=True):
+        step, observed, conflicts_at_step = active_step(job.get('steps', ()), names)
+        if step is not None:
+            steps[kind] = step
+        for field in ('start', 'end'):
+            points[f'{kind}_{field}'] = observed.get(field)
+        disputed.update(f'{kind}_{field}' for field in conflicts_at_step)
     row = {
         'job_id': str(job['id']) if job.get('id') is not None else None,
         'platform': PLATFORMS.get(label), 'runner_label': label,
@@ -417,6 +441,10 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
         'endpoints': encode_job_points(points),
         'seconds': job_seconds(points),
     }
+    if steps:
+        row['step_identities'] = steps
+    if disputed:
+        row['endpoint_disputes'] = sorted(disputed)
     if job.get('checkout_sha') is not None:
         row['checkout_sha'] = job['checkout_sha']
         if not commit_id(row['checkout_sha']):
@@ -508,7 +536,6 @@ def hosted_timing(run, jobs):
     run_id = str(run['id'])
     requested = timestamp(run.get('created_at')) if attempt == '1' else None
     identity = (run_id, attempt, run.get('head_sha'), repository)
-    jobs = list({json.dumps(job, sort_keys=True): job for job in jobs}.values())
     grounded = [job for job in jobs if not any(job_identity(*identity, job))]
     aggregate_markers = {step.get('name') for job in grounded if job.get('name') == 'verify (windows-latest)'
                          for step in job.get('steps', [])}
@@ -522,7 +549,7 @@ def hosted_timing(run, jobs):
         or any(job.get('name') in WINDOWS_PRODUCERS.values() for job in grounded)
     )
     rows, siblings = [], []
-    aggregate = None
+    aggregate_scopes = defaultdict(list)
     for job in jobs:
         name = job.get('name', '')
         protected = re.fullmatch(r'verify(?: task)? \((ubuntu-latest|windows-latest)\)', name)
@@ -530,7 +557,7 @@ def hosted_timing(run, jobs):
             row = observe_job(job, identity=identity, requested=requested, label=protected[1])
             rows.append(row)
             if split and protected[1] == 'windows-latest' and has_job_identity(row):
-                aggregate = row, job
+                aggregate_scopes[job_clock_identity(row)].append(windows_parent_profile(job))
             continue
         if not split:
             continue
@@ -547,22 +574,28 @@ def hosted_timing(run, jobs):
             row = observe_job(job, identity=identity, requested=requested, harness_steps=())
         siblings.append({**row, 'name': name})
 
+    rows, siblings = coalesce_job_observations(rows), coalesce_job_observations(siblings)
     identified = [row for row in [*rows, *siblings] if has_job_identity(row)]
-    ids = [row['job_id'] for row in identified]
+    roles = defaultdict(set)
     for row in identified:
-        if ids.count(row['job_id']) > 1:
+        roles[row['job_id']].add(job_clock_identity(row))
+    for row in identified:
+        if len(roles[row['job_id']]) > 1:
             row['identity_issues']['conflicts'].append('duplicate_job_id')
     protected, sibling_members = bound_jobs(rows), bound_jobs(siblings)
     members = [*protected, *sibling_members]
     runners = [row['seconds']['runner'] for row in members]
+    parents = [row for row in protected if row['platform'] == 'Windows']
     profile, scope_disputed = None, False
-    if split and aggregate:
-        parent, source = aggregate
-        parent_bound = has_job_identity(parent)
-        if parent_bound:
-            profile, scope_disputed = windows_parent_profile(source)
+    if split and len(parents) == 1:
+        parent, = parents
+        observations = aggregate_scopes[job_clock_identity(parent)]
+        profile, scope_disputed = known_value(scope for scope, _ in observations)
+        scope_disputed = scope_disputed or any(disputed for _, disputed in observations)
+        if scope_disputed:
+            profile = None
         producers = {lane: row for lane, name in WINDOWS_PRODUCERS.items() for row in sibling_members
-                     if row.get('name') == name} if (parent_bound and identified_layout
+                     if row.get('name') == name} if (identified_layout
                                                      and has_windows_producers(sibling_members, expected)) else {}
         parent['seconds'].update(split_stage_seconds(parent, producers, profile in SCOPED_PROFILES))
     bound_matrix = (len(protected) == len(PLATFORMS) and
@@ -668,6 +701,19 @@ def valid_sample(sample):
     )
 
 
+def valid_step_facts(job):
+    identities = job.get('step_identities', {})
+    disputes = job.get('endpoint_disputes', [])
+    return (isinstance(identities, dict) and identities.keys() <= set(STEP_KINDS)
+            and all(isinstance(key, list) and len(key) == 2
+                    and (key[0] is None or type(key[0]) is int and key[0] > 0)
+                    and isinstance(key[1], str) and key[1] in TIMED_STEPS
+                    for key in identities.values())
+            and isinstance(disputes, list) and len(disputes) <= len(JOB_ENDPOINTS)
+            and all(isinstance(field, str) and field in JOB_ENDPOINTS for field in disputes)
+            and (not (identities or disputes) or 'endpoints' in job))
+
+
 def valid_clock(run):
     if not labels(run, ('repository', 'run_id', 'run_attempt', 'event', 'head_sha', 'conclusion')):
         return False
@@ -698,6 +744,7 @@ def valid_clock(run):
                 and ('endpoints' not in job or (isinstance(job['endpoints'], dict)
                      and job['endpoints'].keys() == JOB_ENDPOINTS
                      and all(value is None or timestamp(value) is not None for value in job['endpoints'].values())))
+                and valid_step_facts(job)
                 and valid_seconds(job['seconds'], ATTEMPT_SECONDS) for job in [*jobs, *siblings]
             ) and all(job.get('name') not in WINDOWS_PRODUCERS.values() for job in jobs))
 
@@ -837,11 +884,22 @@ def merge_clock_fields(rows, fields):
 def merge_job_clock(jobs, *, projected=False):
     primary = [job_points(job) for job in jobs if 'endpoints' in job]
     legacy = [job['seconds'] for job in jobs if 'endpoints' not in job]
-    points, endpoint_disputes = {}, set()
+    points = {}
+    endpoint_disputes = {field for job in jobs for field in job.get('endpoint_disputes', ())}
+    step_identities = {}
+    for kind in STEP_KINDS:
+        identity, disputed = step_identity([job['step_identities'][kind] for job in jobs
+                                            if kind in job.get('step_identities', {})])
+        if disputed:
+            endpoint_disputes.update((f'{kind}_start', f'{kind}_end'))
+        elif identity is not None:
+            step_identities[kind] = identity
     for endpoint in sorted(JOB_ENDPOINTS):
         points[endpoint], disputed = known_value(row.get(endpoint) for row in primary)
         if disputed:
             endpoint_disputes.add(endpoint)
+        if endpoint in endpoint_disputes:
+            points[endpoint] = None
     derived = job_seconds(points)
     dependencies = dict(JOB_INTERVALS)
     if projected:
@@ -856,8 +914,34 @@ def merge_job_clock(jobs, *, projected=False):
         seconds[field] = value
     checkout, _ = known_value(job.get('checkout_sha') for job in jobs)
     representative = max(jobs, key=lambda job: json.dumps(job, sort_keys=True))
-    return ({**representative, 'endpoints': encode_job_points(points), 'seconds': seconds,
-             **({'checkout_sha': checkout} if checkout else {})}, tuple(disputes), frozenset(endpoint_disputes))
+    resolved = {**representative, 'endpoints': encode_job_points(points), 'seconds': seconds}
+    if checkout:
+        resolved['checkout_sha'] = checkout
+    resolved.pop('step_identities', None)
+    resolved.pop('endpoint_disputes', None)
+    if step_identities:
+        resolved['step_identities'] = step_identities
+    if endpoint_disputes:
+        resolved['endpoint_disputes'] = sorted(endpoint_disputes)
+    return resolved, tuple(disputes), frozenset(endpoint_disputes)
+
+
+def coalesce_job_observations(rows):
+    # One identity can carry several partial or contradictory facts in one
+    # listing, just as it can across independently retained listings.
+    grouped = defaultdict(list)
+    diagnostic = []
+    for row in distinct_observations(rows):
+        if has_job_identity(row):
+            grouped[job_clock_identity(row)].append(row)
+        else:
+            diagnostic.append(row)
+    for group in grouped.values():
+        if len(group) == 1 or known_value(row.get('checkout_sha') for row in group)[1]:
+            diagnostic.extend(group)
+        else:
+            diagnostic.append(merge_job_clock(group)[0])
+    return sorted(diagnostic, key=lambda row: (row.get('name', ''), row['job_id'] or ''))
 
 
 def complete_attempt_membership(observations, issues):
@@ -872,7 +956,11 @@ def complete_attempt_membership(observations, issues):
     checkout, _ = known_value(row.get('checkout_sha') for row in observations)
     if checkout:
         resolved['checkout_sha'] = checkout
-    workflow, disputed = merge_clock_fields([row['workflow'] for row in observations], WORKFLOW_SECONDS)
+    # Endpoint-based workflow totals derive from the jobs, so they do not supply another vote.
+    legacy = [row['workflow'] for row in observations if not any(
+        'endpoints' in job for job in (*row['jobs'], *row.get('sibling_jobs', ()))
+    )]
+    workflow, disputed = merge_clock_fields(legacy, WORKFLOW_SECONDS)
     resolved['workflow'] = {**representative['workflow'], **workflow}
     if disputed:
         timing_issue(issues, {'run_id': run_id, 'fields': disputed, 'error': 'Conflicting complete attempt clocks.'})
@@ -1205,14 +1293,14 @@ def split_windows_report(sample):
     )
 
 
-def producer_measurements(sample, lanes, selected=None):
+def producer_measurements(sample, lanes, selected):
     if not split_windows_report(sample):
         return None
     lane = sample['profile'].removeprefix('ci-windows-')
     claimed = set(sample['selected'])
     if not claimed or len(claimed) != len(sample['selected']):
         return None
-    if claimed != windows_lane_checks(claimed if selected is None else selected, lane, lanes):
+    if claimed != windows_lane_checks(selected, lane, lanes):
         return None
     measurements = [row for row in sample['checks'] if row['id'] in claimed]
     if len(measurements) != len(claimed) or {row['id'] for row in measurements} != claimed:
@@ -1241,41 +1329,106 @@ def matched_producer_caches(sample, producers, run):
     return states
 
 
-@cache
-def native_publishing_catalog():
-    return read_json(Path(__file__).resolve().parents[1] / 'project/checks.json')
+@lru_cache(maxsize=128)
+def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
+    try:
+        if not commit_id(revision) or git(root, 'cat-file', '-t', revision).strip() != object_type:
+            return False, None
+    except (ScopeError, OSError, subprocess.SubprocessError):
+        return False, None
+    try:
+        path = f'{revision}:project/checks.json'
+        if int(git(root, 'cat-file', '-s', path)) > COMPACT_LIMIT:
+            return True, None
+        catalog = json_object(git(root, 'cat-file', 'blob', path))
+        rows = catalog['checks']
+        ids = {row['id'] for row in rows}
+        if (not isinstance(rows, list) or not ids or len(rows) != len(ids)
+                or not all(short_label(key) for key in ids)
+                or not all(row['status'] in {'implemented', 'planned', 'retired'}
+                           and row.get('cadence', 'change') in {'change', 'task', 'release'} for row in rows)):
+            return True, None
+        profiles = catalog.get('profiles', {})
+        if not isinstance(profiles, dict) or any(
+            not isinstance(keys, list) or len(set(keys)) != len(keys) or not set(keys) <= ids
+            for name, keys in profiles.items() if name in SCOPED_PROFILES
+        ):
+            return True, None
+        return True, catalog
+    except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
+        return True, None
+
+
+@lru_cache(maxsize=128)
+def committed_publishing_inputs(revision, *, root=ROOT):
+    # The task harness already owns the historical execution-input digest.
+    if __package__:
+        from .project import ProjectError, committed_source_identity
+    else:
+        from project import ProjectError, committed_source_identity
+    try:
+        return committed_source_identity(root, revision)['sha256']
+    except (ProjectError, ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
+        return None
+
+
+def published_catalog(sample):
+    ci = sample['ci']
+    present, catalog = native_publishing_catalog(ci['checkout_sha'])
+    if present or ci['event'] != 'pull_request' or not sample.get('inputs_sha256'):
+        return catalog
+    # An expired PR merge commit can have the same inputs as its exact head,
+    # or a retained merge-tree proof. Bind the catalog to the reported digest.
+    _, catalog = native_publishing_catalog(ci['head_sha'])
+    if catalog is not None and committed_publishing_inputs(ci['head_sha']) == sample['inputs_sha256']:
+        return catalog
+    proof = generated_contracts_proof(sample, eligible_only=False)
+    if proof:
+        _, catalog = native_publishing_catalog(proof['tree'], object_type=b'tree')
+        if catalog is not None and committed_publishing_inputs(proof['tree']) == sample['inputs_sha256']:
+            return catalog
+    return None
 
 
 def native_report_issue(sample, run, issues):
-    if sample['platform'] != 'Windows':
+    ci, profile = sample['ci'], sample['profile']
+    producer = windows_producer_job_name(sample)
+    if (sample['platform'] != 'Windows' or not ci or ci['event'] not in NORMAL_EVENTS
+            or not sample_identity_complete(sample)
+            or (not producer and profile not in AUTOMATIC_PROFILES)):
         return False
     lanes = windows_clock_lanes(run)
-    producer = windows_producer_job_name(sample)
-    if producer:
-        if producer_measurements(sample, lanes or WINDOWS_LANES) is not None:
-            return False
-        timing_issue(issues, {'run_id': observation_id(sample), 'platform': 'Windows', 'producer': producer,
-                              'error': 'Timing producer does not match its native publisher identity or check selection.'})
-        return True
-    profile = sample['profile']
     split_report = 'windows_caches' in sample or split_windows_report(sample)
-    if profile in AUTOMATIC_PROFILES and (lanes or split_report):
-        workflow = run['workflow'] if run else {}
-        parent = workflow.get('windows_profile')
-        selected = set(sample['selected'])
-        measured = [row['id'] for row in sample['checks']
-                    if row['id'] in selected and row['reason_code'] != 'not_selected']
-        native = (len(selected) == len(sample['selected']) == len(measured) and set(measured) == selected
-                  and windows_published_scope(selected, profile, lanes or WINDOWS_LANES, native_publishing_catalog()))
-        platform = {'system': sample['platform'], 'machine': sample['arch']}
-        report_identity = split_windows_report(sample) if profile == 'full' else windows_x64(platform)
-        if (native and report_identity and (run is None or lanes) and not workflow.get('windows_profile_disputed')
-                and (parent is None or parent == profile)):
+    workflow = run['workflow'] if run else {}
+    parent = workflow.get('windows_profile')
+    platform = {'system': sample['platform'], 'machine': sample['arch']}
+    split_identity = split_windows_report(sample)
+    if producer:
+        identity = split_identity
+    else:
+        identity = (windows_x64(platform) and (not (split_report or lanes) or (
+            (profile != 'full' or split_identity) and (run is None or lanes)
+            and not workflow.get('windows_profile_disputed') and (parent is None or parent == profile)
+        )))
+    selected = set(sample['selected'])
+    measured = [row['id'] for row in sample['checks'] if row['reason_code'] != 'not_selected'
+                and row['id'] in selected]
+    extra_result = any(row['id'] not in selected and row['status'] in {'passed', 'failed'}
+                       for row in sample['checks'])
+    catalog = published_catalog(sample) if identity and sample['task_id'] is None else None
+    if catalog is not None and not extra_result and len(measured) == len(selected) and set(measured) == selected:
+        if windows_published_scope(sample['selected'], profile, lanes or WINDOWS_LANES, catalog):
             return False
-        timing_issue(issues, {'run_id': observation_id(sample), 'platform': 'Windows',
-                              'error': 'Timing aggregate does not match its native publisher identity, job layout or check scope.'})
-        return True
-    return False
+    issue = {'run_id': observation_id(sample), 'platform': 'Windows'}
+    if producer:
+        issue['producer'] = producer
+    if identity and sample['task_id'] is None and catalog is None:
+        error = 'Native timing check selection is unknown because the publishing catalog is unavailable.'
+    else:
+        kind = 'producer' if producer else 'aggregate' if (lanes or split_report) else 'report'
+        error = f'Timing {kind} does not match its native publisher identity, job layout or check scope.'
+    timing_issue(issues, {**issue, 'error': error})
+    return True
 
 
 def merge_samples(samples, hosted, issues):
@@ -1314,7 +1467,7 @@ def merge_samples(samples, hosted, issues):
                 and sample['profile'] == 'full' and 'windows_caches' not in sample):
             cache = 'unknown'
         yield {**sample, 'seconds': seconds, 'cache': cache,
-               'job': {key: value for key, value in job.items() if key not in {'seconds', 'endpoints'}} if job else None,
+               'job': {key: value for key, value in job.items() if key not in {'seconds', 'endpoints', 'step_identities', 'endpoint_disputes'}} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
                'workflow_conclusion': run['conclusion'] if run else None,
                'hosted_head_branch': run.get('head_branch') if run else None,

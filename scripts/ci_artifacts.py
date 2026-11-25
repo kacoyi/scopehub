@@ -23,7 +23,7 @@ if __package__:
     )
     from .verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
-        windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id,
+        windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
     )
 else:
     from check import PRIVATE_CHECK_LOGS, ci_provenance, redacted_check_log
@@ -39,7 +39,7 @@ else:
     )
     from verification_scope import (
         SCOPED_PROFILES, WINDOWS_LANES, ci_base, ci_event_checkout, require_ancestor,
-        windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id,
+        windows_lane_checks, windows_lane_report_matches, windows_lanes_run_id, windows_published_scope,
     )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -352,7 +352,8 @@ def validate_windows_lane(project, report, source, ci, selected, lane, profile):
             or report['task_definitions'] != {key: task_definition_hash(task) for key, task in project['tasks'].items()}
             or not windows_x64(report['environment'])):
         raise PublicationError(f'Windows {lane} lane has another checkout, run, platform or project definition.')
-    if (report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}
+    if (not windows_published_scope(selected, profile, WINDOWS_LANES, project['catalog'])
+            or report['selection'] != {'profile': profile, 'task_id': None, 'checks': sorted(selected)}
             or [row['id'] for row in report['checks']] != check_ids
             or report['native_requirement'] != {'requested': False, 'satisfied': True}):
         raise PublicationError(f'Windows {lane} lane has a different selection or catalog order.')

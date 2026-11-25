@@ -57,11 +57,13 @@ def hosted_check_selection(catalog, profile):
 
 def windows_published_scope(selected, profile, lanes, catalog):
     if profile in SCOPED_PROFILES:
-        return selected == hosted_check_selection(catalog, profile)
-    # The full catalogue has grown across layouts. A historical aggregate
-    # still has the native core gates and a selection for every producer.
-    return (profile == 'full' and {'environment', 'project-state', 'windows-native-build'} <= selected
-            and all(windows_lane_checks(selected, lane, lanes) for lane in lanes))
+        expected = hosted_check_selection(catalog, profile)
+    else:
+        expected = hosted_check_selection(catalog, None)
+        if profile != 'full':
+            lane = profile.removeprefix('ci-windows-')
+            expected = windows_lane_checks(expected, lane, lanes) if profile.startswith('ci-windows-') else set()
+    return bool(expected) and len(selected) == len(expected) and set(selected) == expected
 
 
 SCOPE_REASONS = {

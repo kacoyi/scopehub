@@ -1,6 +1,7 @@
 """Exercise timing distinctions and regression decisions with synthetic observations."""
 
 from contextlib import redirect_stderr, redirect_stdout
+from copy import deepcopy
 from datetime import timedelta
 from io import StringIO
 import json
@@ -93,12 +94,34 @@ def fast_report(day, elapsed):
     return report
 
 
+BASIC_CHECKS = ('environment', 'project-state')
+SPLIT_CHECKS = ('windows-native-build', 'workspace-timeframe', 'python-contracts-workers', 'market-recovery')
+RECORDS_CHECKS = ('generated-contracts', 'dependency-review')
+OLD_FULL_CHECKS = (*BASIC_CHECKS, 'future-check', 'windows-native-build')
+
+
+def fixture_catalog(full=BASIC_CHECKS, *, records=(), non_change=()):
+    extras = (*records, *non_change)
+    return {'checks': [
+        {'id': key, 'status': 'planned' if key == 'future-check' else 'implemented',
+         'cadence': 'task' if key in extras else 'change'} for key in (*full, *extras)
+    ], 'profiles': {'records': [*BASIC_CHECKS, *records]} if records else {}}
+
+
+SPLIT_CATALOG = fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS), records=RECORDS_CHECKS)
+OLD_FULL_CATALOG = fixture_catalog(OLD_FULL_CHECKS, non_change=('release-artifacts',))
+
+
+def use_catalog(test, catalog):
+    test.enterContext(patch.object(timing, 'native_publishing_catalog', return_value=(True, catalog)))
+
+
 def split_harness_report(elapsed, *, profile='full'):
     report = fast_report(20, elapsed)
     checks = {
-        'full': ('windows-native-build', 'workspace-timeframe', 'python-contracts-workers', 'market-recovery'),
-        'records': ('generated-contracts', 'dependency-review'),
-        'ci-windows-core': (),
+        'full': SPLIT_CHECKS,
+        'records': RECORDS_CHECKS,
+        'ci-windows-core': ('windows-native-build',),
     }
     for key in checks[profile]:
         report['selection']['checks'].append(key)
@@ -136,6 +159,7 @@ class ReportTimingTests(unittest.TestCase):
         self.assertEqual('not_restored', timing.report_sample(report, cache='not_restored')['cache'])
 
     def test_aggregate_cache_observations_preserve_comparison_without_promoting_a_missing_restore(self):
+        use_catalog(self, SPLIT_CATALOG)
         report = split_harness_report(600)
         report['selection']['profile'] = 'full'
         report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
@@ -240,6 +264,9 @@ class ReportTimingTests(unittest.TestCase):
 
 
 class HostedTimingTests(unittest.TestCase):
+    def setUp(self):
+        use_catalog(self, SPLIT_CATALOG)
+
     def split_windows_jobs(self, *, scoped=False):
         full = 'Run uv run python scripts/check.py --require-windows'
         core = hosted_job(32, 'windows', '00:20', '02:00' if scoped else '09:00',
@@ -291,6 +318,39 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual({'total': 765, 'queue': 8, 'aggregate_setup': 19, 'harness_step': 695},
                                  {row['metric']: row['recent_median_seconds'] for row in review['metrics']
                                   if row['metric'] in {'total', 'queue', 'aggregate_setup', 'harness_step'}})
+
+    def test_numbered_step_facts_are_independent_of_order_and_listing_boundaries(self):
+        jobs = list(self.split_windows_jobs())
+        browser_index = 2
+        browser = jobs[browser_index]
+        run = hosted_run()
+        original = timing.hosted_timing(run, jobs)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(original))), 'checkout_sha': 'a' * 40}
+        protected = timing.report_sample(report)
+        samples = [protected, lane_sample(protected, 'browser')]
+        changed_endpoint = deepcopy(browser)
+        changed_endpoint['steps'][1]['completed_at'] = '2026-11-20T00:01:25Z'
+        for claim, expected in ((browser, 30), (changed_endpoint, None)):
+            reordered = dict(claim, steps=claim['steps'][::-1])
+            other = timing.hosted_timing(run, [*jobs[:browser_index], reordered, *jobs[browser_index + 1:]])
+            regrouped = timing.hosted_timing(run, [reordered, *reversed(jobs), reordered])
+            duplicate_step = dict(browser, steps=[*browser['steps'], *reordered['steps']])
+            one_job = timing.hosted_timing(run, [*jobs[:browser_index], duplicate_step, *jobs[browser_index + 1:]])
+            for readings in ([original, other], [other, original, other], [regrouped], [one_job]):
+                with self.subTest(expected=expected, count=len(readings)), tempfile.TemporaryDirectory() as temporary:
+                    path = Path(temporary) / 'capture.json'
+                    timing.save_timing_capture(path, 0, samples, readings, [])
+                    _, retained, clocks, _ = timing.read_timing_capture(path)
+                    view = timing.timing_view(retained, hosted=clocks)
+                    rows = {row['profile']: row['seconds'] for row in view['samples']}
+                    self.assertEqual((765, 1687), (rows['full']['total'], rows['full']['runner']))
+                    self.assertEqual(720, rows['ci-windows-browser']['total'])
+                    self.assertEqual([expected, expected], [row['browser_step'] for row in rows.values()])
+                    expected_diagnostics = set() if expected is not None else {
+                        'Conflicting Windows producer job measurements.', 'Conflicting Windows aggregate stage inputs.',
+                    }
+                    self.assertEqual(expected_diagnostics, {issue['error'] for issue in view['input_issues']})
 
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()
@@ -996,6 +1056,51 @@ class PRMainComparisonTests(unittest.TestCase):
         return self.git('commit-tree', tree or self.tree,
                         *(arg for parent in parents for arg in ('-p', parent)), '-m', message)
 
+    def test_selection_comes_from_committed_publishing_catalog(self):
+        full = (*BASIC_CHECKS, 'generated-contracts', 'windows-native-build')
+        catalog = fixture_catalog(full, non_change=('release-artifacts',))
+        newer = fixture_catalog((*full, 'architecture'), non_change=('release-artifacts',))
+
+        def with_catalog(label, data, parent):
+            blob = self.git('hash-object', '-w', '--stdin', contents=json.dumps(data))
+            project = self.git('mktree', contents=f'100644 blob {blob}\tchecks.json\n')
+            policy = self.git('hash-object', '-w', '--stdin', contents='INPUT_EXCLUSIONS = []')
+            scripts = self.git('mktree', contents=f'100644 blob {policy}\tproject.py\n')
+            tree = self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
+            return self.commit(label, parent, tree=tree)
+
+        publisher = with_catalog('Publishing checkout', catalog, self.head)
+        newer_head = with_catalog('Other catalog', newer, self.head)
+        load = timing.native_publishing_catalog
+        self.enterContext(patch.object(timing, 'native_publishing_catalog',
+                                       side_effect=lambda revision, **options: load(revision, root=self.root, **options)))
+        snapshot = timing.committed_publishing_inputs
+        self.enterContext(patch.object(timing, 'committed_publishing_inputs',
+                                       side_effect=lambda revision: snapshot(revision, root=self.root)))
+        report = fast_report(20, 190)
+        report['environment'].update(system='Windows', machine='AMD64')
+        report['source'].update(git_head=publisher, sha256=snapshot(publisher, root=self.root))
+        report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                        'event': 'pull_request', 'head_sha': newer_head, 'checkout_sha': publisher}
+        report['selection'].update(profile='full', checks=list(full))
+        report['checks'] = [dict(report['checks'][0], id=key) for key in full]
+        report['checks'].append({'id': 'release-artifacts', 'status': 'blocked', 'reason_code': 'not_selected'})
+        original = timing.report_sample(report)
+        self.assertFalse(timing.native_report_issue(original, None, []))
+        for omitted in full:
+            broken = dict(original, selected=[key for key in original['selected'] if key != omitted])
+            self.assertTrue(timing.native_report_issue(broken, None, []))
+        surplus = dict(original, selected=[*original['selected'], 'release-artifacts'])
+        self.assertTrue(timing.native_report_issue(surplus, None, []))
+        missing = 'f' * 40
+        expired = dict(original, source_commit=missing,
+                       ci=dict(original['ci'], checkout_sha=missing, head_sha=publisher))
+        self.assertFalse(timing.native_report_issue(expired, None, []))
+        self.assertTrue(timing.native_report_issue(dict(expired, inputs_sha256='a' * 64), None, []))
+        issues = []
+        self.assertTrue(timing.native_report_issue(dict(expired, ci=dict(expired['ci'], head_sha=missing)), None, issues))
+        self.assertIn('publishing catalog is unavailable', issues[0]['error'])
+
     def observe(self, commit, *, push=False, edit_report=None, rustfmt=None, platform='ubuntu', ref=None):
         run_id = 12 if push else 11
         run = dict(hosted_run(run_id=run_id), event='push' if push else 'pull_request',
@@ -1192,6 +1297,7 @@ class TimingRegressionTests(unittest.TestCase):
                 self.assertEqual(breaches, metric['recent_objective_breaches'])
 
     def test_offline_status_routes_comparable_hosted_growth_below_budget(self):
+        use_catalog(self, fixture_catalog())
         samples, workflows = [], []
         for day, finish in enumerate(('08:50', '09:00', '09:10', '11:00', '11:10', '11:20'), start=14):
             run = hosted_run(run_id=day, day=day)
@@ -1254,6 +1360,11 @@ class TimingRegressionTests(unittest.TestCase):
                     self.assertEqual(200, sample['seconds']['harness_step'])
 
     def test_objective_breaches_remain_visible_across_hosted_coverage_change(self):
+        changed_commit = 'b' * 40
+        changed_catalog = fixture_catalog((*OLD_FULL_CHECKS, 'chart-history'), non_change=('release-artifacts',))
+        self.enterContext(patch.object(timing, 'native_publishing_catalog', side_effect=lambda revision: (
+            True, changed_catalog if revision == changed_commit else OLD_FULL_CATALOG,
+        )))
         samples, workflows = [], []
         for day, finish in enumerate(('14:50', '15:01', '18:01'), start=14):
             run = hosted_run(run_id=day, day=day)
@@ -1264,15 +1375,18 @@ class TimingRegressionTests(unittest.TestCase):
             windows = hosted_job(day * 10 + 1, 'windows', '00:20', finish,
                                  'Run uv run python scripts/check.py --require-windows', '00:50', '14:30',
                                  run_id=day, day=day)
-            workflows.append(timing.hosted_timing(run, [linux, windows]))
+            revision = changed_commit if day == 16 else 'a' * 40
+            workflows.append(timing.hosted_timing(dict(run, head_sha=revision),
+                                                 [dict(job, head_sha=revision) for job in (linux, windows)]))
 
             report = historical_report()
             report.update(run_id=f'202611{day:02}T000000.000000Z-aabbccdd',
                           generated_at=f'2026-11-{day:02}T00:14:30Z', status='passed',
                           environment={'system': 'Windows', 'machine': 'AMD64'}, ci={
                               'repository': 'fixture/scopehub', 'run_id': str(day), 'run_attempt': '1',
-                              'event': 'push', 'head_sha': 'a' * 40, 'checkout_sha': 'a' * 40,
+                              'event': 'push', 'head_sha': revision, 'checkout_sha': revision,
                           })
+            report['source']['git_head'] = revision
             native = next(result for result in report['checks'] if result['id'] == 'windows-native-build')
             native.pop('reason_code')
             native.update(status='passed', exit_code=0, duration_seconds=120)
@@ -1299,7 +1413,10 @@ class TimingRegressionTests(unittest.TestCase):
         self.assertEqual([], timing.budget_follow_up(view, [], {})['repeated_breaches'])
 
         # Only an equivalent cache and coverage cohort can trigger recurrence.
-        samples[-1] = dict(samples[-1], checks=samples[-2]['checks'], selected=samples[-2]['selected'])
+        source = samples[-2]['source_commit']
+        samples[-1] = dict(samples[-1], checks=samples[-2]['checks'], selected=samples[-2]['selected'],
+                           source_commit=source, ci=dict(samples[-1]['ci'], head_sha=source, checkout_sha=source))
+        workflows[-1] = dict(workflows[-1], head_sha=source)
         mixed = timing.timing_view([*samples[:-1], dict(samples[-1], cache='cold')], hosted=workflows)
         self.assertEqual([], timing.budget_follow_up(mixed, [], {})['repeated_breaches'])
 
@@ -1407,6 +1524,7 @@ class TimingRegressionTests(unittest.TestCase):
         return json.loads(output.getvalue()) if output.getvalue() else errors.getvalue()
 
     def test_cli_preserves_distinct_windows_producer_reports_and_reports_real_conflicts(self):
+        use_catalog(self, SPLIT_CATALOG)
         report = split_harness_report(500)
         report['ci'] = {
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
@@ -1454,6 +1572,7 @@ class TimingRegressionTests(unittest.TestCase):
             self.assertFalse(bad_archive.exists())
 
     def test_cli_scope_validation_and_matching_compact_siblings(self):
+        use_catalog(self, fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS, 'future-check')))
         report = split_harness_report(500, profile='ci-windows-core')
         report['ci'] = {
             'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
@@ -1685,6 +1804,7 @@ class TimingRegressionTests(unittest.TestCase):
                     self.assertEqual(original, archive.read_bytes())
 
     def test_resolved_collection_history_survives_save_load_save(self):
+        use_catalog(self, OLD_FULL_CATALOG)
         run_id = 45438134397
         run = dict(hosted_run(run_id=run_id), conclusion='failure')
         linux = hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50', run_id=run_id)
@@ -1774,10 +1894,20 @@ class TimingRegressionTests(unittest.TestCase):
 
 
 class RecentTimingTests(unittest.TestCase):
+    def setUp(self):
+        default_catalog = fixture_catalog()
+        self.catalogs = {}
+        self.missing_catalogs = set()
+        self.enterContext(patch.object(timing, 'native_publishing_catalog', side_effect=lambda revision: (
+            (False, None) if revision in self.missing_catalogs else (True, self.catalogs.get(revision, default_catalog))
+        )))
+
     def budget_run(self, day, finish, *, head='a' * 40, cache='warm', event='pull_request',
                    checkout=None, outcome='success', extra_check=False):
         repository = 'fixture/scopehub'
         checkout = checkout or head
+        if extra_check:
+            self.catalogs[checkout] = fixture_catalog((*BASIC_CHECKS, 'extra-check'))
         run = dict(hosted_run(run_id=day, day=day), head_sha=head, event=event, conclusion=outcome,
                    head_branch='main' if event == 'push' else 'repair')
         jobs = [
@@ -1824,9 +1954,9 @@ class RecentTimingTests(unittest.TestCase):
                                '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', *args],
                               capture_output=True, check=True, text=True).stdout.strip()
 
-    def preview_checkout(self, root, base, head):
+    def preview_checkout(self, root, base, head, *, subject='Test PR merge'):
         tree = self.fixture_git(root, 'rev-parse', f'{base}^{{tree}}')
-        preview = self.fixture_git(root, 'commit-tree', tree, '-p', base, '-p', head, '-m', 'Test PR merge')
+        preview = self.fixture_git(root, 'commit-tree', tree, '-p', base, '-p', head, '-m', subject)
         self.fixture_git(root, 'update-ref', f'refs/tags/fixture-{preview[:10]}', preview)
         return preview
 
@@ -1889,6 +2019,9 @@ class RecentTimingTests(unittest.TestCase):
 
         unavailable = 'f' * 40
         historical = self.budget_run(18, '14:40', head=topic, checkout=unavailable)
+        self.missing_catalogs.add(unavailable)
+        self.catalogs.update(dict.fromkeys((before, topic), fixture_catalog((*BASIC_CHECKS, timing.GENERATED_CHECK))))
+        self.enterContext(patch.object(timing, 'committed_publishing_inputs', return_value='c' * 64))
         for observation in (older, baseline, historical):
             for sample in observation[1]:
                 sample['selected'].append(timing.GENERATED_CHECK)
@@ -2091,7 +2224,9 @@ class RecentTimingTests(unittest.TestCase):
         post = [self.budget_run(10, '12:00', head=after, checkout=checkout), # An out-of-order earlier run.
                 self.budget_run(16, '12:00', head=before),                 # Earlier code, later clock.
                 self.budget_run(17, '12:00', head=after, checkout=checkout, cache='cold'),
-                self.budget_run(18, '12:00', head=after, checkout=checkout, extra_check=True),
+                self.budget_run(18, '12:00', head=after,
+                                checkout=self.preview_checkout(root, before, after, subject='Additional check'),
+                                extra_check=True),
                 self.budget_run(19, '12:00', head=after, event='workflow_dispatch'),
                 self.budget_run(20, '18:00', head=after, checkout=checkout), # Faster but still over budget.
                 self.budget_run(21, '12:00', head=after, checkout=checkout, outcome='failure')]
@@ -2254,7 +2389,10 @@ class RecentTimingTests(unittest.TestCase):
                 view = timing.budget_status(samples, [a, *duplicates, c], [], [], {})
                 breach, = view['repeated_breaches']
                 self.assertEqual(['14', '16'], breach['recent_runs'])
-                self.assertTrue(any('Conflicting complete attempt clocks' in issue['error'] for issue in view['input_issues']))
+                self.assertTrue(any(issue.get('run_id') == '15' and issue.get('platform') == 'Windows'
+                                    and 'total' in issue.get('fields', ())
+                                    and issue['error'] == 'Conflicting protected job measurements.'
+                                    for issue in view['input_issues']))
 
     def test_current_capture_backfills_and_merges_local_and_shared_observations(self):
         run, rows, clock = self.budget_run(14, '17:00')
