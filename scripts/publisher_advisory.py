@@ -43,11 +43,18 @@ def public_record(body):
 
 
 def _anonymous_quota_diagnostic(response):
-    # HTTPResponse joins repeated fields, so exact equality also rejects ambiguous values.
-    if response.getheader('X-RateLimit-Remaining') != '0':
+    headers = response.headers
+    # A parser defect can hide later conflicting fields from the parsed header block.
+    if headers.defects:
+        return b''
+    remaining = headers.get_all('X-RateLimit-Remaining', [])
+    if len(remaining) != 1 or remaining[0].strip(' \t') != '0':
         return b''
     diagnostic = 'Publisher advisory unavailable (HTTP 403). Anonymous API quota exhausted.'
-    reset = response.getheader('X-RateLimit-Reset', '')
+    resets = headers.get_all('X-RateLimit-Reset', [])
+    if len(resets) != 1:
+        return diagnostic
+    reset = resets[0].strip(' \t')
     if not (1 <= len(reset) <= 12 and reset.isascii() and reset.isdecimal()):
         return diagnostic
     try:

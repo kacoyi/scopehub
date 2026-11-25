@@ -26,8 +26,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def publisher_reply(status, headers):
-    wire_headers = ''.join(f'{name}: {value}\r\n' for name, value in headers)
-    wire = f'HTTP/1.1 {status} Fixture\r\n{wire_headers}\r\n'.encode('ascii')
+    wire_headers = ''.join(f'{line}\r\n' for line in headers)
+    wire = f'HTTP/1.1 {status} Fixture\r\n{wire_headers}\r\n'.encode('latin-1')
     response = HTTPResponse(Mock(makefile=Mock(return_value=BytesIO(wire))))
     response.begin()
     return response
@@ -82,7 +82,7 @@ class PublisherAdvisoryTests(unittest.TestCase):
             self.assertEqual([call(self.token), call(None)], get.call_args_list)
 
     def test_hosted_anonymous_fallback_keeps_the_generic_error(self):
-        quota = [('X-RateLimit-Remaining', '0'), ('X-RateLimit-Reset', '1795601698')]
+        quota = ['X-RateLimit-Remaining: 0', 'X-RateLimit-Reset: 1795601698']
         with patch.object(publisher, 'HTTPSConnection') as connect:
             connection = connect.return_value
             connection.getresponse.side_effect = [publisher_reply(403, quota), publisher_reply(403, quota)]
@@ -293,26 +293,33 @@ class DependencyTests(unittest.TestCase):
 
         generic = 'Publisher advisory unavailable (HTTP 403)'
         exhausted = f'{generic}. Anonymous API quota exhausted.'
-        reset = ('X-RateLimit-Reset', '1795601698')
-        remaining = ('x-ratelimit-remaining', '0')
+        reset = 'X-RateLimit-Reset: 1795601698'
+        remaining = 'x-ratelimit-remaining: 0'
+        with_reset = f'{exhausted} Reset at 2026-11-25T10:14:58Z.'
         cases = [
-            ([remaining, reset], f'{exhausted} Reset at 2026-11-25T10:14:58Z.'),
+            ([remaining, reset], with_reset),
+            ([f'{remaining} \t', reset], with_reset),
+            ([remaining, f'{reset}\t '], with_reset),
             ([remaining], exhausted),
-            ([remaining, reset, ('x-ratelimit-reset', '1795601698')], exhausted),
+            ([remaining, reset, 'x-ratelimit-reset: 1795601698'], exhausted),
+            ([remaining, 'X-RateLimit-Reset: \t'], exhausted),
             ([], generic),
             ([reset], generic),
-            ([('X-RateLimit-Remaining', '7'), reset], generic),
-            ([('X-RateLimit-Remaining', '0, 0'), reset], generic),
-            ([('X-RateLimit-Remaining', '+0'), reset], generic),
-            ([remaining, ('X-RateLimit-Remaining', '0'), reset], generic),
-            ([remaining, ('X-RateLimit-Remaining', '1'), reset], generic),
+            (['X-RateLimit-Remaining: 7', reset], generic),
+            (['X-RateLimit-Remaining: 0, 0', reset], generic),
+            (['X-RateLimit-Remaining: +0', reset], generic),
+            (['X-RateLimit-Remaining: 0\xa0', reset], generic),
+            ([remaining, 'X-RateLimit-Remaining: 0', reset], generic),
+            ([remaining, 'X-RateLimit-Remaining: 1', reset], generic),
+            ([remaining, 'Broken fixture line', 'X-RateLimit-Remaining: 7'], generic),
+            ([remaining, reset, 'Broken fixture line', 'X-RateLimit-Remaining: 7'], generic),
         ]
-        for value in ('-1', '1795601698.5', 'Wed, 25 Nov 2026 10:14:58 GMT',
+        for value in ('-1', '1795601698.5', 'Wed, 25 Nov 2026 10:14:58 GMT', '1795601698\xa0',
                       '253402300800', '9' * 80, 'unexpected-server-text'):
-            cases.append(([remaining, ('X-RateLimit-Reset', value)], exhausted))
+            cases.append(([remaining, f'X-RateLimit-Reset: {value}'], exhausted))
         for headers, expected in cases:
             with self.subTest(headers=headers):
-                response = publisher_reply(403, [*headers, ('X-Unrelated', 'private-server-fixture')])
+                response = publisher_reply(403, [*headers, 'X-Unrelated: private-server-fixture'])
                 with (patch.object(review, 'ROOT', self.root),
                       patch.object(sys, 'argv', ['dependencies.py']),
                       patch.dict(os.environ, {publisher.TOKEN_ENV: 'synthetic-local-token'}, clear=True),
