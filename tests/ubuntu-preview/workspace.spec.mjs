@@ -1031,22 +1031,6 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
   let savedLayer;
   let savedOutput;
   const outputRequest = () => ({ type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: savedLayer.layer_id });
-  const outputFrame = async (server, request, signal) => {
-    const response = await post(server, request, {}, signal);
-    return { request, http: response.status, body: await response.json() };
-  };
-  const readOutputAfterAdmission = async (server, request, { timeout = 10_000, observe = () => {} } = {}) => {
-    const signal = AbortSignal.timeout(timeout);
-    let frame;
-    await expect.poll(async () => {
-      frame = await outputFrame(server, request, signal);
-      await observe(frame);
-      // Only this read's explicit pre-admission refusal is safe to retry.
-      return frame.http === 429 && frame.body.ok === false
-        && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
-    }, { timeout, message: 'The accepted indicator output read obtains admission' }).toBe(false);
-    return frame;
-  };
   const requireSavedOutput = frame => {
     expect(frame).toMatchObject({ http: 200, body: { ok: true, result: {
       layer_id: savedLayer.layer_id, version_id: savedLayer.version_id,
@@ -1187,7 +1171,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await expect(preview.getByText(/Preview layers/)).toHaveCount(0);
         workspaceRevision = 1;
 
-        savedOutput = requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()));
+        savedOutput = requireSavedOutput(await readIndicatorAfterAdmission(server, outputRequest()));
         expect(savedOutput.document.artifact).toEqual(warmed.event.artifact);
         expect(savedOutput.document.snapshot).toEqual(warmed.event.snapshot);
         expect(savedOutput.document.resolved_parameters).toEqual({ period: 3 });
@@ -1203,7 +1187,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         const nextFailureId = nextFailure.outcome.result.task_id;
         await expect.poll(async () => (await reply(server, status(nextFailureId))).status).toBe('terminal');
         expect((await reply(server, status(nextFailureId))).event.outcome.status).toBe('failed');
-        expect(requireSavedOutput(await readOutputAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
+        expect(requireSavedOutput(await readIndicatorAfterAdmission(server, outputRequest()))).toEqual(savedOutput);
         await expect(plot).toBeVisible();
 
         const accepted = preview.getByRole('region', { name: 'Accepted indicators' });
@@ -1245,7 +1229,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
           const body = await response.json().catch(() => undefined);
           return body?.ok === true && matches(body.result, response.request());
         }, { timeout: 8_000 });
-        const readOutput = () => outputFrame(server, outputRequest(), AbortSignal.timeout(3_000));
+        const readOutput = () => indicatorReadFrame(server, outputRequest(), AbortSignal.timeout(3_000));
         const readSnapshot = async (tag, signal = AbortSignal.timeout(5_000)) => {
           const response = await post(server, snapshot, tag.headers, signal);
           return { http: response.status, body: await response.json() };
@@ -1467,7 +1451,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
             }, { timeout: 3_000, message: 'The workspace rejected the malformed probe after admission became idle' }).toBe(400);
             let output;
             const restoredSnapshot = await withHeldSnapshot('undo-holder', 3, async ({ tag }) => {
-              output = await readOutputAfterAdmission(server, outputRequest(), {
+              output = await readIndicatorAfterAdmission(server, outputRequest(), {
                 timeout: 3_000,
                 async observe(attempt) {
                   if (undoStages.busy_output) return;
@@ -1551,7 +1535,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         await expect(accepted.getByText('mean · 3')).toBeVisible();
         expect(reruns).toBe(0);
         const restore = outputRequest();
-        expect(requireSavedOutput(await readOutputAfterAdmission(server, restore))).toEqual(savedOutput);
+        expect(requireSavedOutput(await readIndicatorAfterAdmission(server, restore))).toEqual(savedOutput);
         await dialog.getByRole('button', { name: 'Use as workspace source' }).click();
         const mainChart = page.getByRole('region', { name: 'Price chart' });
         await mainChart.getByText('Indicators', { exact: true }).click();
@@ -1566,7 +1550,7 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
         } finally {
           database.close();
         }
-        const denied = await readOutputAfterAdmission(server, restore);
+        const denied = await readIndicatorAfterAdmission(server, restore);
         expect(denied).toMatchObject({ http: 200, body: { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } } });
         const withheld = denied.body;
         expect(withheld.result).toBeUndefined();
@@ -1648,7 +1632,11 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         saved = (await confirmed.json()).result.outcome.result;
         await expect(editor.getByText(saved.version_id)).toBeVisible();
         const request = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: saved.layer_id };
-        readSaved = (await send(request)).result;
+        const original = await readIndicatorAfterAdmission(server, request);
+        expect(original).toMatchObject({ http: 200, body: { ok: true, result: {
+          layer_id: saved.layer_id, version_id: saved.version_id, document: expect.any(Object),
+        } } });
+        readSaved = original.body.result;
 
         const held = Promise.withResolvers();
         const release = Promise.withResolvers();
@@ -1697,27 +1685,45 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
           const holder = server.tagSnapshot();
           const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
           void snapshotReply.catch(() => {});
-          let withheld;
+          const cancelledRead = new AbortController();
+          const obsolete = status(waiting.task_id);
+          observation.cancelledStatus = [];
+          observation.statusProbes = [];
+          let terminal;
           try {
             observation.snapshotWritten = await Promise.race([holder.wait('written'), snapshotReply.then(response => {
               throw new Error(`The tagged snapshot settled before it owned the writer (HTTP ${response.status}).`);
             })]);
-            const probe = status(waiting.task_id);
-            const response = await post(server, probe);
-            withheld = await response.json();
-            observation.firstStatusProbe = { http: response.status, body: withheld };
-            expect(observation.firstStatusProbe).toMatchObject({ http: 429, body: busy });
+            await expect(readIndicatorAfterAdmission(server, obsolete, {
+              signal: cancelledRead.signal,
+              observe(frame) {
+                observation.cancelledStatus.push(frame);
+                cancelledRead.abort();
+              },
+            })).rejects.toMatchObject({ name: 'AbortError' });
+            expect(observation.cancelledStatus).toMatchObject([{ http: 429, body: busy }]);
+
+            terminal = await readIndicatorAfterAdmission(server, obsolete, {
+              async observe(frame) {
+                observation.statusProbes.push(frame);
+                if (observation.statusProbes.length !== 1) return;
+                expect(frame).toMatchObject({ http: 429, body: busy });
+                holder.release();
+                observation.snapshotDrained = await holder.wait('drained');
+                expect(observation.snapshotDrained).toMatchObject({
+                  request_id: observation.snapshotWritten.request_id, ok: true, revision: 1,
+                });
+              },
+            });
           } finally {
             holder.release();
-            if (observation.snapshotWritten) {
-              observation.snapshotDrained = await holder.wait('drained');
-              expect(observation.snapshotDrained).toMatchObject({
-                request_id: observation.snapshotWritten.request_id, ok: true, revision: 1,
-              });
-            }
             await Promise.allSettled([snapshotReply.then(responseStatus)]);
           }
-          expect(withheld).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          expect(terminal).toMatchObject({ http: 200, body: { ok: false, error: {
+            code: 'STALE_CONTEXT', retryable: false,
+          } } });
+          expect(observation.statusProbes.every(probe => probe.request === obsolete)).toBe(true);
+          const withheld = terminal.body;
           await expect(accept).toHaveCount(0);
           const rejected = await send({
             ...command(), task_id: null, scope: {
@@ -1757,7 +1763,9 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         const rejectedSource = (await send(respond(oldSource.challenge_id))).result.outcome;
         expect(rejectedSource).toMatchObject({ state: 'failed', error: { code: 'STALE_CONTEXT' } });
         observation.sourceChange = rejectedSource;
-        expect((await send(request)).result).toEqual(readSaved);
+        expect(await readIndicatorAfterAdmission(server, request)).toMatchObject({
+          http: 200, body: { ok: true, result: readSaved },
+        });
       });
     }, { snapshotGate: true });
     await inService(port, profile, 'ubuntu-workspace', async server => {
@@ -4203,6 +4211,27 @@ function post(server, body, headers = {}, signal = AbortSignal.timeout(10_000)) 
     },
     body: JSON.stringify(body), signal,
   });
+}
+
+async function indicatorReadFrame(server, request, signal) {
+  const response = await post(server, request, {}, signal);
+  return { request, http: response.status, body: await response.json() };
+}
+
+async function readIndicatorAfterAdmission(server, request, { timeout = 10_000, signal, observe } = {}) {
+  const deadline = AbortSignal.timeout(timeout);
+  const reading = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  let frame;
+  await expect.poll(async () => {
+    reading.throwIfAborted();
+    frame = await indicatorReadFrame(server, request, reading);
+    await observe?.(frame);
+    reading.throwIfAborted();
+    // An admitted registry answer is evidence, even when its body reports BUSY.
+    return frame.http === 429 && frame.body.ok === false
+      && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
+  }, { timeout, message: `The ${request.type} read obtains workspace admission` }).toBe(false);
+  return frame;
 }
 
 async function responseStatus(response) {
