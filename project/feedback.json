@@ -7040,6 +7040,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-plain-markdown-misread-as-terminal",
+      "source": "Independent Astra Standard review of bce7aece3dde19df8a319c09a5e55b4acbd515d5, recorded in 7394897a6238cea3190daca7c989f9b243c63644. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-136-bce7aece/original-assistant-response.jsonl (SHA-256 b6245fbdd558251d6560b8216fa9d8fd5be5919ee6022c0f4510141ca9c912d7).",
+      "observation": "The first public M0-103 import of a plain-text CHANGES_REQUESTED reply took a prior approval and its observation from a fenced terminal example. Handoff presented approval and the three closure checks passed. The same response imported as a structured final correctly blocked closure.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
