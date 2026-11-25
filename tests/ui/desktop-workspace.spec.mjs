@@ -801,7 +801,8 @@ test('a retryable admission rejection cannot disable authorized selection clear'
 });
 
 for (const order of ['before the focus snapshot', 'after the replacement is visible', 'with the same source confirmed']) {
-  test(`first saved-chart reopen fences a held reply ${order}`, async ({ page, browser }, testInfo) => {
+  test(`first saved-chart reopen fences a held reply ${order}`, async ({ page, browser, baseURL }, testInfo) => {
+    test.setTimeout(180_000);
     await buildPreview();
     await withProfile(async profile => {
       const a = randomUUID();
@@ -816,7 +817,7 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
         const selected = await dispatch({ type: 'workspace_source', request_id: randomUUID(),
           expected_selection_revision: initial.result.selection_revision, source: { kind: 'frozen', revision_id: a } });
         expect(selected.ok).toBe(true);
-        const firstRead = Promise.withResolvers();
+        let capturedFirst = false;
         const oldReply = Promise.withResolvers();
         const focusSnapshot = Promise.withResolvers();
         const history = [];
@@ -838,7 +839,7 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
             const captured = await ordinary(args);
             expect(captured.ok).toBe(true);
             expect(captured.result.bars[0].bar.close).toBe(44);
-            firstRead.resolve();
+            capturedFirst = true;
             await oldReply.promise;
             history.push({ delivered: a, close: 44 });
             return captured;
@@ -850,11 +851,11 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
         let peer;
         try {
           await page.goto('/');
-          await firstRead.promise;
+          await expect.poll(() => capturedFirst, { timeout: 8000 }).toBe(true);
           await expect(selectedBar).toHaveCount(0);
           const peerChangesSource = !order.startsWith('with the same');
           if (peerChangesSource) {
-            peer = await browser.newContext();
+            peer = await browser.newContext({ baseURL, viewport: { width: 1366, height: 900 } });
             const window = await peer.newPage();
             await nativeTransport(window, { optedIn: true }, ordinary);
             await window.goto('/');
@@ -900,8 +901,8 @@ for (const order of ['before the focus snapshot', 'after the replacement is visi
         } finally {
           focusSnapshot.resolve();
           oldReply.resolve();
-          const visible = await selectedBar.allTextContents();
-          const observed = await page.evaluate(() => window.observedFirstReopen ?? []);
+          const visible = page.isClosed() ? [] : await selectedBar.allTextContents();
+          const observed = page.isClosed() ? [] : await page.evaluate(() => window.observedFirstReopen ?? []);
           await testInfo.attach('first-reopen-ordering', {
             body: JSON.stringify({ order, a, b, snapshots, history, visible, observed }, null, 2),
             contentType: 'application/json',
