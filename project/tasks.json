@@ -25816,7 +25816,14 @@
           "data_plan": "Use synthetic sample traffic on a loopback development server and retain bounded stage observations.",
           "cleanup": "Release owned browser listeners and servers and preserve the native failure and same-tree passing artifacts."
         }
-      }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45709117560-1",
+          "source_commit": "00a6ab1ef8c02ebd15144c3e5d65fcff70771ebb",
+          "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
+        }
+      ]
     }
   ]
 }
