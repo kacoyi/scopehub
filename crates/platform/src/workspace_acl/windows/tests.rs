@@ -111,6 +111,13 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
             true,
         ),
         (
+            "four-ordered-same-scope",
+            [3, 5, 8, 16]
+                .map(|omitted| ("OICI", FILE_ALL_ACCESS & !omitted))
+                .to_vec(),
+            true,
+        ),
+        (
             "object-and-container",
             vec![("OI", FILE_ALL_ACCESS), ("CI", FILE_ALL_ACCESS)],
             true,

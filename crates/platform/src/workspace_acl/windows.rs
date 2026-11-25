@@ -256,59 +256,59 @@ fn trusted_ancestor(sid: &str, user: &str) -> bool {
 
 #[derive(Default)]
 struct UserInheritance {
-    single_full: bool,
     explicit: Vec<(u32, u32)>,
 }
 
 impl UserInheritance {
     fn record(&mut self, flags: u32, mask: u32) {
-        self.single_full |= mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS
-            && flags & CHILD_INHERITANCE == CHILD_INHERITANCE;
-        if !self.single_full && flags & INHERITED_ACE == 0 && mask != 0 {
+        if flags & INHERITED_ACE == 0 && mask != 0 {
             self.explicit.push((flags, mask));
         }
     }
 
     fn sufficient(&self, canonical: bool) -> bool {
-        if self.single_full {
-            return true;
+        if !canonical {
+            return false;
         }
-        // System.IO groups canonical explicit allows by SID before compacting
-        // adjacent rules. Their internal order is not guaranteed. Require any
-        // possible first pair to reproduce an old full-control inherited grant.
-        canonical
-            && self.explicit.len() >= 2
-            && self.explicit.iter().enumerate().all(|(index, &left)| {
-                self.explicit[index + 1..]
-                    .iter()
-                    .all(|&right| compacted_pair_inherits_full(left, right))
-            })
+        let mut compacted = Vec::with_capacity(self.explicit.len());
+        for &grant in &self.explicit {
+            if let Some(previous) = compacted.last_mut()
+                && let Some(merged) = compact_grants(*previous, grant)
+            {
+                *previous = merged;
+                continue;
+            }
+            compacted.push(grant);
+        }
+        compacted.iter().any(|&(flags, mask)| {
+            mask & FILE_ALL_ACCESS == FILE_ALL_ACCESS
+                && flags & CHILD_INHERITANCE == CHILD_INHERITANCE
+        })
     }
 }
 
-fn compacted_pair_inherits_full(
+fn compact_grants(
     (left_flags, left_mask): (u32, u32),
     (right_flags, right_mask): (u32, u32),
-) -> bool {
+) -> Option<(u32, u32)> {
     if left_flags == right_flags {
-        return left_flags & CHILD_INHERITANCE == CHILD_INHERITANCE
-            && (left_mask | right_mask) & FILE_ALL_ACCESS == FILE_ALL_ACCESS;
+        return Some((left_flags, left_mask | right_mask));
     }
     if left_mask != right_mask || left_mask & FILE_ALL_ACCESS != FILE_ALL_ACCESS {
-        return false;
+        return None;
     }
     // Equal masks can share one ACE only when a single Windows scope can
     // represent the union exactly. A single no-propagate flag applies to both
     // the child-object and child-container permissions.
-    let Some((left_children, left_descendants)) = inheritance_scope(left_flags) else {
-        return false;
-    };
-    let Some((right_children, right_descendants)) = inheritance_scope(right_flags) else {
-        return false;
-    };
+    let (left_children, left_descendants) = inheritance_scope(left_flags)?;
+    let (right_children, right_descendants) = inheritance_scope(right_flags)?;
     let children = left_children | right_children;
     let descendants = left_descendants | right_descendants;
-    children == CHILD_INHERITANCE && (descendants == 0 || descendants == children)
+    if children == CHILD_INHERITANCE && (descendants == 0 || descendants == children) {
+        Some((CHILD_INHERITANCE, left_mask))
+    } else {
+        None
+    }
 }
 
 fn inheritance_scope(flags: u32) -> Option<(u32, u32)> {
