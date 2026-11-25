@@ -339,6 +339,60 @@ class HostedTimingTests(unittest.TestCase):
                 self.assertEqual(765, observed['seconds']['total'])
                 self.assertIsNone(observed['review_exclusion'])
 
+    def test_windows_producer_clocks_do_not_fill_the_protected_platform_capture(self):
+        *siblings, aggregate = self.split_windows_jobs()
+        aggregate = dict(aggregate, steps=[
+            aggregate['steps'][0], {'name': timing.WINDOWS_RECOVERY_MARKER, 'conclusion': 'success'},
+        ])
+        recovery = hosted_job(36, 'windows', '00:35', '05:05', 'Verify the Windows recovery lane', '02:00', '05:00')
+        recovery['name'] = 'Windows change checks (recovery)'
+        recovery_job = recovery
+        clock = timing.hosted_timing(hosted_run(), [*siblings, recovery_job, aggregate])
+        identity = timing.ci_key(clock)
+        report = fast_report(20, 675)
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, identity)), 'checkout_sha': 'a' * 40}
+        report['selection']['profile'] = 'full'
+        full = timing.report_sample(report)
+        browser = {**full, 'profile': 'ci-windows-browser'}
+        recovery = {**full, 'profile': 'ci-windows-recovery'}
+        producers = [browser, recovery]
+
+        for sample, job, elapsed in [(browser, '33', 720), (recovery, '36', 305)]:
+            with self.subTest(profile=sample['profile']):
+                view = timing.timing_view([sample], hosted=[clock])
+                observed, = view['samples']
+                self.assertEqual(job, observed['job']['job_id'])
+                self.assertEqual(elapsed, observed['seconds']['total'])
+                self.assertIn('protected platform coverage', observed['review_exclusion'])
+                self.assertEqual([], view['reviews'])
+
+        unbound = dict(recovery_job, run_attempt=None)
+        partial = timing.hosted_timing(hosted_run(), [*siblings, unbound, aggregate])
+        observed, = timing.timing_view([recovery], hosted=[partial])['samples']
+        self.assertIsNone(observed['job'])
+        self.assertIsNone(observed['seconds']['total'])
+
+        for samples, missing in [(producers, {'Linux', 'Windows'}), ([full, *producers], {'Linux'})]:
+            with self.subTest(samples=len(samples)):
+                issues = []
+                retained, _, absent, complete_clock, ambiguous = timing.capture_observations(
+                    identity, samples, [clock], issues, conclusion='success',
+                )
+                self.assertCountEqual(samples, retained)
+                self.assertEqual(missing, absent)
+                self.assertFalse(ambiguous)
+                self.assertTrue(complete_clock)
+                self.assertEqual([], issues)
+
+        clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs(scoped=True))
+        scoped = {**full, 'profile': 'records'}
+        view = timing.timing_view([scoped, scoped], hosted=[clock])
+        observed, = view['samples']
+        self.assertEqual('35', observed['job']['job_id'])
+        self.assertIsNone(observed['review_exclusion'])
+        self.assertEqual([], view['input_issues'])
+
     def test_scoped_windows_counts_launched_setup_siblings_and_uses_only_the_core_harness(self):
         run = dict(hosted_run(), event='push')
         result = timing.hosted_timing(run, self.split_windows_jobs(scoped=True))
@@ -912,6 +966,54 @@ class TimingRegressionTests(unittest.TestCase):
                     timing.main()
                 self.assertEqual(expected_exit, raised.exception.code)
         return json.loads(output.getvalue()) if output.getvalue() else errors.getvalue()
+
+    def test_cli_preserves_distinct_windows_producer_reports_and_reports_real_conflicts(self):
+        report = fast_report(20, 500)
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {
+            'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
+            'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40,
+        }
+        report['selection']['profile'] = 'full'
+
+        def producer(lane, check_id):
+            selection = {'profile': f'ci-windows-{lane}', 'task_id': None, 'checks': [check_id]}
+            row = {'id': check_id, 'status': 'passed', 'exit_code': 0, 'duration_seconds': 12}
+            return {**report, 'selection': selection, 'checks': [row], 'timing': {'elapsed_seconds': 14}}
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            aggregate, browser, recovery, conflict, malformed, archive = (
+                root / f'{name}.json' for name in ('aggregate', 'browser', 'recovery', 'conflict', 'malformed', 'saved')
+            )
+            raw = producer('browser', 'workspace-timeframe')
+            compact = timing.report_sample(producer('recovery', 'market-recovery'), cache='partial')
+            aggregate.write_bytes(timing.json_bytes(report))
+            browser.write_bytes(timing.json_bytes(raw))
+            recovery.write_bytes(timing.json_bytes(compact))
+            conflict.write_bytes(timing.json_bytes({**report, 'timing': {'elapsed_seconds': 501}}))
+            malformed.write_bytes(timing.json_bytes({**raw, 'environment': {'system': 'Linux'}}))
+
+            mixed = self.invoke_timing('--report', browser, '--report', recovery, '--report', aggregate, '--save', archive)
+            self.assertCountEqual(['ci-windows-browser', 'ci-windows-recovery', 'full'],
+                                  [row['profile'] for row in mixed['samples']])
+            self.assertEqual([], mixed['input_issues'])
+            self.assertEqual(mixed['samples'], self.invoke_timing('--report', archive)['samples'])
+
+            disputed = self.invoke_timing('--report', aggregate, '--report', conflict, '--report', browser)
+            remaining, = disputed['samples']
+            self.assertEqual('ci-windows-browser', remaining['profile'])
+            issue, = disputed['input_issues']
+            self.assertIn('Conflicting complete timing samples for this run and platform', issue['error'])
+
+            invalid = self.invoke_timing('--report', aggregate, '--report', malformed)
+            retained, = invalid['samples']
+            self.assertEqual('full', retained['profile'])
+            issue, = invalid['input_issues']
+            self.assertEqual(malformed.name, issue['file'])
+            bad_archive = root / 'bad.json'
+            self.invoke_timing('--report', malformed, '--save', bad_archive, expected_exit=1)
+            self.assertFalse(bad_archive.exists())
 
     def test_large_v1_manual_archive_preserves_observations_and_redacts_legacy_paths(self):
         sample = timing.report_sample(fast_report(19, 120))

@@ -46,6 +46,7 @@ NORMAL_EVENTS = {'pull_request', 'push'}
 PLATFORMS = {'ubuntu-latest': 'Linux', 'windows-latest': 'Windows'}
 LEGACY_WINDOWS_LANES = ('core', 'browser', 'python')
 WINDOWS_PRODUCERS = {lane: f'Windows change checks ({lane})' for lane in (*LEGACY_WINDOWS_LANES, 'recovery')}
+WINDOWS_PRODUCER_PROFILES = {f'ci-windows-{lane}': name for lane, name in WINDOWS_PRODUCERS.items()}
 WINDOWS_AGGREGATE_MARKER = 'Require successful Windows lane jobs'
 WINDOWS_RECOVERY_MARKER = 'Require successful Windows lane jobs (four producers)'
 SCOPED_HARNESS_STEPS = {f'Verify {profile} changes' for profile in SCOPED_PROFILES}
@@ -273,7 +274,13 @@ def slowest_checks(sample):
     )[:5]
 
 
+def windows_producer_job_name(sample):
+    return WINDOWS_PRODUCER_PROFILES.get(sample['profile'])
+
+
 def job_summary(sample):
+    scope = 'producer' if windows_producer_job_name(sample) else 'platform'
+    coverage = f'{scope} coverage complete' if sample['coverage_complete'] else 'incomplete or unavailable coverage'
     seconds = sample['seconds']
     harness = seconds['harness']
     work = seconds['check_work']
@@ -287,7 +294,7 @@ def job_summary(sample):
         f" / Cargo cache {sample['cache']}",
         f"- Harness result: {sample['report_status'] or 'unavailable'}"
         f" ({passing}/{len(sample['selected'])} selected passed;"
-        f" {'platform coverage complete' if sample['coverage_complete'] else 'incomplete or unavailable coverage'})",
+        f" {coverage})",
         f"- Harness elapsed: {'unavailable' if harness is None else f'{harness:.1f} s'}",
         f"- Observed check work (sum; checks may overlap): {'unavailable' if work is None else f'{work:.1f} s'}"
         + (' (partial)' if work is not None and not sample['check_work_complete'] else ''),
@@ -548,6 +555,11 @@ def valid_sample(sample):
             or (ci is not None and not labels(ci, ('repository', 'run_id', 'run_attempt', 'event',
                                                   'head_sha', 'checkout_sha')))):
         return False
+    profile = sample['profile']
+    if (profile and profile.startswith('ci-windows-')
+            and (not windows_producer_job_name(sample) or sample['platform'] != 'Windows'
+                 or ci is None or ci['event'] not in NORMAL_EVENTS)):
+        return False
     if 'windows_caches' in sample and (
             sample['platform'] != 'Windows' or sample['profile'] != 'full'
             or windows_aggregate_cache(sample['windows_caches']) != sample['cache']):
@@ -686,7 +698,8 @@ def coalesce_samples(samples, issues):
     observations = {}
     for sample in samples:
         ci = sample['ci']
-        key = (*ci_key(ci), sample['platform']) if ci else ('local', sample['run_id'], sample['platform'])
+        producer = windows_producer_job_name(sample)
+        key = (*ci_key(ci), sample['platform'], producer) if ci else ('local', sample['run_id'], sample['platform'])
         group = observations.get(key)
         if group is None:
             observations[key] = [sample]
@@ -708,8 +721,11 @@ def coalesce_samples(samples, issues):
                     or (previous_proof is not None and proof is not None and previous_proof != proof)
                     or (previously_observed is not None and observed is not None and previously_observed != observed)):
                 group.append(sample)
-                issues.append({'run_id': observation_id(sample), 'platform': sample['platform'],
-                               'error': 'Conflicting complete timing samples for this run and platform.'})
+                issue = {'run_id': observation_id(sample), 'platform': sample['platform'],
+                         'error': 'Conflicting complete timing samples for this run and platform.'}
+                if producer:
+                    issue.update(producer=producer, error='Conflicting complete timing samples for this Windows producer.')
+                issues.append(issue)
                 continue
             cache = next(iter(caches), 'unknown')
             lane_caches = observed or previously_observed
@@ -738,8 +754,14 @@ def merge_samples(samples, hosted, issues):
         sample = group[0]
         ci = sample['ci']
         run = clocks.get(ci_key(ci)) if ci else None
-        jobs = [job for job in run['jobs'] if job['platform'] == sample['platform']] if run else []
-        job = jobs[0] if len(jobs) == 1 and not jobs[0]['identity_issues']['conflicts'] else None
+        producer = windows_producer_job_name(sample)
+        jobs = () if run is None else (
+            [job for job in run.get('sibling_jobs', []) if job.get('name') == producer] if producer else run['jobs']
+        )
+        matching = [job for job in jobs if job['platform'] == sample['platform']]
+        job = matching[0] if len(matching) == 1 else None
+        if job and (job['identity_issues']['conflicts'] or (producer and job['identity_issues']['missing'])):
+            job = None
         seconds = {key: sample['seconds'][key] for key in ('harness', 'check_work')}
         seconds.update({key: job['seconds'][key] if job else None for key in ATTEMPT_SECONDS})
         seconds.update({key: duration(job['seconds'].get(key)) if job else None for key in SPLIT_SECONDS})
@@ -912,7 +934,9 @@ def timing_view(samples, *, hosted=(), issues=None):
     objective_scopes = defaultdict(list)
     for sample in merged:
         ci, job = sample['ci'], sample['job']
-        if not sample_eligible(sample):
+        if windows_producer_job_name(sample):
+            reason = 'Windows producer observations do not establish protected platform coverage.'
+        elif not sample_eligible(sample):
             reason = 'Harness report is missing, failed, or has incomplete coverage or identity.'
         elif ci and not sample['hosted_identity_complete']:
             reason = 'Exact Actions attempt and job identities are unavailable or conflicting.'
@@ -1416,7 +1440,8 @@ def require_plain_index_directory(directory):
 
 def sample_belongs_to_capture(sample, path):
     ci = sample['ci']
-    return (ci and sample_identity_complete(sample) and ci['checkout_sha'] == sample['source_commit']
+    return (ci and not windows_producer_job_name(sample)
+            and sample_identity_complete(sample) and ci['checkout_sha'] == sample['source_commit']
             and ci['run_attempt'] == '1' and path.name == f"ci-{ci['event']}-{ci['run_id']}-1.json")
 
 
@@ -1588,7 +1613,8 @@ def offline_budget_status(root, feedback, tasks):
 
 def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     groups = coalesce_samples([row for row in samples if ci_key(row['ci'] or {}) == identity], issues)
-    ambiguous = any(len(group) > 1 for group in groups)
+    platforms = [group for group in groups if not windows_producer_job_name(group[0])]
+    ambiguous = any(len(group) > 1 for group in platforms)
     # Retain distinct observations for diagnostics and future attempts. Incompatible complete clocks
     # must remain visibly incompatible even if an exact retry agrees with one of them.
     clocks = list({(clock_capture_complete(clock), clock_signature(clock), clock.get('head_branch'),
@@ -1599,7 +1625,7 @@ def capture_observations(identity, samples, hosted, issues, *, conclusion=None):
     diagnostic = outcome not in {None, 'success'}
     # Failed artifacts can carry complete diagnostic identity despite failed or skipped check outcomes.
     qualify = sample_identity_complete if diagnostic else sample_eligible
-    present = {group[0]['platform'] for group in groups if qualify(group[0])}
+    present = {group[0]['platform'] for group in platforms if qualify(group[0])}
     missing = set(PLATFORMS.values()) - present
     complete_clock = (clock is not None and clock['conclusion'] == outcome
                       and (clock_capture_complete(clock) if diagnostic else clock_complete(clock)))
@@ -2059,7 +2085,10 @@ def main():
                             or not all(isinstance(check, dict) and short_label(check.get('id'))
                                        and short_label(check.get('status')) for check in checks)):
                         raise TimingError('Expected a harness report with run identity and checks.')
-                    samples.append(report_sample(data))
+                    sample = report_sample(data)
+                    if not valid_sample(sample):
+                        raise TimingError('Invalid timing sample derived from harness report.')
+                    samples.append(sample)
             except (OSError, *TIMING_INPUT_ERRORS) as error:
                 explicit_input_failed |= args.report is not None
                 issues.append({'file': path.name, 'error': input_error(error)})
