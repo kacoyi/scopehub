@@ -20017,6 +20017,10 @@
         {
           "path": "project/evidence/M0-111-cf178d6905ff9298.json",
           "sha256": "3096c005cc95c29f62384616712be9ff68d274cc5ce19207d6027a3d8160a32c"
+        },
+        {
+          "path": "project/evidence/M0-111-ec9c22cb85e4aaed.json",
+          "sha256": "d9191f05cfbc7652b06bc23919d174ecfd793f5199ba678cbe9fdb0f37d4b0a2"
         }
       ],
       "next_action": "Review the exact Actions and collection-history correction with matching M0-111 evidence. Confirm a generated clock reopens, invalid explicit input cannot publish, and the 564 samples, 56 clocks and sanitized historical findings survive repeated saves. Earlier receipts keep their original scope.",
