@@ -25956,7 +25956,7 @@
           "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
         }
       ],
-      "next_action": "Observe the real peer and lock on either side of the fixture lifetime. Correct the demonstrated owner, then verify terminal reporting and peer cleanup through the ordinary public check.",
+      "next_action": "Verify the test-owned peer lifetime and the seven console interruption stages on the corrected Linux source, retain the raw controls and task report, then request independent source review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25972,7 +25972,7 @@
           "archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json"
         ],
         "hypotheses": [
-          "The peer may have exhausted its own fallback while successful checks accumulated across the seven cases. The log identifies only the failed acquisition assertion."
+          "The protected log identifies only the failed acquisition assertion. On the exact original fixture, holding the final blocked console past 30 seconds reproduced the peer exiting normally and exposing the lock before SIGINT. The same protected sequence can therefore fail even when the check leaves unrelated processes alone."
         ],
         "risks": [
           {
@@ -26012,7 +26012,7 @@
             "Changes to product records, the production timeout policy or the Windows verification schedule."
           ],
           "open_questions": [
-            "When did the earlier helper release the lock? Which observable owner lifetime and parent-exit control preserve the independent check?"
+            "Can the corrected peer survive a console interaction past the old fallback and release immediately when its owning controller closes the pipe or dies, including when other children remain alive?"
           ]
         },
         "evolution": {
@@ -26021,7 +26021,7 @@
             "Single-SIGINT report publication, owned-child cleanup, lock isolation, healthy retries and the existing process bounds."
           ],
           "change": [
-            "Keep the peer witness attached to the interaction for its required lifetime and verify release on termination."
+            "Give only the test controller the peer stdin writer. Verify clean exit and lock release on EOF while keeping the seven public stages, their SIGINT bound and their report assertions."
           ],
           "data_plan": "Use temporary locks, pipes and synthetic verification files. Retain both original CI reports.",
           "cleanup": "Reap the test-owned peer on normal and early exits. Verify that other processes and original reports survive the interrupted check."
