@@ -1,0 +1,301 @@
+{
+  "version": 3,
+  "task_id": "M0-136",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "0eb573bb19e6f8fceccb8e70f83ff673183731e9",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 0eb573bb19e6f8fceccb8e70f83ff673183731e9",
+      "scope": "CHANGES_REQUESTED M0-136 0eb573bb19e6f8fceccb8e70f83ff673183731e9",
+      "observation": "The review intake accepted the M0-103 commit hash as the entire observation, and handoff displayed that hash with approved status.",
+      "reviewer": "Independent Astra Standard (t10p)",
+      "original_sha256": "bb15049b3773310d9078a513194e58710b0ad194b30b4b8aa3ce809f28f3fb52",
+      "response_id": "a96bf91e41147152aa3d915ad2b7a40af17513f7eaa5241b09483d257f712e2e",
+      "response_sha256": "342e28e3c26fd5dbb7b9d734dca7b8ee0bed24c0ee23e1ec8c2dd636716575ad",
+      "observation_body_sha256": "dd7e6d4ecda0ffb34e0bb5262efa0e41b15a16bf40ecade90486a54342cb8c00",
+      "event": {
+        "id": "msg_04375d6da88d3747016b06e5b379e087d0be6505d8a56e6575",
+        "timestamp": "2026-11-25T13:42:44.459Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "64c5c584d8b0cdc8a889d08b552b46f698440049ac7184d2372bcf8310c68821"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "226fac00b657b876ed893a3f2e2118cd655daf61",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 226fac00b657b876ed893a3f2e2118cd655daf61",
+      "scope": "CHANGES_REQUESTED M0-136 226fac00b657b876ed893a3f2e2118cd655daf61",
+      "observation": "The M0-103 acceptance checks passed with a citation label as the entire observation, and a pending review request could not be reopened on the replacement branch.",
+      "reviewer": "Independent Astra Standard (t10w)",
+      "original_sha256": "84e04619ba08ffe8c6b6232cccd95c9c26a6a7a93cb26405cfc980149cb2aeee",
+      "response_id": "2409624b5dd5111835b36d1ca167db0b8468ea2358b3516d9a09d00a85329f23",
+      "response_sha256": "f373a0408b55c08ab555c332d7fac0fc1f269ebfd549a10ab79c1a17884f3aee",
+      "observation_body_sha256": "43a2a26ae357d3567180eae73e49a3803e6f468227f36e2857b015da09a37d27",
+      "event": {
+        "id": "msg_01ce82aa439c3972016b06eb93ff1c87d0b068450e713ef1a8",
+        "timestamp": "2026-11-25T14:07:34.993Z"
+      },
+      "supersedes": "a96bf91e41147152aa3d915ad2b7a40af17513f7eaa5241b09483d257f712e2e",
+      "evidence_sha256": "fb68bcff419eb9ed8ad441186e113586382d963381df20b3a68d17e2bd0afb91"
+    },
+    {
+      "kind": "request",
+      "source_commit": "874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "scope": "Independently verify evidence provenance, pending-source replacement, risk selection, and the ordinary review handoff on this exact combined implementation.",
+      "supersedes": "2409624b5dd5111835b36d1ca167db0b8468ea2358b3516d9a09d00a85329f23",
+      "requested_at": "2026-11-25T14:26:02.691905+00:00",
+      "request_id": "1bba51ce07786290365c81c64779e153c4516d57ae2009afd50a91dcf45361d1",
+      "evidence_sha256": "ceafe956eb5f04c770c66c4915967965f87f02d2a44a006c58730faf753a2f76"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "scope": "CHANGES_REQUESTED M0-136 874b08b9ad95c1a496ca6a708aeba8b12b9b22d7",
+      "observation": "The ordinary acceptance checks allowed M0-129 to close with only a section heading from its genuine approval as the recorded observation.",
+      "reviewer": "Independent Astra Standard (t10y)",
+      "original_sha256": "165606cb1f938c8841d9af03ed642686252399a6fdbdc9de1dbf54ae07241360",
+      "response_id": "cabe65f3f778f2cb724b9e2f5a8c2da15de5613aee556c94c21ab25d02f0df50",
+      "response_sha256": "aa6f2dccd8145e88dd72baa7ebd4ed3e5897b2ad495b9fd1381ec7a0b340d1d5",
+      "observation_body_sha256": "f512b60105da40175fdb54e38d76baef0c96a7691718db1bc8441187fc7fc0d3",
+      "event": {
+        "id": "msg_0730117d32ecb5af016b06f249d66887d09579abd976ef1d57",
+        "timestamp": "2026-11-25T14:36:12.963Z"
+      },
+      "supersedes": "1bba51ce07786290365c81c64779e153c4516d57ae2009afd50a91dcf45361d1",
+      "evidence_sha256": "eca4c1d1e1f40eca55b12bb6882546bcea6c736ff51a457f798d11c055a24b76"
+    },
+    {
+      "kind": "request",
+      "source_commit": "624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "scope": "Independently test structural extraction of substantive passages, exclusion of decorated headings, literal UTF-8 observation transport and the retained exact-source review lifecycle.",
+      "supersedes": "cabe65f3f778f2cb724b9e2f5a8c2da15de5613aee556c94c21ab25d02f0df50",
+      "requested_at": "2026-11-25T14:47:22.309201+00:00",
+      "request_id": "452550f7d8c2767e321f48304fe4924ff2d220b3c7d7ba23a07d0ba8ddcc731a",
+      "evidence_sha256": "c559ee2aeae01ba76170d267920c89c6c716b8fd6264622a78d39e2efcbf83f4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "scope": "CHANGES_REQUESTED M0-136 624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "observation": "In a read-only replay, the M0-129 acceptance checks passed with a Markdown link reference title as the entire recorded observation.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "1ee91c726d96f72bd88e032f7fc88707f9898548c8ef653c1d993642b37cc21b",
+      "response_id": "0854e91824526b5ff8e12c6a809de57b84480505cc60397f53b5d638b2f02641",
+      "response_sha256": "e62c3e36478a8af54ffa086f51b70b7b90b54624eaf75119d90f3d9d5bf20177",
+      "observation_body_sha256": "a200fbd1ab963a9acf90ac4090b61610b4085fde5f122f98b38237510a70bc8c",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b06fbc114b087d0a7ea03cff135d051",
+        "timestamp": "2026-11-25T15:16:35.303Z"
+      },
+      "supersedes": "452550f7d8c2767e321f48304fe4924ff2d220b3c7d7ba23a07d0ba8ddcc731a",
+      "evidence_sha256": "ea9788ffa5db6cbabb79d0219083e2f26e9405b4c6be87381b377fdfad07e547"
+    },
+    {
+      "kind": "request",
+      "source_commit": "227e0413b61e1e17d790e4cbf57580267aab534d",
+      "scope": "Verify independently that factual excerpts are selected from actual visible Markdown body spans in historical and newly requested reviews, including the held-out reference title, block continuations, positive inline spans and exact source binding at closure.",
+      "supersedes": "0854e91824526b5ff8e12c6a809de57b84480505cc60397f53b5d638b2f02641",
+      "requested_at": "2026-11-25T15:56:17.447940+00:00",
+      "request_id": "6e26539f53acdbb72e36a8176d637158dee40fe2eae56459e5ebd9580afcb114",
+      "evidence_sha256": "def17808cc0c637fdc950e75d5caaabe6e56a8d51a6ba78b538ab9258282f086"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "227e0413b61e1e17d790e4cbf57580267aab534d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 227e0413b61e1e17d790e4cbf57580267aab534d",
+      "scope": "CHANGES_REQUESTED M0-136 227e0413b61e1e17d790e4cbf57580267aab534d",
+      "observation": "In the M0-103 replay, the intake approved a filename with one space even though the review contained two spaces in that position.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "d13f1b6351f8ce6674c746fdf0edeeffc944361ed7a9416e0b22d221777e1ec3",
+      "response_id": "59ebf0abf34c31902610aaeeee663fbe138bb76830da0273468b3a9839c7f601",
+      "response_sha256": "c703707bfaddedbbfe86006016ad1f4bd177d4f5e4e1b1450faf3db822d85c91",
+      "observation_body_sha256": "aa9d1a6e37059ad0e7e65f803cd24d98a2cee37a67686415f4766e8900bf59d5",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0706b3ec3087d089307708cb3813dc",
+        "timestamp": "2026-11-25T16:03:14.425Z"
+      },
+      "supersedes": "6e26539f53acdbb72e36a8176d637158dee40fe2eae56459e5ebd9580afcb114",
+      "evidence_sha256": "912d259f3aa77312f8311a91696251edc3041025cf2a12548a2e3d36a804edd5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d29a74cb885bacf84015c79653ed6201ece1248b",
+      "scope": "Independently verify the previous significant-whitespace finding through the real review intake, preserved Markdown spans, legacy history, and the corresponding complete task and integration closure routes on this exact source.",
+      "supersedes": "59ebf0abf34c31902610aaeeee663fbe138bb76830da0273468b3a9839c7f601",
+      "requested_at": "2026-11-25T16:18:02.498115+00:00",
+      "request_id": "c044b0414b8b8789fd3416730978ab7db1303ecc4e5f67c36063c5f05e37c145",
+      "evidence_sha256": "cf5c488f726cc6c571ab4e64aa0e24af34752d0411609daf8506db637f16b615"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d29a74cb885bacf84015c79653ed6201ece1248b",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 d29a74cb885bacf84015c79653ed6201ece1248b",
+      "scope": "CHANGES_REQUESTED M0-136 d29a74cb885bacf84015c79653ed6201ece1248b",
+      "observation": "The M0-103 request stayed pending when a later structured approval differed from an earlier plain-text approval by one space inside the quoted filename.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "899d72081a5bfd3094572f642da7d3971dcdd0e93c05e5474de2dc81be73418a",
+      "response_id": "e210fc5fab7766aa6d614eb2e03ec715698348126f11b20c12cd217082f75876",
+      "response_sha256": "d517423dae282f0198b857f16e0cd0768b9da562ba4d656b9a94dcd2fa12f14f",
+      "observation_body_sha256": "f2297976ea7b64c8165e6ddc6ebc048d69d856a1efedaa2e09b230bf95bce80a",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b070c63880087d0bfae00798a99ed49",
+        "timestamp": "2026-11-25T16:27:27.322Z"
+      },
+      "supersedes": "c044b0414b8b8789fd3416730978ab7db1303ecc4e5f67c36063c5f05e37c145",
+      "evidence_sha256": "e671c77549af54f0e20e69e1ceea2d503b2bad48b03c03bc327d36f3ba131d27"
+    },
+    {
+      "kind": "request",
+      "source_commit": "bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "scope": "Independently review the source-bound M0-136 correction for mixed legacy text and structured response replay identity after the superseded rejection. Validate exact literal response preservation, whitespace, section and markdown controls, duplicate import and chronological decisions through the public request/import/handoff commands. Confirm the shared project CLI preserves protected maintenance behavior and established completed scopes. Distinguish local regression evidence, the real prior assistant response and pending new review from hosted qualification.",
+      "supersedes": "e210fc5fab7766aa6d614eb2e03ec715698348126f11b20c12cd217082f75876",
+      "requested_at": "2026-11-25T17:17:32.309942+00:00",
+      "request_id": "9d8b3d4394b5b3a9c14a6f5a679821d1e9c4f0cd1175174f5badfb95ccf135c5",
+      "evidence_sha256": "7433576c90293dd92c53af473219b103ec3eca2097611c2d0c3332a978c321ee"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "scope": "CHANGES_REQUESTED M0-136 bce7aece3dde19df8a319c09a5e55b4acbd515d5",
+      "observation": "In the M0-103 replay, the intake recorded an approval quoted inside a fenced code block as the verdict of a plain-text review that requested changes.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "b6245fbdd558251d6560b8216fa9d8fd5be5919ee6022c0f4510141ca9c912d7",
+      "response_id": "57de1e3de23256f802280c9f2f1f29fe4bd31af61e5e3722bdd51e35b044657c",
+      "response_sha256": "51aa1983734410c7cc2480e22eb8cdb8357b2320c1ba25b9e9cc593f33d4bc6f",
+      "legacy_response_sha256": "194a052bbb4cf5f8951888b8f58490ae327b4cb6ab6a400d84cff6033350537e",
+      "observation_body_sha256": "b25de623fafed7e6188349333ee722d0a71e017ecaf348796b178f291e46f6d0",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b071931ea0c87d0be19741119be43ac",
+        "timestamp": "2026-11-25T17:22:06.264Z"
+      },
+      "supersedes": "9d8b3d4394b5b3a9c14a6f5a679821d1e9c4f0cd1175174f5badfb95ccf135c5",
+      "evidence_sha256": "97dcf96ff75e91ebb4335e73c2d7853d981550a8518a3763134b320e4b39773b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "scope": "Independently review plain review documents, real legacy terminal envelopes and structured assistant finals after the previous rejected format selection. Check an explicit document verdict followed by an ordinary quoted example, public observation extraction, literal identity and the previously verified source/request chronology. Verify the integrated protected M2-038 record and authentic earlier review history. Keep source qualification and hosted acceptance distinct.",
+      "supersedes": "57de1e3de23256f802280c9f2f1f29fe4bd31af61e5e3722bdd51e35b044657c",
+      "requested_at": "2026-11-25T17:42:16.846695+00:00",
+      "request_id": "69bd392b8070585c23fa8c28aecc4f3e63d40b96e12a0838fb6d6c4085430811",
+      "evidence_sha256": "eda47680bc9b509fd74a906e4183c7e05fc6b33e78f61e44a719bf51b44578c6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "scope": "CHANGES_REQUESTED M0-136 4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "observation": "In the M0-103 replay, adding a bullet to a documentation heading caused the intake to accept an approval that appeared only inside a fenced terminal example.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "93f3f9b026f3a4a04dbd8cbcdb77f2be2888ab27b0a6519f419cd48252da012a",
+      "response_id": "592d39279ea733fd6c5e1e0cc382507e3fb9c33df37f5830a5c415b9a6e9908d",
+      "response_sha256": "ce34269b14d7cce387e944ad49f9e021ceba0cba2578bcac78f04a28d691a7dc",
+      "legacy_response_sha256": "00030acce7cea978c3a83f8adbee53f239678bfd2d4240aa7853f19e29889f45",
+      "observation_body_sha256": "f6c0ba3db45ef2f85648ddb952e0224a40ed6917f0c926200f1a8d2e41672fba",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b071eb44f9487d0b07c4a7d9e7ef0f5",
+        "timestamp": "2026-11-25T17:45:35.115Z"
+      },
+      "supersedes": "69bd392b8070585c23fa8c28aecc4f3e63d40b96e12a0838fb6d6c4085430811",
+      "evidence_sha256": "e400c293677a468989764eb8299bd23554ba1841bca13d06243be931a36592c1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "scope": "Review the corrected document and terminal exchange boundaries on the exact merged input, including standalone verdicts, authored quoted examples, original legacy transcripts, structured finals, replay identity, retained decision chronology and protected maintenance history.",
+      "supersedes": "592d39279ea733fd6c5e1e0cc382507e3fb9c33df37f5830a5c415b9a6e9908d",
+      "requested_at": "2026-11-25T18:04:20.552542+00:00",
+      "request_id": "5dbfb798d7373a9ee941d869f24cb8ecf946e337a2d890b4d6896018b661bcbf",
+      "evidence_sha256": "2fcbe557a92dfe2a37517780b691aac0e43d042449b9ae4aad36e2c6c0e0695d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "scope": "CHANGES_REQUESTED M0-136 d4c2ed998e2bff70ff8c19e2e8706e4c63cf12f3",
+      "observation": "The M0-103 intake discarded the final observation when an earlier sentence in the terminal reply began with the words Worked for.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "adbfb35ac45aba0ea0403caaca59b513d00392a58762147abf3d88a187d1169f",
+      "response_id": "bf1203eb0e89006633461d1515dbf519d436b1f18b4b5405076e005782be1e2c",
+      "response_sha256": "3ce5f324e34ef04c3b4dfc0de86324178510e98de3613e6510996b5b8dc7a9c9",
+      "legacy_response_sha256": "e45c157b050700b2eab7491ff831e02c930a6d724fdb4c9860a55564b2312a39",
+      "observation_body_sha256": "f62ee549e87deea94bda5fb98443c197ba208cac4c376c0d7a55dc1c320aca57",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0725b5cd1887d087dff0c8bcbcb008",
+        "timestamp": "2026-11-25T18:15:28.045Z"
+      },
+      "supersedes": "5dbfb798d7373a9ee941d869f24cb8ecf946e337a2d890b4d6896018b661bcbf",
+      "evidence_sha256": "e7a8be0ca578551b98c1071c135d377e765cfa975bfa29946bf308d95ed052a5"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "scope": "Recheck complete terminal answer boundaries and cross-format deduplication on the corrected source, all earlier genuine requests and decisions, and the exact composition of independent maintenance policy and review tooling.",
+      "supersedes": "bf1203eb0e89006633461d1515dbf519d436b1f18b4b5405076e005782be1e2c",
+      "requested_at": "2026-11-25T19:02:55.098681+00:00",
+      "request_id": "81f4bf51aff40fa0c22fee23898e5fa5c0573bcae5630d97d00e16da9db98177",
+      "evidence_sha256": "70570c873840f86fd2297d274f75e289af7b32600914750dfbc06628f39ab647"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "verdict": "approved",
+      "decision": "APPROVE M0-136 cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "scope": "APPROVE M0-136 cbace193ef55ed8a8e0061dd40281763fd896b25",
+      "observation": "The M0-103 intake preserved the observation after the sentence beginning with Worked for and recognized the matching structured reply as a duplicate.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "0a1a9cfaad4035f6e2063339cdcfcae5a7dc2f6c82bf529885246378ab98560a",
+      "response_id": "dcf1aa3c57bed6163510bc3f6fe374276e901b49523f3d000060d5da163cfb6a",
+      "response_sha256": "18cc938d33eff49aaa8184c8b0dfc11ec7feae7bd154c841d81888e9512903b1",
+      "legacy_response_sha256": "d2cd6782ac61019f1b8b9d1d352d521a8bbb7dbcfea0a61aaf295e878d6d60b4",
+      "observation_body_sha256": "e941851fd0be3044b05f334ca641c5bcad00b36eb0bd54b4d5f921434e41e4c9",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0736e6f4f087d0a728f2322b315461",
+        "timestamp": "2026-11-25T19:28:47.954Z"
+      },
+      "supersedes": "81f4bf51aff40fa0c22fee23898e5fa5c0573bcae5630d97d00e16da9db98177",
+      "evidence_sha256": "b8f650e39655e0bb7e0670e3d4884372706e0fb44c112b3ed3a9c4eb2696d41c"
+    },
+    {
+      "kind": "request",
+      "source_commit": "0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "scope": "Verify native newline fixture bytes against independent on-disk evidence, original and normalized response identities, literal-space controls and historical recorded decisions for M0-136.",
+      "supersedes": "dcf1aa3c57bed6163510bc3f6fe374276e901b49523f3d000060d5da163cfb6a",
+      "requested_at": "2026-11-25T20:01:13.283136+00:00",
+      "request_id": "1214b253b9aa77ab54eb6a97e79999d0ed27bcc5a635a79c601aec5d9132c7a4",
+      "evidence_sha256": "7aea2044aad5f9f4a1f8b448eda0eb818290f7f6631136a86905a2445a95dfe4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "verdict": "approved",
+      "decision": "APPROVE M0-136 0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "scope": "APPROVE M0-136 0daa1845ff46c450035b6ea91eb62806c58d4bd2",
+      "observation": "The M0-103 intake recorded different original file hashes for the LF and CRLF transcripts and assigned both the same normalized response ID.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "5b6a3a28619381dfdc04d4d7f6b3da7985a3092f2eba1a854369569025b56fc3",
+      "response_id": "50cbafd438708f4798c6cbcba54c27fd6b719229b971f3e931afd83307e30799",
+      "response_sha256": "f65154216cc310100e62a5a9ddb72c333286dd5a71d8b8461edc5cbe84e4a24e",
+      "legacy_response_sha256": "8e3619319b1360114f7e18a2248d8399178a8df8b1e883e16239a7c66bba91a4",
+      "observation_body_sha256": "38033b727a54644fc9c936ea93da55c061e7cd753081d9d3527f5376bc95a507",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b073f523c1887d09348bfd7e5a5213b",
+        "timestamp": "2026-11-25T20:04:43.984Z"
+      },
+      "supersedes": "1214b253b9aa77ab54eb6a97e79999d0ed27bcc5a635a79c601aec5d9132c7a4",
+      "evidence_sha256": "7eef5d230a547e1c77276e6d3252b064cdcd2f49a132cc3a76dbddcab4083e68"
+    }
+  ]
+}

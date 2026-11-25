@@ -283,7 +283,7 @@ async function retryAdmission<T>(work: (onBusy: () => void) => Promise<T>, signa
   }
 }
 
-async function readSnapshotAfterWrite(signal: AbortSignal): Promise<Snapshot> {
+export async function readWorkspaceSnapshotAfterAdmission(signal: AbortSignal): Promise<Snapshot> {
   return validateSnapshot(await readWorkspaceAfterAdmission<Snapshot>({ type: 'snapshot' }, signal));
 }
 
@@ -294,7 +294,7 @@ export function readWorkspaceAfterAdmission<T>(body: AdmissionRead, signal: Abor
 }
 
 async function readCommittedSnapshot(receipt: CommittedRevision, signal: AbortSignal): Promise<Snapshot> {
-  const current = await readSnapshotAfterWrite(signal);
+  const current = await readWorkspaceSnapshotAfterAdmission(signal);
   if (current.workspace.id !== receipt.workspace_id || current.workspace.revision < receipt.committed_workspace_revision) {
     throw { code: 'OUTPUT_INVALID' };
   }
