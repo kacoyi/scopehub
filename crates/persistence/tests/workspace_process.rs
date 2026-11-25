@@ -88,6 +88,170 @@ fn process_round_trip_restores_replays_undoes_and_isolates() {
 }
 
 #[test]
+fn process_prepares_isolated_profiles_together_and_refuses_shared_storage() {
+    let temporary = std::env::temp_dir();
+    #[cfg(unix)]
+    let temporary = temporary.canonicalize().unwrap();
+    let outer = temporary.join(format!("scopehub-profile-pool-{}", Uuid::new_v4()));
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        fs::DirBuilder::new().mode(0o700).create(&outer).unwrap();
+    }
+    #[cfg(windows)]
+    fs::create_dir(&outer).unwrap();
+    let outer = Profile(outer);
+    let pool = outer.0.join("profiles");
+    let bridge_exe = PathBuf::from(env!("CARGO_BIN_EXE_workspace_bridge"));
+    #[cfg(windows)]
+    let bridge_exe = {
+        let relocated = outer.0.join("workspace_bridge.exe");
+        fs::copy(&bridge_exe, &relocated).unwrap();
+        relocated
+    };
+    let prepare = |count| {
+        Command::new(&bridge_exe)
+            .arg("--prepare-profile-pool")
+            .arg(&pool)
+            .arg(count)
+            .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
+            .output()
+            .unwrap()
+    };
+
+    #[cfg(windows)]
+    {
+        let before = outer.0.join("invalid-profile-parent");
+        let refused = Command::new(&bridge_exe)
+            .arg("--prepare-profile-root")
+            .arg(before.join("ambiguous."))
+            .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
+            .output()
+            .unwrap();
+        assert!(!refused.status.success());
+        let summary = String::from_utf8_lossy(&refused.stderr);
+        assert!(summary.contains("(prepare, local-path)"), "{summary}");
+        assert!(!before.exists());
+    }
+
+    let started = Instant::now();
+    let prepared = prepare("2");
+    assert!(
+        prepared.status.success(),
+        "profile pool preparation failed: {}",
+        String::from_utf8_lossy(&prepared.stderr),
+    );
+    eprintln!(
+        "Prepared two explicit private profiles in {:?}",
+        started.elapsed()
+    );
+    #[cfg(windows)]
+    {
+        let phases = String::from_utf8_lossy(&prepared.stderr);
+        assert!(phases.contains("spawn-to-ready-ms=Some("), "{phases}");
+        assert!(phases.contains("phase=complete"), "{phases}");
+        eprintln!("{phases}");
+        let forbidden = outer.0.join("ungranted");
+        let refused = Command::new(&bridge_exe)
+            .arg("--scopehub-workspace-acl")
+            .env("SCOPEHUB_STORAGE_PATH", &forbidden)
+            .env("SCOPEHUB_STORAGE_ACTION", "prepare")
+            .env("SCOPEHUB_STORAGE_PROFILE_COUNT", "0")
+            .stdin(Stdio::null())
+            .output()
+            .unwrap();
+        assert_eq!(refused.status.code(), Some(35));
+        assert!(!forbidden.exists());
+
+        let mut expired = Command::new(&bridge_exe);
+        let expired = expired
+            .arg("--scopehub-workspace-acl")
+            .env("SCOPEHUB_STORAGE_PATH", &forbidden)
+            .env("SCOPEHUB_STORAGE_ACTION", "prepare")
+            .env("SCOPEHUB_STORAGE_PROFILE_COUNT", "0")
+            .env("SCOPEHUB_STORAGE_DEADLINE_MS", "0")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
+        let mut child = expired.spawn().unwrap();
+        child.stdin.take().unwrap().write_all(b"1").unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert_eq!(output.status.code(), Some(36));
+        assert!(!forbidden.exists());
+    }
+    let first = Profile(pool.join("profile-0"));
+    let second = Profile(pool.join("profile-1"));
+    for profile in [&first, &second] {
+        assert!(profile.0.is_dir());
+        assert!(!profile.0.join("workspace.sqlite3").exists());
+    }
+
+    let opened = frames(bridge(&first, PROFILE_ID, &[set(0, "5m", Uuid::new_v4())]));
+    assert_snapshot(&opened[0], 0, "1m");
+    assert_committed(&opened[1], 1, "5m");
+    let ordinary_open = Command::new(&bridge_exe)
+        .arg(&second.0)
+        .args([PROFILE_ID, WORKSPACE_ID])
+        .env("SCOPEHUB_WORKSPACE_ACL_PHASES", "1")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(
+        ordinary_open.status.success(),
+        "{}",
+        String::from_utf8_lossy(&ordinary_open.stderr)
+    );
+    #[cfg(windows)]
+    assert!(
+        String::from_utf8_lossy(&ordinary_open.stderr).contains("(open) spawn-to-ready-ms=Some(")
+    );
+    let reply: Value = serde_json::from_slice(&ordinary_open.stdout).unwrap();
+    assert_eq!(reply["ok"], true);
+    assert_eq!(reply["private_profile"], true);
+    assert_snapshot(&reply["result"], 0, "1m");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&second.0, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    #[cfg(windows)]
+    {
+        let icacls =
+            PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
+        let grant = Command::new(icacls)
+            .arg(&second.0)
+            .args(["/grant", "*S-1-1-0:(RX)"])
+            .output()
+            .unwrap();
+        assert!(
+            grant.status.success(),
+            "could not create the unsafe ACL fixture"
+        );
+    }
+
+    let database = second.0.join("workspace.sqlite3");
+    let before = fs::read(&database).unwrap();
+    let refused = prepare("2");
+    assert!(!refused.status.success());
+    #[cfg(windows)]
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("(prepare, shared-access)"));
+    let refused = Command::new(&bridge_exe)
+        .arg(&second.0)
+        .args([PROFILE_ID, WORKSPACE_ID])
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(
+        refused.stdout.is_empty(),
+        "the refused profile produced a handshake"
+    );
+    #[cfg(windows)]
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("(open, shared-access)"));
+    assert_eq!(fs::read(database).unwrap(), before);
+    assert_snapshot(&frames(bridge(&first, PROFILE_ID, &[]))[0], 1, "5m");
+}
+
+#[test]
 fn process_rejects_identity_fields_and_oversized_frames() {
     let profile = Profile::new();
     let mut forged = set(0, "5m", Uuid::new_v4());

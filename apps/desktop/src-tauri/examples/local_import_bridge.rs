@@ -33,8 +33,16 @@ async fn dispatch(state: &State, folder: &Path, command: Value) -> Result<Value,
     }
 }
 
+fn main() -> Result<(), Box<dyn StdError>> {
+    #[cfg(windows)]
+    if let Some(exit) = scopehub_persistence::run_workspace_acl_worker() {
+        std::process::exit(exit);
+    }
+    run_bridge()
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn StdError>> {
+async fn run_bridge() -> Result<(), Box<dyn StdError>> {
     let arguments: Vec<_> = env::args_os().skip(1).collect();
     let (profile, folder, workspace) = match arguments.as_slice() {
         [profile, folder] => (profile, folder, false),
