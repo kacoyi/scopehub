@@ -99,7 +99,8 @@ async function readOperation(request, stream) {
 function runOperation(root, line, maxReplyBytes, signal, streamResponse, interruptionWitness) {
   signal.throwIfAborted();
   const windows = process.platform === 'win32';
-  const executable = resolve(root, 'target/debug/examples', windows ? 'history_bridge.exe' : 'history_bridge');
+  const bridge = interruptionWitness ? 'history_bridge_interruption' : 'history_bridge';
+  const executable = resolve(root, 'target/debug/examples', windows ? `${bridge}.exe` : bridge);
   const command = windows ? resolve(root, '.venv/Scripts/python.exe') : executable;
   const args = windows ? ['-I', '-S', resolve(root, 'scripts/windows_job.py'), executable] : [];
   if (interruptionWitness) args.push('--test-market-interruption', interruptionWitness);

@@ -26,7 +26,11 @@ let witness;
 
 test.beforeAll(async ({}, info) => {
   info.setTimeout(300_000);
-  await promisify(execFile)('cargo', ['build', '--locked', '-p', 'scopehub-worker-host', '--example', 'history_bridge', '--target-dir', 'target'], { cwd: root });
+  const build = (...args) => promisify(execFile)('cargo', [
+    'build', '--locked', '-p', 'scopehub-worker-host', '--target-dir', 'target', ...args,
+  ], { cwd: root });
+  await build('--example', 'history_bridge');
+  await build('--example', 'history_bridge_interruption', '--features', 'preview-market-interruption');
 });
 test.beforeEach(async () => {
   witness = randomUUID();

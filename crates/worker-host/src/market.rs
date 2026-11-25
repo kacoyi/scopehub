@@ -72,16 +72,8 @@ impl WorkerConfig {
         command
     }
 
-    fn command(&self, interruption_witness: Option<Uuid>) -> Command {
+    fn command(&self) -> Command {
         let mut command = self.python_command();
-        if let Some(witness) = interruption_witness {
-            command.arg(
-                self.root
-                    .join("tests/ubuntu-preview/market_interruption_worker.py"),
-            );
-            command.arg(witness.to_string());
-            return command;
-        }
         command.env("SCOPEHUB_WORKER_WIRE_VERSION", "1.1").args([
             "-m",
             "worker_runtime",
@@ -113,7 +105,8 @@ pub struct MarketWorker {
     session: Option<Session>,
     subscription: Option<(String, String)>,
     cleanup: Option<cleanup::PendingCleanup>,
-    interruption_witness: Option<Uuid>,
+    #[cfg(feature = "preview-market-interruption")]
+    interruption: Option<(PathBuf, Uuid)>,
 }
 
 pub(super) fn protocol_failure(error: ProtocolError) -> Error {
@@ -133,15 +126,16 @@ impl MarketWorker {
             session: None,
             subscription: None,
             cleanup: None,
-            interruption_witness: None,
+            #[cfg(feature = "preview-market-interruption")]
+            interruption: None,
         }
     }
 
-    /// Only the repository preview example runs the interruption fixture.
-    #[doc(hidden)]
-    pub fn preview_interruption(config: WorkerConfig, witness: Uuid) -> Self {
+    /// Run the opt-in preview example's fixture for the original session only.
+    #[cfg(feature = "preview-market-interruption")]
+    pub fn preview_interruption(config: WorkerConfig, script: PathBuf, witness: Uuid) -> Self {
         let mut worker = Self::new(Some(config));
-        worker.interruption_witness = Some(witness);
+        worker.interruption = Some((script, witness));
         worker
     }
 
@@ -184,9 +178,14 @@ impl MarketWorker {
             .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
         let deadline = config.deadline;
         let permit = worker_slot()?;
-        let mut child = config
+        let mut command = config.command();
+        #[cfg(feature = "preview-market-interruption")]
+        if let Some((script, witness)) = self.interruption.take() {
             // A replacement runs the ordinary synthetic worker, without the witness.
-            .command(self.interruption_witness.take())
+            command = config.python_command();
+            command.arg(script).arg(witness.to_string());
+        }
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
