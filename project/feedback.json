@@ -6662,7 +6662,8 @@
       "status": "deferred",
       "task_ids": [
         "M0-132",
-        "M0-140"
+        "M0-140",
+        "M0-144"
       ],
       "regression_checks": [
         "python-types",

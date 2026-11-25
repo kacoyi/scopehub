@@ -24615,6 +24615,41 @@
           "cleanup": "Keep observations in the development archive, remove temporary instrumentation from the delivered tree and stop any workers started by the measurement."
         }
       }
+    },
+    {
+      "id": "M0-144",
+      "title": "Qualify lookup cost when a longer chart session shows visible delay",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-140"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "For the first representative longer chart session in which profiling shows material user-visible delay from protocol reference lookup, retain the source, session duration, actions, per-worker request counts and time to the visible result. Keep private market content local and retain synthetic comparison fixtures.",
+        "Measure lookup CPU alongside end-to-end latency and retained memory for the observed request mix. Compare fresh one-shot CSV source inspection and folder refresh. Preserve chart, CSV and protocol response parity and identify any unavailable measurements.",
+        "Use the M0-132 baseline and M0-140 measurements to decide whether the evidence justifies a separately reviewed change. Record the decision and link any corrective task to the deferred finding."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "The development AI takes this task when a representative longer chart session first shows material lookup-related visible delay. Retain the observation before evaluating an optimization.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
     }
   ]
 }
