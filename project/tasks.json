@@ -25416,7 +25416,7 @@
         }
       },
       "closure_reason": null,
-      "next_action": "Reproduce the exact fixture failure locally, preserve both native originals and verify the narrow correction before independent and native reruns.",
+      "next_action": "Obtain independent review of the Windows gate fixture correction, then retain guarded and ordinary native Windows reruns on the corrected source.",
       "blocker": null,
       "evidence": [
         {
@@ -25438,6 +25438,10 @@
         {
           "path": "project/evidence/M0-138-79bf4c14fb6811e8.json",
           "sha256": "0082bc9b2ac1648006d6bd70dda129dbffa9ede503100f7df34619a222815830"
+        },
+        {
+          "path": "project/evidence/M0-138-842e3a6bd98db430.json",
+          "sha256": "0e26121fe7bede99a794fa55b1079492eb69ed4ed1a0c9f622869d56dc4173bc"
         }
       ]
     }
