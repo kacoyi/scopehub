@@ -8147,6 +8147,23 @@
         "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "historical-timing-dispute-lost-after-capture-window-rotation",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source review for M0-133 at 57f1c772c2c8fa7cbf67e545f36d9e66365aa041 using real attempt 45546767887, three genuine later captures and nine controlled clocks. The signed-in local reviewer retained its original response at archives/observations/repo-hygiene-20261125/independent-final-m0-133-57f1c772/final-response.txt (SHA-256 e1a30705dab5af6abacaaaadbf066030aac1ce89c2de4d6e98a6dcb445deec90).",
+      "task_ids": [
+        "M0-155"
+      ],
+      "observation": "After twelve later captures displaced an attempt with contradictory browser job identities, an ordinary timing read restored the saved 645-second browser time and 2467 runner-seconds. The independent 804-second Windows clock remained valid in that case. In a separate checkout conflict, a budgeted reader restored the invalid 804-second platform attribution and runner total after rotation. The contested captures remained byte-identical while the recent index changed.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

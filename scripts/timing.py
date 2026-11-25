@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from functools import cache, lru_cache
 from hashlib import sha256
+from itertools import chain
 import json
 import os
 from pathlib import Path
@@ -2210,6 +2211,19 @@ def retained_failures_for_clocks(directories, hosted, already_read, issues):
             issues.append({'file': path.name, 'error': str(error)})
 
 
+def retained_attempt_paths(directories, samples, hosted):
+    # A saved review supplies attempt identities, not a current verdict. The
+    # canonical capture keeps its original observations even when rotation or
+    # a dispute removes its qualifying platform link.
+    attempts = defaultdict(set)
+    for ci in chain((row['ci'] for row in samples if row.get('ci')), hosted):
+        attempt = ci_key(ci)
+        _, run_id, number, event, head = attempt
+        if event in NORMAL_EVENTS and number == '1' and positive_id(run_id) and commit_id(head):
+            attempts[f'ci-{event}-{run_id}-1.json'].add(attempt)
+    return {directory / name: identities for name, identities in attempts.items() for directory in directories}
+
+
 def linked_timing_keys(feedback):
     keys = set()
     for item in feedback:
@@ -2323,25 +2337,42 @@ def linked_capture_claims(directories, keys, issues, *, observed_capture=None):
     return captures
 
 
-def linked_capture_inputs(directories, keys, recent, issues):
-    captures = linked_capture_claims(directories, keys, issues)
+def retained_capture_inputs(attempt_paths, claims, recent, issues, *, budget=None):
+    # Exact feedback links keep their existing lookup. Consult the review's
+    # other known attempts within its read budget, without reopening any path.
+    recent = set(recent)
+    paths = [*sorted(claims.keys() - recent), *sorted(attempt_paths.keys() - claims.keys() - recent)]
     samples, hosted = [], []
-    for path in sorted(captures.keys() - set(recent)):
+    for path in paths:
+        keys = claims.get(path)
         try:
-            _, rows, clocks, _ = read_timing_capture(path)
-            qualified = indexable_capture_samples(path, rows, clocks, issues)
-            matching = [row for row in qualified if report_key(row) in captures[path]]
-            missing = captures[path] - {report_key(row) for row in matching}
-            if missing:
-                issues.append({'file': path.name, 'reports': sorted(missing), 'error': 'Indexed timing identities are absent.'})
-            # Linked review needs the same attempt evidence as ordinary reopen.
-            candidates = [row for row in rows if report_key(row) in captures[path] and sample_belongs_to_capture(row, path)]
-            attempts = {ci_key(row['ci']) for row in candidates}
+            if not keys and entry_info(path) is None:
+                continue
+            _, rows, clocks, _ = read_timing_capture(path, budget=None if keys else budget)
+            attempts = set(attempt_paths.get(path, ()))
+            if keys:
+                qualified = indexable_capture_samples(path, rows, clocks, issues)
+                missing = keys - {report_key(row) for row in qualified}
+                if missing:
+                    issues.append({'file': path.name, 'reports': sorted(missing),
+                                   'error': 'Indexed timing identities are absent.'})
+                attempts.update(ci_key(row['ci']) for row in rows
+                                if report_key(row) in keys and sample_belongs_to_capture(row, path))
             samples.extend(row for row in rows if row['ci'] and ci_key(row['ci']) in attempts)
             hosted.extend(clock for clock in clocks if ci_key(clock) in attempts)
         except (OSError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
-            issues.append({'file': path.name, 'reports': sorted(captures[path]), 'error': str(error)})
+            issue = {'file': path.name, 'error': input_error(error)}
+            if keys:
+                issue['reports'] = sorted(keys)
+            issues.append(issue)
+            if not keys and budget is not None and not budget.remaining:
+                break
     return samples, hosted
+
+
+def linked_capture_inputs(directories, keys, recent, issues, *, attempts=None, budget=None):
+    claims = linked_capture_claims(directories, keys, issues)
+    return retained_capture_inputs(attempts or {}, claims, recent, issues, budget=budget)
 
 
 def timing_directories(root, issues):
@@ -2391,7 +2422,10 @@ def retained_budget_inputs(root, feedback=()):
                 samples.append(report_sample(data))
         except (OSError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'file': path.name, 'error': input_error(error)})
-    linked_samples, linked_hosted = linked_capture_inputs(directories, linked_timing_keys(feedback), recent, issues)
+    attempt_paths = retained_attempt_paths(directories, samples, hosted)
+    linked_samples, linked_hosted = linked_capture_inputs(
+        directories, linked_timing_keys(feedback), recent, issues, attempts=attempt_paths, budget=review_budget,
+    )
     samples.extend(linked_samples)
     hosted.extend(linked_hosted)
     hosted.extend(retained_failures_for_clocks(directories, hosted, recent, issues))
@@ -2969,12 +3003,14 @@ def main():
     recent = None
     explicit_input_failed = False
     read_budget = TimingReadBudget()
+    read_captures = set()
     try:
         if args.save and args.summary and args.save.resolve() == args.summary.resolve():
             raise TimingError('The review archive and job summary must use different files.')
         for path in args.report if args.report is not None else local_paths(ROOT):
             try:
                 if args.report is None and CI_TIMING_NAME.fullmatch(path.name):
+                    read_captures.add(path)
                     _, rows, clocks, notes = read_timing_capture(path, budget=read_budget)
                     samples.extend(rows)
                     workflows.extend(clocks)
@@ -3047,6 +3083,13 @@ def main():
                 workflows.append(inspect_hosted(run, args.attempt, repository, samples))
         if args.recent is not None:
             recent = inspect_recent(repository, args.recent, samples, workflows, issues)
+        if args.report is None:
+            attempt_paths = retained_attempt_paths(timing_directories(ROOT, issues), samples, workflows)
+            retained_samples, retained_clocks = retained_capture_inputs(
+                attempt_paths, {}, read_captures, issues, budget=read_budget,
+            )
+            samples.extend(retained_samples)
+            workflows.extend(retained_clocks)
         view = timing_view(samples, hosted=workflows, issues=list(issues))
         if recent is not None:
             recent = {**recent, 'collected_samples': qualified_collected_reports(view['samples'], recent)}

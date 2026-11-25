@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-155",
   "tasks": [
     {
       "id": "M0-001",
@@ -26564,6 +26564,104 @@
           "sha256": "8b9ba8cb3a857e038189b2fc7a7610aa5800f144baa32c6920e4618b2933042b"
         }
       ]
+    },
+    {
+      "id": "M0-155",
+      "title": "Preserve disputed timing attribution after the recent capture window rotates",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-133"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
+        "Keep disputed browser and runner values unknown while preserving an independently established 804-second platform clock. A conflicting checkout must continue to withhold platform eligibility and its runner total. Check unchanged valid and unrelated attempts, both arrival orders, and reopening from the retained originals.",
+        "Use bounded historical lookup and retain the existing capture and saved-review formats. Verify the correction through the selected task checks and the exact independent review. Preserve each prior timing decision and the existing reports."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [],
+      "next_action": "Compare the retained red and corrected public replay and submit the exact source for independent review. Keep all earlier timing task evidence intact and the inherited prospective review gates explicit.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A reopened timing review preserves conflicts affecting an old attempt after recent capture rotation and retains every independently supported measurement.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-57f1c772/final-response.txt"
+        ],
+        "hypotheses": [
+          "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window."
+        ],
+        "risks": [
+          {
+            "failure": "An older uncontested review silently restores a disputed browser, runner or platform result after rotation. Reconcile both conflict types by their actual attempt at both read entries.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Overbroad invalidation removes independent clocks or blocks unrelated captures. Check unaffected timing, honest partial evidence, bounded reads and existing archive bytes.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changing protected platform objectives, test deadlines or measurement provenance."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Canonical run, attempt and checkout identity, independently valid job clocks, archive immutability and the bounded recent window."
+          ],
+          "change": [
+            "Reconcile old adverse timing evidence through the ordinary and budgeted readers when the recent window no longer supplies it."
+          ],
+          "data_plan": "Read existing saved reviews and retained per-attempt captures. Cover missing, conflicting and intact historical data.",
+          "cleanup": "Remove superseded lookup or reconciliation only after equivalent accepted and rejected observations pass."
+        }
+      }
     }
   ]
 }
