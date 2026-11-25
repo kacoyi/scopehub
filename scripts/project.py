@@ -1215,12 +1215,19 @@ def validate_review_chain(root, project, key, admitted_paths, appended_paths, cu
                                  branch_tips=branch_tips, admitted_timing=admitted_timing)
 
 
-def require_periodic_transition(root, project, base, only=None):
+def committed_periodic_records(root, base):
     prior = feedback_git(root, 'show', f'{base}:project/delivery.json')
-    if prior.returncode:
+    if not prior.returncode:
+        return maintenance.periodic_records(json.loads(prior.stdout))
+    return None
+
+
+def require_periodic_transition(root, project, base, only=None, *, previous=None):
+    if previous is None:
+        previous = committed_periodic_records(root, base)
+    if previous is None:
         return
     current = maintenance.periodic_records(project['delivery'])
-    previous = maintenance.periodic_records(json.loads(prior.stdout))
     today = datetime.now(timezone.utc).date()
     feedback = indexed(project['feedback']['items'], 'feedback')
     for key in sorted(previous.keys() if only is None else previous.keys() & {only}):
@@ -1285,10 +1292,14 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
     head = feedback_commit(root, 'HEAD') if compare and (root / '.git').exists() else None
     bases = dict.fromkeys([head, protected_feedback_base(root, head).get('commit') if head else None])
     present = {item['id'] for item in reviews}
+    # Each base is a resolved commit. Share its policy with the per-rule
+    # comparisons while leaving candidate reads and ref checks live.
+    committed_records = {}
     for base in filter(None, bases):
-        original = feedback_git(root, 'show', f'{base}:project/delivery.json')
-        if not original.returncode:
-            missing = maintenance.periodic_records(json.loads(original.stdout)).keys() - present
+        previous = committed_periodic_records(root, base)
+        if previous is not None:
+            committed_records[base] = previous
+            missing = previous.keys() - present
             for key in sorted(missing):
                 reviews.append({'id': key, 'state': 'evidence_invalid', 'review_due': True,
                                 'next_review_by': None, 'owner': 'coordinator', 'command': maintenance.POLICY_COMMAND,
@@ -1311,7 +1322,7 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
             if item.get('retired_reason') and key == 'worktrees-and-evidence' and not successor:
                 raise ValueError('External staging requires an explicit successor task.')
             for base in filter(None, bases):
-                require_periodic_transition(root, project, base, only=key)
+                require_periodic_transition(root, project, base, only=key, previous=committed_records.get(base))
         except ObservationIntakePending as error:
             item.update(state='intake_needed', review_due=True, next_review_by=None, problem=str(error),
                         command='uv run python scripts/project.py verify-maintenance --help')

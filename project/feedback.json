@@ -6964,6 +6964,26 @@
       "deferral_reason": null
     },
     {
+      "id": "periodic-maintenance-verification-repeated-git-reads",
+      "source": "Private authenticated and local observations under archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079. pr115-windows-worker-test-delta.json SHA-256 b16698bdd9366b6a08e9f44313a268c57a7f3075585e6b1527a401ad4541c1f4. pr115-periodic-transition-process-cost.json SHA-256 d571f5aae3aed2b2af2c26c1087c0f102bb29dc597564fee290bf5764f3c2921. pr115-windows-python-two-runs.json SHA-256 04b9b4f06e64c88adfdabb0382533dbfdf653bbee9d0c0a0d80090fccacdef0a. warm-main-before-scheduling-change-45656611020.json SHA-256 7b5a1df60e4212e9d92735d0c401e096373a96b3c0986c0f398bc294e1ea276c.",
+      "observation": "Windows Python passed in 909.922 s on full PR115 run 45650476275 and in 873.609 s on the second ordinary PR115 run 45652946521. Their 27 new case durations were 132.517 s and 123.655 s. The same 698 common cases were 775.616 s and 748.319 s against 559.727 s in full PR114 run 45633961353. The warm protected-main push 45656611020 preceded the scheduling correction, selected 35, passed at 878 s wall and 2779 s Windows runner work, and recorded 786.766 s for Python. Neither PR is a main push. On pinned local maintenance source 3144e2e82313716664873ac559e36cd921874d9c, the three slowest new real journeys started 507, 540 and 457 Git children, including fixture setup, predominantly show, rev-parse and merge-base. Status rereads the same exact comparison commit delivery policy across rules. Measure the public interaction separately to attribute the avoidable lookups.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-143"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The status command loaded one predecessor's immutable delivery policy once for each periodic rule, after already reading that same revision for the observation.",
+        "correction": "Read each predecessor policy once within the current status call and supply it to the per-rule comparison. Continue obtaining current refs, working files, evidence and ancestry through their ordinary paths.",
+        "prevention": "The paired public status fixture keeps the accepted successor and reversed ancestor, checks the full output bytes and traces the actual Git calls. The three pairs per case retained 41 to 36 and 42 to 37 total Git invocations."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "linux-browser-check-retains-preview-server-after-timeout",
       "source": "archives/runs/20261125T144154.618344Z-990d4693/test-report.json and archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/resumed-browser-processes-87dd079.json (SHA-256 4eef9030afd8ef2525a1aea1c779d0d2386d03b8b6c90d87ba1cb3885a591a2c).",
       "severity": "major",
