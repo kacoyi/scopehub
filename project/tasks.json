@@ -24567,7 +24567,7 @@
           "report_sha256": "7da9ecf4cc71dd85f3f05ee76f33a65b9a85c348e7c1843b5539a8e495edd620"
         }
       ],
-      "next_action": "Compare the historical single-check allocation with the current Windows jobs and exercise a disjoint candidate through the ordinary scheduler. Verify a real ordinary push after the protected repair.",
+      "next_action": "After independent source review and protected integration, inspect the first subsequent ordinary full warm Windows main push with this repair through project:status and retained timing. Require the same selected outcomes and at most 900 seconds; keep the finding active otherwise.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24583,7 +24583,7 @@
           "project/delivery.json"
         ],
         "hypotheses": [
-          "The browser producer finished last in both new overruns. The existing recovery producer already installs Chromium. The earlier dcb1d3d allocation of market-recovery-ui is a candidate that must be checked against the current inputs and ordinary runner measurements."
+          "The browser producer finished last in both new overruns. The existing recovery producer already installs Chromium. The earlier dcb1d3d allocation of market-recovery-ui is a candidate that must be checked against the current inputs and ordinary runner measurements. The three actual Windows push job spans and original moved-check durations project 856, 901 and 868.422 seconds with unchanged setup and aggregate tail. In the 901-second projection Python becomes critical; the recovery producer retains at least 424.891 seconds of headroom across the three projections."
         ],
         "risks": [
           {
@@ -24625,7 +24625,7 @@
             "Changing product deadlines, releasing a version, adding a runner or weakening required coverage."
           ],
           "open_questions": [
-            "Does the existing producer have enough observed headroom on both runs to absorb the candidate without an extra restore or additional build?"
+            "Does the next comparable native main observation confirm the projected critical path and meet the budget without adding runner work?"
           ]
         },
         "evolution": {

@@ -6710,7 +6710,8 @@
         "repository": "kacoyi/scopehub",
         "event": "push",
         "profile": "full",
-        "platform": "Windows"
+        "platform": "Windows",
+        "repair_commit": "903ce1a0e34525b7c09f7a36ee98405c37545a6d"
       },
       "resolution": null,
       "deferral_reason": null
