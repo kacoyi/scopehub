@@ -6528,6 +6528,22 @@
         "prevention": "Keep the digested ordinary PR controls and require exact repair ancestry, complete producer clocks, matching outcomes and full warm cache evidence for any future disposition. The task-bound regression receipt and native provenance are indexed in contracts/reviews/2026-11-25-pr-timing-recurrences.json."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "consequential-review-after-timing-task-closure",
+      "source": "Independent Astra review of ea836e3c7c671666408b612a9ce9e3a7ef690ed4, transcript SHA-256 bdf597cf6055228a0a8499b460ee14ceadf072fd6e78a026c9cfc76b6823d341. Original local task closures ecf48f65a02b94967e0813fec4e9cbbec360ffbf and 97fedb3771bcdbcbf1030d32d4eec1c69401d656.",
+      "observation": "M0-130 and M0-131 were locally done with passing receipts before independent review found that a known timing conflict could disappear after normal capture and reopen. On the reviewed source the CLI correctly withheld the disputed browser clock on first interpretation, while saving kept only the complete listing and reopening its output recovered a 645-second clock without a conflict. Existing evidence qualified the cases actually exercised before closure. The review launch used the implementation-phase task context; whether an earlier focused independent review would have caught the missing boundary is an implementation hypothesis.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-134"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
