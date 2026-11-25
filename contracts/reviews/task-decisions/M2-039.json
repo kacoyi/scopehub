@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M2-039",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "da3df35cdef98572ac4a92c89cb4928a6d8f11e5",
+      "scope": "Review the final first reopen, source save and manual recovery, folder declarations, revoked and withheld access, shared deadline and test-owned status holder together with protected peer deletion recovery. Reconcile the original native failures and both accepted chart prerequisite decisions.",
+      "supersedes": null,
+      "requested_at": "2026-11-25T21:38:29.980835+00:00",
+      "request_id": "4ef367618314ec1efc9a6b2cb45d67347679b6db9a9f7df26d61deb2efe00d13",
+      "evidence_sha256": "0d40b82148f85aa55157f12bc483cecceaa37828729da2b7f3b36912589a1de1"
+    }
+  ]
+}
