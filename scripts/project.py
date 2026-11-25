@@ -20,14 +20,16 @@ if __package__:
     from .retained_failures import retained_failure_view
     from .operational_paths import OPERATIONAL_PATHS, is_operational_path
     from .verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
-    from .worktree import WorktreeError, has_git_metadata
+    from .review_tree import CommittedPath
+    from .worktree import WorktreeError, git as worktree_git, has_git_metadata
 else:
     from development import expand_engineering_sources, resolve_source
     from diagnostic_archive import DiagnosticArchiveError, diagnostic_locator, resolve_diagnostic, validate_locator
     from retained_failures import retained_failure_view
     from operational_paths import OPERATIONAL_PATHS, is_operational_path
     from verification_scope import ScopeError, checkout_git_environment, git, nul_fields, oid
-    from worktree import WorktreeError, has_git_metadata
+    from review_tree import CommittedPath
+    from worktree import WorktreeError, git as worktree_git, has_git_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 # These records describe work and evidence; they are not executable test inputs.
@@ -285,6 +287,25 @@ def require_review_source(root, requested):
         raise ProjectError(f'Review source {requested} requires a clean checkout.')
 
 
+def diagnostic_archive_root(root, explicit=None):
+    if explicit is not None:
+        return explicit
+    if configured := os.environ.get('SCOPEHUB_ARCHIVE_ROOT'):
+        return configured
+    try:
+        setting = worktree_git(root, 'config', '--local', '--null', '--type=path', '--get-all',
+                               'scopehub.archiveRoot', allowed=(0, 1))
+    except WorktreeError as error:
+        raise ProjectError('Could not read the repository-local scopehub.archiveRoot setting.') from error
+    if setting.returncode == 1:
+        raise ProjectError('Set --archive-root, SCOPEHUB_ARCHIVE_ROOT, or '
+                           'git config --local scopehub.archiveRoot <absolute-path> to resolve a diagnostic.')
+    paths = os.fsdecode(setting.stdout).removesuffix('\0').split('\0')
+    if len(paths) != 1 or not Path(paths[0]).is_absolute():
+        raise ProjectError('Set exactly one absolute scopehub.archiveRoot with git config --local.')
+    return Path(paths[0])
+
+
 def is_source_input(relative, exclusions):
     return not any(relative == item or (item.endswith('/') and relative.startswith(item)) for item in exclusions)
 
@@ -452,7 +473,7 @@ def load_project(root=ROOT):
         require_refs(binding['checks'], checks, 'Product acceptance')
     decisions = []
     decision_paths = {}
-    for path in sorted((root / 'contracts/decisions').glob('*.json')):
+    for path in sorted((root / 'contracts/decisions').glob('*.json'), key=lambda path: path.name):
         decision = read_json(path)
         validate_model(root, 'Decision', decision)
         if not path.name.startswith(decision['id'] + '-'):
@@ -807,7 +828,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     if phase not in {'implement', 'verify', 'handoff'}:
         raise ProjectError(f'Unknown context phase: {phase}')
     if not detail:
-        return focused_context(project, key, phase)
+        return focused_context(project, key, phase, source_commit=getattr(root, 'commit', None))
     decision_ids = effective_decisions(project, task)
     return {
         'task': task,
@@ -1593,6 +1614,7 @@ def main():
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
     source.add_argument('path')
     source.add_argument('pointer', nargs='?', default='')
+    source.add_argument('--source', metavar='COMMIT', help='Read a record from this exact local Git commit')
     ready = sub.add_parser('readiness')
     ready.add_argument('--candidate', help='Exact release candidate commit')
     ready.add_argument('--report', type=Path, help='Retained Windows release report')
@@ -1614,7 +1636,7 @@ def main():
     resolve.add_argument('run_id')
     resolve.add_argument('source_commit')
     resolve.add_argument('report_sha256')
-    resolve.add_argument('--archive-root', type=Path, help='Host archive root (defaults to SCOPEHUB_ARCHIVE_ROOT)')
+    resolve.add_argument('--archive-root', type=Path, help='Host archive root (then SCOPEHUB_ARCHIVE_ROOT, then local Git scopehub.archiveRoot)')
     args = parser.parse_args()
     if args.command == 'context' and args.source is not None and args.phase != 'verify':
         context.error('--source requires --phase verify.')
@@ -1631,10 +1653,14 @@ def main():
                 from development import status_view
             result = status_view(workfront(retained_detail=args.detail), detail=args.detail)
         elif args.command == 'context':
-            result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
+            records = ROOT
             if args.source is not None:
                 require_review_source(ROOT, args.source)
-                result['review_source'] = args.source
+                records = CommittedPath.at(ROOT, args.source)
+            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase)
+            if args.source is not None:
+                require_review_source(ROOT, args.source)
+                result['review_source'] = records.commit
         elif args.command == 'brief':
             if __package__:
                 from .development import product_brief
@@ -1648,7 +1674,10 @@ def main():
                 from development import resolve_source
             reference = {'path': args.path, 'pointer': args.pointer}
             try:
-                result = {'source': reference, 'value': resolve_source(ROOT, reference)}
+                records = CommittedPath.at(ROOT, args.source) if args.source is not None else ROOT
+                result = {'source': reference, 'value': resolve_source(records, reference)}
+                if args.source is not None:
+                    result['source_commit'] = records.commit
             except ValueError as error:
                 raise ProjectError(str(error)) from error
         elif args.command == 'readiness':
@@ -1664,8 +1693,8 @@ def main():
                     result = diagnostic_locator(args.report)
                 else:
                     locator = {key: getattr(args, key) for key in ('run_id', 'source_commit', 'report_sha256')}
-                    archive_root = args.archive_root or os.environ.get('SCOPEHUB_ARCHIVE_ROOT')
-                    result = resolve_diagnostic(locator, archive_root)
+                    validate_locator(locator)
+                    result = resolve_diagnostic(locator, diagnostic_archive_root(ROOT, args.archive_root))
             except DiagnosticArchiveError as error:
                 raise ProjectError(str(error)) from error
         else:
@@ -1678,7 +1707,7 @@ def main():
         print(json.dumps(result, indent=2))
         if args.command == 'readiness' and not result['release_ready']:
             raise SystemExit(1)
-    except (ProjectError, subprocess.CalledProcessError, OSError, KeyError) as error:
+    except (ProjectError, ScopeError, subprocess.CalledProcessError, OSError, KeyError) as error:
         print(json.dumps({'status': 'failed', 'error': str(error)}))
         raise SystemExit(1) from error
 

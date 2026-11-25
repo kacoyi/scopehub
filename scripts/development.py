@@ -15,6 +15,8 @@ else:
 
 
 HERDR_ROLE_PHASES = {'implement': 'implement', 'review': 'verify', 'coordinate': 'handoff'}
+ARCHIVE_CONFIGURATION = ('Use --archive-root, SCOPEHUB_ARCHIVE_ROOT, or git config --local '
+                         'scopehub.archiveRoot <absolute-path>, in that order.')
 
 
 # Budgets apply to the repository navigation view, including repeated subtrees.
@@ -222,21 +224,31 @@ def effective_decisions(project, task):
     return sorted(ids)
 
 
+def feedback_row_routable(item):
+    return (isinstance(item, dict)
+            and isinstance(item.get('task_ids'), list)
+            and all(isinstance(key, str) for key in item['task_ids'])
+            and isinstance(item.get('severity'), str)
+            and isinstance(item.get('status'), str))
+
+
 def feedback_for_task(items, task_id):
     severity = {'critical': 0, 'major': 1, 'minor': 2}
     linked = [(index, item) for index, item in enumerate(items)
-              if isinstance(item, dict) and task_id in item.get('task_ids', [])]
-    return sorted(linked, key=lambda entry: (entry[1].get('status') != 'open',
-                                             severity.get(entry[1].get('severity'), 3)))
+              if feedback_row_routable(item) and task_id in item['task_ids']]
+    return sorted(linked, key=lambda entry: (entry[1]['status'] != 'open',
+                                             severity.get(entry[1]['severity'], 3)))
 
 
-def feedback_source_command(index):
-    return f'pnpm project:source project/feedback.json /items/{index}'
+def feedback_source_command(index, source_commit=None):
+    command = f'pnpm project:source project/feedback.json /items/{index}'
+    return f'{command} --source {source_commit}' if source_commit else command
 
 
 def diagnostic_commands(records):
     for record in records:
-        for locator in record.get('diagnostic_reports', []):
+        locators = record.get('diagnostic_reports')
+        for locator in locators if isinstance(locators, list) else ():
             try:
                 validate_locator(locator)
             except DiagnosticArchiveError:
@@ -245,14 +257,20 @@ def diagnostic_commands(records):
                    f'{locator["run_id"]} {locator["source_commit"]} {locator["report_sha256"]}')
 
 
-def excerpt(text, limit):
+def excerpt(text, limit, *, observation=False):
     if not isinstance(text, str):
         return ''
     line = ' '.join(''.join(char if char.isprintable() else ' ' for char in text).split())
-    return line if len(line) <= limit else line[:limit].rstrip() + '…'
+    if len(line) <= limit:
+        return line
+    if observation:
+        # Quote whole sentences so that a qualification can stay with its assertion.
+        prefix, stop, _ = line[:limit + 1].rpartition('. ')
+        return prefix + stop + '…' if prefix else 'Read the exact observation in the full record.'
+    return line[:limit].rstrip() + '…'
 
 
-def task_launch_excerpt(task, linked_feedback):
+def task_launch_excerpt(task, linked_feedback, source_commit=None):
     """Start with recorded facts and a lookup. The full task context stays separate."""
     result = {
         'task_status': excerpt(task.get('status'), 16),
@@ -263,26 +281,26 @@ def task_launch_excerpt(task, linked_feedback):
         index, item = linked_feedback[0]
         finding = {
             'status': excerpt(item.get('status'), 16),
-            'observation': excerpt(item.get('observation'), 360),
+            'observation': excerpt(item.get('observation'), 360, observation=True),
         }
         resolution = item.get('resolution')
-        if resolution:
-            finding['recorded_cause'] = excerpt(resolution.get('cause'), 210)
-        else:
-            finding['attribution'] = 'Pending. Follow the task action and the trigger in the full observation.'
-        original = next(diagnostic_commands((item, task)), None)
+        if isinstance(resolution, dict) and resolution.get('cause'):
+            finding['recorded_cause'] = excerpt(resolution['cause'], 210, observation=True)
+        original = next(diagnostic_commands((item,)), None)
         if original:
             finding['original_diagnostic'] = original
+            finding['archive_configuration'] = ARCHIVE_CONFIGURATION
         else:
             finding['original_source'] = excerpt(item.get('source'), 240)
-        finding['full_record'] = feedback_source_command(index)
+            finding['raw_evidence'] = 'This record cites its source. Raw bytes require a separately retained original.'
+        finding['full_record'] = feedback_source_command(index, source_commit)
         result['finding'] = finding
         if len(linked_feedback) > 1:
             result['additional_findings_in_task_context'] = len(linked_feedback) - 1
     return {name: value for name, value in result.items() if value}
 
 
-def causal_context(task, linked_feedback):
+def causal_context(task, linked_feedback, source_commit=None):
     context = {
         'observation': 'Record the failure and impact in feedback.observation. Preserve the original in diagnostic_reports.',
         'mechanism': 'Use plan.hypotheses and risks for the proposed mechanism, its distinguishing test and the verification '
@@ -290,26 +308,29 @@ def causal_context(task, linked_feedback):
     }
     if task['status'] in {'planned', 'active', 'blocked'}:
         context['next_observation'] = (
-            'Use task.next_action and the trigger in open feedback. Keep unproven attribution open. '
+            'Follow task.next_action. Keep unproven attribution open. '
             'A passing rerun establishes its own outcome.'
         )
     if linked_feedback:
         context['original_records'] = [
-            {'feedback': item['id'], 'command': feedback_source_command(index)}
+            {'feedback': item['id'], 'command': feedback_source_command(index, source_commit)}
             for index, item in linked_feedback[:3]
         ]
-    commands = []
-    for command in diagnostic_commands((task, *(item for _, item in linked_feedback))):
-        if command not in commands:
-            commands.append(command)
-        if len(commands) == 3:
-            break
-    if commands:
-        context['diagnostic_commands'] = commands
+    for key, records in (('diagnostic_commands', (item for _, item in linked_feedback)),
+                         ('related_task_diagnostics', (task,))):
+        commands = []
+        for command in diagnostic_commands(records):
+            if command not in commands:
+                commands.append(command)
+            if len(commands) == 3:
+                break
+        if commands:
+            context[key] = commands
+            context['archive_configuration'] = ARCHIVE_CONFIGURATION
     return context
 
 
-def focused_context(project, key, phase):
+def focused_context(project, key, phase, *, source_commit=None):
     task = project['tasks'][key]
     development = project.get('development', {})
     plan = task.get('plan', {})
@@ -372,7 +393,7 @@ def focused_context(project, key, phase):
         if 'reasoning_efforts' in herdr:
             result['development_host']['default_reasoning_effort'] = herdr['reasoning_efforts'][0]
     if linked_feedback or plan.get('hypotheses') or task.get('diagnostic_reports'):
-        result['causal_investigation'] = causal_context(task, linked_feedback)
+        result['causal_investigation'] = causal_context(task, linked_feedback, source_commit)
     if phase in {'verify', 'handoff'} and herdr and task['status'] in {'planned', 'active', 'blocked'}:
         review_launch = f'pnpm project:herdr {key} review --source <full-commit> --assignment "<scope>"'
         result['review_handoff'] = {

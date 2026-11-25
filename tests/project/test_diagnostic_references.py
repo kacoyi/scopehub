@@ -40,6 +40,89 @@ class DiagnosticReferenceTests(ProjectFixture):
         )
         return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
 
+    def project_command(self, *args, exit_code=0):
+        output = StringIO()
+        with (patch.object(project, 'ROOT', self.root), patch('sys.argv', ['project.py', *args]),
+              redirect_stdout(output)):
+            if exit_code:
+                with self.assertRaises(SystemExit) as raised:
+                    project.main()
+                self.assertEqual(exit_code, raised.exception.code)
+            else:
+                project.main()
+        return json.loads(output.getvalue())
+
+    def test_bound_context_and_reopen_use_one_immutable_project_tree(self):
+        path = self.root / 'project/feedback.json'
+        first = {
+            'id': 'fixture-feedback', 'source': 'Exact reviewed fixture Git source.',
+            'observation': 'The earlier verified observation.', 'severity': 'minor',
+            'status': 'open', 'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+            'resolution': None, 'deferral_reason': None,
+        }
+        path.write_bytes(json_bytes({'schema_version': '1.0', 'items': [first]}))
+        reviewed = self.commit()
+        second = {**first, 'observation': 'Changed worktree observation.'}
+        read_text = Path.read_text
+
+        def transient_read(current, *args, **kwargs):
+            if current == path:
+                return json_bytes({'schema_version': '1.0', 'items': [second]}).decode('utf-8')
+            return read_text(current, *args, **kwargs)
+
+        with patch.object(Path, 'read_text', transient_read):
+            args = ('context', 'M0-001', '--phase', 'verify')
+            working = self.project_command(*args)
+            self.assertEqual([second], working['feedback'])
+            for options in ((), ('--detail',)):
+                bound = self.project_command(*args, '--source', reviewed, *options)
+                self.assertEqual([first], bound['feedback'])
+                self.assertEqual(reviewed, bound['review_source'])
+                if not options:
+                    route = bound['causal_investigation']['original_records'][0]['command']
+                    self.assertTrue(route.endswith(f'/items/0 --source {reviewed}'))
+
+        path.write_bytes(json_bytes({'schema_version': '1.0', 'items': [second]}))
+        dirty = self.project_command(*args, '--source', reviewed, exit_code=1)
+        self.assertIn('requires a clean checkout', dirty['error'])
+        self.commit()
+        moved = self.project_command(*args, '--source', reviewed, exit_code=1)
+        self.assertIn('does not match checkout HEAD', moved['error'])
+        reopened = self.project_command('source', 'project/feedback.json', '/items/0', '--source', reviewed)
+        self.assertEqual(reviewed, reopened['source_commit'])
+        self.assertEqual(first, reopened['value'])
+        current = self.project_command('source', 'project/feedback.json', '/items/0')
+        self.assertEqual(second, current['value'])
+
+    def test_diagnostic_archive_configuration_is_explicit_and_ordered(self):
+        report_path = self.report()
+        report = read_json(report_path)
+        report['source']['git_head'] = LOCATOR['source_commit']
+        archive = self.root / '.reports' / 'archive with spaces'
+        retained = archive / 'runs' / report['run_id']
+        retained.mkdir(parents=True)
+        original = retained / 'test-report.json'
+        original.write_bytes(json_bytes(report))
+        for check in report['checks']:
+            log = self.root / check['log']
+            (retained / log.name).write_bytes(log.read_bytes())
+        locator = project.diagnostic_locator(original)
+        args = ('diagnostic', 'resolve', locator['run_id'], locator['source_commit'], locator['report_sha256'])
+        with patch.dict(os.environ, {'SCOPEHUB_ARCHIVE_ROOT': ''}):
+            missing = self.project_command(*args, exit_code=1)
+            self.assertIn('git config --local scopehub.archiveRoot', missing['error'])
+            subprocess.run(['git', 'config', '--local', 'scopehub.archiveRoot', str(archive)],
+                           cwd=self.root, check=True, capture_output=True)
+            verified = self.project_command(*args)
+            self.assertEqual(locator['report_sha256'], verified['report_sha256'])
+            self.assertEqual(str(original.resolve()), verified['report_path'])
+        with patch.dict(os.environ, {'SCOPEHUB_ARCHIVE_ROOT': str(archive / 'missing')}):
+            self.assertEqual('failed', self.project_command(*args, exit_code=1)['status'])
+            self.assertEqual(verified, self.project_command(*args, '--archive-root', str(archive)))
+        with patch.object(project, 'diagnostic_archive_root', side_effect=AssertionError('Only resolve uses the archive')):
+            self.assertEqual('passed', self.project_command('status')['status'])
+            self.assertEqual('M0-001', self.project_command('context', 'M0-001')['task']['id'])
+
     def test_structured_locator_and_matching_logical_hint_load_offline(self):
         before = task_definition_hash(load_project(self.root)['tasks']['M0-001'])
         self.change_task(

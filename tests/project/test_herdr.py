@@ -187,8 +187,10 @@ class DryRunTests(WorktreeFixture):
         self.assertEqual('open', finding['status'])
         self.assertTrue(finding['observation'].startswith('TIMEOUT. Unknown holder.'))
         self.assertTrue(finding['observation'].endswith('…'))
-        self.assertIn('Pending', finding['attribution'])
+        self.assertNotIn('attribution', finding)
+        self.assertNotIn('recorded_cause', finding)
         self.assertIn('resolve first-refusal', finding['original_diagnostic'])
+        self.assertIn('scopehub.archiveRoot', finding['archive_configuration'])
         self.assertTrue(finding['full_record'].endswith('/items/2'))
 
         feedback.write_text(json.dumps({'items': [known]}), encoding='utf-8')
@@ -199,6 +201,28 @@ class DryRunTests(WorktreeFixture):
         self.assertEqual(known['source'], finding['original_source'])
         self.assertNotIn('attribution', finding)
 
+        # Closed workflow state and formal resolution are distinct from what the observation already shows.
+        open_with_mechanism = dict(known, status='open', resolution=None)
+        task['diagnostic_reports'] = pending['diagnostic_reports']
+        (project / 'tasks.json').write_text(json.dumps({'tasks': [task]}), encoding='utf-8')
+        feedback.write_text(json.dumps({'items': [dict(pending, task_ids=None), open_with_mechanism]}), encoding='utf-8')
+        preview = excerpt('implement')
+        self.assertIn('Malformed rows were skipped', preview['feedback_diagnostic'])
+        self.assertEqual('Parsed A and published B.', preview['finding']['observation'])
+        self.assertEqual(known['source'], preview['finding']['original_source'])
+        self.assertNotIn('original_diagnostic', preview['finding'])
+        self.assertNotIn('attribution', preview['finding'])
+        self.assertTrue(preview['finding']['full_record'].endswith('/items/1'))
+
+        # A truncated observation cannot imply the unchecked half of a long sentence.
+        qualified = dict(known, observation='Evidence remained disputed because ' + 'more detail ' * 60 + 'scope was unknown.')
+        feedback.write_text(json.dumps({'items': [qualified]}), encoding='utf-8')
+        self.assertEqual('Read the exact observation in the full record.', excerpt('review')['finding']['observation'])
+
+        feedback.write_text('unparseable feedback', encoding='utf-8')
+        preview = excerpt('implement')
+        self.assertIn('could not be read', preview['feedback_diagnostic'])
+        self.assertNotIn('finding', preview)
         feedback.unlink()
         self.assertNotIn('finding', excerpt('implement'))
 
@@ -408,6 +432,11 @@ class LaunchTests(WorktreeFixture):
             return subprocess.check_output([git, *args], cwd=self.worktree, text=True).strip()
 
         run_git('init', '--quiet')
+        records = self.worktree / 'project'
+        finding = {'task_ids': ['M0-025'], 'status': 'open', 'severity': 'major',
+                   'observation': 'The committed observation.', 'source': 'Original fixture.'}
+        feedback_path = records / 'feedback.json'
+        feedback_path.write_text(json.dumps({'items': [finding]}), encoding='utf-8')
         run_git('add', 'project')
         run_git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test',
                 'commit', '--quiet', '-m', 'Review fixture')
@@ -418,6 +447,25 @@ class LaunchTests(WorktreeFixture):
         self.assertEqual(['hc', 'codex'], [event['program'] for event in self.calls()])
         self.assertIn(f'context M0-025 --phase verify --source {reviewed}', self.calls()[-1]['argv'][-1])
         self.assertIn('Run this context command before inspecting', self.calls()[-1]['argv'][-1])
+
+        read_text = Path.read_text
+
+        def transient_view(path, *args, **kwargs):
+            if path == feedback_path:
+                return '{"items": []}'
+            if path == records / 'development.json':
+                return '{}'  # A worktree settings read would refuse to launch.
+            return read_text(path, *args, **kwargs)
+
+        output, error = StringIO(), StringIO()
+        with (patch.object(sys, 'argv', [str(SCRIPT), *arguments, '--dry-run']),
+              patch.object(herdr.Path, 'cwd', return_value=self.worktree),
+              patch.object(Path, 'read_text', transient_view),
+              redirect_stdout(output), redirect_stderr(error)):
+            self.assertEqual(0, herdr.main(), error.getvalue())
+        prompt = json.loads(output.getvalue())['argv'][-1]
+        self.assertIn(f'/items/0 --source {reviewed}', prompt)
+        self.assertIn(finding['observation'], prompt)
 
         changed = self.worktree / 'independent-input.txt'
         changed.write_text('Changed input.\n', encoding='utf-8')
