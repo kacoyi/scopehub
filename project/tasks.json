@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-153",
   "tasks": [
     {
       "id": "M0-001",
@@ -25589,6 +25589,119 @@
           ],
           "data_plan": "Use paired synthetic note windows and per-run profiles. Preserve original reports and operation identifiers in the local diagnostic archive.",
           "cleanup": "Release observers, remove test profiles after retaining evidence and discard canceled or superseded reads."
+        }
+      }
+    },
+    {
+      "id": "M0-153",
+      "title": "Restore complete Windows main-push Python verification before its process deadline",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-070"
+      ],
+      "scope": [
+        "scripts/check.py",
+        "scripts/project.py",
+        "scripts/worktree_retirement.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the failed native Python producer, aggregate, and same-tree successful PR control. Confirm the process deadline, the last case with an incomplete record and the missing terminal suite result.",
+        "Measure a removable cost through a real affected entry before changing it. Compare the case inventory, outcomes, rejection behavior and cleanup using unchanged inputs and existing deadlines. Preserve failures and skipped native cases individually.",
+        "Verify the ordinary Windows main-push Python route through the reviewed candidate and track its first actual protected main-push result. Keep the finding open when its route, process terminal summary or complete coverage remains unverified. Preserve the independently owned indicator result and the existing 900-second full-workflow objective."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45702463807-1",
+          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        }
+      ],
+      "next_action": "Compare the original Windows case durations with focused public checks, identify a measured source of repeated work, and verify a correction on the ordinary main-push path with the same coverage.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "Ordinary Windows main-push Python discovery delivers every required case and a terminal result within the existing process deadline.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "project/delivery.json",
+          "scripts/check.py",
+          "tests/project",
+          "archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json"
+        ],
+        "hypotheses": [
+          "The same-tree 1171.172-second success leaves little headroom. Repeated setup or verification work across cases may be measurable before the last recorded test.",
+          "The failed original supplies no individual-case time. Compare representative complete native timings and short controlled runs before attributing the failure to one test."
+        ],
+        "risks": [
+          {
+            "failure": "An incomplete process or missing case could be counted as a successful native run.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A shared fixture or cache could hide a per-case state change, mutation or cleanup failure.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Isolate or revert the measured change if case identities, independent state or failure outcomes differ. Keep both native originals and their comparison.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "tests/project/test_delivery.py",
+            "tests/project/test_worktree_retirement.py",
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Changing product behavior, check deadlines, the coverage catalog, paid runner capacity or the independently owned indicator recovery."
+          ],
+          "open_questions": [
+            "Which public verification operation or fixture is repeatedly expensive on equivalent inputs? The pull-request-only Python partition and first post-repair main timing have separate owners."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Complete ordered discovery, native skip and failure semantics, clean per-case state and the existing process timeout."
+          ],
+          "change": [
+            "Remove a verified cost on the ordinary Windows push route after observing it in an affected public check."
+          ],
+          "data_plan": "Use test-owned synthetic repositories and the retained native reports and logs. Production data is outside this change.",
+          "cleanup": "Leave each fixture independent and remove its owned processes and files. Retain the original failed report and the new native evidence."
         }
       }
     }
