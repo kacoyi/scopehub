@@ -1652,20 +1652,33 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
 
         const held = Promise.withResolvers();
         const release = Promise.withResolvers();
+        const forwarded = Promise.withResolvers();
         const routeStatus = async route => {
-          if (route.request().postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
+          const request = route.request();
+          if (request.postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
           const response = await route.fetch();
-          const body = await response.json();
-          if (body.result?.status === 'ready') {
-            held.resolve(body.result);
-            await release.promise;
+          try {
+            const body = await response.json();
+            if (body.result?.status === 'ready') {
+              held.resolve({ ready: body.result, request });
+              await release.promise;
+            }
+            try {
+              await route.fulfill({ response });
+            } catch (error) {
+              if (await request.response() || !request.failure()) throw error;
+            }
+            if (body.result?.status === 'ready') forwarded.resolve();
+          } finally {
+            await response.dispose();
           }
-          await route.fulfill({ response }).catch(() => {});
         };
         await page.route('**' + endpoint, routeStatus);
         try {
           await editor.getByRole('button', { name: 'Run preview' }).click();
-          const waiting = await Promise.race([held.promise, delay(8_000).then(() => { throw new Error('Ready reply was not intercepted'); })]);
+          const { ready: waiting, request: lateRequest } = await Promise.race([
+            held.promise, delay(8_000).then(() => { throw new Error('Ready reply was not intercepted'); }),
+          ]);
           expect(waiting.resolved_parameters).toEqual({ period: 2 });
           expect(waiting.event.snapshot.from_ms).toBe(a);
           await waitInvalidation(waiting.task_id, async () => {
@@ -1673,9 +1686,39 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
             await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
           });
           release.resolve();
-          await expect(editor.getByRole('button', { name: 'Accept preview' })).toHaveCount(0);
-          const withheld = await send(status(waiting.task_id));
+          await forwarded.promise;
+          const lateReply = await lateRequest.response();
+          if (lateReply) await lateReply.finished();
+          else expect(lateRequest.failure()).not.toBeNull();
+          observation.lateStatusDelivery = lateReply?.status() ?? lateRequest.failure()?.errorText;
+          const accept = editor.getByRole('button', { name: 'Accept preview' });
+          await expect(accept).toHaveCount(0);
+
+          const holder = server.tagSnapshot();
+          const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+          void snapshotReply.catch(() => {});
+          let withheld;
+          try {
+            observation.snapshotWritten = await Promise.race([holder.wait('written'), snapshotReply.then(response => {
+              throw new Error(`The tagged snapshot settled before it owned the writer (HTTP ${response.status}).`);
+            })]);
+            const probe = status(waiting.task_id);
+            const response = await post(server, probe);
+            withheld = await response.json();
+            observation.firstStatusProbe = { http: response.status, body: withheld };
+            expect(observation.firstStatusProbe).toMatchObject({ http: 429, body: busy });
+          } finally {
+            holder.release();
+            if (observation.snapshotWritten) {
+              observation.snapshotDrained = await holder.wait('drained');
+              expect(observation.snapshotDrained).toMatchObject({
+                request_id: observation.snapshotWritten.request_id, ok: true, revision: 1,
+              });
+            }
+            await Promise.allSettled([snapshotReply.then(responseStatus)]);
+          }
           expect(withheld).toMatchObject({ ok: false, error: { code: 'STALE_CONTEXT' } });
+          await expect(accept).toHaveCount(0);
           const rejected = await send({
             ...command(), task_id: null, scope: {
               workspace_id: workspaceId, expected_workspace_revision: 1, expected_selection_revision: 0,
@@ -1716,7 +1759,7 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         observation.sourceChange = rejectedSource;
         expect((await send(request)).result).toEqual(readSaved);
       });
-    });
+    }, { snapshotGate: true });
     await inService(port, profile, 'ubuntu-workspace', async server => {
       const list = await (await post(server, {
         type: 'indicator_accepted_layers', request_id: randomUUID(), revision_id: id,
@@ -1728,8 +1771,8 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
       expect(restored.result).toEqual(readSaved);
       observation.restarted = { version: saved.version_id, input: restored.result.document.snapshot };
     });
-    await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
   } finally {
+    await testInfo.attach('obsolete-indicator-inputs', { body: JSON.stringify(observation), contentType: 'application/json' });
     await profile.close();
   }
 });
