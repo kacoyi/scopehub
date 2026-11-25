@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-113",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -15924,7 +15924,7 @@
       "id": "M0-113",
       "title": "Refresh the Rust schema and worker encoding dependency graph",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-040",
         "M0-081"
@@ -16069,15 +16069,23 @@
           "cleanup": "Retain both failed updater runs. Confirm the combined candidate before substituting the original proposals."
         }
       },
-      "next_action": "Have the coordinator obtain hosted Ubuntu and native Windows verification on this candidate. Attach the matching reports and close the task before integration.",
+      "next_action": null,
       "blocker": null,
       "evidence": [
         {
           "path": "project/evidence/M0-113-3a9a3e14e9c9f6c5.json",
           "sha256": "e074c60d6752e681f20b77a8fcb7891601e837effe943e34102181a22094710f"
+        },
+        {
+          "path": "project/evidence/M0-113-23454099b43519bd.json",
+          "sha256": "915fb561ccae51514facd05b270c0f07557b62148dec98718ee19333623e125f"
+        },
+        {
+          "path": "project/evidence/M0-113-69965730d37b26ff.json",
+          "sha256": "7267526c6f0bde8c72ddb1ffcf7cc53e5eaf1e42e56dc27c84734d900f581bbc"
         }
       ],
-      "closure_reason": null
+      "closure_reason": "Independent Astra Standard review approved ff5af89. Authenticated Linux and Windows run 45556728459 passed every required task check on the reviewed source."
     },
     {
       "id": "M0-081",
