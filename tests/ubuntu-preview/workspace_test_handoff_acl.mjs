@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { rm, writeFile } from 'node:fs/promises';
+import { chmod, rm, writeFile } from 'node:fs/promises';
 import { constants } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
+const witness = fileURLToPath(new URL('../../target/debug/examples/windows_handoff_probe.exe', import.meta.url));
 const stages = {
   51: 'file type',
   52: 'directory owner',
@@ -49,70 +51,28 @@ export async function runHandoffProbe(executable, args, { timeout = 10_000, maxB
   }
 }
 
-function runPowerShell(check, handoff, fixture) {
+function prepareAclFixture(check, handoff, fixture) {
   const systemRoot = process.env.SystemRoot;
   if (!systemRoot) throw new Error('subprocess startup failed (missing system root)');
   const powershell = join(systemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   return runHandoffProbe(powershell, ['-NoProfile', '-NonInteractive', '-NoLogo', '-Command', check], {
-    env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture ?? '' },
-    exitStages: fixture === undefined ? stages : { 1: 'fixture preparation' },
+    env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff, SCOPEHUB_TEST_ACL_FIXTURE: fixture },
+    exitStages: { 1: 'fixture preparation' },
   });
 }
 
-export async function assertWindowsPrivateHandoff(handoff) {
-  // Read the resulting ACL directly, without PowerShell provider resolution.
-  // Keep the current SID, the path and the file contents out of diagnostic output.
-  const check = `
-    $ErrorActionPreference = 'Stop'
-    $failure = 51
-    try {
-      $path = $env:SCOPEHUB_TEST_HANDOFF
-      $attributes = [int]([IO.File]::GetAttributes($path))
-      $nonFile = [int][IO.FileAttributes]'Directory, ReparsePoint'
-      if (($attributes -band $nonFile) -ne 0) { exit $failure }
-      $failure = 59
-      $user = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-      if ([string]::IsNullOrEmpty($user)) { exit $failure }
-      $allowed = @($user, 'S-1-5-18', 'S-1-5-32-544')
-      $failure = 56
-      $sections = [Security.AccessControl.AccessControlSections]'Owner, Access'
-      $directoryAcl = [IO.Directory]::GetAccessControl([IO.Path]::GetDirectoryName($path), $sections)
-      $directory = [Security.AccessControl.RawSecurityDescriptor]::new($directoryAcl.GetSecurityDescriptorBinaryForm(), 0)
-      if ($null -eq $directory.Owner) { exit $failure }
-      $failure = 52
-      if ($directory.Owner.Value -ne $user) { exit $failure }
-      $failure = 57
-      $fileAcl = [IO.File]::GetAccessControl($path, $sections)
-      $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($fileAcl.GetSecurityDescriptorBinaryForm(), 0)
-      $failure = 53
-      if ($null -eq $descriptor.DiscretionaryAcl -or $null -eq $descriptor.Owner -or $descriptor.Owner.Value -notin $allowed) { exit $failure }
-      $failure = 54
-      $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
-      $inherited = [int][Security.AccessControl.AceFlags]::Inherited
-      $inheritOnly = [int][Security.AccessControl.AceFlags]::InheritOnly
-      $userInherited = $false
-      foreach ($ace in $descriptor.DiscretionaryAcl) {
-        if ($ace -isnot [Security.AccessControl.CommonAce] -or $ace.IsCallback) { exit $failure }
-        if ($ace.AceQualifier -ne [Security.AccessControl.AceQualifier]::AccessAllowed) { continue }
-        if ($ace.SecurityIdentifier.Value -notin $allowed) { exit 58 }
-        $flags = [int]$ace.AceFlags
-        $access = [int]$ace.AccessMask
-        if ($ace.SecurityIdentifier.Value -eq $user -and
-            ($flags -band $inherited) -ne 0 -and ($flags -band $inheritOnly) -eq 0 -and
-            ($access -band $required) -eq $required) { $userInherited = $true }
-      }
-      if (!$userInherited) { exit $failure }
-      $failure = 55
-      $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite)
-      $stream.Dispose()
-      exit 0
-    } catch { exit $failure }
-  `;
+export async function assertWindowsPrivateHandoff(handoff, launch = runHandoffProbe) {
   try {
-    await runPowerShell(check, handoff);
+    await launch(witness, [], { env: { ...process.env, SCOPEHUB_TEST_HANDOFF: handoff } });
   } catch (error) {
     throw new Error(`Private handoff ACL verification failed (${error.message}).`);
   }
+}
+
+function assertRejectedHandoff(path, stage) {
+  return assert.rejects(assertWindowsPrivateHandoff(path), {
+    message: `Private handoff ACL verification failed (${stages[stage]}).`,
+  });
 }
 
 export async function assertUnsuitableWindowsHandoffsRejected(profile) {
@@ -143,15 +103,23 @@ export async function assertUnsuitableWindowsHandoffsRejected(profile) {
     await writeFile(path, '', { flag: 'wx', mode: 0o600 });
     try {
       try {
-        await runPowerShell(prepare, path, fixture);
+        await prepareAclFixture(prepare, path, fixture);
       } catch (error) {
         throw new Error(`Could not prepare the synthetic ${fixture} ACL fixture (${error.message}).`);
       }
-      await assert.rejects(assertWindowsPrivateHandoff(path), {
-        message: `Private handoff ACL verification failed (${stages[stage]}).`,
-      });
+      await assertRejectedHandoff(path, stage);
     } finally {
       await rm(path);
     }
+  }
+
+  // Keep the inherited descriptor intact and make the effective write open fail.
+  const readOnly = join(profile, 'synthetic-acl-read-only.txt');
+  await writeFile(readOnly, '', { flag: 'wx', mode: 0o600 });
+  try {
+    await chmod(readOnly, 0o400);
+    await assertRejectedHandoff(readOnly, 55);
+  } finally {
+    await chmod(readOnly, 0o600).finally(() => rm(readOnly));
   }
 }
