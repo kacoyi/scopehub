@@ -69,6 +69,18 @@ class DeliveryTests(ProjectFixture):
         return {'recent_collection': {'collected_at': clock, 'collected_samples': samples}, 'objective_reviews': scopes,
                 'input_issues': [], 'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
 
+    def protect_observation(self, record, *reports):
+        verified = self.project_command('verify-maintenance', str(record),
+                                        *(arg for report in reports for arg in ('--report', str(report))))
+        self.assertEqual('originals_verified', verified.get('status'), verified)
+        relative = record.relative_to(self.root).as_posix()
+        subprocess.run(['git', '-c', 'user.name=Independent Fixture', '-c', 'user.email=fixture@example.invalid',
+                        '-c', 'commit.gpgsign=false', 'commit', '--quiet', '--only',
+                        '-m', 'Accept the independently checked observation', '--', relative],
+                       cwd=self.root, check=True, capture_output=True)
+        subprocess.run(['git', 'update-ref', 'refs/remotes/origin/main', 'HEAD'],
+                       cwd=self.root, check=True, capture_output=True)
+
     def add_periodic_record(self, item, raw, *findings):
         input_path = self.root / '.reports' / 'observation.json'
         input_path.parent.mkdir(exist_ok=True)
@@ -81,6 +93,8 @@ class DeliveryTests(ProjectFixture):
         record = self.root / item['review_record']
         record.parent.mkdir(exist_ok=True)
         record.write_bytes(json_bytes(generated))
+        subprocess.run(['git', 'add', '--', str(record)], cwd=self.root, check=True, capture_output=True)
+        self.protect_observation(record, input_path)
         return record
 
     def test_startup_and_both_history_routes_reject_date_only_for_all_five_reviews(self):
@@ -285,7 +299,12 @@ class DeliveryTests(ProjectFixture):
         args = ('observe-maintenance', item['id'], '--report', str(again), '--finding', row['id'])
         new_record = self.project_command(*args)
         self.assertEqual(item['id'], new_record['review_id'])
-        (self.root / item['review_record']).write_bytes(json_bytes(new_record))
+        recurrence = self.root / 'contracts/reviews/timing-recurrence.json'
+        recurrence.write_bytes(json_bytes(new_record))
+        subprocess.run(['git', 'add', '--', str(recurrence)], cwd=self.root, check=True)
+        self.protect_observation(recurrence, again)
+        item['review_record'] = recurrence.relative_to(self.root).as_posix()
+        path.write_bytes(json_bytes(delivery))
         self.assertEqual('recheck_needed', self.project_command('status')['periodic_reviews'][1]['state'])
 
     def test_branch_projection_and_date_are_bound_to_minimized_input(self):
@@ -314,6 +333,14 @@ class DeliveryTests(ProjectFixture):
         record.write_bytes(json_bytes(row))
         self.assertIn('hash-bound', self.project_command('history', '--base', base)['error'])
         self.assertIn('hash-bound', self.project_command('check')['error'])
+        row['facts']['branch_statuses'].remove('unique_history')
+        row['facts']['observed_at'] = row['observed_at']
+        del row['evidence']['summary']['branches']['unique_history']
+        row['report_sha256'] = digest(json_bytes(row['facts']))
+        record.write_bytes(json_bytes(row))
+        self.assertIn('protected intake', self.project_command('history', '--base', base)['error'])
+        self.assertIn('protected intake', self.project_command('check')['error'])
+        self.assertEqual('intake_needed', self.project_command('status')['periodic_reviews'][2]['state'])
 
     def test_weekly_ref_and_incomplete_worktree_and_timing_are_scoped(self):
         path, delivery = self.periodic_fixture()
@@ -380,6 +407,110 @@ class DeliveryTests(ProjectFixture):
         self.assertIn('project:diagnostic identify', result['next']['command'])
         self.assertEqual('replacement-rule', result['maintenance']['follow_through']['id'])
         self.assertEqual('pnpm project:source project/development.json /modules', result['details']['modules'])
+
+    def test_timing_recovery_uses_the_matching_producer_finding_and_scope(self):
+        from scripts.maintenance import producer_recovery
+        scope = {'repository': 'kacoyi/scopehub', 'event': 'pull_request', 'profile': 'full', 'platform': 'Windows'}
+        repair = 'a' * 40
+        finding = {'id': 'timing-pr-windows', 'verification_budget': {**scope, 'repair_commit': repair}}
+        sample = {'run_id': 'windows-change-45563183277-1', 'source_commit': 'b' * 40,
+                  'recorded_at': '2026-11-25T12:00:00Z'}
+        verified = {'status': 'recovered', 'repair_commit': repair, 'comparisons': [{'recovered': sample}]}
+        row = {'feedback_id': finding['id'], 'scope': scope, 'recovery': verified}
+        self.assertEqual(sample['run_id'], producer_recovery(finding, [row])['run_id'])
+        for bad in [
+            {**row, 'feedback_id': 'another-finding'},
+            {**row, 'scope': {**scope, 'event': 'push'}},
+            {**row, 'scope': {**scope, 'platform': 'Linux'}},
+            {**row, 'recovery': {**verified, 'status': 'pending'}},
+            {**row, 'recovery': {**verified, 'repair_commit': 'c' * 40}},
+            {**row, 'recovery': {**verified, 'comparisons': []}},
+        ]:
+            with self.subTest(bad=bad):
+                self.assertIsNone(producer_recovery(finding, [bad]))
+
+    def test_same_day_protection_supplement_preserves_approved_predecessor(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        branch = 'branches-and-pull-requests'
+        item = delivery['scaffold_maintenance']['periodic_reviews'][2]
+        branch_input = {'observed_at': '2026-11-25T08:00:00Z', 'repository': 'kacoyi/scopehub',
+                        'default_branch': {'name': 'main', 'sha': base}, 'delete_branch_on_merge': True,
+                        'errors': [], 'branches': [{'name': 'main', 'sha': base, 'status': 'default', 'protected': True}],
+                        'open_pull_requests': []}
+        previous = self.add_periodic_record(item, branch_input)
+        original = previous.read_bytes()
+        path.write_bytes(json_bytes(delivery))
+        before = self.commit_fixture()
+        raw = self.root / '.reports/observation.json'
+        settings = read_json(self.root / 'project/branch-protection.json')['configuration']
+        for key in ('enforce_admins', 'allow_force_pushes', 'allow_deletions', 'required_conversation_resolution'):
+            settings[key] = {'enabled': settings[key]}
+        protection = self.root / '.reports/protection.json'
+        protection.write_bytes(json_bytes({'repository': 'kacoyi/scopehub', 'branch': 'main', 'branch_sha': base,
+                                            'observed_at': '2026-11-25T09:00:00Z', 'observed': settings}))
+        args = ('observe-maintenance', branch, '--report', str(raw), '--report', str(protection))
+        observation = self.project_command(*args)
+        self.assertEqual(observation, self.project_command(*args))
+        self.assertEqual([], observation['evidence']['pending'])
+        supplement = self.root / 'contracts/reviews/branch-supplement.json'
+        supplement.write_bytes(json_bytes(observation))
+        subprocess.run(['git', 'add', '--', str(supplement)], cwd=self.root, check=True)
+        self.protect_observation(supplement, raw, protection)
+        item['review_record'] = supplement.relative_to(self.root).as_posix()
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', before)['status'])
+        self.assertEqual('observed', self.project_command('status')['periodic_reviews'][2]['state'])
+        self.assertEqual(original, previous.read_bytes())
+        previous.unlink()
+        self.assertIn('observation file', self.project_command('status')['periodic_reviews'][2]['problem'].lower())
+
+    def test_legacy_worktree_retirement_must_retain_owned_external_stage_scope(self):
+        path, delivery = self.periodic_fixture()
+        ledger = self.ledger()
+        owner = task_by_id(ledger, 'M0-001')
+        owner['scope'].append('project/delivery.json')
+        self.save_ledger(ledger)
+        base = self.commit_fixture()
+        item = delivery['scaffold_maintenance']['periodic_reviews'][3]
+        item.update(retired_reason='Use the scoped successor task.')
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('external staging', self.project_command('history', '--base', base)['error'].lower())
+        item['follow_through_task'] = owner['id']
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', base)['status'])
+        status = self.project_command('status')['periodic_reviews'][3]
+        self.assertEqual('owned_action', status['state'])
+        self.assertIn('staging outside registered worktrees', status['problem'])
+        self.assertIn(owner['id'], status['command'])
+
+    def test_cold_critical_lookup_is_stable_and_read_only(self):
+        self.periodic_fixture()
+        feedback_file = self.root / 'project/feedback.json'
+        original = read_json(feedback_file)
+        item = {'id': 'critical-from-a-new-session', 'source': 'Synthetic isolated report.',
+                'observation': 'Restoring shows an earlier selection.', 'severity': 'critical',
+                'status': 'open', 'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+                'resolution': None, 'deferral_reason': None}
+        other = {**item, 'id': 'unassigned-minor', 'severity': 'minor'}
+        self.finish_first(archive_evidence(self.root, 'M0-001', self.report()))
+        self.commit_fixture()
+        for items in ([item, other], [other, item]):
+            feedback_file.write_bytes(json_bytes({**original, 'items': items}))
+            overview = self.project_command('status', '--overview', '--read-only')
+            command = shlex.split(overview['next']['command'])
+            executable = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+            self.assertEqual([executable, '-B', 'scripts/project.py'], command[:3])
+            focused = self.project_command(*command[3:])
+            self.assertEqual(item, focused['value'])
+            self.assertLess(len(json_bytes(focused)), 1500)
+            self.assertIn('--id critical-from-a-new-session', overview['next']['command'])
+            self.assertIn('scripts/project.py source project/development.json /modules', overview['details']['modules'])
+        from scripts.development import read_only_project_command
+        with patch('scripts.development.os.name', 'nt'):
+            self.assertEqual('./.venv/Scripts/python.exe -B scripts/project.py source project/feedback.json --id '
+                             'critical-from-a-new-session',
+                             read_only_project_command('source', 'project/feedback.json', '--id', item['id']))
 
     def test_chart_and_prototype_passes_cannot_satisfy_the_v1_workbench_gate(self):
         project = load_project(project_cli.ROOT)

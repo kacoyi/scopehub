@@ -6,6 +6,9 @@ authority or upgrades archived evidence into current verification.
 
 from functools import cache
 import json
+import os
+import shlex
+import subprocess
 from pathlib import Path
 
 
@@ -319,7 +322,16 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
             'claim_scope': 'Explanatory view only. Readiness and current verification still use their original strict gates.'}
 
 
-def project_overview(state):
+def read_only_project_command(*arguments, source_commit=None):
+    """Render the pinned interpreter form used by the read-only review role."""
+    python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
+    command = [python, '-B', 'scripts/project.py', *arguments]
+    if source_commit is not None:
+        command += ['--source', source_commit]
+    return subprocess.list2cmdline(command) if os.name == 'nt' else shlex.join(command)
+
+
+def project_overview(state, *, read_only=False):
     focus = state.get('focus')
     verification = state['verification']
     evidence = state['evidence_overview']
@@ -333,18 +345,32 @@ def project_overview(state):
     retained = state.get('retained_failures', {})
     retained_count = retained.get('matching_inputs', {}).get('count')
     reviews = [review for review in state['periodic_reviews'] if review.get('state')]
-    attention = ['evidence_missing', 'evidence_invalid', 'recheck_needed', 'owned_action', 'checks_needed',
+    attention = ['evidence_missing', 'evidence_invalid', 'intake_needed', 'recheck_needed', 'owned_action', 'checks_needed',
                  'policy_needed', 'due']
     first = next((review for status in attention for review in reviews if review['state'] == status), None)
     if first is None:
         first = next((review for review in reviews if review['review_due']), None)
 
-    def action(review):
-        return {key: review[key] for key in
-                ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
-                 'problem', 'report_sha256') if key in review}
+    def navigation(*arguments):
+        if read_only:
+            if arguments[0] == 'status':
+                arguments += ('--read-only',)
+            return read_only_project_command(*arguments)
+        return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
 
-    context = f'pnpm project:context {focus["id"]}' if focus else 'pnpm project:brief'
+    def action(review):
+        result = {key: review[key] for key in
+                  ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
+                   'problem', 'report_sha256') if key in review}
+        if read_only and (command := result.get('command')):
+            parts = shlex.split(command)
+            if parts[:1] == ['pnpm'] and parts[1] in {'project:source', 'project:context'}:
+                result['command'] = navigation(parts[1].split(':', 1)[1], *parts[2:])
+            elif parts[:4] == ['uv', 'run', 'python', 'scripts/project.py']:
+                result['command'] = navigation(*parts[4:])
+        return result
+
+    context = navigation('context', focus['id']) if focus else navigation('brief')
     active = set(state['active_task_ids'])
     ready = set(state['ready_task_ids'])
     completed = set(state['completed_task_ids'])
@@ -357,10 +383,10 @@ def project_overview(state):
         status = 'owned_action' if task else 'planned_follow_through'
         if identity in unassigned or not candidates:
             status = 'assignment_needed'
-            command = 'pnpm project:source project/feedback.json /items'
+            command = navigation('source', 'project/feedback.json', '--id', identity)
         else:
-            phase = ' --phase verify' if task else ''
-            command = f'pnpm project:context {task or candidates[0]}{phase}'
+            phase = ('--phase', 'verify') if task else ()
+            command = navigation('context', task or candidates[0], *phase)
         return {'id': identity, 'state': status, 'owner': 'development AI',
                 'trigger': 'Open ' + finding['severity'] + ' feedback', 'command': command}
 
@@ -372,10 +398,10 @@ def project_overview(state):
     if retained_count:
         original = next(iter(retained['matching_inputs'].get('items', [])), {})
         failure = {'owner': 'development AI', 'state': 'retained_failure',
-                   'trigger': 'Retained failure on matching inputs', 'command': 'pnpm project:status --detail'}
+                   'trigger': 'Retained failure on matching inputs', 'command': navigation('status', '--detail')}
         if report := original.get('report'):
-            failure.update(id=original['check_id'], command='pnpm project:diagnostic identify ' + report)
-    missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid'} else None
+            failure.update(id=original['check_id'], command=navigation('diagnostic', 'identify', report))
+    missing = action(first) if first and first['state'] in {'evidence_missing', 'evidence_invalid', 'intake_needed'} else None
     needs_assignment = next((finding_action(finding) for finding in opened if finding['id'] in unassigned), None)
     next_action = (critical or failure or missing or owned or (action(first) if first else None)
                    or needs_assignment or {'owner': 'development AI', 'command': context})
@@ -402,7 +428,7 @@ def project_overview(state):
             'retained_failure_scan': retained.get('scan', {}).get('coverage'),
         },
         'gates': {'hosted': 'pnpm project:ci',
-                  'product_release_and_native': 'pnpm project:readiness',
+                  'product_release_and_native': navigation('readiness'),
                   'scope': 'Hosted, release and physical gates require separate evidence.'},
         'maintenance': {'periodic_attention': sum(review['review_due'] or review['state'] in attention
                                                   for review in reviews),
@@ -411,22 +437,22 @@ def project_overview(state):
                         'follow_through': additional},
         'next': next_action,
         'also_urgent': other_urgent,
-        'details': {'delivery': 'pnpm project:brief', 'focused_work': context,
-                    'status': 'pnpm project:status', 'receipts': 'pnpm project:status --detail',
-                    'modules': 'pnpm project:source project/development.json /modules'},
+        'details': {'delivery': navigation('brief'), 'focused_work': context,
+                    'status': navigation('status'), 'receipts': navigation('status', '--detail'),
+                    'modules': navigation('source', 'project/development.json', '/modules')},
     }
 
 
-def status_view(state, *, detail=False, overview=False):
+def status_view(state, *, detail=False, overview=False, read_only=False):
     if detail:
         return state
-    summary = project_overview(state)
+    summary = project_overview(state, read_only=read_only)
     if overview:
         return summary
     result = {'overview': summary, **state}
     result['periodic_reviews'] = [
         {key: review[key] for key in ('id', 'next_review_by', 'review_due',
-                                      'state', 'owner', 'command', 'problem', 'finding') if key in review}
+                                      'state', 'owner', 'command', 'problem', 'finding', 'repair_recovery', 'overseen_staging') if key in review}
         for review in state['periodic_reviews']
     ]
     focus = state.get('focus')

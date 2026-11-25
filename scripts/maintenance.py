@@ -2,7 +2,11 @@
 
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+import hashlib
+import json
+from pathlib import PurePosixPath
 import re
+import stat
 
 REVIEW_KIND = 'scopehub-periodic-review-v1'
 REVIEW_SOURCES = {
@@ -107,7 +111,7 @@ def protective_settings(actual):
     }
 
 
-def prepare_facts(key, data, source, input_digests, policy, protection=None):
+def prepare_facts(key, data, source, input_digests, policy, protection=None, staging=None):
     """Retain only the source observations needed to independently derive the public claim."""
     clock = data['recent_collection']['collected_at'] if key == 'verification-timing' else data['observed_at']
     facts = {'observed_at': utc(clock).isoformat(), 'source_commit': source, 'input_sha256': input_digests}
@@ -153,7 +157,7 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None):
                      row_states=sorted(row['state'] for row in rows),
                      holds=sorted({hold for row in rows for hold in row['holds']}),
                      archive_configured=bool(data['archive_root']), archive_error=bool(data['archive_error']),
-                     activity_complete=not data['activity_issues'])
+                     activity_complete=not data['activity_issues'], staging=staging)
     else:
         raise ValueError('Unknown periodic review.')
     return facts
@@ -166,7 +170,7 @@ def project_facts(key, facts, policy, protection_violations):
         'branches-and-pull-requests': {'repository', 'branch', 'branch_statuses', 'pull_statuses', 'protected',
                                        'delete_branch_on_merge', 'inventory_complete', 'protection'},
         'worktrees-and-evidence': {'integration_ref', 'row_states', 'holds', 'archive_configured',
-                                   'archive_error', 'activity_complete'},
+                                   'archive_error', 'activity_complete', 'staging'},
     }
     if set(facts) != fields[key] | {'observed_at', 'source_commit', 'input_sha256'}:
         raise ValueError('Expected the canonical public observation fields.')
@@ -263,13 +267,129 @@ def project_facts(key, facts, policy, protection_violations):
             pending.append('complete worktree, process and checkout observations')
         if not facts['archive_configured'] or facts['archive_error']:
             pending.append('available evidence archive')
-        # Retirement observes registered worktrees, not the independently owned staging scope.
-        pending.append('project-owned staging outside registered worktrees')
+        stage = facts['staging']
+        if stage and (set(stage) != {'task_id', 'manifest_sha256', 'accepted_source', 'regular_files', 'observed_at'}
+                      or not re.fullmatch(r'M[0-9]+-[0-9]{3}', stage['task_id'])
+                      or len(digests) != 2 or stage['manifest_sha256'] != digests[1]
+                      or not git_commit(stage['accepted_source']) or not 0 < stage['regular_files'] <= 8192
+                      or utc(stage['observed_at']) > observed + timedelta(days=1)):
+            raise ValueError('Expected a source-bound named staging observation.')
+        pending.append(EXTERNAL_STAGING)
         adverse = 'unretained_local_evidence' in holds
-        evidence = {'integration_tip': source, 'dispositions': dict(Counter(states)), 'holds': holds}
+        evidence = {'integration_tip': source, 'dispositions': dict(Counter(states)), 'holds': holds,
+                    'verified_external_staging': [stage] if stage else []}
     else:
         raise ValueError('Unknown periodic review.')
     return {**evidence, 'pending': pending}, identity, adverse
+
+
+EXTERNAL_STAGING = 'project-owned staging outside registered worktrees'
+
+
+def protection_supplement(key, previous, candidate):
+    if key != 'branches-and-pull-requests' or previous['source_commit'] != candidate['source_commit']:
+        return False
+    old, new = previous['facts'], candidate['facts']
+    excluded = {'protection', 'input_sha256'}
+    return (
+        {k: v for k, v in old.items() if k not in excluded} == {k: v for k, v in new.items() if k not in excluded}
+        and previous['findings'] == candidate['findings']
+        and len(old['input_sha256']) == 1 and len(new['input_sha256']) == 2
+        and new['input_sha256'][0] == old['input_sha256'][0]
+        and new['protection'] and utc(new['protection']['observed_at']) >= utc(old['observed_at'])
+        and utc(new['protection']['observed_at']).date() == utc(old['observed_at']).date()
+        and set(candidate['evidence']['pending']) < set(previous['evidence']['pending'])
+    )
+
+
+def staging_file(root, relative):
+    name = PurePosixPath(relative)
+    if (name.is_absolute() or not name.parts or '..' in name.parts
+            or name.as_posix() != relative or '\\' in relative or ':' in relative):
+        raise ValueError('The named archive contains a nonportable path.')
+    file = root.joinpath(*name.parts)
+    if file.resolve(strict=True) != file or not stat.S_ISREG(file.stat().st_mode):
+        raise ValueError('Expected a regular nonsymlink archive file.')
+    return file
+
+
+def verify_staging_archive(directory, expected):
+    """Verify only explicitly indexed files in a named retained archive."""
+    root = directory.resolve(strict=True)
+    if not root.is_dir() or not sha256(expected):
+        raise ValueError('Expected a named archive and its SHA-256 manifest digest.')
+    manifest = staging_file(root, 'SHA256SUMS')
+    if manifest.stat().st_size > 64 * 1024:
+        raise ValueError('The staging manifest exceeds its size limit.')
+    data = manifest.read_bytes()
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise ValueError('The staging manifest digest does not match.')
+    originals = {}
+    total = 0
+    for line in data.decode('utf-8').splitlines():
+        value, relative = line.split('  ', 1)
+        path = staging_file(root, relative)
+        size = path.stat().st_size
+        total += size
+        if not sha256(value) or relative in originals or len(originals) >= 256 or total > 16 * 1024 * 1024:
+            raise ValueError('The staging manifest is ambiguous or exceeds its resource limits.')
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != value:
+            raise ValueError('A staging manifest member does not match its digest.')
+        originals[relative] = (value, raw)
+    index_sha, raw = originals['restoration-index.json']
+    indexed = json.loads(raw)
+    preparation = json.loads(originals['prepare.json'][1])
+    task = json.loads(originals['accepted-task.json'][1])
+    if (preparation['index_sha256'] != index_sha or indexed['original'] != preparation['source']
+            or not git_commit(task['protected_ancestor']) or not task['evidence']):
+        raise ValueError('The named staging archive is missing its matching index and accepted task source.')
+    entries = indexed['entries']
+    if not isinstance(entries, dict) or len(entries) > 8192 or len(entries) != preparation['original_tree_entries']:
+        raise ValueError('The staging restoration index is incomplete or exceeds its entry limit.')
+    mirror = root / 'files'
+    if not mirror.is_dir() or mirror.is_symlink():
+        raise ValueError('The staging archive does not have a regular files directory.')
+    total = count = 0
+    for relative, entry in entries.items():
+        if entry['type'] != 'file':
+            continue
+        path = staging_file(mirror, relative)
+        size = entry['size']
+        total += size
+        if type(size) is not int or size < 0 or total > 4 * 1024**3 or path.stat().st_size != size:
+            raise ValueError('A staging file changed size or exceeded the verification budget.')
+        with path.open('rb') as stream:
+            if hashlib.file_digest(stream, 'sha256').hexdigest() != entry['sha256']:
+                raise ValueError('A retained staging file does not match the restoration index.')
+        count += 1
+    if not count:
+        raise ValueError('The named staging archive has no verified regular files.')
+    return {'task_id': task['task'], 'manifest_sha256': expected, 'accepted_source': task['protected_ancestor'],
+            'regular_files': count, 'observed_at': utc(preparation['observed_at']).isoformat(),
+            'task_evidence': task['evidence']}
+
+
+def producer_recovery(finding, recovery_rows):
+    """Use the existing timing producer's comparable post-fix result at the same scope."""
+    scope = finding.get('verification_budget', {})
+    keys = ('repository', 'event', 'profile', 'platform')
+    if not git_commit(scope.get('repair_commit')) or any(key not in scope for key in keys):
+        return None
+    for row in recovery_rows:
+        if row['feedback_id'] != finding['id'] or row['scope'] != {key: scope[key] for key in keys}:
+            continue
+        recovery = row['recovery']
+        if recovery['status'] != 'recovered' or recovery['repair_commit'] != scope['repair_commit']:
+            continue
+        confirmed = [cohort['recovered'] for cohort in recovery['comparisons'] if cohort.get('recovered')]
+        if not confirmed:
+            continue
+        latest = max(confirmed, key=lambda sample: utc(sample['recorded_at']))
+        return {'repair_commit': recovery['repair_commit'], 'scope': row['scope'],
+                'run_id': latest['run_id'], 'source_commit': latest['source_commit'],
+                'recorded_at': latest['recorded_at']}
+    return None
 
 
 def periodic_records(delivery):
