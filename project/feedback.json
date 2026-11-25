@@ -6676,6 +6676,44 @@
       ],
       "resolution": null,
       "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
+    },
+    {
+      "id": "verification-windows-warm-main-browser-lane-budget",
+      "source": "Authenticated ordinary full Windows main pushes. Original controls, check selections and job clocks are indexed by archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/windows-warm-push-intake.json (SHA-256 d6240590f7a24af345059e69000ebe256cc0c85d5aafbd8c64aae64007c441a5).",
+      "observation": "Three successful warm main pushes with 35 identical selected outcomes took 886, 938 and 913 seconds against the 900-second objective. The Windows browser harness steps took 638, 672 and 659 seconds, and their cache restores took 75, 85 and 105 seconds. The browser producer was the last required producer in the two overruns. These events use the existing four-producer scheduler. The previous serial-scheduler recovery and the partial-cache findings retain their own evidence.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-139"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45603929191-1",
+          "source_commit": "6cf0d0dc87b344203ab194a2cd047d36bf801f3c",
+          "report_sha256": "9a7580d885232498a7ba971891936b05ec96929c970bff74d6c1a3cd82dabd10"
+        },
+        {
+          "run_id": "windows-change-45633169286-1",
+          "source_commit": "21bb9dcf89b1044341cc0d37f40d537481286987",
+          "report_sha256": "ef5a6ad6bbc1af8a86db6f87fec457678a79048c0f6d81c9b51bbe07d077f315"
+        },
+        {
+          "run_id": "windows-change-45636810364-1",
+          "source_commit": "87dd07963b5dfbc648473e8a4f021ff5b8384203",
+          "report_sha256": "7da9ecf4cc71dd85f3f05ee76f33a65b9a85c348e7c1843b5539a8e495edd620"
+        }
+      ],
+      "verification_budget": {
+        "repository": "kacoyi/scopehub",
+        "event": "push",
+        "profile": "full",
+        "platform": "Windows"
+      },
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
