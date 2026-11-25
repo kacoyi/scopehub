@@ -22111,6 +22111,113 @@
       }
     },
     {
+      "id": "M0-121",
+      "title": "Isolate Actions diagnostic regression from local timing history",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-111"
+      ],
+      "scope": [
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Reproduce the original assertion on protected main with populated timing history and compare an isolated control.",
+        "The named regression exercises actual Actions input attribution with empty and populated synthetic timing history. It checks all expected diagnostics independently of their order and preserves legacy path redaction and failed-save assertions.",
+        "Run the canonical task checks and the complete fast profile in the managed checkout with the original genuine timing files. Keep the original report and verify accepted history."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-121-89ef185ba6c19c89.json",
+          "sha256": "11d79293b8a4d8bb568f75cea852cfc431cb8e19eec8619c626dc1c62dd711a2"
+        },
+        {
+          "path": "project/evidence/M0-121-3dac30534025cdbb.json",
+          "sha256": "497ad05d6889baf6402dd888e322e91ff3596b9e9143ea471add8f1bfed4d6fc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The original test passed with an empty root and failed with synthetic or genuine retained timing diagnostics. At db1bcab028377f5df7cafc8c07aee81ab286e767 the named regression passed both controls and the genuine populated checkout. The fast profile 20261125T071534.917149Z-afe7049b and task run 20261125T071720.636643Z-53802340 each passed the 721-case Python suite with four skips. Both reports, the observed diagnostic comparison and the copied history inputs are indexed in archives/observations/m0-121-timing-diagnostics-db1bcab/SHA256SUMS (SHA-256 b6ff51677684023e71bead86a40d3f9de99f564d688f2522c9784b300c66f081).",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070713.869495Z-0ac1dff5",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "0440984abd12d6d38a8535ecd6a5625ae41d08b4838b45228411ddef14770e68"
+        }
+      ],
+      "plan": {
+        "outcome": "The Actions diagnostics regression passes with empty or populated timing history while checking explicit failing-file attribution, path sanitation, historical diagnostics and save refusal.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "tests/project/test_timing.py",
+          "scripts/timing.py",
+          "archives/runs/20261125T070713.869495Z-0ac1dff5/test-report.json"
+        ],
+        "hypotheses": [
+          "The CLI emits available local diagnostics before the explicit Actions input error. The regression unintentionally reads the developer timing root and assumes the first diagnostic belongs to the Actions input."
+        ],
+        "risks": [
+          {
+            "failure": "The regression would accept a wrongly attributed or missing Actions error.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A test-only repair would accidentally suppress saved history or stop exercising path redaction and failed-save refusal.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the test correction and preserve the archived original and both reproduction inputs.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/project/test_timing.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changes to production collection, budgets, diagnostic formats or archive contents."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Preserve the existing diagnostic regression and all valid, invalid and legacy production outcomes.",
+            "Retain every legitimate existing collection diagnostic and report both failed input basenames and redacted legacy paths."
+          ],
+          "change": [
+            "Run the diagnostic assertions against owned local history fixtures and compare diagnostic identities without positional assumptions."
+          ],
+          "data_plan": "Use synthetic saved history in the test. Copy genuine unmodified timing inputs into the managed checkout for the fast-profile verification.",
+          "cleanup": "Keep fixture history in a temporary test directory and retain verified run evidence in the archive."
+        }
+      }
+    },
+    {
       "id": "M4-017",
       "title": "Retain independently consented external client observations",
       "milestone": "M4",
