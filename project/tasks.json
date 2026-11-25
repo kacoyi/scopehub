@@ -24927,7 +24927,7 @@
         "state-migrations"
       ],
       "evidence": [],
-      "next_action": "Reproduce the two independent findings at the ordinary browser entrypoints, then verify the exact corrected candidate.",
+      "next_action": "Review the exact scoped correction and before-and-after observations in contracts/reviews/2026-11-26-first-reopen-and-folder-recovery.json independently before completing this task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
