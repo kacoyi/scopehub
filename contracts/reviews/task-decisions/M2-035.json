@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M2-035",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "scope": "CHANGES_REQUESTED M2-035 e39b8972840f6d854d40e9adfe3c84bd22c6df62",
+      "observation": "Both regression tests survived the merge, but a delayed first reopen can still display the previous chart after another workspace window selects a new source.",
+      "reviewer": "Independent Astra Standard (t10c)",
+      "original_sha256": "ea7d13706fd2714186c4944c4b083b2c0538585a89be514db0c932a17d3e6bcb",
+      "response_id": "d7bc1e84e0d7163dab18a2961f87f58b87c3a954859e31b35bb532efa239253c",
+      "response_sha256": "8c15254541cadf413cc625088d3e8df66a6a3d02525581edb5fec531554a31cc",
+      "legacy_response_sha256": "cc501a023815a7bb924c98ce18293c3d4f58d5d63a86007fcaddc3f66f07ffd6",
+      "observation_body_sha256": "b407a1ea2a9dd73d53b7068388424d2b3ad5a16625081a0ee9c98b87c19435ce",
+      "event": {
+        "id": "msg_02395960ec1524e8016b070d75193487d0a749c2e68ecf4c0d",
+        "timestamp": "2026-11-25T16:32:18.426Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "0b93d9821b9f2ebd2fc18323e86276a856912178c0eaad08cf60b7e10ba127d7"
+    }
+  ]
+}
