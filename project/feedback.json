@@ -6573,6 +6573,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "periodic-maintenance-identity-and-obligation-transitions",
+      "source": "Independent Astra Standard changes requested on b9e6a9b43dd14a475d18f83ef5869701d848d847. Original manifest 4686d7bd79e31b1b3d19ad3d8a50addf30e82bc9b6b9611cf18cff80980e318e retained privately with the concurrent intake control.",
+      "observation": "The same timing producer bytes verified with two substituted capture sources. Verified successor work could not close the final transfer. Same-day adverse evidence with new feedback was rejected and older accepted observations could be dropped after another checkpoint. Several canonical review scopes and a concurrent assignment route were omitted.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-135"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

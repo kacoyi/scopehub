@@ -24067,7 +24067,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify the six Astra findings at the original intake and ordinary startup, preserve their controls, and obtain renewed independent review.",
+      "next_action": "Replay the five independent rejection cases and continue review on the protected integration basis selected by the coordinator.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24084,7 +24084,8 @@
         "hypotheses": [
           "The calendar flag can clear independently of observation bytes in all five review lanes. Typed bounded projections of existing observations can share the same guard.",
           "Full source deltas, source-bound consumer checks and independently checked observation facts can close the review gaps without inferring cross-lane recovery.",
-          "A separate original-byte check at protected intake can bind private source observations without publishing inventory details. Later offline review can reuse that accepted exact projection."
+          "A separate original-byte check at protected intake can bind private source observations without publishing inventory details. Later offline review can reuse that accepted exact projection.",
+          "A common observation transition with immutable predecessor references can admit new findings and verified closure without changing previously accepted bytes."
         ],
         "risks": [
           {
@@ -24107,6 +24108,12 @@
           },
           {
             "failure": "Self-generated projection hashes substitute for original bytes, retirement loses a staging obligation, a same-day update loses a predecessor, recovery is unqualified, or a cold reader cannot route one critical finding.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A capture source is inferred from a proposal, an independently known obligation is lost, historical evidence is changed, or an urgent assignment route is hidden by another urgent item.",
             "checks": [
               "python-contracts-workers"
             ]
@@ -24140,7 +24147,8 @@
           "change": [
             "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations.",
             "Review completeness and subsequent recovery are separate claims. Keep unsupported dimensions and both urgent and calendar follow-through visible.",
-            "Separate original verification from protected acceptance of minimized records. Admit named staging and source-qualified later timing, retain monotone supplements, and expose stable read-only navigation."
+            "Separate original verification from protected acceptance of minimized records. Admit named staging and source-qualified later timing, retain monotone supplements, and expose stable read-only navigation.",
+            "Separate observation identity from checkout context and preserve independent pending scopes and assignment routes through capture, transfer, confirmation and closure."
           ],
           "data_plan": "Read canonical task receipts and feedback. Compare changed consumer boundaries from accepted Git history and retain unverified scopes. Leave the historic baseline unchanged and keep controls in private validation outputs.",
           "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."
