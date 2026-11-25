@@ -25057,7 +25057,7 @@
         }
       },
       "closure_reason": null,
-      "next_action": "Reproduce interruptible terminal output on the exact reviewed and protected sources, then verify separate durable reports and the ordinary task.",
+      "next_action": "Obtain independent review of interruptible terminal publication and durable reports, then retain ordinary native Windows verification.",
       "blocker": null,
       "evidence": [
         {
@@ -25071,6 +25071,10 @@
         {
           "path": "project/evidence/M0-138-d9e3d2813250112e.json",
           "sha256": "09cbe08832b7665dc9924f8169af5b1a84c7b72946019e048b06dd7f941a561b"
+        },
+        {
+          "path": "project/evidence/M0-138-a346aa3e0b83920d.json",
+          "sha256": "cca1a1a7b31b975d41968fa60384d4312f2cfe95b3d04a98a07bce90c7315197"
         }
       ]
     }
