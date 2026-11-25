@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-120",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -20923,7 +20923,7 @@
       "id": "M0-120",
       "title": "Compile replay orchestration only in its desktop and test callers",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-105",
         "M1-008"
@@ -21018,10 +21018,15 @@
           "cleanup": "Retain the original build output and the exact warning-free build, and report which native paths still require independent verification."
         }
       },
-      "next_action": "Build the exact portable example and run its ordinary UI and Rust checks on the clean candidate. Archive the reports for review.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null
+      "evidence": [
+        {
+          "path": "project/evidence/M0-120-f3e774336e24ddb0.json",
+          "sha256": "220958dbbd211fdf14928f52ad6112df364a30afaecad4f134c2ac454587e2b1"
+        }
+      ],
+      "closure_reason": "The exact locked offline example build on protected main reproduced three dead-code warnings; the Linux candidate built with none. The local task harness passed the ordinary local-import-publication browser check and the Rust suite, including real worker replay cancellation. An isolated build with the previously reviewed opt-in fixture also verified both profile modes. Native Windows execution remains an independent review scope."
     },
     {
       "id": "M0-105",
