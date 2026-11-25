@@ -20921,6 +20921,123 @@
       }
     },
     {
+      "id": "M0-120",
+      "title": "Compile replay orchestration only in its desktop and test callers",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-105",
+        "M1-008"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri/src/bridge.rs",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain the before and after logs for the locked offline local_import_bridge build. The three replay dead-code warnings reproduced on protected main are absent on the candidate.",
+        "The Windows replay preparation, subscription, cancellation and shutdown paths and the corresponding Linux unit tests retain their real worker behavior.",
+        "The portable import and explicit workspace fixture paths retain their existing admission and clean shutdown. Exercise the ordinary local-import-publication check and retain the platform scope of each observation."
+      ],
+      "checks": [
+        "project-state",
+        "architecture",
+        "python-contracts-workers",
+        "rust-format",
+        "rust-contracts-workers",
+        "local-import-publication"
+      ],
+      "plan": {
+        "outcome": "The supported portable fixture builds without the three reproduced replay warnings and shares the same operation bridge as the native desktop.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "apps/desktop/src-tauri/src/bridge.rs",
+          "apps/desktop/src-tauri/src/bridge_tests.rs",
+          "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+          "scripts/check_local_import_publication.py"
+        ],
+        "hypotheses": [
+          "Replay methods and their admission state have callers only in native Windows commands and bridge unit tests. Portable fixture operations and their common shutdown remain usable when that replay state is absent."
+        ],
+        "risks": [
+          {
+            "failure": "The fixture compiles cleanly by removing behavior required in a portable or native configuration.",
+            "checks": [
+              "local-import-publication",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Guarding replay state also changes common shutdown, dependency boundaries or source formatting.",
+            "checks": [
+              "architecture",
+              "rust-format",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the desktop bridge compile guards and retain the before and after logs for review.",
+        "implementation": {
+          "modules": [
+            "desktop",
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "apps/desktop/src-tauri/src/bridge.rs",
+            "apps/desktop/src-tauri/examples/local_import_bridge.rs",
+            "scripts/rust_workspace.py",
+            "scripts/check_local_import_publication.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changing replay semantics, fixture CLI behavior, workspace authorization, Windows commands or warning policy."
+          ],
+          "open_questions": [
+            "The local Linux build can exercise replay through tests. Native Windows commands remain an independent verification scope."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Existing replay admission and cancel ordering, native handlers, test coverage, shared desktop state and shutdown used by both portable fixture configurations."
+          ],
+          "change": [
+            "Compile replay-only private state, imports and methods with their existing Windows or test callers."
+          ],
+          "data_plan": "Use synthetic fixtures. The compile guard changes no records, protocol payloads or stored data.",
+          "cleanup": "Retain the original build output and the exact warning-free build, and report which native paths still require independent verification."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-120-f3e774336e24ddb0.json",
+          "sha256": "220958dbbd211fdf14928f52ad6112df364a30afaecad4f134c2ac454587e2b1"
+        },
+        {
+          "path": "project/evidence/M0-120-4fa6123379752819.json",
+          "sha256": "f380bbca748f8b7daffe323d483d4933aafb75742ff81d00f0260a9488696fd3"
+        },
+        {
+          "path": "project/evidence/M0-120-ef4a2365c7379f31.json",
+          "sha256": "a3e0d700029e52da2573b47e96c8deeb3e56744d423909f759918e9c3d29b8d1"
+        }
+      ],
+      "closure_reason": "The exact locked offline example build on protected main reproduced three dead-code warnings; the Linux candidate built with none. The local task harness passed the ordinary local-import-publication browser check and the Rust suite, including real worker replay cancellation. An isolated build with the previously reviewed opt-in fixture also verified both profile modes. Native Windows execution remains an independent review scope."
+    },
+    {
       "id": "M0-105",
       "title": "Remove the Windows storage admission dependency on PowerShell startup",
       "milestone": "M0",
@@ -22214,6 +22331,634 @@
           ],
           "data_plan": "Use synthetic saved history in the test. Copy genuine unmodified timing inputs into the managed checkout for the fast-profile verification.",
           "cleanup": "Keep fixture history in a temporary test directory and retain verified run evidence in the archive."
+        }
+      }
+    },
+    {
+      "id": "M0-118",
+      "title": "Verify the matched Linux browser admission observation window",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-105"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Resolve the original d9102de diagnostic and verify that its complete logs and scoped browser attachments remain available. The two instrument.search TIMEOUT replies and the unexpected chart-opened BUSY retain their original disposition.",
+        "Verify the manifest and scoped observations for the unchanged ecb8477b79639fd43f06d302fd2ac4aa0ca999ab source. Keep one matched one-worker baseline and three ordinary two-worker workspace and one-worker desktop rounds, with the existing deadlines, isolated loopback services and complete fixture cleanup. Record all 204 case executions, the 12 matched outcomes and the search and admission counts, separating scripted BUSY from recurrence.",
+        "Archive a canonical M0-118 receipt for both existing browser checks on the clean investigation source. Keep the minor feedback open and assign M0-119 to capture the required evidence at the next actual recurrence."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-118-b5731f152137c987.json",
+          "sha256": "5754fb540d849669285fec74900d00aa31ec4c15aa33c1714c25e96e674cd927"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043455.480016Z-7345748b",
+          "source_commit": "d9102de9c036fb6ae4b962a5dfa9529927110315",
+          "report_sha256": "a2e085cebc9e68548abe2867b906740299aea157dcfb59ee5762a8c5cf44e506"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The initial d9102de failed run and its scoped attachments resolve under the original digest. The checked ecb8477b archive contains 204 case executions and 12 matched passes across one isolated baseline and three ordinary rounds under existing deadlines. It records zero TIMEOUT in 44 instrument.search requests, four successful chart-opened snapshots, eight expected scripted BUSY replies, and cleanup of all owned fixtures. Canonical Linux task run 20261125T065550.540350Z-57423efd at 0f4e87b6120a8d2575ec1821bc3a08727017ac1a passed project-state, Python contracts and workers, all 59 workspace-timeframe cases and all 8 desktop-workspace-transport cases. The original request stage and admission holder remain unknown. The feedback stays open, and M0-119 owns the next actual recurrence.",
+      "plan": {
+        "outcome": "Deliver an independently reviewable investigation that preserves the first failure, distinguishes a finite matched window without recurrence from causal attribution, and leaves the next actual recurrence owned.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/feedback.json",
+          "archives/runs/20261125T043455.480016Z-7345748b/test-report.json",
+          "archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z/SHA256SUMS",
+          "archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z/scoped-results.json",
+          "archives/observations/m0-105-linux-browser-concurrent-admission/ecb8477b-20261125T062450.814098Z/fixture-cleanup.json",
+          "tests/ubuntu-preview/workspace.config.mjs",
+          "tests/ui/desktop-workspace.config.mjs"
+        ],
+        "hypotheses": [
+          "If either original terminal recurs under ordinary Linux concurrency, its retained scoped traces can identify the failing request phase or admission holder. A clean four-round window leaves those historical identities unknown."
+        ],
+        "risks": [
+          {
+            "failure": "Archived bytes, source, suite counts, deadlines or cleanup do not match the retained control. Verify the raw diagnostic, archive manifest, worker counts and scoped outcomes before recording completion.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A scripted held-reader BUSY is counted as spontaneous contention, or a clean comparison is reported as a cause or fix. Bind the outcomes to their test stages and leave the minor feedback open with a named recurrence task.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "A passing log from another scope or different execution inputs is attached to this task. Require the canonical task selection, both configured commands and the recorded definition and log digests.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Keep the raw failure and observation archive. If any verification or provenance check fails, retain that attempt and keep the investigation active until the failed check is understood.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/check.py",
+            "scripts/project.py",
+            "scripts/integration.py",
+            "tests/ubuntu-preview/workspace.config.mjs",
+            "tests/ui/desktop-workspace.config.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Runtime or deadline changes, attribution of the original defect, and closing the minor feedback."
+          ],
+          "open_questions": [
+            "Which worker phase or admission holder is observed if the original terminal recurs?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep the original raw failure, M0-105 task and receipts, existing check commands and deadline settings."
+          ],
+          "change": [
+            "Add a canonical receipt for the investigation and name the task that owns the next recurrence."
+          ],
+          "data_plan": "Use the already retained synthetic, exact-source observations and a new canonical run with synthetic profiles. Bind originals by SHA-256.",
+          "cleanup": "Verify the archived counts for owned process trees, profile and temporary directories and listeners. Leave the archive and the original diagnostic available after disposable test fixtures close."
+        }
+      }
+    },
+    {
+      "id": "M0-119",
+      "title": "Attribute the next Linux browser admission recurrence",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-118"
+      ],
+      "scope": [
+        "project/tasks.json",
+        "project/feedback.json",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ui/desktop-workspace.spec.mjs"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "On the first actual ordinary Linux instrument.search TIMEOUT in either matched workspace journey or unexpected chart-opened BUSY in the desktop journey, retain the original report and scoped attachments before retry. Record exact source, worker counts, original deadlines and one same-source ordinary control.",
+        "For TIMEOUT, link preview and bridge to worker launch, hello, request send and terminal reply, with elapsed times and the last completed stage. For BUSY, identify the admitted operation and correlate its request with the refusal while separating the scripted held reader.",
+        "Assign the attributed regression to the task that owns the implicated entry point, with the original evidence and bounded scope. Keep any unresolved observation linked to live corrective work."
+      ],
+      "checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [],
+      "next_action": "Wait for the first actual recurrence in an ordinary Linux verification run. The verification owner of that run takes this task and preserves the failing evidence before a retry or any corrective change.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M2-036",
+      "title": "Keep decision-note deletion feedback attributable across two tabs",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/research.json",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Preserve the first authenticated Linux failure. Use the ordinary two-tab synthetic journey to correlate approval with the real operation result, persisted note and deletion marker, visible confirmation and the peer projection.",
+        "A verified deletion is acknowledged during delayed or refreshed list projection. A rejected approval never shows success and never deletes the note. Preserve the existing draft, date, approval consent, unknown-result recovery and peer deletion assertions with unchanged deadlines.",
+        "Exercise controlled success and refusal ordering in Linux Chromium and retain the original red evidence and canonical passing task receipt. Treat the older Windows observer empty-state assertion as a separate observation unless evidence identifies the same failure."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-036-d6508ff3885c6790.json",
+          "sha256": "8f9540fb212c4070e2fc9a13b185b5dce34f2b4421376199207e7b2f69dbab8c"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070439.970641Z-5b827275",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Linux canonical task run 20261125T073135.898153Z-97188447 on 74103f67291fec9bbfde359ccbc991586003345b passed all five required checks, including all 60 workspace cases and all 8 desktop transport cases. The retained Chromium red and green observations distinguish a rejected approval from a confirmed deletion whose follow-up read fails. The accepted operation correlates with the exact deletion marker, missing note and outcome, and empty peer projection. The initiating notice remains visible through the failed list delivery and explicit reload. The original hosted ordering remains unknown. The older Windows failure was a missing empty-list assertion on the observer after the delete helper returned.",
+      "plan": {
+        "outcome": "The initiating tab makes the confirmed deletion visible and both tabs reflect the authoritative list even when projection and peer actions interleave. Definite or uncertain failures retain their own messages and consent rules.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/ui/src/decision-note-transport.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/20261125T070439.970641Z-5b827275/test-report.json"
+        ],
+        "hypotheses": [
+          "The missing success can originate before the mutation, in reply verification, or after a confirmed commit during list refresh. Capture wire and stored state before assigning a cause."
+        ],
+        "risks": [
+          {
+            "failure": "A failed approval or lost reply appears successful, or a committed deletion is presented as unverified when only its follow-up read failed. Use held replies, authoritative storage and a controlled refusal.",
+            "checks": [
+              "workspace-timeframe",
+              "decision-note-lifecycle"
+            ]
+          },
+          {
+            "failure": "A refresh drops an unrelated draft, keeps a superseded approval or leaves a deleted note visible in the peer. Preserve the existing peer workflow and exact visible assertions.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Keep the first producer failure and deterministic Chromium observations. If the correction changes consent or recovery, retire the candidate and retain the existing deadline and operation contract.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to the decision-note wire protocol, storage schema, product permissions, or unrelated Windows failures."
+          ],
+          "open_questions": [
+            "Does the original missing notice coincide with a refused mutation or a completed mutation and a subsequent projection failure?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The single writer, confirmation scope, existing bounds, outcome drafts and peer refresh."
+          ],
+          "change": [
+            "Make the demonstrated deletion feedback boundary observable and correct only the confirmed gap."
+          ],
+          "data_plan": "Use synthetic local profiles and read-only verification of live SQLite rows. No migration.",
+          "cleanup": "Close owned browser contexts and services, release any held reply, and remove temporary profiles after assertions."
+        }
+      }
+    },
+    {
+      "id": "M2-037",
+      "title": "Keep deletion list retries separate from the next note action",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-036"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "After a verified delete, lose two successive list replies. Both alerts identify the list failure and retain the success notice. A third successful read clears the alert while leaving success visible. Verify one successful-phase approval request, the durable deletion marker and the peer empty list.",
+        "Open New decision note after recovery and verify the earlier delete notice leaves the editor immediately. A read-only retry preserves its usual detail or draft target. Cancelled, definitively rejected and unknown-result approvals stay distinct and never claim unverified success.",
+        "Retain both pre-correction failures in Linux Chromium, run the existing consent and peer scenarios and archive the canonical task receipt. The M2-036 definition, prior evidence and original diagnostics remain historical."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-037-1cfe50c94b246ad5.json",
+          "sha256": "05ef23dbc71c02898f35e5c83ec97d4e2dbc0ae3c98a5a26e608ac8dd33e04fe"
+        },
+        {
+          "path": "project/evidence/M2-037-20f487a7826b0a0c.json",
+          "sha256": "adb677fb6174346adca4a1c9777d2b8c37073b900a52f24e9c4c2775aeb76222"
+        },
+        {
+          "path": "project/evidence/M2-037-eae210b517d6656c.json",
+          "sha256": "83e98aa6226d5b8f2d433e7f85be48920272c6fc24721dd72618d3adfbbacc7d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T074141.517766Z-70f6c326 at c34d67ff1fc44863874433842efa9f310c6fa2c2 passed all five required checks, including 60 workspace and 8 desktop transport cases. The archived real Chromium red reproduced both independent review findings. The green retained success through two lost list replies with the same list alert, cleared the alert after the third successful read, and cleared the old success on opening a new note. A single approved delete correlated with the unchanged deletion marker and empty peer list. Cancellation, definite refusal and unknown-result controls passed. The accepted M2-036 definition and receipt retain their recorded source and scope.",
+      "plan": {
+        "outcome": "The initiating user can distinguish a confirmed delete from its failed list delivery, retry reads without another mutation, and start the next editor with a current status.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt"
+        ],
+        "hypotheses": [
+          "The fallback list reload loses the error descriptor chosen for the post-commit read. Starting a new note opens an editor without consuming the prior action notice."
+        ],
+        "risks": [
+          {
+            "failure": "The second list error implies an uncertain deletion or a list retry sends another approval. Verify two lost replies, the third real response, exactly one approved request in the success phase, the marker and the empty peer list.",
+            "checks": [
+              "workspace-timeframe",
+              "decision-note-lifecycle"
+            ]
+          },
+          {
+            "failure": "Clearing the previous notice also clears it on read-only retries or changes detail and draft recovery targets, peer refresh or consent. Verify manual retries and the new-editor boundary independently, and keep the cancellation, stale-approval and unknown-result controls.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the independent and Chromium red observations. If the patch blurs list refresh and operation uncertainty, revert it while preserving M2-036 and the recorded regression.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to persistence, deadlines, confirmation authority, or unrelated Windows observations."
+          ],
+          "open_questions": [
+            "Will the real Chromium fixture expose both replay findings under the existing bounds?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep the existing retry target, receipt validation, consent, drafts and peer behavior."
+          ],
+          "change": [
+            "Apply the post-delete list error consistently and clear the prior notice when a new note editor opens."
+          ],
+          "data_plan": "Use disposable synthetic profiles, real wire replies and read-only SQLite assertions. No data migration.",
+          "cleanup": "Release held responses, remove interceptors, close owned profiles and services, and retain the original failures."
+        }
+      }
+    },
+    {
+      "id": "M0-115",
+      "title": "Bound operator-selected worktree retirement observation budgets",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": ["M0-035"],
+      "scope": [
+        "AGENTS.md",
+        "scripts/worktree.py",
+        "scripts/worktree_retirement.py",
+        "tests/project",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "The existing read-only retirement command accepts an explicit bounded per-checkout entry limit, rejects invalid input before observation, and retains the 20,000-entry default.",
+        "The same selected limit applies to the directory and consumer scans. A real downstream consumer past the default is observed with a sufficient explicit limit, and genuinely exhausted scans retain their holds.",
+        "A real checkout with many ignored sibling roots retains at most one entry beyond the supplied limit to detect overflow before sorting. Independent tracked dirty status and Git failures remain observable.",
+        "A retained read-only inventory using the development archive observes the three affected registrations with a sufficient explicit limit, records the report digest and distinguishes candidates, process visibility, observed activity and unresolved evidence."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-115-6305e120f6261f97.json",
+          "sha256": "5453c86f99f99c7f7ed06bf9133fe53f0d23c5fd9189f35ed0f1ab9912bec51e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The corrected source d2c15146bb2f8c3606f4df3e12fca469d775f9b7 passed both required Linux checks. The already-running 200,000-entry read-only capture used 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a and cleared all three prior consumer budget errors. It classified all 92 registrations as held, with zero candidates or review intake and eight rows with observed activity. Host process visibility was unavailable. The invoking checkout's sandbox mount and changes to registrations and recovery references produced additional holds. The raw capture remains at .reports/audit-20261125/retirement-after-entry-limit.json with SHA-256 64e394ada899cdb84aa109920a66dc18e9bc30dc3c95038cdc48464fa7f5800c. The coordinator owns supported-host review and publication.",
+      "plan": {
+        "outcome": "An operator can complete retirement consumer observation on large worktrees while every uncertain checkout remains held.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-035 worktree protection and evidence semantics.",
+          "The 2026-11-25 retirement observation of 88 Git registrations.",
+          "scripts/worktree.py",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The same fixed ignored entry limit stops three consumer passes. An explicit larger limit can complete those passes without changing the evidence or candidacy rules.",
+          "Git status initially materializes every ignored root and the directory walk sorts those paths before applying the selected limit. Reading the status incrementally and bounding retained roots before sorting can preserve the independent dirty and error observations."
+        ],
+        "risks": [
+          {
+            "failure": "A larger budget permits an incomplete traversal to claim eligibility, or one pass silently keeps using the fixed limit.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Invalid input admits unbounded enumeration, or incomplete process and evidence observations are mistaken for viable retirement.",
+            "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "A tiny limit permits unbounded ignored path intake, or an overflow or interrupted status process loses dirty or incomplete observation holds.",
+            "checks": ["project-state", "python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert the new option and retain the original reports. The command only observes filesystem and Git state.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Worktree, ref or file retirement, publication and supported host qualification."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Read-only operation, the conservative default, fail-closed mount, identity, process and evidence observations, and the review intake and candidate criteria."
+          ],
+          "change": [
+            "Accept and report one operator-selected entry limit and use it in each per-checkout directory scan, including ignored-root intake before sorting."
+          ],
+          "data_plan": "Read the configured development archive and retain the original and new host observation bytes and their digests inside the task checkout for coordinator handoff.",
+          "cleanup": "Use one limit for the existing entry point and remove the fixed traversal budget without introducing another configuration source."
+        }
+      }
+    },
+    {
+      "id": "M0-116",
+      "title": "Stop reading ignored worktree status after budget overflow",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": ["M0-115"],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "tests/project/test_worktree_retirement.py",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "The retirement entry retains the existing default and reports budget exhaustion after reading the ignored-root overflow witness, with bounded pipe read-ahead and a closed, reaped status child.",
+        "An independent ordinary status query preserves tracked and untracked dirtiness even when the ignored listing ends early. Small ignored inventories preserve Git pathname semantics and verify successful completion.",
+        "A measured real Git regression limits ignored records and bytes at a budget of one. Tail-dirty and failed or unreadable status streams preserve the applicable holds and process cleanup."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-116-36fa036d0b2cb670.json",
+          "sha256": "46f11fc5ae0eaf18315003ce5bc65e8147d244df2668b24c6e0dd67c1967086c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "A real Git fixture with 2,048 sibling ignored roots and a budget of one fell from 2,048 records and 165,888 bytes consumed to two records and 4,096 bytes read from stdout. The tail-dirty, status failure, unreadable pipe, cleanup and small-tree controls passed. Both required Linux checks passed on 4e54112a55a00764b0a268a53f925c9536592a09. The existing retirement default and holds were preserved. M0-115's accepted definition and receipt were verified unchanged. The coordinator owns the separate host capture and publication.",
+      "plan": {
+        "outcome": "A small retirement observation budget stops ignored pathname consumption at overflow while preserving dirty and incomplete observations.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-115 accepted limits and receipt.",
+          "Second independent Astra Standard review of 95f20e9.",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The ignored collector drains every status record to establish dirtiness and Git completion. Its accepted path is separable from the ordinary tracked and untracked status check."
+        ],
+        "risks": [
+          {
+            "failure": "An ignored overflow still consumes the rest of stdout or hides a tracked or untracked change.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Early cutoff hides a completed Git error, leaks a child or stream, or changes the ignored roots of a small checkout.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert this correction while preserving the accepted M0-115 task, receipts and conservative candidate rules.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Changes to accepted M0-115 records, publication, host observation, and worktree or file retirement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Git ignored matching, literal NUL-delimited paths, existing budget and holds, and status errors from incomplete observations."
+          ],
+          "change": [
+            "Observe ordinary dirtiness independently and stop accepting ignored input as soon as one excess root proves exhaustion."
+          ],
+          "data_plan": "Use temporary native Git fixtures and local task diagnostics. The coordinator owns the existing host capture and its report.",
+          "cleanup": "Close the ignored output stream and reap the child on success, overflow, failure and interruption."
+        }
+      }
+    },
+    {
+      "id": "M0-117",
+      "title": "Retain dirty worktree observations across status queries",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": ["M0-116"],
+      "scope": [
+        "scripts/worktree_retirement.py",
+        "tests/project/test_worktree_retirement.py",
+        "project"
+      ],
+      "decision_refs": ["0004", "0007"],
+      "acceptance": [
+        "A tracked modification or ordinary untracked path introduced between the two status queries produces a dirty checkout hold when Git reports it through the retirement entry.",
+        "Any ordinary status record observed by either query keeps the dirty result true. The ignored-root cutoff, pathname handling, status errors, and process cleanup retain their established behavior.",
+        "The coordinator receives the clean implementation revision for independent review. Task closure follows confirmed review approval and required evidence."
+      ],
+      "checks": ["project-state", "python-contracts-workers"],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-117-f629b37066178251.json",
+          "sha256": "1c4d1dd6d97a5388db3ae39753f2af4be72e6976d09417493d9b877e129f11c9"
+        },
+        {
+          "path": "project/evidence/M0-117-a8410a801fe4f7fb.json",
+          "sha256": "51393afaafaf924589cc1f39a1ce88f9d8a2ef2d40f8d6ac248027dbc9497c34"
+        },
+        {
+          "path": "project/evidence/M0-117-2782445a2d24932b.json",
+          "sha256": "fe4c37e77d4a61730b96124c922998c2255bfd8f3437c7d32c1731b4d2795a38"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The coordinator confirmed Astra Standard approval of exact source 37cb4e896e8a99f8af07eb7829d2550d84c99c19. Both full-entry replays held a tracked or ordinary untracked change observed on the second read. The small clean fixture remained eligible. At a limit of one the 2,048-path fixture consumed two ignored records and 4,096 bytes. All 47 retirement tests were confirmed, and the attached receipt covers both required Linux checks on the approved source.",
+      "plan": {
+        "outcome": "A retirement observation retains every dirty status it actually observes while keeping bounded ignored-path intake.",
+        "change_types": ["tooling"],
+        "context": [
+          "M0-116 accepted bounds, process cleanup, and receipt.",
+          "Astra Standard review of the M0-116 retirement entry.",
+          "scripts/worktree_retirement.py",
+          "tests/project/test_worktree_retirement.py"
+        ],
+        "hypotheses": [
+          "The ordinary query result initializes the dirty flag. The second query reads ordinary status before the ignored cutoff but currently leaves the flag unchanged."
+        ],
+        "risks": [
+          {
+            "failure": "An observed intervening tracked or ordinary untracked change leaves an otherwise eligible worktree marked clean.",
+            "checks": ["project-state", "python-contracts-workers"]
+          },
+          {
+            "failure": "Retaining ordinary observations expands the ignored read or changes error, literal pathname, or cleanup behavior.",
+            "checks": ["python-contracts-workers"]
+          }
+        ],
+        "rollback": "Revert the dirty observation correction as a separate change while retaining the accepted earlier records.",
+        "implementation": {
+          "modules": ["development-tooling"],
+          "entrypoints": ["scripts/worktree.py", "scripts/worktree_retirement.py"],
+          "rules": [
+            {"path": "project/delivery.json", "pointer": "/scaffold_maintenance"},
+            {"path": "project/delivery.json", "pointer": "/source_control/verification"}
+          ],
+          "non_goals": [
+            "Changes to accepted history, the separate host inventory, publication, and checkout retirement."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The two status queries, the existing overflow cutoff, process lifecycle, and conservative error holds."
+          ],
+          "change": [
+            "A valid ordinary status record consumed in the second query also sets the dirty observation."
+          ],
+          "data_plan": "Exercise independent native Git fixtures with intervening filesystem changes. Retain local regression and required check evidence for coordinator review.",
+          "cleanup": "Reuse the current status loop and existing dirty hold."
         }
       }
     },
