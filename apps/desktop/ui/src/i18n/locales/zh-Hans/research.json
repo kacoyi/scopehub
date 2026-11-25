@@ -184,6 +184,7 @@
   "The configured model took too long to answer. Try again when the server is ready.": "已配置的模型回答超时。请在服务器就绪后重试。",
   "The local model connection could not be updated.": "无法更新本地模型连接。",
   "The local workspace could not complete the action.": "本地工作台无法完成此操作。",
+  "The decision-note list could not be refreshed.": "无法刷新决策笔记列表。",
   "The local workspace could not verify the result.": "本地工作台无法验证结果。",
   "The local workspace is busy. Try again when it is ready.": "本地工作台正忙。请在工作台就绪后重试。",
   "The local workspace is busy. Try again.": "本地工作台正忙。请重试。",
