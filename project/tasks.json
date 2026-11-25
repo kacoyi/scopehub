@@ -26113,7 +26113,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Reproduce both post-rotation conflicts and an uncontested control at the ordinary and budgeted timing readers, then inspect how a saved review can recover a disputed value.",
+      "next_action": "Compare the retained red and corrected public replay and submit the exact source for independent review. Keep all earlier timing task evidence intact and the inherited prospective review gates explicit.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26167,9 +26167,7 @@
           "non_goals": [
             "Changing protected platform objectives, test deadlines or measurement provenance."
           ],
-          "open_questions": [
-            "Which retained attempt identity can locate the conflict when no qualifying platform index entry remains?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "refactor",

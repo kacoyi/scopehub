@@ -921,6 +921,114 @@ class HostedTimingTests(unittest.TestCase):
             self.assertEqual({('Linux', 'full'): 510, ('Windows', 'full'): 765,
                               ('Windows', 'ci-windows-browser'): None}, times)
 
+    def test_retained_attempt_disputes_survive_recent_rotation_and_archive_reopen(self):
+        clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
+        browser = next(job for job in clock['sibling_jobs'] if job['job_id'] == '33')
+        partial = dict(clock, jobs=[], sibling_jobs=[dict(browser, job_id='39')],
+                       workflow=dict(clock['workflow'], matrix_complete=False, identity_complete=False))
+        alternate_checkout = dict(partial, sibling_jobs=[], checkout_sha='d' * 40)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        aggregate = timing.report_sample(report)
+        samples = [aggregate, lane_sample(aggregate, 'browser')]
+        unrelated = dict(partial, head_sha='b' * 40, checkout_sha='e' * 40)
+        feedback = [{'verification_budget': {'event': 'pull_request'},
+                     'diagnostic_reports': [dict(zip(('run_id', 'source_commit'), timing.report_key(aggregate)))]}]
+
+        def measurements(view):
+            rows = {row['profile']: row for row in view['samples']}
+            full = rows['full']
+            return (full['seconds']['total'], full['seconds']['runner'],
+                    rows['ci-windows-browser']['seconds']['total'], full['review_exclusion'] is None)
+
+        for case, adverse, expected, qualified in (
+            ('valid', None, (765, 1687, 720, True), True),
+            ('producer', partial, (765, None, None, True), True),
+            ('checkout', alternate_checkout, (None, None, None, False), False),
+        ):
+            for reverse in ((False, True) if adverse else (False,)):
+                with self.subTest(case=case, reverse=reverse), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    shared = root / 'shared'
+                    shared.mkdir()
+                    path = shared / 'ci-pull_request-11-1.json'
+                    clocks = [clock, adverse] if adverse else [clock]
+                    if reverse:
+                        clocks.reverse()
+                    timing.save_timing_capture(path, 0, samples, [*clocks, unrelated], [])
+                    self.assertEqual(qualified, timing.index_capture(path, samples, clocks)[0])
+                    original = path.read_bytes()
+                    saved = root / '.reports/timing/saved.json'
+                    timing.save_review_archive(saved, {'kind': timing.ARCHIVE_KIND, 'samples': samples, 'hosted': [clock]})
+                    saved_bytes = saved.read_bytes()
+                    project = root / 'project'
+                    project.mkdir()
+                    (project / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+                    (project / 'feedback.json').write_bytes(timing.json_bytes({'items': []}))
+
+                    def ordinary(*argv):
+                        out = StringIO()
+                        with patch.object(sys, 'argv', ['timing.py', *argv]), redirect_stdout(out):
+                            timing.main()
+                        return json.loads(out.getvalue())
+
+                    with (patch.object(timing, 'ROOT', root),
+                          patch.object(timing, 'shared_timing_directory', return_value=shared),
+                          patch.object(timing, 'weekly_review', return_value=None),
+                          patch.object(timing, 'command', side_effect=AssertionError('Unexpected hosted request'))):
+                        self.assertEqual(expected, measurements(ordinary()))
+                        for number in range(12, 12 + timing.MAX_RECENT):
+                            newer = shared / f'ci-pull_request-{number}-1.json'
+                            timing.save_timing_capture(newer, 0, [], [dict(clock, run_id=str(number))], [])
+                        sentinel = shared / 'ci-pull_request-10-1.json'
+                        sentinel.write_bytes(b'{')
+                        self.assertNotIn(path, timing.incremental_timing_paths([shared]))
+                        with patch.object(timing, 'read_timing_capture', wraps=timing.read_timing_capture) as read:
+                            reopened = root / 'reopened.json'
+                            after = ordinary('--save', str(reopened))
+                        self.assertEqual(expected, measurements(after))
+                        self.assertEqual(expected, measurements(ordinary('--report', str(reopened))))
+                        self.assertIsNone(after['recent_collection'])
+                        paths = [call.args[0] for call in read.call_args_list]
+                        self.assertEqual(timing.MAX_RECENT + 1, len(paths))
+                        self.assertEqual(1, paths.count(path))
+                        self.assertNotIn(sentinel, paths)
+                        self.assertNotIn(unrelated['head_sha'], {row['head_sha'] for row in after['hosted']})
+                        with patch.object(timing, 'read_timing_capture', wraps=timing.read_timing_capture) as read:
+                            rows, raw_clocks, issues = timing.retained_budget_inputs(root, feedback)
+                        self.assertEqual(expected, measurements(timing.timing_view(rows, hosted=raw_clocks, issues=issues)))
+                        self.assertEqual(timing.MAX_RECENT + 1, read.call_count)
+                        self.assertEqual(1, sum(call.args[0] == path for call in read.call_args_list))
+                    self.assertEqual(original, path.read_bytes())
+                    self.assertEqual(saved_bytes, saved.read_bytes())
+
+    def test_retained_attempt_lookup_is_bounded_and_needs_matching_raw_evidence(self):
+        clock = timing.hosted_timing(hosted_run(), self.split_windows_jobs())
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        sample = timing.report_sample(report)
+        prior, = timing.timing_view([sample], hosted=[clock])['samples']
+        self.assertIsNone(prior['review_exclusion'])
+        with tempfile.TemporaryDirectory() as directory:
+            retained = Path(directory)
+            path = retained / 'ci-pull_request-11-1.json'
+            paths = timing.retained_attempt_paths([retained], [prior], [])
+            self.assertEqual({path}, set(paths))
+            rows, clocks = timing.retained_capture_inputs(paths, {}, [], [], budget=timing.TimingReadBudget())
+            portable, = timing.timing_view([prior, *rows], hosted=clocks)['samples']
+            self.assertIsNone(portable['seconds']['total'])
+            self.assertIsNotNone(portable['review_exclusion'])
+            timing.save_timing_capture(path, 0, [sample], [clock], [])
+            budget = timing.TimingReadBudget()
+            budget.remaining = 64
+            issues = []
+            self.assertEqual(([], []), timing.retained_capture_inputs(paths, {}, [], issues, budget=budget))
+            self.assertIn('combined timing read limit', issues[0]['error'])
+            rows, clocks = timing.retained_capture_inputs(paths, {}, [], [], budget=timing.TimingReadBudget())
+            measured, = timing.timing_view(rows, hosted=clocks)['samples']
+            self.assertEqual(765, measured['seconds']['total'])
+            self.assertIsNone(measured['review_exclusion'])
+
     def test_component_cache_union_preserves_protected_elapsed_observation(self):
         jobs = self.split_windows_jobs()
         clock = timing.hosted_timing(hosted_run(), jobs)
