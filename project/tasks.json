@@ -20010,8 +20010,13 @@
         "project-state",
         "python-contracts-workers"
       ],
-      "evidence": [],
-      "next_action": "Recheck newly collected linked identities on the first ordinary CI call, isolate the all-conflicting event, and qualify the corrected tool with fresh evidence before the coordinator publishes it.",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-110-ec3b4d3958738058.json",
+          "sha256": "632ad9aa482a999884d308c307bf66dc9b07f6c238ed10088444a3c18500a0e1"
+        }
+      ],
+      "next_action": "Coordinator review and publication can proceed on the exact candidate. Retain matching hosted Windows evidence for the amended definition. Keep ordinary elapsed-budget follow-up on its independent observations.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
