@@ -20,6 +20,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
     def setUpClass(cls):
         workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
         cls.events = workflow[True]  # PyYAML parses the YAML 1.1 boolean spelling "on".
+        cls.run_name = workflow['run-name']
         cls.concurrency = workflow['concurrency']
         cls.jobs = workflow['jobs']
         cls.job = workflow['jobs']['verify']
@@ -50,10 +51,12 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         aggregate = self.jobs['windows_change']
         self.assertIn(f"{routine} && 'verify (windows-latest)'", aggregate['name'])
         checkout = next(step for step in self.steps if step.get('uses', '').startswith('actions/checkout@'))
-        self.assertEqual({'fetch-depth': 0, 'persist-credentials': False}, checkout['with'])
+        self.assertEqual({'fetch-depth': 0, 'persist-credentials': False,
+                          'ref': "${{ inputs.expected_head || '' }}"}, checkout['with'])
         self.assertNotIn('if', checkout)
         self.assertEqual(checkout, aggregate['steps'][0])
-        self.assertEqual('${{ github.event.pull_request.head.sha || github.sha }}', self.job['env']['SCOPEHUB_SOURCE_HEAD'])
+        self.assertEqual('${{ inputs.expected_head || github.event.pull_request.head.sha || github.sha }}',
+                         self.job['env']['SCOPEHUB_SOURCE_HEAD'])
         for name in ('Preserve accepted history', 'Initialize CI verification reports',
                      'Fetch the reviewed public publisher advisory'):
             step = next(step for step in self.steps if step.get('name') == name)
@@ -100,7 +103,7 @@ class VerifyBrowserSetupTests(unittest.TestCase):
 
     def test_full_weekly_and_manual_routes_preserve_existing_harnesses(self):
         self.assertEqual([{'cron': '31 3 * * 1'}], self.events['schedule'])
-        self.assertEqual("github.event_name != 'schedule' || github.ref == 'refs/heads/main'", self.job['if'])
+        self.assertIn("(github.event_name != 'schedule' || github.ref == 'refs/heads/main')", self.job['if'])
         self.assertIn("github.event_name == 'schedule' && format('verify-weekly-{0}-{1}'", self.concurrency['group'])
         self.assertIn("inputs.profile == 'release' && format('verify-release-{0}-{1}'", self.concurrency['group'])
         self.assertEqual('full', self.events['workflow_dispatch']['inputs']['profile']['default'])
@@ -125,6 +128,69 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         self.assertEqual("inputs.task_id && inputs.profile == 'release'", reject['if'])
         self.assertNotIn('continue-on-error', reject)
         self.assertLess(self.steps.index(reject), self.steps.index(task))
+
+    def test_guarded_dispatch_gates_both_matrix_jobs_and_keeps_ordinary_concurrency(self):
+        guarded = '(inputs.expected_head || inputs.expected_base || inputs.dispatch_id)'
+        gate = self.jobs['reviewed_dispatch']
+        self.assertEqual(f"github.event_name == 'workflow_dispatch' && {guarded}", gate['if'])
+        self.assertEqual(('ubuntu-latest', 2), (gate['runs-on'], gate['timeout-minutes']))
+        self.assertNotIn('uses', gate['steps'][0])
+        self.assertEqual('reviewed_dispatch', self.job['needs'])
+        self.assertIn(f"{guarded} && needs.reviewed_dispatch.result == 'success'", self.job['if'])
+        self.assertIn(f"!{guarded} && needs.reviewed_dispatch.result == 'skipped'", self.job['if'])
+        self.assertIn('!cancelled()', self.job['if'])
+        self.assertIn('["ubuntu-latest","windows-latest"]', self.job['strategy']['matrix']['os'])
+        for name, job in self.jobs.items():
+            if name not in {'reviewed_dispatch', 'verify'}:
+                self.assertIn("github.event_name == 'pull_request' || github.event_name == 'push'", job['if'])
+                self.assertNotIn('workflow_dispatch', job['if'])
+        group = self.concurrency['group']
+        self.assertTrue(group.startswith(f"${{{{ {guarded} && format('verify-dispatch-{{0}}-{{1}}', github.workflow, github.run_id) ||"))
+        self.assertIn("inputs.task_id && format('verify-task-{0}-{1}:{2}', github.workflow, github.ref, inputs.task_id)", group)
+        self.assertIn("format('verify-{0}-{1}', github.workflow, github.ref)", group)
+        self.assertTrue(self.concurrency['cancel-in-progress'])
+        self.assertEqual("${{ inputs.dispatch_id && format('Verify task {0} [{1}]', inputs.task_id, inputs.dispatch_id) || '' }}",
+                         self.run_name)
+        for key in ('expected_head', 'expected_base', 'dispatch_id'):
+            self.assertEqual('string', self.events['workflow_dispatch']['inputs'][key]['type'])
+            self.assertFalse(self.events['workflow_dispatch']['inputs'][key]['required'])
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Run the hosted admission step with Bash')
+    def test_guard_rejects_moved_refs_and_stale_or_unverifiable_bases(self):
+        step, = self.jobs['reviewed_dispatch']['steps']
+        head, base, moved = 'a' * 40, 'b' * 40, 'c' * 40
+        valid = dict(EXPECTED_HEAD=head, EXPECTED_BASE=base, DISPATCH_ID='d' * 32, TASK_ID='M0-106',
+                     VERIFY_PROFILE='full', GITHUB_SHA=head, GITHUB_REF_TYPE='branch',
+                     GITHUB_REF='refs/heads/task', GITHUB_REPOSITORY='fixture/scopehub', OBSERVED_BASE=base,
+                     GH_EXIT='0')
+        cases = [
+            ({}, 0, True, ''),
+            ({'GITHUB_SHA': moved}, 1, False, 'reviewed head'),
+            ({'OBSERVED_BASE': moved}, 1, True, 'reviewed base'),
+            ({'OBSERVED_BASE': ''}, 1, True, 'reviewed base'),
+            ({'GH_EXIT': '1'}, 1, True, ''),
+            ({'EXPECTED_HEAD': ''}, 1, False, 'guarded task dispatch'),
+            ({'DISPATCH_ID': ''}, 1, False, 'guarded task dispatch'),
+            ({'TASK_ID': ''}, 1, False, 'guarded task dispatch'),
+            ({'VERIFY_PROFILE': 'release'}, 1, False, 'guarded task dispatch'),
+            ({'GITHUB_REF_TYPE': 'tag'}, 1, False, 'reviewed head'),
+        ]
+        for override, code, reads_base, message in cases:
+            with self.subTest(override=override), tempfile.TemporaryDirectory() as folder:
+                gh = Path(folder) / 'gh'
+                gh.write_text('#!/bin/bash\nprintf "%s\\n" "$*" > "$GH_CALL"\n'
+                              'printf "%s\\n" "$OBSERVED_BASE"\nexit "$GH_EXIT"\n', encoding='ascii')
+                gh.chmod(0o700)
+                call = Path(folder) / 'call'
+                environment = dict(os.environ, PATH=f'{folder}{os.pathsep}{os.environ["PATH"]}', GH_CALL=str(call))
+                environment.update(valid | override)
+                result = subprocess.run([step['shell'], '-e', '-o', 'pipefail', '-c', step['run']],
+                                        env=environment, capture_output=True, text=True, timeout=10)
+                self.assertEqual(code, result.returncode, result.stderr)
+                self.assertIn(message, result.stderr)
+                self.assertEqual(reads_base, call.exists())
+                if reads_base:
+                    self.assertIn('repos/fixture/scopehub/git/ref/heads/main', call.read_text())
 
     def test_routine_windows_changes_use_bounded_native_lanes_and_attempt_bound_aggregation(self):
         aggregate = self.jobs['windows_change']

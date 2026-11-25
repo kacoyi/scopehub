@@ -8,7 +8,7 @@ use std::{
 };
 
 use scopehub_application::failure;
-use scopehub_desktop::bridge::{State, state_with_local_profile};
+use scopehub_desktop::bridge::{State, state_with_development_workspace, state_with_local_profile};
 use scopehub_domain::protocol::{Error, ErrorCode};
 use serde_json::{Value, json};
 
@@ -44,12 +44,20 @@ fn main() -> Result<(), Box<dyn StdError>> {
 #[tokio::main]
 async fn run_bridge() -> Result<(), Box<dyn StdError>> {
     let arguments: Vec<_> = env::args_os().skip(1).collect();
-    let [profile, folder] = arguments.as_slice() else {
-        return Err(
-            "Usage: local_import_bridge <absolute-profile> <absolute-fixture-folder>".into(),
-        );
+    let (profile, folder, workspace) = match arguments.as_slice() {
+        [profile, folder] => (profile, folder, false),
+        [profile, folder, option] if option == "--workspace" => (profile, folder, true),
+        _ => return Err(
+            "Usage: local_import_bridge <absolute-profile> <absolute-fixture-folder> [--workspace]"
+                .into(),
+        ),
     };
-    let state = state_with_local_profile(Some(Path::new(profile)));
+    let profile = Some(Path::new(profile));
+    let state = if workspace {
+        state_with_development_workspace(profile)
+    } else {
+        state_with_local_profile(profile)
+    };
     let mut output = io::stdout().lock();
     for line in io::stdin().lock().lines() {
         let command = serde_json::from_str(&line?)?;
