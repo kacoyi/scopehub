@@ -180,6 +180,15 @@
       },
       "supersedes": "9d8b3d4394b5b3a9c14a6f5a679821d1e9c4f0cd1175174f5badfb95ccf135c5",
       "evidence_sha256": "97dcf96ff75e91ebb4335e73c2d7853d981550a8518a3763134b320e4b39773b"
+    },
+    {
+      "kind": "request",
+      "source_commit": "4481eab5456943f1c46a7a05b3fc8e5e556e6d82",
+      "scope": "Independently review plain review documents, real legacy terminal envelopes and structured assistant finals after the previous rejected format selection. Check an explicit document verdict followed by an ordinary quoted example, public observation extraction, literal identity and the previously verified source/request chronology. Verify the integrated protected M2-038 record and authentic earlier review history. Keep source qualification and hosted acceptance distinct.",
+      "supersedes": "57de1e3de23256f802280c9f2f1f29fe4bd31af61e5e3722bdd51e35b044657c",
+      "requested_at": "2026-11-25T17:42:16.846695+00:00",
+      "request_id": "69bd392b8070585c23fa8c28aecc4f3e63d40b96e12a0838fb6d6c4085430811",
+      "evidence_sha256": "eda47680bc9b509fd74a906e4183c7e05fc6b33e78f61e44a719bf51b44578c6"
     }
   ]
 }
