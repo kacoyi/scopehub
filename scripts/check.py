@@ -454,7 +454,7 @@ def main():
               or not source_unchanged or not project_unchanged)
     milestones, acceptance = product_progress(project, results)
     report = {
-        'report_version': '2.0', 'run_id': run_id, 'generated_at': datetime.now(timezone.utc).isoformat(),
+        'report_version': windows_python.REPORT_VERSION if python_parts else '2.0', 'run_id': run_id, 'generated_at': datetime.now(timezone.utc).isoformat(),
         'environment': environment, 'source': source, 'source_unchanged': source_unchanged,
         'source_end': final_source,
         'project_definition_sha256': project_hash, 'project_unchanged': project_unchanged,

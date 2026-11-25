@@ -109,7 +109,7 @@ def _json_document(data):
 def _parse_report(data, report_sha256):
     report = _json_document(data)
     status = report.get('status')
-    if report.get('report_version') == '2.0' and isinstance(report.get('source'), dict):
+    if report.get('report_version') in {'2.0', '2.1'} and isinstance(report.get('source'), dict):
         kind = 'harness'
         run_id = report.get('run_id')
         source_commit = report['source'].get('git_head')

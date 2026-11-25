@@ -1,12 +1,14 @@
 """Run and combine the two ordered parts of ordinary Windows PR Python discovery."""
 
+import atexit
 from datetime import datetime, timedelta
+from hashlib import sha256
 import json
 import math
 import os
 from pathlib import Path
-import re
 import sys
+from time import perf_counter
 import unittest
 
 CHECK = 'python-contracts-workers'
@@ -14,20 +16,17 @@ LANES = ('python', 'recovery')
 CUTOFF = 'tests.project.test_verification_scope'
 COMMAND = ['{python}', '-m', 'unittest', 'discover', '-s', 'tests', '-t', '.',
            '-p', 'test_*.py', '-v', '--durations', '0']
-PROGRESS_END = b'=== ScopeHub Python part: unittest diagnostics ==='
-DIAGNOSTICS_END = b'=== ScopeHub Python part: unittest summary ==='
+REPORT_VERSION = '2.1'
 COUNTS = ('failures', 'errors', 'skipped', 'expectedFailures', 'unexpectedSuccesses')
 FAILURES = ('failures', 'errors', 'unexpectedSuccesses')
-# The two clocks and the unittest total are rendered independently to milliseconds.
+# Process duration is rounded independently to milliseconds by the harness.
 CLOCK_ROUNDING = .002
 SEPARATOR = b'-' * 70
-DISPLAY = re.compile(rb'^([^\s()]+ \([^\s()]+\))(?= \.\.\. |\r?\n[^\r\n]* \.\.\. )', re.M)
-SUBTEST = re.compile(rb'^[ \t]+[^ \t].* \.\.\. (FAIL|ERROR|skipped .+)$')
-SUMMARY = re.compile(rb'Ran (0|[1-9][0-9]*) test(s?) in ([0-9]+\.[0-9]{3})s')
-RESULT_COUNTS = {b'FAIL': 'failures', b'ERROR': 'errors', b'expected failure': 'expectedFailures',
-                 b'unexpected success': 'unexpectedSuccesses'}
 COUNT_NAMES = {'expectedFailures': 'expected failures', 'unexpectedSuccesses': 'unexpected successes'}
-FIXTURE_EVENTS = (b'setUpClass (', b'setUpModule (', b'tearDownClass (', b'tearDownModule (')
+OUTCOMES = {'ok': None, 'FAIL': 'failures', 'ERROR': 'errors', 'skipped': 'skipped',
+            'expected failure': 'expectedFailures', 'unexpected success': 'unexpectedSuccesses'}
+SETUP = ('setUpClass', 'setUpModule')
+FIXTURES = (*SETUP, 'tearDownClass', 'tearDownModule')
 
 
 def enabled(project, ci, selected):
@@ -75,9 +74,17 @@ class PartResult(unittest.TextTestResult):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cases = []
-        self.fixture_skips = []
+        self.events = []
+        self.active = None
+
+    def startTestRun(self):
+        self.started = perf_counter()
+
+    def stopTestRun(self):
+        self.elapsed = perf_counter() - self.started
 
     def startTest(self, test):
+        self.active = test
         self.cases.append([test.id(), str(test), None, False, False])
         super().startTest(test)
 
@@ -85,52 +92,92 @@ class PartResult(unittest.TextTestResult):
         self.cases[-1][2] = elapsed
         super().addDuration(test, elapsed)
 
-    def addSkip(self, test, reason):
-        identity = test.id()
-        if self.cases and self.cases[-1][0] == identity:
-            self.cases[-1][3] = True
-        elif identity.startswith(('setUpClass (', 'setUpModule (')):
-            self.fixture_skips.append(identity)
-        super().addSkip(test, reason)
-
     def stopTest(self, test):
         self.cases[-1][4] = True
+        self.active = None
         super().stopTest(test)
 
-    def printErrors(self):
-        self.stream.writeln(PROGRESS_END.decode('ascii'))
-        super().printErrors()
+    def event(self, test, outcome, detail=None, *, owner=None):
+        owner_id = owner.id() if owner is not None else test.id()
+        self.events.append([owner_id, self.getDescription(test), outcome, detail, owner is not None])
+
+    def addSuccess(self, test):
+        super().addSuccess(test)
+        self.event(test, 'ok')
+
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        self.event(test, 'FAIL', self.failures[-1][1])
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        self.event(test, 'ERROR', self.errors[-1][1])
+
+    def addSkip(self, test, reason):
+        super().addSkip(test, reason)
+        owner = None
+        if test is not self.active and getattr(test, 'test_case', None) is self.active:
+            owner = self.active
+        if test is self.active:
+            self.cases[-1][3] = True
+        self.event(test, 'skipped', reason, owner=owner)
+
+    def addExpectedFailure(self, test, err):
+        super().addExpectedFailure(test, err)
+        self.event(test, 'expected failure', self.expectedFailures[-1][1])
+
+    def addUnexpectedSuccess(self, test):
+        super().addUnexpectedSuccess(test)
+        self.event(test, 'unexpected success')
+
+    def addSubTest(self, test, subtest, err):
+        super().addSubTest(test, subtest, err)
+        if err is not None:
+            if issubclass(err[0], subtest.failureException):
+                self.event(subtest, 'FAIL', self.failures[-1][1], owner=test)
+            else:
+                self.event(subtest, 'ERROR', self.errors[-1][1], owner=test)
 
 
-class PartRunner(unittest.TextTestRunner):
-    def _printDurations(self, result):
-        # Delimit the actual runner diagnostics for the catalog-order aggregate log.
-        self.stream.writeln(DIAGNOSTICS_END.decode('ascii'))
-        super()._printDurations(result)
+def write_manifest(label, result, inventory):
+    if result is None:
+        return
+    # The harness redirects both standard streams to this original from process launch.
+    # Register before discovery so ordinary test shutdown output is included as well.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (label + '.json')
+    raw = destination.with_suffix('.log').read_bytes()
+    manifest = {
+        'inventory': inventory,
+        'cases': result.cases,
+        'counts': {key: len(getattr(result, key)) for key in COUNTS},
+        'events': result.events,
+        'runner_seconds': result.elapsed,
+        'log_size': len(raw),
+        'log_sha256': sha256(raw).hexdigest(),
+    }
+    pending = destination.with_suffix('.tmp')
+    pending.write_bytes((json.dumps(manifest, allow_nan=False) + '\n').encode('utf-8'))
+    pending.replace(destination)
 
 
 def run(lane):
+    result = None
+    inventory = []
+    atexit.register(lambda: write_manifest(part_id(lane), result, inventory))
     discovered = list(tests(unittest.defaultTestLoader.discover('tests', 'test_*.py', '.')))
     inventory = [test.id() for test in discovered]
     live = set(partition(inventory)[lane])
     suite = unittest.TestSuite(test for test in discovered if test.id() in live)
     warnings = None if sys.warnoptions else 'default'
-    result = PartRunner(verbosity=2, durations=0, warnings=warnings, resultclass=PartResult).run(suite)
-    manifest = {
-        'inventory': inventory,
-        'cases': result.cases,
-        'counts': {key: len(getattr(result, key)) for key in COUNTS},
-        'fixture_skips': result.fixture_skips,
-    }
-    destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (part_id(lane) + '.json')
-    pending = destination.with_suffix('.tmp')
-    pending.write_bytes((json.dumps(manifest, allow_nan=False) + '\n').encode('utf-8'))
-    pending.replace(destination)
+    result = unittest.TextTestRunner(verbosity=2, durations=0, warnings=warnings, resultclass=PartResult).run(suite)
     return 0 if result.wasSuccessful() else 1
 
 
-def verify_manifest(manifest, lane, passed):
-    if not isinstance(manifest, dict) or set(manifest) != {'inventory', 'cases', 'counts', 'fixture_skips'}:
+def verify_manifest(manifest, lane):
+    if not isinstance(manifest, dict) or set(manifest) != {
+            'inventory', 'cases', 'counts', 'events', 'runner_seconds', 'log_size', 'log_sha256'}:
         raise ValueError('Incomplete Windows Python case manifest.')
     expected = partition(manifest['inventory'])[lane]
     cases = manifest['cases']
@@ -155,29 +202,7 @@ def verify_manifest(manifest, lane, passed):
     if (not isinstance(counts, dict) or set(counts) != set(COUNTS)
             or not all(type(count) is int and 0 <= count for count in counts.values())):
         raise ValueError('Invalid Windows Python result totals.')
-    skips = manifest['fixture_skips']
-    if not isinstance(skips, list) or len(skips) + sum(case[3] for case in cases) > counts['skipped']:
-        raise ValueError('Invalid Windows Python fixture skips.')
-    skipped_prefixes = []
-    for skip in skips:
-        if not isinstance(skip, str) or not skip.startswith(('setUpClass (', 'setUpModule (')) or not skip.endswith(')'):
-            raise ValueError('Invalid Windows Python fixture skip.')
-        skipped_prefixes.append(skip.split(' (', 1)[1][:-1] + '.')
-    if any(case.startswith(tuple(skipped_prefixes)) for case in started):
-        raise ValueError('Windows Python fixture skips overlap executed outcomes.')
-    if passed and (any(counts[key] for key in FAILURES) or any(
-            case not in started_set and not case.startswith(tuple(skipped_prefixes)) for case in expected)):
-        raise ValueError('Successful Windows Python part has incomplete test outcomes.')
-
-
-def log_sections(raw):
-    lines = raw.splitlines(keepends=True)
-    first = [index for index, line in enumerate(lines) if line.rstrip(b'\r\n') == PROGRESS_END]
-    second = [index for index, line in enumerate(lines) if line.rstrip(b'\r\n') == DIAGNOSTICS_END]
-    if len(first) != 1 or len(second) != 1 or first[0] >= second[0]:
-        raise ValueError('Windows Python part has incomplete or ambiguous unittest output.')
-    return (b''.join(lines[:first[0]]), b''.join(lines[first[0] + 1:second[0]]),
-            lines[second[0] + 1:])
+    return expected
 
 
 def unittest_verdict(counts, tests_run):
@@ -188,35 +213,61 @@ def unittest_verdict(counts, tests_run):
     return status + (f' ({detail})'.encode('ascii') if detail else b'')
 
 
-def verify_progress(progress, manifest):
-    """Bind the raw verbose test results, including synthetic unittest fixture events."""
-    rows = list(DISPLAY.finditer(progress))
-    cases, fixture_skips = [], []
+def verify_events(manifest, expected):
+    cases = {identity: (display, skipped) for identity, display, _, skipped, _ in manifest['cases']}
+    events = manifest['events']
+    if not isinstance(events, list):
+        raise ValueError('Invalid unittest callback events.')
     counts = dict.fromkeys(COUNTS, 0)
-    for i, row in enumerate(rows):
-        label = row[1]
-        stop = rows[i + 1].start() if i + 1 < len(rows) else len(progress)
-        _, _, output = progress[row.end():stop].partition(b' ... ')
-        lines = output.splitlines()
-        main = [line for line in lines if line == b'ok' or line in RESULT_COUNTS or line.startswith(b'skipped ')]
-        subtests = [match[1] for line in lines if (match := SUBTEST.fullmatch(line))]
-        if len(main) > 1 or not (main or subtests):
-            raise ValueError('Original unittest output has an incomplete or ambiguous test outcome.')
-        skipped = bool(main and main[0].startswith(b'skipped '))
-        for outcome in main + subtests:
-            if outcome.startswith(b'skipped '):
-                counts['skipped'] += 1
-            elif outcome in RESULT_COUNTS:
-                counts[RESULT_COUNTS[outcome]] += 1
-        if label.startswith(FIXTURE_EVENTS):
-            if skipped and label.startswith(FIXTURE_EVENTS[:2]):
-                fixture_skips.append(label)
+    setup_blocks = []
+    by_case = {}
+    positions = {case: index for index, case in enumerate(cases)}
+    previous = -1
+    progress, diagnostics = [], []
+    for event in events:
+        if (not isinstance(event, list) or len(event) != 5
+                or not all(isinstance(value, str) for value in event[:3]) or type(event[4]) is not bool):
+            raise ValueError('Invalid unittest callback event.')
+        owner, description, outcome, detail, subtest = event
+        detailed = outcome in {'FAIL', 'ERROR', 'skipped', 'expected failure'}
+        if outcome not in OUTCOMES or (not isinstance(detail, str) if detailed else detail is not None):
+            raise ValueError('Invalid unittest callback outcome or detail.')
+        if owner in cases:
+            display, _ = cases[owner]
+            valid = (description.startswith(display + ' ') and outcome in {'FAIL', 'ERROR', 'skipped'}
+                     if subtest else description.partition('\n')[0] == display)
+            if not valid:
+                raise ValueError('Unittest callback diagnostic belongs to another case.')
+            if positions[owner] < previous:
+                raise ValueError('Unittest callback outcomes are out of case order.')
+            previous = positions[owner]
+            by_case.setdefault(owner, []).append((outcome, subtest))
         else:
-            cases.append((label, skipped))
-    reported = [(display.encode('utf-8'), skipped) for _, display, _, skipped, _ in manifest['cases']]
-    reported_skips = [fixture.encode('utf-8') for fixture in manifest['fixture_skips']]
-    if cases != reported or fixture_skips != reported_skips or counts != manifest['counts']:
-        raise ValueError('Original unittest ordered outcomes or skips differ from the case manifest.')
+            hook, _, fixture = owner.partition(' (')
+            prefix = fixture.removesuffix(')') + '.'
+            if (subtest or hook not in FIXTURES or not fixture.endswith(')') or description != owner
+                    or outcome not in {'ERROR', 'skipped'} or not any(case.startswith(prefix) for case in expected)):
+                raise ValueError('Unittest callback has an unknown case or fixture owner.')
+            if hook in SETUP:
+                setup_blocks.append(prefix)
+        if count := OUTCOMES[outcome]:
+            counts[count] += 1
+        status = f'skipped {detail!r}' if outcome == 'skipped' else outcome
+        indent = '  ' if subtest else ''
+        progress.append(f'{indent}{description} ... {status}\n')
+        if outcome in {'FAIL', 'ERROR'}:
+            diagnostics.append('=' * 70 + f'\n{outcome}: {description}\n' + '-' * 70 + f'\n{detail}\n')
+        elif outcome == 'unexpected success':
+            diagnostics.append('=' * 70 + f'\nUNEXPECTED SUCCESS: {description}\n')
+
+    unblocked = [case for case in expected if not case.startswith(tuple(setup_blocks))]
+    if list(by_case) != unblocked or list(cases) != unblocked or counts != manifest['counts']:
+        raise ValueError('Unittest callback order, counts or fixture outcomes differ from discovery.')
+    for case, outcomes in by_case.items():
+        if (cases[case][1] != (('skipped', False) in outcomes)
+                or ('ok', False) in outcomes and outcomes != [('ok', False)]):
+            raise ValueError('Unittest callback outcomes contradict the case record.')
+    return ''.join(progress).encode('utf-8'), ''.join(diagnostics).encode('utf-8')
 
 
 def case_times(manifests):
@@ -246,38 +297,27 @@ def process_interval(record):
 
 
 def verify_original(record, raw, manifest, lane):
-    passed = record['status'] == 'passed'
-    verify_manifest(manifest, lane, passed)
-    progress, details, tail = log_sections(raw)
-    verify_progress(progress, manifest)
-    counts = manifest['counts']
-    for heading, key in ((b'FAIL: ', 'failures'), (b'ERROR: ', 'errors'),
-                         (b'UNEXPECTED SUCCESS: ', 'unexpectedSuccesses')):
-        if sum(line.startswith(heading) for line in details.splitlines()) != counts[key]:
-            raise ValueError('Original unittest failure diagnostics differ from the case manifest.')
-    durations = case_times([manifest])
-    lines = [line.rstrip(b'\r\n') for line in tail]
-    before_summary = [*duration_lines(durations), SEPARATOR]
-    offset = len(before_summary)
-    if lines[:offset] != before_summary:
-        raise ValueError('Original unittest case durations differ from the case manifest.')
-    summary = SUMMARY.fullmatch(lines[offset]) if len(lines) >= offset + 3 else None
-    count = len(manifest['cases'])
-    verdict = unittest_verdict(counts, count)
-    if (not summary or int(summary[1]) != count or bool(summary[2]) != (count != 1)
-            or lines[offset + 1:offset + 3] != [b'', verdict]):
-        raise ValueError('Original unittest run count or terminal verdict differs from the case manifest.')
-    runner_seconds = float(summary[3])
-    start, end = process_interval(record)
-    if (not math.isfinite(runner_seconds)
-            or runner_seconds > (end - start).total_seconds() + CLOCK_ROUNDING
-            or sum(elapsed for _, elapsed in durations) > runner_seconds + CLOCK_ROUNDING):
-        raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
-    trailer = b''.join(tail[offset + 3:])
-    if (trailer.strip() and not record.get('reason_code')
-            or not record.get('reason_code') and record.get('exit_code') != int(verdict.startswith(b'FAILED'))):
+    expected = verify_manifest(manifest, lane)
+    size = manifest['log_size']
+    if (type(size) is not int or not 0 < size <= len(raw)
+            or sha256(raw[:size]).hexdigest() != manifest['log_sha256']):
+        raise ValueError('Original unittest log differs from the runner-bound bytes.')
+    trailer = raw[size:]
+    reason = record.get('reason_code')
+    if trailer and not reason:
+        raise ValueError('Unexpected output after the original unittest run.')
+    verdict = unittest_verdict(manifest['counts'], len(manifest['cases']))
+    exit_code = int(verdict.startswith(b'FAILED'))
+    if not reason and (record.get('exit_code') != exit_code or (record['status'] == 'passed') != (exit_code == 0)):
         raise ValueError('Original unittest verdict does not match the process result.')
-    return progress, details + trailer
+    runner_seconds = manifest['runner_seconds']
+    start, end = process_interval(record)
+    if (type(runner_seconds) not in (int, float) or not math.isfinite(runner_seconds)
+            or not 0 <= runner_seconds <= (end - start).total_seconds() + CLOCK_ROUNDING
+            or sum(elapsed for _, elapsed in case_times([manifest])) > runner_seconds + CLOCK_ROUNDING):
+        raise ValueError('Original unittest runner duration exceeds its process duration or understates case time.')
+    progress, diagnostics = verify_events(manifest, expected)
+    return progress, diagnostics + trailer
 
 
 def elapsed_seconds(parts):

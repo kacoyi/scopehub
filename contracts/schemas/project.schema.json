@@ -1381,7 +1381,7 @@
       "properties": {
         "observed_feedback": {"$ref": "#/$defs/ObservedFeedback"},
         "report_version": {
-          "const": "2.0"
+          "enum": ["2.0", "2.1"]
         },
         "run_id": {
           "type": "string",

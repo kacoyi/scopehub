@@ -69,7 +69,7 @@ def invalid_constant(value):
 def observed_checks(run, data):
     """Identify executed checks and selected commands whose executable was missing."""
     report = json.loads(data, object_pairs_hook=unique_keys, parse_constant=invalid_constant)
-    if report['report_version'] != '2.0' or report['run_id'] != run or report['status'] not in {'passed', 'failed', 'blocked'}:
+    if report['report_version'] not in {'2.0', '2.1'} or report['run_id'] != run or report['status'] not in {'passed', 'failed', 'blocked'}:
         raise ValueError('Invalid original report')
     started = datetime.strptime(run[:23], '%Y%m%dT%H%M%S.%fZ').replace(tzinfo=timezone.utc)
     finished = datetime.fromisoformat(report['generated_at'].replace('Z', '+00:00'))

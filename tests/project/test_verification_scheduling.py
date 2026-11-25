@@ -485,6 +485,13 @@ class WindowsLaneTests(ProjectFixture):
             harness.main()
         return exit.exception.code, read_json(self.reports / 'test-report.json')
 
+    def scope_environment(self, profile):
+        base = read_json(self.event)['pull_request']['base']['sha']
+        decision = {'profile': profile, 'reason_code': 'reviewed_changes', 'base': base,
+                    'checkout': os.environ['GITHUB_SHA'], 'change_count': 1}
+        return {'SCOPEHUB_SCOPE_OUTCOME': 'success', 'SCOPEHUB_SCOPE_PROFILE': profile,
+                'SCOPEHUB_SCOPE_BASE': base, 'SCOPEHUB_SCOPE_DECISION': json.dumps(decision)}
+
     def produce(self, profile=None, *, browser_exit=0, recovery_exit=0, recovery_ui_exit=0):
         reports = {}
         for lane in ('core',) if profile else harness.WINDOWS_LANES:
@@ -508,15 +515,26 @@ class WindowsLaneTests(ProjectFixture):
                 ui_report = self.reports / 'runs' / report['run_id'] / self.recovery_ui_report
                 ui_report.parent.mkdir()
                 ui_report.write_bytes(b'{"synthetic": "recovery UI"}\n')
-            self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, os.environ, lane=not profile))
+            publication_env = {**os.environ, **self.scope_environment(profile)} if profile else os.environ
+            self.assertTrue(ci_artifacts.stage_artifacts(self.root, destination, publication_env, lane=not profile))
             reports[lane] = report
             shutil.rmtree(self.reports)
         return reports
 
-    def partition_fixture(self, discovery=None):
+    def partition_fixture(self, discovery=None, *, scoped_catalog=False):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
         next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)['command'] = windows_python.COMMAND
+        if scoped_catalog:
+            production = read_json(Path(__file__).resolve().parents[2] / 'project/checks.json')
+            present = {check['id'] for check in catalog['checks']}
+            for profile in ('records', 'tooling', 'localization'):
+                catalog['profiles'][profile] = production['profiles'][profile]
+                for key in catalog['profiles'][profile]:
+                    if key not in present:
+                        catalog['checks'].append(dict(catalog['checks'][0], id=key))
+                        catalog['required_change_checks'].append(key)
+                        present.add(key)
         catalog_path.write_bytes(json_bytes(catalog))
         for directory in ('scripts', 'tests', 'tests/project'):
             (self.root / directory).mkdir()
@@ -546,6 +564,28 @@ class WindowsLaneTests(ProjectFixture):
                 'import unittest\n'
                 'class After(unittest.TestCase):\n'
                 '    def test_after_boundary(self): self.assertTrue(True)\n', encoding='utf-8')
+        elif discovery == 'case_events':
+            (self.root / 'tests/project/test_verification_scope.py').write_text(
+                'import os, unittest\n'
+                'class Second(unittest.TestCase):\n'
+                '    def test_bad(self):\n'
+                '        mode = os.environ.get("SCOPEHUB_CASE_EVENTS")\n'
+                '        if mode == "subtest":\n'
+                '            with self.subTest(step=1): self.fail("subtest assertion")\n'
+                '            with self.subTest(step=2): self.skipTest("subtest skip")\n'
+                '            return\n'
+                '        if mode == "fixture": return\n'
+                '        if mode == "multiple": self.addCleanup(lambda: 1 / 0)\n'
+                '        if mode == "header": self.fail("original diagnostic\\nFAIL: second")\n'
+                '        if mode: self.fail("original diagnostic")\n'
+                '    def test_good(self):\n'
+                '        if os.environ.get("SCOPEHUB_CASE_EVENTS") == "": print("ok")\n'
+                'class Third(unittest.TestCase):\n'
+                '    @classmethod\n'
+                '    def setUpClass(cls):\n'
+                '        if os.environ.get("SCOPEHUB_CASE_EVENTS") == "fixture": raise RuntimeError("fixture error")\n'
+                '    def test_fixture(self): pass\n',
+                encoding='utf-8')
         elif discovery == 'package_error':
             (self.root / 'tests/project/__init__.py').write_text(
                 'raise RuntimeError("rejected package import")\n', encoding='utf-8')
@@ -736,6 +776,10 @@ class WindowsLaneTests(ProjectFixture):
                 finally:
                     shutil.rmtree(destination, ignore_errors=True)
 
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'version'):
+            publish({**original, 'report_version': '2.0'})
+        shutil.rmtree(destination, ignore_errors=True)
+
         altered = deepcopy(original)
         altered['windows_python']['recovery']['duration_seconds'] = 0
         self.assertIn(b'Ran 1 test in ', raw[recovery_log])
@@ -906,6 +950,102 @@ class WindowsLaneTests(ProjectFixture):
         self.assertEqual(0, code)
         self.assertEqual(original.read_bytes(), (self.reports / original.name).read_bytes())
         self.assertEqual(['dependency-review', 'environment', 'project-state'], report['selection']['checks'])
+
+    def test_scoped_collection_uses_the_profile_available_to_the_workflow_step(self):
+        self.partition_fixture(scoped_catalog=True)
+        for profile in ('records', 'tooling', 'localization'):
+            with self.subTest(profile=profile):
+                for key in ('SCOPEHUB_SCOPE_OUTCOME', 'SCOPEHUB_SCOPE_PROFILE', 'SCOPEHUB_SCOPE_DECISION',
+                            'SCOPEHUB_SCOPE_BASE'):
+                    self.assertNotIn(key, os.environ)
+                report = self.produce(profile)['core']
+                self.assertEqual('2.0', report['report_version'])
+                producer = self.downloads / 'verification-windows-2-core'
+                original = (producer / 'test-report.json').read_bytes()
+                try:
+                    code, imported = self.run_harness('--profile', profile, '--ci-windows-aggregate',
+                                                      str(self.downloads))
+                    self.assertEqual((0, report), (code, imported))
+                    self.assertEqual(original, (self.reports / 'test-report.json').read_bytes())
+                    with patch.dict(os.environ, self.scope_environment(profile)):
+                        published = self.downloads / 'published'
+                        self.assertTrue(ci_artifacts.stage_artifacts(self.root, published, os.environ))
+                    self.assertEqual(original, (published / 'test-report.json').read_bytes())
+                    shutil.rmtree(published)
+                finally:
+                    shutil.rmtree(producer)
+                    shutil.rmtree(self.reports, ignore_errors=True)
+
+    def test_full_collection_rejects_a_failed_producer_with_passing_part(self):
+        self.partition_fixture()
+        producer = self.produce()['python']
+        self.assertEqual(('passed', 'passed'),
+                         (producer['status'], producer['windows_python']['python']['status']))
+        producer['status'] = 'failed'
+        downloaded = self.downloads / 'verification-windows-2-python'
+        for path in (downloaded / 'test-report.json', downloaded / 'runs' / producer['run_id'] / 'test-report.json'):
+            path.write_bytes(json_bytes(producer))
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'verdict'):
+            self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+
+    def test_split_runner_retains_original_case_output_and_diagnostic_ownership(self):
+        self.partition_fixture('case_events')
+        self.produce()
+        recovery = self.downloads / 'verification-windows-2-recovery'
+        for mode in ('', 'multiple', 'header', 'subtest', 'fixture', 'relabeled'):
+            with self.subTest(mode=mode):
+                shutil.rmtree(recovery, ignore_errors=True)
+                with patch.dict(os.environ, {'SCOPEHUB_CASE_EVENTS': mode}):
+                    code, producer = self.run_harness('--ci-windows-lane', 'recovery')
+                self.assertEqual(int(bool(mode)), code)
+                part = producer['windows_python']['recovery']
+                raw_path = self.root / part['log']
+                raw = raw_path.read_bytes()
+                if mode == 'relabeled':
+                    wrong = raw.replace(b'FAIL: test_bad (', b'FAIL: test_good (', 1)
+                    self.assertNotEqual(raw, wrong)
+                    raw_path.write_bytes(wrong)
+                    part['log_sha256'] = harness.file_digest(raw_path)
+                    for target in (self.reports / 'test-report.json', raw_path.parent / 'test-report.json'):
+                        target.write_bytes(json_bytes(producer))
+                    with self.assertRaisesRegex(ci_artifacts.PublicationError, 'unittest'):
+                        ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane=True)
+                    shutil.rmtree(self.reports)
+                    continue
+                try:
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane=True))
+                    shutil.rmtree(self.reports)
+                    code, aggregate = self.run_harness('--require-windows', '--ci-windows-aggregate',
+                                                        str(self.downloads))
+                    self.assertEqual(int(bool(mode)), code)
+                    self.assertEqual('2.1', aggregate['report_version'])
+                    row = next(row for row in aggregate['checks'] if row['id'] == windows_python.CHECK)
+                    combined = (self.root / row['log']).read_bytes()
+                    self.assertIn(b'test_good (tests.project.test_verification_scope.Second.test_good) ... ok', combined)
+                    if mode == 'multiple':
+                        self.assertIn(b'FAILED (failures=1, errors=1, skipped=1)', combined)
+                        self.assertIn(b'FAIL: test_bad (', combined)
+                        self.assertIn(b'ERROR: test_bad (', combined)
+                    if mode == 'header':
+                        self.assertIn(b'FAIL: second', combined)
+                        self.assertIn(b'FAIL: test_bad (', combined)
+                    if mode == 'subtest':
+                        self.assertIn(b'.test_bad) (step=1) ... FAIL', combined)
+                        self.assertIn(b'.test_bad) (step=2) ... skipped', combined)
+                        self.assertIn(b'FAILED (failures=1, skipped=2)', combined)
+                    if mode == 'fixture':
+                        self.assertIn(b'ERROR: setUpClass (tests.project.test_verification_scope.Third)', combined)
+                        self.assertIn(b'RuntimeError: fixture error', combined)
+                        self.assertNotIn(b'test_fixture (', combined)
+                    if not mode:
+                        self.assertIn(b'... ok', raw)
+                        self.assertIn(b'\nok', raw.replace(b'\r\n', b'\n'))
+                    latest = self.downloads / 'published'
+                    self.assertTrue(ci_artifacts.stage_artifacts(self.root, latest, os.environ))
+                    self.assertEqual(raw, (latest / part['log'].removeprefix('.reports/')).read_bytes())
+                    shutil.rmtree(latest)
+                finally:
+                    shutil.rmtree(self.reports, ignore_errors=True)
 
     def test_moved_recovery_ui_still_runs_once_in_an_unsplit_task(self):
         task = 'M0-001'
