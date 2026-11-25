@@ -1509,6 +1509,79 @@ class RecentTimingTests(unittest.TestCase):
                     self.assertEqual([missing_key], recovery['conflicting_reports'])
                     self.assertIn(missing_key, recovery['unavailable_reports'])
 
+    def test_first_ordinary_ci_query_rejects_a_new_linked_claim_without_a_clock(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        shared = timing.shared_timing_directory(root)
+        controls = [self.budget_run(day, '20:00', head=before) for day in (11, 12)]
+        success = self.budget_run(14, '14:40', head=after, checkout=self.preview_checkout(root, repair, after))
+        for run, rows, clock in [*controls, success]:
+            path = shared / f"ci-pull_request-{run['id']}-1.json"
+            self.write_archive(path, rows, [clock])
+            timing.index_capture(path, rows)
+        finding = self.budget_finding('pull_request', repair, *controls)
+        records = root / 'project'
+        records.mkdir()
+        for name, value in (('feedback', {'items': [finding]}), ('tasks', {'tasks': []}),
+                            ('branch-protection', {'branch': 'main'})):
+            (records / f'{name}.json').write_bytes(timing.json_bytes(value))
+        valid = timing.offline_budget_status(root, [finding], {})
+        self.assertEqual('recovered', valid['budget_recovery'][0]['recovery']['status'])
+        run, claimant, _ = self.budget_run(15, '17:00', head=after, checkout=before)
+        claimed = {key: controls[0][1][-1][key] for key in ('run_id', 'source_commit')}
+        claimant[-1].update(run_id=claimed['run_id'])
+        untouched = timing.report_key(controls[1][1][-1])
+
+        with (patch.object(ci, 'github_identity', return_value='fixture/scopehub'),
+              patch.object(ci, 'integration_status', return_value={'status': 'passed', 'run': run}),
+              patch.object(ci, 'independent_status', return_value={'status': 'missing', 'run': None}),
+              patch.object(timing, 'download_timing', return_value=claimant) as download,
+              patch.object(timing, 'inspect_jobs', side_effect=timing.TimingError('Clock unavailable')),
+              patch.object(timing, 'link_directory', wraps=timing.link_directory) as lookup):
+            first = ci.status(root)['verification_budget']
+            self.assertEqual(2, sum(args[1] == untouched for args, _ in lookup.call_args_list))
+            repeated = ci.status(root)['verification_budget']
+        download.assert_called_once_with('fixture/scopehub', '15', '1')
+        self.assertEqual('partial', first['intake'])
+        for view in (first, repeated):
+            recovery = view['budget_recovery'][0]['recovery']
+            self.assertEqual('pending', recovery['status'])
+            self.assertEqual([claimed], recovery['conflicting_reports'])
+
+    def test_all_conflicting_pr_controls_leave_valid_push_recovery_visible(self):
+        root, (before, repair, after) = self.recovery_fixture()
+        shared = timing.shared_timing_directory(root)
+        pr_controls = [self.budget_run(day, '20:00', head=before) for day in (11, 12)]
+        pr_success = self.budget_run(14, '14:40', head=after, checkout=self.preview_checkout(root, repair, after))
+        push_controls = [self.budget_run(day, '20:00', head=before, event='push') for day in (20, 21)]
+        push_success = self.budget_run(24, '14:40', head=after, event='push')
+        findings = [self.budget_finding(event, repair, *controls) for event, controls in
+                    (('pull_request', pr_controls), ('push', push_controls))]
+        for run, rows, clock in [*pr_controls, pr_success, *push_controls, push_success]:
+            path = shared / f"ci-{run['event']}-{run['id']}-1.json"
+            self.write_archive(path, rows, [clock])
+            timing.index_capture(path, rows)
+        valid = timing.offline_budget_status(root, findings, {})
+        self.assertEqual(['recovered', 'recovered'], [row['recovery']['status'] for row in valid['budget_recovery']])
+        for day, (_, rows, _) in enumerate(pr_controls, 15):
+            _, claimant, _ = self.budget_run(day, '17:00', head=before)
+            claimant[-1].update(run_id=rows[-1]['run_id'])
+            path = shared / f'ci-pull_request-{day}-1.json'
+            self.write_archive(path, claimant, [])
+            timing.index_capture(path, claimant)
+        records = root / 'project'
+        records.mkdir()
+        (records / 'feedback.json').write_bytes(timing.json_bytes({'items': findings}))
+        (records / 'tasks.json').write_bytes(timing.json_bytes({'tasks': []}))
+        for view in (timing.offline_budget_status(root, findings, {}),
+                     timing.ci_budget_status(root, 'fixture/scopehub', None)):
+            pr, push = (row['recovery'] for row in view['budget_recovery'])
+            self.assertEqual('pending', pr['status'])
+            self.assertCountEqual([timing.report_key(row) for row in findings[0]['diagnostic_reports']],
+                                  [timing.report_key(row) for row in pr['conflicting_reports']])
+            self.assertEqual('recovered', push['status'])
+            self.assertEqual([], push['unavailable_reports'])
+            self.assertEqual('24', push['comparisons'][0]['recovered']['hosted_run_id'])
+
     def test_two_fresh_worktrees_share_timing_intake_and_reuse_live_assignment(self):
         self.enterContext(isolated_git_environment())
         with tempfile.TemporaryDirectory() as directory:

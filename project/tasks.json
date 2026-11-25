@@ -20011,7 +20011,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Replay archived Windows controls with the shared store copied to a local fixture. Validate the migrated exact controls, ask the coordinator to review the independent source, and obtain matching Windows task evidence along with local Linux verification.",
+      "next_action": "Recheck newly collected linked identities on the first ordinary CI call, isolate the all-conflicting event, and qualify the corrected tool with fresh evidence before the coordinator publishes it.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20047,6 +20047,18 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A new clockless claimant leaves the first ordinary CI verdict recovered until another query.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An entirely conflicting PR event triggers a shared fallback that discards valid main-push controls.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert the index and its migration entry while retaining original captures and diagnostic reports.",
@@ -20069,9 +20081,7 @@
           "non_goals": [
             "Windows workflow producer changes, checkout cleanup, branch publication and a claim of faster elapsed CI are outside this implementation."
           ],
-          "open_questions": [
-            "Which exact originals remain recoverable from current shared compact captures?"
-          ]
+          "open_questions": []
         },
         "evolution": {
           "kind": "additive",

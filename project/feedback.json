@@ -5255,6 +5255,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-first-query-misses-new-claimant",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "The first ordinary CI query reported recovery even though collection indexed a second claimant for a linked report and returned no matching clock. An immediate read-only query reported the same report as conflicting and recovery as pending.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-masks-independent-event",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "When every retained PR baseline identity had two claimants, the ordinary recovery comparison raised on an absent cutoff. The shared fallback discarded valid main-push recovery controls in both ordinary project status and CI.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

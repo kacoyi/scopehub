@@ -1004,8 +1004,8 @@ def measure_budget_recovery(scope, repair, reports, growth_baseline, samples, an
     last_time = max((timestamp(row['recorded_at']) for row in linked), default=None)
     last_run = max((int(row['ci']['run_id']) for row in linked), default=0)
     cohorts = defaultdict(list)
-    for row in rows:
-        if row['review_exclusion'] is None and row['seconds']['total'] is not None:
+    for row in rows if linked else ():
+        if report_key(row) not in conflicts and row['review_exclusion'] is None and row['seconds']['total'] is not None:
             cohorts[budget_cohort(row, coverage_key(row))].append(row)
 
     comparisons, cutoffs = [], {}
@@ -1335,7 +1335,7 @@ def index_retained_captures(root):
     return {'indexed_captures': captures, 'new_links': links, 'input_issues': issues}
 
 
-def linked_capture_inputs(directories, keys, recent, issues):
+def linked_capture_claims(directories, keys, issues, *, observed_capture=None):
     captures = defaultdict(set)
     claimants = defaultdict(set)
     for directory in directories:
@@ -1349,11 +1349,21 @@ def linked_capture_inputs(directories, keys, recent, issues):
                         claimants[key].add(marker.name)
             except (OSError, RuntimeError, TimingError) as error:
                 issues.append({'report': key, 'error': str(error)})
-    # A second indexed claimant is durable evidence of ambiguity even if its capture or clock is unavailable.
+    if observed_capture:
+        for key in keys:
+            claimants[key].add(observed_capture)
+    # A second claimant remains ambiguous even if its capture or clock is unavailable.
     for (run, source), names in claimants.items():
         if len(names) > 1:
-            issues.append({'run_id': run, 'source_commit': source, 'linked_timing_conflict': True,
-                           'capture_files': sorted(names), 'error': 'Multiple indexed captures claim the timing identity.'})
+            note = {'run_id': run, 'source_commit': source, 'linked_timing_conflict': True,
+                    'capture_files': sorted(names), 'error': 'Multiple indexed captures claim the timing identity.'}
+            if note not in issues:
+                issues.append(note)
+    return captures
+
+
+def linked_capture_inputs(directories, keys, recent, issues):
+    captures = linked_capture_claims(directories, keys, issues)
     samples, hosted = [], []
     for path in sorted(captures.keys() - set(recent)):
         try:
@@ -1375,16 +1385,21 @@ def linked_capture_inputs(directories, keys, recent, issues):
     return samples, hosted
 
 
-def retained_budget_inputs(root, feedback=()):
-    # Read a bounded window of shared automatic observations and checkout-local reviews.
+def timing_directories(root, issues):
     directory = root / '.reports/timing'
-    archives, issues = [], []
     try:
         shared = shared_timing_directory(root)
     except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
         shared = None
         issues.append({'error': str(error)})
-    directories = (directory, shared) if shared else (directory,)
+    return (directory, shared) if shared else (directory,)
+
+
+def retained_budget_inputs(root, feedback=()):
+    # Read a bounded window of shared automatic observations and checkout-local reviews.
+    archives, issues = [], []
+    directories = timing_directories(root, issues)
+    directory = directories[0]
     recent = incremental_timing_paths(directories)
     for path in directory.glob('*.json'):
         if CI_TIMING_NAME.fullmatch(path.name):
@@ -1619,12 +1634,17 @@ def ci_budget_status(root, repository, run):
                 issues.append({'run_id': failure['run_id'], 'error': str(error)})
         try:
             intake, new_samples, new_clocks, new_issues = collect_new_ci_timing(root, repository, run, samples, hosted)
+            capture = Path(f'ci-{run["event"]}-{run["id"]}-1.json')
             if intake in {'captured', 'retained', 'ambiguous'}:
-                capture = f'ci-{run["event"]}-{run["id"]}-1.json'
-                issues = [issue for issue in issues if issue.get('file') != capture]
+                issues = [issue for issue in issues if issue.get('file') != capture.name]
             samples.extend(new_samples)
             hosted.extend(new_clocks)
             issues.extend(new_issues)
+            affected = {report_key(row) for row in new_samples if sample_belongs_to_capture(row, capture)}
+            affected.intersection_update(linked_timing_keys(feedback))
+            if affected:
+                # Collection may have published a second claimant after the first index read.
+                linked_capture_claims(timing_directories(root, issues), affected, issues, observed_capture=capture.name)
         except (OSError, WorktreeError, RuntimeError, *TIMING_INPUT_ERRORS) as error:
             intake = 'unavailable'
             issues.append({'run_id': str(run['id']), 'error': str(error)})
