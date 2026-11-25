@@ -8164,6 +8164,23 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-substitute-inputs-import-project-review-dependency",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent source review at 57f1c772c2c8fa7cbf67e545f36d9e66365aa041 replaying Windows attempt 45546767887 through the ordinary weekly interpreter. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt (SHA-256 7b547c4ccc9d22ad5cde8b9e90338431b83372cabcfca9c13f5adaee4aed2a71).",
+      "task_ids": [
+        "M0-156"
+      ],
+      "observation": "When the original PR preview is unavailable, the routine weekly timing command imports the project entry to verify substitute execution inputs. The combined checkout then imports the Markdown parser used for independent review. The reviewer observed the weekly command stopping before publication with system Python, while providing Marko 2.2.5 to that interpreter restored the authentic 804-second Windows result and 2467 runner-seconds.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
