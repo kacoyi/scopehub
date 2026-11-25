@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-132",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24163,7 +24163,7 @@
       "id": "M0-132",
       "title": "Investigate Python worker schema reference lookup cost",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M1-047"
       ],
@@ -24187,10 +24187,15 @@
         "python-types",
         "python-contracts-workers"
       ],
-      "next_action": "Run the ordinary required checks against the unchanged protected worker inputs before recording the investigation receipt.",
+      "next_action": null,
       "blocker": null,
-      "evidence": [],
-      "closure_reason": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-132-338cb5191f54e8d2.json",
+          "sha256": "ce304d717b633c6b650f86b5766a725d66e2d1ec68caa89843fa90f426b42e5b"
+        }
+      ],
+      "closure_reason": "Completed the investigation and retained the protected validator. Independent Astra Standard approved the evidence disposition at c6c5d6f36ea24afd4839ab044564a9f593fd572b. The candidate saved 0.514 seconds in the shared-vector test and improved 32-page worker reuse. Three distinct cold CSV observations favored the baseline. The review record separates their retained samples and specifies the product workload, latency and memory evidence needed to reopen. M0-104 retains its hosted timing qualification.",
       "plan": {
         "outcome": "Complete a source-bound investigation and retain the protected validator after measuring end-to-end worker costs.",
         "change_types": [
