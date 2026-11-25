@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:scopehub:protocol:1.1",
   "title": "ScopeHubProtocol",
-  "$ref": "#/$defs/Message",
+  "$ref": "#/$defs/ExtendedMessage",
   "$defs": {
     "OpaqueId": {
       "type": "string",
@@ -3955,6 +3955,25 @@
         },
         {
           "$ref": "#/$defs/CancelTaskError11"
+        }
+      ]
+    },
+    "ExtendedMessage": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Message"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewResponse"
         }
       ]
     },
@@ -13689,6 +13708,54 @@
         }
       ]
     },
+    "CsvDeclarationConflict": {
+      "type": "object",
+      "properties": {
+        "column_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        },
+        "field": {
+          "type": "string",
+          "enum": [
+            "instrument_kind",
+            "venue",
+            "timeframe",
+            "calendar_id",
+            "session_scope",
+            "timezone",
+            "quantity_unit",
+            "price_adjustment",
+            "roll_method",
+            "record_kind",
+            "volume_semantics",
+            "timestamp_convention",
+            "timestamp_format",
+            "trading_day_format",
+            "daily_start_time"
+          ]
+        },
+        "reviewed_value": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "column_index",
+        "field",
+        "reviewed_value"
+      ],
+      "additionalProperties": false
+    },
     "ReadLocalImportSourceRowInput": {
       "type": "object",
       "properties": {
@@ -13758,6 +13825,238 @@
         "raw_fields"
       ],
       "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowReviewInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "locator": {
+          "$ref": "#/$defs/LocalImportRowLocator"
+        },
+        "review_declarations": {
+          "type": "boolean",
+          "description": "Request a comparison of explicit source declarations with the mapping bound to the frozen revision."
+        }
+      },
+      "required": [
+        "version",
+        "revision_id",
+        "locator",
+        "review_declarations"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowReviewOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/Hash"
+        },
+        "locator": {
+          "$ref": "#/$defs/LocalImportRowLocator"
+        },
+        "header": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "minItems": 1,
+          "maxItems": 512
+        },
+        "raw_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 65536
+          },
+          "minItems": 1,
+          "maxItems": 512
+        },
+        "declaration_conflicts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CsvDeclarationConflict"
+              },
+              "maxItems": 512
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present only when requested. Null means the stored mapping could not be reassessed. An empty array means no contradictory declaration was found in this record."
+        }
+      },
+      "required": [
+        "version",
+        "revision_id",
+        "source_sha256",
+        "locator",
+        "header",
+        "raw_fields",
+        "declaration_conflicts"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowReviewRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportSourceRow"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowReviewResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalImportSourceRow"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalImportSourceRowPayload": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowInput"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewInput"
+        }
+      ]
+    },
+    "ReadLocalImportSourceRowResult": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowOutput"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewOutput"
+        }
+      ]
+    },
+    "ReadLocalImportSourceRowWireRequest": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewRequest"
+        }
+      ]
+    },
+    "ReadLocalImportSourceRowWireReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowReviewResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalImportSourceRowError"
+        }
+      ]
     },
     "ReadLocalImportSourceRowRequest": {
       "type": "object",
@@ -15622,6 +15921,234 @@
         "raw_fields"
       ],
       "additionalProperties": false
+    },
+    "ReadLocalFolderSourceRowReviewInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "source": {
+          "$ref": "#/$defs/FolderRefreshSource"
+        },
+        "review_declarations": {
+          "type": "boolean",
+          "description": "Request a comparison of explicit source declarations with the mapping bound to the frozen revision."
+        }
+      },
+      "required": [
+        "version",
+        "revision_id",
+        "source",
+        "review_declarations"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderSourceRowReviewOutput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "revision_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "source": {
+          "$ref": "#/$defs/FolderRefreshSource"
+        },
+        "header": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "minItems": 1,
+          "maxItems": 512
+        },
+        "raw_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 65536
+          },
+          "minItems": 1,
+          "maxItems": 512
+        },
+        "declaration_conflicts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CsvDeclarationConflict"
+              },
+              "maxItems": 512
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present only when requested. Null means the stored mapping could not be reassessed. An empty array means no contradictory declaration was found in this record."
+        }
+      },
+      "required": [
+        "version",
+        "revision_id",
+        "source",
+        "header",
+        "raw_fields",
+        "declaration_conflicts"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderSourceRowReviewRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "request"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalFolderSourceRow"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewInput"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "task_id",
+        "operation",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderSourceRowReviewResponse": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "const": "1.1"
+        },
+        "message_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "timestamp_ms": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "type": "string",
+          "const": "response"
+        },
+        "request_id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "const": "market.readLocalFolderSourceRow"
+        },
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewOutput"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "timestamp_ms",
+        "type",
+        "request_id",
+        "operation",
+        "ok",
+        "result",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "ReadLocalFolderSourceRowPayload": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowInput"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewInput"
+        }
+      ]
+    },
+    "ReadLocalFolderSourceRowResult": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowOutput"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewOutput"
+        }
+      ]
+    },
+    "ReadLocalFolderSourceRowWireRequest": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowRequest"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewRequest"
+        }
+      ]
+    },
+    "ReadLocalFolderSourceRowWireReply11": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowReviewResponse"
+        },
+        {
+          "$ref": "#/$defs/ReadLocalFolderSourceRowError"
+        }
+      ]
     },
     "ReadLocalFolderSourceRowRequest": {
       "type": "object",

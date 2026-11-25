@@ -7,6 +7,7 @@ neither source locations nor the authority to read them.
 import base64
 from hashlib import sha256
 import json
+import os
 import re
 import sys
 from time import time_ns
@@ -23,6 +24,8 @@ from worker_runtime.protocol import MAX_MESSAGE_BYTES, ProtocolError, assert_fin
 
 
 CHUNK_BYTES = 192 * 1024
+_SOURCE_ROW_REVIEW_ENV = 'SCOPEHUB_CSV_SOURCE_ROW_REVIEW'
+_SOURCE_ROW_REVIEW = 'market.reviewLocalImportSourceRow'
 _MAX_SOURCE_ROW_FRAME_BYTES = 64 * 1024
 _HEADER_FIELDS = {'version', 'request_id', 'byte_count', 'sha256', 'mapping'}
 _CHUNK_FIELDS = {'version', 'request_id', 'index', 'data'}
@@ -96,7 +99,7 @@ def _read_content(source: BinaryIO, request_id: str, byte_count: int) -> bytes:
     return bytes(content)
 
 
-def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> dict[str, object]:
+def _analyze(source: BinaryIO, header: dict[str, object], request_id: str, offer_review: bool) -> dict[str, object]:
     version = header.get('version')
     byte_count = header.get('byte_count')
     digest = header.get('sha256')
@@ -111,9 +114,11 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
     complete = header.keys() == _HEADER_FIELDS | {'complete'} and header['complete'] is True
     inspect_refresh = header.keys() == _HEADER_FIELDS | {'inspect_refresh'} and header['inspect_refresh'] is True
     record_number = header.get('record_number')
+    review_declarations = header.keys() == _HEADER_FIELDS | {'record_number', 'review_declarations'}
     read_row = (
-        header.keys() == _HEADER_FIELDS | {'record_number'}
-        and type(record_number) is int and 1 <= record_number <= MAX_PUBLICATION_RECORDS
+        type(record_number) is int and 1 <= record_number <= MAX_PUBLICATION_RECORDS
+        and (header.keys() == _HEADER_FIELDS | {'record_number'}
+             or (offer_review and review_declarations and header['review_declarations'] is True))
     )
     row_limit = header.get('row_limit')
     if not (complete or inspect_refresh or read_row) and (
@@ -130,7 +135,7 @@ def _analyze(source: BinaryIO, header: dict[str, object], request_id: str) -> di
         return {'inspection': inspect_folder_csv(content, mapping)}
     if read_row:
         assert isinstance(record_number, int)
-        return {'source_row': read_csv_source_row(content, mapping, record_number)}
+        return {'source_row': read_csv_source_row(content, mapping, record_number, review_declarations=review_declarations)}
     assert isinstance(row_limit, int)
     return {'preview': preview_csv(content, mapping, row_limit=row_limit)}
 
@@ -156,7 +161,7 @@ def _write_frame(target: BinaryIO, line: bytes) -> None:
     target.flush()
 
 
-def _advertise(target: BinaryIO) -> None:
+def _advertise(target: BinaryIO, offer_review: bool) -> None:
     hello: WorkerHello11 = {
         'protocol_version': '1.1', 'type': 'hello', 'message_id': str(uuid4()),
         'timestamp_ms': time_ns() // 1_000_000, 'role': 'market', 'worker_version': '0.1.0',
@@ -166,12 +171,14 @@ def _advertise(target: BinaryIO) -> None:
             'market.inspectLocalImportSourceRow',
         ],
     }
+    if offer_review:
+        hello['capabilities'].append(_SOURCE_ROW_REVIEW)
     _write_frame(target, encode_message(hello))
 
 
-def run(source: BinaryIO, target: BinaryIO) -> int:
+def run(source: BinaryIO, target: BinaryIO, *, offer_review: bool = False) -> int:
     try:
-        _advertise(target)
+        _advertise(target, offer_review)
         header = _read_object(source)
         request_id = _request_id(header.get('request_id'))
     except (_InvalidFrame, OSError, ProtocolError):
@@ -179,7 +186,7 @@ def run(source: BinaryIO, target: BinaryIO) -> int:
 
     envelope: dict[str, object] = {'version': 1, 'request_id': request_id}
     try:
-        analysis = _analyze(source, header, request_id)
+        analysis = _analyze(source, header, request_id, offer_review)
         limit = _MAX_SOURCE_ROW_FRAME_BYTES if 'source_row' in analysis else MAX_MESSAGE_BYTES
         line = _encode_frame({**envelope, 'ok': True, **analysis}, limit=limit)
         if line is None:
@@ -207,4 +214,4 @@ def run(source: BinaryIO, target: BinaryIO) -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(run(sys.stdin.buffer, sys.stdout.buffer))
+    raise SystemExit(run(sys.stdin.buffer, sys.stdout.buffer, offer_review=os.environ.get(_SOURCE_ROW_REVIEW_ENV) == '1'))

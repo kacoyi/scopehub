@@ -17,8 +17,8 @@ use std::{
 use scopehub_application::{
     Actor, DEFAULT_PREVIEW_ROWS, FrozenLocalSourceRow, LocalImportPort, MappingCommitGuard,
     MarketFuture, failure, load_mapping_input, load_mapping_output, preview_local_import,
-    publish_local_import_input, read_local_folder_source_row_input,
-    read_local_import_source_row_input, reviewed_preview_header, save_mapping_input,
+    publish_local_import_input, read_local_folder_source_row_request,
+    read_local_import_source_row_request, reviewed_preview_header, save_mapping_input,
 };
 use scopehub_domain::protocol::{CsvMappingV1, Error, ErrorCode, LocalImportPreviewInput};
 use scopehub_platform::local_folder::{
@@ -511,11 +511,14 @@ impl LocalImport {
         payload: Value,
         request_id: Option<&str>,
     ) -> Result<Value, Error> {
-        let input = read_local_import_source_row_input(Actor::LocalUser, payload)?;
+        let (input, review) = read_local_import_source_row_request(Actor::LocalUser, payload)?;
         let record_number = input.locator.record_number;
         let (_slot, port) = self.reserve(request_id)?;
         self.reject_reused_request(request_id)?;
-        let source = workspace.load_local_source_row(input).await?;
+        let source = workspace
+            .load_local_source_row(input)
+            .await?
+            .with_declaration_review(review);
         let row = self
             .parse_frozen_source_row(&source, record_number, &port.cancel)
             .await?;
@@ -532,11 +535,14 @@ impl LocalImport {
         payload: Value,
         request_id: Option<&str>,
     ) -> Result<Value, Error> {
-        let input = read_local_folder_source_row_input(Actor::LocalUser, payload)?;
+        let (input, review) = read_local_folder_source_row_request(Actor::LocalUser, payload)?;
         let record_number = input.source.record_number;
         let (_slot, port) = self.reserve(request_id)?;
         self.reject_reused_request(request_id)?;
-        let source = workspace.load_local_folder_source_row(input).await?;
+        let source = workspace
+            .load_local_folder_source_row(input)
+            .await?
+            .with_declaration_review(review);
         let row = self
             .parse_frozen_source_row(&source, record_number, &port.cancel)
             .await?;
@@ -561,15 +567,27 @@ impl LocalImport {
             .ok_or_else(|| failure(ErrorCode::PROVIDERNOTCONFIGURED))?;
         let mapping =
             serde_json::to_value(&source.mapping).map_err(|_| failure(ErrorCode::INTERNALERROR))?;
-        local_import::read_source_row(
-            config,
-            &source.original,
-            &source.source_sha256,
-            &mapping,
-            record_number,
-            cancel.cancelled(),
-        )
-        .await
+        if source.reviews_declarations() {
+            local_import::review_source_row(
+                config,
+                &source.original,
+                &source.source_sha256,
+                &mapping,
+                record_number,
+                cancel.cancelled(),
+            )
+            .await
+        } else {
+            local_import::read_source_row(
+                config,
+                &source.original,
+                &source.source_sha256,
+                &mapping,
+                record_number,
+                cancel.cancelled(),
+            )
+            .await
+        }
     }
 
     pub(super) fn cancel(&self, request_id: &str) {

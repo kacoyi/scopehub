@@ -3609,17 +3609,28 @@
     },
     {
       "id": "frozen-csv-semantic-reassessment",
-      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations",
+      "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding csv-conflicting-series-declarations. The local regression reproduced INVALID_ARGUMENT for both selected rows before the worker repair. See .reports/runs/20261125T034911.580741Z-d1bc21fc/test-report.json. The harness also recorded sandboxed loopback failures and a changed working tree at the end of the run.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T034911.580741Z-d1bc21fc",
+          "source_commit": "9180963fb3185dbceaafcaf19ee5f2dc78ae3649",
+          "report_sha256": "293d48960e0bb6726a92a516acf795e85284d54931df4db555f13ac0959b2fd1"
+        }
+      ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The synthetic published revision retains original raw timezone, timeframe and volume declarations that conflict with its normalized bars. Correcting admission for new data leaves older frozen revisions and any analyses pinned to them in need of an attributable review path.",
       "task_ids": [
-        "M1-029"
+        "M1-041"
       ],
       "regression_checks": [
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Frozen source-row reads used the stored encoding and locator but omitted comparison with the bound historical mapping.",
+        "correction": "An opt-in local source record review identifies each conflicting original column and the reviewed value. The worker and current import use the same comparison rules, while the readback retains the historical revision, source bytes and chart hash.",
+        "prevention": "A synthetic historical revision is reopened through the desktop operation and browser without its source folder. Checks verify all semantic fields, exact raw values, quoted multiline locators, denied and revoked reads, raw-only compatibility and stable snapshot identity."
+      },
       "deferral_reason": null
     },
     {
@@ -5236,7 +5247,8 @@
       "severity": "major",
       "status": "addressed",
       "task_ids": [
-        "M0-097"
+        "M0-097",
+        "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
@@ -5259,9 +5271,9 @@
         }
       ],
       "resolution": {
-        "cause": "Bounded recent capture and local review selection also governed explicitly linked historical timing identities.",
-        "correction": "Index original canonical compact captures by exact harness report and checkout identity in shared Git timing storage. Ordinary status and CI consult only requested linked entries beyond the unchanged recent windows. One standalone offline command indexes pre-existing captures.",
-        "prevention": "Exercise both window boundaries and shared lookup from an independent worktree, verify new ordinary intake indexes its captures and reread exact retained failure authority."
+        "cause": "Bounded automatic and manual timing windows excluded explicitly linked historical diagnostics.",
+        "correction": "Index original canonical captures by exact report and checkout identity. Ordinary status and CI consult that shared index without widening the recent windows. The offline migration preserves original capture bytes.",
+        "prevention": "Exercise both rotation boundaries, fresh linked checkout lookup, automatic intake and retained failure authority. Replay six original PR controls and five main-push controls."
       },
       "deferral_reason": null
     },
@@ -5272,15 +5284,16 @@
       "severity": "major",
       "status": "addressed",
       "task_ids": [
-        "M0-097"
+        "M0-097",
+        "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
       ],
       "resolution": {
-        "cause": "Comparison treated only claimants with a currently eligible clock as conflicting.",
-        "correction": "Use the persistent indexed claimants for each requested original identity before checking clock eligibility. Keep that identity unavailable and conflicting when another indexed attempt loses its clock or its capture.",
-        "prevention": "Replay complete, missing-clock and missing-capture conflicts through ordinary offline status and regular CI alongside an independent qualifying recovery."
+        "cause": "Conflict detection depended on both capture files and eligible clocks remaining available.",
+        "correction": "Treat persistent indexed claims for one exact report identity as ambiguous before clock eligibility, even when another claimant has lost its clock or original capture.",
+        "prevention": "Exercise both clocks present, a missing clock, and a missing capture through ordinary status and CI alongside an independently qualifying recovery."
       },
       "deferral_reason": null
     },
@@ -5310,7 +5323,8 @@
       "severity": "major",
       "status": "addressed",
       "task_ids": [
-        "M0-098"
+        "M0-098",
+        "M0-110"
       ],
       "regression_checks": [
         "python-contracts-workers"
@@ -5323,9 +5337,9 @@
         }
       ],
       "resolution": {
-        "cause": "Different resolved spellings of the same plain Windows directory could be treated as a redirect.",
-        "correction": "Inspect existing directory components for real redirects before using the linked index. Accept ordinary aliases and reject reparse points.",
-        "prevention": "Keep the four backfill cases on an alternate spelling and the Windows junction controls for both index and identity paths. Retain the successful Windows regression in run 45459661035."
+        "cause": "Different resolved spellings of the same ordinary Windows directory could be treated as redirects.",
+        "correction": "Inspect existing directory components, allowing ordinary directory aliases and refusing redirected paths and reparse points.",
+        "prevention": "Exercise the four local and shared alternate-spelling intake cases plus index and identity junction refusal. Retain each protected Windows observation with its source task."
       },
       "deferral_reason": null
     },
@@ -5774,6 +5788,238 @@
         "cause": "An oversized opaque tail could pass structural decoding and disappear as inert before the historical managed limit was applied.",
         "correction": "Enforce the layout-specific CommonAce and ObjectAce opaque-length limits before Ace normalization, for ordinary and callback shapes.",
         "prevention": "The Windows Rust opaque-length regression tests the aligned maxima and the first aligned lengths above them. The ordinary Windows storage differential exercises private-workspace compatibility and byte-stable refusal. Official Windows run 45556094486 recorded this regression in project/evidence/M0-105-1441cab6f7c78975.json."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-first-query-misses-new-claimant",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "The first ordinary CI query reported recovery even though collection indexed a second claimant for a linked report and returned no matching clock. An immediate read-only query reported the same report as conflicting and recovery as pending.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Ordinary CI read claims before collection and did not re-evaluate report identities acquired during that call.",
+        "correction": "Re-evaluate only relevant identities after collection and treat a second clockless claimant as a conflict immediately.",
+        "prevention": "Assert the same pending verdict on the first and repeated ordinary CI queries and preserve an unambiguous valid control."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "linked-timing-conflict-masks-independent-event",
+      "source": "Independent Astra Standard review of PR 94 at b1c3532e8cc33f69b01c68447cfb0bce1858fab0. Coordinator audit observation astra-pr94-b1c3532.txt, SHA-256 ba30fb21aa9a2b343999d69bb3f7306ba8fc8b17f9dea41fc232ffdbfd16b3a4.",
+      "observation": "When every retained PR baseline identity had two claimants, the ordinary recovery comparison raised on an absent cutoff. The shared fallback discarded valid main-push recovery controls in both ordinary project status and CI.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-110"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An event with no unambiguous linked observation attempted to compare a missing chronology cutoff.",
+        "correction": "Leave only the affected event pending and continue to evaluate independent event controls.",
+        "prevention": "Exercise an entirely conflicting PR alongside valid main-push recovery through ordinary status and CI."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "manual-timing-archive-exceeds-own-read-limit",
+      "source": "Independent Astra Standard review of PR 94 and the coordinator review archive timing-green-prs-94-91.json (SHA-256 371c07c21f89b41e4a382933a0e7ac032bbf5d0d57a9a4b50a11429dd870574a).",
+      "observation": "Protected main wrote a v1 manual review archive with 5838434 bytes, 564 samples and 56 clocks. The ordinary explicit reader rejected it at the 2 MiB compact timing limit and yielded zero samples. Removing exact duplicate rows still exceeded that limit.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The manual archive writer could exceed the compact reader limit.",
+        "correction": "Use separate bounded manual archive intake and matching atomic creation while retaining the v1 format.",
+        "prevention": "Round-trip the original 5838434-byte archive and verify all 564 samples and 56 clocks."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "explicit-timing-save-drops-structural-errors",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "An explicit save succeeded after dropping an invalid sample or clock from the real review archive. An unknown kind below the compact cap could also be accepted as an empty harness report.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The explicit input gate did not distinguish new structural errors from original diagnostic notes.",
+        "correction": "Reject an explicitly selected batch with a malformed record or unknown kind before creating its destination.",
+        "prevention": "Exercise mixed valid and malformed sample, clock, collection and harness inputs and preserve original diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-actions-misattributed-path-diagnostic",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "An Actions run-file read error was attributed to its jobs file. Reopening a legacy record with those different paths still exposed the actual run-file path in the error.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The two-file reader always labelled the jobs file and old exceptions could still quote a different full path.",
+        "correction": "Identify the failing input and sanitize quoted paths in the legacy diagnostic while retaining its reason and run identity.",
+        "prevention": "Cover missing run and malformed jobs files and legacy POSIX and Windows diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-summary-alias-mutates-archive",
+      "source": "Independent Astra Standard review of PR 96 at 92e05a1160d62a2652d4263f9dcaa7e5884faa04. Coordinator audit transcript SHA-256 63db431fad0049275a270b141406f03bf74d748fbc98611fc26f3292ad0258d1.",
+      "observation": "A job summary and an existing destination could share a file through different hardlinks. The command appended Markdown before the create-only save reported that the existing archive could not be replaced.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Lexical paths could differ while pointing to one inode and the summary was appended before create-only publication.",
+        "correction": "Publish the complete archive with create-only semantics and verify the opened summary identity before appending.",
+        "prevention": "Compare unchanged bytes when an existing hardlink or a concurrent alias targets the archive."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "actions-timing-save-publishes-invalid-clock",
+      "source": "Independent Astra Standard exact PR 96 review at 0e446e3d633154c7137a8df34a86ccd3591cbf25. Original copy .reports/audit-engineering-health/m0-111-final-review/astra-pr84-f0be71a-pr96-0e446e3.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819).",
+      "observation": "An explicit Actions run with an object-valued repository.full_name generated an invalid clock. The current view dropped the clock but the archive saved it. Reopening that archive as explicit input rejected the clock. Require the run repository identity and generated clock to pass the archive contract before publishing.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "An ill-typed Actions repository identity produced a clock that was filtered out of the view but persisted.",
+        "correction": "Validate the Actions run repository and generated clock before admitting the explicit input.",
+        "prevention": "Reject an object-valued repository identity and verify a valid generated clock reopens."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-archive-resave-loses-resolved-collection-history",
+      "source": "Independent Astra Standard exact PR 96 review at 0e446e3d633154c7137a8df34a86ccd3591cbf25. Original copy .reports/audit-engineering-health/m0-111-final-review/astra-pr84-f0be71a-pr96-0e446e3.txt (SHA-256 6fe3d30aaee215e372c1a82631dc00962964d864505b8e39b264a7be8f01d819).",
+      "observation": "The original 564-sample and 56-clock archive carries complete failure observations for run 45438134397. Adding earlier missing-clock and missing-compact findings alongside an independent note showed that resaving lost the first two observations. The current view may suppress those resolved findings. The persisted archive must retain each sanitized original observation.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-111"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The writer used the current view after resolved collection warnings were filtered.",
+        "correction": "Persist the sanitized original diagnostics independently from the current display.",
+        "prevention": "Resave complete retained failure observations with original missing-clock and missing-compact notes and an independent note."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "shared-worker-process-types",
+      "source": "Local Python 3.12 mypy run during the M1-041 audit at 9180963. The reproducible failure is retained in .reports/m1-041-red-python-types.log.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "The worker type check follows the trusted indicator guard into scripts/process_tree.py and reports eight strict type errors in the shared cleanup module.",
+      "task_ids": [
+        "M1-041"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The typed indicator guard imports the shared Linux supervisor and stop helper. The supervisor expansion left their published Python signatures incomplete.",
+        "correction": "Type the shared process entry points and guard Linux-only process constants on their supported platform.",
+        "prevention": "The local worker type suite and process-supervision regressions passed. A separate mypy run under the Windows type model also passed."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-review-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at 638c8dd29ad122e86755b2d1f7b0697e36c67f93. Local pre-repair observations are retained in .reports/m1-045-red-rust-caller.log (SHA-256 62c695e54e35def6acb3bf43bb1fe26b47389a3b44ee596e691fb4aadebd6644), .reports/m1-045-red-worker.log (SHA-256 b32dc3e2e3b4d2999d5852d63ce59da4f2acec75cb0e57a1215adbdb27693f5c), .reports/m1-045-red-browser.log (SHA-256 71a8e67b6034ab8c18c682abac5d0e138321d1ee20e39886da4c1ddbe6dc038e).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Optional review metadata makes otherwise valid frozen CSV rows exceed the response budget in both dialogs. The UI collapses meaningful mapping whitespace. The public Rust row signature and original request constructors changed, and older workers reject the unnegotiated option.",
+      "task_ids": [
+        "M1-045"
+      ],
+      "regression_checks": [
+        "local-folder-import",
+        "rust-contracts-workers",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The mandatory desktop review request consumed extra space, used the original worker capability, and conflated review metadata with stable Rust types. The review list collapsed whitespace.",
+        "correction": "Negotiate the distinct worker feature, retain the original Rust types and entry point, and use a fresh, reauthorized raw read on the two recoverable review failures. Show conflicting columns in an aligned table with literal whitespace.",
+        "prevention": "Exercise the 64 KiB boundary and an oversized original, permission revocation between review and retry, and literal whitespace in both dialogs. Compile a separate old caller and verify positive and negative private capability paths."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-message-exhaustive-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at d9015bda42d60a40cfd4b6abf4299d658aaf3364. The failing pre-repair consumer compilation is retained in .reports/m1-046-red-exhaustive.log (SHA-256 a5e58eaf4fcf56ee1ec01e2eb2966d55de486dc73a42d848629f1af022c80887).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The same source that exhaustively matches the 87 original Rust Message variants compiles on main and 638c8dd. The public decode_line return type on d9015bd exposes four additional review variants and the unchanged caller fails with E0004.",
+      "task_ids": [
+        "M1-046"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "Review request and response members were added to the exhaustive public Message enum returned by the original Rust decoder.",
+        "correction": "Restore the original canonical Message definition and public decoder signature. Route opt-in review envelopes through a separate generated union and decoder with the common framing checks. Retain capability negotiation in the CSV host.",
+        "prevention": "Compile and run the unchanged 87-variant public consumer. Run shared positive and negative wire vectors through both Rust entries, check typed review responses and frame limits, and retain private capability and original row constructor cases."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-csv-public-python-decoder-compatibility",
+      "source": "Independent Astra Standard review of PR 92 at b76ed015fcbdf5a9e0679d7ad56fec6b24313f29. The same consumer and four envelope comparisons before repair are retained in .reports/m1-047-before-repair.log (SHA-256 eb49fe78aeed336c26533966edafc2c517d441ca7d1a93969bce85d1f3039012).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The established Python protocol module no longer exports Message, and decode_line widens its return type and admits four opt-in CSV review envelope types. Existing typed callers require the original Message and frame acceptance.",
+      "task_ids": [
+        "M1-047"
+      ],
+      "regression_checks": [
+        "python-types",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The Python protocol module used the extended schema root as its only validator and replaced the public Message import and decoder return type with ExtendedMessage.",
+        "correction": "Explicitly re-export Message and select the original canonical schema union for the legacy codec. Expose the extended union through separate codec entries that reuse the same framing and syntax checks.",
+        "prevention": "Run the unchanged typed consumer through strict mypy and runtime tests. Check both decoder entries against all shared vectors, verify the four review envelopes and exact frame budget, and retain real normal and negotiated worker tests."
       },
       "deferral_reason": null
     },

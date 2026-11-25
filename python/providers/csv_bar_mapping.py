@@ -1,14 +1,15 @@
 """Validate declared native bar mappings and normalize rows for offline preview."""
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 import math
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from typing import cast
 
-from contracts.generated.protocol import Bar, PreviewIssue, PreviewSeries
+from contracts.generated.protocol import Bar, CsvDeclarationConflict, PreviewIssue, PreviewSeries
 
 
 _FIELDS = ('symbol', 'timestamp', 'trading_day', 'open', 'high', 'low', 'close', 'volume')
@@ -303,6 +304,19 @@ def _number(value: str, field: str) -> Decimal:
     return number
 
 
+def declaration_conflicts(values: list[str], mapping: _NativeMapping) -> Iterator[CsvDeclarationConflict]:
+    for index, field, expected in mapping.declarations:
+        value = values[index]
+        if not value.strip():
+            continue
+        # Whitespace in a date format is a literal input character.
+        declared = value if field in {'timestamp_format', 'trading_day_format'} else value.strip()
+        if not _declaration_matches(field, declared, expected):
+            yield cast(CsvDeclarationConflict, {
+                'column_index': index, 'field': field, 'reviewed_value': expected,
+            })
+
+
 def normalize_bar(values: list[str], mapping: _NativeMapping) -> tuple[str, Bar]:
     def raw(field: str) -> str:
         return values[mapping.indices[field]]
@@ -316,19 +330,16 @@ def normalize_bar(values: list[str], mapping: _NativeMapping) -> tuple[str, Bar]
         if not flags <= {'true', '1'}:
             raise BarFieldError(preview_issue('bar_closure_ambiguous', 'is_closed', 'Resolve the missing, unrecognized or conflicting source closure flags. Use explicit true or false values.'))
 
-    for index, field, expected in mapping.declarations:
-        value = values[index]
-        if not value.strip():
-            continue
-        # Whitespace in a date format is a literal input character.
+    if conflict := next(declaration_conflicts(values, mapping), None):
+        field = conflict['field']
+        value = values[conflict['column_index']]
         declared = value if field in {'timestamp_format', 'trading_day_format'} else value.strip()
-        if not _declaration_matches(field, declared, expected):
-            label = 'volume basis' if field == 'volume_semantics' else field.replace('_', ' ')
-            reviewed = expected if expected is not None else 'null'
-            raise BarFieldError(preview_issue(
-                f'{field}_mismatch', field,
-                f'The source {label} is {declared[:80]!r}. The reviewed value is {reviewed[:80]!r}. Review the mapping.',
-            ))
+        label = 'volume basis' if field == 'volume_semantics' else field.replace('_', ' ')
+        reviewed = conflict['reviewed_value'] or 'null'
+        raise BarFieldError(preview_issue(
+            f'{field}_mismatch', field,
+            f'The source {label} is {declared[:80]!r}. The reviewed value is {reviewed[:80]!r}. Review the mapping.',
+        ))
 
     symbol = raw('symbol')
     if not symbol or symbol != symbol.strip():

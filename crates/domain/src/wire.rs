@@ -1,4 +1,5 @@
-use crate::protocol::Message;
+use crate::protocol::{ExtendedMessage, Message};
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::{sync::LazyLock, time::Duration};
 
@@ -14,12 +15,20 @@ pub static POLICY: LazyLock<Value> = LazyLock::new(|| {
         .expect("embedded policy is valid JSON")
 });
 
-static VALIDATOR: LazyLock<jsonschema::Validator> = LazyLock::new(|| {
+static LEGACY_VALIDATOR: LazyLock<jsonschema::Validator> = LazyLock::new(|| {
+    let mut schema = SCHEMA.clone();
+    schema["$ref"] = Value::from("#/$defs/Message");
+    validator(&schema)
+});
+
+static EXTENDED_VALIDATOR: LazyLock<jsonschema::Validator> = LazyLock::new(|| validator(&SCHEMA));
+
+fn validator(schema: &Value) -> jsonschema::Validator {
     jsonschema::options()
         .should_validate_formats(true)
-        .build(&SCHEMA)
+        .build(schema)
         .expect("embedded schema compiles")
-});
+}
 
 #[derive(Debug, PartialEq)]
 pub enum ProtocolError {
@@ -61,6 +70,19 @@ pub fn normalize_integers(value: &mut Value) {
 }
 
 pub fn decode_line(line: &[u8]) -> Result<Message, ProtocolError> {
+    decode(line, &LEGACY_VALIDATOR)
+}
+
+/// Decode frames for callers that opt into the extended protocol message set.
+/// Worker capability negotiation remains the responsibility of the host.
+pub fn decode_extended_line(line: &[u8]) -> Result<ExtendedMessage, ProtocolError> {
+    decode(line, &EXTENDED_VALIDATOR)
+}
+
+fn decode<T: DeserializeOwned>(
+    line: &[u8],
+    validator: &LazyLock<jsonschema::Validator>,
+) -> Result<T, ProtocolError> {
     if line.len() > max_message_bytes() {
         return Err(ProtocolError::ResourceLimit);
     }
@@ -71,7 +93,7 @@ pub fn decode_line(line: &[u8]) -> Result<Message, ProtocolError> {
     }
     let mut value: Value =
         serde_json::from_slice(body).map_err(|_| ProtocolError::InvalidMessage)?;
-    if !VALIDATOR.is_valid(&value) {
+    if !validator.is_valid(&value) {
         return Err(ProtocolError::InvalidMessage);
     }
     normalize_integers(&mut value);
