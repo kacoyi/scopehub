@@ -24740,9 +24740,7 @@
             "development-tooling"
           ],
           "entrypoints": [
-            "scripts/project.py status",
-            "scripts/project.py history",
-            "scripts/project.py observe-maintenance"
+            "scripts/project.py"
           ],
           "rules": [
             {
