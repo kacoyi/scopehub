@@ -3588,7 +3588,7 @@
       "id": "shared-worker-process-types",
       "source": "Local Python 3.12 mypy run during the M1-041 audit at 9180963. The reproducible failure is retained in .reports/m1-041-red-python-types.log.",
       "severity": "minor",
-      "status": "open",
+      "status": "addressed",
       "observation": "The worker type check follows the trusted indicator guard into scripts/process_tree.py and reports eight strict type errors in the shared cleanup module.",
       "task_ids": [
         "M1-041"
@@ -3597,7 +3597,11 @@
         "python-types",
         "python-contracts-workers"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The typed indicator guard imports the shared Linux supervisor and stop helper. The supervisor expansion left their published Python signatures incomplete.",
+        "correction": "Type the shared process entry points and guard Linux-only process constants on their supported platform.",
+        "prevention": "The local worker type suite and process-supervision regressions passed. A separate mypy run under the Windows type model also passed."
+      },
       "deferral_reason": null
     },
     {
@@ -3611,7 +3615,7 @@
         }
       ],
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "observation": "The synthetic published revision retains original raw timezone, timeframe and volume declarations that conflict with its normalized bars. Correcting admission for new data leaves older frozen revisions and any analyses pinned to them in need of an attributable review path.",
       "task_ids": [
         "M1-041"
@@ -3619,7 +3623,11 @@
       "regression_checks": [
         "local-folder-import"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Frozen source-row reads used the stored encoding and locator but omitted comparison with the bound historical mapping.",
+        "correction": "An opt-in local source record review identifies each conflicting original column and the reviewed value. The worker and current import use the same comparison rules, while the readback retains the historical revision, source bytes and chart hash.",
+        "prevention": "A synthetic historical revision is reopened through the desktop operation and browser without its source folder. Checks verify all semantic fields, exact raw values, quoted multiline locators, denied and revoked reads, raw-only compatibility and stable snapshot identity."
+      },
       "deferral_reason": null
     },
     {
