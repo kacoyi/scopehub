@@ -447,6 +447,16 @@ export function useLocalWorkspace() {
   const unconfirmedAccess = useRef(new Set<string>());
   const [unconfirmedRevisions, setUnconfirmedRevisions] = useState<ReadonlySet<string>>(unconfirmedAccess.current);
   const [view, setView] = useState<View>({ snapshot: undefined, pending: 'open', errorId: undefined });
+  const showSnapshot = useCallback((snapshot: Snapshot, readback?: Pick<View, 'sourceNotice'>) => {
+    // A write's readback can settle its receipt without settling the focus
+    // requirement. Only the latest ordinary snapshot clears that requirement.
+    const confirmed = !focus.current.pending;
+    setView(previous => ({
+      snapshot: confirmed ? snapshot : previous.snapshot,
+      pending: undefined, errorId: undefined,
+      sourceNotice: readback ? readback.sourceNotice : previous.sourceNotice,
+    }));
+  }, []);
   const release = useCallback((controller: AbortController) => {
     if (active.current !== controller) return;
     active.current = null;
@@ -471,7 +481,7 @@ export function useLocalWorkspace() {
     return work(controller.signal).then(snapshot => {
       if (controller.signal.aborted || superseded()) return false;
       if (focusAtRead?.pending) updateFocus({ ...focusAtRead, pending: false });
-      if (checkedAccess.length) {
+      if (checkedAccess.length && !focus.current.pending) {
         const next = new Set(unconfirmedAccess.current);
         for (const id of checkedAccess) {
           if (!queuedAccess.current.revisions.has(id)) next.delete(id);
@@ -479,7 +489,7 @@ export function useLocalWorkspace() {
         unconfirmedAccess.current = next;
         setUnconfirmedRevisions(next);
       }
-      setView(previous => ({ snapshot, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice }));
+      showSnapshot(snapshot);
       return true;
     }, error => {
       if (!controller.signal.aborted && !superseded()) {
@@ -492,15 +502,15 @@ export function useLocalWorkspace() {
       }
       return false;
     }).finally(() => release(controller));
-  }, [release, updateFocus]);
+  }, [release, showSnapshot, updateFocus]);
   const queueSnapshot = useCallback(() => {
     const entry = queuedAccess.current;
     const start = () => {
       entry.revisions.clear();
       void run(readWorkspaceSnapshot, 'open');
     };
-    // Native admission is single-flight. A burst shares the running read
-    // and one trailing slot, which captures the latest focus when it starts.
+    // Focus and access checks share one trailing slot behind the active
+    // operation, including a source write or a readback awaiting recovery.
     if (active.current || sourceReadback.current) entry.start = start;
     else start();
   }, [run]);
@@ -554,9 +564,9 @@ export function useLocalWorkspace() {
       throw error;
     }
     sourceReadback.current = null;
-    setView({ snapshot: current, pending: undefined, errorId: undefined, sourceNotice: notice?.localizedMessage });
+    showSnapshot(current, { sourceNotice: notice?.localizedMessage });
     if (notice) throw notice;
-  }, []);
+  }, [showSnapshot]);
   const recoverSource = useCallback(() => runSource(readSource), [readSource, runSource]);
   const reload = useCallback(() => {
     if (sourceReadback.current) void recoverSource().catch(() => {});
@@ -566,7 +576,7 @@ export function useLocalWorkspace() {
     if (!enabled) return;
     mounted.current = true;
     const requireFocusConfirmation = () => {
-      if (document.visibilityState !== 'visible' || sourceActive.current || sourceReadback.current) return;
+      if (document.visibilityState !== 'visible') return;
       updateFocus({ generation: focus.current.generation + 1, pending: true });
       queueSnapshot();
     };
@@ -629,9 +639,7 @@ export function useLocalWorkspace() {
       if (current.workspace.id !== workspace_id || current.workspace.revision < outcome.receipt.committed_workspace_revision) {
         throw { code: 'OUTPUT_INVALID' };
       }
-      if (!signal.aborted) setView(previous => ({
-        snapshot: current, pending: undefined, errorId: undefined, sourceNotice: previous.sourceNotice,
-      }));
+      if (!signal.aborted) showSnapshot(current);
       return undefined;
     } finally {
       if (active.current === controller) {
