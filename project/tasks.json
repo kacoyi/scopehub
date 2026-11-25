@@ -22376,6 +22376,233 @@
       "delivery": "later"
     },
     {
+      "id": "M2-036",
+      "title": "Keep decision-note deletion feedback attributable across two tabs",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-001"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "apps/desktop/ui/src/i18n/locales/zh-Hans/research.json",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "Preserve the first authenticated Linux failure. Use the ordinary two-tab synthetic journey to correlate approval with the real operation result, persisted note and deletion marker, visible confirmation and the peer projection.",
+        "A verified deletion is acknowledged during delayed or refreshed list projection. A rejected approval never shows success and never deletes the note. Preserve the existing draft, date, approval consent, unknown-result recovery and peer deletion assertions with unchanged deadlines.",
+        "Exercise controlled success and refusal ordering in Linux Chromium and retain the original red evidence and canonical passing task receipt. Treat the older Windows observer empty-state assertion as a separate observation unless evidence identifies the same failure."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-036-d6508ff3885c6790.json",
+          "sha256": "8f9540fb212c4070e2fc9a13b185b5dce34f2b4421376199207e7b2f69dbab8c"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T070439.970641Z-5b827275",
+          "source_commit": "fb8497ec64d276c4c14e36e518ef242125f0a984",
+          "report_sha256": "26c1b6cae748fce5b7ed0132d664d031b205dec9e05461b12aa77c6ee93630e7"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Linux canonical task run 20261125T073135.898153Z-97188447 on 74103f67291fec9bbfde359ccbc991586003345b passed all five required checks, including all 60 workspace cases and all 8 desktop transport cases. The retained Chromium red and green observations distinguish a rejected approval from a confirmed deletion whose follow-up read fails. The accepted operation correlates with the exact deletion marker, missing note and outcome, and empty peer projection. The initiating notice remains visible through the failed list delivery and explicit reload. The original hosted ordering remains unknown. The older Windows failure was a missing empty-list assertion on the observer after the delete helper returned.",
+      "plan": {
+        "outcome": "The initiating tab makes the confirmed deletion visible and both tabs reflect the authoritative list even when projection and peer actions interleave. Definite or uncertain failures retain their own messages and consent rules.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "apps/desktop/ui/src/decision-note-transport.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/runs/20261125T070439.970641Z-5b827275/test-report.json"
+        ],
+        "hypotheses": [
+          "The missing success can originate before the mutation, in reply verification, or after a confirmed commit during list refresh. Capture wire and stored state before assigning a cause."
+        ],
+        "risks": [
+          {
+            "failure": "A failed approval or lost reply appears successful, or a committed deletion is presented as unverified when only its follow-up read failed. Use held replies, authoritative storage and a controlled refusal.",
+            "checks": [
+              "workspace-timeframe",
+              "decision-note-lifecycle"
+            ]
+          },
+          {
+            "failure": "A refresh drops an unrelated draft, keeps a superseded approval or leaves a deleted note visible in the peer. Preserve the existing peer workflow and exact visible assertions.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Keep the first producer failure and deterministic Chromium observations. If the correction changes consent or recovery, retire the candidate and retain the existing deadline and operation contract.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to the decision-note wire protocol, storage schema, product permissions, or unrelated Windows failures."
+          ],
+          "open_questions": [
+            "Does the original missing notice coincide with a refused mutation or a completed mutation and a subsequent projection failure?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The single writer, confirmation scope, existing bounds, outcome drafts and peer refresh."
+          ],
+          "change": [
+            "Make the demonstrated deletion feedback boundary observable and correct only the confirmed gap."
+          ],
+          "data_plan": "Use synthetic local profiles and read-only verification of live SQLite rows. No migration.",
+          "cleanup": "Close owned browser contexts and services, release any held reply, and remove temporary profiles after assertions."
+        }
+      }
+    },
+    {
+      "id": "M2-037",
+      "title": "Keep deletion list retries separate from the next note action",
+      "milestone": "M2",
+      "status": "done",
+      "depends_on": [
+        "M2-036"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/decision-notes.tsx",
+        "tests/ubuntu-preview/workspace.spec.mjs",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "acceptance": [
+        "After a verified delete, lose two successive list replies. Both alerts identify the list failure and retain the success notice. A third successful read clears the alert while leaving success visible. Verify one successful-phase approval request, the durable deletion marker and the peer empty list.",
+        "Open New decision note after recovery and verify the earlier delete notice leaves the editor immediately. A read-only retry preserves its usual detail or draft target. Cancelled, definitively rejected and unknown-result approvals stay distinct and never claim unverified success.",
+        "Retain both pre-correction failures in Linux Chromium, run the existing consent and peer scenarios and archive the canonical task receipt. The M2-036 definition, prior evidence and original diagnostics remain historical."
+      ],
+      "checks": [
+        "ui-build",
+        "market-workflow",
+        "decision-note-lifecycle",
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M2-037-1cfe50c94b246ad5.json",
+          "sha256": "05ef23dbc71c02898f35e5c83ec97d4e2dbc0ae3c98a5a26e608ac8dd33e04fe"
+        },
+        {
+          "path": "project/evidence/M2-037-20f487a7826b0a0c.json",
+          "sha256": "adb677fb6174346adca4a1c9777d2b8c37073b900a52f24e9c4c2775aeb76222"
+        },
+        {
+          "path": "project/evidence/M2-037-eae210b517d6656c.json",
+          "sha256": "83e98aa6226d5b8f2d433e7f85be48920272c6fc24721dd72618d3adfbbacc7d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Canonical Linux task run 20261125T074141.517766Z-70f6c326 at c34d67ff1fc44863874433842efa9f310c6fa2c2 passed all five required checks, including 60 workspace and 8 desktop transport cases. The archived real Chromium red reproduced both independent review findings. The green retained success through two lost list replies with the same list alert, cleared the alert after the third successful read, and cleared the old success on opening a new note. A single approved delete correlated with the unchanged deletion marker and empty peer list. Cancellation, definite refusal and unknown-result controls passed. The accepted M2-036 definition and receipt retain their recorded source and scope.",
+      "plan": {
+        "outcome": "The initiating user can distinguish a confirmed delete from its failed list delivery, retry reads without another mutation, and start the next editor with a current status.",
+        "change_types": [
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/decision-notes.tsx",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "archives/observations/m2-037-note-notice/astra-m2-036-ui-0736.txt"
+        ],
+        "hypotheses": [
+          "The fallback list reload loses the error descriptor chosen for the post-commit read. Starting a new note opens an editor without consuming the prior action notice."
+        ],
+        "risks": [
+          {
+            "failure": "The second list error implies an uncertain deletion or a list retry sends another approval. Verify two lost replies, the third real response, exactly one approved request in the success phase, the marker and the empty peer list.",
+            "checks": [
+              "workspace-timeframe",
+              "decision-note-lifecycle"
+            ]
+          },
+          {
+            "failure": "Clearing the previous notice also clears it on read-only retries or changes detail and draft recovery targets, peer refresh or consent. Verify manual retries and the new-editor boundary independently, and keep the cancellation, stale-approval and unknown-result controls.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          }
+        ],
+        "rollback": "Retain the independent and Chromium red observations. If the patch blurs list refresh and operation uncertainty, revert it while preserving M2-036 and the recorded regression.",
+        "implementation": {
+          "modules": [
+            "ui"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/decision-notes.tsx",
+            "tests/ubuntu-preview/workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Changes to persistence, deadlines, confirmation authority, or unrelated Windows observations."
+          ],
+          "open_questions": [
+            "Will the real Chromium fixture expose both replay findings under the existing bounds?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Keep the existing retry target, receipt validation, consent, drafts and peer behavior."
+          ],
+          "change": [
+            "Apply the post-delete list error consistently and clear the prior notice when a new note editor opens."
+          ],
+          "data_plan": "Use disposable synthetic profiles, real wire replies and read-only SQLite assertions. No data migration.",
+          "cleanup": "Release held responses, remove interceptors, close owned profiles and services, and retain the original failures."
+        }
+      }
+    },
+    {
       "id": "M0-122",
       "title": "Distinguish obsolete indicator status from workspace admission in the browser contract",
       "milestone": "M0",
