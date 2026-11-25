@@ -7251,6 +7251,77 @@
       "deferral_reason": null
     },
     {
+      "id": "peer-decision-note-observer-busy-fallback-list",
+      "source": "Linux local M0-147 task run 20261125T181716.486623Z-e13b2103 at 0ff1c4da15fbede912b909aef2ad226ba7fce838. The original is archives/runs/20261125T181716.486623Z-e13b2103/test-report.json. The workspace-timeframe log has SHA-256 2deec7f8863299d655dd7887ecebe5ef22fb3fe358dd5ca6461dcd034394a064.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "In the paired-window note contention journey the initiator committed one deletion at revision 5 and its same-request list retry changed from HTTP 429 to 200. The observing window saw revision 5, received DATA_UNAVAILABLE for the deleted detail and then received HTTP 429 on its fallback list. It stayed on Reload with the busy notice. The original M2-038 repair covered the initiating list read.",
+      "task_ids": [
+        "M2-040"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T181716.486623Z-e13b2103",
+          "source_commit": "0ff1c4da15fbede912b909aef2ad226ba7fce838",
+          "report_sha256": "592eb378075891f4b7db92cfc672ca7a4d8b453e1dc05fa83171157a66e9879e"
+        }
+      ],
+      "resolution": {
+        "cause": "After a peer deleted the open detail, the observer used a one-shot list read. A temporary refusal left the drawer on Reload although the deletion was already committed.",
+        "correction": "Allow bounded admission retry in the observing window during the existing detail-to-list transition and reuse the read request identity.",
+        "prevention": "The real two-window regression verifies a single revision-5 deletion, retryable 429 followed by 200 on the same read, explicit refusals and exhausted contention."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-decision-note-observer-fallback-reply-deadline",
+      "source": "Independent Astra Standard changes requested on b97fb772e969b93d2ddffbfcf84d4caa5fccc6b0. Original response SHA-256 5d8d2068e5e7f17d85a290457399b336c8897d7f8acc31a1386bf66fba0c58ce. The retained review and provenance are at archives/observations/repo-hygiene-20261125/independent-final-m2-040-b97fb772.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The candidate observer received a retryable HTTP 429 and retried the same note-list request. Holding its admitted reply left the client pending at 16.136 seconds. The drawer stayed on Loading, disabled close, and offered no Reload. Releasing that reply completed the read. This controlled delivery failure is separate from the original revision-5 contention diagnostic.",
+      "task_ids": [
+        "M2-040"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "A bounded admission loop still awaited an admitted reply indefinitely, leaving the observing drawer loading.",
+        "correction": "Share one cancellable five-second deadline across the fallback snapshot and list, and discard late replies when the drawer closes or the selected note changes.",
+        "prevention": "The desktop tests withhold the reply, check the timeout, Reload and Close, then deliver a stale 200 after a new selection and verify the selected note remains visible."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "peer-decision-note-observer-busy-fallback-snapshot",
+      "source": "Guarded Windows task 45686354121 at 11a3ed67e9c5b95a98652c69731c13b35016b23c. Original report archives/runs/20261125T193505.526706Z-27a6ee5c/test-report.json and workspace reporter SHA-256 1678fc2e5ca32ddb399dfc0e67c275be749e1d484c0757db1438067c4489e40a. The unchanged extracted observation is archives/observations/repo-hygiene-20261125/m2-040-windows-first-11a3ed67/original-observation.json (SHA-256 ee8c20dc513b80df9e3c3d70321835b49023f7179b954704b7acf9b3c776d869).",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The ordinary paired-window contention case failed at 16.153 seconds. The initiating window committed one deletion at revision 5 and its same-request list read went from 429 to 200. The observer's deleted detail returned HTTP 200 with DATA_UNAVAILABLE. Its next workspace snapshot received definite pre-admission HTTP 429 BUSY at 10598.476 milliseconds. It issued no snapshot retry or fallback note-list request and remained on Reload. This is a different read phase from the earlier list contention and held-reply findings.",
+      "task_ids": [
+        "M2-040"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T193505.526706Z-27a6ee5c",
+          "source_commit": "11a3ed67e9c5b95a98652c69731c13b35016b23c",
+          "report_sha256": "51c9da332b22091f780d8da2bf7ca63194ca6696a7e30ef4dd31d7d940e2d109"
+        }
+      ],
+      "resolution": {
+        "cause": "The observer retried the fallback list but abandoned the preceding snapshot when the writer temporarily refused admission. It could therefore stop before issuing a list read.",
+        "correction": "Let the snapshot and the subsequent list recover explicit read-admission refusals within the same cancellable deadline. Terminal application replies still end their read.",
+        "prevention": "On Linux and Windows the real paired-window journey first refuses the snapshot and then the list, recovers the same list request, shows both lists and verifies one deletion at revision 5. A separately admitted BUSY is terminal."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "native-market-interruption-missing-owned-worker",
       "source": "Ordinary PR125 run 45686305388 attempt 1. archives/observations/repo-hygiene-20261125/pr125-native-original-45686305388/manifest.json SHA-256 2a82afed0d53dc3e5cdb7ec70beb5e52583e2ba0fdaa55e7fe7201139c3ff534. Exact Windows original under archives/runs/windows-change-45686305388-1/test-report.json. Browser results SHA-256 c37991db3b4d7d039e28f159b4b012cc01fb3e38fb1bfbda041aeb9ca0ad8938.",
       "observation": "The first native Windows chart interruption case reached the helper and saw zero owned synthetic worker leaves. Its browser attestation records one accepted stream, the confirmed partial, the final closed bar and ordinary completion with no reconnecting or resumed frame. The native grouped delivery companion and workspace timeframe passed. The same-run Linux interruption and workspace timeframe checks passed. This report does not determine which worker instance or process timing caused the miss.",
