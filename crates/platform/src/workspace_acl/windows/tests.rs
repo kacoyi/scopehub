@@ -177,9 +177,10 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
                 $path = [Environment]::GetEnvironmentVariable('SCOPEHUB_ACL_CASE_' + $index)
                 $acl = [IO.Directory]::GetAccessControl($path)
                 $raw = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
+                $common = [Security.AccessControl.CommonSecurityDescriptor]::new($true, $false, $raw)
                 $applies = $false
                 $inherits = $false
-                foreach ($ace in $raw.DiscretionaryAcl) {
+                foreach ($ace in $common.DiscretionaryAcl) {
                     if ($ace -is [Security.AccessControl.CommonAce] -and !$ace.IsCallback -and
                         $ace.AceQualifier -eq [Security.AccessControl.AceQualifier]::AccessAllowed -and
                         $ace.SecurityIdentifier -eq $user) {
