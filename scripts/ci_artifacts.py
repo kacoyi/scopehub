@@ -17,7 +17,7 @@ if __package__:
     from .timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from .verification_evidence import (
         EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
-        collect_run_observation, field_observation,
+        capture_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
@@ -30,7 +30,7 @@ else:
     from timing import TIMING_FILE, duration, generated_contracts_sample, job_summary, report_sample
     from verification_evidence import (
         EXTERNAL_CLIENT_CHECK, FIELD_ACTIONS, RUN_OBSERVATION_CHECKS, LocalFieldObservation,
-        collect_run_observation, field_observation,
+        capture_run_observation, field_observation,
         hosted_artifact_path, hosted_candidate_manifest, hosted_candidate_observation, hosted_field_record,
         evidence_json, integration_validation, release_artifacts, validate_notice,
     )
@@ -184,9 +184,11 @@ def stage_run_observation(root, reports, destination, run, result, source):
     if check == EXTERNAL_CLIENT_CHECK and source != source_identity(root):
         raise PublicationError('External-client evidence does not match the current source inputs.')
     expected = result.get('observation')
-    if expected is None or expected != collect_run_observation(root, manifest.parent, check, source):
+    if expected is None:
+        raise PublicationError('A passing session check needs a reported observation.')
+    contents, observation = capture_run_observation(root, manifest, check, source)
+    if expected != observation:
         raise PublicationError('Redacted session evidence differs from the reported observation.')
-    contents = bound_bytes(manifest, expected['evidence_sha256'])
     write_artifact(destination / relative, contents)
 
 

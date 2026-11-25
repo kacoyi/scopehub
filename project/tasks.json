@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M4-018",
   "tasks": [
     {
       "id": "M0-001",
@@ -20204,6 +20204,99 @@
           ],
           "data_plan": "Only the consented synthetic-workspace summary enters the isolated run artifact. Private legs and logs stay local.",
           "cleanup": "Use the shared publication, import and diagnostic paths for the new observation."
+        }
+      }
+    },
+    {
+      "id": "M4-018",
+      "title": "Publish the validated session observation bytes",
+      "milestone": "M4",
+      "status": "active",
+      "depends_on": [
+        "M4-017"
+      ],
+      "scope": [
+        "scripts/verification_evidence.py",
+        "scripts/ci_artifacts.py",
+        "tests/project/test_ci_artifacts.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0009"
+      ],
+      "acceptance": [
+        "At hosted publication, capture a run observation once and use its exact bytes for redaction validation, the digest, report comparison and publication.",
+        "An interleaved replacement cannot publish an observation inconsistent with the report. The valid original is publishable even when a later read would supply different bytes.",
+        "Preserve the model, voice, market and external client report shapes and their existing validation and size boundaries. Verify the synthetic software behavior without claiming actual client qualification."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [],
+      "next_action": "Reproduce the split read at hosted staging, then verify the same boundary for all run observation types.",
+      "blocker": null,
+      "closure_reason": null,
+      "plan": {
+        "outcome": "A successfully staged observation contains the bytes evaluated against the report.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_evidence.py",
+          "scripts/ci_artifacts.py",
+          "tests/project/test_ci_artifacts.py"
+        ],
+        "hypotheses": [
+          "Passing the captured bytes through the existing validation eliminates the inconsistent read without changing reports."
+        ],
+        "risks": [
+          {
+            "failure": "A collaborator or producer swaps the observation between parsing, hashing and staging.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Single-read staging loses duplicate-key, size, redaction or source validation.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert this capture and validation change together. Retain completed M4-017 evidence and the independent observation.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/ci_artifacts.py",
+            "scripts/verification_evidence.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "No live sessions, client qualification, report format changes or changes to completed M4-017 records."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing read-only report and receipt formats, client pair checks and historical artifacts."
+          ],
+          "change": [
+            "Hash and publish the same bytes that were parsed and validated."
+          ],
+          "data_plan": "Only captured, verified redacted data enter hosted artifacts. There is no data migration.",
+          "cleanup": "Remove extra reads of the run observation at the shared publication boundary."
         }
       }
     }

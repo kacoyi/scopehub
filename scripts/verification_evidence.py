@@ -313,10 +313,8 @@ def field_observation(root, key, reports_root=None, *, hosted=False):
     return result
 
 
-def collect_session(run_dir, key, source):
-    """A real-session check writes a redacted, result-specific observation in its own run."""
-    record_path = local_path(run_dir, key + '.observation.json')
-    obs = evidence_json(record_path.read_bytes())
+def session_observation(contents, key, source):
+    obs = evidence_json(contents)
     if not isinstance(obs, dict) or obs.get('check') != key or obs.get('modality') != SESSION_CHECKS[key][1]:
         raise ProjectError(f'Missing valid {key} observation')
     bound_source(obs, source)
@@ -356,18 +354,22 @@ def collect_session(run_dir, key, source):
         modality=obs['modality'],
         commit=obs['commit'],
         inputs_sha256=obs['inputs_sha256'],
-        evidence_sha256=file_digest(record_path),
+        evidence_sha256=digest(contents),
     )
     return result
+
+
+def collect_session(run_dir, key, source):
+    """A real-session check writes a redacted, result-specific observation in its own run."""
+    path = local_path(run_dir, key + '.observation.json')
+    return session_observation(path.read_bytes(), key, source)
 
 
 def redacted_check_log(exit_code):
     return (json.dumps({'exit_code': exit_code}) + '\n').encode('ascii')
 
 
-def external_client_record(root, path, source):
-    with path.open('rb') as stream:
-        contents = stream.read(EXTERNAL_CLIENT_MAX_BYTES + 1)
+def external_client_observation(root, contents, source):
     if len(contents) > EXTERNAL_CLIENT_MAX_BYTES:
         raise ProjectError('External-client observation exceeds the redacted size limit.')
     try:
@@ -395,10 +397,21 @@ def external_client_record(root, path, source):
     return {'evidence_sha256': digest(contents), 'observation': record}
 
 
+def capture_run_observation(root, path, key, source):
+    """Return the exact bytes and the observation validated from those bytes."""
+    if key == EXTERNAL_CLIENT_CHECK:
+        with path.open('rb') as stream:
+            contents = stream.read(EXTERNAL_CLIENT_MAX_BYTES + 1)
+        return contents, external_client_observation(root, contents, source)
+    contents = path.read_bytes()
+    return contents, session_observation(contents, key, source)
+
+
 def collect_run_observation(root, run_dir, key, source):
     if key == EXTERNAL_CLIENT_CHECK:
         path = hosted_artifact_path(run_dir, key + '.observation.json')
-        return external_client_record(root, path, source)
+        _, observation = capture_run_observation(root, path, key, source)
+        return observation
     return collect_session(run_dir, key, source)
 
 
@@ -413,9 +426,9 @@ def retain_external_client_record(root):
         if not path.is_file() or run_dir.parent != runs or not run_dir.is_dir():
             raise ProjectError('Expected a local summary and an isolated verification run.')
         # The input is an explicitly approved summary. Private client files are never loaded.
-        record = external_client_record(root, path, source_identity(root))['observation']
+        _, observation = capture_run_observation(root, path, EXTERNAL_CLIENT_CHECK, source_identity(root))
         with (run_dir / (EXTERNAL_CLIENT_CHECK + '.observation.json')).open('xb') as retained:
-            retained.write(json_bytes(record))
+            retained.write(json_bytes(observation['observation']))
     except (OSError, ValueError, TypeError, KeyError, RecursionError):
         raise SystemExit('External-client observation failed validation.') from None
 
