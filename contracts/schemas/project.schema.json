@@ -1823,6 +1823,31 @@
                 "type": "string",
                 "format": "date"
               },
+              "retired_reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "follow_through_task": {
+                "type": "string",
+                "pattern": "^M[0-9]+-[0-9]{3}$"
+              },
+              "retired_due_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "review_history": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^contracts/reviews/[a-zA-Z0-9._-]+\\.json$"
+                }
+              },
+              "review_record": {
+                "type": "string",
+                "pattern": "^contracts/reviews/[a-zA-Z0-9._-]+\\.json$"
+              },
               "actions": {
                 "type": "array",
                 "minItems": 1,

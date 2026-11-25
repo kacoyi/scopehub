@@ -129,6 +129,29 @@ class VerifyBrowserSetupTests(unittest.TestCase):
         self.assertNotIn('continue-on-error', reject)
         self.assertLess(self.steps.index(reject), self.steps.index(task))
 
+    def test_weekly_summary_write_failure_keeps_product_result_independent(self):
+        if os.name == 'nt':
+            self.skipTest('The weekly summary uses Bash in the Linux job.')
+        summary = next(step for step in self.steps if step.get('name') == 'Summarize weekly maintenance follow-through')
+        product = next(step for step in self.steps if step.get('run') == 'pnpm check')
+        self.assertEqual("${{ !cancelled() && github.event_name == 'schedule' && runner.os == 'Linux' }}", summary['if'])
+        self.assertGreater(self.steps.index(summary), self.steps.index(product))
+        self.assertEqual(self.steps[-1], summary)
+        self.assertNotIn('continue-on-error', product)
+        self.assertNotIn('continue-on-error', summary)
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            for destination, outcome in ((target / 'summary.md', 0), (target, 1)):
+                result = subprocess.run(['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c', summary['run']],
+                                        cwd=ROOT, capture_output=True, text=True, timeout=30,
+                                        env=dict(os.environ, GITHUB_SHA='fixture', GITHUB_STEP_SUMMARY=str(destination)))
+                self.assertEqual(outcome, result.returncode, result.stderr)
+                self.assertIn('Weekly maintenance follow-through', result.stdout)
+                if outcome:
+                    self.assertIn('::error::', result.stdout)
+                else:
+                    self.assertIn('Source `fixture`', destination.read_text())
+
     def test_guarded_dispatch_gates_both_matrix_jobs_and_keeps_ordinary_concurrency(self):
         guarded = '(inputs.expected_head || inputs.expected_base || inputs.dispatch_id)'
         gate = self.jobs['reviewed_dispatch']

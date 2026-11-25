@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-135",
+  "task_definition_sha256": "7766de125fc2a9f477e24454592e8ca66962a63d161edd4e9760490d64ab88be",
+  "run_id": "20261125T155206.377735Z-f87a1626",
+  "recorded_at": "2026-11-25T16:07:31.253041+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "49846e9858839ad0ce9f0a5ce02174eca18239893cdc8f8025fca69cea08f971",
+    "file_count": 607,
+    "git_head": "ddb5f6e44cb7fc2fa3a7520332bde0da1fbddfd2",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "fb9039bcd3db601255df91fc99642860adfd44910a911c282550399c81c9317f",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-maintenance-followthrough/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-maintenance-followthrough/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d13f30d28357b7fbe9b7b2570ea9318edebe64fbbc98cb2dbae736ed95b3c30c"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-maintenance-followthrough/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "92cacea05eef3e9b45f98bc93ff28bcb1229f4766f73fe296dbe460e20311a2d"
+    }
+  ],
+  "project_definition_sha256": "4391b804b0232e055fc08c2a9f61fc83ffb938b64b048f661d374047a09cc0d6",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "5056d8346080cc4111709e3f8fa1755e10ea7eee7307104ab7f0804e8eedde12",
+    "6f729b09f605e1a890bf259a66d657310c439b8643e684967ca24021eeda9f06",
+    "7fe8e6bc08326dffba9bbb2dd7747ae935fe5637aaad882c55a979d4ff4e5ec9",
+    "9ecb82e7f343d9bb700485f4aae8abf3af49c0f4451d75a31518e37fab803b7f",
+    "b77ea99022af042efbd5efdbceff29307a42ada8c8e42866634e3a8d0f3c97f1",
+    "c8ef226d776fc70a2aa7d5366247d4bb67576b5d86d5f6c9ed91e2fb00e73f76",
+    "fdf8ab121d55875a7497d4d805279d87b1dce54f61ecf4b52e632285bb76d533"
+  ]
+}
