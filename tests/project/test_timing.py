@@ -400,6 +400,75 @@ class HostedTimingTests(unittest.TestCase):
         self.assertEqual((19, 40, 695, 10, 8, 1687, None), tuple(result['seconds'][key] for key in fields))
         self.assertIsNone(result['seconds']['initial_queue'])
 
+    def test_phase_ordering_survives_same_job_and_cross_listing_joins(self):
+        *lanes, parent = self.split_windows_jobs()
+        run = hosted_run()
+        official = timing.hosted_timing(run, [*lanes, parent])
+        identity = timing.ci_key(official)
+        report = split_harness_report(675)
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, identity)), 'checkout_sha': 'a' * 40}
+        windows = timing.report_sample(report)
+        linux = dict(windows, platform='Linux', run_id=fast_report(20, 675)['run_id'])
+        samples = [windows, linux]
+
+        def fragment(start, end):
+            modified = deepcopy(parent)
+            modified['steps'][0].update(
+                started_at=f'2026-11-20T00:{start}Z' if start else None,
+                completed_at=f'2026-11-20T00:{end}Z' if end else None,
+            )
+            return modified
+
+        def check(clocks, expected, ready):
+            view = timing.timing_view(samples, hosted=clocks)
+            row = next(item for item in view['samples'] if item['platform'] == 'Windows')
+            seconds = row['seconds']
+            self.assertEqual(expected, tuple(seconds[key] for key in ('aggregate_setup', 'harness_step', 'tail')))
+            self.assertEqual((765, 1687), (seconds['total'], seconds['runner']))
+            self.assertIs(ready, timing.capture_observations(identity, samples, clocks, []).complete_clock)
+            return view['input_issues']
+
+        cases = (
+            ([(None, None), (None, '12:35')], (None, 695, 10), True),
+            ([('12:27', None), (None, '12:26')], (None, None, None), False),
+            ([('12:27', None), ('12:28', None), (None, '12:26')], (None, None, None), False),
+            ([('12:27', None), ('12:28', None), (None, '12:35')], (None, 695, 10), True),
+            ([('12:27', None), ('12:30', None), (None, '12:28')], (None, 688, 17), True),
+            ([('12:07', None), ('12:28', None), (None, '12:26')], (None, None, None), False),
+        )
+        for intervals, expected, ready in cases:
+            with self.subTest(intervals=intervals), tempfile.TemporaryDirectory() as temporary:
+                rows = [fragment(*pair) for pair in intervals]
+                separate = [timing.hosted_timing(run, [*lanes, row]) for row in rows]
+                grouped = timing.hosted_timing(run, [*rows, *lanes, rows[0]])
+                repeated = dict(parent, steps=[*(row['steps'][0] for row in rows), *parent['steps'][1:]])
+                one_job = timing.hosted_timing(run, [*lanes, repeated])
+                expected_issues = check(separate, expected, ready)
+                self.assertEqual(not ready, any('ordering' in issue['error'] for issue in expected_issues))
+                path = Path(temporary) / 'capture.json'
+                prefix = timing.hosted_timing(run, [*lanes, *rows[:2]])
+                for clocks in ([*reversed(separate), separate[0]], [grouped], [one_job], [prefix, *separate[2:]]):
+                    timing.save_timing_capture(path, 0, samples, clocks, [])
+                    _, _, reopened, _ = timing.read_timing_capture(path)
+                    self.assertEqual(expected_issues, check(reopened, expected, ready))
+
+        # Older grouped captures distinguish a dispute from an absent value,
+        # even when they cannot establish which original timestamps competed.
+        legacy = timing.hosted_timing(run, [*lanes, fragment('12:27', None), fragment('12:28', '12:35')])
+        previous = next(job for job in legacy['jobs'] if job['platform'] == 'Windows')
+        previous.pop('endpoint_choices')
+        self.assertTrue(timing.valid_clock(legacy))
+        check([legacy, official], (None, None, None), False)
+
+        too_many = [fragment(f'12:{second:02d}', None)
+                    for second in range(20, 21 + timing.MAX_TIMESTAMP_CHOICES)]
+        overflow = timing.hosted_timing(run, [*lanes, *too_many, fragment(None, '12:35')])
+        disputed = next(job for job in overflow['jobs'] if job['platform'] == 'Windows')
+        self.assertIn('harness_start', disputed['endpoint_disputes'])
+        self.assertNotIn('harness_start', disputed.get('endpoint_choices', {}))
+        self.assertTrue(timing.valid_clock(overflow))
+        check([overflow], (None, None, None), False)
+
     def test_split_windows_measurement_and_joint_capture_use_the_identified_layout(self):
         linux, core, browser, python, aggregate = self.split_windows_jobs()
         run = hosted_run()

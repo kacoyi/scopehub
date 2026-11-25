@@ -57,6 +57,7 @@ JOB_INTERVALS = {
 }
 JOB_ENDPOINTS = frozenset(endpoint for pair in JOB_INTERVALS.values() for endpoint in pair)
 STEP_KINDS = ('harness', 'browser')
+MAX_TIMESTAMP_CHOICES = 8
 SPLIT_SECONDS = ('initial_queue', 'aggregate_setup')
 WORKFLOW_SECONDS = ('total_elapsed_seconds', 'runner_work_seconds')
 CACHE_STATES = {'cold', 'partial', 'warm', 'not_requested', 'not_restored'}
@@ -351,6 +352,18 @@ def step_identity(identities):
     return ([number, name] if name else None), number_disputed or name_disputed
 
 
+def join_timestamp_choices(observations):
+    # Empty means unobserved; None means a dispute with no usable witnesses.
+    choices = set()
+    for observed in observations:
+        if observed is None:
+            return None
+        choices.update(observed)
+        if len(choices) > MAX_TIMESTAMP_CHOICES:
+            return None
+    return choices
+
+
 def active_step(steps, names):
     facts = []
     for step in steps:
@@ -359,46 +372,78 @@ def active_step(steps, names):
             if start is not None or end is not None:
                 number = step.get('number')
                 facts.append(([number if type(number) is int and number > 0 else None, step['name']], start, end))
-    identity, identity_disputed = step_identity([fact[0] for fact in facts])
-    points = {}
-    disputed = set()
-    for index, field in enumerate(('start', 'end'), start=1):
-        point, conflict = known_value(fact[index] for fact in facts)
-        if identity_disputed or conflict:
-            disputed.add(field)
+    identity, disputed = step_identity([fact[0] for fact in facts])
+    return identity, {
+        field: None if disputed else join_timestamp_choices({fact[index]} for fact in facts if fact[index] is not None)
+        for index, field in enumerate(('start', 'end'), start=1)
+    }
+
+
+def job_endpoint_choices(job):
+    disputed = set(job.get('endpoint_disputes', ()))
+    alternatives = job.get('endpoint_choices', {})
+    choices = {}
+    for field, value in job.get('endpoints', {}).items():
+        if field in alternatives:
+            choices[field] = {timestamp(item) for item in alternatives[field]}
+        elif field in disputed:
+            choices[field] = None
         else:
-            points[field] = point
-    return identity, points, disputed
+            point = timestamp(value)
+            choices[field] = {point} if point is not None else set()
+    return choices
 
 
-def bounded_job_points(points):
-    lower = max(filter(None, (points.get('requested'), points.get('start'))), default=None)
-    upper = points.get('end')
-    bounded = dict(points)
+def unique_endpoint(choices):
+    return next(iter(choices)) if choices and len(choices) == 1 else None
+
+
+def encode_timestamp(point):
+    return point.astimezone(timezone.utc).isoformat() if point is not None else None
+
+
+def retain_endpoint_choices(choices):
+    result = {'endpoints': {field: encode_timestamp(unique_endpoint(values)) for field, values in choices.items()}}
+    disputed = sorted(field for field, values in choices.items() if values is None or len(values) > 1)
+    alternatives = {field: [encode_timestamp(value) for value in sorted(choices[field])]
+                    for field in disputed if choices[field]}
+    if disputed:
+        result['endpoint_disputes'] = disputed
+    if alternatives:
+        result['endpoint_choices'] = alternatives
+    return result
+
+
+def can_order_endpoints(choices, fields):
+    # For a nondecreasing chain the earliest feasible witness leaves every
+    # later endpoint the widest possible choice. An absent field adds no bound.
+    earliest = None
+    for field in fields:
+        values = choices.get(field, ())
+        if values is None:
+            return False
+        if values:
+            earliest = min((value for value in values if earliest is None or value >= earliest), default=None)
+            if earliest is None:
+                return False
+    return True
+
+
+def project_job_points(choices):
+    points = {field: unique_endpoint(values) for field, values in choices.items()}
+    unplaced = set()
     for part in STEP_KINDS:
-        start, finish = f'{part}_start', f'{part}_end'
-        for field in (start, finish):
-            value = points.get(field)
-            if value is not None and ((lower is not None and value < lower) or (upper is not None and value > upper)):
-                bounded[field] = None
-        begin, end = bounded.get(start), bounded.get(finish)
-        if begin is not None and end is not None and end < begin:
-            bounded[start] = bounded[finish] = None
-    return bounded
+        start, end = f'{part}_start', f'{part}_end'
+        observed = (choices.get(start, ()), choices.get(end, ()))
+        if any(values is None or values for values in observed) and not can_order_endpoints(
+                choices, ('requested', 'start', start, end, 'end')):
+            points[start] = points[end] = None
+            unplaced.update((start, end))
+    return points, unplaced
 
 
 def job_seconds(points):
-    bounded = bounded_job_points(points)
-    return {field: elapsed(bounded.get(left), bounded.get(right)) for field, (left, right) in JOB_INTERVALS.items()}
-
-
-def job_points(job):
-    return {field: timestamp(value) for field, value in job.get('endpoints', {}).items()}
-
-
-def encode_job_points(points):
-    return {key: value.astimezone(timezone.utc).isoformat() if value is not None else None
-            for key, value in points.items()}
+    return {field: elapsed(points.get(left), points.get(right)) for field, (left, right) in JOB_INTERVALS.items()}
 
 
 def job_identity(run_id, attempt, head_sha, repository, job):
@@ -431,27 +476,25 @@ def observe_job(job, *, identity, requested, label=None, harness_steps=HARNESS_S
     if label and job.get('labels') and label not in job['labels']:
         conflicts.append('runner_label')
     start, end = timestamp(job.get('started_at')), timestamp(job.get('completed_at'))
-    points = {'requested': requested, 'start': start, 'end': end}
-    steps, disputed = {}, set()
+    choices = {field: {point} if point is not None else set()
+               for field, point in (('requested', requested), ('start', start), ('end', end))}
+    steps = {}
     for kind, names in zip(STEP_KINDS, (harness_steps, BROWSER_STEPS), strict=True):
-        step, observed, conflicts_at_step = active_step(job.get('steps', ()), names)
+        step, observed = active_step(job.get('steps', ()), names)
         if step is not None:
             steps[kind] = step
-        for field in ('start', 'end'):
-            points[f'{kind}_{field}'] = observed.get(field)
-        disputed.update(f'{kind}_{field}' for field in conflicts_at_step)
+        choices.update((f'{kind}_{field}', alternatives) for field, alternatives in observed.items())
+    points, _ = project_job_points(choices)
     row = {
         'job_id': str(job['id']) if job.get('id') is not None else None,
         'platform': PLATFORMS.get(label), 'runner_label': label,
         'status': job.get('status'), 'conclusion': job.get('conclusion'),
         'identity_issues': {'missing': missing, 'conflicts': conflicts},
-        'endpoints': encode_job_points(points),
+        **retain_endpoint_choices(choices),
         'seconds': job_seconds(points),
     }
     if steps:
         row['step_identities'] = steps
-    if disputed:
-        row['endpoint_disputes'] = sorted(disputed)
     if job.get('checkout_sha') is not None:
         row['checkout_sha'] = job['checkout_sha']
         if not commit_id(row['checkout_sha']):
@@ -470,34 +513,40 @@ def windows_aggregate_cache(caches):
 
 
 def split_stage_seconds(parent, members, scoped):
-    points = bounded_job_points(job_points(parent))
+    points, unplaced = project_job_points(job_endpoint_choices(parent))
     stages = dict.fromkeys((*WINDOWS_DERIVED_STAGES, *WINDOWS_COPIED_STAGES))
     stages['aggregate_setup'] = elapsed(points.get('start'), points.get('harness_start'))
+    blocked = {stage for stage, endpoints in WINDOWS_PARENT_ENDPOINTS.items() if unplaced.intersection(endpoints)}
     if not members:
-        return stages
-    sources = {lane: bounded_job_points(job_points(member)) for lane, member in members.items()}
+        return stages, blocked
+    sources = {}
+    for lane, member in members.items():
+        sources[lane], unplaced = project_job_points(job_endpoint_choices(member))
+        if 'harness_start' in unplaced and (not scoped or lane == 'core'):
+            blocked.update(('setup', 'harness_step'))
     starts = [source.get('start') for source in sources.values()]
     ends = [source.get('end') for source in sources.values()]
     start = points.get('start')
     if all(starts):
         stages['initial_queue'] = elapsed(points.get('requested'), min(starts))
     if all(ends):
-        stages['queue'] = elapsed(max(ends), start)
+        last_finish = max(ends)
+        stages['queue'] = elapsed(last_finish, start)
+        if start is not None and last_finish > start:
+            blocked.update(('queue', 'harness_step'))
     active = ('core',) if scoped else sources
     harness_starts = [sources[lane].get('harness_start') if sources[lane].get('start') else None for lane in active]
     if all(harness_starts):
         first_harness = min(harness_starts)
         stages['setup'] = elapsed(min(starts), first_harness) if all(starts) else None
-        # Publishing follows the required jobs. Execution ends at the
-        # publishing finish even when the publishing step's start is unknown.
-        if all(ends) and start and max(ends) <= start:
+        if all(ends) and start and 'harness_step' not in blocked:
             stages['harness_step'] = elapsed(first_harness, points.get('harness_end'))
     runners = [elapsed(source.get('start'), source.get('end')) for source in (points, *sources.values())]
     if all(value is not None for value in runners):
         stages['runner'] = sum(runners)
     for stage, (lane, metric) in WINDOWS_COPIED_STAGES.items():
         stages[stage] = members[lane]['seconds'][metric]
-    return stages
+    return stages, blocked
 
 
 def windows_parent_profile(job):
@@ -603,7 +652,8 @@ def hosted_timing(run, jobs):
         producers = {lane: row for lane, name in WINDOWS_PRODUCERS.items() for row in sibling_members
                      if row.get('name') == name} if (identified_layout
                                                      and has_windows_producers(sibling_members, expected)) else {}
-        parent['seconds'].update(split_stage_seconds(parent, producers, profile in SCOPED_PROFILES))
+        stages, _ = split_stage_seconds(parent, producers, profile in SCOPED_PROFILES)
+        parent['seconds'].update(stages)
     bound_matrix = (len(protected) == len(PLATFORMS) and
                     {row['platform'] for row in protected} == set(PLATFORMS.values())
                     and (not split or identified_layout and has_windows_producers(sibling_members, expected)))
@@ -707,9 +757,17 @@ def valid_sample(sample):
     )
 
 
+def valid_timestamp_choices(values):
+    if not isinstance(values, list) or not 2 <= len(values) <= MAX_TIMESTAMP_CHOICES:
+        return False
+    parsed = {timestamp(value) for value in values}
+    return None not in parsed and len(parsed) == len(values)
+
+
 def valid_step_facts(job):
     identities = job.get('step_identities', {})
     disputes = job.get('endpoint_disputes', [])
+    choices = job.get('endpoint_choices', {})
     return (isinstance(identities, dict) and identities.keys() <= set(STEP_KINDS)
             and all(isinstance(key, list) and len(key) == 2
                     and (key[0] is None or type(key[0]) is int and key[0] > 0)
@@ -717,6 +775,9 @@ def valid_step_facts(job):
                     for key in identities.values())
             and isinstance(disputes, list) and len(disputes) <= len(JOB_ENDPOINTS)
             and all(isinstance(field, str) and field in JOB_ENDPOINTS for field in disputes)
+            and isinstance(choices, dict) and choices.keys() <= set(disputes)
+            and all(valid_timestamp_choices(values) and job['endpoints'][field] is None
+                    for field, values in choices.items())
             and (not (identities or disputes) or 'endpoints' in job))
 
 
@@ -888,24 +949,21 @@ def merge_clock_fields(rows, fields):
 
 
 def merge_job_clock(jobs, *, projected=False):
-    primary = [job_points(job) for job in jobs if 'endpoints' in job]
+    primary = [job_endpoint_choices(job) for job in jobs if 'endpoints' in job]
     legacy = [job['seconds'] for job in jobs if 'endpoints' not in job]
-    points = {}
-    endpoint_disputes = {field for job in jobs for field in job.get('endpoint_disputes', ())}
+    choices = {field: join_timestamp_choices(row.get(field, ()) for row in primary)
+               for field in sorted(JOB_ENDPOINTS)}
     step_identities = {}
     for kind in STEP_KINDS:
         identity, disputed = step_identity([job['step_identities'][kind] for job in jobs
                                             if kind in job.get('step_identities', {})])
         if disputed:
-            endpoint_disputes.update((f'{kind}_start', f'{kind}_end'))
+            choices[f'{kind}_start'] = choices[f'{kind}_end'] = None
         elif identity is not None:
             step_identities[kind] = identity
-    for endpoint in sorted(JOB_ENDPOINTS):
-        points[endpoint], disputed = known_value(row.get(endpoint) for row in primary)
-        if disputed:
-            endpoint_disputes.add(endpoint)
-        if endpoint in endpoint_disputes:
-            points[endpoint] = None
+    points, unplaced = project_job_points(choices)
+    retained = retain_endpoint_choices(choices)
+    endpoint_disputes = frozenset(retained.get('endpoint_disputes', ()))
     derived = job_seconds(points)
     dependencies = dict(JOB_INTERVALS)
     if projected:
@@ -914,22 +972,22 @@ def merge_job_clock(jobs, *, projected=False):
     seconds, disputes = {}, []
     for field in (*ATTEMPT_SECONDS, *SPLIT_SECONDS):
         value, disputed = known_value([derived.get(field), *(row.get(field) for row in legacy)])
-        if disputed or (field in derived and endpoint_disputes.intersection(dependencies[field])):
+        if field in derived and unplaced.intersection(dependencies[field]):
+            value = None
+        elif disputed or (field in derived and endpoint_disputes.intersection(dependencies[field])):
             disputes.append(field)
             value = None
         seconds[field] = value
     checkout, _ = known_value(job.get('checkout_sha') for job in jobs)
     representative = max(jobs, key=lambda job: json.dumps(job, sort_keys=True))
-    resolved = {**representative, 'endpoints': encode_job_points(points), 'seconds': seconds}
+    resolved = {key: value for key, value in representative.items()
+                if key not in ('step_identities', 'endpoint_disputes', 'endpoint_choices')}
+    resolved.update(retained, seconds=seconds)
     if checkout:
         resolved['checkout_sha'] = checkout
-    resolved.pop('step_identities', None)
-    resolved.pop('endpoint_disputes', None)
     if step_identities:
         resolved['step_identities'] = step_identities
-    if endpoint_disputes:
-        resolved['endpoint_disputes'] = sorted(endpoint_disputes)
-    return resolved, tuple(disputes), frozenset(endpoint_disputes)
+    return resolved, tuple(disputes), endpoint_disputes, unplaced
 
 
 def coalesce_job_observations(rows):
@@ -1073,7 +1131,10 @@ def job_clock_observations(hosted, clocks, issues):
             observed[attempt, role] = JobClockEvidence(None, ())
             continue
         projected = role == ('platform', 'Windows') and split_windows_clock(clocks[attempt])
-        job, disputed, endpoint_disputes = merge_job_clock(candidates, projected=projected)
+        job, disputed, endpoint_disputes, unplaced = merge_job_clock(candidates, projected=projected)
+        if unplaced:
+            timing_issue(issues, {**issue, 'endpoints': sorted(unplaced),
+                                  'error': 'Job phase endpoint ordering is unavailable or inconsistent.'})
         if endpoint_disputes:
             issue['endpoints'] = sorted(endpoint_disputes)
         if disputed or endpoint_disputes:
@@ -1137,9 +1198,12 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
     scoped = profile in SCOPED_PROFILES
     groups = {'all': lanes, 'active': ('core',) if scoped else lanes}
     seconds = dict(fact.job['seconds'])
-    derived = split_stage_seconds(fact.job, members, scoped)
+    derived, blocked = split_stage_seconds(fact.job, members, scoped)
     disputed = set()
     for stage, inputs in WINDOWS_DERIVED_STAGES.items():
+        if stage in blocked:
+            seconds[stage] = None
+            continue
         competing_member = any(disputed_member_input(sources[lane], metric, endpoints)
                                for group, metric, endpoints in inputs for lane in groups[group])
         value, competing_stage = known_value([seconds[stage], derived[stage]])
@@ -1155,7 +1219,8 @@ def project_windows_stages(evidence, attempt, run, fact, profile, issues):
         timing_issue(issues, {'run_id': attempt[1], 'platform': 'Windows',
                               'fields': [stage for stage in (*ATTEMPT_SECONDS, *SPLIT_SECONDS) if stage in disputed],
                               'error': 'Conflicting Windows aggregate stage inputs.'})
-    return JobClockEvidence({**fact.job, 'seconds': seconds}, (*fact.disputed, *sorted(disputed)), fact.endpoint_disputes)
+    disputes = tuple(field for field in (*fact.disputed, *sorted(disputed)) if field not in blocked)
+    return JobClockEvidence({**fact.job, 'seconds': seconds}, disputes, fact.endpoint_disputes)
 
 
 def protected_job(evidence, attempt, platform, profile, issues):
@@ -1481,7 +1546,7 @@ def merge_samples(samples, hosted, issues):
                 and sample['profile'] == 'full' and 'windows_caches' not in sample):
             cache = 'unknown'
         yield {**sample, 'seconds': seconds, 'cache': cache,
-               'job': {key: value for key, value in job.items() if key not in {'seconds', 'endpoints', 'step_identities', 'endpoint_disputes'}} if job else None,
+               'job': {key: value for key, value in job.items() if key not in {'seconds', 'endpoints', 'step_identities', 'endpoint_disputes', 'endpoint_choices'}} if job else None,
                'workflow_success': run['conclusion'] == 'success' if run else None,
                'workflow_conclusion': run['conclusion'] if run else None,
                'hosted_head_branch': run.get('head_branch') if run else None,
