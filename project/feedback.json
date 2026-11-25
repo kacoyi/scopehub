@@ -6926,6 +6926,64 @@
       ]
     },
     {
+      "id": "recurring-main-push-handoff-blocks-next-observation",
+      "source": "Canonical offline integration scope at cb81c752f91b5c611cb258879bcf83e658b7323a against 87dd07963b5dfbc648473e8a4f021ff5b8384203. The Windows push controls are indexed by windows-warm-push-intake.json, SHA-256 d6240590f7a24af345059e69000ebe256cc0c85d5aafbd8c64aae64007c441a5.",
+      "observation": "The 886, 938 and 913 second warm full Windows main controls have the same 35 outcomes. Canonical scope blocks the repair candidate for unfinished delivery and the open major finding. The next qualifying push cannot occur before integration, and the protected rule names only the historical M0-087/M0-091 records.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-142"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The earlier protected handoff named one historical repair and successor. It had no path for the reviewed recurring Windows observation to reach the protected push that must measure it.",
+        "correction": "Adopt a distinct protected rule for the named repair, open finding and qualified successor. Preserve the earlier rule and require a later comparable protected push to close the observation.",
+        "prevention": "Public integration controls exercise independent adoption, the required successor, real PR116 native originals and the difference between the PR clock and a later protected push."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "recurring-main-push-handoff-incomplete-eligibility",
+      "source": "Independent Astra Standard changes requested on 1ca48c50a9dd42eb989b9fb0276a04edcd2cac8a. Original response SHA-256 7afbd4bf4a493b3e5d103f032989454d919fd0d58172cc903430b2972ebbc85a; extracted verdict SHA-256 482ef6fc7e0177a8ce31a74ae345ddba55d571e8c1cba5cce7683eb9efa8ebcb. Original and provenance retained privately.",
+      "observation": "Delivery accepted a completed M0-139 without its open finding or M0-141. Replacing the actual repair with its intake ancestor preserved the finding fingerprint. Native summaries with a substituted harness run ID or a Windows wall clock of 929 seconds qualified. A current incomplete receipt and an older complete receipt jointly allowed handoff, and an older valid receipt lacking an optional project digest prevented a later complete one from being considered.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-142"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The candidate did not simultaneously bind the named open finding, actual repair, per-platform report identities, Windows wall time and complete current task receipt.",
+        "correction": "Verify the repair commit and successor coverage, both native reports against their tested PR merge and jobs, the Windows budget and a single complete current receipt. Continue searching past ineligible older receipts.",
+        "prevention": "The integration regressions include absent ownership, unrelated ancestry, mismatched report or job identity, 900 and 901 second boundaries and disjoint receipt coverage. The independent reviewer rechecked each outcome."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "periodic-maintenance-verification-repeated-git-reads",
+      "source": "Private authenticated and local observations under archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079. pr115-windows-worker-test-delta.json SHA-256 b16698bdd9366b6a08e9f44313a268c57a7f3075585e6b1527a401ad4541c1f4. pr115-periodic-transition-process-cost.json SHA-256 d571f5aae3aed2b2af2c26c1087c0f102bb29dc597564fee290bf5764f3c2921. pr115-windows-python-two-runs.json SHA-256 04b9b4f06e64c88adfdabb0382533dbfdf653bbee9d0c0a0d80090fccacdef0a. warm-main-before-scheduling-change-45656611020.json SHA-256 7b5a1df60e4212e9d92735d0c401e096373a96b3c0986c0f398bc294e1ea276c.",
+      "observation": "Windows Python passed in 909.922 s on full PR115 run 45650476275 and in 873.609 s on the second ordinary PR115 run 45652946521. Their 27 new case durations were 132.517 s and 123.655 s. The same 698 common cases were 775.616 s and 748.319 s against 559.727 s in full PR114 run 45633961353. The warm protected-main push 45656611020 preceded the scheduling correction, selected 35, passed at 878 s wall and 2779 s Windows runner work, and recorded 786.766 s for Python. Neither PR is a main push. On pinned local maintenance source 3144e2e82313716664873ac559e36cd921874d9c, the three slowest new real journeys started 507, 540 and 457 Git children, including fixture setup, predominantly show, rev-parse and merge-base. Status rereads the same exact comparison commit delivery policy across rules. Measure the public interaction separately to attribute the avoidable lookups.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-143"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "The status command loaded one predecessor's immutable delivery policy once for each periodic rule, after already reading that same revision for the observation.",
+        "correction": "Read each predecessor policy once within the current status call and supply it to the per-rule comparison. Continue obtaining current refs, working files, evidence and ancestry through their ordinary paths.",
+        "prevention": "The paired public status fixture keeps the accepted successor and reversed ancestor, checks the full output bytes and traces the actual Git calls. The three pairs per case retained 41 to 36 and 42 to 37 total Git invocations."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "consequential-task-completed-without-independent-decision",
       "source": "Observed disposable ordinary project check and history on 0a64ac41c6ffbb4b148b85a4b45da2e07291ce0a with authentic passing run 20261125T115836.374177Z-fc7c2887. Observation SHA-256 b8c778557d02d2371e5273f6e3bb8e869cef813ead01479843a8a20389d6da9a. Independent cold review transcript SHA-256 2ebcd245ad668543323e52161a9550850bafacc524330a09aca36bfc292754a4. Prior local completed task sources 97fedb3771bcdbcbf1030d32d4eec1c69401d656 and ecf48f65a02b94967e0813fec4e9cbbec360ffbf.",
       "observation": "The normal project check and history accepted a simulated completed corrective task and addressed finding in a disposable checkout with a genuine green harness receipt and zero independent approval. The actual independent review requested changes on that exact source. Earlier local M0-130 and M0-131 similarly reached an accepted state before reviewer reproduction of timing capture and reopen disagreement. Passing engineering checks and immutable historical receipts establish their verified scope. They do not establish the independent decision.",
