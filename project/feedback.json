@@ -6986,7 +6986,7 @@
     {
       "id": "verification-windows-warm-pr-python-budget",
       "source": "Authenticated ordinary full Windows pull requests 45665595957, 45666385494 and 45667368453, with full reports, original logs and clocks indexed in archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json (SHA-256 8b8c89a6a46b440de8ec51fef266e6b8760250250242ae4cda276c8f5d8cf298).",
-      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective.",
+      "observation": "The three comparable full warm Windows pull requests took 1075, 868 and 999 seconds against the 900-second objective. The Python checks took 966.594, 776.266 and 899.781 seconds, and the Python producer finished last before aggregation each time. Each report selected the same 35 outcomes with 28 passes and seven planned omissions. Interleaved run 45666697288 used a partial Cargo cache and belongs to M0-128. Ordinary warm Windows PR run 45674883737 on the first repair selected the same 35 checks: 28 passed and seven planned checks were omitted. The full run took 975 seconds elapsed and 2851 runner seconds, with 889.719 seconds in python-contracts-workers. The Python producer finished last. The first repair eliminated measured redundant reads but this run remained 75 seconds over the existing objective. The next repair distributes a contiguous Python suffix to the existing PR recovery producer. The complete local test and artifact evidence belongs to M0-146. The combined native follow-up is pending.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7022,7 +7022,7 @@
         "event": "pull_request",
         "profile": "full",
         "platform": "Windows",
-        "repair_commit": "528ca59f5655f554396a4cbc0ff460cff0384ddd"
+        "repair_commit": "1e4717ac1fe5e81b7f0800895cf045b796fb76f3"
       },
       "resolution": null,
       "deferral_reason": null
