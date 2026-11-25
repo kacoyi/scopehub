@@ -3682,59 +3682,6 @@
       "deferral_reason": null
     },
     {
-      "id": "frozen-reopen-stale-access-status",
-      "source": "The built desktop UI red regression at archives/runs/20261125T035923.329201Z-a36ab18a/test-report.json.",
-      "severity": "minor",
-      "status": "addressed",
-      "observation": "A cold restore can receive an authorized source snapshot followed by a denied frozen chart read. The chart shows a generic retryable gap and the shared selection still comes from the old snapshot. The revocation watcher only starts after a chart opens.",
-      "task_ids": [
-        "M2-033"
-      ],
-      "regression_checks": [
-        "desktop-workspace-transport"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T035923.329201Z-a36ab18a",
-          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
-          "report_sha256": "825d77ecf88a7a321b8062499038f752e11cce41cd8f2e327f44852dbeb9eae2"
-        }
-      ],
-      "resolution": {
-        "cause": "The initial chart read failed before the periodic access watcher could start.",
-        "correction": "Refresh the authoritative workspace on an access denial, while keeping source retry for a transient transport failure.",
-        "prevention": "The built desktop transport exercises a startup snapshot followed by denial, verifies the updated source and shared selection, and checks that a transient failure still allows retry."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "frozen-access-refresh-admission-review",
-      "source": "Independent Astra Standard at 185f90d and archives/runs/20261125T043224.802985Z-a835f859/test-report.json.",
-      "severity": "major",
-      "status": "addressed",
-      "observation": "A frozen read denial can lose its refresh during a held layout operation. A native refresh with no reply can hold the UI lane. The live boolean status also conflates a missing revision with revocation and can permanently suppress later recovery.",
-      "task_ids": [
-        "M2-034"
-      ],
-      "regression_checks": [
-        "desktop-workspace-transport",
-        "state-migrations"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261125T043224.802985Z-a835f859",
-          "source_commit": "185f90dff6008e7c54e3088f799253e24c602d12",
-          "report_sha256": "643938f819c14c07be74fc60d110743d95d32945ae4217be0363a7be35d8576f"
-        }
-      ],
-      "resolution": {
-        "cause": "The automatic refresh used an opportunistic, unbounded snapshot. The status endpoint collapsed absence and withdrawal into one boolean.",
-        "correction": "Queue access readback by revision, bound the native wait, hide stale shared state, and record a permanent revocation only when the registry confirms it.",
-        "prevention": "Desktop IPC cases exercise a held layout, an abandoned and late reply, and a temporary live absence followed by recovery and revocation. SQLite verifies the private status response for each disposition."
-      },
-      "deferral_reason": null
-    },
-    {
       "id": "same-user-profile-restore",
       "source": "contracts/reviews/2026-11-23-continuity-audit.json, finding relocated-local-profile",
       "severity": "minor",
@@ -5237,6 +5184,78 @@
         "cause": "The removable dialog owned the accepted temporary workbench and selection. Ordinary close unmounted the owner.",
         "correction": "Keep the accepted prototype definition and selection with the desktop window session and restore them when the dialog opens again. Draft text, preview selection and replay execution remain dialog-local.",
         "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-observation-time-rounding",
+      "source": "Controlled native loopback trial based on 9180963. The original local transcript .reports/m1-044-red-local-api.log has SHA-256 bebb8d80077be2a4f156dc7f992b08bb5173c2ad92493aad0f7f98fd7f5cf017. The pre-repair Playwright regression .reports/m1-044-red-api-regression.log has SHA-256 3aa64cc7763375aafaf48b9f97a5efd89942161f22453452a9615e5194559798.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The ordinary local API trial accepted 1770076800000.00001, 1e-999 and 8640000000000000.1 as valid millisecond observations. The displayed times acquired integer values through rounding or underflow before validation.",
+      "task_ids": [
+        "M1-044"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The HTTP adapter decoded the observation time through a binary JSON numeric representation before checking whole milliseconds.",
+        "correction": "Validate the original decimal token using exact integer arithmetic within the existing schema range. Keep the separate original price token intact.",
+        "prevention": "A controlled HTTP peer drives the ordinary native settings trial with exact integers, equivalent decimal and exponent forms, rounded fractions, underflow, an out-of-range number and a quoted value."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-reopen-stale-access-status",
+      "source": "The built desktop UI red regression at archives/runs/20261125T035923.329201Z-a36ab18a/test-report.json.",
+      "severity": "minor",
+      "status": "addressed",
+      "observation": "A cold restore can receive an authorized source snapshot followed by a denied frozen chart read. The chart shows a generic retryable gap and the shared selection still comes from the old snapshot. The revocation watcher only starts after a chart opens.",
+      "task_ids": [
+        "M2-033"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T035923.329201Z-a36ab18a",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "825d77ecf88a7a321b8062499038f752e11cce41cd8f2e327f44852dbeb9eae2"
+        }
+      ],
+      "resolution": {
+        "cause": "The initial chart read failed before the periodic access watcher could start.",
+        "correction": "Refresh the authoritative workspace on an access denial, while keeping source retry for a transient transport failure.",
+        "prevention": "The built desktop transport exercises a startup snapshot followed by denial, verifies the updated source and shared selection, and checks that a transient failure still allows retry."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-access-refresh-admission-review",
+      "source": "Independent Astra Standard at 185f90d and archives/runs/20261125T043224.802985Z-a835f859/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A frozen read denial can lose its refresh during a held layout operation. A native refresh with no reply can hold the UI lane. The live boolean status also conflates a missing revision with revocation and can permanently suppress later recovery.",
+      "task_ids": [
+        "M2-034"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "state-migrations"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043224.802985Z-a835f859",
+          "source_commit": "185f90dff6008e7c54e3088f799253e24c602d12",
+          "report_sha256": "643938f819c14c07be74fc60d110743d95d32945ae4217be0363a7be35d8576f"
+        }
+      ],
+      "resolution": {
+        "cause": "The automatic refresh used an opportunistic, unbounded snapshot. The status endpoint collapsed absence and withdrawal into one boolean.",
+        "correction": "Queue access readback by revision, bound the native wait, hide stale shared state, and record a permanent revocation only when the registry confirms it.",
+        "prevention": "Desktop IPC cases exercise a held layout, an abandoned and late reply, and a temporary live absence followed by recovery and revocation. SQLite verifies the private status response for each disposition."
       },
       "deferral_reason": null
     },

@@ -19847,6 +19847,255 @@
       }
     },
     {
+      "id": "M1-040",
+      "title": "Disconnect the saved local API in My data sources",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-039"
+      ],
+      "scope": [
+        "apps/desktop/ui/src/local-api-settings.tsx",
+        "apps/desktop/ui/src/i18n",
+        "crates/application/src/workspace",
+        "crates/application/src/workspace.rs",
+        "crates/persistence/src/lib.rs",
+        "contracts",
+        "tests/fixtures/local-api-protocol-cases.json",
+        "tests/ui/local-api-connection.spec.mjs",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "In Settings > Data sources > My data sources, explicitly disconnect the named saved local API, reopen to see no saved connection, then save and explicitly test a replacement against the local synthetic fixture.",
+        "Disconnect performs no GET and changes only the selected profile-local API record. Reopen and test that an independent CSV record survives. Reject stale removal without affecting a replacement and reject a held trial after its saved identity has been disconnected.",
+        "Exercise the ordinary UI in English and Simplified Chinese. Validate one shared corpus of disconnect input and output vectors directly in Rust, JavaScript and Python."
+      ],
+      "checks": [
+        "project-state",
+        "generated-contracts",
+        "typescript-contracts",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "ui-build",
+        "local-api-connection",
+        "market-workflow",
+        "operations-workflow",
+        "state-migrations"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-040-889a3c38e3616d70.json",
+          "sha256": "1923b5a78caab69e6379d8c15c923fde84b0c8fe272bb268b90fc3d5f649a224"
+        },
+        {
+          "path": "project/evidence/M1-040-91494b1bd177c707.json",
+          "sha256": "61c5c1595d74b13f2586919ea3e83f35f66a31cb1c5ea1d07d0e2a653c2adf8e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The ordinary settings form disconnected the selected local API on Linux and Windows in workflow 45493096486 at the independently reviewed source. After a restart the connection remained absent. Explicitly testing a replacement returned 63.5 USD and the independent CSV reopened at its original revision with a final close of 105. Both a late trial and a stale disconnect were rejected. Network counts confirmed that saving, disconnecting and reopening issued no GET. The Chromium tests used the native Rust and SQLite bridge and checked the named action in Simplified Chinese. Rust, JavaScript and Python exercised the shared disconnect vectors.",
+      "plan": {
+        "outcome": "Disconnect one named loopback connection from the ordinary settings form, reopen to a disconnected view, and configure and explicitly trial a replacement.",
+        "change_types": [
+          "protocol",
+          "ui",
+          "persistence"
+        ],
+        "context": [
+          "M1-030 onboarding acceptance and the accepted M1-039 profile-local loopback capability.",
+          "apps/desktop/ui/src/local-api-settings.tsx",
+          "crates/application/src/workspace/local_api.rs",
+          "tests/ui/local-api-connection.spec.mjs"
+        ],
+        "hypotheses": [
+          "The existing operation, identity, single writer and SQLite singleton can express conditional deletion without a schema migration.",
+          "The portable Rust bridge can exercise the ordinary settings form against two distinct local fixture origins and two sessions on the same private profile."
+        ],
+        "risks": [
+          {
+            "failure": "An old form deletes a replacement or a held response represents another saved connection.",
+            "checks": [
+              "local-api-connection"
+            ]
+          },
+          {
+            "failure": "An implicit GET occurs or another local record changes when the selected API is disconnected.",
+            "checks": [
+              "local-api-connection"
+            ]
+          },
+          {
+            "failure": "A language validator accepts a destructive request without a concrete saved identity.",
+            "checks": [
+              "generated-contracts",
+              "typescript-contracts",
+              "python-contracts-workers",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Back out the UI and operation variant together. The profile format is unchanged, and the user can explicitly re-enter and review a disconnected origin.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "application",
+            "persistence"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/local-api-settings.tsx",
+            "crates/application/src/workspace/local_api.rs",
+            "crates/persistence/src/lib.rs",
+            "tests/ui/local-api-connection.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/external_api"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            }
+          ],
+          "non_goals": [
+            "Additional provider types, credentials, background requests, chart adoption, connection lists and database migrations."
+          ],
+          "open_questions": [
+            "The portable bridge checks production UI, registry and persistence. The coordinator owns any additional host acceptance."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The M1-039 status, save and trial paths, existing source authority, loopback range, profile format and other source records."
+          ],
+          "change": [
+            "Add an explicit disconnect action scoped to the saved connection ID, update the form to reflect successful disconnection, and reject a stale ID."
+          ],
+          "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
+          "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
+        }
+      }
+    },
+    {
+      "id": "M1-044",
+      "title": "Keep local API sample observation timestamps exact",
+      "milestone": "M1",
+      "status": "done",
+      "depends_on": [
+        "M1-040"
+      ],
+      "scope": [
+        "crates/worker-host/src/local_api.rs",
+        "tests/ui/local-api-connection.spec.mjs",
+        "contracts/contract.json",
+        "project"
+      ],
+      "decision_refs": [
+        "0015",
+        "0023",
+        "0028"
+      ],
+      "acceptance": [
+        "At the explicit saved loopback API trial, accept only observation tokens whose exact mathematical value is a whole millisecond in the supported range.",
+        "Reject a fractional value that would round to an allowed date, a nonzero value that would underflow to zero, quoted dates and out-of-range times. Accept exact decimal or exponent forms when their values are valid integer milliseconds.",
+        "Preserve the exact quote-value token and the existing current-connection admission through a controlled loopback trial."
+      ],
+      "checks": [
+        "architecture",
+        "generated-contracts",
+        "rust-format",
+        "rust-contracts-workers",
+        "rust-lints",
+        "market-fixtures",
+        "market-recovery",
+        "local-api-connection"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M1-044-e73617b8af1322b4.json",
+          "sha256": "b4d2518547a8c07e84d617b7869d197b591b5f68157069f11dc57db276a1d21e"
+        },
+        {
+          "path": "project/evidence/M1-044-c69083a05caea6de.json",
+          "sha256": "25c234bbb51c6da0b898187f8f25c818a60c2b56a8c7214a99ceb1ca3c02736e"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The controlled native API trial accepted exact whole-millisecond forms and preserved the quote token. It rejected rounding, underflow, an above-limit fraction, an out-of-range integer and a quoted timestamp before exposing a sample. The attached Linux task receipt covers the delivered scope.",
+      "plan": {
+        "outcome": "The local API trial displays an observation time only when its original numeric token exactly identifies an allowed millisecond.",
+        "change_types": [
+          "market"
+        ],
+        "context": [
+          "crates/worker-host/src/local_api.rs",
+          "contracts/schemas/protocol.schema.json",
+          "tests/ui/local-api-connection.spec.mjs"
+        ],
+        "hypotheses": [
+          "The JSON parser can retain the raw observation token as it already does for price; exact decimal arithmetic can then validate the range without binary rounding."
+        ],
+        "risks": [
+          {
+            "failure": "A fractional or out-of-range observation acquires a plausible integer time through binary64 conversion.",
+            "checks": [
+              "local-api-connection",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Exact observations or quote-value spellings regress when a compatible provider uses decimal or exponent notation.",
+            "checks": [
+              "local-api-connection",
+              "rust-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the sample validation change. The operation stores no sample records.",
+        "implementation": {
+          "modules": [
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/local_api.rs",
+            "tests/ui/local-api-connection.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/LocalApiSample"
+            },
+            {
+              "path": "contracts/market-data-v1.json",
+              "pointer": "/onboarding/external_api"
+            }
+          ],
+          "non_goals": [
+            "New providers, timestamp inference or dated CSV evidence."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact integer observation time forms, quote-value lexemes, saved connection settings and the loopback permission boundary."
+          ],
+          "change": [
+            "Reject observation timestamps that are fractional or unrepresentable in the declared time range before they cross the native bridge."
+          ],
+          "data_plan": "Use temporary profiles and synthetic loopback responses; the trial remains read-only.",
+          "cleanup": "Replace binary64 parsing of the provider observation token. Keep the existing wire type and schema validation."
+        }
+      }
+    },
+    {
       "id": "M2-033",
       "title": "Refresh access after a frozen chart is denied during reopen",
       "milestone": "M2",
@@ -20064,142 +20313,6 @@
           ],
           "data_plan": "Use synthetic frozen records, controlled IPC and a disposable Rust profile.",
           "cleanup": "Discard late reads and cancel queued work when the host unmounts."
-        }
-      }
-    },
-    {
-      "id": "M1-040",
-      "title": "Disconnect the saved local API in My data sources",
-      "milestone": "M1",
-      "status": "done",
-      "depends_on": [
-        "M1-039"
-      ],
-      "scope": [
-        "apps/desktop/ui/src/local-api-settings.tsx",
-        "apps/desktop/ui/src/i18n",
-        "crates/application/src/workspace",
-        "crates/application/src/workspace.rs",
-        "crates/persistence/src/lib.rs",
-        "contracts",
-        "tests/fixtures/local-api-protocol-cases.json",
-        "tests/ui/local-api-connection.spec.mjs",
-        "project/tasks.json"
-      ],
-      "decision_refs": [
-        "0004",
-        "0007"
-      ],
-      "acceptance": [
-        "In Settings > Data sources > My data sources, explicitly disconnect the named saved local API, reopen to see no saved connection, then save and explicitly test a replacement against the local synthetic fixture.",
-        "Disconnect performs no GET and changes only the selected profile-local API record. Reopen and test that an independent CSV record survives. Reject stale removal without affecting a replacement and reject a held trial after its saved identity has been disconnected.",
-        "Exercise the ordinary UI in English and Simplified Chinese. Validate one shared corpus of disconnect input and output vectors directly in Rust, JavaScript and Python."
-      ],
-      "checks": [
-        "project-state",
-        "generated-contracts",
-        "typescript-contracts",
-        "python-contracts-workers",
-        "rust-contracts-workers",
-        "ui-build",
-        "local-api-connection",
-        "market-workflow",
-        "operations-workflow",
-        "state-migrations"
-      ],
-      "evidence": [
-        {
-          "path": "project/evidence/M1-040-889a3c38e3616d70.json",
-          "sha256": "1923b5a78caab69e6379d8c15c923fde84b0c8fe272bb268b90fc3d5f649a224"
-        },
-        {
-          "path": "project/evidence/M1-040-91494b1bd177c707.json",
-          "sha256": "61c5c1595d74b13f2586919ea3e83f35f66a31cb1c5ea1d07d0e2a653c2adf8e"
-        }
-      ],
-      "next_action": null,
-      "blocker": null,
-      "closure_reason": "The ordinary settings form disconnected the selected local API on Linux and Windows in workflow 45493096486 at the independently reviewed source. After a restart the connection remained absent. Explicitly testing a replacement returned 63.5 USD and the independent CSV reopened at its original revision with a final close of 105. Both a late trial and a stale disconnect were rejected. Network counts confirmed that saving, disconnecting and reopening issued no GET. The Chromium tests used the native Rust and SQLite bridge and checked the named action in Simplified Chinese. Rust, JavaScript and Python exercised the shared disconnect vectors.",
-      "plan": {
-        "outcome": "Disconnect one named loopback connection from the ordinary settings form, reopen to a disconnected view, and configure and explicitly trial a replacement.",
-        "change_types": [
-          "protocol",
-          "ui",
-          "persistence"
-        ],
-        "context": [
-          "M1-030 onboarding acceptance and the accepted M1-039 profile-local loopback capability.",
-          "apps/desktop/ui/src/local-api-settings.tsx",
-          "crates/application/src/workspace/local_api.rs",
-          "tests/ui/local-api-connection.spec.mjs"
-        ],
-        "hypotheses": [
-          "The existing operation, identity, single writer and SQLite singleton can express conditional deletion without a schema migration.",
-          "The portable Rust bridge can exercise the ordinary settings form against two distinct local fixture origins and two sessions on the same private profile."
-        ],
-        "risks": [
-          {
-            "failure": "An old form deletes a replacement or a held response represents another saved connection.",
-            "checks": [
-              "local-api-connection"
-            ]
-          },
-          {
-            "failure": "An implicit GET occurs or another local record changes when the selected API is disconnected.",
-            "checks": [
-              "local-api-connection"
-            ]
-          },
-          {
-            "failure": "A language validator accepts a destructive request without a concrete saved identity.",
-            "checks": [
-              "generated-contracts",
-              "typescript-contracts",
-              "python-contracts-workers",
-              "rust-contracts-workers"
-            ]
-          }
-        ],
-        "rollback": "Back out the UI and operation variant together. The profile format is unchanged, and the user can explicitly re-enter and review a disconnected origin.",
-        "implementation": {
-          "modules": [
-            "ui",
-            "application",
-            "persistence"
-          ],
-          "entrypoints": [
-            "apps/desktop/ui/src/local-api-settings.tsx",
-            "crates/application/src/workspace/local_api.rs",
-            "crates/persistence/src/lib.rs",
-            "tests/ui/local-api-connection.spec.mjs"
-          ],
-          "rules": [
-            {
-              "path": "contracts/market-data-v1.json",
-              "pointer": "/onboarding/external_api"
-            },
-            {
-              "path": "project/development.json",
-              "pointer": "/quality"
-            }
-          ],
-          "non_goals": [
-            "Additional provider types, credentials, background requests, chart adoption, connection lists and database migrations."
-          ],
-          "open_questions": [
-            "The portable bridge checks production UI, registry and persistence. The coordinator owns any additional host acceptance."
-          ]
-        },
-        "evolution": {
-          "kind": "additive",
-          "preserve": [
-            "The M1-039 status, save and trial paths, existing source authority, loopback range, profile format and other source records."
-          ],
-          "change": [
-            "Add an explicit disconnect action scoped to the saved connection ID, update the form to reflect successful disconnection, and reject a stale ID."
-          ],
-          "data_plan": "Delete only the matching singleton row. Do not persist trial data or introduce storage of any other kind.",
-          "cleanup": "Clear the disconnected form and sample state. Keep general connection management with M1-030."
         }
       }
     },
