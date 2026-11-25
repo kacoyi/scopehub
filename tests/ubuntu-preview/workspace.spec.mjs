@@ -19,6 +19,7 @@ import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
 import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
 import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
 import { observeSnapshotGate } from './workspace_snapshot_gate.mjs';
@@ -3698,6 +3699,13 @@ test('the opted-in route binds identity, limits input, and drains cancellation w
     await profile.close();
   }
 });
+
+for (const { name, unixOnly, run } of handoffProbeCases) {
+  test(`handoff subprocess diagnostics distinguish ${name}`, async () => {
+    test.skip(Boolean(unixOnly && process.platform === 'win32'), 'This signal control requires POSIX child exit semantics.');
+    await run();
+  });
+}
 
 test('the private launcher handoff is required and a previous launch cannot authorize a request', async ({ browser }) => {
   const profile = await makeProfile();

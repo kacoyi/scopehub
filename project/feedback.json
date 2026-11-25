@@ -6440,6 +6440,51 @@
         "prevention": "The controlled loopback probe exercises late and withheld IPC, early caller cancellation, admitted and nonretryable replies, and an unrelated error sharing the caller abort as its cause. Each makes one request. In the two deadline cases the probe reports the retained HTTP 429 BUSY retryable fields. All three drain waiters clean their listeners. Exact source evidence: archives/observations/m0-124-indicator-observer/green-58191c3/observed.json (SHA-256 8f7e3598cdbb6e321334bab5e8df343775339dbce0585dc327a18a46770d4895)."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-opaque-process-failure",
+      "source": "Windows browser producer job 139085466034 on protected-main push 45579441190. Canonical aggregate in archives/runs/windows-change-45579441190-1/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The first private-handoff assertion at workspace.spec.mjs:3404 failed with only PowerShell execution. The probe did not retain the stage for startup, timeout, signal, buffer limit or an undeclared nonzero exit. The archived failure does not identify which disposition occurred.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45579441190-1",
+          "source_commit": "c678d0e53a5546138ebf9673af8c627f64446c6c",
+          "report_sha256": "4f70d5b2a7bd139bfb680d4d5038f70a9d2d797f84cab5eb517577377b159b0e"
+        }
+      ],
+      "resolution": {
+        "cause": "The earlier wrapper collapsed undeclared subprocess failures into the generic PowerShell execution label. The condition that caused the original Windows subprocess to fail remains unclassified.",
+        "correction": "Expose a bounded startup, deadline, signal, output limit or exit disposition from the test-owned runner while retaining the existing native ACL assertions and limits.",
+        "prevention": "Guarded native Windows run 45585469848 passed the private handoff ACL assertion, both unsafe fixtures and the profile pool ACL case. If the failure recurs during ordinary Windows verification, retain the exact source, raw report and bound log with the last safe stage and observed subprocess disposition before any retry. Reopen only against that new observation, keeping paths, arguments, SID and stderr out of diagnostics."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-probe-deadline-loses-completed-outcome",
+      "source": "Astra Standard review of 3b1dfe67fb91d2fa264e134e9e8b14f56206b583 and independently repeated Node 24.22.3 child-process observations.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "With a 400 ms limit and descendant-held output pipes, native execFile returned success at 403 ms and declared exit 58 at 404 ms. The candidate took about 1.35 seconds and mislabelled exit 58 as a deadline. The reviewer also observed a child live after timeout rejection and asynchronous overflow controls that emitted no bytes. Synchronous writes to each output descriptor consistently triggered the output limit.",
+      "task_ids": [
+        "M0-125"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The separate abort timer could wait on inherited output after a direct child exited and relabel its existing result. The asynchronous buffer controls did not reliably produce bytes.",
+        "correction": "Use Node execFile to bound pipe closure, preserve finished direct-child outcomes and wait for a running child to terminate. Emit overflow bytes synchronously to each descriptor in the test fixtures.",
+        "prevention": "The guarded Ubuntu suite passed all eleven subprocess controls. The guarded native Windows suite passed ten applicable controls and named the POSIX child-signal skip separately. The controls cover retained streams after success and a declared exit, reaping at a genuine deadline and both output buffer limits."
+      },
+      "deferral_reason": null
     }
   ]
 }
