@@ -217,6 +217,30 @@ def _checked_observations(root, directory, checks):
     return verified
 
 
+def _checked_windows_python(directory, report):
+    records = report.get('windows_python', {})
+    if not isinstance(records, dict) or records.keys() - {'python', 'recovery'}:
+        raise DiagnosticArchiveError('Invalid Windows Python diagnostic part identities')
+    verified = []
+    for lane, part in records.items():
+        name = f'windows-python-{lane}'
+        if not isinstance(part, dict) or part.get('id') != name or part.get('status') not in _HARNESS_STATUSES:
+            raise DiagnosticArchiveError(f'Invalid Windows Python diagnostic part: {lane}')
+        log = name + '.log'
+        manifest = name + '.json'
+        if part['status'] == 'passed' and not {'log', 'log_sha256', 'manifest_sha256'} <= part.keys():
+            raise DiagnosticArchiveError(f'Missing passing Windows Python diagnostic evidence: {lane}')
+        if {'log', 'log_sha256', 'manifest_sha256'}.intersection(part):
+            if part.get('log') != f".reports/runs/{report['run_id']}/{log}":
+                raise DiagnosticArchiveError(f'Missing or misplaced Windows Python diagnostic log: {lane}')
+            _verify_file(directory, log, part.get('log_sha256'))
+            verified.append(log)
+        if 'manifest_sha256' in part:
+            _verify_file(directory, manifest, part['manifest_sha256'])
+            verified.append(manifest)
+    return verified
+
+
 def _files(directory):
     for path in directory.iterdir():
         _parts(path.name)
@@ -350,6 +374,8 @@ def resolve_diagnostic(locator, archive_root):
         directory = report_path.parent
         logs = _checked_logs(directory, report) if kind == 'harness' else []
         observations = _checked_observations(root, directory, report['checks']) if kind == 'harness' else []
+        if kind == 'harness':
+            observations.extend(_checked_windows_python(directory, report))
         candidate_manifest = _verify_candidate(directory, report) if kind == 'harness' else False
         originals = _verified_originals(directory, report) if kind == 'recovery' else []
         manifest = _verify_checksums(directory)

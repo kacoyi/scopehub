@@ -18,7 +18,8 @@ import unittest
 from unittest.mock import patch
 
 from scripts import check as harness
-from scripts import ci_artifacts
+from scripts import ci_artifacts, windows_python
+from scripts.diagnostic_archive import diagnostic_locator, resolve_diagnostic
 from scripts.process_tree import running_group
 from scripts.project import json_bytes, read_json
 from scripts.verification_scope import ScopeError, preview
@@ -499,6 +500,141 @@ class WindowsLaneTests(ProjectFixture):
             reports[lane] = report
             shutil.rmtree(self.reports)
         return reports
+
+    def partition_fixture(self):
+        catalog_path = self.root / 'project/checks.json'
+        catalog = read_json(catalog_path)
+        next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)['command'] = windows_python.COMMAND
+        catalog_path.write_bytes(json_bytes(catalog))
+        for directory in ('scripts', 'tests', 'tests/project'):
+            (self.root / directory).mkdir()
+        shutil.copyfile(Path(__file__).resolve().parents[2] / 'scripts/windows_python.py',
+                        self.root / 'scripts/windows_python.py')
+        for package in ('tests', 'tests/project'):
+            (self.root / package / '__init__.py').write_bytes(b'')
+        (self.root / 'tests/project/test_first.py').write_text(
+            'import unittest\n'
+            'class First(unittest.TestCase):\n'
+            '    def test_prefix(self): self.assertTrue(True)\n'
+            '    @unittest.skip("intentional fixture skip")\n'
+            '    def test_skipped(self): pass\n', encoding='utf-8')
+        (self.root / 'tests/project/test_verification_scope.py').write_text(
+            'import os, unittest\n'
+            'class Second(unittest.TestCase):\n'
+            '    def test_suffix(self):\n'
+            '        self.assertNotIn("SCOPEHUB_BAD_PYTHON", os.environ, "rejected actual suffix fixture")\n',
+            encoding='utf-8')
+
+        def git(*args):
+            return subprocess.check_output(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.org',
+                                            *args], cwd=self.root, stderr=subprocess.PIPE, text=True).strip()
+
+        git('add', '.')
+        tree = git('write-tree')
+        base = read_json(self.event)['pull_request']['base']['sha']
+        head = git('commit-tree', tree, '-p', base, '-m', 'Python fixture head')
+        merge = git('commit-tree', tree, '-p', base, '-p', head, '-m', 'Python fixture merge')
+        git('checkout', '--detach', merge)
+        event = {'number': 1, 'pull_request': {'base': {'sha': base}, 'head': {'sha': head}}}
+        self.event.write_bytes(json_bytes(event))
+        self.enterContext(patch.dict(os.environ, {'GITHUB_SHA': merge, 'SCOPEHUB_SOURCE_HEAD': head}))
+
+    def test_partitioned_python_keeps_catalog_and_publishes_ordered_raw_evidence(self):
+        self.partition_fixture()
+        lanes = self.produce()
+        self.assertEqual([], lanes['python']['selection']['checks'])
+        self.assertEqual(['market-recovery'], lanes['recovery']['selection']['checks'])
+        code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(0, code)
+        self.assertEqual([row['id'] for row in lanes['core']['checks']], [row['id'] for row in report['checks']])
+        self.assertEqual('passed', report['integration_gates']['status'])
+        row = next(check for check in report['checks'] if check['id'] == windows_python.CHECK)
+        raw = (self.root / row['log']).read_text(encoding='utf-8')
+        self.assertLess(raw.index('test_prefix ('), raw.index('test_skipped ('))
+        self.assertLess(raw.index('test_skipped ('), raw.index('test_suffix ('))
+        self.assertIn('Ran 3 tests', raw)
+        self.assertIn('OK (skipped=1)', raw)
+        serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
+                                capture_output=True, text=True, encoding='utf-8', check=True)
+        self.assertEqual([line for line in serial.stderr.splitlines() if ' ... ' in line],
+                         [line for line in raw.splitlines() if ' ... ' in line])
+        archive = self.downloads / 'published'
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, archive, os.environ))
+        for lane in windows_python.LANES:
+            producer = lanes[lane]['windows_python'][lane]
+            path = producer['log'].removeprefix('.reports/')
+            original = self.downloads / f'verification-windows-2-{lane}' / path
+            self.assertEqual(original.read_bytes(), (archive / path).read_bytes())
+
+        locator = diagnostic_locator(archive / 'test-report.json')
+        archived = resolve_diagnostic(locator, archive)
+        self.assertEqual(sorted(f'windows-python-{lane}.{suffix}'
+                                for lane in windows_python.LANES for suffix in ('json', 'log')),
+                         sorted(archived['verified_observations']))
+        shutil.rmtree(archive)
+
+        shutil.rmtree(self.reports)
+        native = self.downloads / 'verification-windows-2-python'
+        report_path = native / 'test-report.json'
+        report = read_json(report_path)
+        run_path = native / 'runs' / report['run_id']
+        manifest_path = run_path / 'windows-python-python.json'
+        manifest = read_json(manifest_path)
+        manifest['cases'].append(manifest['cases'][0])
+        manifest_path.write_bytes(json_bytes(manifest))
+        report['windows_python']['python']['manifest_sha256'] = harness.file_digest(manifest_path)
+        for target in (report_path, run_path / 'test-report.json'):
+            target.write_bytes(json_bytes(report))
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'duplicate or reordered'):
+            self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+
+    def test_partitioned_python_rejects_failed_and_interrupted_parts(self):
+        self.partition_fixture()
+        self.produce()
+        recovery = self.downloads / 'verification-windows-2-recovery'
+        shutil.rmtree(recovery)
+        with patch.dict(os.environ, {'SCOPEHUB_BAD_PYTHON': '1'}):
+            serial = subprocess.run([sys.executable, *windows_python.COMMAND[1:]], cwd=self.root,
+                                    capture_output=True, text=True, encoding='utf-8')
+            code, producer = self.run_harness('--ci-windows-lane', 'recovery')
+        self.assertEqual(1, serial.returncode)
+        self.assertEqual(1, code)
+        self.assertTrue(ci_artifacts.stage_artifacts(self.root, recovery, os.environ, lane=True))
+        shutil.rmtree(self.reports)
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'failure'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(1, code)
+        row = next(check for check in report['checks'] if check['id'] == windows_python.CHECK)
+        self.assertEqual(('failed', 1), (row['status'], row['exit_code']))
+        merged = (self.root / row['log']).read_text(encoding='utf-8')
+        self.assertIn('rejected actual suffix fixture', merged)
+        self.assertEqual([line for line in serial.stderr.splitlines() if ' ... ' in line],
+                         [line for line in merged.splitlines() if ' ... ' in line])
+
+        # The normal check process tree owns cancellation. Exercise collection of its partial raw log without
+        # the completion manifest, and prove that missing part metadata cannot report success either.
+        shutil.rmtree(self.reports)
+        part = producer['windows_python']['recovery']
+        artifact_run = recovery / 'runs' / producer['run_id']
+        part_log = artifact_run / 'windows-python-recovery.log'
+        part_log.write_bytes(b'part started\nCheck stopped: interrupted.\n')
+        part.update(exit_code=None, log_sha256=harness.file_digest(part_log), reason_code='interrupted')
+        del part['manifest_sha256']
+        (artifact_run / 'windows-python-recovery.json').unlink()
+        for target in (recovery / 'test-report.json', artifact_run / 'test-report.json'):
+            target.write_bytes(json_bytes(producer))
+        with patch.dict(os.environ, {'SCOPEHUB_WINDOWS_LANE_RESULT': 'cancelled'}):
+            code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
+        self.assertEqual(1, code)
+        row = next(check for check in report['checks'] if check['id'] == windows_python.CHECK)
+        self.assertEqual(('failed', 'interrupted'), (row['status'], row['reason_code']))
+        self.assertIn(b'Check stopped: interrupted.', (self.root / row['log']).read_bytes())
+        shutil.rmtree(self.reports)
+        del producer['windows_python']
+        for target in (recovery / 'test-report.json', artifact_run / 'test-report.json'):
+            target.write_bytes(json_bytes(producer))
+        with self.assertRaisesRegex(ci_artifacts.PublicationError, 'Missing or unexpected Windows Python parts'):
+            self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
 
     def test_full_windows_producers_own_disjoint_commands_without_same_runner_overlap(self):
         expected = {

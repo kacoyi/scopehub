@@ -10,7 +10,8 @@ import shutil
 import tempfile
 
 if __package__:
-    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
+    from . import windows_python
+    from .check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, check_timeout, ci_provenance, redacted_check_log, select_checks,
                         windows_lane_checks, windows_lanes_run_id)
     from .project import (ProjectError, digest, file_digest, json_bytes, load_project,
                           project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
@@ -24,7 +25,8 @@ if __package__:
     )
     from .verification_scope import SCOPED_PROFILES, ci_base, ci_event_checkout, require_ancestor
 else:
-    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, ci_provenance, redacted_check_log,
+    import windows_python
+    from check import (PRIVATE_CHECK_LOGS, WINDOWS_LANES, check_timeout, ci_provenance, redacted_check_log, select_checks,
                        windows_lane_checks, windows_lanes_run_id)
     from project import (ProjectError, digest, file_digest, json_bytes, load_project,
                          project_definition_hash, source_identity, task_definition_hash, validate_model, windows_x64)
@@ -251,6 +253,85 @@ def stage_candidate(reports, destination, run, report, policy, *, expected):
         release_artifacts(destination / run, source, policy, expected=expected, hosted=True)
 
 
+def python_parts(reports, report, lanes, destination=None):
+    """Validate and optionally retain native part evidence from one authenticated report."""
+    records = report.get('windows_python', {})
+    if set(records) != set(lanes):
+        raise PublicationError('Missing or unexpected Windows Python parts.')
+    parts = []
+    run = f"runs/{report['run_id']}"
+    for lane in lanes:
+        record = records[lane]
+        label = windows_python.part_id(lane)
+        command = windows_python.command(report['environment']['python_executable'], lane)
+        if record['id'] != label or record['command'] != command:
+            raise PublicationError('The Windows Python part command or identity differs from its producer.')
+        log = f'{run}/{label}.log'
+        manifest = f'{run}/{label}.json'
+        has_log = 'log' in record
+        passed = record['status'] == 'passed'
+        if has_log and (record['log'] != '.reports/' + log or 'log_sha256' not in record
+                        or 'started_at' not in record or duration(record.get('duration_seconds')) is None
+                        or 'exit_code' not in record):
+            raise PublicationError('Incomplete Windows Python process evidence.')
+        if not has_log and (record.get('reason_code') not in {'earlier_failure', 'executable_unavailable'}
+                            or {'log_sha256', 'started_at', 'duration_seconds', 'exit_code'}.intersection(record)):
+            raise PublicationError('Missing Windows Python process log without a blocked launch.')
+        if passed and (not has_log or record.get('exit_code') != 0 or record.get('reason_code')
+                       or 'manifest_sha256' not in record):
+            raise PublicationError('Windows Python part claims a pass without complete successful evidence.')
+        if not passed and record.get('exit_code') == 0 and not record.get('reason_code'):
+            raise PublicationError('Windows Python part failure has no corresponding process result.')
+        raw = bound_bytes(checked_path(reports, log), record['log_sha256']) if has_log else b''
+        contents = manifest_value = None
+        if 'manifest_sha256' in record:
+            if not has_log:
+                raise PublicationError('Windows Python case manifest has no process log.')
+            contents = bound_bytes(checked_path(reports, manifest), record['manifest_sha256'])
+            try:
+                manifest_value = evidence_json(contents)
+                windows_python.verify_manifest(manifest_value, lane, passed)
+                windows_python.log_sections(raw)
+            except (TypeError, ValueError, KeyError) as error:
+                raise PublicationError(str(error)) from error
+        if report['status'] == 'passed' and not passed:
+            raise PublicationError('A successful Windows report contains a failed Python part.')
+        if destination is not None:
+            if has_log:
+                write_artifact(destination / log, raw)
+            if contents is not None:
+                write_artifact(destination / manifest, contents)
+        parts.append((record, raw, manifest_value))
+    return parts
+
+
+def combined_python(project, report, parts):
+    try:
+        status, raw = windows_python.combine(parts)
+        elapsed = windows_python.elapsed_seconds(parts)
+    except (ValueError, KeyError, TypeError) as error:
+        raise PublicationError(str(error)) from error
+    python = report['environment']['python_executable']
+    check = project['checks'][windows_python.CHECK]
+    command = [python if arg == '{python}' else arg for arg in check['command']]
+    expired = status == 'passed' and elapsed > check_timeout(check, 'Windows')
+    if expired:
+        status = 'failed'
+        raw += b'\nThe combined Windows Python check exceeded its timeout.\n'
+    record = {'id': windows_python.CHECK, 'status': status, 'command': command,
+              'exit_code': 0, 'duration_seconds': elapsed,
+              'log': f".reports/runs/{report['run_id']}/{windows_python.CHECK}.log",
+              'log_sha256': digest(raw)}
+    if expired:
+        record.update(exit_code=None, reason_code='timeout')
+    elif status == 'failed':
+        failed = next(part for part, _, _ in parts if part['status'] != 'passed')
+        record.update(exit_code=failed.get('exit_code', 1))
+        if 'reason_code' in failed:
+            record['reason_code'] = failed['reason_code']
+    return record, raw
+
+
 def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     reports = root / '.reports' if reports is None else reports
     latest = optional_path(reports, 'test-report.json')
@@ -273,6 +354,18 @@ def stage_artifacts(root, destination, env, *, reports=None, lane=False):
     scope = None if lane else scope_provenance(report, digest(contents), env)
     project = load_project(root)
     destination.mkdir()
+    profile = report.get('selection', {}).get('profile')
+    required_parts = ()
+    if windows_x64(report['environment']) and windows_python.enabled(project, expected, select_checks(project)):
+        if lane:
+            required_parts = tuple(part for part in windows_python.LANES if profile == f'ci-windows-{part}')
+        elif profile == 'full':
+            required_parts = windows_python.LANES
+    parts = python_parts(reports, report, required_parts, destination)
+    if required_parts == windows_python.LANES:
+        check, _ = combined_python(project, report, parts)
+        if [row for row in report['checks'] if row['id'] == windows_python.CHECK] != [check]:
+            raise PublicationError('The Windows Python check differs from its original part results.')
     executed = {}
     # The hosted producer logs synthetic inputs and redacted outcomes. The catalog owns check identities.
     for result in report['checks']:
@@ -411,8 +504,10 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
     reports = root / '.reports'
     run_id = windows_lanes_run_id(ci)
     rows = {}
+    partitioned = not profile and windows_python.enabled(project, ci, selected)
     started = []
     caches = {}
+    python_records = {}
     with tempfile.TemporaryDirectory(prefix='scopehub-windows-', dir=env.get('RUNNER_TEMP')) as directory:
         for lane in names:
             incoming = checked_path(downloads, prefix + lane, directory=True)
@@ -420,7 +515,7 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
             if not stage_artifacts(root, staged, env, reports=incoming, lane=not profile):
                 raise PublicationError(f'Windows {lane} lane has no finalized report.')
             report = evidence_json((staged / 'test-report.json').read_bytes())
-            lane_selection = selected if profile else windows_lane_checks(selected, lane)
+            lane_selection = selected if profile else windows_lane_checks(selected, lane, python_split=partitioned)
             validate_windows_lane(project, report, source, ci, lane_selection, lane, profile or f'ci-windows-{lane}')
             if profile and report['status'] == 'passed' and env.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success':
                 raise PublicationError('The scoped Windows lane job did not succeed.')
@@ -432,6 +527,8 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                     raise PublicationError(f'Windows {lane} lane has another report identity or Python executable.')
                 started.append(datetime.fromisoformat(report['generated_at']).timestamp() - report['timing']['elapsed_seconds'])
                 rows.update((row['id'], row) for row in report['checks'] if lane == 'core' or row['id'] in lane_selection)
+                if partitioned and lane in windows_python.LANES:
+                    python_records[lane] = report['windows_python'][lane]
             for file in staged.rglob('*'):
                 if file.is_file() and (profile or file.name != 'test-report.json'):
                     relative = file.relative_to(staged)
@@ -450,6 +547,13 @@ def collect_windows_lanes(root, downloads, project, source, ci, selected, env, *
                 stream.write(f'windows_caches={json.dumps(caches, sort_keys=True)}\n')
     if profile:
         return core, 0
+    if partitioned:
+        core['windows_python'] = python_records
+        verdict = 'failed' if any(record['status'] != 'passed' for record in python_records.values()) else core['status']
+        parts = python_parts(reports, {**core, 'status': verdict}, windows_python.LANES)
+        python_result, raw = combined_python(project, core, parts)
+        write_artifact(root / python_result['log'], raw)
+        rows[windows_python.CHECK] = python_result
     core['checks'] = [rows[check['id']] for check in project['catalog']['checks']]
     (reports / 'runs' / run_id).mkdir(parents=True, exist_ok=True)
     return core, max(0, datetime.now(timezone.utc).timestamp() - min(started))

@@ -25,6 +25,7 @@ else:
 
 try:
     if __package__:
+        from . import windows_python
         from .doctor import tool_version
         from .processes import log_tail, run_logged
         from .project import (
@@ -38,6 +39,7 @@ try:
             integration_validation, redacted_check_log, release_artifacts,
         )
     else:
+        import windows_python
         from doctor import tool_version
         from processes import log_tail, run_logged
         from project import (
@@ -137,7 +139,9 @@ def check_timeout(check, system):
     return check.get('windows_timeout_seconds', default) if system == 'Windows' else default
 
 
-def windows_lane_checks(selected, lane):
+def windows_lane_checks(selected, lane, *, python_split=False):
+    if python_split and lane == 'python':
+        return set()
     if lane == 'core':
         return selected.difference(*WINDOWS_LANE_CHECKS.values())
     return selected & WINDOWS_LANE_CHECKS[lane]
@@ -302,8 +306,9 @@ def main():
         parser.error('A Windows lane uses its fixed selection')
     if args.ci_windows_aggregate and not (args.require_windows or args.profile):
         parser.error('The Windows aggregate requires a full native or scoped selection')
+    python_split = split and not args.profile and windows_python.enabled(project, ci, selected)
     if args.ci_windows_lane:
-        selected = windows_lane_checks(selected, args.ci_windows_lane)
+        selected = windows_lane_checks(selected, args.ci_windows_lane, python_split=python_split)
     maintain_automatically(ROOT)
     project_hash = project_definition_hash(project)
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-' + uuid4().hex[:8]
@@ -326,6 +331,8 @@ def main():
     overlap = (hosted_full and not args.ci_windows_lane and
                not any(env.get(key) for key in ('CARGO_TARGET_DIR', 'CARGO_BUILD_TARGET_DIR', 'CARGO_BUILD_BUILD_DIR')))
     concurrent_results = {}
+    python_parts = {}
+    part_failed = False
     if args.ci_windows_aggregate:
         if __package__:
             from .ci_artifacts import collect_windows_lanes
@@ -338,6 +345,7 @@ def main():
             raise SystemExit(0 if imported['status'] == 'passed' else 1)
         environment = imported['environment']
         results = imported['checks']
+        python_parts = imported.get('windows_python', {})
         started = time.monotonic() - elapsed
         catalog = []
     else:
@@ -388,6 +396,26 @@ def main():
             if result.get('reason_code') in STOP_REASONS or (
                     result['status'] != 'passed' and (args.fail_fast or args.profile == 'fast' or check['id'] == 'environment')):
                 stopped = True
+    if python_split and args.ci_windows_lane in windows_python.LANES:
+        lane = args.ci_windows_lane
+        label = windows_python.part_id(lane)
+        part_command = windows_python.command(sys.executable, lane)
+        if stopped:
+            record = {'id': label, 'status': 'failed', 'command': part_command, 'reason_code': 'earlier_failure'}
+        else:
+            timeout = check_timeout(project['checks'][windows_python.CHECK], environment['system'])
+            part_start = datetime.now(timezone.utc).isoformat()
+            record = execute(label, part_command, env, run_dir, timeout)
+            if 'duration_seconds' in record:
+                record['started_at'] = part_start
+            manifest = run_dir / f'{label}.json'
+            if manifest.is_file():
+                record['manifest_sha256'] = file_digest(manifest)
+            elif record['status'] == 'passed':
+                record.update(status='failed', reason_code='missing_acceptance_evidence',
+                              reason='Windows Python part completed without its case manifest.')
+        python_parts[lane] = record
+        part_failed = record['status'] != 'passed'
     final_source = source_identity(ROOT)
     source_unchanged = final_source['sha256'] == source['sha256']
     if ci:
@@ -418,7 +446,7 @@ def main():
     if integration_blocked:
         passed = False
     lane_failure = bool(args.ci_windows_aggregate and os.environ.get('SCOPEHUB_WINDOWS_LANE_RESULT') != 'success')
-    failed = (any(result['status'] == 'failed' for result in implemented) or lane_failure
+    failed = (any(result['status'] == 'failed' for result in implemented) or lane_failure or part_failed
               or not source_unchanged or not project_unchanged)
     milestones, acceptance = product_progress(project, results)
     report = {
@@ -449,6 +477,8 @@ def main():
             'A dirty-worktree digest identifies tested inputs but does not independently preserve their source bytes.',
         ],
     }
+    if python_parts:
+        report['windows_python'] = python_parts
     if args.ci_windows_aggregate:
         report['limitations'].append('Elapsed time covers the interval from the first lane harness start to aggregation.')
     if lane_failure:
