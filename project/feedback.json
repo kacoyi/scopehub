@@ -3726,7 +3726,8 @@
       "status": "open",
       "observation": "A synthetic same-user profile reopened its frozen data at the original location. Moving the complete profile made it return INTERNAL_ERROR until moved back. A supported recovery or explicit rebind must preserve the original database and access boundaries.",
       "task_ids": [
-        "M5-001"
+        "M5-001",
+        "M5-005"
       ],
       "regression_checks": [
         "state-migrations",
@@ -6980,6 +6981,129 @@
         "cause": "The status command loaded one predecessor's immutable delivery policy once for each periodic rule, after already reading that same revision for the observation.",
         "correction": "Read each predecessor policy once within the current status call and supply it to the per-rule comparison. Continue obtaining current refs, working files, evidence and ancestry through their ordinary paths.",
         "prevention": "The paired public status fixture keeps the accepted successor and reversed ancestor, checks the full output bytes and traces the actual Git calls. The three pairs per case retained 41 to 36 and 42 to 37 total Git invocations."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "profile-admission-after-relocation-review",
+      "source": "Independent Astra Standard at d89a332 and archives/runs/20261125T042136.288677Z-f883380f/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The reviewed profile opener discarded a retained synthetic WAL when the main file was empty, reused the relocated identity at the old path, and rejected a valid anchor after sampling earlier existence.",
+      "task_ids": [
+        "M5-005"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "resolution": {
+        "cause": "SQLite saw the damaged main file before raw admission and startup sampled identity in separate steps. New native databases reused the path hash.",
+        "correction": "Reject damaged journal sets ahead of SQLite, serialize startup and keep a permanent new identity for a new database.",
+        "prevention": "Linux storage and desktop tests cover retained bytes, legacy recovery, relocated and recreated namespaces, original provenance and simultaneous opens."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T042136.288677Z-f883380f",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
+        }
+      ]
+    },
+    {
+      "id": "profile-lock-inventory-stale",
+      "source": "Hosted dependency-review at archives/runs/20261125T040109.068237Z-3777721b/test-report.json and archives/runs/windows-change-45543738130-1/test-report.json.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "Hosted run 45543738130 failed dependency-review on Linux and Windows. The reviewed Cargo.lock added a dependency edge and the retained inventory still recorded the previous lock digest.",
+      "task_ids": [
+        "M5-005"
+      ],
+      "regression_checks": [
+        "dependency-review"
+      ],
+      "resolution": {
+        "cause": "The Cargo dependency graph changed while the inventory still named the previous Cargo.lock digest.",
+        "correction": "Refresh the inventory from the exact lock and review its unchanged package and license set.",
+        "prevention": "The exact clean Linux commit passed an online dependency review with zero unresolved findings. Hosted freshness remains a separate observation."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T040109.068237Z-3777721b",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
+        },
+        {
+          "run_id": "windows-change-45543738130-1",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
+        }
+      ]
+    },
+    {
+      "id": "profile-ntfs-hard-link-admission",
+      "source": "Independent Astra Standard at d89a332, Windows workspace admission review.",
+      "severity": "major",
+      "status": "open",
+      "observation": "The reviewed NTFS admission used owner and DACL checks without checking the number of names for the same file handle. A relocated folder could share a SQLite main file or journal with the original. Run the new granted and denied handle checks on Windows, then verify the exact package under M5-001.",
+      "task_ids": [
+        "M5-005",
+        "M5-001"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "windows-installation"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "desktop-origin-account-and-initial-recovery-review",
+      "source": "Independent Astra Standard at d99800f and retained Windows host diagnostic.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "A database-only restore at the original path can claim a new-format identity from another account. An interrupted first commit can leave a hot rollback journal that fails every read-only preflight.",
+      "task_ids": [
+        "M5-006"
+      ],
+      "regression_checks": [
+        "state-migrations",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45547568595-1",
+          "source_commit": "33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d",
+          "report_sha256": "561d938ea4d932d383aa6fc645ef7b1cb3efae8a1dde33a40dbf3acebe9ea7dc"
+        }
+      ],
+      "resolution": {
+        "cause": "The initial transaction wrote the definitive main file before journal cleanup. An unanchored new identity proved only the original path.",
+        "correction": "Finish initial migration in a private same-directory file, synchronize its publication, and require matching origin account and path when replacing a fresh anchor.",
+        "prevention": "A bundled SQLite child leaves an actual hot journal. The recovery test compares retained bytes for staged and historical files, and the attribution controls exercise same-account success and foreign and unproven refusals."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "desktop-recovery-native-admission-integration",
+      "source": "Local three-way merge of PR 95 a59dfe1 and protected main 87dd079. The storage admission, desktop native worker test entry and dependency manifests conflicted. The original conflict transcript is retained in archives/observations/repo-hygiene-20261125/m5-007-desktop-composition-de94598c/merge-original.log. The first build retained a test reference to the removed production script and failed in archives/observations/repo-hygiene-20261125/m5-007-desktop-composition-de94598c/merged-relocation-obsolete-fixture-red.log.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The protected native preflight returns an admission result for SQLite files, while the recovery branch additionally needs the original-account fingerprint and checks for ownership metadata. Keeping either side alone would omit one of these required behaviors.",
+      "task_ids": [
+        "M5-007"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "state-migrations",
+        "operations-workflow"
+      ],
+      "resolution": {
+        "cause": "The protected native admission and the desktop recovery work changed the same storage and worker entries. Their first integration also retained a fixture referring to the retired script.",
+        "correction": "Compose native worker admission with the original account fingerprint and profile ownership checks before opening SQLite. Exercise the resulting desktop and persistence paths with their current worker entry.",
+        "prevention": "The matched Linux and Windows task runs cover relocation, initialization after interruption, refused NTFS links, preserved WAL and independent profile identities through the real migration and desktop tests."
       },
       "deferral_reason": null
     }

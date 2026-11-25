@@ -1,13 +1,74 @@
 //! Verify filesystem ownership and access before SQLite touches a profile.
 
-use std::{io, num::NonZeroU8, path::Path};
+use std::{
+    fs::{self, File},
+    io::{self, Write},
+    num::NonZeroU8,
+    path::{Path, PathBuf},
+    thread,
+    time::{Duration, Instant},
+};
 
-const FILES: [&str; 4] = [
+pub(super) const PROFILE_ANCHOR: &str = "desktop-profile.v1";
+const STARTUP_LOCK: &str = "workspace-startup.lock";
+const FILES: [&str; 6] = [
     super::DATABASE_NAME,
     "workspace.sqlite3-wal",
     "workspace.sqlite3-shm",
     "workspace.sqlite3-journal",
+    PROFILE_ANCHOR,
+    STARTUP_LOCK,
 ];
+
+#[derive(Debug)]
+pub(super) struct ProfileStorage {
+    pub database: PathBuf,
+    pub main_len: Option<u64>,
+    _startup: File,
+    pub owner: Option<String>,
+}
+
+fn lock_startup(file: File) -> io::Result<File> {
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        match file.try_lock() {
+            Ok(()) => return Ok(file),
+            Err(std::fs::TryLockError::WouldBlock) if Instant::now() < deadline => {
+                thread::sleep(Duration::from_millis(20));
+            }
+            Err(std::fs::TryLockError::WouldBlock) => return Err(io::ErrorKind::WouldBlock.into()),
+            Err(std::fs::TryLockError::Error(error)) => return Err(error),
+        }
+    }
+}
+
+fn inspect_files(
+    directory: &Path,
+    startup: File,
+    owner: Option<String>,
+    check_file: impl Fn(&Path) -> io::Result<Option<u64>>,
+) -> io::Result<ProfileStorage> {
+    let database = directory.join(FILES[0]);
+    let main_len = check_file(&database)?;
+    for name in &FILES[1..4] {
+        let sidecar_len = check_file(&directory.join(name))?;
+        // Even SQLite read-only preflight can attempt to delete a WAL next to
+        // a zero-page main database. Leave the entire damaged set untouched.
+        if main_len.unwrap_or(0) == 0 && sidecar_len.is_some_and(|size| size != 0) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "SQLite sidecar without a nonempty main database",
+            ));
+        }
+    }
+    check_file(&directory.join(PROFILE_ANCHOR))?;
+    Ok(ProfileStorage {
+        database,
+        main_len,
+        owner,
+        _startup: startup,
+    })
+}
 
 fn denied() -> io::Error {
     io::ErrorKind::PermissionDenied.into()
@@ -43,12 +104,63 @@ pub(super) fn prepare_profile_pool(path: &Path, count: NonZeroU8) -> io::Result<
 
 pub(super) use platform::open_path;
 
+#[cfg(test)]
+pub(super) fn create_fixture_file(path: &Path) -> io::Result<File> {
+    platform::create_private_file(path)
+}
+
+pub(super) fn new_initial_database(path: &Path) -> io::Result<PathBuf> {
+    let staged = path.with_file_name(format!(".workspace-initial-{}", uuid::Uuid::new_v4()));
+    platform::create_private_file(&staged)?;
+    Ok(staged)
+}
+
+pub(super) fn publish_initial_database(staged: &Path, path: &Path) -> io::Result<()> {
+    fs::OpenOptions::new()
+        .write(true)
+        .open(staged)?
+        .sync_all()?;
+    publish_staged(staged, path)
+}
+
+fn publish_staged(staged: &Path, path: &Path) -> io::Result<()> {
+    fs::rename(staged, path)?;
+    #[cfg(unix)]
+    File::open(path.parent().ok_or_else(denied)?)?.sync_all()?;
+    #[cfg(windows)]
+    fs::OpenOptions::new().write(true).open(path)?.sync_all()?;
+    Ok(())
+}
+
+pub(super) fn publish_anchor(path: &Path, content: &[u8]) -> io::Result<()> {
+    let directory = path.parent().ok_or_else(denied)?;
+    let temporary = directory.join(format!(".desktop-profile-{}", uuid::Uuid::new_v4()));
+    let mut file = platform::create_private_file(&temporary)?;
+    let written = file.write_all(content).and_then(|()| file.sync_all());
+    drop(file);
+    let installed = written.and_then(|()| publish_staged(&temporary, path));
+    if installed.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    installed
+}
+
+#[cfg(target_os = "linux")]
+fn owner_digest(principal: &str) -> String {
+    use sha2::{Digest, Sha256};
+
+    let mut digest = Sha256::new();
+    digest.update(b"ScopeHub desktop profile owner v1\0");
+    digest.update(principal.as_bytes());
+    format!("{:x}", digest.finalize())
+}
+
 #[cfg(unix)]
 mod platform {
     use std::{
-        fs::{self, DirBuilder, OpenOptions},
+        fs::{DirBuilder, OpenOptions},
         os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
-        path::{Component, PathBuf},
+        path::Component,
         process::Command,
     };
 
@@ -118,7 +230,7 @@ mod platform {
         check_private_directory(directory, uid)
     }
 
-    fn check_file(path: &Path, uid: u32) -> io::Result<bool> {
+    fn check_file(path: &Path, uid: u32) -> io::Result<Option<u64>> {
         match fs::symlink_metadata(path) {
             Ok(metadata) => {
                 if !metadata.is_file()
@@ -128,9 +240,9 @@ mod platform {
                 {
                     return Err(denied());
                 }
-                Ok(true)
+                Ok(Some(metadata.len()))
             }
-            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
             Err(error) => Err(error),
         }
     }
@@ -139,34 +251,46 @@ mod platform {
         profile(path, effective_uid()?, true).map(|_| ())
     }
 
-    pub(in super::super) fn open_path(root: &Path) -> io::Result<(PathBuf, bool)> {
+    #[cfg(target_os = "linux")]
+    fn owner(uid: u32) -> Option<String> {
+        let machine = fs::read_to_string("/etc/machine-id").ok()?;
+        let machine = machine.trim();
+        (machine.len() == 32
+            && machine.bytes().all(|byte| byte.is_ascii_hexdigit())
+            && machine.bytes().any(|byte| byte != b'0'))
+        .then(|| owner_digest(&format!("linux:{machine}:{uid}")))
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn owner(_: u32) -> Option<String> {
+        None
+    }
+
+    pub(in super::super) fn open_path(root: &Path) -> io::Result<ProfileStorage> {
         let uid = effective_uid()?;
         let directory = profile(root, uid, false)?;
-        let path = directory.join(FILES[0]);
-        let exists = check_file(&path, uid)?;
-        // Refuse unsafe sidecars before SQLite can recover, truncate or unlink them.
-        for name in &FILES[1..] {
-            check_file(&directory.join(name), uid)?;
-        }
-        if exists {
-            return Ok((path, true));
-        }
-        // SQLite derives its WAL, SHM and journal file mode from the database.
-        match OpenOptions::new()
+        let lock = directory.join(STARTUP_LOCK);
+        check_file(&lock, uid)?;
+        let startup = lock_startup(
+            OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .mode(0o600)
+                .open(&lock)?,
+        )?;
+        inspect_files(&directory, startup, owner(uid), |path| {
+            check_file(path, uid)
+        })
+    }
+
+    pub(super) fn create_private_file(path: &Path) -> io::Result<File> {
+        OpenOptions::new()
             .write(true)
             .create_new(true)
             .mode(0o600)
-            .open(&path)
-        {
-            Ok(_) => Ok((path, false)),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if !check_file(&path, uid)? {
-                    return Err(error);
-                }
-                Ok((path, true))
-            }
-            Err(error) => Err(error),
-        }
+            .open(path)
     }
 }
 
@@ -220,44 +344,86 @@ fn workspace_acl_worker() {
 
 #[cfg(windows)]
 mod platform {
-    use std::path::PathBuf;
+    use std::{fs::OpenOptions, os::windows::fs::OpenOptionsExt};
 
     use super::*;
 
-    fn check_acl(path: &Path, prepare: bool, children: u8) -> io::Result<()> {
+    fn configure_acl_test_host() {
         #[cfg(test)]
         scopehub_platform::workspace_acl::use_test_host("storage::workspace_acl_worker");
-
-        scopehub_platform::workspace_acl::check(path, prepare, children)
     }
 
     pub(super) fn prepare(path: &Path) -> io::Result<()> {
-        check_acl(path, true, 0)
+        configure_acl_test_host();
+        scopehub_platform::workspace_acl::check(path, true, 0)
     }
 
     pub(super) fn prepare_pool(path: &Path, count: NonZeroU8) -> io::Result<()> {
-        check_acl(path, true, count.get())
+        configure_acl_test_host();
+        scopehub_platform::workspace_acl::check(path, true, count.get())
     }
 
-    pub(in super::super) fn open_path(root: &Path) -> io::Result<(PathBuf, bool)> {
-        check_acl(root, false, 0)?;
-        let path = root.join(FILES[0]);
-        let exists = path.try_exists()?;
-        Ok((path, exists))
+    const OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+    const DIRECTORY_OR_REPARSE: u64 = 0x10 | 0x400;
+
+    fn file_length(file: &File) -> io::Result<u64> {
+        let handle = winapi_util::HandleRef::from_file(file);
+        let identity = winapi_util::file::information(handle)?;
+        if identity.number_of_links() != 1 || identity.file_attributes() & DIRECTORY_OR_REPARSE != 0
+        {
+            return Err(denied());
+        }
+        Ok(identity.file_size())
+    }
+
+    fn check_file(path: &Path) -> io::Result<Option<u64>> {
+        // Open the entry itself. Attributes, size and link count all describe
+        // the same NTFS handle, including when the entry names a hard link.
+        match OpenOptions::new()
+            .access_mode(0)
+            .custom_flags(OPEN_REPARSE_POINT)
+            .open(path)
+        {
+            Ok(file) => file_length(&file).map(Some),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
+
+    pub(in super::super) fn open_path(root: &Path) -> io::Result<ProfileStorage> {
+        configure_acl_test_host();
+        let owner = scopehub_platform::workspace_acl::check_profile_owner(root)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .custom_flags(OPEN_REPARSE_POINT)
+            .share_mode(3)
+            .open(root.join(STARTUP_LOCK))?;
+        file_length(&file)?;
+        let startup = lock_startup(file)?;
+        inspect_files(root, startup, Some(owner), check_file)
+    }
+
+    pub(super) fn create_private_file(path: &Path) -> io::Result<File> {
+        OpenOptions::new().write(true).create_new(true).open(path)
     }
 }
 
 #[cfg(not(any(unix, windows)))]
 mod platform {
-    use std::path::PathBuf;
-
     use super::*;
 
     pub(super) fn prepare(_: &Path) -> io::Result<()> {
         Err(io::ErrorKind::Unsupported.into())
     }
 
-    pub(in super::super) fn open_path(_: &Path) -> io::Result<(PathBuf, bool)> {
+    pub(in super::super) fn open_path(_: &Path) -> io::Result<ProfileStorage> {
+        Err(io::ErrorKind::Unsupported.into())
+    }
+
+    pub(super) fn create_private_file(_: &Path) -> io::Result<File> {
         Err(io::ErrorKind::Unsupported.into())
     }
 }

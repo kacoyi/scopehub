@@ -231,6 +231,23 @@ pub fn check(path: &Path, prepare: bool, children: u8) -> io::Result<()> {
     supervise(action, command, DEADLINE)
 }
 
+/// Admit a Windows profile and derive its stable original-account fingerprint.
+pub fn check_profile_owner(path: &Path) -> io::Result<String> {
+    check(path, false, 0)?;
+    // The supervised child runs with the same primary token as this process.
+    let user = windows::current_user().map_err(|_| permission_refused("open", "account"))?;
+    Ok(profile_owner_fingerprint(&user))
+}
+
+fn profile_owner_fingerprint(user: &str) -> String {
+    use sha2::{Digest, Sha256};
+
+    let mut digest = Sha256::new();
+    digest.update(b"ScopeHub desktop profile owner v1\0windows:");
+    digest.update(user.as_bytes());
+    format!("{:x}", digest.finalize())
+}
+
 struct Launch {
     job: Job,
     child: Child,
@@ -444,6 +461,13 @@ fn supervise_with_launcher(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn profile_owner_fingerprint_preserves_the_existing_windows_format() {
+        assert_eq!(
+            super::profile_owner_fingerprint("S-1-5-21-101-202-303-404"),
+            "6334a64abfec3fba17ca5fa5ac01187f27d09f7be5d478ab0e3ff0aba982084e"
+        );
+    }
     use super::*;
 
     const PROBE: &str = "SCOPEHUB_ACL_STALL_PROBE";

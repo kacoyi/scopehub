@@ -24,7 +24,7 @@ use scopehub_application::{
 use scopehub_domain::protocol::{
     CsvMappingV1, Error, ErrorCode, ReadLocalFolderSourceRowInput, ReadLocalImportSourceRowInput,
 };
-use scopehub_persistence::SqliteWorkspace;
+use scopehub_persistence::{OpenWorkspaceError, SqliteWorkspace};
 use scopehub_platform::local_folder::FrozenFile;
 #[cfg(any(windows, test))]
 use scopehub_platform::model_credentials::CredentialLifetime;
@@ -860,14 +860,17 @@ impl BoundWorkspace {
             .ok_or_else(|| failure(ErrorCode::INTERNALERROR))?;
         let digest = Sha256::digest(native_path.as_bytes());
         let profile_id = format!("desktop-development:{digest:x}");
-        let store = SqliteWorkspace::open(
+        let (store, profile_id) = SqliteWorkspace::open_desktop_profile(
             &directory,
             WorkspaceBinding {
-                profile_id: profile_id.clone(),
+                profile_id,
                 workspace_id: WORKSPACE_ID.into(),
             },
         )
-        .map_err(|_| failure(ErrorCode::INTERNALERROR))?;
+        .map_err(|error| match error {
+            OpenWorkspaceError::Busy => failure(ErrorCode::BUSY),
+            _ => failure(ErrorCode::INTERNALERROR),
+        })?;
         Ok(Self {
             registry: OperationRegistry::new(store),
             profile_id,

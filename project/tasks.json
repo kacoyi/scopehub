@@ -25245,6 +25245,370 @@
           "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
         }
       }
+    },
+    {
+      "id": "M5-005",
+      "title": "Deliver and verify safe desktop profile relocation after independent review",
+      "milestone": "M5",
+      "status": "done",
+      "depends_on": [
+        "M2-001",
+        "M2-002"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/persistence",
+        "project",
+        "contracts/decisions"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0011",
+        "0030"
+      ],
+      "acceptance": [
+        "Relocate a complete closed profile under its original local account. Preserve authorized frozen chart rows, original CSV bytes and withdrawal tombstones. Reject a missing or empty main database with retained nonempty sidecars before SQLite opens.",
+        "New desktop databases have independent stable namespaces after relocation. Original and migrated databases retain their exact identities. Concurrent initialization and interruption reach one consistent identity.",
+        "Windows admission rejects NTFS hard-linked database and sidecar handles before SQLite. Synthetic controls exercise permitted and refused files. The packaged two-account Windows test remains under M5-001.",
+        "Reproduce the independent-review defects, validate the replacement against protected main, and pass online advisory checks on the exact locked inventory. Preserve the original branch and evidence at their original SHA."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "state-migrations",
+        "dependency-review"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M5-005-f9b72cd97430dc5d.json",
+          "sha256": "e30606ccb042125388cf5b6dd25cadc7f8e77fd2edfecdd66e9045ebeee2d48d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The clean replacement 911c3bef73f76184112f19d208955346d0bb9106 passed all selected Linux task checks including online dependency review. Rust retained unchanged synthetic WAL bytes on refusal, preserved legacy identities and assigned distinct stable namespaces on recreation, and serialized two admitted opens. The desktop verified independent synthetic credential replacement and removal. The Windows storage module type-checked for x86_64-pc-windows-gnu. Native NTFS regression execution, same-account and different-account Windows recovery, and packaged acceptance remain open.",
+      "plan": {
+        "outcome": "The reviewed profile repair passes synthetic integrity, identity and simultaneous startup controls.",
+        "change_types": [
+          "persistence"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/profile_anchor.rs",
+          "crates/persistence/src/lib.rs",
+          "project/dependency-inventory.json"
+        ],
+        "hypotheses": [
+          "A per-directory startup lock can serialize identity admission. A new profile identity can bind its original location for interruption recovery without sharing the old path-derived credential namespace."
+        ],
+        "risks": [
+          {
+            "failure": "SQLite touches a retained WAL or a hard-linked profile before rejection.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Two real databases share a credential namespace or a concurrent opener loses the initial identity.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Dependency review fails on the exact lock digest or published history loses prior evidence.",
+            "checks": [
+              "dependency-review",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Keep the complete original profile, including all SQLite sidecars. Legacy identities can reopen at their original path with compatible software. A fresh profile with the new identity requires a compatible reader.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "desktop"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/lib.rs",
+            "apps/desktop/src-tauri/src/bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Live credentials, Windows package or physical device acceptance, and changing already accepted history."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "SQLite schema, existing identities, authorizations, originals and grants."
+          ],
+          "change": [
+            "Register a complete profile under its verified account. Protect the journal set before opening SQLite and allocate isolated stable identities for new databases. Serialize first initialization and anchor publication."
+          ],
+          "data_plan": "Use disposable synthetic account, filesystem and credential namespaces.",
+          "cleanup": "Release startup locks on success, refusal or process exit. Leave invalid originals and sidecars in place."
+        }
+      },
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T042136.288677Z-f883380f",
+          "source_commit": "d89a332aaa206491d06316e97200a50fd252d920",
+          "report_sha256": "afb10fc7e674228df737e8ed973e9e603e6d4835c1a4ed64358862c6fd63b39c"
+        },
+        {
+          "run_id": "20261125T040109.068237Z-3777721b",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "4464488ec2fef6f010a1bef806be2d8ec8c1e3b57f2c5ab23bd2391ff7fa2a88"
+        },
+        {
+          "run_id": "windows-change-45543738130-1",
+          "source_commit": "f8e684f72f359035fc8acf115d826347efc0c6b1",
+          "report_sha256": "d1162dfbfb01a83b31624045e0fe18d60cc71eec72199d40ecf424c905c5fe32"
+        }
+      ]
+    },
+    {
+      "id": "M5-006",
+      "title": "Recover first desktop initialization and verify original-account attribution",
+      "milestone": "M5",
+      "status": "done",
+      "depends_on": [
+        "M5-005"
+      ],
+      "scope": [
+        "crates/persistence",
+        "apps/desktop",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0030",
+        "0031"
+      ],
+      "acceptance": [
+        "A new profile durably ties anchor recovery to the original OS account and original path while anchored and legacy identities remain stable.",
+        "Recover from a crash during private first initialization without consuming historical main, rollback or WAL artifacts."
+      ],
+      "checks": [
+        "architecture",
+        "dependency-review",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "state-migrations"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M5-006-bb343f9d0572a72d.json",
+          "sha256": "14d19bb55c438c164dc06f452ad937e564c7e21c0c5b5f4d928cb9ee2cc28973"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45547568595-1",
+          "source_commit": "33d9333b6f84f4d5b2a5ea7787b88997ed7bc81d",
+          "report_sha256": "561d938ea4d932d383aa6fc645ef7b1cb3efae8a1dde33a40dbf3acebe9ea7dc"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The Linux task checks, including online dependency review, passed on the clean source. The bundled SQLite subprocess interrupted initial migration after pages reached disk and left a hot journal. The next startup reopened successfully and preserved interrupted staging and historical SQLite bytes. Synthetic account, legacy, relocation, WAL and concurrent-startup controls passed. Physical power loss and installed two-account Windows recovery remain in M5-001.",
+      "plan": {
+        "outcome": "A synthetic desktop profile recovers only within its original account and safely survives interrupted initialization.",
+        "change_types": [
+          "persistence"
+        ],
+        "context": [
+          "crates/persistence/src/lib.rs",
+          "crates/persistence/src/profile_anchor.rs"
+        ],
+        "hypotheses": [
+          "A new profile durably ties anchor recovery to the original OS account and original path while anchored and legacy identities remain stable.",
+          "Recover from a crash during private first initialization without consuming historical main, rollback or WAL artifacts."
+        ],
+        "risks": [
+          {
+            "failure": "A database-only restore at the original path can claim a new-format identity from another account.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers",
+              "operations-workflow"
+            ]
+          },
+          {
+            "failure": "An interrupted first commit can leave a hot rollback journal that fails every read-only preflight.",
+            "checks": [
+              "state-migrations",
+              "rust-contracts-workers",
+              "operations-workflow"
+            ]
+          }
+        ],
+        "rollback": "Revert the corrective software commit and retain profile bytes and prior decisions.",
+        "implementation": {
+          "modules": [
+            "persistence"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/lib.rs",
+            "crates/persistence/src/profile_anchor.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Physical Windows acceptance, release, or changes to unrelated authorization."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing authorization, provenance and historical evidence."
+          ],
+          "change": [
+            "A new profile durably ties anchor recovery to the original OS account and original path while anchored and legacy identities remain stable.",
+            "Recover from a crash during private first initialization without consuming historical main, rollback or WAL artifacts."
+          ],
+          "data_plan": "Use only synthetic profiles, fixtures and identifiers.",
+          "cleanup": "Discard superseded in-flight work while retaining recovery artifacts."
+        }
+      }
+    },
+    {
+      "id": "M5-007",
+      "title": "Integrate original-account desktop recovery with native Windows storage admission",
+      "milestone": "M5",
+      "status": "done",
+      "depends_on": [
+        "M0-105",
+        "M5-006"
+      ],
+      "scope": [
+        "apps/desktop/src-tauri",
+        "crates/persistence",
+        "crates/platform",
+        "project"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0029",
+        "0030",
+        "0031"
+      ],
+      "acceptance": [
+        "The desktop opens, reopens and relocates a synthetic same-account profile through the protected native Windows ACL worker while retaining its original identity, provenance and grants.",
+        "Native preflight rejects unauthorized SQLite and profile metadata files before opening SQLite. Failed admission preserves the main database, WAL, rollback journal and ownership evidence.",
+        "First initialization and recovery remain serialized. Original-account attribution, eligible legacy migration and an independent identity at a vacated path retain the accepted behavior."
+      ],
+      "checks": [
+        "architecture",
+        "operations-workflow",
+        "rust-contracts-workers",
+        "rust-format",
+        "rust-lints",
+        "state-migrations"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M5-007-46123ff7f5a38928.json",
+          "sha256": "97522f1b2edb52ddc514d41aa0177c1d5b8ba9cf1005236c7943be88886f566a"
+        },
+        {
+          "path": "project/evidence/M5-007-234f345044c5b6bf.json",
+          "sha256": "f9b2fdce562ed4f0da009f22c3e65386f117bc6035ddf06e02124b3dbb7b1d35"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved c722c488fac3a651d0472938217622a0adc76c4c. Authenticated workflow 45663767766 passed all eight selected checks on native Windows and Linux. The Windows persistence and desktop suites verified the original account, independent identity at the vacated path, serialized initialization, NTFS link refusal and retained WAL on refusal. Exact installed-package acceptance remains with M5-001.",
+      "plan": {
+        "outcome": "A same-account desktop opens and recovers its synthetic profile through the supervised native Windows worker without changing the stored identity, grants or historical database bytes.",
+        "change_types": [
+          "persistence"
+        ],
+        "context": [
+          "crates/persistence/src/storage.rs",
+          "crates/persistence/src/profile_anchor.rs",
+          "crates/platform/src/workspace_acl.rs",
+          "apps/desktop/src-tauri/src/bridge_tests.rs"
+        ],
+        "hypotheses": [
+          "The same-image native worker can enforce file ownership before SQLite while the caller derives the same original-account fingerprint from its primary token.",
+          "The startup lock and per-file checks can protect the recovery and migration paths under the native path rules without changing stored data."
+        ],
+        "risks": [
+          {
+            "failure": "The native worker drops original-account attribution, misses private recovery metadata or refuses a supported profile alias after integration.",
+            "checks": [
+              "operations-workflow",
+              "rust-contracts-workers",
+              "state-migrations"
+            ]
+          },
+          {
+            "failure": "Concurrent startup or an incomplete SQLite artifact set changes historical bytes or assigns a different profile identity.",
+            "checks": [
+              "operations-workflow",
+              "rust-contracts-workers",
+              "state-migrations"
+            ]
+          }
+        ],
+        "rollback": "Readmit the prior source and retain all original profile files and journals for recovery. Neither implementation requires a new data migration.",
+        "implementation": {
+          "modules": [
+            "persistence",
+            "platform"
+          ],
+          "entrypoints": [
+            "crates/persistence/src/lib.rs",
+            "crates/platform/src/workspace_acl.rs",
+            "apps/desktop/src-tauri/src/bridge.rs"
+          ],
+          "rules": [
+            {
+              "path": "engineering-contract-v1.json",
+              "pointer": "/persistence"
+            }
+          ],
+          "non_goals": [
+            "Changing SQLite schema, user authorization, the accepted identity or installed physical Windows acceptance under M5-001."
+          ],
+          "open_questions": [
+            "Qualify the exact combination on native Windows, including metadata file checks, same-account ownership and concurrent startup."
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "The supervised worker and native path policy, accepted profile identity and grants, original account and path attribution, eligible legacy migration, and retained database and journal bytes."
+          ],
+          "change": [
+            "Compose the native worker with existing desktop profile ownership, recovery metadata admission and startup serialization."
+          ],
+          "data_plan": "Exercise only owned synthetic profiles and credentials in disposable temporary directories.",
+          "cleanup": "Remove the superseded production PowerShell admission script. Keep source diagnostics and accepted history."
+        }
+      }
     }
   ]
 }

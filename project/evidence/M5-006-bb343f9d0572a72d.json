@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M5-006",
+  "task_definition_sha256": "e32fd1c205a3d4ac881ce4713a4d407d156978c1854e9801ab43216cdb3c4c7b",
+  "run_id": "20261125T053552.032985Z-6de606eb",
+  "recorded_at": "2026-11-25T05:37:36.216034+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "3358a9553d0faf61c23a0566390d209973d488bf2813f56241dbc3ca2c60e3e5",
+    "file_count": 598,
+    "git_head": "bad67cf5d31c4d615692f165ce7b5289e0e6f41a",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "bb343f9d0572a72de6508c72bcfcb12ed49be1ba2230e2b1561e2b73bc1f6e4d",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "architecture",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/check_architecture.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "21394e146442aeb8b6a2927b16e5377ec5098398d42b0b7ad4f232b27003b445"
+    },
+    {
+      "id": "dependency-review",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/dependencies.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f301d9a2c1cb2e20686c064996cd7a6ac79e8442ff0bc6632eb02ab5b3b94641"
+    },
+    {
+      "id": "operations-workflow",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "operations"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a6d1e6a8daa069add3f3c1933e4308bb730d19588c94a744f4ae59d886fef195"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "22d800fec783b59d681956a999b5a057d309cd8675e13cf02a0ce367e4675855"
+    },
+    {
+      "id": "rust-format",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "rust-lints",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/audit-profile-base/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "clippy"
+      ],
+      "exit_code": 0,
+      "log_sha256": "839048ce91a2bfe5b828a16c86ca832eb8339d4f63a3ffcbf15dab4a838e01ec"
+    },
+    {
+      "id": "state-migrations",
+      "status": "passed",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "scopehub-persistence"
+      ],
+      "exit_code": 0,
+      "log_sha256": "216a077189d641e11bad92863f7b121e6c2d45b737dc88633fcc806cc02bf9e3"
+    }
+  ],
+  "project_definition_sha256": "d543f883eb459ce2788f004ba0277e0e794018a9d48a4d1ff911354869c047c3",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "07b7432047bb3f139adecf68f5185e35d244dd4284db812e32a7023f133283d7"
+  ]
+}

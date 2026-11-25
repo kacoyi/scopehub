@@ -3094,7 +3094,9 @@ dependencies = [
  "scopehub-domain",
  "scopehub-platform",
  "serde_json",
+ "sha2 0.10.9",
  "uuid",
+ "winapi-util",
 ]
 
 [[package]]

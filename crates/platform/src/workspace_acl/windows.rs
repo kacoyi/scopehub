@@ -123,7 +123,7 @@ unsafe fn sid_text(sid: PSID, available: usize) -> Result<String, u8> {
     String::from_utf16(unsafe { std::slice::from_raw_parts(text, length) }).map_err(|_| 26)
 }
 
-fn current_user() -> Result<String, u8> {
+pub(super) fn current_user() -> Result<String, u8> {
     let mut token = null_mut();
     // SAFETY: the out-parameter receives an owned handle to this process token.
     if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {

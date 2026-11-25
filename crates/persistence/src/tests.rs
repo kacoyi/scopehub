@@ -148,16 +148,28 @@ mod os_privacy {
 }
 
 #[cfg(windows)]
-#[test]
-fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
+fn change_fixture_acl(path: &Path, action: &str, grant: &str) {
     use std::os::windows::process::CommandExt;
 
+    let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
+    let output = std::process::Command::new(&icacls)
+        .arg(path)
+        .args([action, grant])
+        .creation_flags(0x0800_0000)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     let profile = Profile::new();
     // A regular file created with default Windows attributes inherits the
     // same owner ACL that a launcher bootstrap file receives.
     let ordinary = profile.db();
     fs::write(&ordinary, b"temporary synthetic launch fixture").unwrap();
-    assert!(storage::open_path(&profile.0).unwrap().1);
+    assert!(storage::open_path(&profile.0).unwrap().main_len.is_some());
     fs::remove_file(&ordinary).unwrap();
 
     let writer = profile.open().unwrap();
@@ -181,24 +193,14 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     let before = fs::read(&database).unwrap();
     let wal_bytes = fs::read(&wal).unwrap();
     assert!(!wal_bytes.is_empty());
-    let icacls = PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/icacls.exe");
-    let change_acl = |path: &Path, action, grant| {
-        let output = std::process::Command::new(&icacls)
-            .arg(path)
-            .args([action, grant])
-            .creation_flags(0x0800_0000)
-            .output()
-            .unwrap();
-        assert!(output.status.success(), "{output:?}");
-    };
     for shared in [&database, &wal] {
-        change_acl(shared, "/grant", "*S-1-1-0:(R)");
+        change_fixture_acl(shared, "/grant", "*S-1-1-0:(R)");
         let refusal = storage::open_path(&profile.0).unwrap_err();
         assert_eq!(refusal.to_string(), "shared-access");
         assert!(matches!(profile.open(), Err(OpenWorkspaceError::Database)));
         assert_eq!(fs::read(&database).unwrap(), before);
         assert_eq!(fs::read(&wal).unwrap(), wal_bytes);
-        change_acl(shared, "/remove:g", "*S-1-1-0");
+        change_fixture_acl(shared, "/remove:g", "*S-1-1-0");
     }
     assert_eq!(
         profile
@@ -212,10 +214,44 @@ fn windows_private_acl_inheritance_rejects_shared_roots_and_sidecars() {
     );
 
     let before = fs::read(profile.db()).unwrap();
-    change_acl(&profile.0, "/grant", "*S-1-1-0:(RX)");
+    change_fixture_acl(&profile.0, "/grant", "*S-1-1-0:(RX)");
     assert!(SqliteWorkspace::prepare_profile_root(&profile.0).is_err());
     assert!(profile.open().is_err());
     assert_eq!(fs::read(profile.db()).unwrap(), before);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_desktop_reopen_checks_native_acl_on_profile_metadata() {
+    let profile = Profile::new();
+    let open = || SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding());
+    let (writer, identity) = open().unwrap();
+    writer
+        .connection
+        .execute("UPDATE workspaces SET revision = 23", [])
+        .unwrap();
+    drop(writer);
+
+    let files = [
+        profile.db(),
+        profile.0.join(storage::PROFILE_ANCHOR),
+        profile.0.join("workspace-startup.lock"),
+    ];
+    let original = files.each_ref().map(|file| fs::read(file).unwrap());
+    for metadata in &files[1..] {
+        change_fixture_acl(metadata, "/grant", "*S-1-1-0:(R)");
+        let refusal = storage::open_path(&profile.0).unwrap_err();
+        assert_eq!(refusal.to_string(), "shared-access");
+        assert!(matches!(open(), Err(OpenWorkspaceError::Database)));
+        assert_eq!(
+            files.each_ref().map(|file| fs::read(file).unwrap()),
+            original
+        );
+        change_fixture_acl(metadata, "/remove:g", "*S-1-1-0");
+    }
+    let (reopened, retained) = open().unwrap();
+    assert_eq!(retained, identity);
+    assert_eq!(reopened.snapshot(None, false).unwrap().state.revision, 23);
 }
 
 #[cfg(windows)]
@@ -327,8 +363,11 @@ impl Profile {
     }
 
     fn raw_connection(&self) -> Connection {
-        let (path, _) = storage::open_path(&self.0).unwrap();
-        Connection::open(path).unwrap()
+        let location = storage::open_path(&self.0).unwrap();
+        if location.main_len.is_none() {
+            storage::create_fixture_file(&location.database).unwrap();
+        }
+        Connection::open(location.database).unwrap()
     }
 
     fn binding() -> WorkspaceBinding {
@@ -352,6 +391,60 @@ impl Drop for Profile {
 fn integer_pragma(conn: &Connection, name: &str) -> i64 {
     conn.pragma_query_value(None, name, |row| row.get(0))
         .unwrap()
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_anchor_requires_its_owner_and_original_database_before_open() {
+    let profile = Profile::new();
+    let binding = || WorkspaceBinding {
+        profile_id: format!("desktop-development:{}", "a".repeat(64)),
+        workspace_id: "workspace".into(),
+    };
+    drop(SqliteWorkspace::open(&profile.0, binding()).unwrap());
+    let (writer, identity) = SqliteWorkspace::open_desktop_profile(&profile.0, binding()).unwrap();
+    assert_eq!(identity, binding().profile_id);
+    drop(writer);
+    let anchor_path = profile.0.join(storage::PROFILE_ANCHOR);
+    let anchor = fs::read_to_string(&anchor_path).unwrap();
+    let mut fields = anchor.lines();
+    let version = fields.next().unwrap();
+    let owner = fields.next().unwrap();
+    let foreign_owner = if owner.starts_with('a') { 'b' } else { 'a' };
+    let foreign_anchor = format!(
+        "{version}\n{}\n{identity}\n",
+        foreign_owner.to_string().repeat(64)
+    );
+    fs::write(&anchor_path, &foreign_anchor).unwrap();
+    let db = fs::read(profile.db()).unwrap();
+    for error in [
+        SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
+        SqliteWorkspace::open(&profile.0, binding()).err(),
+    ] {
+        assert_eq!(error, Some(OpenWorkspaceError::ProfileMismatch));
+    }
+    assert_eq!(fs::read(profile.db()).unwrap(), db);
+    assert_eq!(fs::read_to_string(&anchor_path).unwrap(), foreign_anchor);
+
+    fs::write(&anchor_path, &anchor).unwrap();
+    let retained = profile.0.join("retained.sqlite3");
+    fs::rename(profile.db(), &retained).unwrap();
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert!(!profile.db().exists());
+    assert_eq!(fs::read(&retained).unwrap(), db);
+
+    storage::create_fixture_file(&profile.db()).unwrap();
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert!(fs::read(profile.db()).unwrap().is_empty());
+    fs::remove_file(profile.db()).unwrap();
+    fs::rename(retained, profile.db()).unwrap();
+    assert!(SqliteWorkspace::open(&profile.0, binding()).is_ok());
 }
 
 #[test]
@@ -434,7 +527,7 @@ fn unknown_formats_are_rejected_without_changing_database_bytes_or_journal_mode(
         drop(connection);
 
         let before = fs::read(profile.db()).unwrap();
-        assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 1);
+        assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 2);
         assert!(matches!(
             profile.open(),
             Err(OpenWorkspaceError::UnsupportedFormat)
@@ -448,7 +541,7 @@ fn unknown_formats_are_rejected_without_changing_database_bytes_or_journal_mode(
                 assert_eq!(fs::metadata(wal_path).unwrap().len(), 0);
             }
         } else {
-            assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 1);
+            assert_eq!(fs::read_dir(&profile.0).unwrap().count(), 2);
         }
     }
 }
@@ -1079,3 +1172,316 @@ mod folder_manifest_migration_tests;
 
 #[path = "folder_manifest_tests.rs"]
 mod folder_manifest_tests;
+
+#[cfg(any(target_os = "linux", windows))]
+fn desktop_binding(digest: char) -> WorkspaceBinding {
+    WorkspaceBinding {
+        profile_id: format!("desktop-development:{}", digest.to_string().repeat(64)),
+        workspace_id: "workspace".into(),
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_open_preserves_wal_when_main_is_empty_or_missing() {
+    for missing in [false, true] {
+        let profile = Profile::new();
+        let mutation = "UPDATE workspaces SET revision = 13";
+        let (writer, _) =
+            SqliteWorkspace::open_desktop_profile(&profile.0, desktop_binding('a')).unwrap();
+        writer.connection.execute(mutation, []).unwrap();
+        writer
+            .connection
+            .set_db_config(DbConfig::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, true)
+            .unwrap();
+        drop(writer);
+        let wal = profile.0.join("workspace.sqlite3-wal");
+        let original = fs::read(&wal).unwrap();
+        assert!(!original.is_empty());
+        if missing {
+            fs::remove_file(profile.db()).unwrap();
+            fs::remove_file(profile.0.join(storage::PROFILE_ANCHOR)).unwrap();
+        } else {
+            fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(profile.db())
+                .unwrap();
+        }
+
+        let result = SqliteWorkspace::open_desktop_profile(&profile.0, desktop_binding('a'));
+        assert!(
+            fs::read(&wal).is_ok_and(|bytes| bytes == original),
+            "damaged main changed the retained WAL"
+        );
+        assert!(result.is_err(), "the damaged profile was admitted");
+        assert_eq!(profile.db().exists(), !missing);
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_open_allocates_an_independent_identity_at_the_vacated_path() {
+    let parent = Profile::new();
+    let original = parent.0.join("first");
+    let relocated = parent.0.join("relocated");
+    SqliteWorkspace::prepare_profile_root(&original).unwrap();
+    let (store, first) =
+        SqliteWorkspace::open_desktop_profile(&original, desktop_binding('a')).unwrap();
+    drop(store);
+    fs::rename(&original, &relocated).unwrap();
+    SqliteWorkspace::prepare_profile_root(&original).unwrap();
+    let (store, fresh) =
+        SqliteWorkspace::open_desktop_profile(&original, desktop_binding('a')).unwrap();
+    drop(store);
+    let (restored, retained) =
+        SqliteWorkspace::open_desktop_profile(&relocated, desktop_binding('b')).unwrap();
+    assert_eq!(retained, first);
+    assert_ne!(fresh, first);
+    drop(restored);
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&original, desktop_binding('a'))
+            .unwrap()
+            .1,
+        fresh
+    );
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn desktop_open_serializes_initial_identity_and_anchor_publication() {
+    let profile = Profile::new();
+    let early = storage::open_path(&profile.0).unwrap();
+    assert!(early.main_len.is_none());
+    let entered = std::sync::Barrier::new(3);
+    std::thread::scope(|scope| {
+        let (done, results) = std::sync::mpsc::channel();
+        for _ in 0..2 {
+            let entered = &entered;
+            let done = done.clone();
+            let root = &profile.0;
+            scope.spawn(move || {
+                entered.wait();
+                let result = SqliteWorkspace::open_desktop_profile(root, desktop_binding('a')).map(
+                    |(writer, identity)| {
+                        drop(writer);
+                        identity
+                    },
+                );
+                done.send(result).unwrap();
+            });
+        }
+        entered.wait();
+        assert!(
+            results
+                .recv_timeout(std::time::Duration::from_millis(60))
+                .is_err()
+        );
+        drop(early);
+        let identity = results.recv().unwrap().unwrap();
+        assert_eq!(results.recv().unwrap().unwrap(), identity);
+        assert_eq!(
+            SqliteWorkspace::open_desktop_profile(&profile.0, desktop_binding('a'))
+                .unwrap()
+                .1,
+            identity
+        );
+    });
+}
+
+#[cfg(windows)]
+#[test]
+fn desktop_open_refuses_ntfs_hard_links_before_sqlite() {
+    for name in [
+        "workspace.sqlite3",
+        "workspace.sqlite3-wal",
+        "workspace.sqlite3-shm",
+        "workspace.sqlite3-journal",
+        storage::PROFILE_ANCHOR,
+    ] {
+        let source = Profile::new();
+        let destination = Profile::new();
+        let file = source.0.join(name);
+        let linked = destination.0.join(name);
+        let original = b"synthetic retained bytes";
+        fs::write(&file, original).unwrap();
+        if name != "workspace.sqlite3" {
+            fs::write(source.db(), b"synthetic main").unwrap();
+            fs::write(destination.db(), b"independent synthetic main").unwrap();
+        }
+        assert!(storage::open_path(&source.0).is_ok());
+        fs::hard_link(&file, &linked).unwrap();
+        assert!(
+            storage::open_path(&destination.0).is_err(),
+            "accepted hard-linked {name}"
+        );
+        assert_eq!(fs::read(&file).unwrap(), original);
+        assert_eq!(fs::read(&linked).unwrap(), original);
+    }
+}
+
+fn synthetic_desktop_binding() -> WorkspaceBinding {
+    WorkspaceBinding {
+        profile_id: format!("desktop-development:{}", "e".repeat(64)),
+        workspace_id: Profile::binding().workspace_id,
+    }
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn only_the_original_account_can_recover_a_new_profile_anchor() {
+    let profile = Profile::new();
+    let (writer, identity) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    drop(writer);
+    let anchor = profile.0.join(storage::PROFILE_ANCHOR);
+    fs::remove_file(&anchor).unwrap();
+    let (writer, recovered) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    assert_eq!(recovered, identity);
+    let owner = fs::read_to_string(&anchor).unwrap();
+    let owner = owner.lines().nth(1).unwrap();
+    let foreign = if owner.starts_with('a') { "b" } else { "a" }.repeat(64);
+    let foreign_identity =
+        profile_anchor::fresh_id(&synthetic_desktop_binding().profile_id, &foreign);
+    writer
+        .connection
+        .execute(
+            "UPDATE profile_binding SET profile_id = ?1",
+            [&foreign_identity],
+        )
+        .unwrap();
+    drop(writer);
+    fs::remove_file(&anchor).unwrap();
+    let copied = fs::read(profile.db()).unwrap();
+
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert_eq!(fs::read(profile.db()).unwrap(), copied);
+    assert!(!anchor.exists());
+}
+
+#[cfg(any(target_os = "linux", windows))]
+#[test]
+fn unanchored_fresh_profile_without_owner_proof_is_refused() {
+    let profile = Profile::new();
+    let original = synthetic_desktop_binding();
+    let digest = original
+        .profile_id
+        .strip_prefix("desktop-development:")
+        .unwrap();
+    let stored = WorkspaceBinding {
+        profile_id: format!("desktop-profile:{digest}:{}", Uuid::new_v4()),
+        workspace_id: original.workspace_id.clone(),
+    };
+    // This was a valid identity in the earlier format, but the backup has no
+    // owner anchor and the database itself has no original-account proof.
+    let expected = stored.profile_id.clone();
+    drop(SqliteWorkspace::open(&profile.0, stored).unwrap());
+    let original_bytes = fs::read(profile.db()).unwrap();
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).err(),
+        Some(OpenWorkspaceError::ProfileMismatch)
+    );
+    assert_eq!(fs::read(profile.db()).unwrap(), original_bytes);
+    assert!(!profile.0.join(storage::PROFILE_ANCHOR).exists());
+
+    // An existing account anchor for the earlier identity remains sufficient.
+    {
+        let location = storage::open_path(&profile.0).unwrap();
+        profile_anchor::publish(&location, &expected).unwrap();
+    }
+    let (_, identity) = SqliteWorkspace::open_desktop_profile(&profile.0, original).unwrap();
+    assert_eq!(identity, expected);
+}
+
+const INTERRUPTED_PROFILE: &str = "SCOPEHUB_TEST_INTERRUPTED_INITIAL_PROFILE";
+
+pub(super) fn interrupt_first_initialization(transaction: &Connection) {
+    if std::env::var_os(INTERRUPTED_PROFILE).is_some() {
+        transaction
+            .execute_batch(
+                "PRAGMA cache_size = 1;
+                 CREATE TABLE interrupted_synthetic_rows (data BLOB);
+                 WITH RECURSIVE pages(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM pages WHERE n<64)
+                 INSERT INTO interrupted_synthetic_rows SELECT zeroblob(4096) FROM pages;",
+            )
+            .unwrap();
+        // SQLite has spilled dirty pages under a live rollback journal. This
+        // subprocess must exit without a destructor closing the transaction.
+        std::process::exit(86);
+    }
+}
+
+#[test]
+fn desktop_initialization_recovers_after_an_interrupted_first_commit() {
+    if let Some(path) = std::env::var_os(INTERRUPTED_PROFILE) {
+        let _ =
+            SqliteWorkspace::open_desktop_profile(Path::new(&path), synthetic_desktop_binding());
+        panic!("the initial migration did not reach the interruption point");
+    }
+    let profile = Profile::new();
+    let exit = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "tests::desktop_initialization_recovers_after_an_interrupted_first_commit",
+        ])
+        .env(INTERRUPTED_PROFILE, &profile.0)
+        .status()
+        .unwrap();
+    assert_eq!(exit.code(), Some(86));
+    let directory = fs::read_dir(&profile.0).unwrap();
+    let journal = directory
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.to_string_lossy().ends_with("-journal"))
+        .expect("interrupted initial SQLite journal");
+    let main = PathBuf::from(journal.to_str().unwrap().strip_suffix("-journal").unwrap());
+    let journal_bytes = fs::read(&journal).unwrap();
+    let main_bytes = fs::read(&main).unwrap();
+    assert!(journal_bytes.len() > 512 && !main_bytes.is_empty());
+    let reader = Connection::open_with_flags(&main, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    let error = reader
+        .pragma_query_value(None, "application_id", |row| row.get::<_, i64>(0))
+        .unwrap_err();
+    assert!(
+        matches!(error, rusqlite::Error::SqliteFailure(ref error, _)
+        if error.extended_code == rusqlite::ffi::SQLITE_READONLY_ROLLBACK),
+        "{error:?}"
+    );
+    drop(reader);
+
+    let (writer, identity) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    assert_eq!(writer.snapshot(None, false).unwrap().state.revision, 0);
+    drop(writer);
+    assert_eq!(fs::read(journal).unwrap(), journal_bytes);
+    assert_eq!(fs::read(main).unwrap(), main_bytes);
+    let (_, reopened) =
+        SqliteWorkspace::open_desktop_profile(&profile.0, synthetic_desktop_binding()).unwrap();
+    assert_eq!(reopened, identity);
+
+    // Identical hot pages beside the definitive database may be historical
+    // data. Startup must not recover or replace them as staged initialization.
+    let historical = Profile::new();
+    for (path, contents) in [
+        (historical.db(), &main_bytes),
+        (
+            historical.0.join("workspace.sqlite3-journal"),
+            &journal_bytes,
+        ),
+    ] {
+        storage::create_fixture_file(&path).unwrap();
+        fs::write(path, contents).unwrap();
+    }
+    assert_eq!(
+        SqliteWorkspace::open_desktop_profile(&historical.0, synthetic_desktop_binding()).err(),
+        Some(OpenWorkspaceError::Database)
+    );
+    assert_eq!(fs::read(historical.db()).unwrap(), main_bytes);
+    assert_eq!(
+        fs::read(historical.0.join("workspace.sqlite3-journal")).unwrap(),
+        journal_bytes
+    );
+}
