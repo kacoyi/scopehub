@@ -5581,12 +5581,12 @@ function isPrivateApproval(payload) {
     && payload.intent.arguments.action === 'resolve' && payload.intent.arguments.decision === 'approve';
 }
 
-function privateDetailReply(page, id, matches) {
+function privateDetailReply(page, id, matches, timeout) {
   return page.waitForResponse(async response => {
     const intent = response.request().postDataJSON()?.intent;
     return intent?.operation === 'privateRecord.read' && intent.arguments.record_id === id && response.ok()
       && matches((await response.json()).result?.outcome);
-  });
+  }, { timeout });
 }
 
 function assertSameDeleteResolution(before, retry) {
@@ -5750,7 +5750,13 @@ for (const fault of ['lost reply', 'blocked checkpoint']) {
   });
 }
 
-test('private record delete recovery hides its old title after pre-commit busy and peer rename', async ({ browser }, testInfo) => {
+test('private record delete recovery hides its old title after pre-commit busy and peer rename around ordinary refocus',
+  ({ browser }, testInfo) => checkPrivatePeerCorrection(browser, testInfo, false));
+
+test('private record delete recovery hides its old title after pre-commit busy and peer rename with contended refocus',
+  ({ browser }, testInfo) => checkPrivatePeerCorrection(browser, testInfo, true));
+
+async function checkPrivatePeerCorrection(browser, testInfo, contendedRefocus) {
   const profile = await makeProfile();
   const stages = [];
   try {
@@ -5856,71 +5862,100 @@ test('private record delete recovery hides its old title after pre-commit busy a
             });
           });
 
-          const heldSnapshot = origin.tagSnapshot();
-          const requestPattern = `**${endpoint}`;
-          let taggedSnapshot = false;
-          const admitAfterSnapshot = async route => {
-            const body = route.request().postDataJSON();
-            if (body?.type === 'snapshot' && !taggedSnapshot) {
-              taggedSnapshot = true;
-              return route.continue({ headers: { ...await route.request().allHeaders(), ...heldSnapshot.headers } });
-            }
-            if (readDetail(body)) await heldSnapshot.wait('written');
-            return route.continue();
+          // Arm the natural observer before focus: a matching reply can be from an already issued read.
+          const observeCorrectedDetail = () => {
+            const reply = privateDetailReply(pageA, id,
+              outcome => outcome?.state === 'completed' && outcome.result.workspace_revision === 2, 8_000);
+            void reply.catch(() => {});
+            return reply;
           };
-          const recoveredDetail = privateDetailReply(pageA, id,
-            outcome => outcome?.state === 'completed' && outcome.result.workspace_revision === 2);
-          void recoveredDetail.catch(() => {});
-          await pageA.route(requestPattern, admitAfterSnapshot);
-          try {
-            const first = await privateReplyDuring(pageA, stages, 'focus snapshot refuses the first corrected detail read',
-              readDetail, () => focusPrivateRecords(pageA));
-            expect(first.observed).toMatchObject({ http: 429, code: 'BUSY' });
-            heldSnapshot.release();
-            expect(await heldSnapshot.wait('drained')).toMatchObject({ ok: true, revision: 2 });
-            const response = await recoveredDetail;
-            const outcome = (await response.json()).result.outcome;
-            expect(response.request().postDataJSON()).toEqual(first.payload);
-            expectCorrectedRead({ observed: { http: response.status() }, outcome });
-            stages.push({ step: 'authorized detail admitted after focus snapshot drained', http: response.status() });
-          } finally {
-            heldSnapshot.release();
-            await pageA.unroute(requestPattern, admitAfterSnapshot);
+          const assertCorrectedResponse = async (response, step) => {
+            const frame = (await response.json()).result;
+            expect(frame.request_id).toBe(response.request().postDataJSON().request_id);
+            expectCorrectedRead({ observed: { http: response.status() }, outcome: frame.outcome });
+            stages.push({ step, http: response.status() });
+          };
+          if (contendedRefocus) {
+            const heldSnapshot = origin.tagSnapshot();
+            const requestPattern = `**${endpoint}`;
+            let taggedSnapshot = false;
+            const admitAfterSnapshot = async route => {
+              const body = route.request().postDataJSON();
+              if (body?.type === 'snapshot' && !taggedSnapshot) {
+                taggedSnapshot = true;
+                return route.continue({ headers: { ...await route.request().allHeaders(), ...heldSnapshot.headers } });
+              }
+              if (readDetail(body)) await heldSnapshot.wait('written');
+              return route.continue();
+            };
+            const recoveredDetail = privateDetailReply(pageA, id,
+              outcome => outcome?.state === 'completed' && outcome.result.workspace_revision === 2);
+            void recoveredDetail.catch(() => {});
+            await pageA.route(requestPattern, admitAfterSnapshot);
+            try {
+              const first = await privateReplyDuring(pageA, stages, 'focus snapshot refuses the first corrected detail read',
+                readDetail, () => focusPrivateRecords(pageA));
+              expect(first.observed).toMatchObject({ http: 429, code: 'BUSY' });
+              heldSnapshot.release();
+              expect(await heldSnapshot.wait('drained')).toMatchObject({ ok: true, revision: 2 });
+              const response = await recoveredDetail;
+              const outcome = (await response.json()).result.outcome;
+              expect(response.request().postDataJSON()).toEqual(first.payload);
+              expectCorrectedRead({ observed: { http: response.status() }, outcome });
+              stages.push({ step: 'authorized detail admitted after focus snapshot drained', http: response.status() });
+            } finally {
+              heldSnapshot.release();
+              await pageA.unroute(requestPattern, admitAfterSnapshot);
+            }
+          } else {
+            const detail = observeCorrectedDetail();
+            await focusPrivateRecords(pageA);
+            stages.push({ step: 'ordinary origin focus dispatched' });
+            await assertCorrectedResponse(await detail, 'authorized correction read observed around ordinary focus');
           }
           await assertPrivateHidden(first, title, text, renamed, corrected);
           await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
 
-          let retrySent = false;
-          let gatedRead;
-          const releaseRead = Promise.withResolvers();
-          const endpointUrl = origin.url + endpoint;
-          const gateCurrentRead = async route => {
-            const payload = route.request().postDataJSON();
-            if (isPrivateApproval(payload)) retrySent = true;
-            if (retrySent && !gatedRead && readDetail(payload)) {
-              gatedRead = payload.request_id;
-              await releaseRead.promise;
-            }
-            await route.continue();
+          const retryDeletion = async () => {
+            const retried = await privateReplyDuring(pageA, stages, 'origin retries the original deletion resolution',
+              isPrivateApproval, () => clickPrivate(first, 'Retry confirmation'));
+            assertSameDeleteResolution(rejected.payload, retried.payload);
+            expect(retried.observed).toMatchObject({ http: 200, state: 'failed', code: 'STALE_CONTEXT' });
           };
-          await pageA.route(endpointUrl, gateCurrentRead);
-          try {
-            const current = await privateReplyDuring(pageA, stages, 'authorized reread after stale deletion retry',
-              payload => readDetail(payload) && payload.request_id === gatedRead, async () => {
-                const retried = await privateReplyDuring(pageA, stages, 'origin retries the original deletion resolution',
-                  isPrivateApproval, () => clickPrivate(first, 'Retry confirmation'));
-                assertSameDeleteResolution(rejected.payload, retried.payload);
-                expect(retried.observed).toMatchObject({ http: 200, state: 'failed', code: 'STALE_CONTEXT' });
-                await expect.poll(() => Boolean(gatedRead)).toBe(true);
-                await assertPrivateHidden(first, title, text, renamed, corrected);
-                await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
-                stages.push({ step: 'before corrected detail response', contentHidden: true, sameResolution: true });
-                releaseRead.resolve();
-              });
-            expectCorrectedRead(current);
-          } finally {
-            releaseRead.resolve();
-            await pageA.unrouteAll({ behavior: 'wait' });
+          if (contendedRefocus) {
+            let retrySent = false;
+            let gatedRead;
+            const releaseRead = Promise.withResolvers();
+            const endpointUrl = origin.url + endpoint;
+            const gateCurrentRead = async route => {
+              const payload = route.request().postDataJSON();
+              if (isPrivateApproval(payload)) retrySent = true;
+              if (retrySent && !gatedRead && readDetail(payload)) {
+                gatedRead = payload.request_id;
+                await releaseRead.promise;
+              }
+              await route.continue();
+            };
+            await pageA.route(endpointUrl, gateCurrentRead);
+            try {
+              const current = await privateReplyDuring(pageA, stages, 'authorized reread after stale deletion retry',
+                payload => readDetail(payload) && payload.request_id === gatedRead, async () => {
+                  await retryDeletion();
+                  await expect.poll(() => Boolean(gatedRead)).toBe(true);
+                  await assertPrivateHidden(first, title, text, renamed, corrected);
+                  await expect(first.getByRole('button', { name: 'Delete private record', exact: true })).toHaveCount(0);
+                  stages.push({ step: 'before corrected detail response', contentHidden: true, sameResolution: true });
+                  releaseRead.resolve();
+                });
+              expectCorrectedRead(current);
+            } finally {
+              releaseRead.resolve();
+              await pageA.unrouteAll({ behavior: 'wait' });
+            }
+          } else {
+            const detail = observeCorrectedDetail();
+            await retryDeletion();
+            await assertCorrectedResponse(await detail, 'authorized correction read observed around ordinary deletion retry');
           }
           await expect(first.getByRole('alert')).toContainText('changed');
           await expect(first.getByRole('heading', { name: renamed })).toBeVisible();
@@ -5931,9 +5966,9 @@ test('private record delete recovery hides its old title after pre-commit busy a
           stages.push({ step: 'corrected detail displayed', revision: 2, deletions: 0 });
         } finally { writerLock.close(); }
       });
-    }, { snapshotGate: true });
+    }, { snapshotGate: contendedRefocus });
   } finally {
     await testInfo.attach('private-deletion-peer-recovery', { body: JSON.stringify(stages), contentType: 'application/json' });
     await profile.close();
   }
-});
+}

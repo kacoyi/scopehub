@@ -1533,6 +1533,187 @@ base('stages additions, aliases, conflicts and withdrawals against a frozen loca
   }
 });
 
+for (const { kind, withdrawn } of [
+  { kind: 'CSV', withdrawn: true }, { kind: 'folder', withdrawn: true },
+  { kind: 'CSV', withdrawn: false }, { kind: 'folder', withdrawn: false },
+]) {
+  base(`fences a delayed ${kind} comparison across focus with ${withdrawn ? 'peer withdrawal' : 'trailing authorized focus'}`, {
+    tag: '@profile-folder-refresh',
+  }, async ({ page, browser, baseURL }, testInfo) => {
+    const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+    base.skip(!binary, 'Set SCOPEHUB_LOCAL_IMPORT_BRIDGE to the portable Rust test example.');
+    const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-folder-focus-'));
+    const profile = join(root, 'profile');
+    const folder = join(root, 'source');
+    const source = 'daily.csv';
+    const csv = [equity.header, ...equity.rows].map(row => row.join(',') + '\n').join('');
+    const hash = createHash('sha256').update(csv).digest('hex');
+    const stages = [];
+    const statuses = [];
+    const observed = [];
+    const folderBase = kind === 'folder';
+    let bridge;
+    let peer;
+    let peerPage;
+    let holdStatus = false;
+    const acknowledge = async (name, entries, number) => {
+      await expect.poll(() => entries.length, { message: name }).toBeGreaterThanOrEqual(number);
+      return entries[number - 1];
+    };
+    try {
+      await mkdir(profile, { mode: 0o700 });
+      await mkdir(folder, { mode: 0o700 });
+      await writeFile(join(folder, source), csv);
+      bridge = startLocalImportBridge(binary, profile, folder, { workspace: true });
+      const market = async (operation, payload) => {
+        const reply = await bridge.request('execute_operation', {
+          operation: `market.${operation}`, requestId: randomUUID(), payload: { version: 1, ...payload },
+        });
+        expect(reply.error).toBeUndefined();
+        return reply.result;
+      };
+      const { result: catalog } = await bridge.request('choose_local_csv_folder', {});
+      const selected = { folder_id: catalog.folder_id, file_id: catalog.files[0].file_id, expected_sha256: hash };
+      const mapping = { version: 1, revision: 'focus-equity', encoding: 'utf-8', delimiter: ',', record_kind: 'native_ohlcv',
+        timestamp_convention: 'bar_start', volume_semantics: 'per_bar', ...equity.settings, columns: equity.columns };
+      const preview = { ...selected, mapping, row_limit: 2 };
+      expect((await market('previewLocalImport', preview)).preview.rows[0].symbol).toBe('000731');
+      const { record } = await market('saveLocalImportMapping', preview);
+      let { revision } = await market('publishLocalImport', { ...selected, review_revision: record.review_revision });
+      if (folderBase) {
+        const staged = await market('previewLocalFolderRefresh', { folder_id: catalog.folder_id, revision_id: revision.revision_id });
+        const review = { folder_id: catalog.folder_id, review_id: staged.review_id };
+        const prepared = await market('prepareLocalFolderPublication', { ...review, conflicts: [], withdraw_bars: [], withdraw_sources: [] });
+        ({ revision } = await market('publishLocalFolderRefresh', {
+          ...review, candidate_sha256: prepared.candidate_sha256, idempotency_key: randomUUID(),
+        }));
+      }
+      const id = revision.revision_id;
+      const statusCall = args => args.payload?.revision_id === id && (folderBase
+        ? args.operation === 'market.readLocalFolderRevision' && args.payload.include_details === false
+        : args.payload.type === 'frozen_chart_status');
+      const bind = async (windowPage, invoke) => {
+        await windowPage.exposeBinding('testNativeInvoke', (_, command, args) => invoke(command, args));
+        await windowPage.addInitScript(() => {
+          window.isTauri = true;
+          window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+          window.__TAURI_INTERNALS__ = {
+            async invoke(command, args) {
+              const reply = await window.testNativeInvoke(command, args);
+              if (args?.operation === 'market.previewLocalFolderRefresh') {
+                window.deliveredComparisons = (window.deliveredComparisons ?? 0) + 1;
+              }
+              if (reply.error) throw reply.error;
+              return reply.result;
+            },
+          };
+        });
+        await windowPage.goto(baseURL);
+      };
+      const revoked = Promise.withResolvers();
+      let remove;
+      if (withdrawn) {
+        peer = startLocalImportBridge(binary, profile, folder, { workspace: true });
+        peerPage = await browser.newPage();
+        await bind(peerPage, async (command, args) => {
+          const reply = await peer.request(command, args);
+          if (args?.operation === (folderBase ? 'market.revokeLocalFolderRevision' : 'market.revokeLocalImportRevision')) revoked.resolve(reply);
+          return reply;
+        });
+        await control(peerPage, 'Open published CSV').last().click();
+        const dialog = peerPage.getByRole('dialog', { name: 'Open published CSV' });
+        if (folderBase) await control(dialog, 'Folder revisions').click();
+        await dialog.getByLabel('Revision ID').fill(id);
+        await control(dialog, folderBase ? 'Open frozen folder revision' : 'Open frozen chart').click();
+        await control(dialog, 'Remove frozen chart access').click();
+        remove = control(dialog, 'Remove access');
+        await expect(remove).toBeEnabled();
+      }
+
+      await bind(page, async (command, args) => {
+        const reply = await bridge.request(command, args);
+        const stage = args?.operation === 'market.previewLocalFolderRefresh';
+        if (stage || (holdStatus && args && statusCall(args))) {
+          const entries = stage ? stages : statuses;
+          const release = Promise.withResolvers();
+          entries.push({ reply, release });
+          observed.push({ phase: stage ? 'stage completed' : 'access checked', number: entries.length,
+            available: folderBase ? Boolean(reply.result?.revision) : reply.result?.available, code: reply.error?.code });
+          await release.promise;
+        }
+        return reply;
+      });
+      const focus = () => page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await control(page, 'Choose local CSV folder').last().click();
+      const review = page.getByRole('region', { name: 'Folder refresh review' });
+      await expect(review.getByLabel('Accepted revision ID')).toHaveValue('');
+      await review.getByLabel('Accepted revision ID').fill(id);
+      const stage = control(review, 'Stage folder refresh');
+      const table = review.getByRole('table', { name: 'Folder source changes' });
+      const assertHidden = async () => {
+        await expect(table).toHaveCount(0);
+        await expect(review.getByText(source, { exact: true })).toHaveCount(0);
+        await expect(review.getByText(hash, { exact: true })).toHaveCount(0);
+        expect(await page.evaluate(() => window.comparisonExposures)).toEqual([]);
+      };
+      await review.evaluate((element, expected) => {
+        window.comparisonExposures = [];
+        new MutationObserver(records => {
+          for (const record of records) {
+            for (const node of record.addedNodes) {
+              if (node.textContent.includes(expected.source) || node.textContent.includes(expected.hash)) {
+                window.comparisonExposures.push('comparison contents inserted');
+              }
+            }
+          }
+        }).observe(element, { childList: true, subtree: true });
+      }, { source, hash });
+
+      await stage.click();
+      const first = await acknowledge('native comparison returned', stages, 1);
+      expect(first.reply.result.files[0]).toMatchObject({ relative_path: source, source_sha256: hash });
+      if (withdrawn) {
+        await remove.click();
+        expect((await revoked.promise).result.revision_id).toBe(id);
+        observed.push({ phase: 'peer durably withdrew before delivery' });
+      }
+      holdStatus = true;
+      await focus();
+      first.release.resolve();
+      const firstStatus = await acknowledge('first access check returned', statuses, 1);
+      await expect.poll(() => page.evaluate(() => window.deliveredComparisons)).toBe(1);
+      if (withdrawn) {
+        if (folderBase) expect(firstStatus.reply.error.code).toBe('PERMISSION_DENIED');
+        else expect(firstStatus.reply.result).toEqual({ available: false, revoked: true });
+        await assertHidden();
+        firstStatus.release.resolve();
+        await expect(page.getByRole('alert')).toContainText('Access removed for this published revision.');
+        await assertHidden();
+      } else {
+        await assertHidden();
+        await focus();
+        await focus();
+        firstStatus.release.resolve();
+        const latest = await acknowledge('trailing access check returned', statuses, 2);
+        await assertHidden();
+        expect(latest.reply.error).toBeUndefined();
+        expect(folderBase ? latest.reply.result.revision.revision_id : latest.reply.result.available).toBe(folderBase ? id : true);
+        latest.release.resolve();
+        await expect(table.getByRole('rowheader', { name: source })).toBeVisible();
+        await expect(table.getByText(hash, { exact: true }).first()).toHaveCount(1);
+      }
+      expect(stages).toHaveLength(1);
+    } finally {
+      for (const { release } of [...stages, ...statuses]) release.resolve();
+      await testInfo.attach('comparison-focus-order', { body: JSON.stringify(observed), contentType: 'application/json' });
+      await peerPage?.close();
+      await peer?.close();
+      await bridge?.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
+
 base('rejects a late source declaration conflict before publishing a native CSV revision', {
   tag: '@profile-local-csv',
 }, async () => {

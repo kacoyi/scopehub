@@ -298,7 +298,10 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const [approved, setApproved] = useState<ApprovedMapping>();
   const [publishedRecord, setPublished] = useState<PublishedLocalImportRevision>();
   const [frozenChart, setFrozen] = useState<FrozenChartResult>();
-  const [folderRefresh, setFolderRefresh] = useState<PreviewLocalFolderRefreshOutput>();
+  const [stagedRefresh, setFolderRefresh] = useState<{
+    result: PreviewLocalFolderRefreshOutput; focusGeneration: number | undefined;
+  }>();
+  const [standaloneFocus, setStandaloneFocus] = useState(0);
   const [preparedFolder, setPreparedFolder] = useState<PreparedFolder>();
   const [publishedFolderRecord, setPublishedFolder] = useState<PublishedLocalFolderRevision>();
   const [frozenFolderRecord, setFrozenFolder] = useState<ReadLocalFolderRevisionOutput>();
@@ -324,23 +327,64 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const folderAccessLost = publishedFolderId !== undefined && revisionAccess.revoked.has(publishedFolderId);
   const publishedFolder = publishedFolderId && revisionAccess.canDisplay(publishedFolderId) ? publishedFolderRecord : undefined;
   const frozenFolder = frozenFolderRecord && revisionAccess.canDisplay(frozenFolderRecord.revision.revision_id) ? frozenFolderRecord : undefined;
+  const folderRefresh = stagedRefresh?.result;
+  const focusGeneration = workspace?.focus.generation ?? standaloneFocus;
+  const focusPending = workspace?.focus.pending ?? false;
+  const workspaceHandlesFocus = workspace !== undefined;
   const refreshRevisionId = folderRefresh?.folder_base?.revision_id ?? folderRefresh?.base?.revision_id;
   const refreshRevoked = refreshRevisionId !== undefined && revisionAccess.revoked.has(refreshRevisionId);
-  const refreshVisible = refreshRevisionId === undefined || revisionAccess.canDisplay(refreshRevisionId);
+  const refreshMissing = refreshRevisionId !== undefined && revisionAccess.unavailable.has(refreshRevisionId);
+  const refreshNeedsConfirmation = stagedRefresh !== undefined && stagedRefresh.focusGeneration !== focusGeneration;
+  const refreshVisible = !focusPending && !refreshNeedsConfirmation && refreshRevisionId !== undefined
+    && revisionAccess.canDisplay(refreshRevisionId);
+  const verifyRefresh = folderRefresh?.folder_base ? revisionAccess.verifyFolder : revisionAccess.verify;
   useWatchPublishedRevision(lostAccess ? undefined : publishedId, revisionAccess.verify, workspace);
   useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, revisionAccess.verifyFolder, undefined);
   useWatchPublishedRevision(
-    refreshRevoked || refreshRevisionId === publishedId || refreshRevisionId === publishedFolderId ? undefined : refreshRevisionId,
-    folderRefresh?.folder_base ? revisionAccess.verifyFolder : revisionAccess.verify,
+    refreshRevoked || (refreshNeedsConfirmation && !refreshMissing)
+      || refreshRevisionId === publishedId || refreshRevisionId === publishedFolderId ? undefined : refreshRevisionId,
+    verifyRefresh,
     folderRefresh?.folder_base ? undefined : workspace,
   );
+
+  useLayoutEffect(() => {
+    if (workspaceHandlesFocus) return;
+    const refocus = () => {
+      if (document.visibilityState === 'visible') setStandaloneFocus(generation => generation + 1);
+    };
+    window.addEventListener('focus', refocus);
+    document.addEventListener('visibilitychange', refocus);
+    return () => {
+      window.removeEventListener('focus', refocus);
+      document.removeEventListener('visibilitychange', refocus);
+    };
+  }, [workspaceHandlesFocus]);
+
+  useEffect(() => {
+    if (!refreshNeedsConfirmation || !refreshRevisionId || focusPending || refreshRevoked || refreshMissing) return;
+    const controller = new AbortController();
+    void verifyRefresh(refreshRevisionId, controller.signal).then(status => {
+      if (controller.signal.aborted) return;
+      if (status === 'available') {
+        setPublicationFailure(undefined);
+        setFolderRefresh(current => current === stagedRefresh ? { ...current, focusGeneration } : current);
+      } else if (status === undefined) {
+        setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
+      }
+    });
+    return () => controller.abort();
+  }, [focusGeneration, focusPending, refreshMissing, refreshNeedsConfirmation, refreshRevisionId, refreshRevoked,
+    stagedRefresh, verifyRefresh]);
 
   useLayoutEffect(() => {
     if (refreshRevoked) {
       setFolderRefresh(undefined);
       setPreparedFolder(undefined);
+      if (refreshNeedsConfirmation) {
+        setPublicationFailure({ message: message('Access removed for this published revision.') });
+      }
     }
-  }, [refreshRevoked]);
+  }, [refreshNeedsConfirmation, refreshRevoked]);
 
   useLayoutEffect(() => {
     if (!folderAccessLost) return;
@@ -583,6 +627,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
 
   async function stageFolderRefresh(revisionId: string) {
     if (active.current || picker.current) return;
+    const focusAtStage = focusPending ? undefined : focusGeneration;
     setFolderRefresh(undefined);
     setPreparedFolder(undefined);
     await runRequest('refresh', id => previewLocalFolderRefresh({
@@ -599,7 +644,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         setPublicationFailure({ message: message('The folder preview could not be verified for this revision.') });
         return;
       }
-      setFolderRefresh(reply);
+      setFolderRefresh({ result: reply, focusGeneration: focusAtStage });
     });
   }
 
@@ -757,6 +802,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     {failure && <ImportAlert failure={failure} />}
     {mappingFailure && <ImportAlert failure={mappingFailure} />}
     {publicationFailure && <ImportAlert failure={publicationFailure} />}
+    {refreshMissing && refreshNeedsConfirmation
+      && <ImportAlert failure={{ message: message('This frozen revision is unavailable in the current profile.') }} />}
     <div className="local-import-grid">
       <div className="local-import-controls">
         <fieldset className="local-import-card" disabled={busy}>
@@ -866,6 +913,8 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
         </div>}
         {mappingNotice && <div className="local-import-card" role="status">{t(mappingNotice)}</div>}
         {publicationNotice && <div className="local-import-card" role="status">{t(publicationNotice)}</div>}
+        {refreshNeedsConfirmation && !refreshMissing && !refreshRevoked && !publicationFailure
+          && <p role="status">{t('Checking access to the compared revision…')}</p>}
         <FolderRefreshReview
           revisionId={publishedFolder?.revision_id ?? published?.revision_id}
           busy={busy}

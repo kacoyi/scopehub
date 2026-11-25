@@ -25564,7 +25564,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Reproduce the delayed comparison with real peer withdrawal, restore the ordinary correction journey, and verify both against the existing task and accepted history before independent native qualification.",
+      "next_action": "Hand the comparison access fence and both private correction controls to independent re-review and native qualification. Retain the original guarded Windows failure, ordinary observations and combined Linux receipt with their exact source identities.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25630,7 +25630,7 @@
             ]
           },
           {
-            "failure": "A focus snapshot occupies the shared native read admission when a private detail is required after a peer correction, leaving the panel stale or falsely clearing private content.",
+            "failure": "A focus snapshot can occupy the shared native read admission when a private detail is required after a peer correction, leaving the panel stale or falsely clearing private content.",
             "checks": [
               "workspace-timeframe"
             ]
@@ -25671,7 +25671,8 @@
             "apps/desktop/ui/src/workspace-source.ts",
             "apps/desktop/ui/src/published-revision-access.ts",
             "apps/desktop/ui/src/use-local-workspace.ts",
-            "apps/desktop/ui/src/local-revision-dialog.tsx"
+            "apps/desktop/ui/src/local-revision-dialog.tsx",
+            "apps/desktop/ui/src/local-import-editor.tsx"
           ],
           "rules": [
             {
@@ -25691,7 +25692,8 @@
           ],
           "change": [
             "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
-            "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs."
+            "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs.",
+            "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

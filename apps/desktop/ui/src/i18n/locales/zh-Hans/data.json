@@ -41,6 +41,7 @@
   "Check the header delimiter, quoting or field size. {detail}": "请检查表头的分隔符、引号或字段大小。{detail}",
   "Check the separator and quoting. This record exceeds {fields} fields.": "请检查分隔符和引号。此记录超过 {fields} 个字段。",
   "Check the source bar start. {detail}": "请检查源数据中的 K 线开始时间。{detail}",
+  "Checking access to the compared revision…": "正在确认对所比较修订的访问权限…",
   "Checking complete files in the selected folder…": "正在检查所选文件夹中的完整文件…",
   "Checking current files and publishing the folder…": "正在检查当前文件并发布文件夹…",
   "Checking for a reviewed mapping…": "正在查找已审核的映射…",

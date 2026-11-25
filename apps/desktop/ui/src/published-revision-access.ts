@@ -3,6 +3,8 @@ import { readFrozenRevisionStatus, type LocalWorkspace } from './use-local-works
 import { readLocalFolderRevision } from './local-import-transport';
 import { withReplyDeadline } from './reply-deadline';
 
+type AccessStatus = 'available' | 'missing' | 'revoked' | undefined;
+
 export function displayAccessDenied(error: unknown) {
   return error !== null && typeof error === 'object' && 'code' in error
     && (error.code === 'SNAPSHOT_UNAVAILABLE' || error.code === 'PERMISSION_DENIED');
@@ -12,7 +14,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
   const observed = useRef(new Set<string>());
   const missing = useRef(new Set<string>());
   const generations = useRef(new Map<string, number>());
-  const checking = useRef(new Map<string, { controller: AbortController; request: Promise<void> }>());
+  const checking = useRef(new Map<string, { controller: AbortController; request: Promise<AccessStatus> }>());
   const [revoked, setRevoked] = useState<ReadonlySet<string>>(observed.current);
   const [unavailable, setUnavailable] = useState<ReadonlySet<string>>(missing.current);
   const selected = useRef<{ token: number; id: string } | undefined>(undefined);
@@ -53,8 +55,16 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     setMissing(id, true);
   }, [setMissing, stopChecking]);
 
-  const verifyAccess = useCallback((id: string,
-    read: (signal: AbortSignal) => Promise<'available' | 'missing' | 'revoked' | undefined>) => {
+  const verifyAccess = useCallback(async (id: string,
+    read: (signal: AbortSignal) => Promise<AccessStatus>, fresh?: AbortSignal) => {
+    // A focus fence needs an observation that started after focus. Let a shared
+    // earlier read finish, then check again without overlapping reads of this revision.
+    if (fresh) {
+      for (let current = checking.current.get(id); current && !fresh.aborted; current = checking.current.get(id)) {
+        await current.request;
+      }
+      if (fresh.aborted) return;
+    }
     if (observed.current.has(id) || canCheckRevision?.() === false) return;
     const current = checking.current.get(id);
     if (current) return current.request;
@@ -67,20 +77,24 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
         setMissing(id, false);
         refreshPublishedAccess?.(id);
       }
+      return status;
     }, error => {
-      if (!controller.signal.aborted && displayAccessDenied(error)) setMissing(id, true);
+      if (!controller.signal.aborted && displayAccessDenied(error)) {
+        setMissing(id, true);
+        return 'missing' as const;
+      }
     }).finally(() => {
       if (checking.current.get(id)?.controller === controller) checking.current.delete(id);
     });
     checking.current.set(id, { controller, request });
     return request;
   }, [canCheckRevision, refreshPublishedAccess, revoke, setMissing]);
-  const verify = useCallback((id: string) => verifyAccess(id, async signal => {
+  const verify = useCallback((id: string, fresh?: AbortSignal) => verifyAccess(id, async signal => {
     const reply = await readFrozenRevisionStatus(id, signal);
     if (reply?.available === true && reply.revoked === undefined) return 'available';
     if (reply?.available === false) return reply.revoked === true ? 'revoked' : 'missing';
-  }), [verifyAccess]);
-  const verifyFolder = useCallback((id: string) => verifyAccess(id, async signal => {
+  }, fresh), [verifyAccess]);
+  const verifyFolder = useCallback((id: string, fresh?: AbortSignal) => verifyAccess(id, async signal => {
     try {
       const reply = await readLocalFolderRevision(
         { version: 1, revision_id: id, include_details: false }, crypto.randomUUID(), signal);
@@ -89,7 +103,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
       if (error && typeof error === 'object' && 'code' in error && error.code === 'PERMISSION_DENIED') return 'revoked';
       throw error;
     }
-  }), [verifyAccess]);
+  }, fresh), [verifyAccess]);
 
   useLayoutEffect(() => {
     const requests = checking.current;
