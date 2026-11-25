@@ -21,6 +21,15 @@
       },
       "supersedes": null,
       "evidence_sha256": "cc0a8e0b8d4262ddd3b6afe02e0e1dcb874c6e36c0e4844788ffa8229bb65d1f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a3041eaf212d363d2356563b3657ea8cd7a38c7c",
+      "scope": "Independently review the protected first-window and workspace status composition, HTTP and native admission, the terminal browser abort and cancellation journal, and the retained protected Windows equal-close diagnostic with its existing controls.",
+      "supersedes": "d368394b8f75360b9dfdc70478254f64101980bf1d66c86ef99977e7476013bf",
+      "requested_at": "2026-11-25T21:59:35.363746+00:00",
+      "request_id": "c67f8eb17b79997e4eaf195cd2f35f24e86cf11650e74b129ff782fd7760b66d",
+      "evidence_sha256": "f150899de64610a61bc354d4451ccebce29de838083c4c979544d0d2d33188e8"
     }
   ]
 }
