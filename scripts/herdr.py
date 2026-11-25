@@ -10,8 +10,18 @@ import sys
 from uuid import uuid4
 
 if __package__:
+    from .development import (
+        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
+    )
+    from .review_tree import CommittedPath
+    from .verification_scope import ScopeError
     from .storage import maintain_automatically
 else:
+    from development import (
+        HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
+    )
+    from review_tree import CommittedPath
+    from verification_scope import ScopeError
     from storage import maintain_automatically
 
 
@@ -44,7 +54,7 @@ def find_worktree(start: Path) -> Path:
     raise LaunchError('Run this command from a ScopeHub Git worktree.')
 
 
-def read_record(path: Path) -> dict:
+def read_record(path: Path | CommittedPath) -> dict:
     try:
         record = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError) as error:
@@ -108,11 +118,11 @@ def resolve_model(models: list, family: str, effort: str) -> str:
     return max(candidates)[1]
 
 
-def role_profile(root: Path, args: argparse.Namespace) -> tuple[str, str]:
+def role_profile(root: Path, records: Path | CommittedPath, args: argparse.Namespace) -> tuple[str, str]:
     profile = 'supervise' if args.escalate_model else ROLE_PROFILES[args.role]
     invalid_profile = f'Missing or invalid project/development.json#herdr profile {profile!r}'
     try:
-        settings = read_record(root / 'project/development.json')['herdr']
+        settings = read_record(records / 'project/development.json')['herdr']
         if settings['host'] != 'Herdr':
             raise LaunchError('Expected Herdr as the host in project/development.json#herdr')
         profiles = settings['profiles']
@@ -163,13 +173,47 @@ def require_local_space(root: Path, space_id: str) -> None:
     raise LaunchError(f'No existing local Herdr space has ID {space_id!r}.')
 
 
+def check_review_source(root: Path, source: str) -> None:
+    if __package__:
+        from .project import ProjectError, require_review_source
+    else:
+        from project import ProjectError, require_review_source
+    try:
+        require_review_source(root, source)
+    except ProjectError as error:
+        raise LaunchError(str(error)) from error
+
+
 def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
-    tasks = read_record(root / 'project/tasks.json').get('tasks')
+    records = root
+    if args.source is not None:
+        check_review_source(root, args.source)
+        records = CommittedPath.at(root, args.source)
+    tasks = read_record(records / 'project/tasks.json').get('tasks')
     if not isinstance(tasks, list):
         raise LaunchError('Expected a task list in project/tasks.json.')
-    if not any(isinstance(task, dict) and task.get('id') == args.task_id for task in tasks):
+    task = next((row for row in tasks if isinstance(row, dict) and row.get('id') == args.task_id), None)
+    if task is None:
         raise LaunchError(f'Unknown ScopeHub task ID {args.task_id!r} in project/tasks.json.')
-    model, effort = role_profile(root, args)
+    feedback_issue = None
+    try:
+        items = read_record(records / 'project/feedback.json').get('items')
+        if not isinstance(items, list):
+            raise LaunchError('Expected a feedback list in project/feedback.json.')
+    except LaunchError:
+        if args.source is not None:
+            raise
+        items = []
+        feedback_issue = 'The optional feedback record could not be read.'
+    if any(not feedback_row_routable(item) for item in items):
+        feedback_issue = 'Malformed rows were skipped in project/feedback.json.'
+        if args.source is not None:
+            raise LaunchError(feedback_issue + ' Run pnpm project:check on the candidate.')
+    excerpt = task_launch_excerpt(task, feedback_for_task(items, args.task_id), args.source)
+    if feedback_issue:
+        excerpt['feedback_diagnostic'] = (feedback_issue + ' Run pnpm project:check for the error or '
+                                          f'pnpm project:recover --task {args.task_id} --save to retain it.')
+    model, effort = role_profile(root, records, args)
 
     # Herdr restricts names to 32 characters and requires live names to be unique.
     prefix = re.sub(r'[^a-z0-9_-]', '-', f'{args.task_id.lower()}-{args.role}')[:19]
@@ -182,16 +226,24 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
         command.extend(['--label', f'herdr.space={args.space}'])
     command.extend(['--', 'codex', '--no-daemon', '--model', model, '-c',
                     f'model_reasoning_effort={json.dumps(effort)}'])
+    phase = HERDR_ROLE_PHASES[args.role]
     if args.role == 'review':
         command.extend(['--sandbox', 'read-only', '--ask-for-approval', 'never'])
-        python = './.venv/Scripts/python.exe' if os.name == 'nt' else './.venv/bin/python'
-        context = f'{python} -B scripts/project.py context {args.task_id}'
+        context = read_only_project_command('context', args.task_id, '--phase', phase, source_commit=args.source)
     else:
         command.append('--approve-for-me')
-        context = f'pnpm project:context {args.task_id}'
+        context = f'pnpm project:context {args.task_id} --phase {phase}'
+    bound_review = (
+        'Run this context command before inspecting the candidate. If it rejects the source, stop and report '
+        'the mismatch. Report the source with the outcome of the independent check.\n'
+        if args.source is not None else ''
+    )
+    task_records = f'Task records\n{json.dumps(excerpt, ensure_ascii=False, indent=2)}\n' if excerpt else ''
     prompt = (
         f'ScopeHub task {args.task_id}, role {args.role}.\n'
-        f'See `{context}` for task context.\n\n'
+        f'{task_records}'
+        f'See `{context}` for task context.\n'
+        f'{bound_review}\n'
         f'{args.assignment}'
     )
     command.extend(['--', prompt])
@@ -208,6 +260,7 @@ def main() -> int:
     parser.add_argument('--effort', help='Reasoning effort for this assignment with a family-based profile.')
     parser.add_argument('--escalate-model', action='store_true',
                         help='Use the supervise model family for this implementation assignment.')
+    parser.add_argument('--source', metavar='COMMIT', help='Bind a review to this full, clean HEAD commit.')
     parser.add_argument('--dry-run', action='store_true', help='Print launch argv without running commands.')
     args = parser.parse_args()
     if not args.assignment.strip():
@@ -216,21 +269,27 @@ def main() -> int:
         parser.error('--space must be a local Herdr space ID.')
     if args.escalate_model and args.role != 'implement':
         parser.error('--escalate-model requires the implement role.')
+    if args.source is not None and args.role != 'review':
+        parser.error('--source requires the review role.')
     try:
         root = find_worktree(Path.cwd())
         command = launch_argv(root, args)
         if args.dry_run:
+            if args.source is not None:
+                check_review_source(root, args.source)
             print(json.dumps({'cwd': str(root), 'argv': command}, indent=2))
             return 0
         if args.space is not None:
             require_local_space(root, args.space)
+        if args.source is not None:
+            check_review_source(root, args.source)
         subprocess.run(command, cwd=root, check=True)
         maintain_automatically(root)
     except subprocess.CalledProcessError as error:
         tool = ' '.join(error.cmd[:2])
         print(f'{parser.prog}: {tool} failed with exit status {error.returncode}.', file=sys.stderr)
         return error.returncode if error.returncode > 0 else 128 - error.returncode
-    except (LaunchError, OSError) as error:
+    except (LaunchError, ScopeError, OSError) as error:
         print(f'{parser.prog}: {error}', file=sys.stderr)
         return 1
     return 0

@@ -1,6 +1,7 @@
 """Observe Git, path consumers and retained files before a separate native retirement."""
 
 from collections import defaultdict
+from datetime import datetime, timezone
 import hashlib
 from itertools import dropwhile, islice, takewhile
 import json
@@ -1024,6 +1025,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
         'scope': 'Read-only snapshot of local Git references, registered checkout consumers, Herdr state, and '
                  'same-user Linux host processes. Recheck before any later worktree operation.',
         'integration_ref': INTEGRATION_REF,
+        'observed_at': datetime.now(timezone.utc).isoformat(),
         'integration_tip': integrated,
         'archive_root': str(archive) if archive else None,
         'archive_error': archive_error,

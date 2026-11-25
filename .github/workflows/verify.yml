@@ -330,6 +330,24 @@ jobs:
             ~/.cargo/git/db
             target
           key: ${{ steps.cargo_cache.outputs['cache-primary-key'] }}
+      - name: Summarize weekly maintenance follow-through
+        if: ${{ !cancelled() && github.event_name == 'schedule' && runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          if ! overview="$(uv run --no-sync python scripts/project.py status --overview)"; then
+            echo '::error::Weekly maintenance follow-through could not be generated.'
+            printf '### Weekly maintenance follow-through unavailable\n\nSee the scheduled Linux step log.\n' | tee -a "$GITHUB_STEP_SUMMARY"
+            printf '%s\n' "$overview"
+            exit 1
+          fi
+          if ! {
+            printf '### Weekly maintenance follow-through\n\n'
+            printf 'Source `%s`. Attention below requests follow-up in the next development session.\n\n' "$GITHUB_SHA"
+            printf '```json\n%s\n```\n' "$overview"
+          } | tee -a "$GITHUB_STEP_SUMMARY"; then
+            echo '::error::Weekly maintenance follow-through was generated but its summary could not be published.'
+            exit 1
+          fi
 
   windows_core:
     name: Windows change checks (${{ matrix.lane }})

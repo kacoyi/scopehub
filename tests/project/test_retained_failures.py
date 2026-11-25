@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -85,6 +86,49 @@ class RetainedFailureTests(ProjectFixture):
         self.assertEqual(1, unavailable['retained_failures']['matching_inputs']['count'])
         self.assertTrue(unavailable['retained_failures']['scan']['schema_unavailable'])
         self.assertIn('incomplete_retained_run_coverage', {item['kind'] for item in unavailable['signals']})
+
+    def test_bounded_current_failure_route_distinguishes_other_inputs_and_survives_narrow_green(self):
+        shutil.copytree(SCRIPTS, self.root / 'scripts', ignore=shutil.ignore_patterns('__pycache__'))
+        self.base = read_json(self.report())
+        self.base['source_end'] = self.base['source']
+        self.reference = self.base['source']['sha256'], self.base['project_definition_sha256']
+
+        def invoke(*args):
+            completed = subprocess.run([sys.executable, 'scripts/project.py', *args], cwd=self.root,
+                                       capture_output=True, text=True, check=True)
+            return json.loads(completed.stdout)
+
+        def follow(command):
+            args = shlex.split(command)
+            return invoke(*args[3:]) if args[1] == '-B' else invoke(args[1].split(':')[1], *args[2:])
+
+        self.assertEqual([], invoke('status', '--retained-failures')['items'])
+        quiet = invoke('status', '--overview')['verification']
+        self.assertNotIn('retained_failures_lookup', quiet)
+        self.observed(1, {'rust-lints': 'failed'})
+        single = invoke('status', '--retained-failures')
+        self.assertEqual(('rust-lints', 1), (single['items'][0]['check_id'], single['matching_count']))
+        available = ('architecture', 'generated-contracts', 'python-contracts-workers', 'python-types',
+                     'rust-format', 'typescript-contracts')
+        self.base['checks'].extend({**self.base['checks'][0], 'id': key, 'command': [sys.executable, key]}
+                                   for key in available)
+        self.observed(2, dict.fromkeys(available, 'failed'))
+        other = {**self.base['source'], 'sha256': 'e' * 64}
+        self.observed(3, {'rust-lints': 'failed'}, source=other, source_end=other)
+        self.observed(4, {'project-state': 'passed'})
+        for flags in ((), ('--read-only',)):
+            overview = invoke('status', '--overview', *flags)
+            self.assertEqual('passed', overview['verification']['outcome'])
+            first = follow(overview['verification']['retained_failures_lookup'])
+            self.assertEqual((7, 1, 5), (first['matching_count'], first['other_or_unverified_count'], len(first['items'])))
+            second = follow(first['more'])
+            self.assertEqual(2, len(second['items']))
+            self.assertEqual({'rust-lints', *available}, {item['check_id'] for item in first['items'] + second['items']})
+            self.assertNotIn('more', second)
+        (self.root / '.reports/runs/20261123T000500.000000Z-01234567').mkdir()
+        incomplete = invoke('status', '--retained-failures')
+        self.assertEqual('incomplete', incomplete['scan_coverage'])
+        self.assertEqual(7, incomplete['matching_count'])
 
     def test_a_schema_invalid_green_cannot_hide_a_failure_from_status_or_recovery(self):
         self.observed(1, {'rust-lints': 'failed'})

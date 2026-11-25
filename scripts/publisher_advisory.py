@@ -1,6 +1,7 @@
 """Fetch the one reviewed public publisher advisory without sharing CI credentials."""
 
-from http.client import HTTPException, HTTPSConnection
+from datetime import datetime, timedelta, timezone
+from http.client import HTTPException, HTTPResponse, HTTPSConnection
 import json
 import os
 from pathlib import Path
@@ -41,6 +42,59 @@ def public_record(body):
     return {'ghsa_id': ADVISORY, 'state': 'published', 'withdrawn_at': None, 'vulnerabilities': vulnerabilities}
 
 
+class _HeaderReader:
+    def __init__(self, stream):
+        self.stream = stream
+        self.terminated = False
+
+    def readline(self, limit):
+        line = self.stream.readline(limit)
+        self.terminated = line in (b'\r\n', b'\n')
+        return line
+
+    def close(self):
+        self.stream.close()
+
+
+class _PublisherResponse(HTTPResponse):
+    def begin(self):
+        if self.headers is not None:
+            return
+        # The standard parser accepts EOF as a delimiter. Observe whether it
+        # actually read an empty line at the end of the final header block.
+        stream = self.fp
+        reader = _HeaderReader(stream)
+        self.fp = reader
+        try:
+            super().begin()
+        finally:
+            if self.fp is reader:
+                self.fp = stream
+        self.headers_terminated = reader.terminated
+
+
+def _anonymous_quota_diagnostic(response):
+    headers = response.headers
+    # A parser defect can hide later conflicting fields from the parsed header block.
+    if not response.headers_terminated or headers.defects:
+        return b''
+    remaining = headers.get_all('X-RateLimit-Remaining', [])
+    if len(remaining) != 1 or remaining[0].strip(' \t') != '0':
+        return b''
+    diagnostic = 'Publisher advisory unavailable (HTTP 403). Anonymous API quota exhausted.'
+    resets = headers.get_all('X-RateLimit-Reset', [])
+    if len(resets) != 1:
+        return diagnostic
+    reset = resets[0].strip(' \t')
+    if not (1 <= len(reset) <= 12 and reset.isascii() and reset.isdecimal()):
+        return diagnostic
+    try:
+        instant = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=int(reset))
+    except OverflowError:
+        return diagnostic
+    return f'{diagnostic} Reset at {instant:%Y-%m-%dT%H:%M:%SZ}.'
+
+
 def request_once(token):
     headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'ScopeHub-dependency-review'}
     if token:
@@ -49,16 +103,23 @@ def request_once(token):
         headers['Authorization'] = f'Bearer {token}'
     # Direct TLS to a fixed host and relative path. HTTPConnection never follows redirects.
     connection = HTTPSConnection(HOST, timeout=8)
+    if token is None:
+        connection.response_class = _PublisherResponse
     try:
         connection.request('GET', ROUTE, headers=headers)
         with connection.getresponse() as response:
-            return response.status, response.read(MAX_BYTES + 1) if response.status == 200 else b''
+            if response.status == 200:
+                return response.status, response.read(MAX_BYTES + 1)
+            if response.status == 403 and token is None:
+                return response.status, _anonymous_quota_diagnostic(response)
+            return response.status, b''
     finally:
         connection.close()
 
 
 def fetch(url, token=None):
     require_exact_url(url)
+    local_anonymous = token is None
     for attempt in range(2):
         try:
             status, data = request_once(token)
@@ -80,6 +141,8 @@ def fetch(url, token=None):
             continue
         if attempt == 0 and status in TRANSIENT:
             continue
+        if local_anonymous and status == 403 and isinstance(data, str):
+            raise ValueError(data)
         raise ValueError(f'Publisher advisory unavailable (HTTP {status})')
 
 
