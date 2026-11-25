@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-126",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24525,7 +24525,7 @@
       "id": "M0-126",
       "title": "Report confirmed anonymous publisher advisory quota exhaustion",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-027"
       ],
@@ -24553,11 +24553,15 @@
         {
           "path": "project/evidence/M0-126-b5bb1ae9c69f1412.json",
           "sha256": "0597e370afc519a8f79134c4c9024cdcc0dfef9d0de6b4c4897b2c7c8568e676"
+        },
+        {
+          "path": "project/evidence/M0-126-c4f09feb69227a31.json",
+          "sha256": "371df27f7f21af84d2ae30bde4e7e63458dadbde60e20726f0f9d3c751ee3265"
         }
       ],
-      "next_action": "Observe completion of the final publisher header block in the existing HTTP transport, retain offline and live verification, and obtain final independent review.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra Standard approved ddafe1e07d6cc040824f331108cd31041410723c. All four local task checks passed after the observed publisher reset. The 34 independent transport cases distinguish a complete zero-remaining response from ambiguous headers, premature EOF and generic HTTP 403. The original two unclassified responses retain their observed status.",
       "plan": {
         "outcome": "The failed local dependency report distinguishes a proven anonymous quota limit from an unclassified HTTP 403.",
         "change_types": [
