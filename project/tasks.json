@@ -24923,6 +24923,155 @@
           "cleanup": "Keep experimental code and experimental verification evidence only in private recovery history."
         }
       }
+    },
+    {
+      "id": "M0-135",
+      "title": "Verify follow-through for the five periodic reviews",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [],
+      "scope": [
+        "scripts/project.py",
+        "scripts/development.py",
+        "AGENTS.md",
+        "project/delivery.json",
+        "contracts/schemas/project.schema.json",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/maintenance.py",
+        "scripts/protection.py",
+        "tests/project/test_protection.py",
+        ".github/workflows/verify.yml",
+        "scripts/ci.py",
+        "scripts/timing.py",
+        "scripts/worktree_retirement.py",
+        "tests/project/test_retained_failures.py",
+        "tests/project/test_verify_browser_setup.py"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Ordinary startup provides a bounded whole-project outlook and identifies overdue, unsupported or actionable periodic reviews without changing authoritative detailed output.",
+        "Existing protected history rejects date-only clearance for each of the five lanes while preserving the inherited baseline and type-appropriate review observations.",
+        "Exercise the five calibrated negative cases, genuine scoped observations, removal and cross-category replay, and a quiet week that becomes due in ordinary startup and the existing scheduled Linux summary."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-135-fb9039bcd3db6012.json",
+          "sha256": "98c8f6c7bd30f9628c2dc34d8a1c7f00578bfd9c4269ba265c136ab44f4cc56e"
+        },
+        {
+          "path": "project/evidence/M0-135-cc8cfc95f5bc5b07.json",
+          "sha256": "87e8076cad4ea6028a7a3967cb1b74857a6a391b637cc6edfa1d4156d98700be"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved ddb5f6e44cb7fc2fa3a7520332bde0da1fbddfd2. The attached clean local Linux task and successful Windows PR 115 report cover the required project and worker checks, including seven observed maintenance defects. The weekly-summary write failure control executed on Linux. The next scheduled verification supplies its own dated result.",
+      "plan": {
+        "outcome": "A single evidence-bound invariant protects all five periodic reviews at startup and in protected history. The existing weekly Linux run retains the startup attention without changing product-result semantics.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/development.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "The calendar flag can clear independently of observation bytes in all five review lanes. Typed bounded projections of existing observations can share the same guard.",
+          "Full source deltas, source-bound consumer checks and independently checked observation facts can close the review gaps without inferring cross-lane recovery.",
+          "A separate original-byte check at protected intake can bind private source observations without publishing inventory details. Later offline review can reuse that accepted exact projection.",
+          "A common observation transition with immutable predecessor references can admit new findings and verified closure without changing previously accepted bytes."
+        ],
+        "risks": [
+          {
+            "failure": "An unsupported date advance clears review attention or passes protected history.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An unrelated or stale receipt appears to prove compatibility. Exercise native Rust and Python consumers, an unrelated valid receipt, and changed, unchanged or unavailable history. Verify that a new adverse observation after a verified repair requires reopening.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A compatibility reader change is omitted, an unbound or stale observation overclaims coverage, or a review transition or startup precedence hides unfinished work.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Self-generated projection hashes substitute for original bytes, retirement loses a staging obligation, a same-day update loses a predecessor, recovery is unqualified, or a cold reader cannot route one critical finding.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A capture source is inferred from a proposal, an independently known obligation is lost, historical evidence is changed, or an urgent assignment route is hidden by another urgent item.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A due transfer loses its calendar obligation, fresh standalone fast runs are mistaken for a replay, or partially traced branch tips cannot progress without hiding adverse evidence. A bounded handoff can also omit retained failures, and weekly summary I/O can suppress product verification.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A hosted run can advance the calendar again after an intervening scope, or a same-day inventory rejects exact branch progress after verified main ancestry advances. Exercise overlap, replay, reversal, independent protection and unrelated histories.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the gate and compact navigation together. Retain the historical date and original calibration.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Keep task dispatch, hosted timing measurements and product acceptance independent."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve historical cadence, accepted records, existing normal JSON fields and independent native and release evidence."
+          ],
+          "change": [
+            "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations.",
+            "Review completeness and subsequent recovery are separate claims. Keep unsupported dimensions and both urgent and calendar follow-through visible.",
+            "Separate original verification from protected acceptance of minimized records. Admit named staging and source-qualified later timing, retain monotone supplements, and expose stable read-only navigation.",
+            "Separate observation identity from checkout context and preserve independent pending scopes and assignment routes through capture, transfer, confirmation and closure.",
+            "Keep transferred calendar and exact observation identities until verified follow-through. Expose a bounded retained-failure route and keep the scheduled product verdict independent of summary publication."
+          ],
+          "data_plan": "Read canonical task receipts and feedback. Compare changed consumer boundaries from accepted Git history and retain unverified scopes. Leave the historic baseline unchanged and keep controls in private validation outputs.",
+          "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."
+        }
+      }
     }
   ]
 }

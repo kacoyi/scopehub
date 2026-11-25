@@ -2714,10 +2714,24 @@ def recent_runs(repository, limit):
     return selected
 
 
+def collection_source(root):
+    """Record the producer checkout only when its clean Git revision is observable."""
+    try:
+        head = git(root, 'rev-parse', 'HEAD').decode('ascii').strip()
+        if (commit_id(head) and not git(root, 'status', '--porcelain', '--untracked-files=normal')
+                and git(root, 'rev-parse', 'HEAD').decode('ascii').strip() == head):
+            return head
+    except (OSError, ScopeError, subprocess.SubprocessError):
+        pass
+    return None
+
+
 def inspect_recent(repository, limit, samples, workflows, issues):
+    source = collection_source(ROOT)
     runs = recent_runs(repository, limit)
     starting_issues = len(issues)
     with_compact, without_compact = [], []
+    collected_samples = set()
     for run in runs:
         run_id, attempt = str(run['id']), str(run['run_attempt'])
         try:
@@ -2727,11 +2741,15 @@ def inspect_recent(repository, limit, samples, workflows, issues):
             samples.extend(compact)
             if compact or has_report:
                 workflows.append(inspect_jobs(run, repository))
+                collected_samples.update((run_id, sample['platform'], run['event']) for sample in compact)
         except (OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS) as error:
             issues.append({'run_id': run_id, 'error': str(error)})
     return {'collected_at': datetime.now(timezone.utc).isoformat(),
+            'capture_source': source if source and collection_source(ROOT) == source else None,
             'limit_per_event': limit, 'completed_runs_considered': len(runs),
             'runs_with_compact': len(with_compact), 'runs_without_compact': len(without_compact),
+            'collected_samples': [{'run_id': run, 'platform': platform, 'event': event}
+                                  for run, platform, event in sorted(collected_samples)],
             'missing_compact_run_ids': without_compact,
             'unsuccessful_runs': sum(run.get('conclusion') != 'success' for run in runs),
             'cold_bootstrap': not with_compact and len(issues) == starting_issues}
