@@ -23925,6 +23925,110 @@
           "cleanup": "Keep the original report unchanged and discard raw child output and failure objects at the runner boundary."
         }
       }
+    },
+    {
+      "id": "M0-103",
+      "title": "Recover the recurrent full warm Windows PR feedback budget",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-094",
+        "M0-098"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "scripts/check.py",
+        "scripts/timing.py",
+        "project/feedback.json",
+        "tests/project",
+        "project/tasks.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the three original PR identities and all named outcomes. Attribute any shortening to the actual critical producer, setup or aggregate tail and account for runner work.",
+        "Record the first comparable successful ordinary post-correction PR at or below 900 seconds with exact repair ancestry. Keep failed, cold, unrelated or over-budget attempts distinct from recovery."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-103-2f19109871b6a09a.json",
+          "sha256": "23765e0d7706634ebce020e684cc4d0cb87c9cf93c95c5957a7103be793a4dfe"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Authenticated PR 96 first attempt 45563183277 passed at 876 seconds on Windows with all Cargo producers warm and the reviewed ACL correction in both tested merge parents. The 35 selected identities and outcomes matched all three originals. Browser setup explains the measured critical-path gain, chiefly Cargo restore. The original clocks, exact ancestry, job and runner work, and separate task-bound local receipt are recorded in contracts/reviews/2026-11-25-pr-timing-recurrences.json.",
+      "plan": {
+        "outcome": "A successful ordinary full warm Windows PR containing an attributable correction has feedback elapsed within 900 seconds with intact coverage.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "scripts/check.py",
+          "scripts/timing.py",
+          "project/feedback.json",
+          "archives/observations/pr-timing-recurrences-f5bb2ae/observations.json"
+        ],
+        "hypotheses": [
+          "The 910-second four-producer PR and the 917-second three-producer PR can have different critical lanes. Splitting one lane does not establish relief of the same bottleneck.",
+          "A Windows profile correctness change may prevent failures or change a timeout path. Its dedicated task and the later protected main push cannot establish this PR cohort's elapsed recovery."
+        ],
+        "risks": [
+          {
+            "failure": "A faster noncritical lane is credited for improvement of the protected feedback clock.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A manual task, main push, failed or differently covered run is passed off as comparable Windows PR recovery.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the finding and its original evidence open. Revert any proposed optimization that changes a named outcome or cannot be attributed in comparable ordinary timing.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/check.py",
+            ".github/workflows/verify.yml"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "No new timing gate, additional hosted dispatch, reduced coverage, synthetic timings or change to protected main or historical findings."
+          ],
+          "open_questions": [
+            "Which producer gates each 910- and 917-second run, and which upcoming ordinary PR includes both the candidate change and the intended workflow base?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Original authenticated reports, existing full check outcomes, timing budgets and independent PR and push scopes."
+          ],
+          "change": [
+            "Shorten the measured Windows critical segment while preserving the full checks, then use existing timing recovery handling."
+          ],
+          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified.",
+          "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
+        }
+      }
     }
   ]
 }
