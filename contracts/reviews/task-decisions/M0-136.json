@@ -67,6 +67,15 @@
       },
       "supersedes": "1bba51ce07786290365c81c64779e153c4516d57ae2009afd50a91dcf45361d1",
       "evidence_sha256": "eca4c1d1e1f40eca55b12bb6882546bcea6c736ff51a457f798d11c055a24b76"
+    },
+    {
+      "kind": "request",
+      "source_commit": "624c4cdbacc1318bce6a9ac4af3d8938104fb671",
+      "scope": "Independently test structural extraction of substantive passages, exclusion of decorated headings, literal UTF-8 observation transport and the retained exact-source review lifecycle.",
+      "supersedes": "cabe65f3f778f2cb724b9e2f5a8c2da15de5613aee556c94c21ab25d02f0df50",
+      "requested_at": "2026-11-25T14:47:22.309201+00:00",
+      "request_id": "452550f7d8c2767e321f48304fe4924ff2d220b3c7d7ba23a07d0ba8ddcc731a",
+      "evidence_sha256": "c559ee2aeae01ba76170d267920c89c6c716b8fd6264622a78d39e2efcbf83f4"
     }
   ]
 }
