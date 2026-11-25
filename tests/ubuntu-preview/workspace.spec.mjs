@@ -944,7 +944,7 @@ function verifyFrozenIndicatorJournal(journal, previousTask, { cut, fault }) {
 
   const cancels = journal.filter(attempt => attempt.operation === 'task.cancel');
   const current = cancels.filter(attempt => attempt.task_id === taskId);
-  const previous = cancels.filter(attempt => attempt.task_id === previousTask);
+  const previous = previousTask ? cancels.filter(attempt => attempt.task_id === previousTask) : [];
   expect(cancels.length).toBe(current.length + previous.length);
   if (previousTask) {
     expectSingleAdmittedCommand(previous, { task_id: previousTask, outcome: { status: 'completed' } });
@@ -1103,6 +1103,15 @@ async function observeFrozenIndicatorPreview(browser, trials) {
             const attempts = [...journal.values()];
             const task = verifyFrozenIndicatorJournal(attempts, previousTask, trial);
             expect(attempts.filter(attempt => attempt.gated && isWorkspaceAdmissionRefusal(attempt))).toHaveLength(refusals);
+            if (cut === 0) {
+              const payload = { type: 'request', operation: 'task.cancel', request_id: randomUUID() };
+              const unscoped = {
+                operation: 'task.cancel', request_id: payload.request_id, payload, body: JSON.stringify(payload),
+                http: 400, reply: { ok: false, error: { code: 'INVALID_ARGUMENT', retryable: false } },
+              };
+              expect(() => verifyFrozenIndicatorJournal([...attempts, unscoped], previousTask, trial),
+                'A raw cancellation without a task ID must fail on the first trial').toThrow();
+            }
             if (cut === 2) rejectAlteredIndicatorJournals(attempts, previousTask, trial);
             if (alert) continue;
             previousTask = task;
