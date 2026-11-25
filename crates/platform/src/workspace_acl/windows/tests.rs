@@ -7,6 +7,7 @@ use std::{
 
 use super::*;
 use crate::workspace_acl::{check, dispatch_test, use_test_host};
+use windows_sys::Win32::Security::{PROTECTED_DACL_SECURITY_INFORMATION, SetFileSecurityW};
 
 #[test]
 fn ordinary_profile_chain_keeps_one_drive_and_rejects_ambiguous_names() {
@@ -79,8 +80,8 @@ impl Drop for Scratch {
     }
 }
 
-fn assert_raw_ace_count(path: &Path, count: u16) -> u32 {
-    let file = open_entry(path, Entry::Profile).unwrap().unwrap();
+fn raw_access_entries(path: &Path, kind: Entry) -> Vec<(u32, u32)> {
+    let file = open_entry(path, kind).unwrap().unwrap();
     let mut dacl = null_mut();
     let mut descriptor = Allocation(null_mut());
     // SAFETY: the file and output parameters are live during the ACL query.
@@ -101,17 +102,27 @@ fn assert_raw_ace_count(path: &Path, count: u16) -> u32 {
     );
     assert!(!dacl.is_null());
     // SAFETY: the raw ACL header belongs to the live Windows descriptor.
-    assert_eq!(unsafe { (*dacl).AceCount }, count);
-    let mut first = null_mut();
-    // SAFETY: the ACL and output remain live and GetAce validates the index.
-    assert_ne!(unsafe { GetAce(dacl, 0, &mut first) }, 0);
-    assert!(!first.is_null());
-    // SAFETY: GetAce returned a raw ACE within the live descriptor.
-    u32::from(unsafe { (*first.cast::<ACE_HEADER>()).AceFlags })
+    let count = u32::from(unsafe { (*dacl).AceCount });
+    (0..count)
+        .map(|index| {
+            let mut entry = null_mut();
+            // SAFETY: the ACL and output remain live and GetAce validates the index.
+            assert_ne!(unsafe { GetAce(dacl, index, &mut entry) }, 0);
+            assert!(!entry.is_null());
+            // SAFETY: GetAce returned an ACE header within the live descriptor.
+            let header = unsafe { &*entry.cast::<ACE_HEADER>() };
+            assert_eq!(u32::from(header.AceType), ACCESS_ALLOWED_ACE_TYPE);
+            assert!(usize::from(header.AceSize) >= size_of::<ACCESS_ALLOWED_ACE>());
+            assert!(entry.cast::<ACCESS_ALLOWED_ACE>().is_aligned());
+            // SAFETY: the fixture allow entry has the expected size and alignment.
+            let ace = unsafe { &*entry.cast::<ACCESS_ALLOWED_ACE>() };
+            (u32::from(header.AceFlags), ace.Mask)
+        })
+        .collect()
 }
 
 #[test]
-fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
+fn native_storage_matches_managed_ordinary_rules() {
     use windows_sys::Win32::Storage::FileSystem::FILE_GENERIC_READ;
 
     use_test_host("workspace_acl::windows::tests::policy_worker");
@@ -195,8 +206,9 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
             write!(sddl, "(A;{flags};0x{mask:x};;;{principal})").unwrap();
         }
         create_directory(&path, &security_descriptor(&sddl).unwrap()).unwrap();
-        assert_raw_ace_count(&path, u16::try_from(rules.len()).unwrap());
-        roots.push((path, admitted));
+        assert_eq!(raw_access_entries(&path, Entry::Profile).len(), rules.len());
+        let refusal = (!admitted).then_some("owner-or-inheritance");
+        roots.push((path, Entry::Profile, refusal));
     }
     let inherited = scratch.0.join("inherited-private-control");
     create_directory(
@@ -204,15 +216,83 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
         &security_descriptor(&format!("O:{user}")).unwrap(),
     )
     .unwrap();
-    assert_ne!(assert_raw_ace_count(&inherited, 1) & INHERITED_ACE, 0);
-    roots.push((inherited, true));
+    let inherited_entries = raw_access_entries(&inherited, Entry::Profile);
+    assert_eq!(inherited_entries.len(), 1);
+    assert_ne!(inherited_entries[0].0 & INHERITED_ACE, 0);
+    roots.push((inherited, Entry::Profile, None));
 
-    for (path, admitted) in &roots {
-        let native = check(path, false, 0);
-        if *admitted {
-            native.unwrap();
+    for (name, kind, flags, raw_flags, mask, refusal) in [
+        ("directory-zero", Entry::Profile, "", 0, 0, None),
+        (
+            "directory-inherit-only",
+            Entry::Profile,
+            "OIIO",
+            OBJECT_INHERIT_ACE | INHERIT_ONLY_ACE,
+            read,
+            Some("shared-access"),
+        ),
+        ("file-zero", Entry::StorageFile, "", 0, 0, None),
+        (
+            "file-inherit-only",
+            Entry::StorageFile,
+            "OIIO",
+            OBJECT_INHERIT_ACE | INHERIT_ONLY_ACE,
+            read,
+            None,
+        ),
+        (
+            "file-shared",
+            Entry::StorageFile,
+            "OI",
+            OBJECT_INHERIT_ACE,
+            read,
+            Some("shared-access"),
+        ),
+    ] {
+        let directory = scratch.0.join(name);
+        let path = if kind == Entry::Profile {
+            let sddl = format!("O:{user}D:P(A;OICI;FA;;;{user})(A;{flags};0x{mask:x};;;WD)");
+            create_directory(&directory, &security_descriptor(&sddl).unwrap()).unwrap();
+            directory
         } else {
-            assert_eq!(native.unwrap_err().to_string(), "owner-or-inheritance");
+            check(&directory, true, 0).unwrap();
+            let path = directory.join("workspace.sqlite3");
+            fs::write(&path, b"synthetic ACL control").unwrap();
+            let sddl = format!("D:P(A;;FA;;;{user})(A;{flags};0x{mask:x};;;WD)");
+            let descriptor = security_descriptor(&sddl).unwrap();
+            let filename = wide(path.as_os_str()).unwrap();
+            // SAFETY: the protected descriptor and terminated file name remain live.
+            assert_ne!(
+                unsafe {
+                    SetFileSecurityW(
+                        filename.as_ptr(),
+                        DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                        descriptor.0,
+                    )
+                },
+                0,
+                "{name}: {}",
+                io::Error::last_os_error()
+            );
+            path
+        };
+        let entries = raw_access_entries(&path, kind);
+        assert_eq!(entries.len(), 2, "{name}");
+        assert!(entries.contains(&(raw_flags, mask)), "{name}: {entries:?}");
+        roots.push((path, kind, refusal));
+    }
+
+    for (path, kind, refusal) in &roots {
+        let profile = if *kind == Entry::StorageFile {
+            path.parent().unwrap()
+        } else {
+            path
+        };
+        let native = check(profile, false, 0);
+        if let Some(reason) = refusal {
+            assert_eq!(native.unwrap_err().to_string(), *reason);
+        } else {
+            native.unwrap();
         }
     }
 
@@ -221,7 +301,7 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
         roots.len()
     );
 
-    // The retired check used DirectorySecurity's managed descriptor export.
+    // The retired check used DirectorySecurity or FileSecurity's managed export.
     // Observe that exact predicate once after the managed export's normalization.
     let powershell = PathBuf::from(env::var_os("SystemRoot").unwrap())
         .join("System32/WindowsPowerShell/v1.0/powershell.exe");
@@ -234,29 +314,33 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
             r"
             $ErrorActionPreference = 'Stop'
             $user = [Security.Principal.WindowsIdentity]::GetCurrent().User
+            $privatePrincipals = @($user.Value, 'S-1-5-18', 'S-1-5-32-544')
             $full = [int][Security.AccessControl.FileSystemRights]::FullControl
             for ($index = 0; $index -lt [int]$env:SCOPEHUB_ACL_CASES; $index++) {
                 $path = [Environment]::GetEnvironmentVariable('SCOPEHUB_ACL_CASE_' + $index)
-                $acl = [IO.Directory]::GetAccessControl($path)
+                $directory = [IO.Directory]::Exists($path)
+                $acl = if ($directory) { [IO.Directory]::GetAccessControl($path) } else { [IO.File]::GetAccessControl($path) }
                 $raw = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
                 $applies = $false
                 $inherits = $false
+                $shared = $false
                 foreach ($ace in $raw.DiscretionaryAcl) {
                     if ($ace -is [Security.AccessControl.CommonAce] -and !$ace.IsCallback -and
-                        $ace.AceQualifier -eq [Security.AccessControl.AceQualifier]::AccessAllowed -and
-                        $ace.SecurityIdentifier -eq $user) {
+                        $ace.AceQualifier -eq [Security.AccessControl.AceQualifier]::AccessAllowed) {
+                        $shared = $shared -or ($ace.SecurityIdentifier.Value -notin $privatePrincipals)
+                        if ($ace.SecurityIdentifier -ne $user) { continue }
                         $flags = [int]$ace.AceFlags
                         $applies = $applies -or (($flags -band 8) -eq 0)
                         $inherits = $inherits -or ((($ace.AccessMask -band $full) -eq $full) -and
                             (($flags -band 3) -eq 3))
                     }
                 }
-                [Console]::WriteLine(($applies -and $inherits))
+                [Console]::WriteLine((!$shared -and $applies -and (!$directory -or $inherits)))
             }
             ",
         ])
         .env("SCOPEHUB_ACL_CASES", roots.len().to_string());
-    for (index, (path, _)) in roots.iter().enumerate() {
+    for (index, (path, _, _)) in roots.iter().enumerate() {
         comparison.env(format!("SCOPEHUB_ACL_CASE_{index}"), path);
     }
     let mut child = comparison
@@ -284,8 +368,8 @@ fn native_profile_inheritance_matches_managed_ordinary_split_rules() {
     let observations = String::from_utf8_lossy(&managed.stdout);
     let expected: Vec<_> = roots
         .iter()
-        .map(|(_, admitted)| if *admitted { "True" } else { "False" })
+        .map(|(_, _, refusal)| if refusal.is_none() { "True" } else { "False" })
         .collect();
     assert_eq!(observations.lines().collect::<Vec<_>>(), expected);
-    eprintln!("The legacy managed descriptor gave the same profile decisions.");
+    eprintln!("The legacy managed descriptors gave the same directory and file decisions.");
 }

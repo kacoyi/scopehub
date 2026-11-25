@@ -5630,6 +5630,44 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "native-acl-inert-ordinary-permissions",
+      "source": "Astra Standard source review of PR 84 head d9102de9c036fb6ae4b962a5dfa9529927110315 against protected main 9180963fb3185dbceaafcaf19ee5f2dc78ae3649. Original copy .reports/m0-105-file-ace/astra-pr84-d9102de.txt (SHA-256 dc41ecc5c1c497bf50791f78d36611921e74a2f1fda5011564882655e4e199dc). Microsoft .NET Framework InspectAce: https://github.com/microsoft/referencesource/blob/main/mscorlib/system/security/accesscontrol/acl.cs#L1008-L1073.",
+      "observation": "The reviewed native path refused a foreign SID before filtering an ordinary ACE with no granted rights. It also treated inheritance flags as meaningful on a regular file. The historical managed ACL export drops zero masks and leaf inherit-only entries, while a directory inherit-only grant with object or container inheritance still comes under the private-principal policy. This is a source-confirmed compatibility defect. The passing Windows run for d9102de did not exercise these descriptors.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "m0-105-linux-browser-concurrent-admission",
+      "source": "Local M0-105 task .reports/runs/20261125T043455.480016Z-7345748b/test-report.json on d9102de9c036fb6ae4b962a5dfa9529927110315. The desktop Playwright admission attachment preserves the BUSY reply. Matched single-worker loopback rerun: .reports/m0-105-file-ace/browser-d9102de/check.log (SHA-256 55588a18fec2c72c7865a05dbbb7acbf8c532cf0457fb05d9586aeedcba7ef18).",
+      "observation": "Two ordinary Linux workspace journeys received TIMEOUT from instrument.search. The desktop chart-opened snapshot received BUSY after the frozen-chart reply showed opened. The Linux browser paths are independent of the Windows ACL worker. All three matching cases passed sequentially on the same Linux browser and service code with isolated loopback ports, one Playwright worker and the original deadlines. This establishes a nonrecurrence in isolation. The original run did not attribute the TIMEOUT to a particular worker phase or identify the other request occupying admission when the snapshot returned BUSY.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-105"
+      ],
+      "regression_checks": [
+        "workspace-timeframe",
+        "desktop-workspace-transport"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T043455.480016Z-7345748b",
+          "source_commit": "d9102de9c036fb6ae4b962a5dfa9529927110315",
+          "report_sha256": "a2e085cebc9e68548abe2867b906740299aea157dcfb59ee5762a8c5cf44e506"
+        }
+      ]
     }
   ]
 }

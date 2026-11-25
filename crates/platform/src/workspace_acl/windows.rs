@@ -248,6 +248,24 @@ enum Entry {
     StorageFile,
 }
 
+fn normalize_access_flags(kind: Entry, mut flags: u32, mask: u32) -> Option<u32> {
+    if mask == 0 {
+        return None;
+    }
+    // The managed descriptor drops inherit-only entries on leaves, and on
+    // directories where there is no object or container inheritance.
+    let file = kind == Entry::StorageFile;
+    if flags & INHERIT_ONLY_ACE != 0 && (file || flags & CHILD_INHERITANCE == 0) {
+        return None;
+    }
+    if file {
+        flags &= !(CHILD_INHERITANCE | NO_PROPAGATE_INHERIT_ACE);
+    } else if flags & CHILD_INHERITANCE == 0 {
+        flags &= !NO_PROPAGATE_INHERIT_ACE;
+    }
+    Some(flags & !(SUCCESSFUL_ACCESS_ACE_FLAG | FAILED_ACCESS_ACE_FLAG))
+}
+
 fn private_principal(sid: &str, user: &str) -> bool {
     sid == user || matches!(sid, SYSTEM | ADMINISTRATORS)
 }
@@ -556,18 +574,17 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
                 (&raw const ace.SidStart).cast_mut().cast::<c_void>(),
             )
         };
-        let meaningful =
-            mask != 0 && (flags & INHERIT_ONLY_ACE == 0 || flags & CHILD_INHERITANCE != 0);
-        if meaningful {
-            let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
-            canonical &= rank >= previous_rank;
-            previous_rank = rank;
-        }
+        // SAFETY: the ACE bounds the SID tail for the duration of this read.
+        let sid = unsafe { sid_text(sid, ace_size - SID_OFFSET) }.map_err(|_| 27)?;
+        let Some(flags) = normalize_access_flags(kind, flags, mask) else {
+            continue;
+        };
+        let rank = if flags & INHERITED_ACE != 0 { 2 } else { rank };
+        canonical &= rank >= previous_rank;
+        previous_rank = rank;
         if ace_type != ACCESS_ALLOWED_ACE_TYPE {
             continue;
         }
-        // SAFETY: the ACE bounds the SID tail for the duration of this read.
-        let sid = unsafe { sid_text(sid, ace_size - SID_OFFSET) }.map_err(|_| 27)?;
         let applies_here = flags & INHERIT_ONLY_ACE == 0;
         if kind == Entry::Ancestor {
             if !trusted_ancestor(&sid, user) && applies_here && mask & REPLACE_ENTRY != 0 {
@@ -576,22 +593,16 @@ fn check_entry(file: &File, kind: Entry, user: &str) -> Result<(), u8> {
         } else if !private_principal(&sid, user) {
             return Err(30);
         }
-        if meaningful {
-            user_applies |= sid == user && applies_here;
-            if let Some(inheritance) = &mut inheritance {
-                let principal = if sid == user {
-                    inheritance.user
-                } else if sid == SYSTEM {
-                    SYSTEM_ORDER
-                } else {
-                    ADMINISTRATORS_ORDER
-                };
-                let mut flags = flags & !(SUCCESSFUL_ACCESS_ACE_FLAG | FAILED_ACCESS_ACE_FLAG);
-                if flags & CHILD_INHERITANCE == 0 {
-                    flags &= !NO_PROPAGATE_INHERIT_ACE;
-                }
-                inheritance.record(principal, flags, mask);
-            }
+        user_applies |= sid == user && applies_here;
+        if let Some(inheritance) = &mut inheritance {
+            let principal = if sid == user {
+                inheritance.user
+            } else if sid == SYSTEM {
+                SYSTEM_ORDER
+            } else {
+                ADMINISTRATORS_ORDER
+            };
+            inheritance.record(principal, flags, mask);
         }
     }
     if kind != Entry::Ancestor

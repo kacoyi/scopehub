@@ -20852,7 +20852,12 @@
         "desktop-workspace-transport",
         "windows-native-build"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-105-4d5050a2660a498a.json",
+          "sha256": "e71987be995358b29376a58c26588cda0c9b278fb3bb6b9600976c5aff19844e"
+        }
+      ],
       "diagnostic_reports": [
         {
           "run_id": "windows-change-45489014243-1",
@@ -20865,7 +20870,7 @@
           "report_sha256": "f8b5cc2f1913d5252a732a8c33796dec03e02d348a1438545950a1fc1e8e2329"
         }
       ],
-      "next_action": "Run coordinator-owned PR #84 protected Linux and Windows checks and the M0-105 task on the exact integration candidate. Observe ordinary fixture admission, legacy managed ACL parity, refusal and teardown on Windows before attaching matching receipts. Retain packaged and physical Windows acceptance in the release gate.",
+      "next_action": "Obtain independent review and coordinator-owned PR #84 protected Linux and Windows checks plus M0-105 verification for the exact inert-ACE correction. The 45546767887 receipt covers d9102de and its checked merge only. Observe private directory and file normalization, ordinary reopen, and byte-preserving refusal of actual sharing before attaching matching receipts.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20890,6 +20895,12 @@
           "A shared precompiled worker or native policy may remove the interpreter dependency while preserving an OS process that can be terminated and waited. Compare cost and ability to run the normal desktop, development bridge and test entry without portable or packaging surprises."
         ],
         "risks": [
+          {
+            "failure": "An ordinary inert ACE makes previously admitted storage unreadable, or normalization discards a real directory inheritance grant or regular-file grant. Compare both managed object types and require the ordinary writer to preserve DB and WAL bytes when it refuses sharing.",
+            "checks": [
+              "rust-contracts-workers"
+            ]
+          },
           {
             "failure": "The Windows platform binding change and lock resolve while the governed dependency inventory still describes the prior lock bytes.",
             "checks": [
