@@ -24274,7 +24274,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Verify publishing-revision selections and regrouped primitive job evidence across public review, bounded capture, linked indexing, and the exact canonical task.",
+      "next_action": "Verify independent publishing and producer endpoint projections through direct review, capture, linked reopening and the exact canonical task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24292,7 +24292,8 @@
           "scripts/verification_scope.py",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-f7358c66/final-response.txt",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-133-4356c546/final-response.txt",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-5ad75817/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-5ad75817/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-133-b58a530f/final-response.txt"
         ],
         "hypotheses": [
           "Discarded observations and equality checks over optional metadata explain the divergence between initial review, captured archives and indexes.",
@@ -24364,6 +24365,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "An unknown or disputed step timestamp can erase a different interval with known endpoints, or an impossible sequence can acquire a duration. Compare a table of real publishing and producer start/finish variations, including missing values, known contradictions, duplicate/reordered/split listings, and physical capture and reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Revert a correction that changes the observed protected and scoped gates or drops existing evidence. Keep all original reports and earlier accepted records.",
@@ -24391,7 +24399,8 @@
             "Reuse the existing publisher run ID and Windows x64 functions in both publication and retrospective cache attribution.",
             "For v1 retained clocks, direct job end and tail facts are comparable across lists showing the same job; aggregate stages need positive layout evidence. Keep the archive format and reuse the publisher native lane selector.",
             "Persist bounded optional per-job endpoint facts for new Actions listings and reuse the same admission and derivation after reopening. Keep historical compact facts only under verified comparable scope.",
-            "Use the publishing revision to resolve the shared selection contract from local committed catalog data. Unknown authority remains diagnostic. Normalize identified step observations before projecting elapsed intervals."
+            "Use the publishing revision to resolve the shared selection contract from local committed catalog data. Unknown authority remains diagnostic. Normalize identified step observations before projecting elapsed intervals.",
+            "Retain independent endpoint availability and the existing producer-to-publisher ordering evidence. Separate a missing timestamp from a proved conflict when deriving or replaying each interval."
           ]
         },
         "evolution": {

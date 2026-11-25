@@ -7095,6 +7095,22 @@
       ],
       "resolution": null,
       "deferral_reason": "The independently reviewed preparation was withdrawn after the measured one-shot worker penalty. The paired data and reopen conditions are recorded in contracts/reviews/2026-11-25-worker-schema-lookup.json."
+    },
+    {
+      "id": "timing-publishing-start-dispute-erases-independent-intervals",
+      "source": "Independent Astra review of b58a530fe38935497719280ddaa35467cf883f87. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-133-b58a530f/final-response.txt (SHA-256 3de9c03ecb680f9e875493d7a3864bd2086e440d3ce5ab65ebd5e35b67fb65e9).",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-133"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "observation": "Changing the authentic 45546767887 Windows publisher step start from 04:39:18Z to 04:39:19Z makes the preparation interval disputed. Both observations agree on the publishing finish and job end, but direct review, shared capture and linked reopen lose the independent 760-second execution and 10-second tail."
     }
   ]
 }
