@@ -6560,6 +6560,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-reply-misses-public-english-observation",
+      "source": "Owner observation of the genuine final responses at c9bae572bcb74f76c63325556bb472f183944376, 92d2183d9c1e88ff3873b036c024dacceefa5e3f and f7358c66ea459f0df40102e90620aab73096cbef. Original final assistant response packages retained privately by the coordinator.",
+      "observation": "All three exact-source replies gave an English disposition and Chinese owner-facing observations. None offered a standalone English factual observation for the verbatim repository intake. The routine review context did not explain this split, so importing would either publish Chinese project content or require inventing a translation.",
+      "severity": "minor",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
