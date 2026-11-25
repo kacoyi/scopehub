@@ -6986,7 +6986,7 @@
     {
       "id": "frozen-indicator-post-loss-status-busy-counted-as-admitted",
       "source": "PR 116 ordinary native Windows run 45682874140 on 00dfb23fc59e5e73f964eb574d29edfb48c5bf5e. Original archives/runs/windows-change-45682874140-1/test-report.json and workspace-timeframe.log. The corresponding native Linux check passed.",
-      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads.",
+      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads. A local Chromium replay with the portable writer reproduced the false count using a real authenticated refusal. When a separate control substituted HTTP 200 BUSY for an admitted ready response, the preview retried and displayed the result. An application BUSY does not establish that a request was refused before admission.",
       "severity": "major",
       "status": "open",
       "task_ids": [

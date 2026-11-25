@@ -180,7 +180,7 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
   const reply = await response.json();
   signal.throwIfAborted();
   if (reply?.ok === false && errorCode(reply.error)) {
-    if (admissionBusy && response.status === 429 && retryableBusy(reply.error)) admissionBusy();
+    if (admissionBusy && response.status === 429 && !('result' in reply) && retryableBusy(reply.error)) admissionBusy();
     throw reply.error;
   }
   if (!response.ok || reply?.ok !== true || !reply.result) throw { code: 'OUTPUT_INVALID' };
@@ -188,6 +188,11 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
 }
 
 export const exchangeWorkspace: <T>(body: LocalRequest, signal: AbortSignal) => Promise<T> = exchange;
+
+export function readIndicatorPreviewStatus<T>(taskId: string, signal: AbortSignal, onAdmissionBusy: () => void) {
+  return exchange<T>({ type: 'indicator_preview_status', request_id: crypto.randomUUID(), task_id: taskId },
+    signal, onAdmissionBusy);
+}
 
 async function waitForWorkspaceReply<T>(body: SourceRequest | AdmissionRead, signal: AbortSignal,
   onAdmissionBusy: () => void, nativeWrite?: NativeSourceWrite): Promise<T> {

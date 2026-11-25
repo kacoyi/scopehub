@@ -25284,7 +25284,7 @@
         "The verification records every raw draft, preview, status and cancellation. An extra admitted status recovery, a new or repeated preview submission, a wrong-task read and an ambiguous refusal cannot satisfy the same-task recovery assertion.",
         "Retain the original Windows admission sequence, the focused positive and rejected controls, and a passing ordinary Windows exercise of the corrected candidate."
       ],
-      "next_action": "Replay the actual Windows status sequence, identify the admission and recovery owners, and verify the narrow correction through the built preview.",
+      "next_action": "Review the corrected browser journal and status retry on the exact candidate, then obtain a passing ordinary native Windows run before closing the finding.",
       "blocker": null,
       "delivery": "current-contract",
       "evidence": [],
@@ -25303,7 +25303,8 @@
         ],
         "hypotheses": [
           "The Windows two-loss trial received one explicit HTTP 429 BUSY and one lost HTTP 200 ready response after the original ready delivery reset. The existing raw length assertion counted both as recovery attempts.",
-          "Product polling and transport admission may allocate distinct status identifiers. Inspect actual owner behavior and distinguish definite refusal, delivery loss and admission without discarding raw attempts."
+          "Real Windows and Linux controls separate the original ready delivery reset, an authenticated HTTP 429 before writer admission and the next admitted read. Each status attempt owns a distinct wire ID for the same task.",
+          "The old polling loop retried any BUSY, including HTTP 200 after admission. Use the existing transport admission signal and preserve both the total polling deadline and the single allowed frozen status delivery recovery."
         ],
         "risks": [
           {
