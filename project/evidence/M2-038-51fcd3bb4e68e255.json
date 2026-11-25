@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M2-038",
+  "task_definition_sha256": "220528bc824c3bb91eddc9fcf9ef5c1d45826be6824ad95eb10d0dd5ee71c4c2",
+  "run_id": "20261125T165520.382393Z-f39d57bc",
+  "recorded_at": "2026-11-25T17:03:34.845452+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "e2e8bae922017dceed35f2cca326df692ee09a87922d815367f2e5fbcbbfe51e",
+    "file_count": 607,
+    "git_head": "9958a93f218d592ade27a005626d19fc29fe7c0c",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "51fcd3bb4e68e255eda73ae337b5991f2aa186d47283a136899e5696a6d9b19d",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/peer-note-delete-return/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d641de34e73539b2c57012263537933cfdefed89b0278beba30296d2b19a7d5a"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f0198798c7728b62394c014e787f55eeac18c8b612a65974932ba84eea274bd8"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d1a3c061d74824995698d70d492d3c126055481d03034d81ff7db652ef48c708"
+    }
+  ],
+  "project_definition_sha256": "cd8a1c514f7e0d2eaa1301653df60155b52fa3b05df40d5d96e2d6fde6b5eb15",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "ef40b34b11b10bccdee26124cd31112a9d7af40678f284252239d4a0e0b02775"
+  ]
+}
