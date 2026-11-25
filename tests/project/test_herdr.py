@@ -147,6 +147,61 @@ class DryRunTests(WorktreeFixture):
         self.assertEqual(assignment, 'Inspect one file')
         self.assertFalse(self.log.exists())
 
+    def test_launch_delivers_a_bounded_causal_excerpt_with_the_lookup(self):
+        project = self.worktree / 'project'
+        task = {
+            'id': 'M0-025', 'status': 'active', 'title': 'Observe admission',
+            'plan': {'outcome': 'Attribute admission to the owning operation.'},
+            'next_action': 'Verification owner captures the next refusal before retry.',
+        }
+        (project / 'tasks.json').write_text(json.dumps({'tasks': [task]}), encoding='utf-8')
+        known = {
+            'task_ids': [task['id']], 'status': 'addressed', 'severity': 'critical',
+            'source': 'Retained original fixture SHA 123.',
+            'observation': 'Parsed A and published B.',
+            'resolution': {'cause': 'The stages independently opened the same path.'},
+        }
+        pending = {
+            'task_ids': [task['id']], 'status': 'open', 'severity': 'major',
+            'observation': 'TIMEOUT.\nUnknown holder.' + ' More evidence.' * 100,
+            'diagnostic_reports': [{'run_id': 'first-refusal', 'source_commit': '1' * 40,
+                                    'report_sha256': '2' * 64}],
+            'resolution': None,
+        }
+        feedback = project / 'feedback.json'
+        feedback.write_text(json.dumps({'items': [known, dict(pending, severity='minor'), pending]}),
+                            encoding='utf-8')
+
+        def excerpt(role):
+            result = self.cli(task['id'], role, '--assignment', 'Inspect task', '--dry-run')
+            self.assertEqual(0, result.returncode, result.stderr)
+            prompt = json.loads(result.stdout)['argv'][-1]
+            self.assertLess(len(prompt.encode('utf-8')), 1600)
+            return json.JSONDecoder().raw_decode(prompt.split('Task records\n', 1)[1])[0]
+
+        preview = excerpt('implement')
+        self.assertEqual(task['plan']['outcome'], preview['outcome'])
+        self.assertEqual(task['next_action'], preview['next_action'])
+        self.assertEqual(2, preview['additional_findings_in_task_context'])
+        finding = preview['finding']
+        self.assertEqual('open', finding['status'])
+        self.assertTrue(finding['observation'].startswith('TIMEOUT. Unknown holder.'))
+        self.assertTrue(finding['observation'].endswith('…'))
+        self.assertIn('Pending', finding['attribution'])
+        self.assertIn('resolve first-refusal', finding['original_diagnostic'])
+        self.assertTrue(finding['full_record'].endswith('/items/2'))
+
+        feedback.write_text(json.dumps({'items': [known]}), encoding='utf-8')
+        finding = excerpt('review')['finding']
+        self.assertEqual('addressed', finding['status'])
+        self.assertEqual(known['observation'], finding['observation'])
+        self.assertEqual(known['resolution']['cause'], finding['recorded_cause'])
+        self.assertEqual(known['source'], finding['original_source'])
+        self.assertNotIn('attribution', finding)
+
+        feedback.unlink()
+        self.assertNotIn('finding', excerpt('implement'))
+
     def test_previews_cached_family_models_without_executables(self):
         self.use_family_profiles()
         cache = self.codex_home / 'models_cache.json'

@@ -10,10 +10,10 @@ import sys
 from uuid import uuid4
 
 if __package__:
-    from .development import HERDR_ROLE_PHASES
+    from .development import HERDR_ROLE_PHASES, feedback_for_task, task_launch_excerpt
     from .storage import maintain_automatically
 else:
-    from development import HERDR_ROLE_PHASES
+    from development import HERDR_ROLE_PHASES, feedback_for_task, task_launch_excerpt
     from storage import maintain_automatically
 
 
@@ -180,8 +180,14 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     tasks = read_record(root / 'project/tasks.json').get('tasks')
     if not isinstance(tasks, list):
         raise LaunchError('Expected a task list in project/tasks.json.')
-    if not any(isinstance(task, dict) and task.get('id') == args.task_id for task in tasks):
+    task = next((row for row in tasks if isinstance(row, dict) and row.get('id') == args.task_id), None)
+    if task is None:
         raise LaunchError(f'Unknown ScopeHub task ID {args.task_id!r} in project/tasks.json.')
+    feedback_path = root / 'project/feedback.json'
+    items = read_record(feedback_path).get('items') if feedback_path.is_file() else []
+    if not isinstance(items, list):
+        raise LaunchError('Expected a feedback list in project/feedback.json.')
+    excerpt = task_launch_excerpt(task, feedback_for_task(items, args.task_id))
     if args.source is not None:
         check_review_source(root, args.source)
     model, effort = role_profile(root, args)
@@ -212,8 +218,10 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
         'the mismatch. Report the source with the outcome of the independent check.\n'
         if args.source is not None else ''
     )
+    task_records = f'Task records\n{json.dumps(excerpt, ensure_ascii=False, indent=2)}\n' if excerpt else ''
     prompt = (
         f'ScopeHub task {args.task_id}, role {args.role}.\n'
+        f'{task_records}'
         f'See `{context}` for task context.\n'
         f'{bound_review}\n'
         f'{args.assignment}'
