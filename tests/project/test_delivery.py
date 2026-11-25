@@ -88,8 +88,10 @@ class DeliveryTests(ProjectFixture):
         args = [arg for finding in findings for arg in ('--finding', finding)]
         generated = self.project_command('observe-maintenance', item['id'], '--report', str(input_path), *args)
         self.assertEqual(item['id'], generated.get('review_id'), generated)
-        item.update(reviewed_on=generated['observed_at'][:10],
-                    review_record=f'contracts/reviews/{item["id"]}-{generated["observed_at"][:10]}.json')
+        relative = f'contracts/reviews/{item["id"]}-{generated["observed_at"][:10]}.json'
+        if item.get('review_record') and item['review_record'] != relative:
+            item.setdefault('review_history', []).append(item['review_record'])
+        item.update(reviewed_on=generated['observed_at'][:10], review_record=relative)
         record = self.root / item['review_record']
         record.parent.mkdir(exist_ok=True)
         record.write_bytes(json_bytes(generated))
@@ -125,7 +127,7 @@ class DeliveryTests(ProjectFixture):
         record = self.add_periodic_record(item, self.timing_review('2026-11-24T00:00:00Z'))
         path.write_bytes(json_bytes(delivery))
         self.assertEqual('passed', self.project_command('history', '--base', base)['status'])
-        self.assertEqual('observed', self.project_command('status')['periodic_reviews'][1]['state'])
+        self.assertEqual('checks_needed', self.project_command('status')['periodic_reviews'][1]['state'])
         first = self.commit_fixture()
         previous = record.read_bytes()
         record.unlink()
@@ -189,7 +191,7 @@ class DeliveryTests(ProjectFixture):
         path.write_bytes(json_bytes(delivery))
         entry.update(status='deferred', deferral_reason='Wait for the next ordinary full PR cohort.')
         feedback_path.write_bytes(json_bytes(feedback))
-        self.assertEqual('waiting_for_event', self.project_command('status')['periodic_reviews'][1]['state'])
+        self.assertEqual('checks_needed', self.project_command('status')['periodic_reviews'][1]['state'])
         entry.update(status='open', deferral_reason=None, occurrence=2)
         feedback_path.write_bytes(json_bytes(feedback))
         self.assertEqual('recheck_needed', self.project_command('status', '--overview')['next']['state'])
@@ -289,7 +291,7 @@ class DeliveryTests(ProjectFixture):
         item = delivery['scaffold_maintenance']['periodic_reviews'][1]
         self.add_periodic_record(item, self.timing_review('2026-11-25T11:00:00Z'), row['id'])
         path.write_bytes(json_bytes(delivery))
-        self.assertEqual('waiting_for_event', self.project_command('status')['periodic_reviews'][1]['state'])
+        self.assertEqual('checks_needed', self.project_command('status')['periodic_reviews'][1]['state'])
         adverse = self.timing_review('2026-11-25T12:00:00Z')
         adverse['objective_reviews'][0]['recent_objective_breaches'] = 2
         again = self.root / '.reports/adverse.json'
@@ -303,9 +305,10 @@ class DeliveryTests(ProjectFixture):
         recurrence.write_bytes(json_bytes(new_record))
         subprocess.run(['git', 'add', '--', str(recurrence)], cwd=self.root, check=True)
         self.protect_observation(recurrence, again)
+        item.setdefault('review_history', []).append(item['review_record'])
         item['review_record'] = recurrence.relative_to(self.root).as_posix()
         path.write_bytes(json_bytes(delivery))
-        self.assertEqual('recheck_needed', self.project_command('status')['periodic_reviews'][1]['state'])
+        self.assertIn('bound adverse finding', self.project_command('check')['error'])
 
     def test_branch_projection_and_date_are_bound_to_minimized_input(self):
         path, delivery = self.periodic_fixture()
@@ -314,7 +317,7 @@ class DeliveryTests(ProjectFixture):
         raw = {'observed_at': '2026-11-25T09:00:00Z', 'repository': 'kacoyi/scopehub',
                'default_branch': {'name': 'main', 'sha': base}, 'delete_branch_on_merge': True, 'errors': [],
                'branches': [{'name': 'main', 'sha': base, 'status': 'default', 'protected': True},
-                            {'name': 'private-retained-name', 'status': 'unique_history'}],
+                            {'name': 'private-retained-name', 'sha': '7' * 40, 'status': 'unique_history'}],
                'open_pull_requests': []}
         record = self.add_periodic_record(item, raw)
         path.write_bytes(json_bytes(delivery))
@@ -334,6 +337,9 @@ class DeliveryTests(ProjectFixture):
         self.assertIn('hash-bound', self.project_command('history', '--base', base)['error'])
         self.assertIn('hash-bound', self.project_command('check')['error'])
         row['facts']['branch_statuses'].remove('unique_history')
+        row['facts']['unique_tips'] = []
+        row['evidence']['untraced_tips'] = []
+        row['evidence']['pending'].remove(project_cli.maintenance.BRANCH_TRACE)
         row['facts']['observed_at'] = row['observed_at']
         del row['evidence']['summary']['branches']['unique_history']
         row['report_sha256'] = digest(json_bytes(row['facts']))
@@ -429,8 +435,204 @@ class DeliveryTests(ProjectFixture):
             with self.subTest(bad=bad):
                 self.assertIsNone(producer_recovery(finding, [bad]))
 
+    def test_verified_branch_copy_covers_only_its_exact_unique_tip(self):
+        path, delivery = self.periodic_fixture()
+        first = self.commit_fixture()
+        tree = subprocess.check_output(['git', 'rev-parse', f'{first}^{{tree}}'], cwd=self.root, text=True).strip()
+        tip = subprocess.check_output(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                                       '-c', 'commit.gpgsign=false', 'commit-tree', tree, '-m', 'Retained tip'],
+                                      cwd=self.root, text=True).strip()
+        subprocess.run(['git', 'update-ref', 'refs/tags/retained-tip', tip], cwd=self.root, check=True)
+        dispositions = self.root / 'contracts/reviews/recovery-disposition.json'
+        dispositions.parent.mkdir(exist_ok=True)
+        dispositions.write_bytes(json_bytes({'version': 1, 'dispositions': [{
+            'head': tip, 'disposition': 'superseded', 'reason': 'Exact bytes retained independently.',
+            'recoverable_ref': 'refs/tags/retained-tip'}]}))
+        source = self.commit_fixture()
+        key = 'branches-and-pull-requests'
+        branch = {'observed_at': '2026-11-24T08:00:00Z', 'repository': 'kacoyi/scopehub',
+                  'default_branch': {'name': 'main', 'sha': source}, 'delete_branch_on_merge': True,
+                  'errors': [], 'branches': [{'name': 'main', 'sha': source, 'status': 'default', 'protected': True},
+                                             {'name': 'private-tip', 'sha': tip, 'status': 'unique_history'}],
+                  'open_pull_requests': []}
+        row = delivery['scaffold_maintenance']['periodic_reviews'][2]
+        first_observation = self.add_periodic_record(row, branch)
+        self.assertIn(project_cli.maintenance.BRANCH_TRACE, read_json(first_observation)['evidence']['pending'])
+        path.write_bytes(json_bytes(delivery))
+        before = self.commit_fixture()
+        # Merely disappearing from a subsequent inventory does not establish recovery.
+        branch['branches'].pop()
+        branch['observed_at'] = '2026-11-25T08:00:00Z'
+        latest = self.add_periodic_record(row, branch)
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', before)['status'])
+        view = self.project_command('status')['periodic_reviews'][2]
+        self.assertEqual('checks_needed', view['state'])
+        self.assertIn(project_cli.maintenance.BRANCH_TRACE, view['problem'])
+        raw = self.root / '.reports/observation.json'
+        recovered = self.project_command('observe-maintenance', key, '--report', str(raw), '--dispositions',
+                                         f'{source}:contracts/reviews/recovery-disposition.json')
+        self.assertEqual([project_cli.maintenance.tip_identity('kacoyi/scopehub', tip)], recovered['facts']['traced_tips'])
+        self.assertNotIn('private-tip', json.dumps(recovered))
+        self.assertIn('effective protection', recovered['evidence']['pending'][0])
+        self.assertIn(latest.relative_to(self.root).as_posix(), row['review_record'])
+
+    def test_independent_local_and_product_timing_evidence_can_cover_each_scope(self):
+        self.periodic_fixture()
+        base = self.commit_fixture()
+        project = load_project(self.root)
+        slices = ('M0-001', 'M0-002')
+        project['delivery']['scenarios'].append({'id': 'synthetic-comparable-scenario',
+                                                 'task_ids': list(slices), 'checks': ['project-state']})
+        evidence_directory = self.root / 'project/evidence'
+        evidence_directory.mkdir(exist_ok=True)
+        product = {'kind': 'scopehub-product-delivery-timing-v1', 'scenario': 'synthetic-comparable-scenario',
+                   'slices': []}
+        for task_id in slices:
+            task = project['tasks'][task_id]
+            usable = f'project/evidence/{task_id}-usable.json'
+            main = f'project/evidence/{task_id}-main.json'
+            receipt = {'recorded_at': '2026-11-25T08:30:00Z',
+                       'source': {'git_head': base, 'working_tree_dirty': False},
+                       'checks': [{'id': 'project-state', 'status': 'passed'}]}
+            (self.root / usable).write_bytes(json_bytes(receipt))
+            (self.root / main).write_bytes(json_bytes({**receipt, 'ci': {'repository': 'kacoyi/scopehub',
+                           'event': 'push', 'head_sha': base}}))
+            task['evidence'] = [{'path': usable}, {'path': main}]
+            product['slices'].append({'task_id': task_id, 'usable_receipt': usable, 'verified_main_receipt': main,
+                   'work_started_at': '2026-11-25T08:00:00Z', 'usable_at': '2026-11-25T08:08:00Z',
+                   'pr_created_at': '2026-11-25T08:10:00Z', 'verified_main_at': '2026-11-25T08:13:00Z'})
+        raw = self.root / '.reports/timing-input.json'
+        raw.parent.mkdir()
+        timing = self.timing_review('2026-11-25T09:00:00Z')
+        timing['samples'] = [{'run_id': 'synthetic-local-fast', 'source_commit': base,
+                              'recorded_at': '2026-11-25T08:00:00Z', 'profile': 'fast',
+                              'report_status': 'passed', 'review_exclusion': None, 'working_tree_dirty': False,
+                              'seconds': {'harness': 13.0}, 'ci': None}]
+        raw.write_bytes(json_bytes(timing))
+        supplement = self.root / '.reports/product-timing.json'
+        supplement.write_bytes(json_bytes(product))
+        args = ('observe-maintenance', 'verification-timing', '--report', str(raw))
+        with patch.object(project_cli, 'load_project', return_value=project):
+            local = self.project_command(*args)
+            self.assertEqual([project_cli.maintenance.PRODUCT_TIMING], local['evidence']['pending'])
+            both = self.project_command(*args, '--report', str(supplement))
+            self.assertEqual([], both['evidence']['pending'])
+            self.assertEqual(480, both['evidence']['product_delivery']['work_to_usable_median_seconds'])
+            self.assertEqual(180, both['evidence']['product_delivery']['pr_to_verified_main_median_seconds'])
+            product['slices'][0]['verified_main_receipt'] = product['slices'][1]['verified_main_receipt']
+            supplement.write_bytes(json_bytes(product))
+            self.assertIn('same slice', self.project_command(*args, '--report', str(supplement))['error'])
+
+    def test_timing_original_does_not_inherit_the_review_checkout_source(self):
+        self.periodic_fixture()
+        base = self.commit_fixture()
+        key = 'verification-timing'
+        raw = self.root / '.reports/timing.json'
+        raw.parent.mkdir(exist_ok=True)
+        inputs = self.timing_review('2026-11-25T07:00:00Z')
+        raw.write_bytes(json_bytes(inputs))
+        args = ('observe-maintenance', key, '--report', str(raw))
+        pending = self.project_command(*args)
+        self.assertIsNone(pending['source_commit'])
+        self.assertIn(project_cli.maintenance.LOCAL_FAST, pending['evidence']['pending'])
+        self.assertIn(project_cli.maintenance.PRODUCT_TIMING, pending['evidence']['pending'])
+        marker = self.root / 'reviewer.txt'
+        marker.write_text('A later independent review checkout.\n')
+        later = self.commit_fixture()
+        self.assertNotEqual(base, later)
+        self.assertEqual(pending, self.project_command(*args))
+        file = self.root / '.reports/proposed-timing.json'
+        verify = ('verify-maintenance', str(file), '--report', str(raw))
+        file.write_bytes(json_bytes(pending))
+        self.assertIsNone(self.project_command(*verify)['source_commit'])
+        for substitute in (base, later):
+            pending['source_commit'] = pending['facts']['source_commit'] = substitute
+            pending['report_sha256'] = digest(json_bytes(pending['facts']))
+            file.write_bytes(json_bytes(pending))
+            self.assertIn('differs from', self.project_command(*verify)['error'])
+        inputs['recent_collection']['capture_source'] = base
+        raw.write_bytes(json_bytes(inputs))
+        positive = self.project_command(*args)
+        self.assertEqual(base, positive['source_commit'])
+        file.write_bytes(json_bytes(positive))
+        self.assertEqual(base, self.project_command(*verify)['source_commit'])
+
+    def test_adverse_supplement_and_next_day_preserve_every_admitted_predecessor(self):
+        path, delivery = self.periodic_fixture()
+        source = self.commit_fixture()
+        key = 'branches-and-pull-requests'
+        row = delivery['scaffold_maintenance']['periodic_reviews'][2]
+        branch = {'observed_at': '2026-11-24T06:00:00Z', 'repository': 'kacoyi/scopehub',
+                  'default_branch': {'name': 'main', 'sha': source}, 'delete_branch_on_merge': True,
+                  'errors': [], 'branches': [{'name': 'main', 'sha': source, 'status': 'default', 'protected': True}],
+                  'open_pull_requests': []}
+        original = self.add_periodic_record(row, branch)
+        original_bytes = original.read_bytes()
+        path.write_bytes(json_bytes(delivery))
+        initial = self.commit_fixture()
+        feedback_path = self.root / 'project/feedback.json'
+        feedback = read_json(feedback_path)
+        raw = self.root / '.reports/observation.json'
+        policy = read_json(self.root / 'project/branch-protection.json')['configuration']
+        for setting in ('enforce_admins', 'allow_force_pushes', 'allow_deletions', 'required_conversation_resolution'):
+            policy[setting] = {'enabled': policy[setting]}
+        protection = self.root / '.reports/protection.json'
+        settings = {'repository': 'kacoyi/scopehub', 'branch': 'main', 'branch_sha': source,
+                    'observed_at': '2026-11-24T07:00:00Z', 'observed': policy}
+        policy['allow_deletions']['enabled'] = True
+        protection.write_bytes(json_bytes(settings))
+        args = ('observe-maintenance', key, '--report', str(raw), '--report', str(protection))
+        self.assertIn('canonical feedback', self.project_command(*args)['error'])
+        feedback['items'].append({'id': 'branch-deletion-observed', 'severity': 'minor', 'status': 'open',
+                                  'source': 'Original digest ' + digest(protection.read_bytes()),
+                                  'observation': 'Protected branch permitted deletion.', 'task_ids': ['M0-001'],
+                                  'regression_checks': ['project-state'], 'resolution': None, 'deferral_reason': None})
+        feedback_path.write_bytes(json_bytes(feedback))
+        adverse = self.project_command(*args, '--finding', 'branch-deletion-observed')
+        second = self.root / 'contracts/reviews/accepted-adverse.json'
+        second.write_bytes(json_bytes(adverse))
+        subprocess.run(['git', 'add', '--', str(second)], cwd=self.root, check=True)
+        self.protect_observation(second, raw, protection)
+        row['review_history'] = [row['review_record']]
+        row['review_record'] = second.relative_to(self.root).as_posix()
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', initial)['status'])
+        second_base = self.commit_fixture()
+        self.assertEqual('owned_action', self.project_command('status')['periodic_reviews'][2]['state'])
+        branch['observed_at'] = '2026-11-25T06:00:00Z'
+        settings['observed_at'] = '2026-11-25T07:00:00Z'
+        policy['allow_deletions']['enabled'] = False
+        raw.write_bytes(json_bytes(branch))
+        protection.write_bytes(json_bytes(settings))
+        third = self.root / 'contracts/reviews/accepted-next-day.json'
+        third.write_bytes(json_bytes(self.project_command(*args, '--finding', 'branch-deletion-observed')))
+        subprocess.run(['git', 'add', '--', str(third)], cwd=self.root, check=True)
+        self.protect_observation(third, raw, protection)
+        row['review_history'].append(row['review_record'])
+        row.update(reviewed_on='2026-11-25', review_record=third.relative_to(self.root).as_posix())
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', second_base)['status'])
+        third_base = self.commit_fixture()
+        self.assertEqual('passed', self.project_command('check')['status'])
+        original.write_bytes(original_bytes + b' ')
+        self.assertIn('predecessor', self.project_command('history', '--base', third_base)['error'])
+        self.assertIn('predecessor', self.project_command('check')['error'])
+        original.write_bytes(original_bytes)
+        original.unlink()
+        self.assertTrue(self.project_command('status')['periodic_reviews'][2]['review_due'])
+        original.write_bytes(original_bytes)
+        old = row['review_history'].pop(0)
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('admitted predecessor', self.project_command('history', '--base', third_base)['error'])
+        row['review_history'].insert(0, old)
+
     def test_same_day_protection_supplement_preserves_approved_predecessor(self):
         path, delivery = self.periodic_fixture()
+        ledger = self.ledger()
+        successor = task_by_id(ledger, 'M0-001')
+        successor['scope'].append('project/delivery.json')
+        self.save_ledger(ledger)
         base = self.commit_fixture()
         branch = 'branches-and-pull-requests'
         item = delivery['scaffold_maintenance']['periodic_reviews'][2]
@@ -441,6 +643,9 @@ class DeliveryTests(ProjectFixture):
         previous = self.add_periodic_record(item, branch_input)
         original = previous.read_bytes()
         path.write_bytes(json_bytes(delivery))
+        item.update(retired_reason='Transfer exact missing protection observation.', follow_through_task=successor['id'])
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('owned_action', self.project_command('status')['periodic_reviews'][2]['state'])
         before = self.commit_fixture()
         raw = self.root / '.reports/observation.json'
         settings = read_json(self.root / 'project/branch-protection.json')['configuration']
@@ -457,10 +662,16 @@ class DeliveryTests(ProjectFixture):
         supplement.write_bytes(json_bytes(observation))
         subprocess.run(['git', 'add', '--', str(supplement)], cwd=self.root, check=True)
         self.protect_observation(supplement, raw, protection)
+        item['review_history'] = [item['review_record']]
         item['review_record'] = supplement.relative_to(self.root).as_posix()
         path.write_bytes(json_bytes(delivery))
         self.assertEqual('passed', self.project_command('history', '--base', before)['status'])
-        self.assertEqual('observed', self.project_command('status')['periodic_reviews'][2]['state'])
+        closed = self.project_command('status')['periodic_reviews'][2]
+        self.assertEqual('retired', closed['state'])
+        self.assertEqual(successor['id'], closed['follow_through_task'])
+        self.assertFalse(closed['review_due'])
+        self.review_day = 30
+        self.assertEqual('retired', self.project_command('status')['periodic_reviews'][2]['state'])
         self.assertEqual(original, previous.read_bytes())
         previous.unlink()
         self.assertIn('observation file', self.project_command('status')['periodic_reviews'][2]['problem'].lower())
@@ -506,6 +717,24 @@ class DeliveryTests(ProjectFixture):
             self.assertLess(len(json_bytes(focused)), 1500)
             self.assertIn('--id critical-from-a-new-session', overview['next']['command'])
             self.assertIn('scripts/project.py source project/development.json /modules', overview['details']['modules'])
+        task_id = 'M0-002'
+        owned = {**item, 'id': 'another-critical-with-owner', 'task_ids': [task_id]}
+        updated = self.ledger()
+        task = task_by_id(updated, task_id)
+        task.update(status='active', plan=task_by_id(updated, 'M0-001')['plan'])
+        self.save_ledger(updated)
+        for items in ([owned, item], [item, owned]):
+            feedback_file.write_bytes(json_bytes({**original, 'items': items}))
+            for read_only in (False, True):
+                overview = self.project_command('status', '--overview', *(['--read-only'] if read_only else []))
+                self.assertEqual(owned['id'], overview['next']['id'])
+                self.assertEqual(1, overview['backlog']['unassigned_findings'])
+                command = shlex.split(overview['backlog']['unassigned_lookup'])
+                query = self.project_command(*command[3:] if read_only else ['source', *command[2:]])
+                self.assertEqual([item['id']], [row['id'] for row in query['items']])
+                self.assertLess(len(json_bytes(query)), 1000)
+                detail = shlex.split(query['items'][0]['command'])
+                self.assertEqual(item, self.project_command(*detail[3:] if read_only else ['source', *detail[2:]])['value'])
         from scripts.development import read_only_project_command
         with patch('scripts.development.os.name', 'nt'):
             self.assertEqual('./.venv/Scripts/python.exe -B scripts/project.py source project/feedback.json --id '

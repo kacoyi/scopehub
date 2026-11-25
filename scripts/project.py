@@ -11,6 +11,7 @@ import os
 import re
 from pathlib import Path, PurePosixPath
 import subprocess
+from statistics import median
 
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -821,6 +822,8 @@ def compatibility_observation(root, project, relative):
 
 
 def periodic_policy(root, source):
+    if source is None:
+        source = feedback_commit(root, 'HEAD')
     response = feedback_git(root, 'show', f'{source}:project/branch-protection.json')
     if response.returncode:
         raise ValueError('The observation source has no protected repository policy.')
@@ -863,7 +866,99 @@ def require_protected_observation(root, relative, record_sha):
         'Verify the supplied originals with verify-maintenance and retain the exact record through protected intake before attaching it.')
 
 
-def verify_maintenance(root, project, path, reports, staging, staging_digest):
+def traced_branch_tips(root, data, disposition_reference):
+    """Use the inventory's PR links and independently recoverable exact-head dispositions."""
+    if __package__:
+        from .worktree_retirement import read_dispositions
+    else:
+        from worktree_retirement import read_dispositions
+    traced = {row['sha'] for row in data['branches'] if row['status'] == 'in_use'
+              and (row.get('open_pr_heads') or row.get('open_pr_bases'))}
+    unique = {row['sha'] for row in data['branches'] if row['status'] == 'unique_history'}
+    target = data['default_branch']['sha']
+    if not maintenance.git_commit(target):
+        raise ValueError('The branch inventory needs an exact default tip.')
+    ledger = feedback_git(root, 'show', f'{target}:project/tasks.json') if unique else None
+    if ledger is not None and not ledger.returncode:
+        for task in json.loads(ledger.stdout)['tasks']:
+            if task['status'] not in {'active', 'planned', 'blocked'}:
+                continue
+            for ref in task['evidence']:
+                captured = feedback_git(root, 'show', f"{target}:{ref['path']}")
+                if captured.returncode or digest(captured.stdout) != ref['sha256']:
+                    continue
+                receipt = json.loads(captured.stdout)
+                tested = (receipt.get('ci') or {}).get('head_sha') or receipt['source']['git_head']
+                if tested in unique and receipt['task_definition_sha256'] == task_definition_hash(task):
+                    traced.add(tested)
+    if not disposition_reference:
+        return traced, None
+    try:
+        commit, entries = read_dispositions(root, disposition_reference)
+    except (WorktreeError, ValueError, subprocess.SubprocessError) as error:
+        raise ValueError('Expected an existing exact-head recovery disposition reference.') from error
+    raw = feedback_git(root, 'show', disposition_reference)
+    for head, entry in entries.items():
+        ref = entry['recoverable_ref']
+        if any(head == row['sha'] and ref in {f"refs/heads/{row['name']}", f"refs/remotes/origin/{row['name']}"}
+               for row in data['branches']):
+            continue
+        tip = feedback_git(root, 'rev-parse', '--verify', '--quiet', ref)
+        if (not tip.returncode and not feedback_git(root, 'merge-base', '--is-ancestor', head, ref).returncode
+                and (not feedback_git(root, 'merge-base', '--is-ancestor', commit, ref).returncode
+                     or not feedback_git(root, 'merge-base', '--is-ancestor', commit, target).returncode)):
+            traced.add(head)
+    return traced, digest(raw.stdout)
+
+
+def product_delivery_observation(root, project, record, observed_at):
+    """Compare independently recorded product clocks with their accepted verification scope."""
+    rows = record['slices']
+    if record['kind'] != 'scopehub-product-delivery-timing-v1' or not 2 <= len(rows) <= 32:
+        raise ValueError('Supply two or more comparable product slices from retained observations.')
+    scenarios = indexed(project['delivery']['scenarios'], 'scenario')
+    scenario = scenarios[record['scenario']]
+    tasks = set()
+    approved_repository = periodic_policy(root, None)['repository']
+    usable_seconds, main_seconds = [], []
+    for row in rows:
+        task_id = row['task_id']
+        if task_id not in scenario['task_ids'] or task_id in tasks:
+            raise ValueError('Product timing needs distinct slices in the named delivery scenario.')
+        tasks.add(task_id)
+        task = project['tasks'][task_id]
+        receipts = {}
+        for field in ('usable_receipt', 'verified_main_receipt'):
+            relative = row[field]
+            if not any(ref['path'] == relative for ref in task['evidence']):
+                raise ValueError('Product timing requires accepted receipts from the same slice.')
+            receipts[field] = read_json(local_path(root, relative))
+        usable = receipts['usable_receipt']
+        main = receipts['verified_main_receipt']
+        passed = [{check['id'] for check in receipt['checks'] if check['status'] == 'passed'}
+                  for receipt in (usable, main)]
+        ci = main.get('ci') or {}
+        if (not set(scenario['checks']).intersection(*passed)
+                or (ci.get('repository'), ci.get('event'), ci.get('head_sha')) !=
+                (approved_repository, 'push', main['source']['git_head'])
+                or not observation_source_available(root, 'compatibility-and-recovery', main['source']['git_head'])
+                or any(receipt['source']['working_tree_dirty'] for receipt in receipts.values())):
+            raise ValueError('The receipts must cover the usable product check and its verified main push.')
+        began, interaction, opened, integrated = (maintenance.utc(row[field]) for field in
+                                                   ('work_started_at', 'usable_at', 'pr_created_at', 'verified_main_at'))
+        if not (began <= interaction <= observed_at and began <= opened <= integrated <= observed_at):
+            raise ValueError('Product timing clocks are missing or out of order.')
+        for clock, receipt in ((interaction, usable), (integrated, main)):
+            if not (clock <= maintenance.utc(receipt['recorded_at'])):
+                raise ValueError('A product timing observation follows its verification receipt.')
+        usable_seconds.append((interaction - began).total_seconds())
+        main_seconds.append((integrated - opened).total_seconds())
+    return {'scenario': record['scenario'], 'slices': len(tasks),
+            'work_to_usable_median_seconds': median(usable_seconds),
+            'pr_to_verified_main_median_seconds': median(main_seconds)}
+
+
+def verify_maintenance(root, project, path, reports, staging, staging_digest, dispositions=None):
     try:
         record, sha = read_review_report(path, 64 * 1024)
         key = record['review_id']
@@ -872,12 +967,14 @@ def verify_maintenance(root, project, path, reports, staging, staging_digest):
     if key == 'compatibility-and-recovery':
         raise ValueError('Compatibility observations already use committed source and task receipts.')
     regenerated = observe_maintenance(root, project, key, reports, [row['id'] for row in record['findings']],
-                                      staging=staging, staging_digest=staging_digest,
-                                      capture_source=record['source_commit'])
+                                      staging=staging, staging_digest=staging_digest, dispositions=dispositions)
     if regenerated != record:
         raise ValueError('The proposed observation differs from the projection of the supplied originals.')
     return {'status': 'originals_verified', 'review_id': key, 'record_sha256': sha,
             'input_sha256': regenerated['facts']['input_sha256'],
+            'source_commit': regenerated['source_commit'],
+            'source_scope': ('No producer capture checkout was recorded; verification covers the supplied observations.'
+                             if regenerated['source_commit'] is None else 'Capture identity from the supplied original.'),
             'next_action': 'Independently review and retain these exact record bytes through protected intake before raising the claimed date.'}
 
 
@@ -896,8 +993,7 @@ def review_record(root, project, item):
     key = item['id']
     if (record['kind'] != maintenance.REVIEW_KIND or record['review_id'] != key
             or not re.fullmatch('[a-f0-9]{64}', record['report_sha256'])
-            or not maintenance.git_commit(record['source_commit'])
-            or feedback_git(root, 'merge-base', '--is-ancestor', record['source_commit'], 'HEAD').returncode):
+            or not observation_source_available(root, key, record['source_commit'])):
         raise ValueError('The observation category, source or original digest does not match.')
     observed = maintenance.utc(record['observed_at'])
     if observed.date().isoformat() != item['reviewed_on'] or observed > datetime.now(timezone.utc):
@@ -931,14 +1027,92 @@ def review_record(root, project, item):
 REVIEW_ERRORS = (OSError, ValueError, KeyError, TypeError, OverflowError, AttributeError, RecursionError, ProjectError)
 
 
-def retirement_successor(project, item):
+def retirement_successor(project, item, pending):
     if not (task_id := item.get('follow_through_task')):
         return None
     task = project['tasks'].get(task_id)
-    if (not item.get('retired_reason') or not task or task['status'] not in {'active', 'planned', 'blocked'}
+    states = {'active', 'planned', 'blocked'} if pending else {'active', 'planned', 'blocked', 'done'}
+    if (not item.get('retired_reason') or not task or task['status'] not in states
             or not task.get('plan') or 'project/delivery.json' not in task['scope']):
-        raise ValueError('Transfer pending review scope to an unfinished task with a maintenance plan and policy scope.')
+        raise ValueError('Pending review scope needs an unfinished task with a maintenance plan and policy scope.')
     return task_id
+
+
+def outstanding_branch_tips(root, item, record):
+    pending = set()
+    for path in [*item.get('review_history', []), item['review_record']]:
+        observation = record if path == item['review_record'] else read_review_report(local_path(root, path), 64 * 1024)[0]
+        facts = observation['facts']
+        pending.update(facts['unique_tips'])
+        pending.difference_update(facts['traced_tips'])
+    return pending
+
+
+def review_obligations(root, key, item, result):
+    if not result:
+        pending = [f'{key} scheduled observation']
+        if key == 'worktrees-and-evidence':
+            pending.append(maintenance.EXTERNAL_STAGING)
+        return pending
+    record, _, adverse, found = result
+    pending = list(record['evidence'].get('pending') or record['evidence'].get('unverified_boundaries') or ())
+    if key == 'branches-and-pull-requests' and outstanding_branch_tips(root, item, record) and maintenance.BRANCH_TRACE not in pending:
+        pending.append(maintenance.BRANCH_TRACE)
+    if adverse:
+        pending.append('matching follow-up for the adverse observation')
+    pending.extend(link['id'] for link in record['findings']
+                   if found[link['id']]['status'] != 'addressed'
+                   or feedback_fingerprint(found[link['id']]) != link['fingerprint'])
+    return pending
+
+
+def accepted_review_paths(root, old, candidate, base):
+    previous = old.get('review_record')
+    prior_paths = old.get('review_history', [])
+    paths = candidate.get('review_history', [])
+    current = candidate.get('review_record')
+    replaced = previous is not None and current != previous
+    required = [*prior_paths, *([previous] if replaced else [])]
+    if paths[:len(required)] != required or (previous and not replaced and paths != required):
+        raise ValueError('Keep every admitted predecessor in order in review_history.')
+    if current in paths or len(paths) != len(set(paths)) or (paths and not current):
+        raise ValueError('Keep one current observation separate from its predecessors.')
+    for path in dict.fromkeys([*prior_paths, *([previous] if previous else [])]):
+        original = feedback_git(root, 'show', f'{base}:{path}')
+        _, sha = read_review_report(local_path(root, path), 64 * 1024)
+        if original.returncode or sha != digest(original.stdout):
+            raise ValueError('Every admitted predecessor must remain unchanged.')
+    return paths[len(prior_paths):]
+
+
+def validate_review_progress(root, key, previous, current, feedback):
+    old_evidence, old_identity, old_adverse, old_inputs = periodic_record_facts(root, key, previous)
+    new_evidence, new_identity, new_adverse, new_inputs = periodic_record_facts(root, key, current)
+    old_clock = maintenance.utc(previous['observed_at'])
+    new_clock = maintenance.utc(current['observed_at'])
+    new_links = {link['id']: link['fingerprint'] for link in current['findings']}
+    required = {link['id'] for link in previous['findings'] if feedback[link['id']]['status'] != 'addressed' or old_adverse}
+    if not required.issubset(new_links):
+        raise ValueError('Follow through on the previously observed findings.')
+    if new_clock.date() > old_clock.date():
+        if new_identity == old_identity or current['report_sha256'] == previous['report_sha256']:
+            raise ValueError('The new date needs a fresh comparable observation.')
+        return
+    inputs = set(new_inputs) - set(old_inputs)
+    previous_links = {link['id']: link['fingerprint'] for link in previous['findings']}
+    added_finding = any(
+        previous_links.get(identity) != fingerprint and fingerprint == feedback_fingerprint(feedback[identity])
+        and any(observation_linked(sha, feedback[identity]) for sha in inputs)
+        for identity, fingerprint in new_links.items())
+    if not maintenance.same_day_progress(previous, current, old_evidence, new_evidence,
+                                         new_adverse, old_adverse, inputs, added_finding):
+        raise ValueError('Keep the accepted observation or add a later same-day improvement or bound adverse finding.')
+
+
+def historical_review(root, project, key, path):
+    record, _ = read_review_report(local_path(root, path), 64 * 1024)
+    day = maintenance.utc(record['observed_at']).date().isoformat()
+    return review_record(root, project, {'id': key, 'review_record': path, 'reviewed_on': day})[0]
 
 
 def require_periodic_transition(root, project, base, only=None):
@@ -947,67 +1121,59 @@ def require_periodic_transition(root, project, base, only=None):
         return
     current = maintenance.periodic_records(project['delivery'])
     previous = maintenance.periodic_records(json.loads(prior.stdout))
-    keys = previous.keys()
     today = datetime.now(timezone.utc).date()
     feedback = indexed(project['feedback']['items'], 'feedback')
-    for key in sorted(keys if only is None else keys & {only}):
-        old = previous[key]
-        candidate = current.get(key, {})
+    for key in sorted(previous.keys() if only is None else previous.keys() & {only}):
+        old, candidate = previous[key], current.get(key, {})
         if candidate.get('reviewed_on', '') < old['reviewed_on']:
             raise ProjectError(f'Periodic review {key} lost its accepted date. Retain the history when retiring it.')
-        previous_path = old.get('review_record')
         try:
             date_advanced = candidate['reviewed_on'] > old['reviewed_on']
-            unresolved = set()
-            if previous_path:
-                old_bytes = feedback_git(root, 'show', f'{base}:{previous_path}').stdout
-                old_record = json.loads(old_bytes)
-                retained, sha = read_review_report(local_path(root, previous_path), 64 * 1024)
-                if retained != old_record or sha != digest(old_bytes):
-                    raise ValueError('The previous observation must remain unchanged.')
-                _, before, adverse, _ = periodic_record_facts(root, key, old_record)
-                unresolved = {link['id'] for link in old_record['findings']
-                              if feedback[link['id']]['status'] != 'addressed' or adverse}
-                changed_record = candidate.get('review_record') != previous_path
-                if changed_record or date_advanced:
-                    record, identity, _, found = review_record(root, project, candidate)
-                    if date_advanced:
-                        if identity == before or record['report_sha256'] == old_record['report_sha256']:
-                            raise ValueError('The new date needs a fresh comparable observation.')
-                    elif not maintenance.protection_supplement(key, old_record, record):
-                        raise ValueError('Keep the accepted record or add a fresh same-day supplement that reduces pending scope.')
-                    if not unresolved.issubset(found):
-                        raise ValueError('Follow through on the previously observed findings.')
-            if key not in maintenance.REVIEW_SOURCES and (date_advanced or candidate.get('retired_reason')):
-                raise ValueError('Define how the new rule verifies and retains its obligations before changing its disposition.')
+            if key not in maintenance.REVIEW_SOURCES:
+                if date_advanced or candidate.get('retired_reason'):
+                    raise ValueError('Define how the new rule verifies and retains its obligations before changing its disposition.')
+                continue
+            result = review_record(root, project, candidate)
+            extra_paths = accepted_review_paths(root, old, candidate, base)
+            prior_path = old.get('review_record')
+            pending = review_obligations(root, key, candidate, result)
+            changed = prior_path != candidate.get('review_record')
+            if changed and result:
+                chain = [historical_review(root, project, key, path) for path in extra_paths]
+                chain.append(result[0])
+                for before, after in zip(chain, chain[1:]):
+                    validate_review_progress(root, key, before, after, feedback)
             if date_advanced and key == 'compatibility-and-recovery':
-                record, _, _, _ = review_record(root, project, candidate)
-                from_source = record['evidence']['compared_from']
-                accepted_source = ((old_record['evidence']['compared_from']
-                                    if old_record['evidence']['unverified_boundaries'] else old_record['source_commit'])
-                                   if previous_path else
-                                   compatibility_initial_base(root, base))
-                if from_source != accepted_source:
+                accepted_source = compatibility_initial_base(root, base)
+                if prior_path:
+                    original = json.loads(feedback_git(root, 'show', f'{base}:{prior_path}').stdout)
+                    evidence = original['evidence']
+                    accepted_source = evidence['compared_from'] if evidence['unverified_boundaries'] else original['source_commit']
+                if result[0]['evidence']['compared_from'] != accepted_source:
                     raise ValueError('Compare compatibility from the last fully reviewed source.')
                 relevant = compatibility_boundaries(project, compatibility_changes(
-                    root, record['source_commit'], feedback_commit(root, 'HEAD')))
+                    root, result[0]['source_commit'], feedback_commit(root, 'HEAD')))
                 if relevant:
                     raise ValueError('The compatibility observation predates relevant source changes.')
-            successor = retirement_successor(project, candidate)
+            successor = retirement_successor(project, candidate, pending)
+            if old.get('retired_reason') and (not candidate.get('retired_reason') or old.get('follow_through_task') != successor):
+                raise ValueError('Keep the accepted retirement and its successor identity.')
+            if old.get('retired_reason') and changed and prior_path:
+                prior_record = historical_review(root, project, key, prior_path)
+                old_result = (prior_record, *periodic_record_facts(root, key, prior_record)[1:3],
+                              {link['id']: feedback[link['id']] for link in prior_record['findings']})
+                if not review_obligations(root, key, old, old_result):
+                    raise ValueError('The transferred review was already discharged at its accepted observation.')
             if not date_advanced and not old.get('retired_reason'):
                 previous_due = date.fromisoformat(old['reviewed_on']) + timedelta(days=old['interval_days'])
                 postpones = candidate['interval_days'] > old['interval_days'] or candidate.get('retired_reason')
-                if postpones and (previous_due <= today or unresolved) and not successor:
-                    raise ValueError('A policy change cannot postpone an overdue or unresolved review.')
-            if old.get('follow_through_task') and not successor:
-                raise ValueError('Keep the transferred obligations under an unfinished owner.')
+                if postpones and previous_due <= today and not successor:
+                    raise ValueError('A policy change cannot postpone an overdue review.')
+                if candidate['interval_days'] > old['interval_days'] and result and pending and not successor:
+                    raise ValueError('A policy change cannot postpone an unresolved review.')
             if candidate.get('retired_reason') and not old.get('retired_reason') and not successor:
-                if key == 'worktrees-and-evidence':
-                    raise ValueError('Transfer the unobserved external staging obligation to a scoped successor task.')
-                result = review_record(root, project, candidate)
-                if result and (result[2] or result[0]['evidence'].get('unverified_boundaries')
-                               or result[0]['evidence'].get('pending') or result[3]):
-                    raise ValueError('Resolve or keep the recorded follow-through under its existing identity.')
+                if key == 'worktrees-and-evidence' or (result and pending):
+                    raise ValueError('Resolve the recorded obligations or transfer them to a scoped successor task, including external staging.')
                 if key == 'compatibility-and-recovery' and compatibility_boundaries(
                         project, compatibility_changes(root, compatibility_base(root, candidate, base),
                                                        feedback_commit(root, 'HEAD'))):
@@ -1042,7 +1208,8 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
                     command=maintenance.REVIEW_SOURCES[key][1])
         try:
             result = review_record(root, project, item)
-            successor = retirement_successor(project, item)
+            obligations = review_obligations(root, key, item, result)
+            successor = retirement_successor(project, item, obligations)
             if item.get('retired_reason') and key == 'worktrees-and-evidence' and not successor:
                 raise ValueError('External staging requires an explicit successor task.')
             for base in filter(None, bases):
@@ -1057,23 +1224,16 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
                         problem='The referenced observation file is missing.' if isinstance(error, FileNotFoundError)
                         else str(error))
             continue
-        if successor:
-            pending = []
-            if result:
-                evidence = result[0]['evidence']
-                pending = list(evidence.get('pending') or evidence.get('unverified_boundaries') or ())
-                pending.extend(result[3])
-            if key == 'worktrees-and-evidence' and maintenance.EXTERNAL_STAGING not in pending:
-                pending.append(maintenance.EXTERNAL_STAGING)
-            if item['review_due'] or not result:
-                pending.insert(0, f'{key} scheduled observation')
-            item.update(state='owned_action', review_due=True, owner='development AI', next_review_by=None,
-                        problem='Transferred obligations: ' + ', '.join(pending),
-                        trigger='Assess the inherited review scope at the next matching observation',
-                        command=f'pnpm project:context {successor} --phase verify')
-            continue
         if item.get('retired_reason'):
-            item.update(state='retired', review_due=False, next_review_by=None)
+            if result:
+                item.update(observed_at=result[0]['observed_at'], report_sha256=result[0]['report_sha256'])
+            if successor and obligations:
+                item.update(state='owned_action', review_due=True, owner='development AI', next_review_by=None,
+                            problem='Transferred obligations: ' + ', '.join(obligations),
+                            trigger='Assess the inherited review scope at the next matching observation',
+                            command=f'pnpm project:context {successor} --phase verify')
+            else:
+                item.update(state='retired', review_due=False, next_review_by=None)
             continue
         if not result:
             item['state'] = 'due' if item['review_due'] else 'historical_schedule'
@@ -1090,7 +1250,12 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
                 root, record['source_commit'], feedback_commit(root, 'HEAD')))
             if new_paths:
                 pending = sorted(set(pending or ()) | set(maintenance.boundary_summary(new_paths)))
+        if key == 'branches-and-pull-requests' and outstanding_branch_tips(root, item, record):
+            pending = list(dict.fromkeys([*(pending or ()), maintenance.BRANCH_TRACE]))
         if pending:
+            item['scope_follow_through'] = [
+                {'scope': scope, 'owner': route[0], 'trigger': route[1], 'command': route[2]}
+                for scope in pending if (route := maintenance.SCOPE_ACTIONS.get(scope))]
             item.update(state='checks_needed', review_due=True, next_review_by=None,
                         problem='Unverified observations: ' + ', '.join(pending))
             if key == 'branches-and-pull-requests' and 'effective protection at the inventoried revision' in pending:
@@ -1111,12 +1276,15 @@ def observed_periodic_reviews(root, project, *, compare=False, timing_recovery=(
             if entry['status'] == 'open':
                 item.update(state='recheck_needed', finding=entry['id'])
                 break
-            if (key == 'verification-timing' and entry['status'] == 'addressed' and not adverse
-                    and (recovered := maintenance.producer_recovery(entry, timing_recovery))):
-                item.update(repair_recovery=recovered, finding=entry['id'])
-                if not pending and not item['review_due']:
-                    item['state'] = 'repair_observed'
-                continue
+            if key == 'verification-timing' and entry['status'] == 'addressed' and entry.get('verification_budget'):
+                recovered = maintenance.producer_recovery(entry, timing_recovery)
+                item['repair_recovery'] = ({'state': 'repair_observed', **recovered} if recovered
+                                           else {'state': 'waiting_for_event', 'finding': entry['id']})
+                if recovered and not adverse:
+                    item['finding'] = entry['id']
+                    if not pending and not item['review_due']:
+                        item['state'] = 'repair_observed'
+                    continue
             if entry['status'] in {'deferred', 'addressed'}:
                 task = next(iter(entry['task_ids']), None)
                 disposition = 'checks_needed' if pending else 'waiting_for_event'
@@ -1139,8 +1307,15 @@ def observation_linked(sha, entry):
     return sha in entry['source'] or any(row['report_sha256'] == sha for row in entry.get('diagnostic_reports', []))
 
 
+def observation_source_available(root, key, source):
+    if source is None:
+        return key == 'verification-timing'
+    return maintenance.git_commit(source) and not feedback_git(
+        root, 'merge-base', '--is-ancestor', source, 'HEAD').returncode
+
+
 def observe_maintenance(root, project, key, reports, finding_ids, *, staging=None, staging_digest=None,
-                        capture_source=None):
+                        dispositions=None):
     try:
         if key not in maintenance.REVIEW_SOURCES:
             raise ValueError('Unknown periodic review.')
@@ -1149,6 +1324,8 @@ def observe_maintenance(root, project, key, reports, finding_ids, *, staging=Non
             raise ValueError('A review needs a local source checkpoint.')
         if bool(staging) != bool(staging_digest) or (staging and key != 'worktrees-and-evidence'):
             raise ValueError('Named staging needs both an archive and its manifest digest for the worktree review.')
+        if dispositions and key != 'branches-and-pull-requests':
+            raise ValueError('Use --dispositions only with a branch inventory.')
         facts = None
         if key == 'compatibility-and-recovery':
             item = maintenance.periodic_records(project['delivery'])[key]
@@ -1162,22 +1339,34 @@ def observe_maintenance(root, project, key, reports, finding_ids, *, staging=Non
                         'next_action': 'Run the checks for changed consumers under the responsible task and use --report with its receipt.'}
             evidence, adverse, original_digests = data, False, [sha]
         else:
-            if len(reports) != 1 and not (key == 'branches-and-pull-requests' and len(reports) == 2):
-                raise ValueError('Supply an existing observation and, for branches, its protection report if available.')
+            accepts_pair = key in {'branches-and-pull-requests', 'verification-timing'}
+            if len(reports) != 1 and not (accepts_pair and len(reports) == 2):
+                raise ValueError('Supply the producer observation and its applicable supplemental observation.')
             data, sha = read_review_report(reports[0], 16 * 1024 * 1024)
-            protection = None
+            protection = product_timing = None
+            traced_tips = set()
             original_digests = [sha]
             if len(reports) == 2:
-                protection, protection_sha = read_review_report(reports[1], 1024 * 1024)
-                original_digests.append(protection_sha)
+                supplement, supplement_sha = read_review_report(reports[1], 1024 * 1024)
+                original_digests.append(supplement_sha)
+                if key == 'branches-and-pull-requests':
+                    protection = supplement
+                else:
+                    product_timing = product_delivery_observation(root, project, supplement,
+                        maintenance.utc(data['recent_collection']['collected_at']))
             if key == 'branches-and-pull-requests':
                 source = data['default_branch']['sha']
+                traced_tips, disposition_sha = traced_branch_tips(root, data, dispositions)
+                if disposition_sha:
+                    original_digests.append(disposition_sha)
             elif key == 'worktrees-and-evidence':
                 source = data['integration_tip']
             elif key == 'weekly-regression-continuity':
                 source = (data['weekly_regression']['run'] or {}).get('head_sha') or data['head_sha']
             elif key == 'verification-timing':
-                source = capture_source or protected_feedback_base(root, source).get('commit') or source
+                source = data['recent_collection'].get('capture_source')
+            if not observation_source_available(root, key, source):
+                raise ValueError('The capture source from the original is unavailable in local accepted history.')
             stage = None
             if staging:
                 try:
@@ -1191,13 +1380,13 @@ def observe_maintenance(root, project, key, reports, finding_ids, *, staging=Non
                 del stage['task_evidence']
                 original_digests.append(staging_digest)
             facts = maintenance.prepare_facts(key, data, source, original_digests, periodic_policy(root, source),
-                                              protection=protection, staging=stage)
+                                              protection=protection, staging=stage, product_timing=product_timing,
+                                              traced_tips=traced_tips)
             evidence, _, adverse = project_periodic_facts(root, key, facts, source)
             observed = maintenance.utc(facts['observed_at'])
             sha = digest(json_bytes(facts))
-        if not maintenance.git_commit(source) or feedback_git(
-                root, 'merge-base', '--is-ancestor', source, 'HEAD').returncode:
-            raise ValueError('The observation needs a source in the local accepted history.')
+        if not observation_source_available(root, key, source):
+            raise ValueError('The capture source from the original is unavailable in local accepted history.')
         if observed > datetime.now(timezone.utc):
             raise ValueError('An observation cannot be in the future.')
         feedback = {entry['id']: entry for entry in project['feedback']['items']}
@@ -1227,10 +1416,10 @@ def periodic_reviews(delivery, today=None):
 
 def workfront(root=ROOT, *, report_path=None, retained_detail=None):
     if __package__:
-        from .development import evidence_view
+        from .development import evidence_view, unassigned_feedback
         from .timing import offline_budget_status
     else:
-        from development import evidence_view
+        from development import evidence_view, unassigned_feedback
         from timing import offline_budget_status
     project = load_project(root)
     source = source_identity(root)
@@ -1283,8 +1472,7 @@ def workfront(root=ROOT, *, report_path=None, retained_detail=None):
         'evidence_overview': evidence_view(root, project, source, report, current, report_error=report_error),
         'unresolved_feedback': unresolved,
         'feedback_needing_assignment': [
-            item['id'] for item in unresolved
-            if all(tasks[key]['status'] in {'done', 'cancelled'} for key in item['task_ids'])
+            item['id'] for item in unassigned_feedback(unresolved, tasks)
         ],
         'source': source,
     }
@@ -1314,7 +1502,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
             context['transferred_reviews'] = [
                 {'id': row['id'], 'obligations': row.get('problem'), 'trigger': row.get('trigger')}
                 for row in observed_periodic_reviews(root, project, compare=True)
-                if row.get('follow_through_task') == key
+                if row.get('follow_through_task') == key and row['state'] == 'owned_action'
             ]
         return context
     decision_ids = effective_decisions(project, task)
@@ -2091,6 +2279,30 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
     return {'path': path.relative_to(root).as_posix(), 'sha256': digest(path.read_bytes())}
 
 
+def unassigned_source(root, *, after=None, read_only=False):
+    if __package__:
+        from .development import project_navigation, unassigned_feedback
+    else:
+        from development import project_navigation, unassigned_feedback
+    ledger = read_json(root / 'project/tasks.json')
+    items = read_json(root / 'project/feedback.json')['items']
+    unassigned = unassigned_feedback(items, indexed(ledger['tasks'], 'task'))
+    identities = [row['id'] for row in unassigned]
+    if after is not None and after not in identities:
+        raise ValueError('That finding is no longer waiting for assignment. Rerun the unassigned lookup.')
+    start = identities.index(after) + 1 if after else 0
+    rows = unassigned[start:start + 5]
+    prefix = ('source', 'project/feedback.json')
+    result = {'total': len(unassigned), 'items': [
+        {'id': row['id'], 'severity': row['severity'],
+         'command': project_navigation(*prefix, '--id', row['id'], read_only=read_only)}
+        for row in rows]}
+    if rows and start + len(rows) < len(unassigned):
+        result['more'] = project_navigation(*prefix, '--unassigned', '--after', rows[-1]['id'],
+                                            *(['--read-only'] if read_only else []), read_only=read_only)
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='command', required=True)
@@ -2103,12 +2315,13 @@ def main():
     observe = sub.add_parser('observe-maintenance', help='Project an existing review into a compact record')
     observe.add_argument('review')
     observe.add_argument('--report', type=Path, action='append', default=[],
-                         help='Existing command observation or scoped compatibility task receipt (repeatable)')
+                         help='Producer observation, then optional protection or product slice timing original, or compatibility receipts')
     observe.add_argument('--finding', action='append', default=[])
     verify_observation = sub.add_parser('verify-maintenance', help='Recompute a proposed review from private originals')
     verify_observation.add_argument('record', type=Path)
     verify_observation.add_argument('--report', type=Path, action='append', required=True)
     for command in (observe, verify_observation):
+        command.add_argument('--dispositions', help='Existing commit:path exact-head recovery dispositions')
         command.add_argument('--staging', type=Path, help='One explicitly named retained staging archive')
         command.add_argument('--staging-digest', help='Expected SHA-256 of the retained staging manifest')
     context = sub.add_parser('context')
@@ -2119,7 +2332,11 @@ def main():
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
     source.add_argument('path')
     source.add_argument('pointer', nargs='?', default='')
-    source.add_argument('--id', help='Read a single canonical feedback item by stable ID')
+    source_lookup = source.add_mutually_exclusive_group()
+    source_lookup.add_argument('--id', help='Read a single canonical feedback item by stable ID')
+    source_lookup.add_argument('--unassigned', action='store_true', help='List open feedback requiring assignment')
+    source.add_argument('--after', help='Continue an unassigned list after its last stable feedback ID')
+    source.add_argument('--read-only', action='store_true', help='Render continuation commands using pinned Python')
     ready = sub.add_parser('readiness')
     ready.add_argument('--candidate', help='Exact release candidate commit')
     ready.add_argument('--report', type=Path, help='Retained Windows release report')
@@ -2158,10 +2375,11 @@ def main():
                                  overview=args.overview, read_only=args.read_only)
         elif args.command == 'observe-maintenance':
             result = observe_maintenance(ROOT, load_project(ROOT), args.review, args.report, args.finding,
-                                         staging=args.staging, staging_digest=args.staging_digest)
+                                         staging=args.staging, staging_digest=args.staging_digest,
+                                         dispositions=args.dispositions)
         elif args.command == 'verify-maintenance':
             result = verify_maintenance(ROOT, load_project(ROOT), args.record, args.report,
-                                        args.staging, args.staging_digest)
+                                        args.staging, args.staging_digest, args.dispositions)
         elif args.command == 'context':
             result = task_context(ROOT, args.task_id, detail=args.detail, phase=args.phase)
         elif args.command == 'brief':
@@ -2177,7 +2395,13 @@ def main():
                 from development import resolve_source
             reference = {'path': args.path, 'pointer': args.pointer}
             try:
-                if args.id is not None:
+                if args.after and not args.unassigned:
+                    raise ValueError('Use --after only with --unassigned.')
+                if args.unassigned:
+                    if args.path != 'project/feedback.json' or args.pointer:
+                        raise ValueError('Use --unassigned with the canonical feedback file and no JSON pointer.')
+                    result = unassigned_source(ROOT, after=args.after, read_only=args.read_only)
+                elif args.id is not None:
                     if args.path != 'project/feedback.json' or args.pointer:
                         raise ValueError('Use --id with the canonical feedback file and no numeric JSON pointer.')
                     matches = [row for row in resolve_source(ROOT, {**reference, 'pointer': '/items'})

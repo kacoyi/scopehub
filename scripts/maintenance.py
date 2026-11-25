@@ -111,7 +111,41 @@ def protective_settings(actual):
     }
 
 
-def prepare_facts(key, data, source, input_digests, policy, protection=None, staging=None):
+BRANCH_TRACE = 'dispositions for unique-history branch tips'
+LOCAL_FAST = 'passing comparable local fast timing'
+PRODUCT_TIMING = 'comparable product delivery timing'
+SCOPE_ACTIONS = {
+    BRANCH_TRACE: ('coordinator', 'Trace each exact tip to its task, PR or recoverable copy',
+                   'pnpm project:branches'),
+    LOCAL_FAST: ('verification owner', 'Inspect a retained passing fast run with matching execution inputs',
+                 'pnpm project:timing --report .reports/test-report.json'),
+    PRODUCT_TIMING: ('development AI', 'Compare comparable slices after observing their usable interaction and verified main',
+                     'uv run python scripts/project.py observe-maintenance verification-timing --help'),
+}
+
+
+def tip_identity(repository, sha):
+    if not git_commit(sha):
+        raise ValueError('A unique branch needs an exact observed tip.')
+    return hashlib.sha256(f'{repository}:{sha}'.encode('ascii')).hexdigest()
+
+
+def local_fast_observation(data, observed):
+    for row in reversed(data.get('samples', [])):
+        if (row.get('ci') is not None or row.get('profile') != 'fast' or
+                row.get('report_status') != 'passed' or row.get('review_exclusion', True) is not None
+                or row.get('working_tree_dirty') is not False or not git_commit(row.get('source_commit'))):
+            continue
+        elapsed = row['seconds']['harness']
+        recorded = utc(row['recorded_at'])
+        if type(elapsed) in {float, int} and 0 <= elapsed < 86400 and timedelta(0) <= observed - recorded <= timedelta(days=7):
+            if re.fullmatch(r'[a-zA-Z0-9._-]{1,100}', row['run_id']):
+                return {name: row[name] for name in ('run_id', 'source_commit', 'recorded_at')} | {'seconds': elapsed}
+    return None
+
+
+def prepare_facts(key, data, source, input_digests, policy, protection=None, staging=None,
+                  product_timing=None, traced_tips=()):
     """Retain only the source observations needed to independently derive the public claim."""
     clock = data['recent_collection']['collected_at'] if key == 'verification-timing' else data['observed_at']
     facts = {'observed_at': utc(clock).isoformat(), 'source_commit': source, 'input_sha256': input_digests}
@@ -129,6 +163,7 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None, sta
                              and item['sample_count'] >= 3],
                      captured_samples=[{name: row[name] for name in ('run_id', 'platform', 'event')}
                                        for row in data['recent_collection'].get('collected_samples', [])],
+                     local_fast=local_fast_observation(data, utc(clock)), product_delivery=product_timing,
                      input_complete=not data['input_issues'],
                      adverse=bool(data['budget_follow_up']['repeated_breaches'] or data['budget_follow_up']['sustained_growth']))
     elif key == 'branches-and-pull-requests':
@@ -146,7 +181,10 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None, sta
             expected_contexts = {check['context'] for check in policy['configuration']['required_status_checks']['checks']}
             checks = observed['settings']['required_status_checks']
             checks['checks'] = [check for check in checks['checks'] if check['context'] in expected_contexts]
-        facts.update(repository=data['repository'], branch=data['default_branch']['name'],
+        repository = data['repository']
+        unique = sorted({tip_identity(repository, row['sha']) for row in branches if row['status'] == 'unique_history'})
+        facts.update(repository=repository, branch=data['default_branch']['name'],
+                     unique_tips=unique, traced_tips=sorted({tip_identity(repository, sha) for sha in traced_tips}),
                      branch_statuses=sorted(row['status'] for row in branches),
                      pull_statuses=sorted(row['status'] for row in pulls), protected=live.get('protected'),
                      delete_branch_on_merge=data['delete_branch_on_merge'],
@@ -166,9 +204,9 @@ def prepare_facts(key, data, source, input_digests, policy, protection=None, sta
 def project_facts(key, facts, policy, protection_violations):
     fields = {
         'weekly-regression-continuity': {'repository', 'status', 'run'},
-        'verification-timing': {'scopes', 'captured_samples', 'input_complete', 'adverse'},
+        'verification-timing': {'scopes', 'captured_samples', 'input_complete', 'adverse', 'local_fast', 'product_delivery'},
         'branches-and-pull-requests': {'repository', 'branch', 'branch_statuses', 'pull_statuses', 'protected',
-                                       'delete_branch_on_merge', 'inventory_complete', 'protection'},
+                                       'delete_branch_on_merge', 'inventory_complete', 'protection', 'unique_tips', 'traced_tips'},
         'worktrees-and-evidence': {'integration_ref', 'row_states', 'holds', 'archive_configured',
                                    'archive_error', 'activity_complete', 'staging'},
     }
@@ -177,7 +215,8 @@ def project_facts(key, facts, policy, protection_violations):
     observed = utc(facts['observed_at'])
     source = facts['source_commit']
     digests = facts['input_sha256']
-    if not git_commit(source) or len(digests) not in {1, 2} or not all(sha256(value) for value in digests):
+    if ((not git_commit(source) and not (source is None and key == 'verification-timing'))
+            or len(digests) not in {1, 2, 3} or not all(sha256(value) for value in digests)):
         raise ValueError('Expected bounded observation identity and input digests.')
     pending = []
     adverse = False
@@ -227,9 +266,14 @@ def project_facts(key, facts, policy, protection_violations):
                    if (platform, event) not in refreshed]
         if not facts['input_complete']:
             pending.append('complete timing inputs')
+        if not facts['local_fast']:
+            pending.append(LOCAL_FAST)
+        if not facts['product_delivery']:
+            pending.append(PRODUCT_TIMING)
         adverse = facts['adverse'] or any(item['recent_objective_breaches'] >= 2 for item in scopes)
         identity = sorted({str(run) for item in scopes for run in item['recent_runs']})
-        evidence = {'objective_reviews': scopes}
+        evidence = {'objective_reviews': scopes, 'local_fast': facts['local_fast'],
+                    'product_delivery': facts['product_delivery']}
     elif key == 'branches-and-pull-requests':
         if facts['repository'] != policy['repository'] or facts['branch'] != policy['branch']:
             raise ValueError('Branch inventory belongs to another repository or branch.')
@@ -243,6 +287,13 @@ def project_facts(key, facts, policy, protection_violations):
         if (not facts['inventory_complete'] or 'uncertain' in branches or 'uncertain' in pulls
                 or facts['protected'] is None or facts['delete_branch_on_merge'] is None):
             pending.append('complete branch and pull-request inventory')
+        unique, traced = facts['unique_tips'], facts['traced_tips']
+        if (len(unique) > branches.count('unique_history') or bool(unique) != ('unique_history' in branches)
+                or len(unique) + len(traced) > 512 or not all(sha256(value) for value in [*unique, *traced])):
+            raise ValueError('Expected bounded identities for unique and traced branch tips.')
+        untraced = sorted(set(unique) - set(traced))
+        if untraced:
+            pending.append(BRANCH_TRACE)
         protection = facts['protection']
         if protection and (protection['repository'], protection['branch']) != (policy['repository'], policy['branch']):
             raise ValueError('Protection observation belongs to another repository or branch.')
@@ -254,7 +305,8 @@ def project_facts(key, facts, policy, protection_violations):
                        (protection_bound and protection_violations(protection['settings'], policy['configuration'])))
         evidence = {'default_branch': {'name': facts['branch'], 'sha': source},
                     'summary': {'branches': dict(Counter(branches)), 'open_pull_requests': dict(Counter(pulls))},
-                    'protection_observed': protection_bound, 'delete_branch_on_merge': facts['delete_branch_on_merge']}
+                    'protection_observed': protection_bound, 'delete_branch_on_merge': facts['delete_branch_on_merge'],
+                    'untraced_tips': untraced}
     elif key == 'worktrees-and-evidence':
         if facts['integration_ref'] != 'refs/remotes/origin/' + policy['branch']:
             raise ValueError('Worktree inventory belongs to another integration ref.')
@@ -286,20 +338,28 @@ def project_facts(key, facts, policy, protection_violations):
 EXTERNAL_STAGING = 'project-owned staging outside registered worktrees'
 
 
-def protection_supplement(key, previous, candidate):
-    if key != 'branches-and-pull-requests' or previous['source_commit'] != candidate['source_commit']:
+def observation_clock(record):
+    clocks = [utc(record['observed_at'])]
+    if protection := record.get('facts', {}).get('protection'):
+        if protection['branch_sha'] == record['source_commit']:
+            clocks.append(utc(protection['observed_at']))
+    return max(clocks)
+
+
+def same_day_progress(previous, current, old_evidence, new_evidence, adverse, previously_adverse, inputs, added_finding):
+    if (previous['source_commit'] != current['source_commit']
+            or utc(previous['observed_at']).date() != utc(current['observed_at']).date()
+            or not inputs or observation_clock(current).date() != utc(current['observed_at']).date()):
         return False
-    old, new = previous['facts'], candidate['facts']
-    excluded = {'protection', 'input_sha256'}
-    return (
-        {k: v for k, v in old.items() if k not in excluded} == {k: v for k, v in new.items() if k not in excluded}
-        and previous['findings'] == candidate['findings']
-        and len(old['input_sha256']) == 1 and len(new['input_sha256']) == 2
-        and new['input_sha256'][0] == old['input_sha256'][0]
-        and new['protection'] and utc(new['protection']['observed_at']) >= utc(old['observed_at'])
-        and utc(new['protection']['observed_at']).date() == utc(old['observed_at']).date()
-        and set(candidate['evidence']['pending']) < set(previous['evidence']['pending'])
-    )
+    later = observation_clock(current) > observation_clock(previous)
+    if adverse and added_finding:
+        return later
+    pending = set(new_evidence.get('pending') or new_evidence.get('unverified_boundaries') or ())
+    previous_pending = set(old_evidence.get('pending') or old_evidence.get('unverified_boundaries') or ())
+    retained = set(previous.get('facts', {}).get('input_sha256', ())) <= set(
+        current.get('facts', {}).get('input_sha256', ()))
+    return bool((pending < previous_pending and (later or retained))
+                or (previously_adverse and not adverse and later and pending <= previous_pending))
 
 
 def staging_file(root, relative):

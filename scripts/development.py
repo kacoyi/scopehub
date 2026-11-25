@@ -331,6 +331,21 @@ def read_only_project_command(*arguments, source_commit=None):
     return subprocess.list2cmdline(command) if os.name == 'nt' else shlex.join(command)
 
 
+def project_navigation(*arguments, read_only=False):
+    if read_only:
+        if arguments[0] == 'status':
+            arguments += ('--read-only',)
+        return read_only_project_command(*arguments)
+    return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
+
+
+def unassigned_feedback(items, tasks):
+    severity = {'critical': 0, 'major': 1, 'minor': 2}
+    return sorted((item for item in items if item['status'] == 'open' and
+                   all(tasks[key]['status'] in {'done', 'cancelled'} for key in item['task_ids'])),
+                  key=lambda item: (severity[item['severity']], item['id']))
+
+
 def project_overview(state, *, read_only=False):
     focus = state.get('focus')
     verification = state['verification']
@@ -352,16 +367,12 @@ def project_overview(state, *, read_only=False):
         first = next((review for review in reviews if review['review_due']), None)
 
     def navigation(*arguments):
-        if read_only:
-            if arguments[0] == 'status':
-                arguments += ('--read-only',)
-            return read_only_project_command(*arguments)
-        return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
+        return project_navigation(*arguments, read_only=read_only)
 
     def action(review):
         result = {key: review[key] for key in
                   ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
-                   'problem', 'report_sha256') if key in review}
+                   'problem', 'report_sha256', 'scope_follow_through') if key in review}
         if read_only and (command := result.get('command')):
             parts = shlex.split(command)
             if parts[:1] == ['pnpm'] and parts[1] in {'project:source', 'project:context'}:
@@ -391,7 +402,9 @@ def project_overview(state, *, read_only=False):
                 'trigger': 'Open ' + finding['severity'] + ' feedback', 'command': command}
 
     opened = [finding for finding in state['unresolved_feedback'] if finding['status'] == 'open']
-    critical = next((finding_action(finding) for finding in opened if finding['severity'] == 'critical'), None)
+    important = sorted((finding for finding in opened if finding['severity'] == 'critical'),
+                       key=lambda finding: (not active.intersection(finding['task_ids']), finding['id']))
+    critical = finding_action(important[0]) if important else None
     owned = next((finding_action(finding) for finding in opened if finding['severity'] == 'major'
                   and active.intersection(finding['task_ids'])), None)
     failure = None
@@ -419,6 +432,9 @@ def project_overview(state, *, read_only=False):
             'ready': len(state['ready_task_ids']), 'active': len(state['active_task_ids']),
             'blocked': len(state['blocked']), 'open_findings': len(state['unresolved_feedback']),
             'unassigned_findings': len(state['feedback_needing_assignment']),
+            **({'unassigned_lookup': navigation('source', 'project/feedback.json', '--unassigned',
+                                                 *(['--read-only'] if read_only else []))}
+               if unassigned else {}),
         },
         'verification': {
             'local': local, 'run_id': verification['run_id'], 'outcome': verification['recorded_status'],
@@ -432,7 +448,9 @@ def project_overview(state, *, read_only=False):
                   'scope': 'Hosted, release and physical gates require separate evidence.'},
         'maintenance': {'periodic_attention': sum(review['review_due'] or review['state'] in attention
                                                   for review in reviews),
-                        'waiting_for_event': sum(review['state'] == 'waiting_for_event' for review in reviews),
+                        'waiting_for_event': sum(review['state'] == 'waiting_for_event' or
+                                                 review.get('repair_recovery', {}).get('state') == 'waiting_for_event'
+                                                 for review in reviews),
                         'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due'),
                         'follow_through': additional},
         'next': next_action,
@@ -452,7 +470,7 @@ def status_view(state, *, detail=False, overview=False, read_only=False):
     result = {'overview': summary, **state}
     result['periodic_reviews'] = [
         {key: review[key] for key in ('id', 'next_review_by', 'review_due',
-                                      'state', 'owner', 'command', 'problem', 'finding', 'repair_recovery', 'overseen_staging') if key in review}
+                                      'state', 'owner', 'command', 'problem', 'finding', 'repair_recovery', 'overseen_staging', 'scope_follow_through', 'follow_through_task') if key in review}
         for review in state['periodic_reviews']
     ]
     focus = state.get('focus')
