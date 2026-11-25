@@ -104,6 +104,25 @@
       "requested_at": "2026-11-25T15:56:17.447940+00:00",
       "request_id": "6e26539f53acdbb72e36a8176d637158dee40fe2eae56459e5ebd9580afcb114",
       "evidence_sha256": "def17808cc0c637fdc950e75d5caaabe6e56a8d51a6ba78b538ab9258282f086"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "227e0413b61e1e17d790e4cbf57580267aab534d",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-136 227e0413b61e1e17d790e4cbf57580267aab534d",
+      "scope": "CHANGES_REQUESTED M0-136 227e0413b61e1e17d790e4cbf57580267aab534d",
+      "observation": "In the M0-103 replay, the intake approved a filename with one space even though the review contained two spaces in that position.",
+      "reviewer": "Independent Astra Standard (t110)",
+      "original_sha256": "d13f1b6351f8ce6674c746fdf0edeeffc944361ed7a9416e0b22d221777e1ec3",
+      "response_id": "59ebf0abf34c31902610aaeeee663fbe138bb76830da0273468b3a9839c7f601",
+      "response_sha256": "c703707bfaddedbbfe86006016ad1f4bd177d4f5e4e1b1450faf3db822d85c91",
+      "observation_body_sha256": "aa9d1a6e37059ad0e7e65f803cd24d98a2cee37a67686415f4766e8900bf59d5",
+      "event": {
+        "id": "msg_0d2fdf8a53849dc2016b0706b3ec3087d089307708cb3813dc",
+        "timestamp": "2026-11-25T16:03:14.425Z"
+      },
+      "supersedes": "6e26539f53acdbb72e36a8176d637158dee40fe2eae56459e5ebd9580afcb114",
+      "evidence_sha256": "912d259f3aa77312f8311a91696251edc3041025cf2a12548a2e3d36a804edd5"
     }
   ]
 }
