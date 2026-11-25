@@ -7132,7 +7132,7 @@
     {
       "id": "ordinary-refocus-private-correction-read-was-refused",
       "source": "Ordinary PR97 45671281695 attempt 1 at submitted head 1a7cec7c3043bb3a061b81dd89a58d84487b25d4 and tested merge 265703a505f9bba6161d3cd9378f0639b79d8d20. Retained manifest archives/observations/repo-hygiene-20261125/pr97-native-original-45671281695/manifest.json (SHA-256 9322d98bfb2bd0504cca09c1dc683cb6455933be0f04c42246e6b154c9753606). Both reports record local-folder-refresh-preview as not selected. Linux log SHA-256 8bde7757f019bb677db2b1734369e36dd3daa7dbc0903ee29754237ffe2071c5 and Windows log SHA-256 6c5adb98295377cc7ac1e19755e9de8dde818ef01c4c990f6da83ecef636909a.",
-      "observation": "Both hosted platforms received HTTP 429 at workspace.spec.mjs:5788 while checking an authorized corrected detail after explicit refocus. The original logs establish the refusal, not which request held admission or whether the UI could recover.",
+      "observation": "Both hosted platforms observed HTTP 429 at workspace.spec.mjs:5788 around explicit refocus while checking an authorized corrected detail. Both requestfinished listeners were installed before focus. The logs do not establish when the request was issued, which request held admission, or whether the UI could recover.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -7217,6 +7217,37 @@
       "regression_checks": [
         "local-folder-refresh-preview",
         "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "refocused-folder-comparison-displays-before-access-confirmation",
+      "source": "Independent Astra Standard review at baa449ad27dca3caa6d76d0ad6e52749cf2ff4ff. Original response archives/observations/repo-hygiene-20261125/independent-final-m2-039-baa449ad/original-assistant-response.jsonl (SHA-256 512684379292b4eeaae979d3568dba56b9987a3739052cc7a368325bca892fba).",
+      "observation": "On the built UI, a successful stage reply held across focus displayed filenames and fingerprints for a manually entered CSV or folder revision before its access check completed. The independent read then denied the revision. Add real peer withdrawal before delivery and a positive trailing-focus control.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "ui-build"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "contended-private-read-removed-ordinary-peer-correction-control",
+      "source": "Independent Astra Standard review at baa449ad27dca3caa6d76d0ad6e52749cf2ff4ff. Original response archives/observations/repo-hygiene-20261125/independent-final-m2-039-baa449ad/original-assistant-response.jsonl (SHA-256 512684379292b4eeaae979d3568dba56b9987a3739052cc7a368325bca892fba).",
+      "observation": "The deliberately contended privateRecord.read journey proved 429 BUSY followed by admission of the same request and exact database counts. The change replaced the ordinary observed refocus and peer correction journey. Restore that control without request routing or a focus writer gate and keep the original requestfinished chronology bounded.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
       ],
       "resolution": null,
       "deferral_reason": null

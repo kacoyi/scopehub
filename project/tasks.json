@@ -25545,7 +25545,9 @@
         "The workspace retains the latest focus through source writes and recovery readbacks. A committed source action settles once, while a trailing snapshot confirms what may be displayed.",
         "After temporary absence a successful folder list refresh rechecks only withheld listed revisions. A verified available revision can reopen with its known bars and source; unavailable and explicitly revoked ones stay hidden, and late replies cannot reopen the closed dialog.",
         "A supported folder stage can complete after the single-revision read window. A user can stop waiting for a missing or slow reply without repeating staging. Rejected, cancelled and late replies cannot present an unverified comparison.",
-        "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts."
+        "A private background read rejected before admission can recover the same authenticated read within the existing admission budget. Refused snapshots never count as verified source state. Source and private record mutations keep their exact commit counts.",
+        "For manually selected published CSV and folder revisions, delay delivery of a real native comparison across focus. Nothing from that comparison is displayed until the latest focus has an authoritative access confirmation. A real peer withdrawal prevents publication details from appearing even temporarily.",
+        "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts."
       ],
       "checks": [
         "ui-build",
@@ -25562,7 +25564,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Retain the original, capped and corrected 64-file comparisons. Run the exact local task and hand the bounded observation and user cancellation changes to independent review and native qualification.",
+      "next_action": "Reproduce the delayed comparison with real peer withdrawal, restore the ordinary correction journey, and verify both against the existing task and accepted history before independent native qualification.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25644,6 +25646,19 @@
             "checks": [
               "local-folder-refresh-preview",
               "ui-build"
+            ]
+          },
+          {
+            "failure": "A valid stage reply crosses refocus and discloses comparison filenames or fingerprints while an authoritative access check is pending. Prove repeated focus, authorized late delivery and real peer withdrawal before the reply for both revision kinds.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "ui-build"
+            ]
+          },
+          {
+            "failure": "The forced private read refusal obscures regressions in the ordinary un-intercepted peer correction journey. The historical 429 was observed around focus, and its issuance order was not recorded.",
+            "checks": [
+              "workspace-timeframe"
             ]
           }
         ],
