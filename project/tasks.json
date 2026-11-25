@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M0-137",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -24309,7 +24309,7 @@
       "id": "M0-137",
       "title": "Verify bound review with portable linked-source fixture paths",
       "milestone": "M0",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-134"
       ],
@@ -24344,11 +24344,19 @@
         {
           "path": "project/evidence/M0-137-22efa1517d36b068.json",
           "sha256": "10a8136ed443b6c7ff006b48f61c87b39241f162a3d75e7eb9ae3fea033d55d4"
+        },
+        {
+          "path": "project/evidence/M0-137-86b86a1936e409de.json",
+          "sha256": "d7432c2ba7c555babc008a5d5c8917cbe87f52c5324e90235d7041b671c8703f"
+        },
+        {
+          "path": "project/evidence/M0-137-a365f310b60f517d.json",
+          "sha256": "5278557f5c4463c42dd19f1bf60ba061010f422f70cc02bfd7e58e7144334275"
         }
       ],
-      "next_action": "Have Astra Standard independently review the clean fixture correction and retained original failure, then obtain the comparable ordinary native PR rerun.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent Astra Standard approved 015cbda17b259cbffe7908af03c5cf1ee9493782. Ordinary PR 113 run 45627611541 executed the original working-value assertion and the new nested source check successfully on native Windows and Linux at f986d231a0e2f8fe07c90d3806a892296ef88430. The original Windows failure from run 45621069041 remains linked to its retained diagnostic.",
       "plan": {
         "outcome": "The ordinary native verification fixture reliably distinguishes transient working data from immutable committed reads across checkout spellings.",
         "change_types": [

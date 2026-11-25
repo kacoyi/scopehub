@@ -6632,7 +6632,7 @@
       "source": "Ordinary PR 113 attempt 1 and independent Linux path controls. Exact Windows diagnostic and original controls are indexed by archives/observations/repo-hygiene-20261125/pr113-windows-test-path-45621069041/SHA256SUMS (SHA-256 43505ed600b9b4ed00831dc0f3df7cfaa3a0f72021454f50116bd56520ac86be).",
       "observation": "Windows Python on run 45621069041 failed the ordinary working purpose assertion at test_diagnostic_references.py:100 before bound checks ran. The test expected Stale working purpose. and received Read the exact committed purpose. The native temporary path spelling was not retained. In a separate Linux control the unmodified test passed on the physical temporary path and failed at the same assertion through a symlink to that directory. Real on-disk public commands passed their ordinary, committed and dirty-refusal controls through both checkout spellings.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M0-137"
       ],
@@ -6647,7 +6647,11 @@
           "report_sha256": "2dc65486c83de450a01a9eeda1bf2cd00a4607c3d07ab840ba4985e57eb2535c"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The fixture injected a transient nested contract value using its original path spelling. The link reader opens the resolved file. An alias to the same Linux temporary directory reproduced the missed injection at the original Windows assertion.",
+        "correction": "Match the resolved fixture file and exercise actual nested source reads from ordinary and committed trees through alternate checkout paths.",
+        "prevention": "The real public entry checks the working value, committed value, dirty checkout refusal and outside-reference rejection. Ordinary native Windows and Linux run 45627611541 passed both the original test and the new test."
+      },
       "deferral_reason": null
     }
   ]
