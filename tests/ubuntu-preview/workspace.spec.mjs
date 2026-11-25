@@ -1567,8 +1567,14 @@ test('indicator-preview evaluates real frozen chart bytes and isolates failure a
 });
 
 test('indicator-preview rejects obsolete inputs and open confirmations without replacing accepted output', async ({ browser }, testInfo) => {
-  const profile = await makeProfile();
-  const port = await freePort();
+  await exerciseObsoleteIndicator(browser, testInfo);
+});
+
+async function exerciseObsoleteIndicator(browser, testInfo, {
+  reservePort = freePort, prepareProfile = makeProfile, forwardReady, observation = {},
+} = {}) {
+  const port = await reservePort();
+  const profile = await prepareProfile();
   const id = randomUUID();
   const other = randomUUID();
   const a = Date.parse('2026-02-04T00:00:00Z');
@@ -1586,7 +1592,6 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
   });
   const respond = challenge_id => ({ ...command(), operation: 'confirmation.respond', decision: 'approve', challenge_id });
   const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
-  const observation = {};
   let saved;
   let readSaved;
   try {
@@ -1644,41 +1649,61 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         const routeStatus = async route => {
           const request = route.request();
           if (request.postDataJSON()?.type !== 'indicator_preview_status') return route.continue();
-          const response = await route.fetch();
+          let response;
+          let ready;
+          let failure;
           try {
+            response = await route.fetch({ timeout: 8_000, maxRetries: 0 });
             const body = await response.json();
-            if (body.result?.status === 'ready') {
-              held.resolve({ ready: body.result, request });
+            ready = body.result?.status === 'ready' ? body.result : undefined;
+            if (ready) {
+              held.resolve({ ready, request });
               await release.promise;
             }
-            try {
+            if (request.failure()?.errorText === 'net::ERR_ABORTED') {
+              await route.abort('aborted').catch(() => {});
+            } else if (ready && forwardReady) {
+              await forwardReady(route, response);
+            } else {
               await route.fulfill({ response });
-            } catch (error) {
-              if (await request.response() || !request.failure()) throw error;
             }
-            if (body.result?.status === 'ready') forwarded.resolve();
+          } catch (error) {
+            failure = { error };
           } finally {
-            await response.dispose();
+            try {
+              await response?.dispose();
+            } catch (error) {
+              failure ??= { error };
+            }
+          }
+          if (failure) {
+            held.resolve(failure);
+            forwarded.resolve(failure);
+            void route.abort().catch(() => {});
+          } else if (ready) {
+            forwarded.resolve({});
           }
         };
         await page.route('**' + endpoint, routeStatus);
         try {
           await editor.getByRole('button', { name: 'Run preview' }).click();
-          const { ready: waiting, request: lateRequest } = await Promise.race([
-            held.promise, delay(8_000).then(() => { throw new Error('Ready reply was not intercepted'); }),
-          ]);
+          const captured = await indicatorReplyWithin(held.promise, 'Ready reply was not intercepted');
+          if ('error' in captured) throw captured.error;
+          const { ready: waiting, request: lateRequest } = captured;
           expect(waiting.resolved_parameters).toEqual({ period: 2 });
           expect(waiting.event.snapshot.from_ms).toBe(a);
-          await waitInvalidation(waiting.task_id, async () => {
-            await editor.getByLabel('Rolling period').fill('3');
-            await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
-          });
+          // Fault injection uses a live request so it tests forwarding independently of cancellation.
+          if (!forwardReady) {
+            await waitInvalidation(waiting.task_id, async () => {
+              await editor.getByLabel('Rolling period').fill('3');
+              await editor.getByLabel('First visible bar').selectOption(String(a + 5 * day));
+            });
+          }
           release.resolve();
-          await forwarded.promise;
-          const lateReply = await lateRequest.response();
-          if (lateReply) await lateReply.finished();
-          else expect(lateRequest.failure()).not.toBeNull();
-          observation.lateStatusDelivery = lateReply?.status() ?? lateRequest.failure()?.errorText;
+          observation.lateStatusDelivery = await indicatorReplyWithin(
+            finishIndicatorReply(forwarded.promise, lateRequest),
+            'Forwarded indicator status did not finish',
+          );
           const accept = editor.getByRole('button', { name: 'Accept preview' });
           await expect(accept).toHaveCount(0);
 
@@ -1741,6 +1766,7 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
         } finally {
           release.resolve();
           await page.unroute('**' + endpoint, routeStatus);
+          observation.routeRemoved = true;
         }
 
         await run();
@@ -1785,6 +1811,124 @@ test('indicator-preview rejects obsolete inputs and open confirmations without r
     } finally {
       await profile.close();
     }
+  }
+}
+
+async function indicatorReplyWithin(operation, description) {
+  const timer = new AbortController();
+  try {
+    return await Promise.race([operation, delay(8_000, undefined, { signal: timer.signal }).then(() => {
+      throw new Error(description);
+    })]);
+  } finally {
+    timer.abort();
+  }
+}
+
+async function finishIndicatorReply(forwarding, request) {
+  const result = await forwarding;
+  if ('error' in result) throw result.error;
+  const response = await request.response();
+  if (!response) {
+    const failure = request.failure()?.errorText;
+    if (failure === 'net::ERR_ABORTED') return failure;
+    throw new Error('The captured indicator status request had no response.');
+  }
+  const failure = await response.finished();
+  if (failure) throw failure;
+  return response.status();
+}
+
+test('indicator-preview fixture cleans up after route and port failures', async ({ browser }, testInfo) => {
+  const portFault = new Error('Injected workspace port error');
+  let misplacedProfile;
+  try {
+    await expect(exerciseObsoleteIndicator(browser, testInfo, {
+      reservePort: async () => { throw portFault; },
+      prepareProfile: async () => { misplacedProfile = await makeProfile(); return misplacedProfile; },
+    })).rejects.toBe(portFault);
+    expect(misplacedProfile).toBeUndefined();
+  } finally {
+    await misplacedProfile?.close();
+  }
+
+  const forwardFault = new Error('Injected indicator route fulfill error');
+  const outcomes = [];
+  for (const [label, forwardReady, fault] of [
+    ['original forward error', async () => { throw forwardFault; }, forwardFault],
+    ['absent browser response', route => route.abort('failed'), /captured indicator status request had no response/],
+  ]) {
+    const port = await freePort();
+    const profile = await makeProfile();
+    const observation = {};
+    try {
+      const result = exerciseObsoleteIndicator(browser, testInfo, {
+        reservePort: async () => port, prepareProfile: async () => profile, forwardReady, observation,
+      });
+      if (fault instanceof Error) await expect(result).rejects.toBe(fault);
+      else await expect(result).rejects.toThrow(fault);
+      expect(observation.routeRemoved).toBe(true);
+      expect(await portAvailable(port)).toBe(true);
+      await expect(stat(profile.root)).rejects.toMatchObject({ code: 'ENOENT' });
+      outcomes.push({ label, routeRemoved: true, listenerReleased: true, profileRemoved: true });
+    } finally {
+      await profile.close();
+    }
+  }
+  await testInfo.attach('indicator-fixture-cleanup', {
+    contentType: 'application/json', body: JSON.stringify({ portPreparedProfiles: 0, outcomes }),
+  });
+});
+
+test('indicator-preview probe explains persistent admission refusal without retrying other responses', async ({}, testInfo) => {
+  const port = await freePort();
+  const profile = await makeProfile();
+  try {
+    await inService(port, profile, 'ubuntu-workspace', async server => {
+      const holder = server.tagSnapshot();
+      const snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+      void snapshotReply.catch(() => {});
+      const output = { type: 'indicator_accepted_output', request_id: randomUUID(), layer_id: randomUUID() };
+      const refused = [];
+      let diagnostic;
+      try {
+        const written = await Promise.race([holder.wait('written'), snapshotReply.then(response => {
+          throw new Error(`The tagged snapshot settled before it owned the writer (HTTP ${response.status}).`);
+        })]);
+        expect(written.request_id).toEqual(expect.any(Number));
+        await expect(readIndicatorAfterAdmission(server, output, {
+          timeout: 1_000, observe(frame) { refused.push(frame.http); },
+        }).catch(error => {
+          diagnostic = error.message;
+          throw error;
+        })).rejects.toThrow(/after [0-9]+ attempts.*last HTTP 429, code BUSY, retryable true/);
+        expect(refused.length).toBeGreaterThan(1);
+        expect(refused.every(http => http === 429)).toBe(true);
+        holder.release();
+        await holder.wait('drained');
+        expect((await snapshotReply).status).toBe(200);
+      } finally {
+        holder.release();
+        await Promise.allSettled([snapshotReply.then(responseStatus)]);
+      }
+      const seen = [];
+      const missing = await readIndicatorAfterAdmission(server, {
+        type: 'indicator_preview_status', request_id: randomUUID(), task_id: randomUUID(),
+      }, { observe(frame) { seen.push({ http: frame.http, error: frame.body.error?.code }); } });
+      expect(missing).toMatchObject({ http: 200, body: { ok: false, error: {
+        code: 'STALE_CONTEXT', retryable: false,
+      } } });
+      const invalid = await readIndicatorAfterAdmission(server, {
+        type: 'indicator_preview_status', request_id: 'not-a-uuid', task_id: randomUUID(),
+      }, { observe(frame) { seen.push({ http: frame.http, error: frame.body.error?.code }); } });
+      expect(invalid).toMatchObject({ http: 400, body: { ok: false, error: { code: 'INVALID_ARGUMENT' } } });
+      expect(seen).toEqual([{ http: 200, error: 'STALE_CONTEXT' }, { http: 400, error: 'INVALID_ARGUMENT' }]);
+      await testInfo.attach('indicator-persistent-admission', { contentType: 'application/json',
+        body: JSON.stringify({ refusals: refused.length, diagnostic, admitted: seen }),
+      });
+    }, { snapshotGate: true });
+  } finally {
+    await profile.close();
   }
 });
 
@@ -4405,17 +4549,29 @@ async function indicatorReadFrame(server, request, signal) {
 async function readIndicatorAfterAdmission(server, request, { timeout = 10_000, signal, observe } = {}) {
   const deadline = AbortSignal.timeout(timeout);
   const reading = signal ? AbortSignal.any([signal, deadline]) : deadline;
-  let frame;
-  await expect.poll(async () => {
-    reading.throwIfAborted();
-    frame = await indicatorReadFrame(server, request, reading);
-    await observe?.(frame);
-    reading.throwIfAborted();
-    // An admitted registry answer is evidence, even when its body reports BUSY.
-    return frame.http === 429 && frame.body.ok === false
-      && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
-  }, { timeout, message: `The ${request.type} read obtains workspace admission` }).toBe(false);
-  return frame;
+  const intervals = [100, 250, 500, 1_000];
+  let attempts = 0;
+  let lastRefusal;
+  try {
+    for (;;) {
+      reading.throwIfAborted();
+      attempts++;
+      const frame = await indicatorReadFrame(server, request, reading);
+      // An admitted registry answer is evidence, even when its body reports BUSY.
+      const refused = frame.http === 429 && frame.body?.ok === false
+        && frame.body.error?.code === 'BUSY' && frame.body.error.retryable === true;
+      if (refused) lastRefusal = 'last HTTP 429, code BUSY, retryable true';
+      await observe?.(frame);
+      reading.throwIfAborted();
+      if (!refused) return frame;
+      await delay(intervals[Math.min(attempts - 1, intervals.length - 1)], undefined, { signal: reading });
+    }
+  } catch (error) {
+    if (signal?.aborted && (error === signal.reason || error?.cause === signal.reason)) throw signal.reason;
+    if (!deadline.aborted || (error !== deadline.reason && error?.cause !== deadline.reason)) throw error;
+    throw new Error(`Indicator read did not obtain workspace admission after ${attempts} attempts: ${lastRefusal ?? 'no refusal received'}.`,
+      { cause: error });
+  }
 }
 
 async function responseStatus(response) {

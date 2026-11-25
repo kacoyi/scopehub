@@ -6283,8 +6283,8 @@
     },
     {
       "id": "obsolete-indicator-forwarding-does-not-settle-on-error",
-      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9.",
-      "observation": "Injected route.fulfill threw the original error and disposed the fetched response, but the awaiting test still waited for forwarded. The worker could interrupt the test before the route, service and profile followed their owning finally blocks. Forwarding and the intercepted browser request completion share a finite verification window.",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Injected route.fulfill threw the original error and disposed the fetched response, but the awaiting test still waited for forwarded. The worker could interrupt the test before the route, service and profile followed their owning finally blocks. Forwarding and the intercepted browser request completion share a finite verification window. The local replay observed the exact injected error and disposed response with the original forwarding waiter pending.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -6298,8 +6298,8 @@
     },
     {
       "id": "obsolete-indicator-port-failure-leaks-profile",
-      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9.",
-      "observation": "An injected freePort rejection occurred after profile allocation and before the owning try block. The review counted one created profile and zero close calls. Reserve the port before preparing the profile and verify the real profile still closes after a later failure.",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "An injected freePort rejection occurred after profile allocation and before the owning try block. The review counted one created profile and zero close calls. Reserve the port before preparing the profile and verify the real profile still closes after a later failure. The local acquisition replay counted one prepared profile and zero closes while the same injected port error propagated.",
       "severity": "major",
       "status": "open",
       "task_ids": [
@@ -6313,8 +6313,8 @@
     },
     {
       "id": "indicator-admission-probe-timeout-loses-last-refusal",
-      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9.",
-      "observation": "Repeated retryable 429 BUSY responses exhausted the probe timeout with only a boolean poll assertion. Both obsolete status and shared accepted-output probes need attempted request count and the last numeric HTTP status, BUSY code and retryability without response body or capability text.",
+      "source": "Astra Standard review at 5b66ac2476b9c73224d68a6cfe32be7f6017f3e6, archives/observations/m0-123-indicator-fixture/astra-m0-122-final-0841.txt (SHA-256 51564aeb68cd604774c183f84d4b3bd6cd54057b4a086c64923e0622a1b8098e). The same obsolete indicator and note bodies were compared on combined blob a54485e646079d03f08c09585682334d2cda2ca9. Exact combined-source replay at a33ead7dac3bab71d54123e993f4f342ef20eace is retained at archives/observations/m0-123-indicator-fixture/red-a33ead7/SHA256SUMS (SHA-256 539013a4e505de01714da0c340a791f72034cd7bd0c9b79e33f2d67907a999e5).",
+      "observation": "Repeated retryable 429 BUSY responses exhausted the probe timeout with only a boolean poll assertion. Both obsolete status and shared accepted-output probes need attempted request count and the last numeric HTTP status, BUSY code and retryability without response body or capability text. The local replay observed three retryable 429 attempts and verified the old diagnostic did not identify HTTP 429 or code BUSY.",
       "severity": "major",
       "status": "open",
       "task_ids": [
