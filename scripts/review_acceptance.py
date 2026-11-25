@@ -6,10 +6,10 @@ import json
 import re
 
 if __package__:
-    from .review_observation import body_passages, markdown_source, standalone_passage
+    from .review_observation import markdown_source, response_body, standalone_passage
     from .verification_scope import EVIDENCE_FILE, TASK_REVIEW_FILE, ScopeError, changes, exact_commit, git, inspect_index, require_ancestor
 else:
-    from review_observation import body_passages, markdown_source, standalone_passage
+    from review_observation import markdown_source, response_body, standalone_passage
     from verification_scope import EVIDENCE_FILE, TASK_REVIEW_FILE, ScopeError, changes, exact_commit, git, inspect_index, require_ancestor
 
 
@@ -101,16 +101,30 @@ def validate_successor(previous, entry):
         raise ReviewError('Replacing a same-source rejection requires ordered final assistant exports.')
 
 
+def response_content_match(earlier, candidate):
+    # Old entries have only the folded fingerprint. A collision with one
+    # cannot establish new content, and its original receipt stays immutable.
+    if 'legacy_response_sha256' in earlier and 'legacy_response_sha256' in candidate:
+        return earlier['response_sha256'] == candidate['response_sha256'], True
+    return (earlier.get('legacy_response_sha256', earlier['response_sha256'])
+            == candidate.get('legacy_response_sha256', candidate['response_sha256'])), False
+
+
 def repeated_response(decisions, candidate):
     for earlier in decisions:
         if earlier['kind'] != 'decision':
             continue
+        if earlier['original_sha256'] == candidate['original_sha256']:
+            return earlier
+        same_content, exact = response_content_match(earlier, candidate)
         if earlier['response_id'] == candidate['response_id']:
-            if earlier['response_sha256'] != candidate['response_sha256']:
+            if not same_content:
                 raise ReviewError('The retained assistant response identity has different content.')
             return earlier
-        if (earlier['response_sha256'] == candidate['response_sha256']
-                and (earlier['event'] is None or candidate['event'] is None)):
+        # A proved content replay stays inert even if exported in a new
+        # envelope. With only folded hashes, two structured messages still
+        # have independently comparable stable event identities.
+        if same_content and (exact or earlier['event'] is None or candidate['event'] is None):
             return earlier
     return None
 
@@ -246,19 +260,22 @@ def create_decision(root, task, source, transcript, reviewer, scope, observation
     body = '\n'.join(lines[consumed:])
     scope = compact(scope) if scope else heading
     observation = selected_observation(observation, heading, scope)
-    # The legacy replay fingerprint and scope locator are independent of quotation matching.
+    # Keep the historical folded fingerprint for old receipts and scope lookup.
     whole = compact(response)
     verdict = bound_decision(heading, task, source, scope)
     if not verdict:
         raise ReviewError('The final independent verdict must identify this task and exact full source in its heading.')
-    if (scope not in whole or observation is None
-            or observation not in body_passages(body, rendered=rendered)):
+    projected_body, observations = response_body(body, rendered=rendered)
+    if scope not in whole or observation is None or observation not in observations:
         raise ReviewError('Select a complete factual observation from the post-verdict body, separate from the heading.')
-    response_hash = hashlib.sha256(whole.encode('utf-8')).hexdigest()
+    projected_heading, _ = response_body('\n'.join(lines[:consumed]), rendered=rendered)
+    response_text = json.dumps([projected_heading, projected_body], ensure_ascii=False, separators=(',', ':'))
+    response_hash = hashlib.sha256(response_text.encode('utf-8')).hexdigest()
     decision = dict(kind='decision', source_commit=source, verdict=verdict, decision=heading, scope=scope,
                     observation=observation, reviewer=reviewer, original_sha256=hashlib.sha256(data).hexdigest(),
                     response_id=response_identity(event, response_hash), response_sha256=response_hash,
-                    observation_body_sha256=hashlib.sha256(compact(body).encode('utf-8')).hexdigest(),
+                    legacy_response_sha256=hashlib.sha256(whole.encode('utf-8')).hexdigest(),
+                    observation_body_sha256=hashlib.sha256(projected_body.encode('utf-8')).hexdigest(),
                     event=event, supersedes=supersedes)
     decision['evidence_sha256'] = evidence_digest(task, decision)
     return decision

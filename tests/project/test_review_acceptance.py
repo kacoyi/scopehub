@@ -2,12 +2,13 @@
 
 from contextlib import redirect_stdout
 from datetime import datetime, timedelta
+from hashlib import sha256
 from io import StringIO
 import json
 import subprocess
 from unittest.mock import patch
 
-from scripts import project, review_acceptance
+from scripts import project, review_acceptance, review_observation
 from scripts.integration import delivery_scope
 from scripts.review_tree import CommittedPath
 from tests.project.fixtures import task_by_id
@@ -257,9 +258,11 @@ class TaskReviewTests(ProjectFixture):
         first = self.review(source, event=('msg_first', '2026-11-25T11:00:00Z'))
         rejected = self.review(source, 'CHANGES_REQUESTED', event=('msg_second', '2026-11-25T13:00:00Z'),
                                supersedes=first['decision']['response_id'])
-        self.review(source, event=('msg_concurrent', '2026-11-25T13:10:00Z'),
+        self.review(source, observation='The concurrent reply kept its selected result.',
+                    event=('msg_concurrent', '2026-11-25T13:10:00Z'),
                     supersedes=first['decision']['response_id'], error='must supersede')
-        self.review(source, event=('msg_reordered', '2026-11-25T12:59:00Z'),
+        self.review(source, observation='The earlier reply kept a separate saved result.',
+                    event=('msg_reordered', '2026-11-25T12:59:00Z'),
                     supersedes=rejected['decision']['response_id'], error='predates or equals')
         self.review(source, event=('msg_first', '2026-11-25T11:00:00Z'), suffix='\n\n')
         self.assertEqual('changes_requested', self.command('context', TASK)['independent_review']['status'])
@@ -538,7 +541,7 @@ class TaskReviewTests(ProjectFixture):
         for body, expected, selection in cases:
             with self.subTest(body=body):
                 trace.write_bytes(f'APPROVE {TASK} {source}\r\n\r\n{body}\r\n'.encode('utf-8'))
-                self.assertEqual([expected], list(review_acceptance.body_passages(body, rendered=False)))
+                self.assertEqual([expected], list(review_observation.body_passages(body, rendered=False)))
                 receipt = review_acceptance.create_decision(
                     self.root, TASK, source, trace, 'Independent reviewer', None, selection)
                 self.assertEqual(expected, receipt['observation'])
@@ -584,6 +587,90 @@ class TaskReviewTests(ProjectFixture):
         self.assertEqual('approved', self.command('context', TASK)['independent_review']['status'])
         self.finish()
         self.assertEqual('passed', self.command('history', '--base', base)['status'])
+
+    def test_response_identity_survives_plain_and_structured_representation_changes(self):
+        base, source = self.open_review()
+        trace = self.root / '.reports/identity-reply.txt'
+        trace.parent.mkdir()
+        ledger = self.root / f'{review_acceptance.DIRECTORY}/{TASK}.json'
+        first = 'The reply retained `四月\u3000收盘.csv` through the read.'
+        changed = 'The reply retained `四月\u3000\t收盘.csv` through the read.'
+        other = 'An independent second read kept the existing records.'
+        heading = f'APPROVE {TASK} {source}'
+
+        def submit(observation, chosen, message, *, predecessor=None, wrapped=False, error=None):
+            text = f'{heading}\n\n{observation}\n\n{other}\n'
+            if wrapped:
+                text = text.replace('through the read.', 'through\r\nthe read.') + '\r\n'
+            when = ('2026-11-25T11:00:00Z' if message == 'msg_first'
+                    else '2026-11-25T11:10:00Z')
+            payload = {'type': 'message', 'phase': 'final_answer', 'role': 'assistant', 'status': 'completed',
+                       'id': message, 'content': [{'type': 'output_text', 'text': text}]}
+            trace.write_bytes((json.dumps({'type': 'response_item', 'timestamp': when, 'payload': payload},
+                                          ensure_ascii=False) if message else text).encode('utf-8'))
+            args = ['review', TASK, '--source', source, '--transcript', str(trace),
+                    '--reviewer', 'Independent reviewer', '--observation', chosen]
+            if predecessor:
+                args.extend(['--supersedes', predecessor])
+            return self.command(*args, error=error)
+
+        for initial, subsequent in ((None, 'msg_later'), ('msg_first', 'msg_later'),
+                                    (None, None), ('msg_first', None)):
+            with self.subTest(initial=initial, subsequent=subsequent):
+                old = submit(first, first, initial)['decision']
+                if subsequent is None:
+                    later = submit(changed, changed, None, predecessor=old['response_id'])
+                    self.assertTrue(later['recorded'])
+                    self.assertEqual(changed, later['decision']['observation'])
+                    last = later['decision']['response_id']
+                else:
+                    last = old['response_id']
+                with patch.object(review_acceptance, 'datetime', wraps=datetime) as clock:
+                    clock.now.return_value = datetime.fromisoformat('2026-11-25T11:05:00+00:00')
+                    request = self.command('review', TASK, '--source', source, '--supersedes', last,
+                                           '--request', 'Independently recheck the selected filename.')['request']
+                before = ledger.read_bytes()
+                replay = submit(first, other, subsequent, predecessor=request['request_id'], wrapped=True)
+                self.assertFalse(replay['recorded'])
+                self.assertEqual(old, replay['decision'])
+                self.assertEqual(before, ledger.read_bytes())
+                self.assertEqual('pending', self.command('context', TASK)['independent_review']['status'])
+                if subsequent:
+                    if initial:
+                        submit(changed, changed, initial, predecessor=request['request_id'],
+                               error='response identity has different content')
+                    submit(changed, first, subsequent, predecessor=request['request_id'], error='post-verdict body')
+                    reply = submit(changed, changed, subsequent, predecessor=request['request_id'])
+                    new = reply['decision']
+                    self.assertEqual(changed, new['observation'])
+                    self.assertNotEqual(old['response_sha256'], new['response_sha256'])
+                    self.assertEqual(old['legacy_response_sha256'], new['legacy_response_sha256'])
+                    self.assertEqual('approved', self.command('context', TASK)['independent_review']['status'])
+                else:
+                    fact = 'The independent reader confirmed a separate later result.'
+                    submit(fact, fact, None, predecessor=request['request_id'], error='later final assistant export')
+                    self.assertEqual(before, ledger.read_bytes())
+                self.assertEqual(old, json.loads(ledger.read_bytes())['events'][0])
+                self.assertEqual('passed', self.command('history', '--base', base)['status'])
+                ledger.unlink()
+
+        older = submit(first, first, None)['decision']
+        older['response_sha256'] = older.pop('legacy_response_sha256')
+        older['response_id'] = older['response_sha256']
+        old_body = f'{first} {other}'.replace('\u3000', ' ').encode('utf-8')
+        older['observation_body_sha256'] = sha256(old_body).hexdigest()
+        older['evidence_sha256'] = review_acceptance.evidence_digest(TASK, older)
+        ledger.write_bytes(project.json_bytes(dict(version=3, task_id=TASK, events=[older])))
+        with patch.object(review_acceptance, 'datetime', wraps=datetime) as clock:
+            clock.now.return_value = datetime.fromisoformat('2026-11-25T11:05:00+00:00')
+            request = self.command('review', TASK, '--source', source, '--supersedes', older['response_id'],
+                                   '--request', 'Verify the historically folded filename.')['request']
+        before = ledger.read_bytes()
+        ambiguous = submit(changed, changed, 'msg_later', predecessor=request['request_id'])
+        self.assertFalse(ambiguous['recorded'])
+        self.assertEqual(older, ambiguous['decision'])
+        self.assertEqual(before, ledger.read_bytes())
+        self.assertEqual('pending', self.command('context', TASK)['independent_review']['status'])
 
     def test_replacing_closed_request_on_sibling_requires_a_fresh_approval(self):
         base, original = self.open_review()

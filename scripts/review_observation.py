@@ -45,12 +45,12 @@ def emphasis_terminator(node, source):
     return ''
 
 
-def inline_code_spans(node):
-    if isinstance(node, inline.CodeSpan):
+def literal_spans(node):
+    if isinstance(node, (inline.CodeSpan, block.CodeBlock, block.FencedCode)):
         yield node
-    elif isinstance(node, FORMATTING):
-        for child in node.children:
-            yield from inline_code_spans(child)
+    elif isinstance(children := getattr(node, 'children', None), list):
+        for child in children:
+            yield from literal_spans(child)
 
 
 def code_spelling(node, source):
@@ -67,14 +67,16 @@ def code_spelling(node, source):
     return source[opening:content_start] + content + source[content_end:closing]
 
 
-def project_sentence(source, start, stop, code_spans):
+def project_text(source, start, stop, literals):
     pieces = []
-    for node in code_spans:
+    for node in literals:
         if node.start_pos >= stop:
             break
         if node.end_pos <= start:
             continue
-        pieces.extend((PROSE_WHITESPACE.sub(' ', source[start:node.start_pos]), code_spelling(node, source)))
+        literal = (code_spelling(node, source) if isinstance(node, inline.CodeSpan)
+                   else source[node.start_pos:node.end_pos].rstrip('\n'))
+        pieces.extend((PROSE_WHITESPACE.sub(' ', source[start:node.start_pos]), literal))
         start = node.end_pos
     pieces.append(PROSE_WHITESPACE.sub(' ', source[start:stop]))
     return ''.join(pieces).strip()
@@ -104,7 +106,7 @@ def sentences(paragraph, source, *, skip_first):
             plaintext = '\0' * len(raw)
             mark = emphasis_terminator(node, source)
             punctuation = plaintext[:-1] + mark if mark else plaintext
-        code_spans.extend(inline_code_spans(node))
+        code_spans.extend(literal_spans(node))
         mask.extend((gap, punctuation))
         visible.extend((gap, plaintext))
         cursor = end
@@ -117,7 +119,7 @@ def sentences(paragraph, source, *, skip_first):
         if (not (skip_first and index == 0) and any(character.isalpha() for character in plaintext)
                 and not UNBALANCED_MARKER.search(plaintext)):
             left, right = origin + start, origin + stop
-            yield left, right, project_sentence(source, left, right, code_spans)
+            yield left, right, project_text(source, left, right, code_spans)
         start = stop
 
 
@@ -125,9 +127,10 @@ def markdown_source(body):
     return body.replace('\r\n', '\n').replace('\r', '\n').replace('\0', '\ufffd')
 
 
-def passage_spans(source, *, rendered):
+def passage_spans(source, *, rendered, document=None):
     try:
-        document = Markdown(extensions=['gfm']).parse(source)
+        if document is None:
+            document = Markdown(extensions=['gfm']).parse(source)
         for paragraph, starts_item in paragraphs(document):
             yield from sentences(paragraph, source, skip_first=rendered and starts_item)
     except RecursionError:
@@ -135,12 +138,21 @@ def passage_spans(source, *, rendered):
         return
 
 
-def body_passages(body, *, rendered):
+def response_body(body, *, rendered):
     source = markdown_source(body)
     if rendered:
         source = terminal_body(source)
-    for _, _, passage in passage_spans(source, rendered=rendered):
-        yield passage
+    try:
+        document = Markdown(extensions=['gfm']).parse(source)
+        projection = project_text(source, 0, len(source), literal_spans(document))
+    except RecursionError:
+        return '', ()
+    observations = (passage for _, _, passage in passage_spans(source, rendered=rendered, document=document))
+    return projection, observations
+
+
+def body_passages(body, *, rendered):
+    return response_body(body, rendered=rendered)[1]
 
 
 def standalone_passage(text):
