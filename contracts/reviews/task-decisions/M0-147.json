@@ -21,6 +21,15 @@
       },
       "supersedes": null,
       "evidence_sha256": "fb79f539c74b9dbcbe0a1e3bda75461a350a747a06b49fe3755932baa9a3fff1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "bc89c85dcaf81f359c91adc23e7c87fa08a70966",
+      "scope": "Reassess the bounded fixture diagnostics from the prior rejection, first setup/readback failure and cleanup-only or combined failures, historical native descriptor comparisons, Windows handoff timing and owned fixture cleanup. Confirm the exact tested candidate and unchanged authoritative negative event.",
+      "supersedes": "15858256cab38c2f65b4fc383518b76ffa78fadd5d2252f8f6a0e48e31cb9b91",
+      "requested_at": "2026-11-25T21:39:09.472632+00:00",
+      "request_id": "b46244c11bdf5c033c462c8f801b42de4b9823138e3b7389b5bfd2636722acea",
+      "evidence_sha256": "146c237300277fc9c82f9d92789e13bc80e3d0adf699f5b3f8f4eeacdbe7cda5"
     }
   ]
 }
