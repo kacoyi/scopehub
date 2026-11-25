@@ -13,9 +13,10 @@ if __package__:
     from .ci import WORKFLOW, classify_runs, command, github_identity
     from .diagnostic_archive import resolve_diagnostic
     from .project import (ProjectError, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
-                         json_bytes, load_project, project_definition_hash, read_json, source_identity,
+                         json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
     from .protection import violations
+    from .verification_evidence import hosted_artifact_path
     from .verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
                                      exact_commit, git, require_ancestor, require_complete_history)
 else:
@@ -23,9 +24,10 @@ else:
     from ci import WORKFLOW, classify_runs, command, github_identity
     from diagnostic_archive import resolve_diagnostic
     from project import (ProjectError, compare_history, diagnostic_archive_root, digest, feedback_fingerprint,
-                         json_bytes, load_project, project_definition_hash, read_json, source_identity,
+                         json_bytes, load_project, project_definition_hash, read_json, read_review_report, source_identity,
                          task_definition_hash, windows_x64)
     from protection import violations
+    from verification_evidence import hosted_artifact_path
     from verification_scope import (SCOPED_PROFILES, ScopeError, checkout_git_environment, committed_scope,
                                     exact_commit, git, require_ancestor, require_complete_history)
 
@@ -241,13 +243,36 @@ def budget_regression_receipts(root, task, finding):
             yield ref['path'], receipt
 
 
-def budget_regression_receipt(root, project, task, finding, repair, source):
+def complete_task_receipt(project, task, receipt):
+    # Task loading verifies the archived reference and evidence schema. This
+    # handoff additionally requires every task check in the same current receipt.
+    checks = {row['id']: row for row in receipt['checks']}
+    if receipt['task_id'] != task['id'] or checks.keys() != set(task['checks']):
+        return False
+    python = receipt['environment'].get('python_executable')
+    for key, row in checks.items():
+        check = project['checks'][key]
+        if check['status'] != 'implemented' or not check['command']:
+            return False
+        command = [python if arg == '{python}' else arg for arg in check['command']]
+        if row['status'] != 'passed' or row['exit_code'] != 0 or row['command'] != command:
+            return False
+    return True
+
+
+def budget_regression_receipt(root, project, task, finding, repair, source, *, complete=False):
     project_definition = project_definition_hash(project)
     for path, receipt in budget_regression_receipts(root, task, finding):
         observed = receipt['source']
-        if receipt['project_definition_sha256'] != project_definition or observed['sha256'] != source['sha256']:
+        if receipt.get('project_definition_sha256') != project_definition or observed['sha256'] != source['sha256']:
             continue
-        revision = (receipt.get('ci') or {}).get('head_sha', observed['git_head'])
+        ci = receipt.get('ci') or {}
+        if complete and (not complete_task_receipt(project, task, receipt)
+                         or observed.get('file_count') != source.get('file_count')
+                         or observed.get('snapshot_kind') != source.get('snapshot_kind')
+                         or (ci and ci['checkout_sha'] != observed['git_head'])):
+            continue
+        revision = ci.get('head_sha', observed['git_head'])
         try:
             exact_commit(root, revision)
             require_ancestor(root, repair, revision)
@@ -314,7 +339,7 @@ def verified_original_sample(archive, locator, sample):
     if digest(raw) != locator['report_sha256']:
         return False
     report = json.loads(raw)
-    if report.get('native_requirement') != {'requested': True, 'satisfied': True}:
+    if report.get('native_requirement') != {'requested': sample['platform'] == 'Windows', 'satisfied': True}:
         return False
     projected = timing.report_sample(report, cache=sample['cache'])
     return all((all(sample[key].get(field) == number for field, number in value.items())
@@ -376,7 +401,22 @@ def recurring_budget_evidence(root, project, base, rule, push):
     return view['samples'], coverage, archive, recovery
 
 
-def recurring_pr_evidence(root, project, base, rule, push, source, workflow):
+def verified_pr_harness(root, checkout, sample):
+    run = sample['ci']['run_id']
+    platform = sample['platform'].lower()
+    artifacts = hosted_artifact_path(root, f'.reports/ci/{run}/{platform}', directory=True)
+    scope, _ = read_review_report(hosted_artifact_path(artifacts, 'verification-scope.json'), 4096)
+    if (scope.get('kind') != 'scopehub-verification-scope-v1' or scope.get('profile') != 'full'
+            or scope.get('base') != checkout['base'] or scope.get('checkout') != checkout['commit']):
+        return False
+    locator = {'run_id': sample['run_id'], 'source_commit': checkout['commit'],
+               'report_sha256': scope['report_sha256']}
+    # Both the downloaded entry and its per-run original must bind the same bytes.
+    _, report_sha = read_review_report(hosted_artifact_path(artifacts, 'test-report.json'), 4 * 1024 * 1024)
+    return report_sha == locator['report_sha256'] and verified_original_sample(artifacts, locator, sample)
+
+
+def recurring_pr_evidence(root, project, base, rule, push, source, workflow, clock):
     try:
         evidence = recurring_budget_evidence(root, project, base, rule, push)
         if not evidence:
@@ -387,6 +427,10 @@ def recurring_pr_evidence(root, project, base, rule, push, source, workflow):
         checkout = workflow['checkout']
         run = workflow['run']
         repository = push['verification_budget']['repository']
+        if (not timing.clock_complete(clock)
+                or timing.ci_key(clock) != timing.actions_attempt_identity(repository, run)):
+            return False
+        clock_jobs = {job['platform']: job for job in clock['jobs']}
         selected = {key for key, check in project['checks'].items()
                     if check.get('cadence', 'change') == 'change' and check['status'] != 'retired'}
         if {key for key, _, _ in coverage} != selected:
@@ -401,7 +445,12 @@ def recurring_pr_evidence(root, project, base, rule, push, source, workflow):
                 (key, 'blocked', 'unsupported_platform')
                 if platform == 'Linux' and status == 'passed' and project['checks'][key]['platforms'] == 'windows-x64'
                 else (key, status, reason) for key, status, reason in coverage)
-            if len(exact) != 1 or timing.coverage_key(exact[0]) != expected:
+            job = clock_jobs[platform]
+            elapsed = job['seconds']['total']
+            if (len(exact) != 1 or timing.coverage_key(exact[0]) != expected
+                    or str(job['job_id']) != str(observed['job_id']) or exact[0]['seconds']['total'] != elapsed
+                    or (platform == 'Windows' and elapsed > timing.HOSTED_BUDGET)
+                    or not verified_pr_harness(root, checkout, exact[0])):
                 return False
     except (OSError, ProjectError, ScopeError, ValueError, KeyError, TypeError, RuntimeError):
         return False
@@ -452,6 +501,8 @@ def main_push_budget_handoff(root, project, base, completed, items, rule, *, sou
     common = {'repository': policy['repository'], 'profile': 'full', 'platform': 'Windows', 'repair_commit': repair}
     if not repair or push_budget != dict(common, event='push') or not push['regression_checks'] or not push.get('diagnostic_reports'):
         return None
+    if recurring and (repair != rule['repair_commit'] or not set(push['regression_checks']) <= set(task['checks'])):
+        return None
     if not recurring:
         pr = items.get(rule['pull_request_feedback_id'], {})
         if (pr.get('status') != 'addressed' or repair_task not in pr['task_ids'] or not pr.get('diagnostic_reports')
@@ -473,11 +524,14 @@ def main_push_budget_handoff(root, project, base, completed, items, rule, *, sou
     except ScopeError:
         return None
 
-    receipt = budget_regression_receipt(root, project, project['tasks'][repair_task], push, repair, source)
+    receipt = budget_regression_receipt(root, project, project['tasks'][repair_task], push, repair, source,
+                                        complete=recurring)
     if not receipt:
         return None
     if recurring:
-        if not recurring_pr_evidence(root, project, base, rule, push, source, workflow):
+        run = {**workflow['run'], 'repository': {'full_name': policy['repository']}}
+        clock = timing.hosted_timing(run, jobs)
+        if not recurring_pr_evidence(root, project, base, rule, push, source, workflow, clock):
             return None
     elif not budget_observations_support_handoff(root, project, pr, push, repair, source, workflow):
         return None
@@ -509,6 +563,8 @@ def main_push_budget_closure(root, project, base, rule, push, previous, policy):
 
     recurring = 'control_reports_sha256' in rule
     if recurring:
+        if repair != rule['repair_commit']:
+            return False
         try:
             evidence = recurring_budget_evidence(root, project, base, rule, push)
         except (OSError, ProjectError, ScopeError, ValueError, KeyError, TypeError, RuntimeError):
@@ -590,6 +646,10 @@ def delivery_scope(root, project, base, *, source=None, policy=None, workflow=No
         if handoff:
             handoffs[name] = handoff
         push_id = binding['main_push_feedback_id']
+        repair_task = binding['repair_task_id']
+        if (name == RECURRING_PUSH_BUDGET_POLICY and repair_task in completed
+                and previous.get(repair_task, {}).get('status') != 'done' and not handoff):
+            blockers.append(f'Recurring repair delivery requires the verified open handoff: {push_id}')
         if binding['repair_task_id'] in affected:
             reviewed_budgets.add(push_id)
             if 'pull_request_feedback_id' in binding:
@@ -690,7 +750,8 @@ def inspect(root=ROOT, pr_number=None):
         runs = [run for page in pages for run in page['workflow_runs']
                 if run['event'] == 'pull_request' and run['path'] == WORKFLOW
                 and run['head_branch'] == pr['headRefName'] and run['head_sha'] == pr['headRefOid']]
-        fields = ('id', 'run_attempt', 'status', 'conclusion', 'head_sha', 'html_url', 'event', 'path')
+        fields = ('id', 'run_attempt', 'status', 'conclusion', 'head_sha', 'html_url', 'event', 'path',
+                  'head_branch', 'created_at')
         return sorted(({key: run.get(key) for key in fields} for run in runs),
                       key=lambda run: (run['id'], run['run_attempt']), reverse=True)
 
