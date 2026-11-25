@@ -11852,6 +11852,139 @@
       }
     },
     {
+      "id": "M0-112",
+      "title": "Review and bind the setup-uv 10.4.0 workflow action",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-040",
+        "M0-041",
+        "M0-081"
+      ],
+      "scope": [
+        ".github/workflows/verify.yml",
+        "project/dependencies.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0006",
+        "0007"
+      ],
+      "acceptance": [
+        "Compare original proposal 88 and its red dependency-review evidence against the reviewed main base. Bind the official immutable release and built setup and post entrypoints to the recorded commit and digests.",
+        "The verified action selects uv 0.13.9 and Python 3.12 with the reviewed Windows and Linux archive checksums. Correct supplied digests allow setup; wrong digests fail. It retains GitHub Releases downloads, cache pruning and read-only workflow permissions.",
+        "Run the normal dependency gate and bound task checks. Retain exact-head Ubuntu and Windows workflow results before integration."
+      ],
+      "checks": [
+        "project-state",
+        "dependency-review",
+        "architecture",
+        "python-contracts-workers"
+      ],
+      "plan": {
+        "outcome": "The protected verification workflow uses reviewed setup-uv 10.4.0 and the ordinary immutable-action and advisory checks accept its exact pin.",
+        "change_types": [
+          "dependencies",
+          "tooling"
+        ],
+        "context": [
+          ".github/workflows/verify.yml",
+          "project/dependencies.json",
+          "pyproject.toml",
+          "uv.lock",
+          "scripts/dependencies.py"
+        ],
+        "hypotheses": [
+          "The immutable upstream release accepts the existing version-file, platform checksum, Python and cache inputs and retains the default tool-cache identity."
+        ],
+        "risks": [
+          {
+            "failure": "A pin or installed archive differs from the reviewed release, or an incompatible input selects a different tool or cache entry.",
+            "checks": [
+              "dependency-review",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Workflow permissions, source selection, or accepted evidence changes outside the action upgrade.",
+            "checks": [
+              "project-state",
+              "architecture"
+            ]
+          }
+        ],
+        "rollback": "Use a reviewed revert of the action pin and its inventory together if either supported runner fails. Retain the original and candidate diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            ".github/workflows/verify.yml",
+            "scripts/dependencies.py",
+            "scripts/verification_scope.py"
+          ],
+          "rules": [
+            {
+              "path": "project/dependencies.json",
+              "pointer": "/maintenance"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Cargo updates, Python package changes, expanded workflow permissions or release acceptance."
+          ],
+          "open_questions": [
+            "Do both hosted runners use the intended archive, checksum and existing cache behavior?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "The uv and Python pins, lock inputs, GitHub Releases source, cache pruning and contents-read workflow role."
+          ],
+          "change": [
+            "Bind the reviewed 10.4.0 action to the existing checksum and cache policy."
+          ],
+          "data_plan": "The workflow only handles development toolchains and caches. No product data or protocol changes.",
+          "cleanup": "Retain the original proposal and red evidence; review exact-head hosted results before substituting the original proposal."
+        }
+      },
+      "next_action": null,
+      "blocker": null,
+      "evidence": [
+        {
+          "path": "project/evidence/M0-112-409611a1b23fa12c.json",
+          "sha256": "09d0c6c55aa83c06abdc7b7990c8ede5c2cab63e16b78954c6e1960475a69bff"
+        },
+        {
+          "path": "project/evidence/M0-112-bf159b280635808b.json",
+          "sha256": "85e4622c22b269de16395c75a006100990637fefa77e8b617383c86215c37127"
+        },
+        {
+          "path": "project/evidence/M0-112-b4f2df1e931e7dde.json",
+          "sha256": "87bc56bc203c97ada350c35b7719c0d5cf2d8db3780a78196e7d174124745587"
+        }
+      ],
+      "closure_reason": "Independent Astra Standard review approved 8624025. Authenticated Linux and Windows run 45556221309 passed every required task check on the reviewed source.",
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T003718.129583Z-fcf62f9b",
+          "source_commit": "7426cf6f9b4a76ea116d2913d74cd3a3c712d2ee",
+          "report_sha256": "d87a691bff91564fdc3211f1edb23624e4c1222a0e3a5cd3437901d571145317"
+        },
+        {
+          "run_id": "windows-change-45519231958-1",
+          "source_commit": "7426cf6f9b4a76ea116d2913d74cd3a3c712d2ee",
+          "report_sha256": "176969de12cd0dbefae113a4088a8fdadcaff4a2d93f23a77bdf9d2b77c3fb30"
+        }
+      ]
+    },
+    {
       "id": "M0-041",
       "title": "Replace the vulnerable uv trust-root toolchain pin",
       "milestone": "M0",
