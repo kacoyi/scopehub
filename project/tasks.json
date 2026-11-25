@@ -20112,11 +20112,12 @@
       "acceptance": [
         "The existing read-only retirement command accepts an explicit bounded per-checkout entry limit, rejects invalid input before observation, and retains the 20,000-entry default.",
         "The same selected limit applies to the directory and consumer scans. A real downstream consumer past the default is observed with a sufficient explicit limit, and genuinely exhausted scans retain their holds.",
+        "A real checkout with many ignored sibling roots retains at most one entry beyond the supplied limit to detect overflow before sorting. Independent tracked dirty status and Git failures remain observable.",
         "A retained read-only inventory using the development archive observes the three affected registrations with a sufficient explicit limit, records the report digest and distinguishes candidates, process visibility, observed activity and unresolved evidence."
       ],
       "checks": ["project-state", "python-contracts-workers"],
       "evidence": [],
-      "next_action": "Retain the failing entry-point regressions, wire the bounded limit through retirement, run required task checks, and retain the read-only host inventory for coordinator review.",
+      "next_action": "Retain the failing ignored-root intake regression, bound Git status parsing and initial sorting, run the required checks on the corrected source, and retain the read-only host inventory for coordinator review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -20130,7 +20131,8 @@
           "tests/project/test_worktree_retirement.py"
         ],
         "hypotheses": [
-          "The same fixed ignored entry limit stops three consumer passes. An explicit larger limit can complete those passes without changing the evidence or candidacy rules."
+          "The same fixed ignored entry limit stops three consumer passes. An explicit larger limit can complete those passes without changing the evidence or candidacy rules.",
+          "Git status initially materializes every ignored root and the directory walk sorts those paths before applying the selected limit. Reading the status incrementally and bounding retained roots before sorting can preserve the independent dirty and error observations."
         ],
         "risks": [
           {
@@ -20140,6 +20142,10 @@
           {
             "failure": "Invalid input admits unbounded enumeration, or incomplete process and evidence observations are mistaken for viable retirement.",
             "checks": ["python-contracts-workers"]
+          },
+          {
+            "failure": "A tiny limit permits unbounded ignored path intake, or an overflow or interrupted status process loses dirty or incomplete observation holds.",
+            "checks": ["project-state", "python-contracts-workers"]
           }
         ],
         "rollback": "Revert the new option and retain the original reports. The command only observes filesystem and Git state.",
@@ -20161,7 +20167,7 @@
             "Read-only operation, the conservative default, fail-closed mount, identity, process and evidence observations, and the review intake and candidate criteria."
           ],
           "change": [
-            "Accept and report one operator-selected entry limit and use it in each per-checkout directory scan."
+            "Accept and report one operator-selected entry limit and use it in each per-checkout directory scan, including ignored-root intake before sorting."
           ],
           "data_plan": "Read the configured development archive and retain the original and new host observation bytes and their digests inside the task checkout for coordinator handoff.",
           "cleanup": "Use one limit for the existing entry point and remove the fixed traversal budget without introducing another configuration source."

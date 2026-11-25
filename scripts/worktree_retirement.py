@@ -8,7 +8,9 @@ import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import stat
+import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 
@@ -22,6 +24,7 @@ else:
 
 
 INTEGRATION_REF = 'refs/remotes/origin/main'
+GIT_READ_OPTIONS = ('--no-optional-locks', '--no-replace-objects')
 FULL_COMMIT = re.compile(r'(?:[0-9a-f]{40}|[0-9a-f]{64})\Z')
 DURABLE_REF = re.compile(r'refs/(?:heads|tags|remotes|scopehub/recovery)/.+')
 GIT_OPERATIONS = (
@@ -39,6 +42,7 @@ CARGO_INCREMENTAL_LOCK = re.compile(r's-[a-z0-9]+-[a-z0-9]+\.lock')
 PNPM_DEPENDENCY_GROUPS = ('dependencies', 'devDependencies', 'optionalDependencies')
 PNPM_PEERS = re.compile(r'(?:\((?:@[a-z0-9._-]+/)?[a-z0-9._-]+@\d+\.\d+\.\d+[-+\w.]*\))*')
 MAX_EVIDENCE_DETAILS = 8
+IGNORED_BUDGET_EXHAUSTED = 'Ignored path inventory exceeded the observation budget'
 PROJECT_RECORDS = (
     'project/tasks.json', 'project/checks.json', 'project/feedback.json', 'project/development.json',
     'project/delivery.json', 'project/dependencies.json', 'project/dependency-inventory.json',
@@ -47,7 +51,7 @@ PROJECT_RECORDS = (
 
 
 def git(cwd, *args, **options):
-    return worktree.git(cwd, '--no-optional-locks', '--no-replace-objects', *args, **options)
+    return worktree.git(cwd, *GIT_READ_OPTIONS, *args, **options)
 
 
 def commit_at(cwd, ref):
@@ -474,7 +478,54 @@ def checkout_files(checkout):
         yield name, stage.split(' ', 1)[0], tag
 
 
-def git_status(checkout):
+def status_records(stream):
+    pending = b''
+    while block := stream.read1(65_536):
+        offset = 0
+        while (end := block.find(b'\0', offset)) != -1:
+            yield pending + block[offset:end]
+            pending = b''
+            offset = end + 1
+        pending += block[offset:]
+    if pending:
+        raise ValueError('Incomplete Git status record')
+
+
+def checkout_status(checkout, overrides, entry_limit):
+    # Disabling rename detection keeps one pathname per record. The dirty boolean
+    # is the same for a rename and for separate removal and addition records.
+    argv = ['git', *GIT_READ_OPTIONS, '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false',
+            *overrides, 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=normal',
+            '--ignored=matching', '--ignore-submodules=all']
+    dirty = False
+    ignored = []
+    with tempfile.TemporaryFile() as errors, subprocess.Popen(
+            argv, cwd=checkout, env=worktree.git_environment(), stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=errors) as process:
+        try:
+            for record in status_records(process.stdout):
+                if len(record) < 4 or record[2:3] != b' ':
+                    raise ValueError('Cannot read Git status record')
+                if record.startswith(b'!! '):
+                    # One additional root proves overflow. Drain the remaining
+                    # status records to establish dirty state and Git's exit status.
+                    if len(ignored) <= entry_limit:
+                        ignored.append(checkout / os.fsdecode(record[3:]).removesuffix('/'))
+                else:
+                    dirty = True
+            status = process.wait()
+        except BaseException:
+            process.kill()
+            process.wait()
+            raise
+        if status:
+            errors.seek(0)
+            detail = os.fsdecode(errors.read(65_536)).strip()
+            raise worktree.WorktreeError(detail or f'git status exited with status {status}')
+    return dirty, ignored
+
+
+def git_status(checkout, *, entry_limit):
     config = os.fsdecode(git(checkout, 'config', '--null', '--list', '--includes').stdout)
     commands = {}
     for line in config.split('\0'):
@@ -493,16 +544,10 @@ def git_status(checkout):
     for driver in sorted({driver for driver, _ in commands.values()}):
         for key, value in (('clean', ''), ('process', ''), ('required', 'false')):
             overrides.extend(('-c', f'filter.{driver}.{key}={value}'))
-    output = git(checkout, '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', *overrides,
-                 'status', '--porcelain=v1', '-z', '--untracked-files=normal',
-                 '--ignored=matching', '--ignore-submodules=all').stdout
-    records = [item for item in os.fsdecode(output).split('\0') if item]
+    dirty, ignored = checkout_status(checkout, overrides, entry_limit)
     files = list(checkout_files(checkout))
     hidden = any(tag == 'S' or tag.islower() for _, _, tag in files)
-    ignored = [
-        checkout / item[3:].removesuffix('/') for item in records if item.startswith('!! ')
-    ]
-    return any(not item.startswith('!! ') for item in records), hidden, ignored, config, filters, files
+    return dirty, hidden, ignored, config, filters, files
 
 
 def cache_tag(path):
@@ -701,18 +746,19 @@ def rebuildable(path, checkout, info, mounts, cargo_cache):
 
 
 def ignored_files(checkout, paths, mounts, *, entry_limit, include_generated_links=False, exclusions=None):
+    pending = list(islice(paths, entry_limit + 1))
+    if len(pending) > entry_limit:
+        raise OSError(IGNORED_BUDGET_EXHAUSTED)
+    pending.sort(reverse=True)
     target = checkout / 'target'
     target_info = worktree.entry_info(target)
     cargo_cache = (target_info is not None and stat.S_ISDIR(target_info.st_mode) and
                    not storage.reparse(target_info) and worktree.regular_file(checkout / 'Cargo.lock') and
                    cache_tag(target))
-    pending = sorted(paths, reverse=True)
     inspected = 0
     while pending:
         path = pending.pop()
         inspected += 1
-        if inspected > entry_limit:
-            raise OSError('Ignored path inventory exceeded the observation budget')
         info = path.lstat()
         if path in mounts or (not mounts and stat.S_ISDIR(info.st_mode) and path.is_mount()):
             if include_generated_links:
@@ -735,11 +781,11 @@ def ignored_files(checkout, paths, mounts, *, entry_limit, include_generated_lin
 def queue_directory(path, pending, remaining):
     remaining -= len(pending)
     if remaining < 0:
-        raise OSError('Ignored path inventory exceeded the observation budget')
+        raise OSError(IGNORED_BUDGET_EXHAUSTED)
     with os.scandir(path) as entries:
         paths = [Path(entry.path) for entry in islice(entries, remaining + 1)]
     if len(paths) > remaining:
-        raise OSError('Ignored path inventory exceeded the observation budget')
+        raise OSError(IGNORED_BUDGET_EXHAUSTED)
     pending.extend(sorted(paths, reverse=True))
 
 
@@ -887,7 +933,7 @@ def retirement_report(cwd, common, registered, *, archive_root=None, disposition
             if row['integration'] is None:
                 holds['not_integrated_or_disposed'] = True
 
-            dirty, hidden, ignored, config, filters, files = git_status(checkout)
+            dirty, hidden, ignored, config, filters, files = git_status(checkout, entry_limit=entry_limit)
             if dirty:
                 holds['dirty_checkout'] = True
             if hidden:

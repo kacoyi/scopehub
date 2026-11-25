@@ -141,6 +141,85 @@ class WorktreeRetirementTests(unittest.TestCase):
                 self.assertIn(options[0], result.stderr)
                 self.assertEqual(result.stdout, '')
 
+    def test_isolated_python_cli_preserves_dirty_state_when_ignored_roots_exhaust_budget(self):
+        exclude = self.common / 'info/exclude'
+        exclude.parent.mkdir(exist_ok=True)
+        exclude.write_text('ignored-*\n', encoding='utf-8')
+        for number in range(64):
+            (self.candidate / f'ignored-{number:02d}').write_bytes(b'')
+        (self.candidate / 'fixture.txt').write_text('local edit', encoding='utf-8')
+
+        result = self.cli('--entry-limit', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = {Path(row['path']): row for row in json.loads(result.stdout)['worktrees']}
+        candidate = rows[self.candidate]
+        error = 'Ignored path inventory exceeded the observation budget'
+        self.assertFalse(candidate['clean'])
+        self.assert_held(candidate, 'dirty_checkout')
+        self.assert_held(candidate, 'checkout_observation_incomplete')
+        self.assertEqual(candidate['details']['checkout_observation_incomplete'], error)
+        self.assert_held(rows[self.primary], 'path_consumer_observation_incomplete')
+        self.assertIn(f'{self.candidate}: {error}', rows[self.primary]['details']['path_consumer_observation_incomplete'])
+
+        git_status = worktree_retirement.git_status
+        ignored_files = worktree_retirement.ignored_files
+        retained = []
+        consumed = []
+
+        def counted_roots(roots):
+            for path in roots:
+                consumed.append(path)
+                yield path
+
+        def read_status(checkout, **options):
+            status = git_status(checkout, **options)
+            if checkout == self.candidate:
+                retained.extend(status[2])  # Ignored roots passed from status to both inventories.
+            return status
+
+        def read_ignored(checkout, roots, mounts, **options):
+            if checkout == self.candidate:
+                roots = counted_roots(roots)
+            return ignored_files(checkout, roots, mounts, **options)
+
+        with (patch.object(worktree_retirement, 'git_status', side_effect=read_status),
+              patch.object(worktree_retirement, 'ignored_files', side_effect=read_ignored)):
+            observed = self.row(IDLE, entry_limit=1)
+        self.assert_held(observed, 'checkout_observation_incomplete')
+        self.assert_held(observed, 'path_consumer_observation_incomplete')
+        self.assertEqual(len(retained), 2, retained)
+        self.assertEqual(len(consumed), 4, consumed)
+
+    def test_ignored_inventory_consumes_only_one_root_beyond_its_limit(self):
+        consumed = []
+        (self.candidate / 'ignored-00').write_bytes(b'')
+
+        def roots():
+            for number in range(64):
+                path = self.candidate / f'ignored-{number:02d}'
+                consumed.append(path)
+                yield path
+
+        with self.assertRaisesRegex(OSError, 'Ignored path inventory exceeded the observation budget'):
+            list(worktree_retirement.ignored_files(self.candidate, roots(), {}, entry_limit=1))
+        self.assertEqual(len(consumed), 2, consumed)
+
+    def test_native_rename_source_does_not_consume_ignored_root_budget(self):
+        source = '!! old tracked.txt'
+        self.commit(self.candidate, source, 'tracked fixture')
+        self.git('mv', '--', source, 'renamed.txt', cwd=self.candidate)
+        (self.candidate / '.env').write_bytes(b'SYNTHETIC=fixture\n')
+        status = self.git('status', '--porcelain=v1', '-z', '--renames', cwd=self.candidate)
+        self.assertIn(f'R  renamed.txt\0{source}\0', status)
+
+        row = self.row(IDLE, entry_limit=1)
+        self.assertFalse(row['clean'])
+        self.assert_held(row, 'dirty_checkout')
+        self.assert_held(row, 'unretained_local_evidence')
+        self.assertEqual(row['details']['unretained_local_evidence'], ['.env'])
+        self.assertNotIn('checkout_observation_incomplete', row['holds'])
+        self.assertNotIn('path_consumer_observation_incomplete', row['holds'])
+
     def test_isolated_python_cli_larger_budget_reaches_nested_ignored_consumer(self):
         downstream = self.add_worktree('downstream')
         nested = downstream / '.reports' / 'nested'
@@ -400,10 +479,10 @@ class WorktreeRetirementTests(unittest.TestCase):
     def test_unavailable_consumer_observation_holds_an_idle_candidate(self):
         git_status = worktree_retirement.git_status
 
-        def read_status(checkout):
+        def read_status(checkout, **options):
             if checkout == self.primary:
                 raise PermissionError('Fixture prevents inspection of the consumer.')
-            return git_status(checkout)
+            return git_status(checkout, **options)
 
         with patch.object(worktree_retirement, 'git_status', side_effect=read_status):
             self.assert_held(self.row(IDLE), 'path_consumer_observation_incomplete')

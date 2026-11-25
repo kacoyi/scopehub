@@ -5216,6 +5216,17 @@
       "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "worktree-retirement-unbounded-ignored-root-intake",
+      "source": "Astra Standard independent review of 10bd459fae00e67c3f8d7ae0b3b7ef860351d22a on 2026-11-25.",
+      "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

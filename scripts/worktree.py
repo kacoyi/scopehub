@@ -36,9 +36,13 @@ class Registration:
     head: str | None = None
 
 
-def git(cwd, *args, allowed=(0,), lock_fd=None, input=None):
+def git_environment():
     # In particular, ignore an inherited alternate worktree, index or config.
-    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    return {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+
+
+def git(cwd, *args, allowed=(0,), lock_fd=None, input=None):
+    env = git_environment()
     command = ['git', *args]
     options = dict(cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if lock_fd is None:
