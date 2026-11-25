@@ -5188,6 +5188,44 @@
       "deferral_reason": null
     },
     {
+      "id": "native-prototype-reopen-loses-accepted-workbench",
+      "source": "M2-003 Linux native observation archives/observations/m2-003-view-recovery-427540b/observations.json, SHA-256 ce735b5609fca10680d75a22543ab68004872d707b6a980c57acb570dd2f2cb0. Product source 427540bb8b6ea77bcb7887dd83421c0a18307a61. Accepted and reopened Tauri app buffer commits 529 and 613.",
+      "observation": "The accepted value table and threshold tiles both selected 21:01 at 3499.8 in the frozen source. Back to chart closed the prototype dialog. Manual reopen in the same native window showed empty blocks and no selected row. Restore accepted view left the canvas empty. A newly created table responded to selection. The ordinary close path unmounts the only owner of the accepted definition and selection. The independent Astra review at d5e3aad identified two existing tests that still expected a blank editor on ordinary reopen. Preserve the covered candle replay stop and first-open blank behaviors while updating the reopen outcomes.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M2-032"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
+      "resolution": {
+        "cause": "The removable dialog owned the accepted temporary workbench and selection. Ordinary close unmounted the owner.",
+        "correction": "Keep the accepted prototype definition and selection with the desktop window session and restore them when the dialog opens again. Draft text, preview selection and replay execution remain dialog-local.",
+        "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "local-api-observation-time-rounding",
+      "source": "Controlled native loopback trial based on 9180963. The original local transcript .reports/m1-044-red-local-api.log has SHA-256 bebb8d80077be2a4f156dc7f992b08bb5173c2ad92493aad0f7f98fd7f5cf017. The pre-repair Playwright regression .reports/m1-044-red-api-regression.log has SHA-256 3aa64cc7763375aafaf48b9f97a5efd89942161f22453452a9615e5194559798.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The ordinary local API trial accepted 1770076800000.00001, 1e-999 and 8640000000000000.1 as valid millisecond observations. The displayed times acquired integer values through rounding or underflow before validation.",
+      "task_ids": [
+        "M1-044"
+      ],
+      "regression_checks": [
+        "local-api-connection"
+      ],
+      "resolution": {
+        "cause": "The HTTP adapter decoded the observation time through a binary JSON numeric representation before checking whole milliseconds.",
+        "correction": "Validate the original decimal token using exact integer arithmetic within the existing schema range. Keep the separate original price token intact.",
+        "prevention": "A controlled HTTP peer drives the ordinary native settings trial with exact integers, equivalent decimal and exponent forms, rounded fractions, underflow, an out-of-range number and a quoted value."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "linked-budget-controls-age-out-of-ordinary-timing-history",
       "source": "Offline replay on protected main at 2396f08e4b44d9a29086c49735d2acea6ffd1d20. Original observation includes archives/observations/m0-097-linked-timing-intake/source-audit.json, SHA-256 b36f9d69dbe9144a7fda175ee4f754ea1c02024b480798f4c5269735fe5be7aa.",
       "observation": "A linked full warm Windows PR control from Actions run 45360774012 (1702 seconds) was the thirteenth retained PR and disappeared from ordinary project status despite both its exact compact capture and original diagnostic being present. The next linked PR control (1736 seconds) was twelfth. The oldest linked main push control (1720 seconds) was ninth and would reach thirteenth after four more captures. Saving an auxiliary review restored all six linked PR and five push controls, but that local archive is not shared with new worktrees and also rotates.",
@@ -5445,25 +5483,6 @@
         "cause": "The first supervisor implementation could wait for interpreter startup before it began to enforce the operation deadline.",
         "correction": "Start the twelve-second caller budget before spawning the supervisor. Require a ready signal and an explicit grant before the supervisor acquires a pool or starts the bridge, then enforce the remaining budget through the owned process tree.",
         "prevention": "Keep the absent and expired grant regressions and the controlled pre-readiness and launched-descendant deadline observations. Their source and results are retained in archives/observations/m0-102-profile-pool/index.json."
-      },
-      "deferral_reason": null
-    },
-    {
-      "id": "native-prototype-reopen-loses-accepted-workbench",
-      "source": "M2-003 Linux native observation archives/observations/m2-003-view-recovery-427540b/observations.json, SHA-256 ce735b5609fca10680d75a22543ab68004872d707b6a980c57acb570dd2f2cb0. Product source 427540bb8b6ea77bcb7887dd83421c0a18307a61. Accepted and reopened Tauri app buffer commits 529 and 613.",
-      "observation": "The accepted value table and threshold tiles both selected 21:01 at 3499.8 in the frozen source. Back to chart closed the prototype dialog. Manual reopen in the same native window showed empty blocks and no selected row. Restore accepted view left the canvas empty. A newly created table responded to selection. The ordinary close path unmounts the only owner of the accepted definition and selection. The independent Astra review at d5e3aad identified two existing tests that still expected a blank editor on ordinary reopen. Preserve the covered candle replay stop and first-open blank behaviors while updating the reopen outcomes.",
-      "severity": "major",
-      "status": "addressed",
-      "task_ids": [
-        "M2-032"
-      ],
-      "regression_checks": [
-        "renderer-prototype-interaction"
-      ],
-      "resolution": {
-        "cause": "The removable dialog owned the accepted temporary workbench and selection. Ordinary close unmounted the owner.",
-        "correction": "Keep the accepted prototype definition and selection with the desktop window session and restore them when the dialog opens again. Draft text, preview selection and replay execution remain dialog-local.",
-        "prevention": "Verify the first blank canvas, accepted same-window reopen, usable restored selection, discarded preview and rejected draft, fresh blank session and stopped candle replay in the existing renderer interaction check. Exercise the same-window accepted restore through real WebView2 UI Automation."
       },
       "deferral_reason": null
     },

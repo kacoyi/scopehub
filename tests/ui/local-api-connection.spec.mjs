@@ -388,3 +388,59 @@ test('disconnects the named local API, rejects stale actions, and reopens with a
     }
   }
 });
+
+test('validates the exact provider observation time before accepting a local API sample @profile-local-api', async () => {
+  const binary = process.env.SCOPEHUB_LOCAL_IMPORT_BRIDGE;
+  expect(binary).toBeTruthy();
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'scopehub-api-exact-time-'));
+  const price = '9007199254740993.000';
+  let token = '0';
+  const peer = createServer((_, response) => {
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(`{"instrument":"FUT-TEST","observed_at_ms":${token},"value":${price},"unit":"USD"}`);
+  }).listen(0, '127.0.0.1');
+  let bridge;
+  try {
+    await once(peer, 'listening');
+    bridge = startLocalImportBridge(binary, join(root, 'profile'), root);
+    const call = payload => bridge.request('execute_operation', {
+      operation: 'market.localApiConnection', payload, requestId: randomUUID(),
+    });
+    const saved = await call({
+      action: 'save', expected_id: null, name: 'Synthetic timestamp samples',
+      origin: 'http://127.0.0.1:' + peer.address().port,
+    });
+    expect(saved.error).toBeUndefined();
+    const id = saved.result.connection.id;
+    for (const [sourceTime, acceptedTime] of [
+      ['1770076800000', 1770076800000],
+      ['1.7700768000000e12', 1770076800000],
+      ['8640000000000000.0', 8640000000000000],
+      ['-0e+99999', 0],
+      ['1770076800000.00001', undefined],
+      ['1e-999', undefined],
+      ['-1e-999', undefined],
+      ['8640000000000000.1', undefined],
+      ['8640000000000001', undefined],
+      ['"1770076800000"', undefined],
+    ]) {
+      token = sourceTime;
+      const reply = await call({ action: 'trial', id });
+      if (acceptedTime === undefined) {
+        expect.soft(reply.error?.code, token).toBe('OUTPUT_INVALID');
+        expect.soft(reply.result, token).toBeUndefined();
+      } else {
+        expect.soft(reply.result?.sample, token).toEqual({
+          instrument: 'FUT-TEST', observed_at_ms: acceptedTime, value: price, unit: 'USD',
+        });
+      }
+    }
+  } finally {
+    peer.closeAllConnections();
+    try { await bridge?.close(); }
+    finally {
+      await new Promise((resolve, reject) => peer.close(error => error ? reject(error) : resolve()));
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
