@@ -6576,6 +6576,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "independent-review-observation-request-and-durable-state-gaps",
+      "source": "Independent Astra Standard response on 0eb573bb19e6f8fceccb8e70f83ff673183731e9. Original final SHA-256 4875ad580483ee21fb39a43e3634167f217a89527ed46a72181630c850f380da. Private package manifest SHA-256 0031c08f4b772152769743705a76d14d9465918ab44ac825ad78069355a30e8b.",
+      "observation": "A genuine Windows review accepted its title commit SHA as the entire observation just like its independently measured outcome. An explicit scoped re-review followed by an invalid final reply left the earlier approval usable. The real M1-040 activation-to-closure transition passed without independent review despite a user-record deletion and stale identity risk. Comparing protected b01b2f7 with its parent 6cf0d0d also asked unchanged accepted M0-003 for a new approval.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
