@@ -21280,6 +21280,142 @@
           "cleanup": "Retain the unchanged original capture bytes and keep missing or conflicting links actionable."
         }
       }
+    },
+    {
+      "id": "M0-111",
+      "title": "Round-trip bounded manual verification timing archives",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-087"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "tests/project/test_timing.py",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Read and resave the original 5838434-byte v1 review offline, preserving all 564 samples and 56 clocks, and retain previously readable reports and diagnostic records.",
+        "Reject oversized, malformed or mislabeled input with bounded reads and path-safe diagnoses. Keep automatic capture and hosted artifact limits, and bound aggregate manual review input.",
+        "An unsuccessful save leaves the destination absent or preserves an existing file. Rejected explicit input must not produce a replacement archive."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-111-5eb5051e64c1978c.json",
+          "sha256": "64cc2a4a7fab89f0798b4e07822b952ea30b1ce1c4bbbd0c274a465cbde09d8e"
+        },
+        {
+          "path": "project/evidence/M0-111-cf178d6905ff9298.json",
+          "sha256": "3096c005cc95c29f62384616712be9ff68d274cc5ce19207d6027a3d8160a32c"
+        },
+        {
+          "path": "project/evidence/M0-111-ec9c22cb85e4aaed.json",
+          "sha256": "d9191f05cfbc7652b06bc23919d174ecfd793f5199ba678cbe9fdb0f37d4b0a2"
+        },
+        {
+          "path": "project/evidence/M0-111-595ccf02abcbda0d.json",
+          "sha256": "9969287bc5d7d629a20e5371f783d04738a9237d97d301105ac7fa0589c0098d"
+        },
+        {
+          "path": "project/evidence/M0-111-3b36843f50bddcf6.json",
+          "sha256": "8739b61feb875b9be477ac8e2927ed281604f80e3ba2e3ec2a96e72ae5f3b572"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard review approved 36185b8. Authenticated Linux and Windows run 45556669680 verified the archive round trip and six addressed findings. M0-103 and M0-104 retain the independent elapsed-performance qualification.",
+      "plan": {
+        "outcome": "A maintainer can reload a manual timing review above the compact capture limit and securely save it for another offline review.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/timing.py",
+          "tests/project/test_timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "A separate bounded manual archive reader and matching writer can retain full v1 data without relaxing automatic capture limits."
+        ],
+        "risks": [
+          {
+            "failure": "The Actions path creates a clock the archive reader rejects, or a resolved current finding is suppressed in the durable history. Verify rejected repositories and job rows, a complete Actions save and reopen, and lossless repeated saves with failed-run collection findings.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A file written by the tool cannot be read back, or flattening and deduplication change observation or error identities.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Malformed or oversized input consumes unbounded resources, exposes a local path, or leaves a partial destination.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "One invalid record in any explicitly selected input is silently dropped and a partial archive is published.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An Actions diagnostic attributes failure to its peer input or exposes the original input directory.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A summary append changes an existing or newly published archive through a hardlink, alias or destination race.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert the reader and writer together and retain original v1 archives and failed input diagnostics.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "tests/project/test_timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            }
+          ],
+          "non_goals": [
+            "Changes to hosted collection, protected workflow selection, linked timing conflict handling or the CI budget objective are outside this repair."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Keep the v1 archive format, observed rows and diagnostics, compact automatic capture limits, and create-only save semantics."
+          ],
+          "change": [
+            "Use one bounded manual archive representation for reading and atomic saving."
+          ],
+          "data_plan": "Read the archived coordinator review offline and exercise malformed input with synthetic data. Never change the archived original.",
+          "cleanup": "Stage saves in the destination directory and remove staging files when publication succeeds or fails."
+        }
+      }
     }
   ]
 }
