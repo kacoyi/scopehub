@@ -25968,7 +25968,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Independently review the corrected local collector, producer verdicts and structured unittest evidence. The coordinator owns integration and the first authentic ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
+      "next_action": "Independently review exact structured receipt, fixture ownership, failed producer, and closed-log repairs. The coordinator owns the first ordinary full warm Windows PR retaining 35 selected outcomes within 900 seconds.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -26014,7 +26014,8 @@
           "Exact independent Astra t10d review of fc1027eb769fdf385d5a0fd7752d371b05a0a5b6 at archives/observations/repo-hygiene-20261125/independent-final-m0-146-fc1027eb/final-response.txt (SHA-256 224cb771405c39db80a1bbd5143547fd4447bbbd913d129acc92703573b07735; raw response SHA-256 fda0f69fd817bb0c660343a6b01828bd663c023411d6d8f0350a8c1664f387ca).",
           "archives/observations/repo-hygiene-20261125/m0-146-structured-part-evidence-e2558a19/scoped-native-replay/results.json (SHA-256 6e3173f86cdc2aaa20e5b5c4427f2f1ee98aa85f1c107fdf8ff6c1245403b164).",
           "archives/observations/repo-hygiene-20261125/m0-146-structured-part-evidence-e2558a19/unittest-originals/results.json (SHA-256 98d3e0e1c0567084e6699898aaac27ce2e11e117adaad807468f0c1e08d5e9da).",
-          "Integration references: M0-150 remains active at 460248f97fdc6d7bf647ac6207eec38b5eb3ee22 on codex/historical-windows-lane-scope. M0-136 is protected at a796cf4b43a73a16f0968b11eb0c7727a9562019 with reviewed parent 70a6ad63b941a662d7b623bbbc5e87734b76ac53."
+          "Integration references: M0-150 remains active at 460248f97fdc6d7bf647ac6207eec38b5eb3ee22 on codex/historical-windows-lane-scope. M0-136 is protected at a796cf4b43a73a16f0968b11eb0c7727a9562019 with reviewed parent 70a6ad63b941a662d7b623bbbc5e87734b76ac53.",
+          "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4)."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
@@ -26094,6 +26095,34 @@
           },
           {
             "failure": "Moving a genuine diagnostic heading from the failed case to a passing case and rehashing the raw log was accepted. A genuine exception containing a heading-shaped line was rejected. Bind each diagnostic to the originating unittest callback and preserve multiline exception text.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The ordinary hosted version 2.1 task record accepted a previously staged full report with all four part originals missing or with a damaged recovery manifest. Require both exact part identities, paths and digests before accepting Python completion evidence, preserving the legacy version 2.0 route.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A real tests.project package setup skip caused publication to reject a successful submodule case because the package name was used as a prefix. Bind each fixture effect to the actual discovered module or class and retain original skips and execution order.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Ordinary Windows main producers correctly reported failed when the source snapshot changed or the final project identity could not be read, while Python passed. Producer staging rejected the honest failed reports. Include both identity verdicts and preserve failed originals without admitting them into a successful aggregate.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A genuine module destructor wrote final stderr bytes after atexit, leaving both successful native-shaped parts unpublished. Verify the independently captured runner output and bind the closed original log after interpreter cleanup without discarding valid output.",
             "checks": [
               "project-state",
               "python-contracts-workers"

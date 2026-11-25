@@ -7581,6 +7581,70 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "windows-python-receipt-missing-part-originals",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "The ordinary hosted version 2.1 task record accepted a previously staged full report with all four part originals missing or with a damaged recovery manifest. Require both exact part identities, paths and digests before accepting Python completion evidence, preserving the legacy version 2.0 route.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-package-fixture-ownership",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "A real tests.project package setup skip caused publication to reject a successful submodule case because the package name was used as a prefix. Bind each fixture effect to the actual discovered module or class and retain original skips and execution order.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-producer-identity-drift-diagnostics",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "Ordinary Windows main producers correctly reported failed when the source snapshot changed or the final project identity could not be read, while Python passed. Producer staging rejected the honest failed reports. Include both identity verdicts and preserve failed originals without admitting them into a successful aggregate.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-python-post-interpreter-original-log",
+      "source": "Independent Astra t10d decision on a3d2030997def2937ac28e961a243809fe0b40fb, retained at archives/observations/repo-hygiene-20261125/independent-final-m0-146-a3d20309/final-response.txt (SHA-256 fd4168da699c62b7d2071b5e24800e7d54ad826285d1e86e6faab9ead539596f, raw response SHA-256 3ec33e1112bc02ad035fcc3f792765388804f90b29824e928cb7abb723eae6a2, decision 0862c3663aa0d3f768de24b91f334f895c7e9a140f55c5fae89396bcb651f0c4).",
+      "observation": "A genuine module destructor wrote final stderr bytes after atexit, leaving both successful native-shaped parts unpublished. Verify the independently captured runner output and bind the closed original log after interpreter cleanup without discarding valid output.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-146"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
