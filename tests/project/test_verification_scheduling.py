@@ -566,7 +566,7 @@ class WindowsLaneTests(ProjectFixture):
                 '    def test_after_boundary(self): self.assertTrue(True)\n', encoding='utf-8')
         elif discovery == 'case_events':
             (self.root / 'tests/project/test_verification_scope.py').write_text(
-                'import os, unittest\n'
+                'import atexit, os, unittest\n'
                 'class Second(unittest.TestCase):\n'
                 '    def test_bad(self):\n'
                 '        mode = os.environ.get("SCOPEHUB_CASE_EVENTS")\n'
@@ -579,7 +579,9 @@ class WindowsLaneTests(ProjectFixture):
                 '        if mode == "header": self.fail("original diagnostic\\nFAIL: second")\n'
                 '        if mode: self.fail("original diagnostic")\n'
                 '    def test_good(self):\n'
-                '        if os.environ.get("SCOPEHUB_CASE_EVENTS") == "": print("ok")\n'
+                '        if os.environ.get("SCOPEHUB_CASE_EVENTS") == "":\n'
+                '            print("ok")\n'
+                '            atexit.register(print, "ordinary unittest shutdown output")\n'
                 'class Third(unittest.TestCase):\n'
                 '    @classmethod\n'
                 '    def setUpClass(cls):\n'
@@ -1039,6 +1041,7 @@ class WindowsLaneTests(ProjectFixture):
                         self.assertNotIn(b'test_fixture (', combined)
                     if not mode:
                         self.assertIn(b'... ok', raw)
+                        self.assertIn(b'ordinary unittest shutdown output', raw)
                         self.assertIn(b'\nok', raw.replace(b'\r\n', b'\n'))
                     latest = self.downloads / 'published'
                     self.assertTrue(ci_artifacts.stage_artifacts(self.root, latest, os.environ))

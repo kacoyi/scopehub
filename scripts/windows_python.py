@@ -2,7 +2,7 @@
 
 import atexit
 from datetime import datetime, timedelta
-from hashlib import sha256
+from hashlib import file_digest, sha256
 import json
 import math
 import os
@@ -147,15 +147,17 @@ def write_manifest(label, result, inventory):
     sys.stdout.flush()
     sys.stderr.flush()
     destination = Path(os.environ['SCOPEHUB_RUN_DIR']) / (label + '.json')
-    raw = destination.with_suffix('.log').read_bytes()
+    with destination.with_suffix('.log').open('rb') as raw:
+        log_digest = file_digest(raw, 'sha256').hexdigest()
+        log_size = os.fstat(raw.fileno()).st_size
     manifest = {
         'inventory': inventory,
         'cases': result.cases,
         'counts': {key: len(getattr(result, key)) for key in COUNTS},
         'events': result.events,
         'runner_seconds': result.elapsed,
-        'log_size': len(raw),
-        'log_sha256': sha256(raw).hexdigest(),
+        'log_size': log_size,
+        'log_sha256': log_digest,
     }
     pending = destination.with_suffix('.tmp')
     pending.write_bytes((json.dumps(manifest, allow_nan=False) + '\n').encode('utf-8'))
@@ -267,7 +269,8 @@ def verify_events(manifest, expected):
         if (cases[case][1] != (('skipped', False) in outcomes)
                 or ('ok', False) in outcomes and outcomes != [('ok', False)]):
             raise ValueError('Unittest callback outcomes contradict the case record.')
-    return ''.join(progress).encode('utf-8'), ''.join(diagnostics).encode('utf-8')
+    return (''.join(progress).encode('utf-8', errors='backslashreplace'),
+            ''.join(diagnostics).encode('utf-8', errors='backslashreplace'))
 
 
 def case_times(manifests):

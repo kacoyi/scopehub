@@ -2310,7 +2310,7 @@ def archive_evidence(root, task_id, report_path, artifact_root=None):
         raise ProjectError(f'Cannot read JSON record {report_path}: {error}') from error
     if not isinstance(report, dict):
         raise ProjectError('Expected a structured verification report')
-    if report.get('report_version') not in {'2.0', '2.1'} or not report.get('source_unchanged'):
+    if report.get('report_version') not in ('2.0', '2.1') or not report.get('source_unchanged'):
         raise ProjectError('Report lacks an unchanged version-bound execution snapshot')
     validate_model(root, 'HarnessReport', report)
     if report.get('status') == 'failed' or any(item.get('status') == 'failed' for item in report.get('checks', [])):
