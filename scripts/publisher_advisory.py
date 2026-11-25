@@ -1,7 +1,7 @@
 """Fetch the one reviewed public publisher advisory without sharing CI credentials."""
 
 from datetime import datetime, timedelta, timezone
-from http.client import HTTPException, HTTPSConnection
+from http.client import HTTPException, HTTPResponse, HTTPSConnection
 import json
 import os
 from pathlib import Path
@@ -42,10 +42,41 @@ def public_record(body):
     return {'ghsa_id': ADVISORY, 'state': 'published', 'withdrawn_at': None, 'vulnerabilities': vulnerabilities}
 
 
+class _HeaderReader:
+    def __init__(self, stream):
+        self.stream = stream
+        self.terminated = False
+
+    def readline(self, limit):
+        line = self.stream.readline(limit)
+        self.terminated = line in (b'\r\n', b'\n')
+        return line
+
+    def close(self):
+        self.stream.close()
+
+
+class _PublisherResponse(HTTPResponse):
+    def begin(self):
+        if self.headers is not None:
+            return
+        # The standard parser accepts EOF as a delimiter. Observe whether it
+        # actually read an empty line at the end of the final header block.
+        stream = self.fp
+        reader = _HeaderReader(stream)
+        self.fp = reader
+        try:
+            super().begin()
+        finally:
+            if self.fp is reader:
+                self.fp = stream
+        self.headers_terminated = reader.terminated
+
+
 def _anonymous_quota_diagnostic(response):
     headers = response.headers
     # A parser defect can hide later conflicting fields from the parsed header block.
-    if headers.defects:
+    if not response.headers_terminated or headers.defects:
         return b''
     remaining = headers.get_all('X-RateLimit-Remaining', [])
     if len(remaining) != 1 or remaining[0].strip(' \t') != '0':
@@ -72,6 +103,8 @@ def request_once(token):
         headers['Authorization'] = f'Bearer {token}'
     # Direct TLS to a fixed host and relative path. HTTPConnection never follows redirects.
     connection = HTTPSConnection(HOST, timeout=8)
+    if token is None:
+        connection.response_class = _PublisherResponse
     try:
         connection.request('GET', ROUTE, headers=headers)
         with connection.getresponse() as response:
