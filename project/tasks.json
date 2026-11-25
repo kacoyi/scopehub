@@ -24906,6 +24906,347 @@
       }
     },
     {
+      "id": "M0-140",
+      "title": "Measure worker protocol cost in complete synthetic user workflows",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-132"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Retain matching source, commands, original timings and response parity for a short real chart history journey and ordinary CSV source-row and folder refresh journeys with synthetic data. Count requests per actual product worker, cold first response and end-to-end completion; report retained memory and unavailable dimensions.",
+        "Attribute reference resolution separately from other worker and UI time. Compare the observed journeys with the accepted M0-132 evidence and record whether these workloads satisfy its reopen condition. Separate the observed synthetic interaction mix from field usage."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-140-5b59f130567ac0ac.json",
+          "sha256": "3811f9cbe69106c3d4831b8328d58d36b4bd1675bf782a25c01d45678e8c4c8f"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent Astra Standard approved 9d13f946b101d4978599106e7b2333d5fd5b1403. Eight trials per synthetic journey measured visible chart and CSV latency, worker lifetime, lookup CPU, value parity and cleanup. Applying the strict chart RSS window retained both reported medians. Keep the accepted validator and the deferred finding. M0-144 owns a representative longer session with material lookup-related delay.",
+      "plan": {
+        "outcome": "Give the deferred worker-lookup finding a verifiable product-workload decision without changing the accepted validator.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-25-worker-schema-lookup.json",
+          "crates/worker-host/src/market.rs",
+          "crates/worker-host/src/local_import.rs",
+          "python/worker_runtime/protocol.py",
+          "project/feedback.json"
+        ],
+        "hypotheses": [
+          "A complete chart interaction can reuse one market worker across paging operations, while source-row and folder refresh may pay fresh-worker startup. The actual product routes determine that mix."
+        ],
+        "risks": [
+          {
+            "failure": "A standalone codec timing or an imposed page loop is presented as a user workflow. Exercise the ordinary chart and import routes, bind measurements to their real workers and verify independent expected replies.",
+            "checks": [
+              "python-types",
+              "python-contracts-workers",
+              "market-workflow"
+            ]
+          }
+        ],
+        "rollback": "Keep the original M0-132 observation, source and measurement files. Retain the existing validator until a separately reviewed change demonstrates product improvement.",
+        "implementation": {
+          "modules": [
+            "development-tooling",
+            "worker-runtime",
+            "worker-host"
+          ],
+          "entrypoints": [
+            "crates/worker-host/src/market.rs",
+            "crates/worker-host/src/local_import.rs",
+            "python/worker_runtime/protocol.py"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/feedback_loop"
+            }
+          ],
+          "non_goals": [
+            "Production telemetry, customer files, provider calls and shipping the withdrawn optimization."
+          ],
+          "open_questions": [
+            "Which worker lifetimes does each observed product interaction actually use, and how much of end-to-end elapsed time is attributable to reference resolution?"
+          ]
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing wire values, worker ownership, historical measurements and accepted M0-132 decision."
+          ],
+          "change": [
+            "Assign the deferred observation and retain the measured scope and decision."
+          ],
+          "data_plan": "Use synthetic local sources and locally retained measurements; publish a small evidence index with qualified results.",
+          "cleanup": "Keep observations in the development archive, remove temporary instrumentation from the delivered tree and stop any workers started by the measurement."
+        }
+      }
+    },
+    {
+      "id": "M0-144",
+      "title": "Qualify lookup cost when a longer chart session shows visible delay",
+      "milestone": "M0",
+      "status": "planned",
+      "depends_on": [
+        "M0-140"
+      ],
+      "scope": [
+        "contracts/reviews",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "For the first representative longer chart session in which profiling shows material user-visible delay from protocol reference lookup, retain the source, session duration, actions, per-worker request counts and time to the visible result. Keep private market content local and retain synthetic comparison fixtures.",
+        "Measure lookup CPU alongside end-to-end latency and retained memory for the observed request mix. Compare fresh one-shot CSV source inspection and folder refresh. Preserve chart, CSV and protocol response parity and identify any unavailable measurements.",
+        "Use the M0-132 baseline and M0-140 measurements to decide whether the evidence justifies a separately reviewed change. Record the decision and link any corrective task to the deferred finding."
+      ],
+      "checks": [
+        "project-state",
+        "python-types",
+        "python-contracts-workers",
+        "market-workflow"
+      ],
+      "evidence": [],
+      "next_action": "The development AI takes this task when a representative longer chart session first shows material lookup-related visible delay. Retain the observation before evaluating an optimization.",
+      "blocker": null,
+      "closure_reason": null,
+      "delivery": "later"
+    },
+    {
+      "id": "M0-142",
+      "title": "Gate recurring main-push budget handoffs on protected evidence",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-091"
+      ],
+      "scope": [
+        "scripts/integration.py",
+        "tests/project/test_integration.py",
+        "contracts/schemas/project.schema.json",
+        "project/delivery.json",
+        "project/feedback.json",
+        "project/tasks.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "Preserve the original M0-087/M0-091 handoff. Adopt the distinct recurring Windows push binding independently on protected main before any repair can use it.",
+        "A completed reviewed repair with bound regression evidence, authentic comparable push controls, exact successful full native PR evidence and a distinct planned M0-141 can hand off only the named open observation.",
+        "Close that observation only with a subsequent successful comparable protected main push containing the repair and its original observation receipt. Reject changed source, evidence, scope, planned-only delivery and other applicable findings."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-142-4fc22866ae992e38.json",
+          "sha256": "c95712c0a559f63348e8b9212b786f924a4305ab9b5fcfca18fdceab84a559af"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved e7992133d4e39e210691fb74536d67384d4dab34. All three task checks passed. The delivery rule distinguishes protected adoption, a complete and current repair receipt, matched native PR results and a later protected push containing the repair. The M0-139 observation stays open until the separate M0-141 qualification.",
+      "plan": {
+        "outcome": "A reviewed Windows warm-main repair can pass pre-integration verification while the post-integration elapsed observation has its own open owner.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/integration.py",
+          "scripts/timing.py",
+          "project/delivery.json"
+        ],
+        "hypotheses": [
+          "The existing one-off rule does not govern the 886, 938 and 913 second cohort. Its receipt and protected-history checks can be reused."
+        ],
+        "risks": [
+          {
+            "failure": "A candidate grants itself an exception, substitutes the observed source or unrelated evidence, skips a required native job, or closes the main observation prematurely.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A completed repair loses its named owner, binds an older ancestor, relies on a native projection without its original or a timely wall clock, or combines separate incomplete receipts to appear current.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the legacy rule and retain the unresolved recurrence and original built reports. Remove the unused extension under separate reviewed policy if it cannot qualify the actual delivery.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/integration.py",
+            "scripts/timing.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/integration"
+            }
+          ],
+          "non_goals": [
+            "Changing required checks, approving a merge, resetting the latency objective, or changing product behavior."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Preserve original task and finding IDs and the M0-087/M0-091 rule."
+          ],
+          "change": [
+            "Add a separate protected binding for an evidence-bound recurring push handoff."
+          ],
+          "data_plan": "Reuse the existing task, feedback, timing and receipt records. Preserve raw observations and their exact locators.",
+          "cleanup": "Retain a planned M0-141 until the first eligible ordinary protected main push is independently verified."
+        }
+      }
+    },
+    {
+      "id": "M0-143",
+      "title": "Reduce repeated Git reads in periodic maintenance verification",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-135"
+      ],
+      "scope": [
+        "scripts/project.py",
+        "tests/project/test_delivery.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "acceptance": [
+        "An unchanged small fixture and ordinary maintenance verification entry show fewer redundant immutable Git lookups on the candidate than on the exact reviewed source, with matching positive and rejected results.",
+        "Retain candidate and accepted provenance, freshness across invocations, working-tree inputs, ref and symbolic-link handling, rejected ancestry and recovery. Keep required verification and native coverage.",
+        "Record authenticated PR and protected-main Windows baselines separately from controlled local measurements. Native candidate timing remains a separately observed outcome."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-143-78af6ad100d64fa6.json",
+          "sha256": "dd816fbb34934cf10f8e3ab41d2a94643cc24119768a8049a7aa259258105e4d"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "Independent review approved 0ead2ee1c7fd7d14c987c52390bcfc4af56061ce. Six paired public status observations kept byte-identical output while reducing reads of the same committed delivery policy from six to one per invocation. Positive and rejected ancestry cases both used five fewer Git processes. Native candidate wall time remains a separate measurement.",
+      "plan": {
+        "outcome": "Ordinary maintenance verification produces the same decisions with fewer Git children for identical immutable input.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "Reviewed maintenance source and closure 3144e2e82313716664873ac559e36cd921874d9c.",
+          "scripts/project.py",
+          "tests/project/test_delivery.py",
+          "archives/observations/repo-hygiene-20261125/resumed-coordination-87dd079/pr115-periodic-transition-process-cost.json",
+          "Controlled status comparison: .reports/audit-20261125/m0-143-status-read-cost/paired/measurement.json (SHA-256 0d1d757baf6a6dabe43acc6fb5a521226977aedb5f43319105287d877df097fc). The original and paired baseline use identical fixture state and standard output. Implementation commit eec9ce0ad0abb1f7993a6bf7a843893139d9e0a4 changes only scripts/project.py."
+        ],
+        "hypotheses": [
+          "Status resolves exact comparison commits, then reads the same committed delivery policy to find missing rules and again to validate each rule. Historical policy and observation paths may have separate repeated exact-commit reads.",
+          "For three repetitions on each identical dirty fixture checkpoint, the accepted descendant status used 41 then 36 Git processes and the rejected reversed ancestry status used 42 then 37. The only changed Git argv was the fixed commit delivery blob read, reduced from six to one. Exit and standard output were byte-identical. Fixture preparation ran outside the count."
+        ],
+        "risks": [
+          {
+            "failure": "Reuse a mutable ref, ancestry result, working-tree file or candidate input across changing checkouts, or lose verified and rejected maintenance outcomes.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Trade correctness or required coverage for fewer calls, obscure a missing file or recovery path, or attribute unrelated Windows timing changes to the measured optimization.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Revert only the read reuse and retain the timing finding and exact original observations.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/scaling"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            }
+          ],
+          "non_goals": [
+            "No required-check selection or native workflow changes, replacement for Git, or inferred hosted recovery."
+          ],
+          "open_questions": [
+            "Ordinary Windows candidate effect remains unobserved. Common-case Windows timing changes are separate from the repeated Git reads measured locally."
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Required coverage and all original evidence, candidate and approved source distinctions, ref resolution, dirty paths, ancestry direction and recovery."
+          ],
+          "change": [
+            "Reuse the parsed successful exact-commit delivery policy in this status invocation. Preserve the original Git command on a missing read and keep current and historical validation separate."
+          ],
+          "data_plan": "Retain exact sources, fixed fixture identities, command counts and matching verdicts with original raw results.",
+          "cleanup": "Keep measurement instrumentation outside the production verifier and leave native timing open for coordinator observation."
+        }
+      }
+    },
+    {
       "id": "M5-005",
       "title": "Deliver and verify safe desktop profile relocation after independent review",
       "milestone": "M5",
