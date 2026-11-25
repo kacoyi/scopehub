@@ -24541,7 +24541,7 @@
         "0007"
       ],
       "acceptance": [
-        "The ordinary local dependency review fails with exit 1 and identifies anonymous HTTP 403 quota exhaustion only when the same approved TLS response reports zero remaining requests. A strictly valid optional reset is formatted as UTC.",
+        "The ordinary local dependency review fails with exit 1 and identifies anonymous HTTP 403 quota exhaustion only when the same approved TLS response contains a complete header block with zero remaining requests. A strictly valid optional reset is formatted as UTC.",
         "Missing, ambiguous, or malformed response data do not establish quota exhaustion or disclose raw server text. Preserve the existing live check, failure exits, credentials, route, redirects, fallback, and request limits."
       ],
       "checks": [
@@ -24555,7 +24555,7 @@
           "sha256": "0597e370afc519a8f79134c4c9024cdcc0dfef9d0de6b4c4897b2c7c8568e676"
         }
       ],
-      "next_action": "Correct the confirmed HTTP parser and optional whitespace regressions, retain required checks on the corrected source, and obtain final independent review.",
+      "next_action": "Observe completion of the final publisher header block in the existing HTTP transport, retain offline and live verification, and obtain final independent review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24569,7 +24569,8 @@
           "scripts/dependencies.py",
           "tests/project/test_dependencies.py",
           "archives/observations/repo-hygiene-20261125/m0-126-diagnostic-intake-486b674/manifest.json",
-          "Astra Standard CHANGES_REQUESTED for 2b0e9b44870c02571352337c69e3eda18f1895ce."
+          "Astra Standard CHANGES_REQUESTED for 2b0e9b44870c02571352337c69e3eda18f1895ce.",
+          "Independent CHANGES_REQUESTED for d5dd6c49057382afa3bd8f7ac4970b2b0988c496. The retained wire replays expose an EOF that Python accepts without a header parser defect."
         ],
         "hypotheses": [
           "The publisher transport discards non-200 headers. The dependency report already persists the resulting error."
@@ -24586,6 +24587,14 @@
           {
             "failure": "Incomplete or repeated headers produce false attribution, legitimate HTTP field whitespace loses an accurate diagnosis, or malformed values disclose server text.",
             "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "EOF before the response header terminator or inside a reset field produces a false quota diagnosis or a false UTC reset in the ordinary dependency report.",
+            "checks": [
+              "dependency-review",
+              "project-state",
               "python-contracts-workers"
             ]
           },
@@ -24631,7 +24640,7 @@
             "The approved exact GET, redirect refusal, bounded response and retry behavior, hosted matching evidence and failure exits."
           ],
           "change": [
-            "Derive a bounded local quota diagnosis and optional UTC reset from the same anonymous 403 response."
+            "Derive a bounded local quota diagnosis and optional UTC reset from the same anonymous 403 after observing its header terminator in the standard HTTP transport."
           ],
           "data_plan": "Use offline fixtures from retained public response headers. Archive original red, green and required check output.",
           "cleanup": "Use the existing dependency report error field and preserve the generic error for unclassified responses."

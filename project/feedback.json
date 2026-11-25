@@ -6727,6 +6727,30 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "local-publisher-advisory-quota-header-truncation",
+      "source": "Independent CHANGES_REQUESTED for exact source d5dd6c49057382afa3bd8f7ac4970b2b0988c496. Retained review: archives/observations/repo-hygiene-20261125/independent-final-m0-126-d5dd6c49/final-response.txt (SHA-256 6d18d64c0f172af9858fa5fab11fcabb6e3102cda47e6f704a18ebf183b0533a). Separate live task run on that source: .reports/runs/20261125T155644.625742Z-e2d24d9c/test-report.json.",
+      "observation": "The ordinary dependency reporter attributed HTTP 403 to exhausted anonymous quota when the connection ended after a complete zero-remaining field without the header terminator. When the connection ended inside the reset field after 17, the reporter also printed 1970-01-01T00:00:17Z. Python 3.12 reported no header parser defects. Each replay made one request and exited 1. Both truncated replies must retain the generic HTTP 403 diagnostic, and a complete control with HTTP space and tab must retain the quota and UTC reset diagnosis.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-126"
+      ],
+      "regression_checks": [
+        "dependency-review",
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T155644.625742Z-e2d24d9c",
+          "source_commit": "d5dd6c49057382afa3bd8f7ac4970b2b0988c496",
+          "report_sha256": "e7601e629e9a737b47aed0aeb62883ef76717aae99fa221c73afba6d32661013"
+        }
+      ]
     }
   ]
 }
