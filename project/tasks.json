@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-150",
   "tasks": [
     {
       "id": "M0-001",
@@ -25889,6 +25889,114 @@
           ],
           "data_plan": "Use disposable fixture repositories and the exact preserved native CI artifacts. No product profile data is involved.",
           "cleanup": "Release the fixture repositories after retaining the required red and green observations and native evidence."
+        }
+      }
+    },
+    {
+      "id": "M0-150",
+      "title": "Verify Windows timing selections against the publishing source",
+      "milestone": "M0",
+      "status": "active",
+      "depends_on": [
+        "M0-148"
+      ],
+      "scope": [
+        "scripts/timing.py",
+        "scripts/verification_scope.py",
+        "scripts/ci_artifacts.py",
+        "scripts/check.py",
+        "tests/project",
+        "project/tasks.json",
+        "project/feedback.json"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "acceptance": [
+        "The normal timing entry accepts the genuine original browser and recovery selections before and after market-recovery-ui changed its publishing job on Windows. The aggregate selection, coverage and measured durations retain their original meaning.",
+        "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
+        "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer."
+      ],
+      "next_action": "Replay the two authentic publishing layouts at the public timing entry and verify the source of their different selections before changing recognition.",
+      "blocker": null,
+      "evidence": [],
+      "closure_reason": null,
+      "delivery": "current-contract",
+      "plan": {
+        "outcome": "Recover genuine historical Windows producer timing across a change in check assignment, while preserving strict rejection of unverified producers.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "scripts/verification_scope.py",
+          "scripts/timing.py",
+          "scripts/check.py",
+          "scripts/ci_artifacts.py",
+          "tests/project/test_timing.py",
+          "PR 121 run 45678058104 and PR 116 run 45680128413"
+        ],
+        "hypotheses": [
+          "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
+          "A known authenticated source or demonstrably equivalent publishing inputs can distinguish layouts. Inferring a layout solely from the submitted selection would allow an incorrect producer to qualify."
+        ],
+        "risks": [
+          {
+            "failure": "The verifier accepts another publisher, missing checks or a swapped historical assignment after admitting more than one layout.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "The current publishing and historical reading code diverge, a prior legitimate layout is lost or an unknown layout establishes comparative cache timing.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/timing.py",
+            "scripts/verification_scope.py",
+            "scripts/ci_artifacts.py",
+            "scripts/check.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/periodic_reviews"
+            }
+          ],
+          "non_goals": [
+            "Changing check coverage or measured durations to fit a budget, altering previous receipt bytes, or treating an aggregate alone as an individual producer."
+          ],
+          "open_questions": [
+            "Which committed input identifies the assignment of the publishing job across old and new implementations, including when an ephemeral preview is unavailable locally?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact native provenance, cache classes, aggregate coverage and previously accepted historical layouts."
+          ],
+          "change": [
+            "Verify historical producer assignments using the applicable publishing inputs at the normal timing boundary."
+          ],
+          "data_plan": "Use the four authenticated producer artifacts and original compact measurements. Keep their raw source, artifact IDs, checksums and publishing check selections.",
+          "cleanup": "Keep synthetic inconsistent controls isolated from the genuine artifacts and preserve any indeterminate original as a diagnostic."
         }
       }
     }

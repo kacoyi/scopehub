@@ -7611,6 +7611,21 @@
         "prevention": "The ordinary Python suite exercises the corrected committed-catalog positive and the missing, extra and incorrect-digest controls. The guarded Windows run executes the case on its native Git implementation."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "weekly-windows-timing-rejects-authentic-reassigned-producers",
+      "source": "Actual weekly reader on 794485aa576eaf7fabea235965b0c1d4cb009bcd using authenticated browser/recovery artifacts 15054170693 and 15053411745 from run 45678058104, and 15055311348 and 15054675717 from run 45680128413. Original files with per-artifact digests are retained at archives/observations/repo-hygiene-20261125/windows-lane-transition-3491ace8/observed-producers.json.",
+      "observation": "The two original PR 121 producers were accepted warm. The two original PR 116 producers were reported unknown with a publisher identity, job layout or check scope error. Both runs had four Windows producers. The later source moved market-recovery-ui from browser to recovery and both original artifacts reflected that assignment.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
