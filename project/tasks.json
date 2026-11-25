@@ -25042,7 +25042,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Compare the three original Windows Python logs and producer timings, identify a repeatable cost, and run the narrowest representative positive and rejected verification before changing the scheduler or shared reader.",
+      "next_action": "Independently review the measured read reduction. The coordinator owns the ordinary full warm Windows PR observation on the corrective source. Keep the finding open until an authenticated first attempt retains the same 35 selected outcomes and meets the 900-second objective.",
       "blocker": null,
       "closure_reason": null,
       "diagnostic_reports": [
@@ -25072,11 +25072,12 @@
           "scripts/project.py",
           "tests/project",
           "project/delivery.json",
-          "archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json"
+          "archives/observations/repo-hygiene-20261125/windows-warm-pr-python-20261125/intake.json",
+          "Paired public history and check reads: .reports/audit-20261125/m0-146-verification-reads/paired/measurement.json (SHA-256 d1f6956f9b4aa15f73585f4fdd8e77fa93cb03b0c5c35e1d2fbfe5d5f6c7d129), comparing 8763eee588ff18e880155d5e4a89573ca77a3f75 with implementation 528ca59f5655f554396a4cbc0ff460cff0384ddd. Retain the complete raw traces, outputs and profile manifest beside it."
         ],
         "hypotheses": [
           "The Python producer finished last before aggregation on all three ordinary warm PRs. Individual test durations and process traces can separate repeated fixture or immutable repository reads from native runtime variation.",
-          "A bounded improvement to a measured costly path, or a supported allocation of independent work on the existing producers, can reduce elapsed time while keeping every test observable. The median wall time alone cannot distinguish those mechanisms."
+          "The three Windows runs timed the same 103 delivery cases at 285.171, 198.020 and 254.251 seconds. On the matched local fixture, accepted history and check reduced Git starts from 31 to 29 and 20 to 18, respectively, by sharing the proven cutover predecessor. Full checkout check reduced project schema opens from 444 to one. All paired exit codes and output bytes agree for positive, rejected and missing-checkpoint cases. Recovery had measured spare time, but splitting Python would need new report accounting for failures and interruptions. The candidate removes repeated reads while retaining the original four producers."
         ],
         "risks": [
           {
@@ -25121,7 +25122,7 @@
             "Changes to product semantics, check deadlines, paid runner capacity or the 900-second objective."
           ],
           "open_questions": [
-            "Which independently measured cost on the Windows critical path can be removed or scheduled with equivalent verification and acceptable aggregate runner work?"
+            "Does the unchanged ordinary warm PR workflow meet its Windows objective with this corrective revision and matching coverage?"
           ]
         },
         "evolution": {
@@ -25130,7 +25131,7 @@
             "The original 35 selected checks, individual Python test outcomes, accurate native artifact imports and failures, and the complete M0-143 status behavior."
           ],
           "change": [
-            "Apply the smallest measured improvement supported by equivalent positive and rejected controls, then observe its actual Windows PR effect."
+            "Read the project schema once per project load and reuse only the fixed legacy predecessor records after proving each checkpoint's ancestry. Reinitialize after hosted recovery. Current checkout records, HEAD, ancestry and each new project load still use live reads."
           ],
           "data_plan": "Use synthetic fixtures, read-only hosted originals and matching check logs. Preserve actual job durations, original identifiers and coverage for comparison.",
           "cleanup": "Remove temporary profiling from the delivery path, archive the focused comparison and retain any unresolved timing investigation with its next observable action."
