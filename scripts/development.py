@@ -319,13 +319,75 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
             'claim_scope': 'Explanatory view only. Readiness and current verification still use their original strict gates.'}
 
 
-def status_view(state, *, detail=False):
-    """Keep the opening view short while preserving every omission in detail."""
+def project_overview(state):
+    focus = state.get('focus')
+    verification = state['verification']
+    evidence = state['evidence_overview']
+    counts = {}
+    if verification['current']:
+        for check in evidence['checks']:
+            reason = check['explanation']
+            counts[reason] = counts.get(reason, 0) + 1
+    local = 'current' if verification['current'] else (
+        'invalid' if verification['report_error'] else 'stale' if verification['report_available'] else 'unobserved')
+    retained = state.get('retained_failures', {})
+    retained_count = retained.get('matching_inputs', {}).get('count')
+    reviews = [review for review in state['periodic_reviews'] if review.get('state')]
+    attention = ['evidence_missing', 'evidence_invalid', 'recheck_needed', 'owned_action', 'due']
+    first = next((review for status in attention for review in reviews if review['state'] == status), None)
+    if first is None:
+        first = next((review for review in reviews if review['review_due']), None)
+    context = f'pnpm project:context {focus["id"]}' if focus else 'pnpm project:brief'
+    if first:
+        next_action = {key: first[key] for key in
+                       ('id', 'state', 'owner', 'trigger', 'command', 'finding', 'next_review_by',
+                        'problem', 'report_sha256') if key in first}
+    elif retained_count:
+        next_action = {'owner': 'development AI', 'trigger': 'Retained failure on matching inputs',
+                       'command': 'pnpm project:status'}
+    elif state['feedback_needing_assignment']:
+        next_action = {'id': state['feedback_needing_assignment'][0], 'owner': 'development AI',
+                       'trigger': 'Unassigned feedback', 'command': 'pnpm project:status'}
+    else:
+        next_action = {'owner': 'development AI', 'command': context}
+    return {
+        'purpose': state.get('purpose'),
+        'focus': {key: focus[key] for key in ('id', 'title', 'status')} if focus else None,
+        'backlog': {
+            'ready': len(state['ready_task_ids']), 'active': len(state['active_task_ids']),
+            'blocked': len(state['blocked']), 'open_findings': len(state['unresolved_feedback']),
+            'unassigned_findings': len(state['feedback_needing_assignment']),
+        },
+        'verification': {
+            'local': local, 'run_id': verification['run_id'], 'outcome': verification['recorded_status'],
+            'current_check_counts': counts or None,
+            'historical_task_receipts': len(evidence['historical_task_evidence']),
+            'retained_failures_on_matching_inputs': retained_count,
+            'retained_failure_scan': retained.get('scan', {}).get('coverage'),
+        },
+        'gates': {'hosted': 'pnpm project:ci',
+                  'product_release_and_native': 'pnpm project:readiness',
+                  'scope': 'Hosted, release and physical gates require separate evidence.'},
+        'maintenance': {'periodic_attention': sum(review['review_due'] or review['state'] in attention
+                                                  for review in reviews),
+                        'waiting_for_event': sum(review['state'] == 'waiting_for_event' for review in reviews),
+                        'dependency_review_due': (state.get('dependency_maintenance') or {}).get('review_due')},
+        'next': next_action,
+        'details': {'delivery': 'pnpm project:brief', 'focused_work': context,
+                    'status': 'pnpm project:status', 'receipts': 'pnpm project:status --detail'},
+    }
+
+
+def status_view(state, *, detail=False, overview=False):
     if detail:
         return state
-    result = dict(state)
+    summary = project_overview(state)
+    if overview:
+        return summary
+    result = {'overview': summary, **state}
     result['periodic_reviews'] = [
-        {key: review[key] for key in ('id', 'next_review_by', 'review_due')}
+        {key: review[key] for key in ('id', 'next_review_by', 'review_due',
+                                      'state', 'owner', 'command', 'problem', 'finding') if key in review}
         for review in state['periodic_reviews']
     ]
     focus = state.get('focus')

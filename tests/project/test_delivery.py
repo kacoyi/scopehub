@@ -28,6 +28,148 @@ from scripts.verification_evidence import integration_validation, release_artifa
 
 
 class DeliveryTests(ProjectFixture):
+    def periodic_fixture(self):
+        class ReviewClock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 11, 25, 10, tzinfo=tz)
+
+        self.enterContext(patch.object(project_cli, 'datetime', ReviewClock))
+        path = self.root / 'project/delivery.json'
+        delivery = read_json(path)
+        delivery['scaffold_maintenance']['periodic_reviews'] = [
+            {'id': key, 'reviewed_on': day, 'interval_days': 7, 'actions': ['Review the existing observation.']}
+            for key, (day, _) in project_cli.maintenance.REVIEW_SOURCES.items()]
+        path.write_bytes(json_bytes(delivery))
+        return path, delivery
+
+    def project_command(self, *args):
+        out = StringIO()
+        with (patch.object(project_cli, 'ROOT', self.root), patch.object(sys, 'argv', ['project.py', *args]),
+              redirect_stdout(out)):
+            try:
+                project_cli.main()
+            except SystemExit as error:
+                self.assertEqual(1, error.code)
+        return json.loads(out.getvalue())
+
+    def timing_review(self, clock):
+        return {'observed_at': clock, 'objective_reviews': [
+            {'event': 'pull_request', 'profile': 'full', 'platform': 'Linux', 'sample_count': 3,
+             'recent_runs': ['45556251399', '45556799720', '45556669680'], 'recent_objective_breaches': 0}],
+            'input_issues': [], 'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
+
+    def add_periodic_record(self, item, raw, *findings):
+        input_path = self.root / '.reports' / 'observation.json'
+        input_path.parent.mkdir(exist_ok=True)
+        input_path.write_bytes(json_bytes(raw))
+        args = [arg for finding in findings for arg in ('--finding', finding)]
+        generated = self.project_command('observe-maintenance', item['id'], '--report', str(input_path), *args)
+        self.assertEqual(item['id'], generated.get('review_id'), generated)
+        item.update(reviewed_on=generated['observed_at'][:10],
+                    review_record=f'contracts/reviews/{item["id"]}-{generated["observed_at"][:10]}.json')
+        record = self.root / item['review_record']
+        record.parent.mkdir(exist_ok=True)
+        record.write_bytes(json_bytes(generated))
+        return record
+
+    def test_startup_and_both_history_routes_reject_date_only_for_all_five_reviews(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        clean = self.project_command('status', '--overview')
+        self.assertLess(len(json_bytes(clean)), 2000)
+        self.assertEqual('unobserved', clean['verification']['local'])
+        for item in delivery['scaffold_maintenance']['periodic_reviews']:
+            with self.subTest(review=item['id']):
+                previous = item['reviewed_on']
+                item['reviewed_on'] = '2026-11-25'
+                path.write_bytes(json_bytes(delivery))
+                next_action = self.project_command('status', '--overview')['next']
+                self.assertEqual(item['id'], next_action['id'])
+                self.assertEqual('evidence_missing', next_action['state'])
+                self.assertEqual('coordinator', next_action['owner'])
+                for command in [('check',), ('history', '--base', base)]:
+                    self.assertIn(item['id'], self.project_command(*command)['error'])
+                item['reviewed_on'] = previous
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('check')['status'])
+
+    def test_fresh_periodic_observation_cannot_be_removed_or_reused(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        item, other = delivery['scaffold_maintenance']['periodic_reviews'][1:3]
+        record = self.add_periodic_record(item, self.timing_review('2026-11-24T00:00:00Z'))
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', base)['status'])
+        self.assertEqual('observed', self.project_command('status')['periodic_reviews'][1]['state'])
+        first = self.commit_fixture()
+        previous = record.read_bytes()
+        record.unlink()
+        self.assertEqual('evidence_missing', self.project_command('status', '--overview')['next']['state'])
+        self.assertIn('verification-timing', self.project_command('check')['error'])
+        record.write_bytes(previous)
+        other.update(reviewed_on=item['reviewed_on'], review_record=item['review_record'])
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('category', self.project_command('history', '--base', first)['error'])
+        other.update(reviewed_on='2026-11-21')
+        del other['review_record']
+        self.add_periodic_record(item, self.timing_review('2026-11-25T00:00:00Z'))
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('fresh comparable observation', self.project_command('check')['error'])
+
+    def test_future_cadence_and_review_retirement_preserve_due_or_open_obligations(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        item = delivery['scaffold_maintenance']['periodic_reviews'][1]
+        item['interval_days'] = 14
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('passed', self.project_command('history', '--base', base)['status'])
+        item['retired_reason'] = 'Review at the independently verified successor cadence.'
+        path.write_bytes(json_bytes(delivery))
+        self.assertEqual('retired', self.project_command('status')['periodic_reviews'][1]['state'])
+        self.assertEqual('passed', self.project_command('check')['status'])
+        del item['retired_reason']
+        item['interval_days'] = 1
+        path.write_bytes(json_bytes(delivery))
+        overdue = self.commit_fixture()
+        item['interval_days'] = 14
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('postpone', self.project_command('history', '--base', overdue)['error'])
+
+    def test_periodic_observation_assigns_real_followup_and_reopens_on_changed_occurrence(self):
+        path, delivery = self.periodic_fixture()
+        base = self.commit_fixture()
+        item = delivery['scaffold_maintenance']['periodic_reviews'][1]
+        review = self.timing_review('2026-11-24T00:00:00Z')
+        review['objective_reviews'][0]['recent_objective_breaches'] = 2
+        sha = digest(json_bytes(review))
+        feedback_path = self.root / 'project/feedback.json'
+        feedback = read_json(feedback_path)
+        entry = {'id': 'timing-observed-regression', 'source': f'Original timing observation {sha}.',
+                 'observation': 'Two verified ordinary runs exceeded the objective.', 'severity': 'minor',
+                 'status': 'open', 'task_ids': ['M0-001'], 'regression_checks': ['project-state'],
+                 'resolution': None, 'deferral_reason': None}
+        feedback['items'].append(entry)
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.add_periodic_record(item, review, entry['id'])
+        path.write_bytes(json_bytes(delivery))
+        next_action = self.project_command('status', '--overview')['next']
+        self.assertEqual('owned_action', next_action['state'])
+        self.assertEqual('pnpm project:context M0-001 --phase verify', next_action['command'])
+        self.assertEqual('passed', self.project_command('history', '--base', base)['status'])
+        linked = self.commit_fixture()
+        item['interval_days'] = 15
+        path.write_bytes(json_bytes(delivery))
+        self.assertIn('postpone', self.project_command('history', '--base', linked)['error'])
+        item['interval_days'] = 7
+        path.write_bytes(json_bytes(delivery))
+        entry.update(status='deferred', deferral_reason='Wait for the next ordinary full PR cohort.')
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.assertEqual('waiting_for_event', self.project_command('status')['periodic_reviews'][1]['state'])
+        entry.update(status='open', deferral_reason=None, occurrence=2)
+        feedback_path.write_bytes(json_bytes(feedback))
+        self.assertEqual('recheck_needed', self.project_command('status', '--overview')['next']['state'])
+
     def test_chart_and_prototype_passes_cannot_satisfy_the_v1_workbench_gate(self):
         project = load_project(project_cli.ROOT)
         gate = 'chart-free-workbench'

@@ -6531,8 +6531,8 @@
     },
     {
       "id": "compatibility-recovery-date-can-hide-missed-review",
-      "source": "Independent 30-day review calibration on protected source 6cf0d0dc87b344203ab194a2cd047d36bf801f3c. The original due and date-only controls were retained in the private audit.",
-      "observation": "In a disposable baseline fixture the compatibility and recovery review was due November 9. A date-only change postponed attention to December 25 while ordinary project validation and history both passed. This reproduces an inspection gap in the workflow.",
+      "source": "Five independent periodic-review calibrations on protected source 6cf0d0dc87b344203ab194a2cd047d36bf801f3c. Original before/after startup, local validation and history for all five lanes are indexed under periodic-all-five-control-6cf0d0d/observation.json in the private audit.",
+      "observation": "Each of the five disposable controls advanced one overdue review with only a date edit. Each cleared the corresponding alert and passed ordinary project validation and history. No new observation was recorded. These controls establish a verification gap and do not assert that a review on protected main was missed.",
       "severity": "major",
       "status": "open",
       "task_ids": [

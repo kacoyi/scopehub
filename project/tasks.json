@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M2-003",
+  "focus_task_id": "M0-135",
   "tasks": [
     {
       "id": "M0-001",
@@ -24032,39 +24032,43 @@
     },
     {
       "id": "M0-135",
-      "title": "Make compatibility and recovery review follow-through visible and verifiable",
+      "title": "Verify follow-through for the five periodic reviews",
       "milestone": "M0",
-      "status": "planned",
+      "status": "active",
       "depends_on": [],
       "scope": [
         "scripts/project.py",
         "scripts/development.py",
-        "scripts/recovery.py",
+        "AGENTS.md",
         "project/delivery.json",
         "contracts/schemas/project.schema.json",
         "tests/project/test_delivery.py",
         "project/tasks.json",
-        "project/feedback.json"
+        "project/feedback.json",
+        "scripts/maintenance.py",
+        "scripts/ci.py",
+        "scripts/timing.py",
+        "scripts/worktree_retirement.py"
       ],
       "decision_refs": [
         "0004",
         "0007"
       ],
       "acceptance": [
-        "The ordinary startup view identifies an overdue or unsupported compatibility review, with a responsible role and the next verification command.",
-        "The existing protected project history gate rejects a date-only clearance. Historical baseline and valid bounded review receipts remain distinguishable.",
-        "Verify the calibrated date-only mutation, a genuine quiet review and an observation with a linked finding. Keep detailed records and unrelated event-driven work at their original scope."
+        "Ordinary startup provides a bounded whole-project outlook and identifies overdue, unsupported or actionable periodic reviews without changing authoritative detailed output.",
+        "Existing protected history rejects date-only clearance for each of the five lanes while preserving the inherited baseline and type-appropriate review observations.",
+        "Exercise the five calibrated negative cases, genuine observations in multiple categories, removal and cross-category replay, and current feedback follow-through."
       ],
       "checks": [
         "project-state",
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Exercise the normal intake and history paths on the preserved 30-day date-only control, then verify a focused receipt-bound review.",
+      "next_action": "Request Astra Standard review of the five-lane startup and history candidate. The coordinator assesses the next comparable observation and routes changed or still-adverse findings to their corrective task.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "Normal startup surfaces the outstanding compatibility review and protected history rejects unsupported clearance.",
+        "outcome": "A single evidence-bound invariant protects all five periodic reviews at startup and in protected history.",
         "change_types": [
           "tooling"
         ],
@@ -24075,7 +24079,7 @@
           "project/feedback.json"
         ],
         "hypotheses": [
-          "A single existing receipt reference can distinguish a performed compatibility review from a calendar edit without changing cadence."
+          "The calendar flag can clear independently of observation bytes in all five review lanes. Typed bounded projections of existing observations can share the same guard."
         ],
         "risks": [
           {
@@ -24117,10 +24121,10 @@
             "Preserve historical cadence, accepted records, existing normal JSON fields and independent native and release evidence."
           ],
           "change": [
-            "Bind a new date for the 30-day compatibility review to a matching focused receipt and make its due state and follow-through actionable."
+            "Use one tracked review record per date advance, projected from the existing verification, timing, inventory or compatibility evidence. Reviewed future cadence changes and retirement preserve accepted observations and pending obligations."
           ],
           "data_plan": "Read canonical task receipts and feedback. Leave the historic baseline unchanged and keep red and green controls in private validation outputs.",
-          "cleanup": "Keep the review scoped to compatibility and recovery. Reassess matched findings at the next comparable observation."
+          "cleanup": "Use the next comparable existing observation for each lane and reassess recurring findings through current feedback ownership."
         }
       }
     }

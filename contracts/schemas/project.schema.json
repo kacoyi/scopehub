@@ -1823,6 +1823,15 @@
                 "type": "string",
                 "format": "date"
               },
+              "retired_reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "review_record": {
+                "type": "string",
+                "pattern": "^contracts/reviews/[a-zA-Z0-9._-]+\\.json$"
+              },
               "actions": {
                 "type": "array",
                 "minItems": 1,
