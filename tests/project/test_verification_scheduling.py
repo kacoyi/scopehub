@@ -1255,14 +1255,15 @@ class WindowsLaneTests(ProjectFixture):
             retained = Path(self.enterContext(tempfile.TemporaryDirectory()))
             loaded = harness.load_project(self.root)
             for field in ('source_unchanged', 'project_unchanged'):
-                with self.subTest(field=field), ExitStack() as stack:
-                    if field == 'project_unchanged':
-                        stack.enter_context(patch.object(harness, 'load_project',
-                            side_effect=[loaded, project.ProjectError('observed final project read failure')]))
-                    else:
-                        stack.enter_context(patch.dict(os.environ, {'SCOPEHUB_FIXTURE_SOURCE_DRIFT': '1'}))
+                with self.subTest(field=field):
                     try:
-                        code, report = self.run_harness('--ci-windows-lane', 'python')
+                        with ExitStack() as stack:
+                            if field == 'project_unchanged':
+                                stack.enter_context(patch.object(harness, 'load_project',
+                                    side_effect=[loaded, project.ProjectError('observed final project read failure')]))
+                            else:
+                                stack.enter_context(patch.dict(os.environ, {'SCOPEHUB_FIXTURE_SOURCE_DRIFT': '1'}))
+                            code, report = self.run_harness('--ci-windows-lane', 'python')
                     finally:
                         original_file.write_bytes(original)
                     self.assertEqual((1, '2.0', 'failed'), (code, report['report_version'], report['status']))
