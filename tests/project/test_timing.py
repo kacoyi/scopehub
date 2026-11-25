@@ -393,6 +393,77 @@ class HostedTimingTests(unittest.TestCase):
         self.assertIsNone(observed['review_exclusion'])
         self.assertEqual([], view['input_issues'])
 
+    def test_split_producer_evidence_rejects_role_conflicts_and_keeps_complementary_jobs(self):
+        from copy import deepcopy
+
+        *siblings, aggregate = self.split_windows_jobs()
+        aggregate['steps'].append({'name': timing.WINDOWS_RECOVERY_MARKER, 'conclusion': 'success'})
+        aggregate['steps'] = [step for step in aggregate['steps'] if step['name'] != timing.WINDOWS_AGGREGATE_MARKER]
+        recovery_job = hosted_job(36, 'windows', '00:35', '05:05', 'Verify the Windows recovery lane', '02:00', '05:00')
+        recovery_job['name'] = 'Windows change checks (recovery)'
+        jobs = [*siblings, recovery_job, aggregate]
+        raw_run = hosted_run()
+        clock = timing.hosted_timing(raw_run, jobs)
+        identity = timing.ci_key(clock)
+        report = fast_report(20, 675)
+        ci = {**dict(zip(timing.ATTEMPT_IDENTITY, identity)), 'checkout_sha': 'a' * 40}
+        report.update(ci=ci, environment={'system': 'Windows', 'machine': 'AMD64'})
+        browser = {**timing.report_sample(report), 'profile': 'ci-windows-browser'}
+        recovery = {**browser, 'profile': 'ci-windows-recovery'}
+        samples = [browser, recovery]
+
+        swapped_jobs = deepcopy(jobs)
+        for job in swapped_jobs:
+            for old, new in [('core', 'recovery'), ('recovery', 'core')]:
+                if job['name'] == timing.WINDOWS_PRODUCERS[old]:
+                    job['name'] = timing.WINDOWS_PRODUCERS[new]
+                    job['steps'][0]['name'] = f'Verify the Windows {new} lane'
+                    break
+        swapped = timing.hosted_timing(raw_run, swapped_jobs)
+        for pair in ([clock, swapped], [swapped, clock]):
+            view = timing.timing_view(samples, hosted=pair)
+            self.assertTrue(all(row['seconds']['total'] is None for row in view['samples']))
+            self.assertEqual(['Conflicting complete attempt clocks.'], [issue['error'] for issue in view['input_issues']])
+
+        partial = [timing.hosted_timing(raw_run, [job for job in jobs if job['id'] != omitted]) for omitted in (33, 36)]
+        for pair in (partial, partial[::-1]):
+            view = timing.timing_view(samples, hosted=pair)
+            self.assertEqual([], view['input_issues'])
+            self.assertEqual([720, 305], [row['seconds']['total'] for row in view['samples']])
+            self.assertFalse(any(row['hosted_success_complete'] for row in view['samples']))
+            _, _, missing, complete, _ = timing.capture_observations(identity, samples, pair, [])
+            self.assertEqual({'Linux', 'Windows'}, missing)
+            self.assertFalse(complete)
+
+        invalid_id = deepcopy(clock)
+        next(row for row in invalid_id['sibling_jobs'] if row['job_id'] == '33')['job_id'] = None
+        incompatible = dict(browser, ci=dict(ci, checkout_sha='c' * 40))
+        for sample, observed in [(browser, invalid_id), (incompatible, clock)]:
+            with self.subTest(sample=sample['ci']['checkout_sha']):
+                row, = timing.timing_view([sample], hosted=[observed])['samples']
+                self.assertIsNone(row['job'])
+                self.assertIsNone(row['seconds']['total'])
+
+    def test_producer_cache_dispute_preserves_wall_objective_without_cache_cohort(self):
+        *siblings, aggregate = self.split_windows_jobs()
+        clock = timing.hosted_timing(hosted_run(), [*siblings, aggregate])
+        report = fast_report(20, 675)
+        report['selection']['profile'] = 'full'
+        report['environment']['system'] = 'Windows'
+        report['source']['sha256'] = 'c' * 64
+        report['ci'] = {**dict(zip(timing.ATTEMPT_IDENTITY, timing.ci_key(clock))), 'checkout_sha': 'a' * 40}
+        full = timing.report_sample(report, cache='warm')
+        browser = {**full, 'profile': 'ci-windows-browser', 'cache': 'partial'}
+        for observations in ([full, browser], [browser, full]):
+            view = timing.timing_view(observations, hosted=[clock])
+            protected, = [row for row in view['samples'] if row['profile'] == 'full']
+            self.assertEqual((765, 'unknown', True),
+                             (protected['seconds']['total'], protected['cache'], protected['cache_conflict']))
+            self.assertEqual([], view['reviews'])
+            self.assertEqual('full', view['objective_reviews'][0]['profile'])
+            issue, = view['input_issues']
+            self.assertEqual(timing.WINDOWS_PRODUCERS['browser'], issue['producer'])
+
     def test_scoped_windows_counts_launched_setup_siblings_and_uses_only_the_core_harness(self):
         run = dict(hosted_run(), event='push')
         result = timing.hosted_timing(run, self.split_windows_jobs(scoped=True))
@@ -1014,6 +1085,46 @@ class TimingRegressionTests(unittest.TestCase):
             bad_archive = root / 'bad.json'
             self.invoke_timing('--report', malformed, '--save', bad_archive, expected_exit=1)
             self.assertFalse(bad_archive.exists())
+
+    def test_cli_scope_validation_and_matching_compact_siblings(self):
+        report = fast_report(20, 500)
+        report['environment']['system'] = 'Windows'
+        report['ci'] = {
+            'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1', 'event': 'pull_request',
+            'head_sha': 'b' * 40, 'checkout_sha': 'a' * 40,
+        }
+        report['selection']['profile'] = 'ci-windows-core'
+        report['selection']['checks'].append('future-check')
+        report['checks'].append({'id': 'future-check', 'status': 'blocked', 'reason_code': 'not_implemented'})
+        sample = timing.report_sample(report, cache='partial')
+        self.assertFalse(sample['coverage_complete'])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw, compact = (root / name for name in ('test-report.json', timing.TIMING_FILE))
+            raw.write_bytes(timing.json_bytes(report))
+            compact.write_bytes(timing.json_bytes(sample))
+            for files in ((raw, compact), (compact, raw)):
+                view = self.invoke_timing('--report', files[0], '--report', files[1])
+                self.assertEqual(['partial'], [row['cache'] for row in view['samples']])
+                self.assertEqual([], view['input_issues'])
+            with patch.object(timing, 'local_paths', return_value=[raw]):
+                view = self.invoke_timing()
+                self.assertEqual(['partial'], [row['cache'] for row in view['samples']])
+                compact.write_bytes(timing.json_bytes(dict(sample, recorded_at='2026-11-21T00:10:00Z')))
+                view = self.invoke_timing()
+                self.assertEqual(['unknown'], [row['cache'] for row in view['samples']])
+                self.assertIn('does not match', view['input_issues'][0]['error'])
+
+            for profile in ('ci-windows-core ', 'ci-windows-unsupported'):
+                with self.subTest(profile=profile):
+                    report['selection']['profile'] = profile
+                    raw.write_bytes(timing.json_bytes(report))
+                    view = self.invoke_timing('--report', raw)
+                    self.assertEqual([], view['samples'])
+                    self.assertEqual(raw.name, view['input_issues'][0]['file'])
+            archive = Path('ci-pull_request-11-1.json')
+            self.assertFalse(timing.sample_belongs_to_capture(dict(sample, profile=None), archive))
+            self.assertTrue(timing.sample_belongs_to_capture(dict(sample, profile='records'), archive))
 
     def test_large_v1_manual_archive_preserves_observations_and_redacts_legacy_paths(self):
         sample = timing.report_sample(fast_report(19, 120))
