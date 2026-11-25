@@ -24065,7 +24065,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Reproduce the existing early closure versus the genuine reviewed source. Add the smallest ordinary acceptance check and retain its independent positive and negative controls for a new exact-source review.",
+      "next_action": "Reproduce the five independent findings, correct the existing acceptance flow, and hand off the clean task report and genuine final-response controls for review.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -24082,7 +24082,8 @@
         ],
         "hypotheses": [
           "The prior closure qualified engineering execution correctly. The missing link is independent review at task acceptance, so the same green report cannot qualify the new transition by itself.",
-          "Canonical task scope, feedback occurrence, Git changes and one retained decision can qualify the transition without granting authenticity to an untrusted transcript or requiring re-review of administrative receipts."
+          "Canonical task scope, feedback occurrence, Git changes and one retained decision can qualify the transition without granting authenticity to an untrusted transcript or requiring re-review of administrative receipts.",
+          "Use established permission and model recipient change types for initial review selection. Treat the final response as the sole decision subject, retain its stable identity and public projection digest, and separate trusted comparison history from candidate HEAD."
         ],
         "risks": [
           {
@@ -24101,6 +24102,13 @@
           },
           {
             "failure": "Review intake invents authenticity or requires private transcript bytes or a network lookup on ordinary project checks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A first authority change escapes review, an old or unrelated reply authorizes closure, or a claimed original remains attached to a changed public observation.",
             "checks": [
               "project-state",
               "python-contracts-workers"

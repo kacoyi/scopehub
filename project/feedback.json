@@ -6544,6 +6544,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "consequential-review-subject-order-and-basis",
+      "source": "Independent Astra Standard final response on 92d2183d9c1e88ff3873b036c024dacceefa5e3f. Retained final UTF-8 SHA-256 2038c618210fbd10bc508e27c028ce7c755dffc3f2b47f7e286df6075dc0ff53. Private package manifest SHA-256 b56b2275398655946a53e963f00f97336b2388613362ca5841299b5c07b30f25.",
+      "observation": "Activating the permission and recipient plan of M4-001 generated no obligation without manual selection. Actual approval records could approve mentioned pending M0-104 or M0-119, and an earlier approval survived a later assistant response without a verdict. Adding a newline let an old approval override a later rejection. A cold read accepted a changed public observation with the original digest held fixed. Shallow or missing protected history grandfathered candidate completion in the PR107 and M0-130 controls. Focused phases omitted the genuine 876-second observation and decision lookup.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M0-136"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
