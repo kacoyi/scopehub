@@ -25276,7 +25276,7 @@
         "python-contracts-workers"
       ],
       "evidence": [],
-      "next_action": "Decompose the original and renewed cohorts using original job and check clocks and exact source, then use the ordinary offline timing and affected maintenance entries to distinguish eligible growth, runner variation and any controllable work.",
+      "next_action": "M0-104 owns the next natural same-execution-tree control: retain a successful ordinary full warm Linux PR and a naturally available same-input run, preferably another PR or a protected push for diagnosis. Bind runner image, attempt and exact restored Cargo key, then align common Python test and named browser case clocks with the setup and harness steps. Repeat a short paired public-entry probe only for an identifiable repeat cost whose effect survives that control. Keep the accepted M0-143 reads and the independently owned Windows scheduling and deferred worker paths. Only three qualifying ordinary Linux PRs on an attributable correction can establish recovery.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -25294,7 +25294,8 @@
         "hypotheses": [
           "The median change can reflect runnable test growth and host variation. A Windows-only workflow or ACL change has no direct Linux timing effect.",
           "A faster single Linux observation can reduce the median temporarily without resolving sustained growth.",
-          "The three later successful full warm Linux PRs have identical named outcomes and show Python durations of 236.728, 196.162 and 150.093 seconds. Compare queue, setup, harness, tail and test composition before attributing the elapsed median increase."
+          "The three later successful full warm Linux PRs have identical named outcomes and show Python durations of 236.728, 196.162 and 150.093 seconds. Compare queue, setup, harness, tail and test composition before attributing the elapsed median increase.",
+          "The original-to-latest median harness step grew from 513 to 638 seconds. The recurring check work combines more named Python and Rust tests and broadly slower common Python, Rust and browser cases. The three latest Linux jobs had identical exact Cargo keys and runner image versions but different hosts and source trees. Those observations establish neither an isolated runner effect nor duplicate maintenance work."
         ],
         "risks": [
           {
@@ -25336,9 +25337,7 @@
             "No new timing gate, additional hosted dispatch, reduced coverage, synthetic timings or change to protected main or historical findings."
           ],
           "open_questions": [
-            "Which changed setup or named check contributes repeatable extra wall time on comparable runners?",
-            "How much of the renewed median difference is explained by runnable Python work, other named checks and runner variation across exact inputs?",
-            "Did any sample exercise M0-143's read reduction or M0-146's Windows-only scheduling work, and is a distinct Linux correction still attributable?"
+            "Does a natural same-execution-tree control with comparable runner image, selected outcomes and cache isolate a repeatable test, build or setup cost after matching the named work?"
           ]
         },
         "evolution": {
@@ -25349,7 +25348,7 @@
           "change": [
             "Remove only an attributed source of avoidable Linux verification time, then let the existing trend comparison govern recovery."
           ],
-          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified.",
+          "data_plan": "Reuse the original archived reports and automatic compact observations. Bind an independently reviewed correction by its real Git revision after the effect is identified. The renewed cohort, authenticated job clocks, original baselines and negative control resolve through archives/observations/repo-hygiene-20261125/m0-104-linux-warm-recurrence-b2b2b28/SHA256SUMS (SHA-256 75690780378a3c01cf975f7d5ccef6c1fd3e5b8945ddf1e74502a168ad836688).",
           "cleanup": "Use naturally occurring comparable PR evidence. Leave the finding pending when qualification or correction is unproven."
         }
       },
