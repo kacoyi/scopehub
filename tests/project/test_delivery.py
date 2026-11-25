@@ -57,7 +57,7 @@ class DeliveryTests(ProjectFixture):
                 self.assertEqual(1, error.code)
         return json.loads(out.getvalue())
 
-    def timing_review(self, clock):
+    def timing_review(self, clock, *, source=None):
         scopes = []
         for platform in ('Linux', 'Windows'):
             for event in ('pull_request', 'push'):
@@ -65,7 +65,8 @@ class DeliveryTests(ProjectFixture):
                 scopes.append({'repository': 'kacoyi/scopehub', 'event': event, 'profile': 'full',
                                'platform': platform, 'sample_count': 3, 'recent_runs': runs,
                                'recent_objective_breaches': 0})
-        source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
+        if source is None:
+            source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
         report = {'recent_collection': {'collected_at': clock, 'capture_source': source},
                   'objective_reviews': scopes, 'input_issues': [],
                   'budget_follow_up': {'repeated_breaches': [], 'sustained_growth': []}}
@@ -597,10 +598,11 @@ class DeliveryTests(ProjectFixture):
         feedback_path.write_bytes(json_bytes(feedback))
         self.review_hour = 13
         item = delivery['scaffold_maintenance']['periodic_reviews'][1]
-        self.add_periodic_record(item, self.timing_review('2026-11-25T11:00:00Z'), row['id'])
+        quiet = self.timing_review('2026-11-25T11:00:00Z')
+        self.add_periodic_record(item, quiet, row['id'])
         path.write_bytes(json_bytes(delivery))
         self.assertEqual('checks_needed', self.project_command('status')['periodic_reviews'][1]['state'])
-        adverse = self.timing_review('2026-11-25T12:00:00Z')
+        adverse = self.timing_review('2026-11-25T12:00:00Z', source=quiet['recent_collection']['capture_source'])
         adverse['objective_reviews'][0]['recent_objective_breaches'] = 2
         again = self.root / '.reports/adverse.json'
         again.write_bytes(json_bytes(adverse))
@@ -813,10 +815,10 @@ class DeliveryTests(ProjectFixture):
         raw = self.root / '.reports/timing-input.json'
         raw.parent.mkdir()
         timing = self.timing_review('2026-11-25T09:00:00Z')
-        timing['samples'] = [{'run_id': 'synthetic-local-fast', 'source_commit': base,
-                              'recorded_at': '2026-11-25T08:00:00Z', 'profile': 'fast',
-                              'report_status': 'passed', 'review_exclusion': None, 'working_tree_dirty': False,
-                              'seconds': {'harness': 13.0}, 'ci': None}]
+        timing['samples'].append({'run_id': 'synthetic-local-fast', 'source_commit': base,
+                                  'recorded_at': '2026-11-25T08:00:00Z', 'profile': 'fast',
+                                  'report_status': 'passed', 'review_exclusion': None, 'working_tree_dirty': False,
+                                  'seconds': {'harness': 13.0}, 'ci': None})
         raw.write_bytes(json_bytes(timing))
         supplement = self.root / '.reports/product-timing.json'
         supplement.write_bytes(json_bytes(product))
