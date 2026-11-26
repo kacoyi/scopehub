@@ -88,6 +88,26 @@
       "requested_at": "2026-11-26T03:00:25.952030+00:00",
       "request_id": "869cbce8113844e8eb03d344ef27abadf459fcc4c37b0919381c80fa7a58be2a",
       "evidence_sha256": "9d841535a95f97fa87aad698a7747a103632ddfc9b41c31554df3066764fb27b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "scope": "CHANGES_REQUESTED M0-146 6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "observation": "The candidate published a passing two-test aggregate after I removed one executed case from a legacy manifest whose original log still recorded all three tests across the two partitions.",
+      "reviewer": "Independent Astra Standard (t11v)",
+      "original_sha256": "89ff70f36607f2dbc7f48af3ad36382d43ed16696afbfda894200e6e7b144845",
+      "response_id": "5500dccf92e91cd51dae038bcd497b33297a79abd7f9cbc76ae86cbdacdf85dd",
+      "response_sha256": "9bc0c402630f4b5d57f486cd4a2847b937c712248957940db7bb9297ccfd0a37",
+      "legacy_response_sha256": "5519e7ad698cf28781e2ff18640ded8bac6dfae6f773bf5a3a22476105d5b6b9",
+      "observation_body_sha256": "9f41915e9908251d18d1a5cada4997acc29468b95f10f633a033120abddf24a4",
+      "event": {
+        "id": "msg_009ade1dfa287268016b07a6f7e93887d1b503b2b1f9b43ac7",
+        "timestamp": "2026-11-26T03:27:18.486Z"
+      },
+      "supersedes": "869cbce8113844e8eb03d344ef27abadf459fcc4c37b0919381c80fa7a58be2a",
+      "evidence_sha256": "d09728a07e1ce019a363d25febcb257a08062634ad0be43eaeda4d2339ae94b6"
     }
   ]
 }

@@ -88,6 +88,26 @@
       "requested_at": "2026-11-26T03:00:25.146804+00:00",
       "request_id": "b6dc11b8770cb252a926075a6e9fb814495da7c00a754a9491613709b87dd07c",
       "evidence_sha256": "054044bad5e4e22852af3ce6ca81bda67919fc98af35fa8b2d28b3b7b422a0cb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "scope": "CHANGES_REQUESTED M0-139 6f57130d70af1b971c1a268edb4065e5b7895c05",
+      "observation": "In read-only replay, the M0-139 receipt importer accepted a Windows pull-request report without either required Python part and accepted another report whose CI attempt disagreed with its run identifier.",
+      "reviewer": "Independent Astra Standard (t11t)",
+      "original_sha256": "69dd0ac1491d25f966859519b5e96509f0531da1e784259786d8fb5d62501a5f",
+      "response_id": "09ed0aecd290b1c246d773e3cbd79c87e787e7b5cba4fb62050711db0d5e197e",
+      "response_sha256": "ed4fd0d3b7e584e78a3f1e9d1410add19cefbf45ebe42fe2c44c49c686aa7ee4",
+      "legacy_response_sha256": "2431a4d209795bb967d9d971f21c281946cb8d8dc7e67b5f638445ef184b58ff",
+      "observation_body_sha256": "c1d56e3c439e089a2c7c639753ed9cde7b068dc1b21379ff67dd9d59a7b2b505",
+      "event": {
+        "id": "msg_064deebd9cc3ea35016b07a63f8a2c87d2974702e828793ee5",
+        "timestamp": "2026-11-26T03:24:01.166Z"
+      },
+      "supersedes": "b6dc11b8770cb252a926075a6e9fb814495da7c00a754a9491613709b87dd07c",
+      "evidence_sha256": "3a29f16bb0f04b3272329f0638a3b54eba47b25e058afb0f5066152457af9772"
     }
   ]
 }
