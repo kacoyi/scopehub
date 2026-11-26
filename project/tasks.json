@@ -26715,6 +26715,7 @@
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
         "Keep omitted or extra checks, unavailable catalogs, contradictory identities and mismatched substitute digests unqualified. Exercise the original present-preview case and the project entry that computes the same Git source identity.",
+        "Reject the null Git checkout identity through normal and weekly public timing readers, with and without proof, in full and shallow Git. Preserve the original clocks for a valid preview commit or a genuinely missing preview with digest-bound substitute inputs. Keep known non-commit checkout objects ineligible.",
         "Retain the original failing interpretation and the positive control. Verify the change through focused regression, normal task verification and source-bound independent review."
       ],
       "checks": [
@@ -26723,7 +26724,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Reproduce and correct the known non-commit checkout receipt under system Python, coordinate the publisher boundary with M0-150, and request independent weekly review of the exact correction.",
+      "next_action": "Hand the exact null-checkout correction and both public reader replays of run 45546767887 to the coordinator for combined M0-150, M0-155 and M0-156 independent review and native checks. Retain the 2026-11-28 scheduled observation as pending until it occurs.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26737,7 +26738,8 @@
           "scripts/project.py",
           "scripts/execution_inputs.py",
           "tests/project/test_timing.py",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-148-57f1c772/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-e6e5a46d/final-response.txt"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job."
@@ -26758,6 +26760,13 @@
           },
           {
             "failure": "A known Git tree can be mistaken for an unavailable checkout and accepted by historical publisher fallback. Require rejection in the weekly public entry while preserving the proven substitute-tree path for the original checkout. Coordinate this publisher boundary with M0-150.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Git reports a null checkout name as missing even though it cannot identify a checkout. Exercise both public readers on the original Actions attempt with and without proof, in full and shallow Git, and preserve the genuine missing preview and its matching head or proof tree. Reuse the repository Git identity validation before historical publisher fallback and carry it into M0-150.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -26799,7 +26808,8 @@
             "Stable execution input digests, public project and timing commands, existing capture files and the routine weekly interpreter."
           ],
           "change": [
-            "Make the historical substitute verification available in the declared weekly environment."
+            "Make the historical substitute verification available in the declared weekly environment.",
+            "Reject the Git null sentinel as a timing identity before publisher fallback or timing attribution."
           ],
           "data_plan": "Use the retained real run and the existing committed-tree fingerprint format. Compare old and new identity results on supported inputs.",
           "cleanup": "Share the authoritative identity calculation and remove redundant imports and transitional code after both call sites pass."
