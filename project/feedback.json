@@ -7,8 +7,12 @@
       "observation": "While holding a drag from before the first quote, the historical 09:40 wick stayed at x=519.5 on append, then jumped to x=378.5 on the next +6 px move instead of x=525.5. The SDK keeps a scroll-start offset based on the old time-scale base index. At the left limit the reviewer also observed an immediate one-bar shift on the first append. The original task check started holding the drag after the append.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-031"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-031"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The SDK updates its base index when the first replay bar appears, while an active scroll retains its captured offset relative to the old base. The first append may also clamp the previously valid left limit before compensating for the new base.",
         "correction": "On explicit Start, reserve the single replay time with an invisible axis-only series and reapply the existing logical range. The first admitted quote fills that slot without advancing the base index. Reset clears the slot and restores the frozen series.",
@@ -3923,8 +3927,12 @@
       "observation": "The v2 permission procedure replaces explicit v1 denial paths with a generic protected-resource observation. Direct application SQLite and saved-credential checks can be omitted while reporting the generic observation, and v1 requires independent evidence per denied path.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-028"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M2-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The generic v2 permission trial dropped the original list of individually observed denial paths.",
         "correction": "The effective specification lists four denied paths and binds each to a synthetic control, an independent observation and zero unauthorized outcomes.",
@@ -3938,8 +3946,12 @@
       "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery. The re-review added ProcessFailed to the shared required observations at d4cea0d. All five specification tests still passed because the checks required minimum evidence without excluding WebView2-specific observations from the requirements effective for other runtimes.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-028"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M2-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "A WebView2-specific signal was required of all Windows runtimes. The initial correction checked only minimum lists.",
         "correction": "WebView2 candidates retain reuse and ProcessFailed evidence. A different native runtime proves its own identity and loss signal alongside the shared Rust, exit and recovery observations.",
@@ -3953,8 +3965,12 @@
       "observation": "The cold-restore procedure checks the revoked case but gives the granted reopen no required positive data value, source locator or saved selection outcome. An empty restored canvas could satisfy the listed observations.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-028"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M2-028"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The granted cold-reopen procedure could restore an empty presentation while satisfying all listed outcomes.",
         "correction": "The granted native trial now requires the event-0910 row, its 25 basis-point value and its saved selection. The revoked trial starts with the old cache and requires zero protected reads and frames.",
@@ -4032,8 +4048,12 @@
       "observation": "The chart-only synthetic equity composition displayed the legacy futures source disclosure above its candlesticks. The host painted the expected annotations on the timeframe switch and restored the view after rejecting an unknown source.",
       "severity": "minor",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The canvas displayed its original synthetic futures source independently of which blocks were visible.",
         "correction": "The canvas discloses the futures source for the tile and table blocks and each candlestick discloses its synthetic equity binding.",
@@ -4047,8 +4067,12 @@
       "observation": "The reviewer accepted a candlestick showing the 15-minute 09:30 UTC result at 4.7%, previewed an empty composition, then rejected a grant-mismatched draft. Restore returned the original author text but switched the chart to the 5-minute 09:40 UTC result at 3.2%. The focused Chromium regression reproduced the reset of the 15-minute control after the chart was removed.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The chart component owned the selected timeframe and lost it when an empty draft unmounted the accepted chart.",
         "correction": "The workbench retains the accepted block timeframes with their validated definitions and original authored text. Preview changes stay with the draft.",
@@ -4062,8 +4086,12 @@
       "observation": "Appending an identical candlestick definition changes the existing 15-minute chart and the new chart to five minutes. Changing only the accepted annotation threshold from 0.8 to 0.85 silently replaces the 09:30 UTC result at 4.7% with the five-minute 09:40 UTC result at 3.2%. The native review confirmed that accepting the scoped edit retains the wrong result. The coordinator also identified in-place edits to the plotted or condition field of a sole chart as same-source binding changes that must preserve its timeframe.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "resolution": {
         "cause": "The preview reconciled blocks using their complete binding and required a unique match. A scoped edit or duplicate could reset an existing block.",
         "correction": "Reconcile the transient instances by source, unchanged bindings and their occurrences. Preserve a single remaining same-source field edit and give a new instance its own timeframe.",
@@ -4077,8 +4105,12 @@
       "observation": "All five Chromium cases passed and the native executable built. The WebView2 probe stopped at tests/ui/renderer-probe-windows.ps1:49 when GetCurrentPattern(InvokePattern) returned Unsupported Pattern for a button. The log did not identify the requested control or list its patterns. A timeframe button exposing TogglePattern is a hypothesis.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M2-029"],
-      "regression_checks": ["renderer-prototype-interaction"],
+      "task_ids": [
+        "M2-029"
+      ],
+      "regression_checks": [
+        "renderer-prototype-interaction"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T091241.788693Z-00666947",
@@ -4156,8 +4188,12 @@
       "observation": "The CSV reader preserves distinct raw headers Close and Close followed by 1020 spaces, with respective values 101 and 202. Both match the draft's close alias after trimming. The editor discards the overlength name before counting candidates and silently binds Close, selecting 101 without an ambiguity warning.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M1-037"],
-      "regression_checks": ["local-import-publication"],
+      "task_ids": [
+        "M1-037"
+      ],
+      "regression_checks": [
+        "local-import-publication"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T111043.682851Z-363ffbde",
@@ -4468,13 +4504,19 @@
       "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M4-016"],
-      "regression_checks": ["model-connection-workflow"],
-      "diagnostic_reports": [{
-        "run_id": "20261124T111053.555558Z-28236d9b",
-        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
-        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
-      }],
+      "task_ids": [
+        "M4-016"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111053.555558Z-28236d9b",
+          "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+          "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+        }
+      ],
       "resolution": {
         "cause": "Citation navigation checked the new workspace snapshot while the composer continued to use the opening selection.",
         "correction": "Use the existing citation snapshot to invalidate only a composer binding superseded by same-workspace selection authority. Keep the draft and retain newer valid selections.",
@@ -4488,13 +4530,19 @@
       "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The browser reproduction lost focus and moved the transcript scroll offset from 20 to 689 pixels after only a local snapshot read.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M4-016"],
-      "regression_checks": ["model-connection-workflow"],
-      "diagnostic_reports": [{
-        "run_id": "20261124T111053.555558Z-28236d9b",
-        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
-        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
-      }],
+      "task_ids": [
+        "M4-016"
+      ],
+      "regression_checks": [
+        "model-connection-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261124T111053.555558Z-28236d9b",
+          "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+          "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+        }
+      ],
       "resolution": {
         "cause": "The return flag drove both reopening focus and ordinary transcript scrolling. Rejection changed the flag while the same citation remained open.",
         "correction": "Keep focus and scroll in the evidence reading state after a rejection. A deliberate submit clears that state so ordinary follow-up behavior resumes.",
@@ -4572,8 +4620,12 @@
       "observation": "After a successful synthetic folder picker reply from the ordinary Data sources panel, the source workflow timed out at tests/ui/local-import.spec.mjs:419. The first page-wide exact Local CSV match resolved to a hidden h3 on 14 polls. The chart keeps its panel mounted while CSV review is active, and the import header uses the same text. The retrieved and archived artifacts contain the verification log but lack the local-import screenshot and trace listed in it. Two local repetitions on df99e89 first verified the visible import region and the retained hidden heading, then failed at the original locator. The failure screenshot shows equities/daily.csv in the visible editor. The browser report, screenshots and traces remain under .reports/m1-038-red/ (browser-results.json SHA-256 20e5b3ad323f0041973de5460fcf91ac90836027410eb72e7fa07e6c807cd536).",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M1-038"],
-      "regression_checks": ["local-import-ui"],
+      "task_ids": [
+        "M1-038"
+      ],
+      "regression_checks": [
+        "local-import-ui"
+      ],
       "diagnostic_reports": [
         {
           "run_id": "20261124T122836.056903Z-08468273",
@@ -6085,8 +6137,12 @@
       "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The authenticated ref reads and GitHub's branch resolution are separate operations.",
         "correction": "Include the expected head and base in the request. Gate the matrix on the event commit and a fresh protected base observation, then pin checkout and evidence to the expected head.",
@@ -6100,8 +6156,12 @@
       "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "Membership in the task ledger did not attribute the changes in an explicit stack.",
         "correction": "Require scoped changes and a distinct committed task definition or a legitimate declared dependency.",
@@ -6115,8 +6175,12 @@
       "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The CLI treated a lost POST response as ordinary failure and discarded response details.",
         "correction": "Expose an unknown outcome and a correlation ID without retrying. Retain the returned run ID and isolate guarded dispatch concurrency.",
@@ -6130,8 +6194,12 @@
       "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "Shared scope and an older completed declaration could attribute unrelated changes to a stack.",
         "correction": "Require a supplementary receipt for an already completed dependency and check that it covers the proposed source.",
@@ -6145,8 +6213,12 @@
       "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "A receipt file digest authenticated its bytes without recomputing its recorded source from Git.",
         "correction": "Recompute the execution-input digest and file count from the receipt's own commit and historical snapshot rules.",
@@ -6160,8 +6232,12 @@
       "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-106"],
-      "regression_checks": ["python-contracts-workers"],
+      "task_ids": [
+        "M0-106"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The dependency preflight treated a cancelled record as unfinished.",
         "correction": "Reject cancelled dependencies on the protected base or the proposed base.",
@@ -6265,8 +6341,13 @@
       "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-115"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-115"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
         "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
@@ -6280,8 +6361,13 @@
       "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-115"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-115"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
         "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
@@ -6295,8 +6381,13 @@
       "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-116"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-116"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
         "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
@@ -6310,8 +6401,13 @@
       "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": ["M0-117"],
-      "regression_checks": ["project-state", "python-contracts-workers"],
+      "task_ids": [
+        "M0-117"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
       "resolution": {
         "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
         "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
@@ -7513,7 +7609,7 @@
         }
       ],
       "resolution": {
-        "cause": "The interpreter-path fixture replaced the process module\u2019s runtime namespace with a stub lacking the platform read by process containment before launch. Both the redirector and normal case errored before checking identity.",
+        "cause": "The interpreter-path fixture replaced the process module’s runtime namespace with a stub lacking the platform read by process containment before launch. Both the redirector and normal case errored before checking identity.",
         "correction": "Preserve the actual runtime platform in the two controlled interpreter configurations and let the existing gate-launch test exercise its process identity and containment assertions.",
         "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
       },
@@ -7737,6 +7833,22 @@
         "correction": "Propagate the pinned interpreter through read-only source navigation so the owner terms can be read in the same environment.",
         "prevention": "Execute the emitted source commands in an unwritable-cache checkout. The independent successor followed the read-only route and recovered both owner outcomes."
       },
+      "deferral_reason": null
+    },
+    {
+      "id": "ordinary-next-action-selects-unrelated-feature-during-maintenance",
+      "status": "open",
+      "severity": "major",
+      "source": "Observed on ff6c880b289b18e3e58d667dcb5b76c7f12fe053. archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/rule-effects-main-ff6c880b.json (SHA-256 10c6688525ca8763b09a223b721970b87a0ff84e914100475a684b1826a7a764).",
+      "observation": "On ff6c880b the ordinary public overview reported two open maintenance workstreams but selected the planned M2-003 renderer as its next command. Following the separate handoff command recovered both accepted mandates and their stop terms.",
+      "task_ids": [
+        "M0-161"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
       "deferral_reason": null
     }
   ]
