@@ -300,6 +300,26 @@
       "requested_at": "2026-11-26T14:16:58.065812+00:00",
       "request_id": "3e8b9846ee1a77dd0469247d23177f790b57987fe1d99b921c312cd01ee62981",
       "evidence_sha256": "ada77a3cb88035c64519d4a2e258eb6857fc423cd64065629da2d91c0af0b389"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "scope": "APPROVE M0-146 15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "observation": "The merged verifier published, imported and reopened both genuine current outcomes, and rejected a pass/skip swap that preserved case names, durations and totals.",
+      "reviewer": "Independent Astra Standard (t18b)",
+      "original_sha256": "9ccd19fe175b07bffc35e1679889b46a93d01bfe9218287387bdfb7ef85049c2",
+      "response_id": "bd171f5cae20106208af764acc9a886e0dad738ead45812f78e0d30a398e45f9",
+      "response_sha256": "30c673576cfe994129fd9880bf39514b51254e9472658b9c9616c42a9837e538",
+      "legacy_response_sha256": "de025a60b8113762e0d981c334d54377875b57f7649e96ac9438d0aeda075a55",
+      "observation_body_sha256": "ce2ea215ec2a14a5e2de96925b6398908aa8efef19d788726041f81a9fd2489f",
+      "event": {
+        "id": "msg_04d8fed258ce8911016b0842119f5c87d2844c78a052b55df3",
+        "timestamp": "2026-11-26T14:28:58.917Z"
+      },
+      "supersedes": "3e8b9846ee1a77dd0469247d23177f790b57987fe1d99b921c312cd01ee62981",
+      "evidence_sha256": "b48ae07361a388ce99f6b188194ea1733fadb48dad9bcdedde6a6d418db41df1"
     }
   ]
 }

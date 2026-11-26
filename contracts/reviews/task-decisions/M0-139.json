@@ -300,6 +300,26 @@
       "requested_at": "2026-11-26T14:16:57.502121+00:00",
       "request_id": "2469049455b82d0c6715270727f0b94b5a2fec7776be7a56ad7040b7e52891e1",
       "evidence_sha256": "0e0b5e766832216f32419f7a10349b98dc067e4ed28564c74017aa81c68889af"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "scope": "APPROVE M0-139 15a5553c1b649d70390e65f04e0b5e2d883f4382",
+      "observation": "With both matching Python parts intact, the public importer rejected the two required check logs from the previous attempt and reopened the same receipt after the matching logs were restored.",
+      "reviewer": "Independent Astra Standard (t18c)",
+      "original_sha256": "67cf7a0be1d9fcabaeb3730c875412e4ceb61ad82b26b971a1cd8aa181ad3d3d",
+      "response_id": "6f10c3d3f78c8b55950a36e20aba2bbca8add24518ac04b9ddd8eaca7b9dd427",
+      "response_sha256": "9ee4062a4d37cb27339732aa8321560472fb60a8e1866e1b4b552c407f33fee1",
+      "legacy_response_sha256": "8c8c68687982ce20db4493e3d2fc8d41235d107b611d3f120a68e8b58a334e35",
+      "observation_body_sha256": "343d0f623dd96cd0235d2d0d535e212dcd536b9ec1cbe2a7ec28ce30fbb018be",
+      "event": {
+        "id": "msg_0d717316f154dba1016b0840da344487d2aa332a9c9a9b2b2a",
+        "timestamp": "2026-11-26T14:23:44.531Z"
+      },
+      "supersedes": "2469049455b82d0c6715270727f0b94b5a2fec7776be7a56ad7040b7e52891e1",
+      "evidence_sha256": "cd6e99067a32da8999df85c8381710b13eb34cf4854d38ca66a0e1df1616911e"
     }
   ]
 }
