@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T04:24:23.149098+00:00",
       "request_id": "653c3314abd24df6ac18e41db9530e897d32df5b0ec27678dbd040e645d2470f",
       "evidence_sha256": "b47f35658969132048964fa94114d22e91971f849a9ebae25e9f09e6bad29e78"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "scope": "CHANGES_REQUESTED M0-154 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c",
+      "observation": "In my in-memory replay, the startup attachment reported `sample-verified` while the chart displayed its rendering error and drew no candles.",
+      "reviewer": "Independent Astra Standard (t133)",
+      "original_sha256": "914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8",
+      "response_id": "3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad",
+      "response_sha256": "57f06f9d1ec41ff79b71cf1e21854eab29a7dd7b7cca558056f7cf58f2dee9fa",
+      "legacy_response_sha256": "d0e391cbbede106d3ce1db23cbe0e80cd551e7725f6632b046d14ebc7d892d45",
+      "observation_body_sha256": "6db487f7cd2fad7c154320c752cf8c33a58e6c50c2a575d5ebd5cac712cdcdb3",
+      "event": {
+        "id": "msg_055844c5f0e46150016b07bb0f61cc87d19adeea64e89d6031",
+        "timestamp": "2026-11-26T04:52:52.923Z"
+      },
+      "supersedes": "653c3314abd24df6ac18e41db9530e897d32df5b0ec27678dbd040e645d2470f",
+      "evidence_sha256": "75f39f6d170909ebe510c43f8079748f6df8d417d673edd4ce626bcdef4f8d8c"
     }
   ]
 }
