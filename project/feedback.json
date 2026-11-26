@@ -8181,6 +8181,91 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "retained-workflow-failure-lost-after-timing-rotation",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-133 at c6c3588faed061d7cd7f94d6410c32173ccc2cd7: archives/observations/repo-hygiene-20261125/independent-final-m0-133-c6c3588f/final-response.txt (SHA-256 af060da34f3f82dde2dd0abb701ad597d1889fdf0cc73a7ccbcd1ffd3a9b2c79). Also independently reproduced by M0-155 at c6c3588faed061d7cd7f94d6410c32173ccc2cd7: archives/observations/repo-hygiene-20261125/independent-final-m0-155-c6c3588f/final-response.txt (SHA-256 6eebde5bce6ed721c2a2be0908206ec7fea1bab97f439862a06f54143ce47962). Authentic failure capture under archives/observations/repo-hygiene-20261125/timing-inputs-before-m0-133-retention-fix-6cf0d0d/shared/.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "observation": "Twelve later captures displaced the separately retained failure of push run 45565130414 attempt 1. Ordinary review, save and cold reopen accepted a controlled stale success clock with 889 seconds of Windows wall time and 2578 runner-seconds. The budget reader honored the failure. An equivalent controlled failure for the originally eligible PR 84 run 45546767887 attempt 1 also exposed restored platform eligibility.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "incomplete-retained-timing-read-restores-eligible-platform",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-155 at c6c3588faed061d7cd7f94d6410c32173ccc2cd7: archives/observations/repo-hygiene-20261125/independent-final-m0-155-c6c3588f/final-response.txt (SHA-256 6eebde5bce6ed721c2a2be0908206ec7fea1bab97f439862a06f54143ce47962).",
+      "task_ids": [
+        "M0-155"
+      ],
+      "observation": "After rotation, the ordinary and linked-budget readers reported failure to open the 33154-byte checkout conflict for PR 84 run 45546767887 attempt 1 but counted saved 804-second Windows wall time and 2467 runner-seconds. Four bounded review inputs left 1024 bytes available. A corrupt or oversized exact capture also restored the old result, while removing one filler let the reader apply the checkout conflict.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "recent-timing-capture-accepts-another-run-identity",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-155 at c6c3588faed061d7cd7f94d6410c32173ccc2cd7: archives/observations/repo-hygiene-20261125/independent-final-m0-155-c6c3588f/final-response.txt (SHA-256 6eebde5bce6ed721c2a2be0908206ec7fea1bab97f439862a06f54143ce47962).",
+      "task_ids": [
+        "M0-155"
+      ],
+      "observation": "The two timing readers let a retained checkout-conflict record for PR 84 run 45546767887 attempt 1 inside the capture named for 45546767886 invalidate the genuine PR 84 platform clock. Rotation of the incorrectly named file restored the valid attribution.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "duplicate-timing-job-id-conceals-producer-role-dispute",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-131 at c6c3588faed061d7cd7f94d6410c32173ccc2cd7: archives/observations/repo-hygiene-20261125/independent-final-m0-131-c6c3588f/final-response.txt (SHA-256 11e4db9a6b9d5b57965f7706a74c5c752275aa34b5cff09f95118170e38e2ba1).",
+      "task_ids": [
+        "M0-155"
+      ],
+      "observation": "A controlled recovery role for the real PR 84 browser job 138978153110 in run 45546767887 attempt 1 kept the 804-second Windows wall clock but withdrew both producer durations and runner total when the claims arrived in separate lists. Putting the same claims in one job list restored browser 645, recovery 321 and runner 2467 after rotation in either order. Repeating the genuine browser row alone preserved valid timing.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "weekly-timing-accepts-tree-as-observed-checkout",
+      "status": "open",
+      "severity": "major",
+      "source": "M0-156 at c6c3588faed061d7cd7f94d6410c32173ccc2cd7: archives/observations/repo-hygiene-20261125/independent-final-m0-156-c6c3588f/final-response.txt (SHA-256 4696a6e93016da00341a0feddbcf05af1dea6d1faf516a46718e819d1a2d1e08).",
+      "task_ids": [
+        "M0-156"
+      ],
+      "observation": "The system-Python weekly reader issued a full Windows receipt with 804 wall seconds and 2467 runner-seconds for run 45546767887 after source_commit, ci.checkout_sha and generated_contracts.checkout were set to known Git tree 00f03018a461872ee99593a6d5a1b354d2899986. The positive unavailable-preview and unavailable-head fallback retained the original checkout identity.",
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

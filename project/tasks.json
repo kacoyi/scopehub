@@ -26594,7 +26594,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Compare the retained red and corrected public replay and submit the exact source for independent review. Keep all earlier timing task evidence intact and the inherited prospective review gates explicit.",
+      "next_action": "Replay the retained source-bound timing rejections through the ordinary and linked budget readers, compare the corrected results, and request independent review of the exact correction. Keep the prior timing evidence and the first scheduled weekly review due on 2026-11-28 distinct.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26622,6 +26622,34 @@
           {
             "failure": "Overbroad invalidation removes independent clocks or blocks unrelated captures. Check unaffected timing, honest partial evidence, bounded reads and existing archive bytes.",
             "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Ordinary and budget reads diverge after an authenticated failure sidecar rotates out. Verify the real failed attempt and the eligible PR control before and after rotation, on save and cold reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Unreadable exact capture may make prior hosted measurements unsupported. Check the remaining-byte, corrupt and oversized cases, a readable dispute, unrelated attempts and cold archive reopening.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "An identically timed claim filed under a different event, run or attempt can contaminate a valid attempt. Validate the capture filename boundary in each reader with matched and mismatched controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Filtering duplicate IDs before role reconciliation can hide adverse evidence. Verify same-list and split-list role disputes, both input orders and identical duplicate control, preserving independent wall time.",
+            "checks": [
+              "project-state",
               "python-contracts-workers"
             ]
           }
@@ -26695,7 +26723,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Independently review the standard-library execution-input boundary and its real weekly replay before accepting the correction.",
+      "next_action": "Reproduce and correct the known non-commit checkout receipt under system Python, coordinate the publisher boundary with M0-150, and request independent weekly review of the exact correction.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26725,6 +26753,13 @@
           {
             "failure": "Moving fingerprint code changes existing execution identities or loads new development dependencies into the weekly process. Compare actual Git object inputs, stored digests and both entrypoints.",
             "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A known Git tree can be mistaken for an unavailable checkout and accepted by historical publisher fallback. Require rejection in the weekly public entry while preserving the proven substitute-tree path for the original checkout. Coordinate this publisher boundary with M0-150.",
+            "checks": [
+              "project-state",
               "python-contracts-workers"
             ]
           }
