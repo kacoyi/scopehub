@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T02:45:06.890220+00:00",
       "request_id": "cf53d1c0a5ef1624fd8144784bd5f67df9bdac7e0e32c4504c4931e00f48d9eb",
       "evidence_sha256": "529d0b8aa215ce39365f3702be98a7796e355ce86a66e0ae40328e7d6f884067"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "APPROVE M2-039 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "observation": "In all five forced-overlap browser traces from the reviewed commit, I verified one committed peer deletion, a distinct note fallback snapshot, and exactly one trailing workspace focus confirmation.",
+      "reviewer": "Independent Astra Standard (t11p)",
+      "original_sha256": "dbbf68528db15ee3790c6058901e4b4fc87c473df75f6315756a4992382433cf",
+      "response_id": "5bfd581bb374f72312d2335de22b5e1b343b8f10d2647dcb95f802bfc3045190",
+      "response_sha256": "9cba42e1b63c999992d20d2f75f1c99d487675791bb67967f50a4750c7a68fc2",
+      "legacy_response_sha256": "9c3c0e4680050b8fcdf7bf8df89e2187ae8622212e202a3db611e20b6ba2277b",
+      "observation_body_sha256": "ee43cd34566ab206f6278451dda5a086b8dd905070dcd3394da12a6b0adea1a5",
+      "event": {
+        "id": "msg_0005c9684608cefa016b07a2567e4887d2b61abf172559e27f",
+        "timestamp": "2026-11-26T03:07:18.193Z"
+      },
+      "supersedes": "cf53d1c0a5ef1624fd8144784bd5f67df9bdac7e0e32c4504c4931e00f48d9eb",
+      "evidence_sha256": "33d299bb0e07299d724df3d3f23beef3da53f2d03b234a60edb402a865afe2e2"
     }
   ]
 }

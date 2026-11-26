@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T02:45:05.060676+00:00",
       "request_id": "be1686e68b3b878710a7c958b297160b1cf902c314c96cd614e42420148ec399",
       "evidence_sha256": "3609794bbe40acd476594d9e1eaf5c64f0f3abc8de46ca3e3019f1d98001b49c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "APPROVE M2-034 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "observation": "Two access refreshes and one focus event queued behind a held layout produced one snapshot, and its late revision 6 reply could not overwrite the revoked revision 7 returned by manual reload.",
+      "reviewer": "Independent Astra Standard (t11m)",
+      "original_sha256": "d28fdfb8805ffff38bc893dfbc86d919dde1c278e569453d3e8fe374fc5e2310",
+      "response_id": "bdd352bf00f02b2b516eb2d3533b454072005afcbe9febb4aa41fba414edcc49",
+      "response_sha256": "ec7e4189452973e0b58c323656bc6e4ee32d473428b78701ed56407c95b1755e",
+      "legacy_response_sha256": "612d37bfbb7080f64e50756ba38cf46b11d029b8c59d8ddeb7293d69abeb229d",
+      "observation_body_sha256": "c4b4052d3b9218c1704cd28a73f58e70e89769cad87134a98c6b01c1e3bba881",
+      "event": {
+        "id": "msg_0a94d92705f7db9e016b07a1ce7fa887d2aeace126a8ba2320",
+        "timestamp": "2026-11-26T03:05:00.865Z"
+      },
+      "supersedes": "be1686e68b3b878710a7c958b297160b1cf902c314c96cd614e42420148ec399",
+      "evidence_sha256": "a63b6c939de10bc591059e68035bd0c0a157ca481e93d69ee752f66b1b1e8bfe"
     }
   ]
 }

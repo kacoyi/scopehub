@@ -59,6 +59,26 @@
       "requested_at": "2026-11-26T02:45:05.981627+00:00",
       "request_id": "4a915978c154d442649a887670cf68638ee99b5691a74b77f4a0d9471929ce77",
       "evidence_sha256": "921379bc53778e5316f9f30073c3871943151ca574bc5767e4ef5265f7d1f4ca"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "CHANGES_REQUESTED M2-035 a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "observation": "After a source-row read returned `SNAPSHOT_UNAVAILABLE`, both CSV and folder retries issued zero status reads and kept the revision hidden for the rest of the session.",
+      "reviewer": "Independent Astra Standard (t11n)",
+      "original_sha256": "2ebb6aa7e8c1de622a4e9217844418e674d80263940bedaf80fe6d2f08af6924",
+      "response_id": "76e1e91374ac836779495e27d5cda73a9e989ee1038b3418ade84f0cc2924e28",
+      "response_sha256": "ecbec00a0331c9227853ab4ff571528c094c4609486e018b9d6e050cfb22bc19",
+      "legacy_response_sha256": "b22afd5cfb7227a8cfbd53f840251d00b0a3ccb03b4528b3e9c37fa4a026af2f",
+      "observation_body_sha256": "0b3a2b321ec30f6314b4aaac243f20628245f5d8245ccdebccc2af478df8b497",
+      "event": {
+        "id": "msg_0296850e7527c18a016b07a27995c887d2b08da48e74a997d8",
+        "timestamp": "2026-11-26T03:07:52.731Z"
+      },
+      "supersedes": "4a915978c154d442649a887670cf68638ee99b5691a74b77f4a0d9471929ce77",
+      "evidence_sha256": "cec3dce1923e78628144e9c37761c2c7fdf2095b042b460836bfb93e86fd14c0"
     }
   ]
 }
