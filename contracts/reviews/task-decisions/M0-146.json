@@ -137,6 +137,15 @@
       },
       "supersedes": "b5fe41be658cf661f864c09fce25f290876076cc8598ac3c0055f83a4c13ce9e",
       "evidence_sha256": "cca2cbabe1f0b50720de797ed9fb03bbcf2f0d505fe8552a855fc55793b84944"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ba27e2478d6bdbfe7736ac0f390b640f8a7fb9a4",
+      "scope": "Exercise genuine historical and current two-part outputs at import, publication and reopen. Hold names, counts and totals constant while changing per-case skip/pass outcomes in the derived document or the part attempt of one original. Check predecessor stderr, interrupted publication and valid compatibility controls. Derive results independently from the original producers and keep warm native timing distinct.",
+      "supersedes": "56fc37cf49f8aaec6cd0e8b37fe09d354f70f30cf2aff0b5221e1d08d4ce7500",
+      "requested_at": "2026-11-26T04:33:39.859204+00:00",
+      "request_id": "14980db4a1bd11b6dc75a75e41268e39b14f55780583c3985fa21d1ccc3cb312",
+      "evidence_sha256": "a16ad702486356c120d6e0197ed08efda646b7787a229b89e274be1f9c30c960"
     }
   ]
 }
