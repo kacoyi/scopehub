@@ -1,6 +1,14 @@
+import { execFile } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { buildPreview, seedDisplayOnlyChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
+import { buildPreview, seedDisplayOnlyChart, seedPublishedChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
+import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { control, leaveSample } from './workspace-controls.mjs';
 
 const workspaceId = 'main';
@@ -540,5 +548,140 @@ test('native text setup retries a held writer and sends only on explicit submiss
     });
   } finally {
     releaseSnapshot.resolve();
+  }
+});
+
+test('native indicator status retries only a proven writer refusal', async ({ browser, baseURL }, testInfo) => {
+  test.setTimeout(180_000);
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const binary = join(repository, 'target/debug/examples',
+    process.platform === 'win32' ? 'local_import_bridge.exe' : 'local_import_bridge');
+  await promisify(execFile)('cargo', ['build', '--locked', '-p', 'scopehub-desktop', '--example', 'local_import_bridge',
+    '--features', 'portable-test-bridge', '--target-dir', 'target'], {
+    cwd: repository, env: { ...process.env, CARGO_BUILD_JOBS: '2' }, timeout: 120_000,
+  });
+  const temp = await mkdtemp(join(tmpdir(), 'scopehub-native-indicator-'));
+  const app = join(temp, 'app');
+  const revision = randomUUID();
+  const prices = [80, 80, 80].map((close, index) => {
+    const time = Date.UTC(2026, 1, 3 + index);
+    return { time_ms: time, trading_day: new Date(time).toISOString().slice(0, 10),
+      open: close, high: close, low: close, close, volume: 10, is_closed: true };
+  });
+  const experiments = [];
+  let storageBusy;
+  let bridge;
+  try {
+    bridge = startLocalImportBridge(binary, app, temp, { workspace: true });
+    expect((await bridge.request('execute_operation', { operation: null, payload: { type: 'snapshot' } })).result)
+      .toMatchObject({ workspace: { id: 'main', revision: 0 } });
+    await bridge.close();
+    bridge = undefined;
+    seedPublishedChart(join(app, 'workspace-dev', 'workspace.sqlite3'), revision, prices);
+    bridge = startLocalImportBridge(binary, app, temp, { workspace: true });
+    const snapshot = { operation: null, payload: { type: 'snapshot' } };
+    const opened = await bridge.request('execute_operation', snapshot);
+    expect(opened.result.workspace.revision).toBe(0);
+    // A distinct SQLite writer is held after the native lane has opened.
+    // Observe the actual application error, then reuse its bytes at the
+    // admitted status response boundary without changing SQLite's mode.
+    const lock = new DatabaseSync(join(app, 'workspace-dev', 'workspace.sqlite3'));
+    try {
+      lock.exec('BEGIN IMMEDIATE');
+      const contention = await bridge.request('execute_operation', {
+        operation: null,
+        payload: { type: 'workspace_source', request_id: randomUUID(),
+          expected_selection_revision: 0, source: { kind: 'none' } },
+      });
+      expect(contention).toEqual({ error: {
+        code: 'BUSY', retryable: true, message: 'The market worker is busy.', details: {},
+      } });
+      storageBusy = contention.error;
+    } finally {
+      lock.close();
+    }
+    expect(await bridge.request('execute_operation', snapshot)).toEqual(opened);
+    const { details, ...legacyBusy } = storageBusy;
+
+    for (const trial of [
+      { name: 'proven refusal', details: { workspace_admission: 'refused' }, retry: true },
+      { name: 'admitted BUSY', details: {} },
+      { name: 'older unclassified BUSY' },
+      { name: 'nonretryable refusal shape', details: { workspace_admission: 'refused' }, retryable: false },
+    ]) {
+      const page = await browser.newPage();
+      const observation = { trial: trial.name, statuses: [], commands: [] };
+      experiments.push(observation);
+      try {
+        const calls = await nativeTransport(page, { optedIn: true }, async args => {
+          const { operation, payload } = args;
+          if (payload.type === 'indicator_preview_status') {
+            const entry = { payload };
+            observation.statuses.push(entry);
+            if (observation.statuses.length === 1 && trial.retry) {
+              entry.refusedBeforeForwarding = true;
+              return { error: { ...storageBusy, details: trial.details } };
+            }
+            const reply = await bridge.request('execute_operation', args);
+            entry.admitted = reply;
+            if (reply.result?.status === 'ready' && !trial.retry
+              && !observation.statuses.some(status => status.substituted)) {
+              entry.substituted = { ...legacyBusy,
+                ...(trial.details && { details: trial.details }),
+                ...(trial.retryable === false && { retryable: false }) };
+              return { error: entry.substituted };
+            }
+            return reply;
+          }
+          const reply = await bridge.request('execute_operation', args);
+          if (['indicator.createDraft', 'indicator.runPreview', 'task.cancel'].includes(operation)) {
+            observation.commands.push({ operation, payload, reply });
+          }
+          return reply;
+        });
+        await page.goto(baseURL);
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        await dialog.getByLabel('Revision ID').fill(revision);
+        await control(dialog, 'Open frozen chart').click();
+        const panel = dialog.getByRole('region', { name: 'Indicator preview' });
+        const run = control(panel, 'Run preview');
+        await run.click();
+        await expect(panel.getByText(/Preview layers/).or(panel.getByRole('alert'))).toBeVisible();
+        const result = observation.statuses.find(status => status.admitted?.result?.status === 'ready');
+        expect(result.admitted.result.event.artifact.result.series[1].points.at(-1))
+          .toEqual({ time_ms: prices.at(-1).time_ms, value: 0 });
+        const task = observation.commands.find(command => command.operation === 'indicator.runPreview')
+          .reply.result.outcome.result.task_id;
+        const statuses = observation.statuses.map(status => status.payload);
+        expect(statuses.every(status => status.task_id === task)).toBe(true);
+        expect(new Set(statuses.map(status => status.request_id)).size).toBe(statuses.length);
+        if (trial.retry) {
+          expect(observation.statuses[0].refusedBeforeForwarding).toBe(true);
+          expect(observation.statuses.at(-1)).toBe(result);
+          expect(calls.filter(call => call.args.operation === 'task.cancel')).toHaveLength(0);
+          if (!await panel.getByRole('table').isVisible()) await panel.getByText('Preview provenance and values').click();
+          await expect(panel.getByRole('table').locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
+          expect(observation.commands.map(command => command.operation)).toEqual(['indicator.createDraft', 'indicator.runPreview']);
+        } else {
+          await expect(panel.getByRole('alert')).toHaveText('The workspace is busy. Try the preview again.', { timeout: 1_500 });
+          await expect(panel.getByText(/Preview layers/)).toHaveCount(0);
+          await expect.poll(() => observation.commands.at(-1)?.operation).toBe('task.cancel');
+          expect(observation.statuses.at(-1)).toBe(result);
+          expect(result.substituted).toBeDefined();
+          expect(observation.commands.map(command => command.operation))
+            .toEqual(['indicator.createDraft', 'indicator.runPreview', 'task.cancel']);
+          expect(observation.commands.at(-1)).toMatchObject({
+            payload: { task_id: task }, reply: { result: { task_id: task, outcome: { status: 'completed' } } },
+          });
+        }
+      } finally {
+        await page.close();
+      }
+    }
+  } finally {
+    await bridge?.close();
+    await rm(temp, { recursive: true, force: true });
+    await testInfo.attach('native-indicator-journal', { body: JSON.stringify({ storageBusy, experiments }), contentType: 'application/json' });
   }
 });
