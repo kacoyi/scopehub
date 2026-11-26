@@ -30,6 +30,15 @@
       },
       "supersedes": "d633f91c6d5e4c6e238ed2953a5cb0f2badc9835b52f1df92858df8c380acce1",
       "evidence_sha256": "d8f2b6439142f595014154dccc7f38434a3ca68ca3c10be6f695819709b84421"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "Recheck the denied initial frozen read, single independently owned refresh, late snapshot, manual recovery and revocation on the current combined source. Compare the earlier approved chart source and the interaction with decision-note refocus.",
+      "supersedes": "f5f91dd9ad854a8aac505d367cd1f1c8a6abad12908907ffea6a4ec30bf8658b",
+      "requested_at": "2026-11-26T02:45:05.060676+00:00",
+      "request_id": "be1686e68b3b878710a7c958b297160b1cf902c314c96cd614e42420148ec399",
+      "evidence_sha256": "3609794bbe40acd476594d9e1eaf5c64f0f3abc8de46ca3e3019f1d98001b49c"
     }
   ]
 }

@@ -30,6 +30,15 @@
       },
       "supersedes": "4ef367618314ec1efc9a6b2cb45d67347679b6db9a9f7df26d61deb2efe00d13",
       "evidence_sha256": "003c1fea888c55f9c83393d9645409f0c29d5c4e56db65c41d60258abc25cf63"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "Recheck the three native peer-note failures, independent snapshot owners, one committed deletion, terminal refusal, expiry, late replies, reopen and one trailing focus confirmation at the real writer and browser boundaries. Compare the new focused regressions, earlier hosted failures and the clean protected merge.",
+      "supersedes": "0429b14f4b800d4a451bf8ddfb84fce68446a07888249e7149c916ffcb3f86b8",
+      "requested_at": "2026-11-26T02:45:06.890220+00:00",
+      "request_id": "cf53d1c0a5ef1624fd8144784bd5f67df9bdac7e0e32c4504c4931e00f48d9eb",
+      "evidence_sha256": "529d0b8aa215ce39365f3702be98a7796e355ce86a66e0ae40328e7d6f884067"
     }
   ]
 }

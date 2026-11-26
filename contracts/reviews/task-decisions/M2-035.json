@@ -50,6 +50,15 @@
       },
       "supersedes": "cd3060cc986174deea8ef5db432241e59438f6697a6ed79e26f89c3cbaea8fb1",
       "evidence_sha256": "dfd1a8332ab24ab73f963720050145217148a024fffd1e998576ff1afe488ac1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26",
+      "scope": "Recheck frozen CSV and folder access through open, refresh, clear and retry. Verify the access and revision fences, rejection of stale data and retained undo against the changed ownership controls on the combined source.",
+      "supersedes": "3f045cbbaa92cf4b7e0e272532baad8d6ba7a3a3cc80b8e6d55d866d7717fafb",
+      "requested_at": "2026-11-26T02:45:05.981627+00:00",
+      "request_id": "4a915978c154d442649a887670cf68638ee99b5691a74b77f4a0d9471929ce77",
+      "evidence_sha256": "921379bc53778e5316f9f30073c3871943151ca574bc5767e4ef5265f7d1f4ca"
     }
   ]
 }
