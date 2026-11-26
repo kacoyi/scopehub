@@ -544,7 +544,7 @@ class TaskReviewTests(ProjectFixture):
         self.assertNotIn('independent_review', clean)
         self.assertEqual(f'APPROVE {TASK} {source}', clean['review_reply']['first_line'][0])
         self.assertTrue(clean['review_reply']['current_checkout_review_command'].endswith(
-            f'context {TASK} --phase handoff'))
+            f'context {TASK} --phase handoff --read-only'))
 
         opened = self.command('review', TASK, '--source', source,
                               '--request', 'Verify the recorded read and reopening result.')
