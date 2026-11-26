@@ -26596,7 +26596,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "The coordinator reviews the clean candidate and retained public-entry replays under .reports/m0-155-bounded-reconciliation. Obtain the three owning independent decisions before resuming the five dependent reviews. Matching hosted checks and the November 28 scheduled observation remain pending.",
+      "next_action": "Qualify one supported historical publisher contract and one input reconciliation path against the three owning 9ea5b514 rejections, paired controls and a reserved genuine input. Hand off a clean source and original observations for three owning decisions. Keep five dependent reviews held and the November 28 actual observation pending.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26613,7 +26613,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-145-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-39413fd3/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-3eeb59bc/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-3eeb59bc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26621,7 +26622,8 @@
           "A job listing currently decides which assertions to discard before the same attempt is reconciled across readers. Preserve the individual assertions and derive a normalized job once before calculating roles, clock endpoints and complete membership.",
           "A linked archive discovery or the current CI attempt can introduce an attempt after ordinary historical lookup has chosen its exact paths. Seed all attempts before reading any retained sibling capture or failure sidecar under the same budget.",
           "Lossy per-list role and membership decisions can be replaced with one per-attempt projection of compatible observations keyed by job ID. A disputed participant can withhold membership without erasing the independent clocks of other roles.",
-          "Successful publishing and lane steps, actual runner labels, job status and clock endpoints can be retained per job before any layout inference. Job time can independently contradict a report attribution when its recorded creation falls outside the observed publishing interval."
+          "Successful publishing and lane steps, actual runner labels, job status and clock endpoints can be retained per job before any layout inference. Job time can independently contradict a report attribution when its recorded creation falls outside the observed publishing interval.",
+          "Completeness and source at the publisher boundary, per-ID observation union and readable Git ancestry can be decided before portable receipt projection using a bounded contract for supported snapshots."
         ],
         "risks": [
           {
@@ -26783,6 +26785,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Replay failed and skipped step observations on the same job ID in all equivalent representations through ordinary, weekly, cold and rotated reads. Preserve valid legacy timing and the independent platform and recovery clocks.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Compare ordinary and weekly decisions on identical valid and duplicate-key Actions bytes in both key orders. Reopen the weekly archive.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26809,7 +26825,8 @@
             "Changing protected platform objectives, test deadlines or measurement provenance."
           ],
           "open_questions": [
-            "Check legacy scope against direct job facts, skipped and executed layout markers, and whether the same role and independent clocks survive save, rotation, linked reads and reopen."
+            "Check legacy scope against direct job facts, skipped and executed layout markers, and whether the same role and independent clocks survive save, rotation, linked reads and reopen.",
+            "Compare the existing parallel qualifications with a shared historically supported contract. Measure conversion and replay effort with a reserved historical input and state which facts remain unknown."
           ]
         },
         "evolution": {
@@ -26881,7 +26898,8 @@
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-39413fd3/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-3eeb59bc/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-3eeb59bc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-9ea5b514/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -26952,6 +26970,13 @@
           },
           {
             "failure": "Reconcile available parent trees and observed merge topology for the original and substituted tree, in complete and shallow history. Retain genuinely missing-parent and independently equivalent event-source controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Replay original shallow Git evidence and the contrary intermediate tree with and without the proof. Keep a matching proof with genuinely unavailable ancestry and an independently matching event head as positive controls.",
             "checks": [
               "project-state",
               "python-contracts-workers"
@@ -27059,7 +27084,8 @@
           "archives/observations/repo-hygiene-20261125/combined-timing-caea2a0a58/SHA256SUMS",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-b12aefdc/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-39413fd3/original-assistant-response.jsonl",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-3eeb59bc/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27213,6 +27239,27 @@
           },
           {
             "failure": "Validate native raw reports before projection. Compare explicit null, missing task identity and illegal reason code in both raw producer and aggregate inputs with genuine positive controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Compare genuine raw and compact publisher inputs to missing or foreign command and source-end claims before projection, using supported historical catalog and producer identities.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Compare valid publisher reports with attached unbound diagnostics and genuine contrary job-time claims. Preserve independent walls and windows receipts in the unbound case.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Verify the published check-work sum, rounding and completeness from canonical compact result rows before granting a receipt. Replay matching and tampered values through ordinary and weekly reads.",
             "checks": [
               "project-state",
               "python-contracts-workers"

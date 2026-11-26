@@ -9022,6 +9022,108 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-role-fallback-depends-on-job-row-grouping",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 9ea5b5140042ac013e022c2edd7d0a79e93fee67, recorded at fef82cf6a67b6572ae1bda141d1ea37923d4e68c. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl (SHA-256 5aff4274d512309336c0c68e69116827b63f10852cee9ca35098b7080cd11b03).",
+      "observation": "PR 84 browser job 138978153110 without its display name had a timed failed browser step and a skipped layout step. Placing the same assertions on two rows restored 645 browser seconds, 2467 runner seconds and a weekly receipt in either row order; one row withheld all three. The independent 804-second Windows wall and 321-second recovery clock survived ordinary, weekly, cold and rotated linked reads.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-weekly-job-json-allows-duplicate-keys",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision on 9ea5b5140042ac013e022c2edd7d0a79e93fee67, recorded at fef82cf6a67b6572ae1bda141d1ea37923d4e68c. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-155-9ea5b514/original-assistant-response.jsonl (SHA-256 5aff4274d512309336c0c68e69116827b63f10852cee9ca35098b7080cd11b03).",
+      "observation": "The PR 84 Windows aggregation step had duplicate conclusion keys. Ordinary Actions input rejected both key orders. Weekly intake used the last value, recorded one receipt when success came last, and retained the differing verdict after archive reopen.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-native-raw-report-drops-command-and-source-fence",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 9ea5b5140042ac013e022c2edd7d0a79e93fee67, recorded at fef82cf6a67b6572ae1bda141d1ea37923d4e68c. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl (SHA-256 7a63d837295ae42ff80e3575b42891c81818017a5c2038f13b314c9d4370155d).",
+      "observation": "Removing a required passed-check command from genuine PR 121 browser and PR 116 recovery raw reports left 702 and 421 seconds attributed to those reports. An independently changed source_end digest likewise survived projection.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-unbound-diagnostic-report-revokes-platform-clock",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 9ea5b5140042ac013e022c2edd7d0a79e93fee67, recorded at fef82cf6a67b6572ae1bda141d1ea37923d4e68c. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl (SHA-256 7a63d837295ae42ff80e3575b42891c81818017a5c2038f13b314c9d4370155d).",
+      "observation": "Appending a producer report copied under the fast profile caused PR 121 and PR 116 to lose their independent 903- and 883-second Windows walls and sole weekly receipts. A copy under ci-windows-unknown did not change the genuine receipts.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-compact-check-work-disagrees-with-results",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision on 9ea5b5140042ac013e022c2edd7d0a79e93fee67, recorded at fef82cf6a67b6572ae1bda141d1ea37923d4e68c. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-150-9ea5b514/original-assistant-response.jsonl (SHA-256 7a63d837295ae42ff80e3575b42891c81818017a5c2038f13b314c9d4370155d).",
+      "observation": "Changing only compact check_work to one second left the report warm and produced a weekly receipt for each of PR 121 and PR 116. The unchanged check rows sum to 2043.327 and 2006.673 seconds under their publisher rule.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-shallow-proof-ignores-readable-ancestor-edges",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision on 9ea5b5140042ac013e022c2edd7d0a79e93fee67, recorded at fef82cf6a67b6572ae1bda141d1ea37923d4e68c. Original response archives/observations/repo-hygiene-20261125/independent-final-m0-156-9ea5b514/original-assistant-response.jsonl (SHA-256 571bb0c4d9eb02cb0ef913b18c24c126f62d5202dcb3035364c9ee62a2954cf1).",
+      "observation": "At depth two, readable PR 84 event-head and intermediate commit headers proved that the unavailable first parent was an ancestor. A report claiming the intermediate tree and its matching digest still yielded 804 Windows wall seconds, 2467 runner seconds and a weekly and reopened receipt; full history rejected it.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
