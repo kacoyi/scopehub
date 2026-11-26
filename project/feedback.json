@@ -8504,6 +8504,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "published-revision-access-accepts-ambiguous-browser-reply",
+      "source": "Independent Astra Standard t18r requested changes on aeb1763f21237fd897877ef9bba08219223f7615. Decision: contracts/reviews/task-decisions/M2-035.json#/events/23. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-035-aeb1763f/original-assistant-response.jsonl (SHA-256 4eb6b71f0879e61c110a63f336d3a316b0470bb4650900a95e41f3463934d57b).",
+      "observation": "The isolated browser replay of the shared HTTP decode and CSV access recheck changed canDisplay from false to true on the first HTTP 200 reply for a temporarily withheld CSV revision when the reply included available true and PERMISSION_DENIED. The ordinary success control restored eligibility and the ordinary 403 control kept the revision hidden. The replay observed incorrect eligibility. Chart rendering was unobserved. The independent first-reopen proof rejected the contradictory reply in its own replay.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "desktop-workspace-transport",
+        "local-folder-refresh-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

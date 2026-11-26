@@ -323,6 +323,93 @@ test('frozen chart shares two visible bars and clears the independent selection'
   }
 });
 
+test('published CSV requires a verified browser status before reopening', async ({ browser }, testInfo) => {
+  const profile = await makeProfile();
+  const revision = randomUUID();
+  const a = Date.parse('2026-02-03T00:00:00Z');
+  const b = Date.parse('2026-02-04T00:00:00Z');
+  const attempts = [];
+  const denial = { ok: false, error: { code: 'PERMISSION_DENIED', retryable: false } };
+  const unavailable = { ok: true, result: { available: false } };
+  // Both branches describe an unavailable synthetic fixture. There is no
+  // successful access claim in this malformed shape.
+  const invalid = { ...unavailable, error: { code: 'SNAPSHOT_UNAVAILABLE', retryable: false } };
+  try {
+    await seedFrozenEvidence(profile, revision, a, b);
+    await inService(await freePort(), profile, 'ubuntu-workspace', async server => {
+      await inFreshBrowser(browser, server, async page => {
+        let phase = 'withhold';
+        const reads = type => attempts.filter(attempt => attempt.type === type);
+        const statuses = () => reads('frozen_chart_status').filter(attempt => attempt.phase === phase);
+        await page.route(`**${endpoint}`, async route => {
+          const request = route.request().postDataJSON();
+          if (request?.revision_id !== revision || !['frozen_chart', 'frozen_chart_status'].includes(request.type)) {
+            return route.continue();
+          }
+          let substitute;
+          if (request.type === 'frozen_chart' && phase === 'withhold') {
+            substitute = { status: 403, json: denial };
+          } else if (request.type === 'frozen_chart_status') {
+            if (phase === 'withhold') substitute = { status: 200, json: unavailable };
+            if (phase === 'denied') substitute = { status: 403, json: denial };
+            if (phase === 'invalid') substitute = { status: 200, json: invalid };
+          }
+          const attempt = { type: request.type, phase };
+          attempts.push(attempt);
+          if (substitute) {
+            Object.assign(attempt, substitute);
+            return route.fulfill(substitute);
+          }
+          const response = await route.fetch();
+          Object.assign(attempt, { status: response.status(), json: await response.json() });
+          return route.fulfill({ response });
+        });
+
+        await control(page, 'Open published CSV').click();
+        const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+        const open = control(dialog, 'Open frozen chart');
+        const alert = dialog.getByRole('alert');
+        const chart = dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+        await dialog.getByLabel('Revision ID').fill(revision);
+        const withheld = page.waitForResponse(response => response.request().postDataJSON()?.type === 'frozen_chart_status');
+        await open.click();
+        await expect(alert).toHaveText('This profile does not have permission to display this revision.');
+        expect(await (await withheld).finished()).toBeNull();
+        await expect.poll(() => statuses()).toMatchObject([{ status: 200, json: unavailable }]);
+        await expect(chart).toHaveCount(0);
+        expect(reads('frozen_chart')).toHaveLength(1);
+
+        for (const next of ['denied', 'invalid']) {
+          phase = next;
+          await open.click();
+          await expect.poll(() => statuses().length).toBe(1);
+          await expect(alert).toHaveText('Unable to verify access to this published revision. Try opening it again.');
+          await expect(chart).toHaveCount(0);
+          expect(statuses()).toHaveLength(1);
+          expect(reads('frozen_chart')).toHaveLength(1);
+        }
+
+        phase = 'verified';
+        await open.click();
+        await expect(chart.getByLabel('Selected bar')).toContainText('C 44.25');
+        expect(statuses()[0]).toMatchObject({ status: 200, json: { ok: true, result: { available: true } } });
+        const [, ...reopens] = reads('frozen_chart');
+        expect(reopens.at(-1)).toMatchObject({ phase: 'verified', status: 200, json: { ok: true } });
+        // Access restoration also refreshes the workspace snapshot. If those
+        // reads contend, any earlier chart attempt must be a writer refusal.
+        for (const refused of reopens.slice(0, -1)) {
+          expect(refused).toEqual({ type: 'frozen_chart', phase: 'verified', status: 429, json: busy });
+        }
+      });
+    });
+  } finally {
+    await profile.close();
+    await testInfo.attach('published-csv-browser-status', {
+      body: JSON.stringify({ revision, attempts }, null, 2), contentType: 'application/json',
+    });
+  }
+});
+
 const revocationTest = test.extend({
   localImportBridge: [async ({}, use, testInfo) => {
     const { stdout, stderr } = await exec('cargo', [
@@ -1012,7 +1099,7 @@ const indicatorStatusFaults = [
   ['an admitted BUSY', 200, () => busy, 'The workspace is busy. Try the preview again.'],
   ['a nonretryable 429', 429, () => ({ ok: false, error: { code: 'BUSY', retryable: false } }),
     'The workspace is busy. Try the preview again.'],
-  ['a contradictory 429', 429, reply => ({ ...busy, result: reply.result }), 'The workspace is busy. Try the preview again.'],
+  ['a contradictory 429', 429, () => ({ ...busy, result: {} }), 'The indicator preview could not be completed.'],
   ['a different task', 200, reply => ({ ok: true, result: { ...reply.result, task_id: randomUUID() } }),
     'The indicator preview could not be completed.'],
   ['persistent admission contention', 429, () => busy, 'The indicator preview could not be completed.', true],

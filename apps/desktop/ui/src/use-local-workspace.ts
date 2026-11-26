@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { abortableDelay } from './abortable-delay';
 import { message, t } from './i18n';
+import { decodeWorkspaceHttpReply } from './workspace-http-reply';
 import type {
   AiTextConnectionCommand11,
   IndicatorAcceptVersionCommand11, IndicatorCreateDraftCommand11, IndicatorRemoveCommand11,
@@ -187,13 +188,13 @@ async function postWorkspace<T>(path: string, body: object, signal: AbortSignal,
     }
     throw error;
   });
-  const reply = await response.json();
+  const rawReply: unknown = await response.json();
   signal.throwIfAborted();
-  if (reply?.ok === false && errorCode(reply.error)) {
-    if (admissionBusy && response.status === 429 && !('result' in reply) && retryableBusy(reply.error)) admissionBusy();
+  const reply = decodeWorkspaceHttpReply(rawReply, response.ok);
+  if (!reply.ok) {
+    if (admissionBusy && response.status === 429 && retryableBusy(reply.error)) admissionBusy();
     throw reply.error;
   }
-  if (!response.ok || reply?.ok !== true || !reply.result) throw { code: 'OUTPUT_INVALID' };
   return reply.result as T;
 }
 

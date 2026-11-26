@@ -659,7 +659,7 @@
     {
       "id": "workspace-timeframe",
       "status": "implemented",
-      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data.",
+      "purpose": "Exercise the real opted-in local writer through staged browser startup, private handoff recovery, browser and process restart, timeframe undo, terminal cleanup, decision-note confirmation, deletion, backup and restore, private-record lifecycle and stale approval, and chart evidence selection and narrow projection of actual frozen profile data. Verify that the public CSV library keeps a withheld entry hidden after an invalid HTTP status reply and recovers it after a valid confirmation.",
       "platforms": "all",
       "command": [
         "pnpm",
@@ -675,7 +675,7 @@
     {
       "id": "desktop-workspace-transport",
       "status": "implemented",
-      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement.",
+      "purpose": "Exercise the built desktop UI with substituted Tauri IPC for default startup, authorized timeframe and undo, rejection, and a delayed source invoke. Verify source recovery through the actual Rust registry and storage, including a still-pending write and late acknowledgement. Exercise the shared browser reply decoder with valid success, typed failure, invalid output and a genuine pre-admission refusal.",
       "platforms": "all",
       "command": [
         "pnpm",

@@ -10,6 +10,7 @@ import { expect, test } from '@playwright/test';
 import { buildPreview, preAdmissionBusy, seedDisplayOnlyChart, seedPublishedChart, withProfile, withWorkspaceTransport } from './ai-workflow-fixture.mjs';
 import { startLocalImportBridge } from './local-import-bridge.mjs';
 import { control, leaveSample, openPanel } from './workspace-controls.mjs';
+import { decodeWorkspaceHttpReply } from '../../apps/desktop/ui/src/workspace-http-reply.ts';
 
 const workspaceId = 'main';
 const operationId = 'ce7fd52d-7a62-441f-897f-098098e6fe82';
@@ -39,7 +40,7 @@ async function readProofSnapshot(dispatchResponse, observe) {
       throw error;
     }
     outcome = snapshotOutcome(response);
-    const refused = !outcome.hasResult && preAdmissionBusy(response);
+    const refused = preAdmissionBusy(response);
     observe({ ...outcome, refused });
     return !refused;
   }, { timeout: 4_000, message: 'The verified state read must reach a terminal snapshot reply' }).toBe(true);
@@ -913,6 +914,34 @@ test('a retryable admission rejection cannot disable authorized selection clear'
   await clear.click();
   await expect(clear).toHaveCount(0);
   expect(cleared?.workspace_id).toBe(base.workspace.id);
+});
+
+test('workspace HTTP reply decoding requires an exclusive typed outcome', () => {
+  const result = { value: 'fixture' };
+  const denial = { code: 'PERMISSION_DENIED', retryable: false };
+  const busy = { code: 'BUSY', retryable: true };
+  const success = { ok: true, result };
+  const denied = { ok: false, error: denial };
+  expect(decodeWorkspaceHttpReply(success, true)).toEqual(success);
+  expect(decodeWorkspaceHttpReply(denied, false)).toEqual(denied);
+  expect(decodeWorkspaceHttpReply({ ok: false, error: busy }, true)).toEqual({ ok: false, error: busy });
+
+  for (const [name, reply, httpOk = true] of [
+    ['null body', null],
+    ['missing discriminator', { result }],
+    ['missing result', { ok: true }],
+    ['null result', { ok: true, result: null }],
+    ['unsuccessful HTTP status', success, false],
+    ['success with an error', { ...success, error: denial }],
+    ['success with a null error', { ...success, error: null }],
+    ['failure with a result', { ...denied, result }, false],
+    ['failure with a null result', { ...denied, result: null }, false],
+    ['missing error', { ok: false }],
+    ['missing error code', { ok: false, error: { retryable: true } }],
+    ['invalid retry flag', { ok: false, error: { ...busy, retryable: 'true' } }],
+  ]) {
+    expect(() => decodeWorkspaceHttpReply(reply, httpOk), name).toThrow(expect.objectContaining({ code: 'OUTPUT_INVALID' }));
+  }
 });
 
 test('the independent snapshot proof retries only a typed pre-admission refusal', async ({ page }, testInfo) => {

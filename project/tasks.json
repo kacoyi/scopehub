@@ -26096,6 +26096,7 @@
         "apps/desktop/ui/src/local-preview-chart.tsx",
         "apps/desktop/ui/src/published-revision-access.ts",
         "apps/desktop/ui/src/use-local-workspace.ts",
+        "apps/desktop/ui/src/workspace-http-reply.ts",
         "apps/desktop/ui/src/local-revision-dialog.tsx",
         "tests/ui/desktop-workspace.spec.mjs",
         "tests/ui/local-import.spec.mjs",
@@ -26143,7 +26144,8 @@
         "For a real published CSV and a real published folder, hold a status lookup for the same ID in the other library across close, reopen and repeated refresh of the correct library. Complete the old lookup and observe the still-open page recover its entry after its own status read without another refresh or overlapping status dispatch. The obsolete lookup does not grant or withdraw access in the owning library.",
         "On explicit retry for a published folder and a published CSV without a workspace, show temporary unavailability when status is missing and withhold content until status confirms access. Show permission denial only for confirmed withdrawal and retain a generic failure for an unconfirmed read. Verify recovered bars and source rows, keep revoked data hidden on later retries, and preserve the changed-workspace guard.",
         "Require the compiled Windows fixture to prepare one disposable private profile and use the same supported path for seeding and the desktop. Retain the first successful or typed rejected availability reply before asserting access. Confirm the endpoint and its owned WebView2 listener within one 60-second deadline from native spawn, then enter the public journey.",
-        "Require the hosted staging entry to accept a passing native revision check only on a host supported by its catalog entry and with both the log-bound observation and matching executable. Preserve genuine blocked and unselected results, retain verified diagnostics from a failed check, and remove incomplete files from the upload directory when a write fails."
+        "Require the hosted staging entry to accept a passing native revision check only on a host supported by its catalog entry and with both the log-bound observation and matching executable. Preserve genuine blocked and unselected results, retain verified diagnostics from a failed check, and remove incomplete files from the upload directory when a write fails.",
+        "The browser HTTP decoder accepts an unambiguous success, preserves an ordinary typed denial, and rejects an invalid reply without restoring CSV or folder eligibility. On the public revision entry, confirm valid reopen and keep a withheld revision ineligible after one invalid status read. Only a genuine pre-admission refusal retains its retry behavior."
       ],
       "checks": [
         "project-state",
@@ -26165,7 +26167,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Review the common clean M2-034, M2-035 and M2-039 candidate using the envelope and private-profile controls. The coordinator owns the exact-source Windows x64 WebView2 run and retention of its first status replies, public journey and matching executable. Keep physical and packaged Windows qualification separate.",
+      "next_action": "Review the shared browser HTTP decoder and retained local controls on the clean common M2-034, M2-035 and M2-039 candidate. Obtain independent decisions on that source. The coordinator owns PR 97 and the exact-source Windows x64 WebView2 run and retention of its first status replies, public journey and matching executable. Keep physical and packaged Windows qualification separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26179,6 +26181,7 @@
           "apps/desktop/ui/src/local-preview-chart.tsx",
           "apps/desktop/ui/src/published-revision-access.ts",
           "apps/desktop/ui/src/use-local-workspace.ts",
+          "apps/desktop/ui/src/workspace-http-reply.ts",
           "apps/desktop/ui/src/local-revision-dialog.tsx",
           "tests/ui/desktop-workspace.spec.mjs",
           "tests/ui/local-import.spec.mjs",
@@ -26196,7 +26199,12 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-a1866052/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-09514768/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-030661a9/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-034-aeb1763f/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-aeb1763f/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-aeb1763f/original-assistant-response.jsonl",
           "archives/observations/repo-hygiene-20261125/task-dispatch-m2-039-45828181845/manifest.json",
+          "contracts/schemas/protocol.schema.json",
+          "apps/desktop/ui/ubuntu-workspace.mjs",
           ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
           ".reports/m2-039-native-access-gap/coverage.json",
         ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
@@ -26222,7 +26230,8 @@
           "The staging entry treats a passing check's files as optional and can leave a truncated observation after a write error. Use the check result and log to distinguish required evidence from available failure diagnostics, and test interrupted writes at the upload boundary.",
           "The staging entry uses the reported host to decide whether to look for native attachments. Check the catalog's host requirement for a passing result before staging and make both attachments mandatory for every eligible pass.",
           "The independent first-reopen proof can accept an expected selection carried alongside a terminal error. Compare bridge and proof against valid, ordinarily rejected and contradictory envelopes at the direct read boundary.",
-          "The first guarded Windows run reached the webview and refused a native status read despite a successful seed. Compare the exact seeding and runtime preparation entrypoints and qualify use of the existing isolated profile contract before the public journey."
+          "The first guarded Windows run reached the webview and refused a native status read despite a successful seed. Compare the exact seeding and runtime preparation entrypoints and qualify use of the existing isolated profile contract before the public journey.",
+          "The browser HTTP decoder can return a result without ruling out a simultaneous error. Validate the outcomes at the shared boundary using the existing protocol error definitions. The M2-034 and M2-039 scoped approvals on aeb1763f confirm the independent first-reopen proof; its additional snapshot assertions serve the observed selection and its timing."
         ],
         "risks": [
           {
@@ -26402,6 +26411,14 @@
               "published-revision-launch-deadline",
               "desktop-workspace-transport"
             ]
+          },
+          {
+            "failure": "A mixed or otherwise invalid browser reply restores a withheld publication or enters the retry lane. Check the shared decoder for unambiguous success, ordinary typed denial and invalid output. Confirm the public library keeps a revision ineligible after one invalid read, and retain valid CSV and folder reopen and genuine retry controls on the same source.",
+            "checks": [
+              "desktop-workspace-transport",
+              "local-folder-refresh-preview",
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26414,11 +26431,14 @@
           "apps/desktop/ui/src/local-preview-chart.tsx",
             "apps/desktop/ui/src/published-revision-access.ts",
             "apps/desktop/ui/src/use-local-workspace.ts",
+            "apps/desktop/ui/src/workspace-http-reply.ts",
             "apps/desktop/ui/src/local-revision-dialog.tsx",
             "apps/desktop/ui/src/local-import-editor.tsx",
             "apps/desktop/ui/src/folder-refresh-review.tsx",
             "tests/ui/ai-workflow-fixture.mjs",
             "tests/ui/workspace-writer-gate.mjs",
+            "tests/ui/desktop-workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace.spec.mjs",
             "tests/ui/local-import.spec.mjs",
             "tests/ui/published-revision-controls.mjs",
             "tests/ui/published-revision-access-windows.spec.mjs",
@@ -26441,6 +26461,10 @@
             {
               "path": "contracts/workbench-v1.json",
               "pointer": "/workspace_entry/restore"
+            },
+            {
+              "path": "contracts/schemas/protocol.schema.json",
+              "pointer": "/$defs/WorkspaceFault11"
             }
           ],
           "non_goals": [
@@ -26453,7 +26477,8 @@
           "kind": "additive",
           "preserve": [
             "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants.",
-            "The CSV status envelope distinguishes availability and explicit revocation. A folder's exact summary reply confirms availability and its registry permission denial confirms revocation. A source-row error retains its existing treatment."
+            "The CSV status envelope distinguishes availability and explicit revocation. A folder's exact summary reply confirms availability and its registry permission denial confirms revocation. A source-row error retains its existing treatment.",
+            "Keep valid browser results and ordinary typed errors, the pre-admission retry budget, the independent proof's stronger selection and source assertions, and native storage and Windows qualification criteria."
           ],
           "change": [
             "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
@@ -26466,7 +26491,8 @@
             "Directly refactor the profile access owner to track state and requests by publication kind and revision ID on a shared serial status lane. Check the current page lifetime before dispatching queued work and let an issued read settle against its own profile state. Return the observed access outcome to the dialog, preserving the changed-workspace guard. Extending the split paths would require parallel scheduling and failure classification in the dialog and watcher. A full replacement would discard unrelated focus, selection and chart guards while the existing native replies can express the observed outcomes.",
             "Qualify the Windows interaction through the compiled application with local synthetic publications. Capture native admission separately from controlled row interruption and late reply delivery.",
             "Configure the test binary's WebView2 debugging through the native environment options. Prepare a disposable private profile through the supported storage entry and give the seed bridge and native test overlay the same ordinary absolute path. Collect the allocated endpoint, owned process facts and first typed storage reply, and stage only bounded synthetic observations and the matching fixture executable.",
-            "Share the original native startup deadline between endpoint discovery and listener ownership. Bind a passing native check to the catalog host, digest-bound observation and matching executable. Preserve genuine omitted results and verified artifacts available from an unsuccessful check, and clean up incomplete staged files."
+            "Share the original native startup deadline between endpoint discovery and listener ownership. Bind a passing native check to the catalog host, digest-bound observation and matching executable. Preserve genuine omitted results and verified artifacts available from an unsuccessful check, and clean up incomplete staged files.",
+            "Decode browser HTTP success and error as exclusive outcomes in their shared entry. Report invalid output before availability or retry can consume it."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

@@ -20,7 +20,8 @@ export const workspaceEndpoint = '/__scopehub/workspace';
 export const credentialEndpoint = '/__scopehub/model-credential';
 
 export function preAdmissionBusy({ status, body }) {
-  return status === 429 && body?.ok === false && body.error?.code === 'BUSY' && body.error.retryable === true;
+  return status === 429 && body?.ok === false && !Object.hasOwn(body, 'result')
+    && body.error?.code === 'BUSY' && body.error.retryable === true;
 }
 
 export async function installBrowserNetworkGuard(context, origin) {
