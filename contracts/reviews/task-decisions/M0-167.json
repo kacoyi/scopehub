@@ -146,6 +146,15 @@
       },
       "supersedes": "c8521ba1e9ba0748a72e932ae9075e56e5e71255dc372f519f00a73748f93e87",
       "evidence_sha256": "4d1c923dff5c992385765f0e5abda239253ab41399256e4145fd6e2aa4be7411"
+    },
+    {
+      "kind": "request",
+      "source_commit": "b8303eeeeddfd9295342108759a90b96c924eab9",
+      "scope": "Review the missing writable-run evidence identified in the prior decision on 6e8b80b1 and the submitted source, which differs only by the preserved request and decision. Verify the 8 frozen admission and 3 carrier terminal/cleanup cases against the retained raw command outcomes, original result and journal attachments, check the exact tested Git tree versus the submitted code and confirm the scope of the real Windows evidence.",
+      "supersedes": "0dfd41f9f8e33e3fb906ace905f2e95eb273e4262c5d8e778f0940ef8931a82e",
+      "requested_at": "2026-11-26T15:19:32.866909+00:00",
+      "request_id": "d243bb9fd38a1883cb9c94f6d012f4ff613a582b8dabc6199ee7043342e8498c",
+      "evidence_sha256": "93fc672aa57c1a557c98c8b86445a0d47756a7218a69a87661c67b60a79401f0"
     }
   ]
 }
