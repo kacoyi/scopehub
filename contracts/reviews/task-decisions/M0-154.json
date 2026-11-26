@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T03:02:40.567270+00:00",
       "request_id": "c5a9f75f4ab2906fde2fbc8ae118da836db417f2bca8fdf73cc59524ccdb267e",
       "evidence_sha256": "30901079914f44d05693319f01f24fc7e6ac487044dcf795e19d6d0f1c641ce6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-154 e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "scope": "CHANGES_REQUESTED M0-154 e8b8de61a0e98283a70bcef39b4a0aa765f035e6",
+      "observation": "When I replayed a correct history request with a retained response whose snapshot started one minute later, the application rejected it as `OUTPUT_INVALID`, but the startup attachment reported `history-verified`.",
+      "reviewer": "Independent Astra Standard (t11y)",
+      "original_sha256": "586fcd3e00857373cb024f539e9cba41bc11e138f08d0adc14dcb274fbcd42d5",
+      "response_id": "c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43",
+      "response_sha256": "28a8d0951a6ab7d829f88a46932c3022be291d4033e8a6dc84a02aa514d88b32",
+      "legacy_response_sha256": "3f6961f38f1818d9bf204806743c6bd64ec919f76adca86d00c93c3ddb901b45",
+      "observation_body_sha256": "2a226f890b0e73f933c1b6a089dc7e57fdcec8d4fb1cca7bd4666544a5d4e9f2",
+      "event": {
+        "id": "msg_0a096445e2a68c59016b07a7749d3c87d1bebedcfaee930522",
+        "timestamp": "2026-11-26T03:29:08.501Z"
+      },
+      "supersedes": "c5a9f75f4ab2906fde2fbc8ae118da836db417f2bca8fdf73cc59524ccdb267e",
+      "evidence_sha256": "28f29af54bc284d41ac1a94a7ed1851e3e524eb5cba6601224009e2108ee74e1"
     }
   ]
 }
