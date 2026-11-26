@@ -26975,6 +26975,12 @@
             "checks": [
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "A structurally invalid execution record can stop a whole collection batch. Exercise an invalid one-shot record and a healthy independent lane together through public collect and retain the damaged bytes.",
+            "checks": [
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the original response and completion event before the owned one-shot process exits. Keep reusable or ambiguous sessions intact and recover by terminal and source receipt.",

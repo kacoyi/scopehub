@@ -7925,6 +7925,21 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "herdr-invalid-execution-record-stops-independent-collection",
+      "status": "open",
+      "severity": "major",
+      "source": "Observed on a627f12b3a746473b09fd12933ee4cfe1b4f49bd through scripts/herdr.py collect. The checkout-local original observations are indexed at .reports/observations/M0-162-lifecycle-follow-through/cf7e0805-follow-through/simulated-adjacent/collect-execution-baseline-a627f12b.json, SHA-256 f536adf05fe5367821189e9dee851f6ea75c726778ce6af3cea79865de24cd54.",
+      "observation": "A deeply nested private one-shot execution record within the normal size limit raised an unhandled RecursionError during batch collect. The invalid lane stopped the independent eligible lane from archiving. The invalid record remained unchanged.",
+      "task_ids": [
+        "M0-162"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
