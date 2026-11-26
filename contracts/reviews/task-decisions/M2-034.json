@@ -204,6 +204,15 @@
       },
       "supersedes": "1b9970cd71ba3dd048952235c6a1ffd82d8a72fe69bbaca476ab47c805f5f1d9",
       "evidence_sha256": "ef5254fa3829a9666ad976f3e45210ea63abe9ec8f2f5439935927542c8fbdba"
+    },
+    {
+      "kind": "request",
+      "source_commit": "a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "scope": "Review the source-bound native startup and selection observation after guarded run 45769045630 failed before admission. Check what proves that the candidate application reached the relevant view and what a launch-only attachment establishes. Preserve the previously observed frozen selection and reopen behavior.",
+      "supersedes": "e3a2a5221c80c92e380cf1c57f6f2b6ee0a4a717940fa76b9c36016ffdc4096f",
+      "requested_at": "2026-11-26T07:48:58.300484+00:00",
+      "request_id": "2311967e4d1ecf7c7f29881ff24180b2a224414a204309e782c3777a2395858f",
+      "evidence_sha256": "5e02969a75cb76b92c7dad0611fefdfaeca08b8e273dd7f5a047ae8f1d21afef"
     }
   ]
 }
