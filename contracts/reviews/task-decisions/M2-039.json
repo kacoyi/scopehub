@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T04:21:37.156286+00:00",
       "request_id": "b76cf2efa4c20ddb3038c01ba832ba19e68d3050e3294013cdbdd3ed9238780c",
       "evidence_sha256": "e3da8cfd879b498c43af5337836201ac2de967dbadb6484a7e2e123007abc51a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "CHANGES_REQUESTED M2-039 359e33231892432813493958b580ee25aaf94a5f",
+      "observation": "In my React replay, reopening the correct library and refreshing twice returned the recovered revision three times but issued zero matching status reads while a lookup from the other library was pending.",
+      "reviewer": "Independent Astra Standard (t130)",
+      "original_sha256": "14167c8ad137d07f4bd149447c607a33f75f61bb7b0c1f2503581766f39797f3",
+      "response_id": "c986d9221f5d617163bc9a45785ab443443a6a06e5a121d424c22360dd3eaa2a",
+      "response_sha256": "a1d3e6f1e63490afb461ef88f960be0b71c30052f8034fed362ee0e012295e4b",
+      "legacy_response_sha256": "f1a74cb1549008a09e43f08a5c32fcbb53f7e8a5c323697dfc7d5394059c534a",
+      "observation_body_sha256": "7b13277d92d4a2ed68bc76d8ee0df30890d6451636b16aea378efbb7ef1c4cc8",
+      "event": {
+        "id": "msg_0adf81f01b2df088016b07b9f1145887d2a25d4f31c4b70cbb",
+        "timestamp": "2026-11-26T04:48:03.203Z"
+      },
+      "supersedes": "b76cf2efa4c20ddb3038c01ba832ba19e68d3050e3294013cdbdd3ed9238780c",
+      "evidence_sha256": "afb19037f3a71b4249a39687648ab6ff3cf8f96d658fa088e714f0ec37b4c236"
     }
   ]
 }

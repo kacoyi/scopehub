@@ -117,6 +117,26 @@
       "requested_at": "2026-11-26T04:21:36.251359+00:00",
       "request_id": "ed387df6f11e11c3c6bd9c6fc6a8126b2099518f97da52bbabd8bdc3f075061b",
       "evidence_sha256": "b7acdd19f64c0730adcffd16147f2654b5eceb2dcb53101c7bd720d810a05ee0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-035 359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "CHANGES_REQUESTED M2-035 359e33231892432813493958b580ee25aaf94a5f",
+      "observation": "An explicit-ID retry displayed the same permission-denied alert for a temporarily unavailable revision and a confirmed revocation, both for folder publications and for CSV publications opened without a workspace.",
+      "reviewer": "Independent Astra Standard (t12z)",
+      "original_sha256": "550092325820651fe8d209023f89340bbf84f487fded230cc35aad6ebf3791ca",
+      "response_id": "faf133029eec902d79e5a4395bc9d478953ce92f998d01b39d0b9d968bfc1051",
+      "response_sha256": "96fbb27af1fccd1669090f545633f7e80cd55d83765fede384a0df5c92b0677e",
+      "legacy_response_sha256": "c83cec75b1f1c324befd6ad134f92c4a52d98a87fee1dba0c4c6415d99a21085",
+      "observation_body_sha256": "eae892bd9bb7b70e0afd24b8211d550de7a14c5fbb3eada61260ab0157c56439",
+      "event": {
+        "id": "msg_09256049432a9608016b07b9067bd487d1a252a34c3bc41844",
+        "timestamp": "2026-11-26T04:44:03.744Z"
+      },
+      "supersedes": "ed387df6f11e11c3c6bd9c6fc6a8126b2099518f97da52bbabd8bdc3f075061b",
+      "evidence_sha256": "3f44330e68f6a220203825d18e36c63796f0e2c957d9fd3325c9ec3803c306b0"
     }
   ]
 }
