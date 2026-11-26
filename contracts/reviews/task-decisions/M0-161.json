@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T12:29:03.886255+00:00",
       "request_id": "15d08b5440bb806fb5bfd3a3ee7b019bb349a9e7acd99132a9ee56db42197096",
       "evidence_sha256": "e4e1a0c04c998ea78bc1ec1fcf1ae4c48dd007898e2a59ead3f1bd26cadf9af3"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-161 17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "scope": "CHANGES_REQUESTED M0-161 17a0365fbc1462e6154806c18020b654dbbc39ef",
+      "observation": "After both workstreams were accepted, the first action opened the major finding and instructed the coordinator to link it to an unfinished corrective task and verify its checks.",
+      "reviewer": "Independent Astra Standard (t15b)",
+      "original_sha256": "fc5918f012832f1c3aca7a1e03c86f6c2360320aa7aa289acce87ef20035c538",
+      "response_id": "f1d0f8f3977c33a0cfda3b3e5b9e5b6ccc565d4d578c72678bf2dc12cd65d60e",
+      "response_sha256": "944e2ea5b54a7dc1458a20d23c0d71fa921a2f9e2108a1022ea87910338b7bd4",
+      "legacy_response_sha256": "fbb2580ceca658651d7ce1f5a7b0b99f4147e42302f996e2e3d12ffcbc9899a0",
+      "observation_body_sha256": "a1187665ae362512cb0244cc8dc5aca4a539a092cba38fe386fde70e914e4732",
+      "event": {
+        "id": "msg_06ec46250577aa7b016b082741f3dc87d289b234dd526d2b2b",
+        "timestamp": "2026-11-26T12:34:26.759Z"
+      },
+      "supersedes": "15d08b5440bb806fb5bfd3a3ee7b019bb349a9e7acd99132a9ee56db42197096",
+      "evidence_sha256": "1aaed071e3e7c593b54b7eebf64a5647f2b37979502ba23c065243a0a6715769"
     }
   ]
 }
