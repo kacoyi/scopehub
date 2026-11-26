@@ -10,6 +10,26 @@
       "requested_at": "2026-11-26T03:38:02.814202+00:00",
       "request_id": "42a5bece770e23427d57aa9cadd7f010a23f59914e2e293701dd8fcf8acbb4e9",
       "evidence_sha256": "5ffea8d1bcda1641ccb0836abca385bb59f23eaf812ce98ee7d9cf680ade6322"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-158 8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "scope": "CHANGES_REQUESTED M0-158 8bbf6e109fa13f235cdb29bb644af465643cc3e0",
+      "observation": "In the isolated transfer to M0-157, the startup overview and focused context omitted both open commitments and their stop condition.",
+      "reviewer": "Independent Astra Standard (t127)",
+      "original_sha256": "b6ec4a4f7957d1658d7165f1b7152cb43c87bc5cb57cf5f17d9766098a21a818",
+      "response_id": "a473a907209cb2ae730a5ea5936db612b627336ffb4ca0b389c14fe355b39fc6",
+      "response_sha256": "a0a0897048d26b512ae972ef20acc08a9f476f83a766bbd36a645716a83622da",
+      "legacy_response_sha256": "e702af6ddd08541cd9d0887d65b64bcccf7a98debaf8b3b98b4bbfa7e405e4b8",
+      "observation_body_sha256": "a1c6664211ac49926cdd0d92b92e4f59e503aaadcc346174c1bdcebe8e5a4d58",
+      "event": {
+        "id": "msg_0d7e844fa2548bb1016b07abff57b087d295b7c1b52dff3a14",
+        "timestamp": "2026-11-26T03:48:34.167Z"
+      },
+      "supersedes": "42a5bece770e23427d57aa9cadd7f010a23f59914e2e293701dd8fcf8acbb4e9",
+      "evidence_sha256": "d121e8de9b8037518736913164e74b3e1065fe3e1569d580361c45838806ef8f"
     }
   ]
 }
