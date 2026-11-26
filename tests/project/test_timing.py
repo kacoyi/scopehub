@@ -121,12 +121,14 @@ def select_checks(project, *, profile=None, task_id=None):
 
 def fixture_catalog(full=BASIC_CHECKS, *, records=(), non_change=()):
     extras = (*records, *non_change)
-    return {'checks': [
+    catalog = {'checks': [
         {'id': key, 'status': 'planned' if key == 'future-check' else 'implemented',
          'command': None if key == 'future-check' else ['{python}', 'check.py'],
          'cadence': 'task' if key in extras else 'change'} for key in (*full, *extras)
-    ], 'profiles': {'records': [*BASIC_CHECKS, *records]} if records else {},
-        'required_change_checks': sorted(key for key in full if key != 'future-check')}
+    ], 'required_change_checks': sorted(key for key in full if key != 'future-check')}
+    if records:
+        catalog['profiles'] = {'records': [*BASIC_CHECKS, *records]}
+    return catalog
 
 
 SPLIT_CATALOG = fixture_catalog((*BASIC_CHECKS, *SPLIT_CHECKS), records=RECORDS_CHECKS)
@@ -1708,7 +1710,7 @@ def main():
         report['checks'].append({'id': 'release-artifacts', 'status': 'blocked', 'reason_code': 'not_selected'})
         original = timing.report_sample(report)
         self.assertFalse(timing.native_report_issue(original, None, []))
-        reordered = {**original, 'selected': [*original['selected'][::-1]]}
+        reordered = {**original, 'selected': original['selected'][::-1]}
         reordered_report = {**report, 'selection': {**report['selection'], 'checks': reordered['selected']}}
         self.assertEqual(reordered, timing.report_sample(reordered_report))
         issues = []

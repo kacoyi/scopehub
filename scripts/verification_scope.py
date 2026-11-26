@@ -74,7 +74,8 @@ def publishing_check_catalog(catalog):
         checks[key] = check
 
     def catalog_refs(values, label):
-        if not isinstance(values, list) or not values or len(set(values)) != len(values):
+        if (not isinstance(values, list) or not values or any(not isinstance(key, str) for key in values)
+                or len(set(values)) != len(values)):
             raise ValueError(f'{label}: invalid check list')
         missing = set(values) - checks.keys()
         if missing:
@@ -87,7 +88,7 @@ def publishing_check_catalog(catalog):
     if required != implemented:
         raise ValueError('Required change checks must equal the implemented change checks')
     profiles = catalog.get('profiles', {})
-    if not isinstance(profiles, dict):
+    if not isinstance(profiles, dict) or ('profiles' in catalog and not profiles):
         raise ValueError('Invalid check profiles')
     for name, values in profiles.items():
         catalog_refs(values, f'Profile {name}')

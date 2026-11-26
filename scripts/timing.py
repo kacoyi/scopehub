@@ -1814,7 +1814,7 @@ _WINDOWS_PUBLISHING_FORMS = {
         '061adf2d3c3eed33adacb6cc7808f038e291c128',
         'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
         '7a52882adfdc438a536af081051da65f572cbfa5',
-        '4cb4088b385d511eb4510c8176415f8ea57829e4',
+        '5f3238fd04c84364cda2f01eda08c3c6a323e510',
         '5167fc0195605f9c123bb097b05e8de2f1f443a2',
     ),
 }
