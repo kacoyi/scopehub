@@ -241,7 +241,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         approved = python;
       } else if (selectedFile || outcome.state !== 'committed') throw new Error();
       const signal = AbortSignal.any([attempt.poll.signal, AbortSignal.timeout(15_000)]);
-      let canRetryStatusDelivery = !sample;
+      let canRetryStatusDelivery = true;
       while (!signal.aborted) {
         await pause();
         signal.throwIfAborted();
@@ -252,7 +252,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
         } catch (error) {
           if (admissionBusy) continue;
           if (canRetryStatusDelivery && error instanceof IndicatorStatusDeliveryError && !signal.aborted) {
-            // The frozen preview is already admitted. Read the same task once
+            // The preview is already admitted. Read the same task once
             // more after delivery loss, without submitting another operation.
             canRetryStatusDelivery = false;
             continue;

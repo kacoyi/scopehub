@@ -26241,6 +26241,7 @@
         "apps/desktop/ui/src/indicator-preview.tsx",
         "apps/desktop/ui/src/use-local-workspace.ts",
         "tests/ubuntu-preview/workspace.spec.mjs",
+        "tests/ubuntu-preview/workspace_indicator_probe.mjs",
         "project/tasks.json",
         "project/feedback.json"
       ],
@@ -26264,9 +26265,14 @@
           "run_id": "20261126T052248.924780Z-48398047",
           "source_commit": "f16bec4d5f673b091939aa0d73e953cb44db3b73",
           "report_sha256": "7e05fe0c83aa505b0a038d752fd0a0dbfa3263ed55401fc78fc56ced19a47597"
+        },
+        {
+          "run_id": "20261126T055216.550792Z-283fe3a7",
+          "source_commit": "f30e5235cf9270116b6f1e37e1425898f1822d7b",
+          "report_sha256": "b72407d17d36029e7872dd0c251bae6bad76afb7c94e9bcd02eca3a5561b8858"
         }
       ],
-      "next_action": "The development AI owns the corrective slice. Adopt the retained two-socket logical loss as a red workspace-timeframe regression on a separate branch from a coordinator-confirmed base. Verify one same-task status recovery with the original budget and the matched rejection controls before seeking independent review. Keep M2-039 composition and native qualification independent.",
+      "next_action": "Verify the committed standalone correction with the M3-007 task checks. Hand the matching browser and writer observations to the coordinator for renewed independent review and external verification. Keep M2-039 composition, its unrelated admissions and native qualification separately assigned.",
       "blocker": null,
       "closure_reason": null,
       "evidence": [],
@@ -26278,8 +26284,13 @@
         ],
         "context": [
           "archives/runs/20261126T052248.924780Z-48398047/test-report.json",
+          "archives/runs/20261126T055216.550792Z-283fe3a7/test-report.json",
           "archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.native.jsonl",
           "archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.browser.json",
+          "archives/observations/repo-hygiene-20261125/m2-039-current-workspace-f30e5235/producer-index.json",
+          ".reports/M3-007/protected-baseline-host/index.json",
+          ".reports/M3-007/red-workspace-timeframe-repro/workspace-timeframe/index.json",
+          ".reports/m3-007-calendar-failure-witness/fault/results.json",
           "apps/desktop/ui/src/indicator-preview.tsx",
           "apps/desktop/ui/src/use-local-workspace.ts",
           "tests/ubuntu-preview/workspace.spec.mjs",
@@ -26288,7 +26299,7 @@
         "hypotheses": [
           "The sample excludes bounded status-delivery recovery even when the existing transport classifies a missing response before headers and the same Rust task already holds a verified ready artifact.",
           "A logical browser status request can generate multiple native reads with the same request ID when Chromium retries its connection. The test should distinguish browser transport replay from an application-issued recovery ID.",
-          "The historical alert preceded a ready-only timeout. Its upstream indicator stage remains unknown."
+          "The first historical calendar run showed an alert during the first preview. The second reached the gapped chart after passing the first preview and forged snapshot checks. The original indicator transaction is unavailable for each failure."
         ],
         "risks": [
           {
@@ -26315,7 +26326,8 @@
           "entrypoints": [
             "apps/desktop/ui/src/indicator-preview.tsx",
             "apps/desktop/ui/src/use-local-workspace.ts",
-            "tests/ubuntu-preview/workspace.spec.mjs"
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "tests/ubuntu-preview/workspace_indicator_probe.mjs"
           ],
           "rules": [
             {
