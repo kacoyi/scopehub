@@ -7774,6 +7774,36 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-ready-event-name-conflict",
+      "source": "Independent Astra Standard (t158) public chart component and transport replay at 87d0b846aad69fb84afe371b65814856ec7a118f. Original response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-87d0b846/original-assistant-response.jsonl (SHA-256 141daf24715f091209b60978d25a3f31ed6db0769c48f8086337553e2433399c). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/3.",
+      "observation": "After one lost status delivery, changing only the recovered ready event name from indicator.preview_ready to task.terminal displayed the preview layer and 3500.5. The original task, frozen snapshot and artifact remained correlated. Cleanup occurred only after manual clearing. This conflicting envelope must fail before display and clean up the original task once.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-indicator-recovery-terminal-event-name-conflict",
+      "source": "Reciprocal control in the independent Astra Standard (t158) public chart component and transport replay at 87d0b846aad69fb84afe371b65814856ec7a118f. Original response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-87d0b846/original-assistant-response.jsonl (SHA-256 141daf24715f091209b60978d25a3f31ed6db0769c48f8086337553e2433399c). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/3.",
+      "observation": "After one lost status delivery, changing the cancelled terminal event name from task.terminal to indicator.preview_ready still displayed cancellation. This conflicting envelope must display failure, keep the preview hidden and clean up the original task once.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M3-007"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
