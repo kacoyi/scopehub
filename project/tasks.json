@@ -26925,9 +26925,13 @@
         {
           "path": "project/evidence/M0-162-9bc780d559793964.json",
           "sha256": "3d45973b40b738e4254a13577a79436bf2ce4df0a9de9356dde2e93991038f1e"
+        },
+        {
+          "path": "project/evidence/M0-162-205964df56810178.json",
+          "sha256": "653f15bb2579747c25301a8b823510b954a16101a3fbdbe44ea9bc4e521e9dd4"
         }
       ],
-      "next_action": "Coordinator to review the exact implementation and evidence in .reports/observations/M0-162-lifecycle-follow-through/bf2e2ef5-follow-through/handoff.json. Observe lock release after each ten-second budget on the local desktop with the returned clean source, then decide closure and publication.",
+      "next_action": "Coordinator to review a5b06f66b04ec51713186be2dcfed32c9e8f7b2d and the evidence in .reports/observations/M0-162-lifecycle-follow-through/bf2e2ef5-follow-through/handoff.json. Observe lock release after each ten-second budget on the local desktop with that clean source, then decide closure and publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -27025,8 +27029,8 @@
             "Make a scoped and resumable result/retirement path available through the repository-owned Herdr workflow with direct behavior checks.",
             "Register the ordinary visible coordinator launch with an exact local parent, preserve deliberate standalone sessions and native service tiers, and schedule an independent watcher so a final assignment is collectable without a later dispatch.",
             "Archive reusable assignments without terminal operations. Allow a dedicated one-shot implementation to archive its paired return evidence and end its own process, with independently observed desktop closure.",
-          "After a competing collection, let the same finished one-shot exit with its verified return pair. Retain complete empty-space evidence and report unresolved desktop snapshots as process exit only.",
-          "Keep the ten-second fast retry bound. For captured start-save and completion contention, announce the wait once and retry the current lane at a slower cadence. Keep operator inspection holds for other failures, including a missing or different execution."
+            "After a competing collection, let the same finished one-shot exit with its verified return pair. Retain complete empty-space evidence and report unresolved desktop snapshots as process exit only.",
+            "Keep the ten-second fast retry bound. For captured start-save and completion contention, announce the wait once and retry the current lane at a slower cadence. Keep operator inspection holds for other failures, including a missing or different execution."
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
           "cleanup": "Use the supported repository entry for the corrected behavior. Version 2 registrations keep older collectors from processing migrated lanes. Recover Version 1 originals without assuming prior retirement was verified. Retire superseded local workarounds after matched verification and preserve originals required for audit."
