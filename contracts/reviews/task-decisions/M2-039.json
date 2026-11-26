@@ -117,6 +117,15 @@
       },
       "supersedes": "b76cf2efa4c20ddb3038c01ba832ba19e68d3050e3294013cdbdd3ed9238780c",
       "evidence_sha256": "afb19037f3a71b4249a39687648ab6ff3cf8f96d658fa088e714f0ec37b4c236"
+    },
+    {
+      "kind": "request",
+      "source_commit": "e59f853673d76e4c71983834f40784dbf64e262d",
+      "scope": "Exercise CSV and folder list discovery without a prefilled revision ID, repeat refresh and close/reopen after temporary loss, and compare with the explicit-ID path. Challenge positive restoration, denied or still-pending access and late results in the public UI. Recheck original workspace selection, peer note fallback and first chart reopen, evidence and separate Windows qualification. Recheck the original decision on 359e3323.",
+      "supersedes": "c986d9221f5d617163bc9a45785ab443443a6a06e5a121d424c22360dd3eaa2a",
+      "requested_at": "2026-11-26T05:11:28.355939+00:00",
+      "request_id": "d7ddfd44d2cb54ff96cfbaa786d9a14c7d664b93819852a96b96f196e89ab4ef",
+      "evidence_sha256": "ccb2e547d9c045ae2f3df63394c7198cddf2925aaebbeff517e372b0924f928b"
     }
   ]
 }
