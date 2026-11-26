@@ -1,11 +1,15 @@
-"""Exercise the Herdr native boundary without opening a process or terminal."""
+"""Exercise the Herdr native boundary using synthetic Core state and a local socket."""
 
-from contextlib import chdir, nullcontext, redirect_stdout
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import chdir, nullcontext, redirect_stderr, redirect_stdout
 from copy import deepcopy
+import errno
 from hashlib import sha256
 from io import StringIO
 import json
+import os
 from pathlib import Path
+import socket
 import stat
 import sys
 from tempfile import TemporaryDirectory
@@ -15,6 +19,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 
 from scripts import herdr, herdr_lifecycle, herdr_native
 from scripts.herdr_lifecycle import LifecycleHold
+from scripts.herdr_native import connect as native_connect
 
 
 CORE_ID = '3a' * 16
@@ -71,6 +76,24 @@ class FakeCore:
             return {}
         raise AssertionError((method, params))
 
+    def serve(self, listener, identity, connections):
+        methods = []
+        for _ in range(connections):
+            connection, _ = listener.accept()
+            with connection, connection.makefile('rb') as stream:
+                connection.settimeout(5)
+                for raw in stream:
+                    request = json.loads(raw)
+                    method = request['method']
+                    methods.append(method)
+                    if method == 'hello':
+                        result = {'generation': 1, 'features': ['events'], 'core': {'id': identity}}
+                    else:
+                        result = self.call(method, **request['params'])
+                    reply = {'id': request['id'], 'jsonrpc': '2.0', 'result': result}
+                    connection.sendall(json.dumps(reply).encode('utf-8') + b'\n')
+        return methods
+
 
 @unittest.skipUnless(sys.platform == 'linux', 'Local Herdr lifecycle requires Linux.')
 class HerdrCollectEntryTests(unittest.TestCase):
@@ -98,10 +121,10 @@ class HerdrCollectEntryTests(unittest.TestCase):
         return self.rollouts[pid]
 
     def register(self, assignment, *, address=ADDRESS, session=SESSION, source=SOURCE,
-                 status='idle', complete=True, one_shot=False):
-        name = f'm0-162-implement-{assignment}'
-        labels = {'task': 'M0-162', 'role': 'implement', 'scopehub.assignment': assignment}
-        binding = {'id': assignment, 'task': 'M0-162', 'role': 'implement', 'checkout': str(self.root),
+                 status='idle', complete=True, one_shot=False, role='implement', answer=ANSWER, ending=b'\n'):
+        name = f'm0-162-{role}-{assignment}'
+        labels = {'task': 'M0-162', 'role': role, 'scopehub.assignment': assignment}
+        binding = {'id': assignment, 'task': 'M0-162', 'role': role, 'checkout': str(self.root),
                    'source': source, 'prompt_sha256': sha256(PROMPT.encode()).hexdigest(),
                    'model': 'gpt-6.2-sol', 'effort': 'ultra', 'tier': 'priority', 'sessions': str(self.sessions),
                    'labels': labels, 'codex_argv': ARGV[:-1], 'name': name, 'core_id': CORE_ID, 'parent': PARENT}
@@ -135,7 +158,7 @@ class HerdrCollectEntryTests(unittest.TestCase):
             {'type': 'turn_context', 'payload': {'turn_id': TURN, 'root_turn_id': TURN, 'cwd': str(self.root),
              'model': binding['model'], 'effort': binding['effort']}},
             message('user', 'msg_prompt', {'type': 'input_text', 'text': PROMPT}),
-            message('assistant', 'msg_result', {'type': 'output_text', 'text': ANSWER},
+            message('assistant', 'msg_result', {'type': 'output_text', 'text': answer},
                     phase='final_answer', status='completed'),
         ]
         if one_shot:
@@ -143,9 +166,9 @@ class HerdrCollectEntryTests(unittest.TestCase):
             events[1]['payload']['turn_attribution']['turn_trigger'] = 'exec'
         if complete:
             events.append({'type': 'event_msg', 'payload': {'type': 'task_complete', 'turn_id': TURN,
-                           'root_turn_id': TURN, 'last_agent_message': ANSWER}})
-        lines = [(json.dumps({'ordinal': index, 'timestamp': f'2026-11-26T06:42:{index:02d}.002Z', **event})
-                  + '\n').encode() for index, event in enumerate(events)]
+                           'root_turn_id': TURN, 'last_agent_message': answer}})
+        lines = [json.dumps({'ordinal': index, 'timestamp': f'2026-11-26T06:42:{index:02d}.002Z', **event})
+                 .encode('utf-8') + ending for index, event in enumerate(events)]
         rollout.write_bytes(b''.join(lines))
         lifecycle, _ = herdr.collector(self.state, PARENT)
         lifecycle.register(binding)
@@ -187,7 +210,91 @@ class HerdrCollectEntryTests(unittest.TestCase):
             completion_path = Path(result['completion'])
             self.assertEqual(completion_path, original_path.with_name('completion.jsonl'))
             self.assertEqual(completion_path.read_bytes(), completion)
+            self.assertEqual(result['completion_sha256'], sha256(completion).hexdigest())
         self.assertNotIn(b'M0-162', original)
+
+    def test_public_collector_preserves_raw_review_bytes_and_holds_wrong_subjects(self):
+        for name, ending, other_ending in (('lf', b'\n', b'\r\n'), ('crlf', b'\r\n', b'\n')):
+            with self.subTest(ending=name):
+                wrong = f'review-wrong-{name}'
+                self.register(wrong, role='review', ending=ending,
+                              answer=f'APPROVE M0-163 {SOURCE}\n\nThe local M0-162 controls passed.')
+                self.assertEqual(self.collect(wrong), {'assignment': wrong, 'status': 'held',
+                                                       'reason': 'review_verdict_mismatch'})
+                self.assertFalse((self.lane(wrong) / 'return').exists())
+
+                exact = f'review-exact-{name}'
+                evidence = self.register(exact, role='review', ending=ending,
+                                         answer=f'APPROVE M0-162 {SOURCE}\n\nThe local controls passed.')
+                result = self.collect(exact)
+                self.assertEqual(result['status'], 'archived')
+                original, completion = evidence
+                self.assertEqual(Path(result['original']).read_bytes(), original)
+                self.assertEqual(Path(result['completion']).read_bytes(), completion)
+                self.assertEqual(result['original_sha256'], sha256(original).hexdigest())
+                self.assertEqual(result['completion_sha256'], sha256(completion).hexdigest())
+                receipt = json.loads(Path(result['receipt']).read_bytes())
+                self.assertEqual(receipt['archive']['proof']['review_verdict'], 'approved')
+
+                Path(result['original']).write_bytes(original.removesuffix(ending) + other_ending)
+                self.assertEqual(self.collect(exact), {'assignment': exact, 'status': 'held',
+                                                       'reason': 'archive_changed'})
+        self.assertEqual(self.fake.mutations, [])
+
+    def test_public_collector_checks_core_identity_over_a_linux_unix_socket(self):
+        # The Core replies and rollout lookup are synthetic. The transport and collector are real.
+        for assignment, identity, address, session in (
+            ('matching', CORE_ID, ADDRESS, SESSION),
+            ('restarted', '4b' * 16, 't13', OTHER_SESSION),
+        ):
+            with self.subTest(assignment=assignment):
+                evidence = self.register(assignment, address=address, session=session)
+                endpoint = self.root / f'{assignment}.sock'
+                with socket.socket(socket.AF_UNIX) as listener:
+                    listener.bind(str(endpoint))
+                    listener.listen()
+                    listener.settimeout(5)
+                    with (ThreadPoolExecutor(max_workers=1) as worker,
+                          patch.dict(os.environ, {'HC_SOCKET': str(endpoint)}),
+                          patch.object(herdr_native, 'connect', native_connect)):
+                        served = worker.submit(self.fake.serve, listener, identity, 2 if identity == CORE_ID else 1)
+                        result = self.collect(assignment)
+                        methods = served.result(timeout=10)
+                if identity == CORE_ID:
+                    self.assertEqual((result['status'], result['reason']), ('archived', 'reusable_terminal'))
+                    self.assert_archive(result, evidence)
+                    self.assertEqual(methods, ['hello', 'terminal.get', 'events.subscribe'] * 2)
+                else:
+                    self.assertEqual(result, {'assignment': assignment, 'status': 'held', 'reason': 'wrong_core'})
+                    self.assertEqual(methods, ['hello'])
+                    self.assertFalse((self.lane(assignment) / 'return').exists())
+                self.assertEqual(self.fake.mutations, [])
+
+    def test_public_collector_holds_when_simulated_linux_socket_capability_is_missing(self):
+        family = object()
+        no_family = SimpleNamespace(socket=Mock())
+        no_kernel_transport = SimpleNamespace(
+            AF_UNIX=family, socket=Mock(side_effect=OSError(errno.EAFNOSUPPORT, 'Family unavailable')))
+        endpoint = Mock()
+        endpoint.lstat.return_value = SimpleNamespace(st_mode=stat.S_IFSOCK, st_uid=os.getuid())
+
+        for assignment, socket_api in (('no-family', no_family), ('no-kernel-transport', no_kernel_transport)):
+            with self.subTest(assignment=assignment):
+                self.register(assignment)
+                with (patch.object(herdr, 'core_socket', return_value=endpoint),
+                      patch.object(herdr_native, 'connect', native_connect),
+                      patch.object(herdr_native, 'socket', socket_api),
+                      patch.object(herdr_native.NativeLifecycle, 'wait_for_change') as wait):
+                    wait.side_effect = AssertionError('An unsupported transport cannot change during a watch.')
+                    result = self.collect(assignment, watch=True)
+
+                self.assertEqual(result, {'assignment': assignment, 'status': 'held',
+                                          'reason': 'unsupported_core_transport'})
+                self.assertFalse((self.lane(assignment) / 'return').exists())
+                wait.assert_not_called()
+        no_family.socket.assert_not_called()
+        no_kernel_transport.socket.assert_called_once_with(family)
+        self.assertEqual(self.fake.mutations, [])
 
     def test_reusable_assignment_cannot_kill_a_later_turn_after_the_last_state_read(self):
         evidence = self.register('reusable')
@@ -516,20 +623,48 @@ class HerdrNativeTests(unittest.TestCase):
 
 
 class HerdrNativeDiscoveryTests(unittest.TestCase):
-    def test_handshake_rejects_restarted_core_before_scoped_operations(self):
-        path = MagicMock()
-        path.lstat.return_value = SimpleNamespace(st_mode=stat.S_IFSOCK, st_uid=1000)
-        path.__str__ = Mock(return_value='/fake-core.sock')
-        connection, core = MagicMock(), Mock()
-        connection.__enter__.return_value = connection
-        core.call.return_value = {'generation': 1, 'features': ['events'], 'core': {'id': '4b' * 16}}
-        with (patch.object(herdr_native.os, 'getuid', return_value=1000, create=True),
-              patch.object(herdr_native.socket, 'socket', return_value=connection),
-              patch.object(herdr_native, 'Core', return_value=core)):
-            with self.assertRaisesRegex(LifecycleHold, '^wrong_core$'):
-                with herdr_native.connect(path, CORE_ID):
-                    self.fail('A restarted core must reject the stored binding.')
-        core.call.assert_called_once_with('hello')
+    def test_simulated_handshake_checks_identity_before_scoped_operations(self):
+        # Model Linux transport prerequisites explicitly on every host running this control.
+        family = object()
+        for identity in (CORE_ID, '4b' * 16):
+            with self.subTest(identity=identity):
+                path = MagicMock()
+                path.lstat.return_value = SimpleNamespace(st_mode=stat.S_IFSOCK, st_uid=1000)
+                connection, core = MagicMock(), Mock()
+                socket_api = SimpleNamespace(AF_UNIX=family, socket=Mock(return_value=connection))
+                core.call.return_value = {'generation': 1, 'features': ['events'], 'core': {'id': identity}}
+                with (patch.object(herdr_native.os, 'getuid', return_value=1000, create=True),
+                      patch.object(herdr_native, 'socket', socket_api),
+                      patch.object(herdr_native, 'Core', return_value=core)):
+                    if identity == CORE_ID:
+                        with herdr_native.connect(path, CORE_ID) as (observed_core, observed_id):
+                            self.assertEqual(observed_id, CORE_ID)
+                            observed_core.call('terminal.get', terminal=ADDRESS)
+                        self.assertEqual(core.call.call_args_list, [call('hello'), call('terminal.get', terminal=ADDRESS)])
+                    else:
+                        with self.assertRaisesRegex(LifecycleHold, '^wrong_core$'):
+                            with herdr_native.connect(path, CORE_ID):
+                                self.fail('A restarted core must reject the stored binding.')
+                        core.call.assert_called_once_with('hello')
+                socket_api.socket.assert_called_once_with(family)
+
+    @unittest.skipIf(sys.platform == 'linux', 'This control observes the actual unsupported host.')
+    def test_public_managed_entries_on_actual_non_linux_host_never_open_transport(self):
+        for command, options, program in (
+            ('collect', ['--dry-run'], 'pnpm project:herdr collect'),
+            ('run-owned', ['--state-dir', 'fixture-state', '--assignment-id', 'owned', PROMPT],
+             'project:herdr run-owned'),
+        ):
+            with self.subTest(command=command):
+                error = StringIO()
+                argv = ['herdr.py', command, '--parent', PARENT, *options]
+                with (patch.object(sys, 'argv', argv), redirect_stderr(error),
+                      patch.object(herdr, 'find_worktree') as worktree,
+                      patch.object(herdr, 'core_socket') as core_socket):
+                    self.assertEqual(herdr.main(), 1)
+                self.assertEqual(error.getvalue(), f'{program}: unsupported_host\n')
+                worktree.assert_not_called()
+                core_socket.assert_not_called()
 
     def test_descriptor_lookup_scopes_to_one_pid_and_one_session_tree(self):
         other = SESSIONS / f'rollout-another-{OTHER_SESSION}.jsonl'

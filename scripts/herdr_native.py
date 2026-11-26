@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import date, timedelta
+import errno
 from hashlib import sha256
 import json
 import os
@@ -89,11 +90,20 @@ class Core:
 
 @contextmanager
 def connect(path, expected=None):
+    family = getattr(socket, 'AF_UNIX', None)
+    if family is None:
+        raise LifecycleHold('unsupported_core_transport')
     try:
         info = path.lstat()
         if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.getuid():
             raise LifecycleHold('unsafe_core_socket')
-        with socket.socket(socket.AF_UNIX) as connection:
+        try:
+            connection = socket.socket(family)
+        except OSError as error:
+            if error.errno in (errno.EAFNOSUPPORT, errno.EPROTONOSUPPORT):
+                raise LifecycleHold('unsupported_core_transport') from None
+            raise
+        with connection:
             connection.settimeout(RPC_TIMEOUT)
             connection.connect(str(path))
             with connection.makefile('rb') as stream:

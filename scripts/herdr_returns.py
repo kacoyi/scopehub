@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import sys
 
 if __package__:
     from .review_acceptance import ReviewError, TRANSCRIPT_LIMIT, assistant_export, compact, final_response, heading_subject
@@ -205,9 +206,9 @@ def _review_verdict(original, binding):
     return verdict
 
 
-def _version(file_status):
+def _version(file_status, *, timestamp='st_ctime_ns'):
     return (file_status.st_dev, file_status.st_ino, file_status.st_size, file_status.st_mtime_ns,
-            file_status.st_ctime_ns)
+            getattr(file_status, timestamp))
 
 
 def probe_return(binding, terminal):
@@ -236,7 +237,11 @@ def probe_return(binding, terminal):
             events = _events(stream)
             _verify_header(events, binding, session)
             original, metadata, completion = _verify_turn(events, binding)
-            if _version(before) != _version(os.fstat(stream.fileno())) or _version(before) != _version(path.lstat()):
+            # On Windows lstat's legacy ctime is creation time while fstat reports change time.
+            # Compare birth times for the path check and keep the descriptor change-time check.
+            timestamp = 'st_birthtime_ns' if sys.platform == 'win32' else 'st_ctime_ns'
+            if (_version(before) != _version(os.fstat(stream.fileno()))
+                    or _version(before, timestamp=timestamp) != _version(path.lstat(), timestamp=timestamp)):
                 raise ReturnHold('original_changed')
     except FileNotFoundError:
         raise ReturnHold('original_missing') from None

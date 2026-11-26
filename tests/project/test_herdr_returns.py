@@ -5,8 +5,11 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
+from scripts import herdr_returns
 from scripts.herdr_returns import ReturnHold, probe_return
 
 
@@ -62,9 +65,11 @@ class HerdrReturnProofTests(unittest.TestCase):
              'last_agent_message': answer}},
         ]
 
-    def write(self, events):
-        lines = [(json.dumps({'ordinal': index, 'timestamp': f'2026-11-26T06:42:{index:02d}.002Z', **event})
-                  + '\n').encode() for index, event in enumerate(events)]
+    def write(self, events, ending=b'\n'):
+        lines = []
+        for index, event in enumerate(events):
+            record = {'ordinal': index, 'timestamp': f'2026-11-26T06:42:{index:02d}.002Z', **event}
+            lines.append(json.dumps(record).encode('utf-8') + ending)
         self.rollout.write_bytes(b''.join(lines))
         return lines
 
@@ -72,17 +77,55 @@ class HerdrReturnProofTests(unittest.TestCase):
         return probe_return(self.binding, self.terminal)
 
     def test_accepts_exact_original_without_task_token_after_same_turn_steering(self):
-        originals = self.write(self.events())
-        proof = self.probe()
+        hashes = []
+        for ending in (b'\n', b'\r\n'):
+            with self.subTest(ending=ending):
+                originals = self.write(self.events(), ending)
+                proof = self.probe()
 
-        self.assertNotIn(b'M0-162', proof.original)
-        self.assertEqual(proof.original, originals[6])
-        self.assertEqual(proof.completion, originals[7])
-        self.assertEqual(proof.metadata, {
-            'original_sha256': digest(originals[6]), 'completion_sha256': digest(originals[7]),
-            'completed_at': '2026-11-26T06:42:07.002Z', 'response_timestamp': '2026-11-26T06:42:06.002Z',
-            'message_id': 'msg_result', 'turn_id': TURN, 'session_id': SESSION, 'rollout_path': str(self.rollout),
-        })
+                self.assertNotIn(b'M0-162', proof.original)
+                self.assertEqual(proof.original, originals[6])
+                self.assertEqual(proof.completion, originals[7])
+                self.assertEqual(proof.metadata, {
+                    'original_sha256': digest(originals[6]), 'completion_sha256': digest(originals[7]),
+                    'completed_at': '2026-11-26T06:42:07.002Z', 'response_timestamp': '2026-11-26T06:42:06.002Z',
+                    'message_id': 'msg_result', 'turn_id': TURN, 'session_id': SESSION,
+                    'rollout_path': str(self.rollout),
+                })
+                self.assertEqual(self.rollout.read_bytes(), b''.join(originals))
+                hashes.append((proof.metadata['original_sha256'], proof.metadata['completion_sha256']))
+        if len(hashes) == 2:
+            self.assertNotEqual(hashes[0][0], hashes[1][0])
+            self.assertNotEqual(hashes[0][1], hashes[1][1])
+
+    def test_windows_path_creation_time_and_descriptor_change_time_are_distinct(self):
+        originals = self.write(self.events())
+        status = self.rollout.lstat()
+        common = {field: getattr(status, field) for field in ('st_mode', 'st_uid', 'st_dev', 'st_ino',
+                                                               'st_size', 'st_mtime_ns')}
+        created = status.st_ctime_ns - 2_000_000_000
+        # Model CPython 3.12 Windows, which exposes creation time in lstat().st_ctime_ns.
+        pathname = SimpleNamespace(**common, st_birthtime_ns=created, st_ctime_ns=created)
+        descriptor = SimpleNamespace(**common, st_birthtime_ns=created, st_ctime_ns=status.st_ctime_ns)
+        changed = SimpleNamespace(**common, st_birthtime_ns=created, st_ctime_ns=status.st_ctime_ns + 2_000_000_000)
+
+        with (patch.object(herdr_returns, 'sys', SimpleNamespace(platform='win32'), create=True),
+              patch.object(herdr_returns.os, 'fstat', side_effect=(descriptor, descriptor)) as fstat,
+              patch.object(Path, 'lstat', return_value=pathname) as lstat):
+            proof = self.probe()
+            self.assertEqual(proof.original, originals[6])
+            self.assertEqual(proof.completion, originals[7])
+
+            fstat.side_effect = (descriptor, changed)
+            with self.assertRaisesRegex(ReturnHold, '^original_changed$'):
+                self.probe()
+
+            for field in ('st_ino', 'st_birthtime_ns'):
+                with self.subTest(changed_path_field=field):
+                    fstat.side_effect = (descriptor, descriptor)
+                    lstat.return_value = SimpleNamespace(**{**vars(pathname), field: getattr(pathname, field) + 1})
+                    with self.assertRaisesRegex(ReturnHold, '^original_changed$'):
+                        self.probe()
         self.assertEqual(self.rollout.read_bytes(), b''.join(originals))
 
     def test_one_shot_requires_its_exact_exec_origin_and_retains_both_events(self):
@@ -166,15 +209,20 @@ class HerdrReturnProofTests(unittest.TestCase):
 
     def test_review_requires_its_exact_subject_and_keeps_the_raw_intake_original(self):
         self.binding.update(role='review', model='gpt-6.2-astra', effort='medium')
-        verdict = f'CHANGES_REQUESTED M0-162 {SOURCE}\n\nAn open lane retains its original.'
-        lines = self.write(self.events(verdict))
-        proof = self.probe()
-        self.assertEqual(proof.original, lines[6])
-        self.assertEqual(proof.completion, lines[7])
-        self.assertEqual(proof.metadata['review_verdict'], 'changes_requested')
+        wrong_source = 'bb' * 20
+        for ending in (b'\n', b'\r\n'):
+            for heading, verdict in ((f'APPROVE M0-162 {SOURCE}', 'approved'),
+                                     (f'CHANGES_REQUESTED M0-162 {SOURCE}', 'changes_requested')):
+                with self.subTest(ending=ending, heading=heading):
+                    lines = self.write(self.events(f'{heading}\n\nAn open lane retains its original.'), ending)
+                    proof = self.probe()
+                    self.assertEqual(proof.original, lines[6])
+                    self.assertEqual(proof.completion, lines[7])
+                    self.assertEqual(proof.metadata['review_verdict'], verdict)
 
-        for heading in (f'APPROVE M0-163 {SOURCE}', f'APPROVE M0-162 {SOURCE[:12]}', f'APPROVE {SOURCE}'):
-            with self.subTest(heading=heading):
-                self.write(self.events(f'{heading}\n\nThe response mentions M0-162 and {SOURCE}.'))
-                with self.assertRaisesRegex(ReturnHold, '^review_verdict_mismatch$'):
-                    self.probe()
+            for heading in (f'APPROVE M0-163 {SOURCE}', f'APPROVE M0-162 {wrong_source}',
+                            f'APPROVE M0-162 {SOURCE[:12]}', f'APPROVE {SOURCE}'):
+                with self.subTest(ending=ending, heading=heading):
+                    self.write(self.events(f'{heading}\n\nThe response mentions M0-162 and {SOURCE}.'), ending)
+                    with self.assertRaisesRegex(ReturnHold, '^review_verdict_mismatch$'):
+                        self.probe()

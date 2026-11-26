@@ -45,7 +45,8 @@ ONE_SHOT_LOCK_SECONDS = 10
 ONE_SHOT_RETRY_SECONDS = 0.2
 ONE_SHOT_DEFERRED_RETRY_SECONDS = 1
 WATCH_FINAL_HOLDS = {'unregistered_assignment', 'foreign_terminal', 'terminal_finished_without_archive',
-                     'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core'}
+                     'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core',
+                     'unsupported_core_transport'}
 
 
 class LaunchError(ValueError):
@@ -411,6 +412,7 @@ def run_owned_main():
     args = parser.parse_args(sys.argv[2:])
     owned = False
     try:
+        require_supported_host()
         lifecycle, native = collector(args.state_dir, args.parent)
         binding = lifecycle.registered_binding(args.assignment_id)
         address = inherited_parent()
