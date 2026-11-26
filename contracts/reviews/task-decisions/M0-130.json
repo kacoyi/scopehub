@@ -39,6 +39,26 @@
       "requested_at": "2026-11-25T22:52:57.971566+00:00",
       "request_id": "93bcfda4fc99c0d892c2402a4aef8fd66fab8ab88f49b3ed2463c19c273ecc31",
       "evidence_sha256": "8da291560e5ec0c2bb3339d2c5687f1aa7633a97e84ebc9419ff3ca147c35f6e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-130 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "APPROVE M0-130 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "I replayed the weekly reader with system Python and observed one Windows receipt for the 35-check PR 84 aggregate and zero for the genuine 11-check browser producer.",
+      "reviewer": "Independent Astra Standard (t10v)",
+      "original_sha256": "1190e0c34fc0cf4d04b0a70e9431526b38ed979da69b98845d0f412f74ffe5cc",
+      "response_id": "725dc3e184e1295f32d45c0c4fab4f5e4fd72582ef358c71bb06b3ffa2d520c6",
+      "response_sha256": "6484a07cdd455d31e3960424acce9bee278e4179e8cfd14e1da7e6933bf4d65c",
+      "legacy_response_sha256": "5f1e8d0fd181bde651b47d621e3a714eb60928cff67afe3e531e164dc616aff4",
+      "observation_body_sha256": "1465e6f3893a6698886e24175a4fd19be6d6a60fc947595fd70b25e68e19889b",
+      "event": {
+        "id": "msg_09a82ffb2622b907016b076d542b4087d0b43fa7ba926e5e90",
+        "timestamp": "2026-11-25T23:21:05.159Z"
+      },
+      "supersedes": "93bcfda4fc99c0d892c2402a4aef8fd66fab8ab88f49b3ed2463c19c273ecc31",
+      "evidence_sha256": "5b300526d9bc250f143b5df67c809ab14716cd3a6059e3a5c994cd62cdba621c"
     }
   ]
 }

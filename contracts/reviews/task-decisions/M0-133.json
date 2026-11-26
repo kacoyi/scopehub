@@ -39,6 +39,26 @@
       "requested_at": "2026-11-25T22:53:00.023214+00:00",
       "request_id": "f765e514cbbf00378a62255701d7791c63971593d35094219de2ece4bec2f702",
       "evidence_sha256": "f1673ef3eaf5d00a8976c3c6a27c79925298135eed8f37180a3fe6a2ab69f07f"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-133 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "After 12 newer captures, ordinary timing review restored 889 seconds of Windows wall time from a controlled stale success clock for run 45565130414, while the budget reader still honored the original failure record and withheld that timing.",
+      "reviewer": "Independent Astra Standard (t10z)",
+      "original_sha256": "ef5e94dd6001c13bfb22dfedf3dc780cdc974d47cf25aa9fe033d8a3cf8e458e",
+      "response_id": "6dbc94d5ec40023a4acfc5ebb24544d4a2247632a3912ab459e94aa9b26e276e",
+      "response_sha256": "dc731e2643d8eea87c281b8b1c8ee1bce5e9c20c9e7039a7a6faa8eedcc8fa05",
+      "legacy_response_sha256": "22e35229bdd200b1351f3f606fc8adae77787eafe575f12966db582213e88d19",
+      "observation_body_sha256": "ccacc7057b4b833d830b0670efc8aa65a0d46927222a6c2cae1671a8026a1016",
+      "event": {
+        "id": "msg_0dc31d302fb4c8f6016b076994081487d08b3ed30d0d6617b6",
+        "timestamp": "2026-11-25T23:05:06.305Z"
+      },
+      "supersedes": "f765e514cbbf00378a62255701d7791c63971593d35094219de2ece4bec2f702",
+      "evidence_sha256": "8c417cd83ced765fc61c88ed083b2ab4c00b713b110b685ecaaef4f16e4339c9"
     }
   ]
 }

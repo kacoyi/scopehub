@@ -39,6 +39,26 @@
       "requested_at": "2026-11-25T22:53:02.066390+00:00",
       "request_id": "692fff7d0da8ca8340242c21d80faff0d16f5653ac3343b428eb7d6a0f1b4049",
       "evidence_sha256": "81b86d1521ea4a8c22eefe19144a7b5f1db67740533d3f80837be8e3ef565864"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-148 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "APPROVE M0-148 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "Using system Python without Marko, I saved and reopened the PR 84 weekly replay and recovered one Windows receipt, 804 seconds of wall time, and 2,467 runner-seconds.",
+      "reviewer": "Independent Astra Standard (t10k)",
+      "original_sha256": "64fcec3f7e45d5c0c1ef9ca06644a5f1d65eeb229b6a39f310f59c107f33eb54",
+      "response_id": "420dfab357cd16170a8f50a118f42c836a3e67581104861c573f539c814e4d9d",
+      "response_sha256": "4ae3b408cd4068b15129dcddb4f2c14af2be852f37f6549a98c055076d953d3b",
+      "legacy_response_sha256": "fe697ecf8aa9af89bd86c1c50ce5c2e10588cf1ab0b574550fb97c6a4e122651",
+      "observation_body_sha256": "d475fbdcc3c66d9cc0697a007e197b712250018bc14b58531d5dcd191d01748b",
+      "event": {
+        "id": "msg_0726944a1ab7b47d016b0769db6cd887d0a8ae377328925003",
+        "timestamp": "2026-11-25T23:06:18.739Z"
+      },
+      "supersedes": "692fff7d0da8ca8340242c21d80faff0d16f5653ac3343b428eb7d6a0f1b4049",
+      "evidence_sha256": "a8cf003b34749134e24a0ff7e3760545a4275182d0142634aebd0fae01c8fe0b"
     }
   ]
 }

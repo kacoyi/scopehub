@@ -10,6 +10,26 @@
       "requested_at": "2026-11-25T22:53:03.073631+00:00",
       "request_id": "21a7e8b1cec1eccdbcb76a6e4fa633be454388d41906a14d91b0caed4380b244",
       "evidence_sha256": "35ee16df69ab02a0e500b65245b2bbd63a717179ed037ab78be0e05d5381816e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "scope": "CHANGES_REQUESTED M0-155 c6c3588faed061d7cd7f94d6410c32173ccc2cd7",
+      "observation": "With only 1024 bytes left in its read budget, the ordinary timing reader counted the old 804-second Windows measurement after reporting that it could not read the retained checkout conflict.",
+      "reviewer": "Independent Astra Standard (t10p)",
+      "original_sha256": "983e3a86d684ca77aac3a3735519438a2261ee348aa5f85cfc54bbc130282e6f",
+      "response_id": "1685675e03064e359c7bae3c190f9d2b4e8dccf54d34e31b20f2034f91e876c2",
+      "response_sha256": "ca9d74c16827a56d088d3a0c53ffb4327322926f2b5272ea614ea993efe670e5",
+      "legacy_response_sha256": "147dbac8be9eada4a99b0e0e8bafda1cf6b004a01186e75093184162126a0a10",
+      "observation_body_sha256": "3f1067e55655e28f811ec2dbf98d07f1610babe47137f053a464c375a7acaae6",
+      "event": {
+        "id": "msg_04375d6da88d3747016b076c7c569087d08b2efb739bffd954",
+        "timestamp": "2026-11-25T23:17:39.131Z"
+      },
+      "supersedes": "21a7e8b1cec1eccdbcb76a6e4fa633be454388d41906a14d91b0caed4380b244",
+      "evidence_sha256": "e4041a4bac138f28463cf90bcf99903ff2e835101b23c4c71f2bfceca7a967eb"
     }
   ]
 }
