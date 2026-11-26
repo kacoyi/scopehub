@@ -204,6 +204,15 @@
       },
       "supersedes": "0ac3985deba78705bb6ac7b08f5bb51480810125d2b6a25a061dc155528b65b2",
       "evidence_sha256": "e8781637c659eaabc337f68acad649077644de8fc546b1010449cd6f488527bd"
+    },
+    {
+      "kind": "request",
+      "source_commit": "80f3fe757f1f78be08b4fa1016060b83b00723d0",
+      "scope": "Review the completed cold chart verification on its composition with main. Check the chart price-format public entry and the protected first-test policy together in project/development.json. Check that the source and both platform receipts retain their actual scope.",
+      "supersedes": "11f3186b325a933c472e1608e0f31733ba989cad41ee454e462cc0797910eec5",
+      "requested_at": "2026-11-26T13:39:41.572119+00:00",
+      "request_id": "af427c079fab9fbaaba767cb2748ff4dff5bbe54b7d90ad3822ec565c7aa233f",
+      "evidence_sha256": "d46f7cbc94e49e3f798c139a0e1005a299d857978db20edce9ae42bf1ee26c7b"
     }
   ]
 }
