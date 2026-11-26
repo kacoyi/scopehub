@@ -184,10 +184,20 @@ impl WorkspaceBridge {
         payload: Value,
     ) -> Result<Value, Error> {
         let chart_status = operation.is_none() && payload["type"] == "frozen_chart_status";
+        let indicator_status = operation.is_none() && payload["type"] == "indicator_preview_status";
         if !self.workspace_enabled && !chart_status {
             return Err(failure(ErrorCode::PERMISSIONDENIED));
         }
-        let lane = self.admit()?;
+        let lane = self.admit().map_err(|mut error| {
+            // A BUSY from the registry or SQLite after the lock was acquired
+            // must not carry this transport-only admission detail.
+            if indicator_status && error.code == ErrorCode::BUSY {
+                error
+                    .details
+                    .insert("workspace_admission".into(), json!("refused"));
+            }
+            error
+        })?;
         let request = match operation {
             None if payload == json!({"type": "snapshot"}) => Request::Snapshot,
             None if payload["type"] == "workspace_source"
@@ -219,7 +229,7 @@ impl WorkspaceBridge {
             {
                 Request::IndicatorAcceptedRead(payload)
             }
-            None if payload["type"] == "indicator_preview_status" => {
+            None if indicator_status => {
                 let task_id = payload["task_id"]
                     .as_str()
                     .filter(|id| {
@@ -1041,6 +1051,41 @@ mod tests {
         assert!(work.is_none());
         bridge.shutdown().await;
         std::fs::remove_dir_all(profile).unwrap();
+    }
+
+    #[tokio::test]
+    async fn native_indicator_status_identifies_only_writer_admission_refusal() {
+        let profile = std::env::temp_dir().join(format!("scopehub-indicator-{}", Uuid::new_v4()));
+        let bridge = WorkspaceBridge::local(Some(&profile), true);
+        let status = json!({
+            "type": "indicator_preview_status",
+            "request_id": Uuid::new_v4().to_string(),
+            "task_id": Uuid::new_v4().to_string(),
+        });
+
+        let holder = bridge.admit().unwrap();
+        let refusal = bridge.dispatch(None, status.clone()).await.unwrap_err();
+        let snapshot = bridge
+            .dispatch(None, json!({"type": "snapshot"}))
+            .await
+            .unwrap_err();
+        drop(holder);
+
+        let missing = bridge.dispatch(None, status.clone()).await.unwrap_err();
+        let mut malformed = status;
+        malformed.as_object_mut().unwrap().remove("task_id");
+        let invalid = bridge.dispatch(None, malformed).await.unwrap_err();
+        bridge.shutdown().await;
+        std::fs::remove_dir_all(profile).unwrap();
+
+        let mut expected = failure(ErrorCode::BUSY);
+        assert_eq!(snapshot, expected);
+        expected
+            .details
+            .insert("workspace_admission".into(), json!("refused"));
+        assert_eq!(refusal, expected);
+        assert_eq!(missing, failure(ErrorCode::STALECONTEXT));
+        assert_eq!(invalid, failure(ErrorCode::INVALIDARGUMENT));
     }
 
     #[tokio::test]

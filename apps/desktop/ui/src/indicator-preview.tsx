@@ -10,7 +10,7 @@ import { IndicatorAcceptance } from './indicator-acceptance';
 import { IndicatorDiagnostics } from './indicator-diagnostics';
 import { IndicatorRegionValues } from './indicator-region-values';
 import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
-import { exchangeWorkspace, IndicatorStatusDeliveryError, type LocalWorkspace } from './use-local-workspace';
+import { exchangeWorkspace, IndicatorStatusDeliveryError, readIndicatorPreviewStatus, type LocalWorkspace } from './use-local-workspace';
 
 type Ready = {
   status: 'ready'; task_id: string; event: PreviewReady11; source_snapshot: FrozenSnapshot;
@@ -244,11 +244,13 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
       let canRetryStatusDelivery = !sample;
       while (!signal.aborted) {
         await pause();
+        signal.throwIfAborted();
+        let admissionBusy = false;
         let status: Ready | Waiting | Terminal;
         try {
-          status = await exchangeWorkspace({ type: 'indicator_preview_status', request_id: crypto.randomUUID(), task_id: id }, signal);
+          status = await readIndicatorPreviewStatus(id, signal, () => { admissionBusy = true; });
         } catch (error) {
-          if (code(error) === 'BUSY') continue;
+          if (admissionBusy) continue;
           if (canRetryStatusDelivery && error instanceof IndicatorStatusDeliveryError && !signal.aborted) {
             // The frozen preview is already admitted. Read the same task once
             // more after delivery loss, without submitting another operation.

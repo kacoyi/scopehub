@@ -7886,6 +7886,147 @@
       "deferral_reason": null
     },
     {
+      "id": "interrupt-regression-peer-lock-unheld-at-last-running-stage",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Protected Linux run 45712964544 and identical-tree PR 124 run 45709305124. Original report archives/runs/20261125T222514.810400Z-4ec1e5c9/test-report.json. The retained comparison is archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json (SHA-256 b3cecaac05b7015850f94c1fd80de73cacbc09b2b066d49572024e8eaff45d23). Linux PR 128 run 45716055348 attempt 1 repeated the failure. Original report archives/runs/20261125T224715.532164Z-bac3bdc0/test-report.json. The retained source comparison is archives/observations/repo-hygiene-20261125/m0-157-pull-request-recurrence-45716055348/observation.json (SHA-256 08b406ade058259e18b01270e84943b3cfae607b7ae16277e92f352fb8b15187).",
+      "observation": "The final running-stage subtest acquired the peer lock after one SIGINT. Its seven-scenario test took 30.242 seconds and the helper uses a 30-second lifetime starting before the scenarios. The same-tree PR completed the test in 16.462 seconds. The failing run did not report the helper exit reason or lock-release time. PR 128 hit the identical final running-stage assertion in 30.851 seconds, the sole failure among 838 tests. The protected, submitted and preview sources match on the five involved code paths. The second hosted report also lacks peer exit and lock-release telemetry.",
+      "task_ids": [
+        "M0-157"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T222514.810400Z-4ec1e5c9",
+          "source_commit": "5aedc53645f217b18bdf996f987019d75bb098c2",
+          "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
+        },
+        {
+          "run_id": "20261125T224715.532164Z-bac3bdc0",
+          "source_commit": "0d44ea5f13cc4f50e1bbfb7a3f2ff2ce9ae3395e",
+          "report_sha256": "67fce911b24ee381336706ccddc7190909437d577c2dceaa9ce7ef400873ad6c"
+        }
+      ],
+      "resolution": {
+        "cause": "The test peer had a 30-second independent lifetime. A controlled slow run observed it exiting normally and releasing the lock before the final stage. The original hosted runs did not record the exit reason.",
+        "correction": "The test controller owns the stdin writer and the independent peer holds the lock until EOF. Cleanup reaps the peer and verifies release.",
+        "prevention": "The seven-stage public SIGINT test checks that the unrelated peer keeps its lock and that reports, cleanup and retries remain intact. Retained controls verify the old deadline, deliberate early release and controller exit."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "frozen-indicator-post-loss-status-busy-counted-as-admitted",
+      "source": "PR 116 ordinary native Windows run 45682874140 on 00dfb23fc59e5e73f964eb574d29edfb48c5bf5e. Original archives/runs/windows-change-45682874140-1/test-report.json and workspace-timeframe.log. The corresponding native Linux check passed. Protected Windows run 45702463807 and same-tree preview run 45698603142: archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json SHA-256 31ae8c90aff05cae6779e17f0603ac4fe4431e00ff6adefcb02372146d669ae9.",
+      "observation": "After the first ready status for task 479d7460-afa8-421a-b8bd-34759939826d was reset, status cadf2bd2 received HTTP 429 BUSY and 5175c3ec reached another ready reply whose delivery was reset. The expected terminal message and a cancellation were observed with no new preview submission. The assertion expected one raw status request and rejected both outbound reads. A local Chromium replay with the portable writer reproduced the false count using a real authenticated refusal. When a separate control substituted HTTP 200 BUSY for an admitted ready response, the preview retried and displayed the result. An application BUSY does not establish that a request was refused before admission. The protected failure in the full or cropped zero-volatility case printed two different status request IDs for the same synthetic task. Those HTTP outcomes were not observed. Its preceding preview with the identical Git tree passed the named case.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        },
+        {
+          "run_id": "windows-change-45702463807-1",
+          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        }
+      ],
+      "resolution": {
+        "cause": "The recovery assertion counted every outgoing status request as an admitted read. Polling also treated an admitted application BUSY as a refusal. The protected equal-closes failure did not retain the HTTP outcomes of its two reads.",
+        "correction": "Classify a retry from the documented admission response, keep polling the original frozen task within one deadline and account for each attempted status and cancellation.",
+        "prevention": "Exercise full and cropped zero-volatility calculations, zero through two lost ready replies, a contradictory or nonretryable 429, admitted BUSY, persistent refusal and wrong-task replies in the real workspace."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-native-admitted-busy-retried",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "The native polling replay reads the same task again after an admitted retryable BUSY. Tauri treats all retryable BUSY replies as refusals even though reaching a ready indicator job can acquire the writer slot and return SQLite BUSY during its application read.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "rust-contracts-workers",
+        "desktop-workspace-transport"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": {
+        "cause": "The native transport treated every retryable BUSY as a refusal even when the application had admitted the read and SQLite returned BUSY.",
+        "correction": "The writer marks refused admission in the native error details only before admission. Native polling retries a matching, explicitly refused status read.",
+        "prevention": "A built desktop transport exercises explicit writer refusal, an admitted storage BUSY, an older unclassified reply and the nonretryable shape. The latter three each produce one read and one same-task cancellation."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-first-trial-cancel-without-task-accepted",
+      "source": "Independent Astra Standard review of 2738fa7edc800b37ba3eb3d4196eb86908e36104. Private original independent-final-m0-149-2738fa7e/final-response.txt SHA-256 a3408ef80cae92a7bba28f669213a0bc8ea0e51f53ddd66b529ce6863a5146a7.",
+      "observation": "Adding a raw task.cancel without task_id and with HTTP 400 to the retained cut=0 browser journal passes the recorded verifier. There is no previous task in this trial, but the missing task is classified as previous cleanup and skipped.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        }
+      ],
+      "resolution": {
+        "cause": "The first trial treated a missing cancellation identity as a match for its absent previous task.",
+        "correction": "Match cancellation against an actual current or prior task identity and count cleanup independently for each trial.",
+        "prevention": "The retained full and cropped trial sequence accepts identified prior-task cleanup, rejects an added first-trial cancellation without a task and verifies one cancellation on exhaustion."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "indicator-persistent-admission-terminal-request-unclassified",
+      "source": "PR128 ordinary run 45693164625 attempt 1 on approved 6104e365e2736c3520465e1c31aa5dbf3ab1cad3. archives/observations/repo-hygiene-20261125/m0-149-deadline-abort-45693164625/observations.json SHA-256 283ef56de72e7e35fa1e965bfe386bba784bf1ac4e0de3fccad4b4fdc62b08e0. Retained Linux original archives/runs/20261125T201655.779125Z-2e9681e2/test-report.json and matching Windows case in the private PR128 originals.",
+      "observation": "After an upstream HTTP 200 ready status for the frozen task was reset at 349 ms, the persistent-refusal test saw a different request for the same task at 15247 ms on its explicit synthetic route. Chromium recorded net::ERR_ABORTED with no HTTP status or reply. The journal assertion counted that unresolved request alongside the real ready observation and failed the Linux case. The abort does not identify an admitted read or a delivered refusal. The matching Windows case passed. The failed assertion retained a printed subset and no complete bounded journal attachment.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-149"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T201655.779125Z-2e9681e2",
+          "source_commit": "1a95eec502041af7903bd9405f5a37cc4f257fbc",
+          "report_sha256": "2ea16881b4c1bf92d66d5b47e91755c7f441eca72daff032baa380418586df37"
+        }
+      ],
+      "resolution": {
+        "cause": "The original persistent-refusal browser assertion classified an aborted terminal request with no HTTP result alongside admitted recovery. Its failure retained a partial journal, leaving the original request disposition unclassified.",
+        "correction": "Record the browser deadline, held test route and delivery outcome together and require proof the terminal request was never forwarded before accepting this bounded abort.",
+        "prevention": "Exercise the held browser route and check two delivered refusals, a single terminal abort, no new status or preview after the deadline and one cancellation of the original task. Reject incomplete or contradictory journals."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "source-row-unavailability-becomes-terminal-revocation",
       "source": "Independent Astra Standard t11n returned M2-035 for changes on a66c84af3cea2a6539d4d428c9c2ebe8fde6eb26. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-035-a66c84af/final-response.txt (SHA-256 072e394155baba020e1d621afaa30bd5e8f8ec38b6b2ee59729dd566cbe2964b). Original event SHA-256 2ebb6aa7e8c1de622a4e9217844418e674d80263940bedaf80fe6d2f08af6924.",
       "observation": "Inspecting an original row of a published CSV or folder revision hid the chart after SNAPSHOT_UNAVAILABLE, then all later refreshes and retries left it hidden and issued zero revision status reads. The same error during a whole-chart read was recoverable when the corresponding source status confirmed access.",
