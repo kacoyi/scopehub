@@ -7744,7 +7744,7 @@
       "source": "Original workspace-timeframe diagnostic archives/runs/20261126T052248.924780Z-48398047/test-report.json at f16bec4d5f673b091939aa0d73e953cb44db3b73. Controlled Chromium reproduction on 76fe9dd86e2838ac31463efd8e2a84ac432009e3. Native journal archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.native.jsonl (SHA-256 5b3a6372bd179205cb7c29ea74ed4097af4b60dbfb7893c0fd1a3872c56c9baf) and browser record archives/observations/repo-hygiene-20261125/sample-calendar-delivery-diagnosis-9f05a4fb/runs/current-v2/lose-ready-minimal.browser.json (SHA-256 55c66c0a3fae7a7d7072baea51c97323e95751fa93ce5e428f34458018ea4a95). Independent calendar failure at f30e5235cf9270116b6f1e37e1425898f1822d7b in archives/runs/20261126T055216.550792Z-283fe3a7/test-report.json, with finalized browser producer index archives/observations/repo-hygiene-20261125/m2-039-current-workspace-f30e5235/producer-index.json (SHA-256 c54d8a5a58ae75b37547cfc58bfc80b11d8c3d2e5742e3b9e18bb9e51f4a58dd). Protected baseline replay on 15eea150d1f4e4345d31c197f21402178fe8dc5e is indexed in .reports/M3-007/protected-baseline-host/index.json (SHA-256 f58910c8fbcfe13e0dee9ea2cab3a6dfc402246f8c3f0287b98b68fff4914bae).",
       "observation": "The f16bec4d calendar case completed initial and delayed chart histories, displayed the generic indicator failure on the first preview and reached its ready-only 60-second timeout. The f30e5235 case passed the first preview and forged snapshot rejection, rendered the gapped chart and reached the 60-second timeout before emitting the final indicator-calendar evidence. Neither retained the original indicator transaction for the failed preview. The failed stages in these two runs remain unclassified. In the controlled reproduction on 76fe9dd8, the offline sample chart remained ready with 40 bars. One ordinary period-two preview admitted task 1320a00c-4854-4f82-8324-165332bb3a68. The Rust writer returned 3500.5 for both socket deliveries of request 1844e00e-3700-490a-9e68-af293c120ff7. Both connections closed before headers after a 350 ms hold. Chromium exposed one ERR_EMPTY_RESPONSE. The UI issued no logical recovery, displayed the generic alert, hid the preview layer and cancelled the same task once. A subsequent admitted status returned STALE_CONTEXT. The protected 15eea150 runtime reproduced that sequence for status request 7ec427b8-7549-4ffe-89f8-dedb9c46af4d. The matched protected controls displayed 3500.5 both after delivering the held ready response and after eight explicit HTTP 429 refusals without native status dispatch for the refused IDs.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
@@ -7763,7 +7763,11 @@
           "report_sha256": "b72407d17d36029e7872dd0c251bae6bad76afb7c94e9bcd02eca3a5561b8858"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The controlled reproduction isolated a browser-visible delivery loss after the native writer had a ready artifact. The sample path excluded the existing bounded status reread and cancelled the admitted task. The separate f16bec4d first-preview and f30e5235 later gapped-calendar timeout causes remain unknown because their original indicator transactions were not recorded.",
+        "correction": "On a recoverable status delivery loss, reread the same admitted preview task once within its existing polling deadline. The calendar check records ready or visible failure, chart state and cleanup.",
+        "prevention": "Linux and Windows task dispatch 45824846885 each observed one draft, one preview and one logical reread rendering the period-two mean 3500.5 across the scheduled closure. Retain delivery, pre-admission refusal, second loss, deadline, ordinary calendar and controlled calendar failure observations alongside both original timeout diagnostics."
+      },
       "deferral_reason": null
     },
     {
@@ -7771,7 +7775,7 @@
       "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/1.",
       "observation": "After one lost status delivery, the reviewer cancelled through the preview UI while the second read was pending. The cancelled message appeared and the chart preview layer cleared, but two different cancellation request IDs targeted the same admitted task. The invalidation path cancelled the task before the aborted polling catch cancelled it again. The compiled Chromium and Rust replay confirmed two browser cancellation IDs for task f616de1a-f39e-47dc-879d-4c470b7c0d36. The writer admitted one and refused the other before admission. The late admission control passed with one cancellation after the delayed reply supplied the task ID.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
@@ -7785,7 +7789,11 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The preview invalidation path and the aborted status polling catch each dispatched cancellation for the same attempt.",
+        "correction": "Have both paths use the attempt's cancellation owner so the admitted task ID is consumed once, including when admission supplies it after cancellation.",
+        "prevention": "The Linux and Windows workspace checks in task dispatch 45824846885 observed one original-task cleanup during an in-flight recovery read and one when the admission reply arrived late."
+      },
       "deferral_reason": null
     },
     {
@@ -7793,7 +7801,7 @@
       "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a).",
       "observation": "After one lost status delivery, changing the recovery response status from ready to the undefined value unavailable left the valid Rust artifact payload in place. The independent replay and the compiled Chromium and Rust replay both displayed the preview layer and 3500.5. An unknown status must show failure, hide the preview and clean up the admitted task once.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
@@ -7807,7 +7815,11 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "An unrecognized status fell through to the ready branch when the payload still held a valid artifact.",
+        "correction": "Validate the discriminated status envelope before consuming any preview artifact.",
+        "prevention": "The unknown-status case in Linux and Windows task dispatch 45824846885 showed failure, hid the preview and cleaned up the admitted task once."
+      },
       "deferral_reason": null
     },
     {
@@ -7815,7 +7827,7 @@
       "source": "Independent Astra Standard (t14g) component and transport replay at c1cefee5537c5ef4b80dd1ce7a6f28eaaaa69540. Original final response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-c1cefee5/final-response.txt (SHA-256 7b307eb7f16d24e9066a8383ae8bf15516bc82cba4ef351b6718e40d5cd5cc6a).",
       "observation": "After one lost status delivery, the reviewer retained the correct outer task ID and substituted another task's ID in the nested cancellation event. The independent replay and the compiled Chromium and Rust replay both displayed cancellation for the current preview. The mismatched event must show failure, hide the preview and clean up the original admitted task once.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
@@ -7829,7 +7841,11 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The status response's outer task identity was accepted without checking the nested terminal event's task identity.",
+        "correction": "Correlate the validated terminal event with the admitted preview task before interpreting its outcome.",
+        "prevention": "The mismatched nested task case in Linux and Windows task dispatch 45824846885 showed failure, hid the preview and cleaned up the original task once."
+      },
       "deferral_reason": null
     },
     {
@@ -7837,7 +7853,7 @@
       "source": "Compiled Chromium and Rust replay in .reports/runs/20261126T073858.234369Z-31cf891c/workspace-timeframe/results.json at 6a266c97fd52cd0d0a588ff3054973d7bfa5167a (SHA-256 c1329d939885136cded7eb7e1ca6fa235529abde539775cf673d04c07d137561).",
       "observation": "After one lost status delivery, an otherwise correlated terminal event used the undefined outcome unavailable. The UI displayed cancellation for that task although the result provided no cancellation outcome. The preview must fail and clean up the admitted task once. The adjacent ready event with another task ID was already rejected.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
@@ -7851,7 +7867,11 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "An undefined terminal outcome fell through to the visible cancellation state.",
+        "correction": "Validate terminal outcomes against the protocol and handle the supported failed and cancelled branches explicitly.",
+        "prevention": "The unknown outcome case in Linux and Windows task dispatch 45824846885 showed failure and one cleanup of the original task. Genuine cancellation and terminal error retained their visible states."
+      },
       "deferral_reason": null
     },
     {
@@ -7859,14 +7879,18 @@
       "source": "Independent Astra Standard (t158) public chart component and transport replay at 87d0b846aad69fb84afe371b65814856ec7a118f. Original response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-87d0b846/original-assistant-response.jsonl (SHA-256 141daf24715f091209b60978d25a3f31ed6db0769c48f8086337553e2433399c). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/3.",
       "observation": "After one lost status delivery, changing only the recovered ready event name from indicator.preview_ready to task.terminal displayed the preview layer and 3500.5. The original task, frozen snapshot and artifact remained correlated. Cleanup occurred only after manual clearing. This conflicting envelope must fail before display and clean up the original task once.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The ready branch trusted a correlated artifact without verifying that the nested protocol event was indicator.preview_ready.",
+        "correction": "Require the canonical ready event envelope before rendering the preview.",
+        "prevention": "After one lost delivery, the ready result carrying task.terminal failed on Linux and Windows in task dispatch 45824846885. The 40-bar chart stayed visible, the preview stayed hidden and the original task was cleaned up once. The valid ready control rendered 3500.5."
+      },
       "deferral_reason": null
     },
     {
@@ -7874,14 +7898,18 @@
       "source": "Reciprocal control in the independent Astra Standard (t158) public chart component and transport replay at 87d0b846aad69fb84afe371b65814856ec7a118f. Original response: archives/observations/repo-hygiene-20261125/independent-final-m3-007-87d0b846/original-assistant-response.jsonl (SHA-256 141daf24715f091209b60978d25a3f31ed6db0769c48f8086337553e2433399c). Review decision: contracts/reviews/task-decisions/M3-007.json#/events/3.",
       "observation": "After one lost status delivery, changing the cancelled terminal event name from task.terminal to indicator.preview_ready still displayed cancellation. This conflicting envelope must display failure, keep the preview hidden and clean up the original task once.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "The terminal branch interpreted the cancellation outcome without verifying that the nested protocol event was task.terminal.",
+        "correction": "Require the canonical terminal event envelope before presenting a terminal outcome.",
+        "prevention": "After one lost delivery, the terminal result carrying indicator.preview_ready showed failure on Linux and Windows in task dispatch 45824846885. The 40-bar chart stayed visible and the original task was cleaned up once. The genuine terminal control showed cancellation."
+      },
       "deferral_reason": null
     },
     {
@@ -7889,14 +7917,18 @@
       "source": "Focused Chromium and Rust writer reproduction in .reports/M3-007/status-envelope/before/workspace-timeframe/results.json at ccdbacde3ac9ad8261c5d3103caea5826b57b45f (SHA-256 f5c61443e111566db1255c88a16142cdadbabe2cccc1a1c43a8288777cbb21c7).",
       "observation": "After one lost status delivery, the normal chart displayed a ready artifact with the wrong event protocol version and displayed cancellation with the wrong terminal message type. A terminal error with a string retryable flag displayed the resource limit message. A running envelope carrying a ready event was ignored and a third logical read displayed the artifact. Each invalid branch must fail at the consumer with one cleanup of the original task.",
       "severity": "major",
-      "status": "open",
+      "status": "addressed",
       "task_ids": [
         "M3-007"
       ],
       "regression_checks": [
         "workspace-timeframe"
       ],
-      "resolution": null,
+      "resolution": {
+        "cause": "Partial status parsing accepted invalid nested protocol versions, message types and error shapes, and ignored a ready event attached to a running status.",
+        "correction": "Validate the complete canonical branch before interpreting status, event, outcome or error fields.",
+        "prevention": "The four malformed-envelope cases in Linux and Windows task dispatch 45824846885 failed before display or another logical status read. Each kept the chart intact and cleaned up the original task once."
+      },
       "deferral_reason": null
     }
   ]

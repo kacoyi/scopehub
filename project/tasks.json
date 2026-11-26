@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "focus_task_id": "M3-007",
+  "focus_task_id": "M2-003",
   "tasks": [
     {
       "id": "M0-001",
@@ -26389,7 +26389,7 @@
       "id": "M3-007",
       "title": "Recover one lost status delivery for an admitted offline sample indicator preview",
       "milestone": "M3",
-      "status": "active",
+      "status": "done",
       "depends_on": [
         "M0-149"
       ],
@@ -26440,9 +26440,9 @@
           "report_sha256": "c0ec1dc7ccf4eda159ccb2edd29f0ae73e09e3fc44e48d46acb3331de5abe7f3"
         }
       ],
-      "next_action": "Coordinator: obtain fresh independent review and native Windows verification of the clean status envelope correction 8d1501a640f568f89e873845b24ae93ff29ba5c9. Use .reports/M3-007/status-envelope/implementation-handoff.json for the retained originals and all seven passing local task checks. Both earlier calendar timeouts remain separately unclassified because their original indicator transactions are unavailable.",
+      "next_action": null,
       "blocker": null,
-      "closure_reason": null,
+      "closure_reason": "Independent review approved 3b506adedc41a015abf490f91d3714c7e1516ac2. Linux and Windows each passed all seven selected checks in the first attempt of task dispatch 45824846885. The offline chart rendered the period-two value 3500.5 across the scheduled closure after one logical reread of the admitted task. The reciprocal event-name conflicts failed with one cleanup of the original task each. The calendar check records ready and failure outcomes and retains the normal, gapped, forged snapshot and obsolete-task controls. The causes of the separate f16bec4d and f30e5235 calendar timeouts remain unknown because the original indicator transactions are missing. Ordinary PR 137 run 45823962357 failed its separate protected verification. Physical Windows acceptance remains a separate gate.",
       "evidence": [
         {
           "path": "project/evidence/M3-007-88e2331c7d8c9804.json",
@@ -26455,6 +26455,14 @@
         {
           "path": "project/evidence/M3-007-a3da0515ddf03000.json",
           "sha256": "05010069db0336362bccbfda9841010ab1c40ddbf640360956c10396765d7404"
+        },
+        {
+          "path": "project/evidence/M3-007-f13c492bcd60eda6.json",
+          "sha256": "6f300fa8cd7d29677878dce10ebc3dd3c8b8f9b49b4a60f3af75cb41f47def40"
+        },
+        {
+          "path": "project/evidence/M3-007-a51c6f16d912bba4.json",
+          "sha256": "911f21290bec436c09bb93b262c2fab508df7bd8aed47d2340daa40a8c704516"
         }
       ],
       "plan": {
