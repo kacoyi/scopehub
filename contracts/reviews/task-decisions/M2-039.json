@@ -213,6 +213,26 @@
       "requested_at": "2026-11-26T07:49:00.203943+00:00",
       "request_id": "1d7f31b7f7c8bf63b1203aef093c3e3b8ebf6cced7a8f3b32da30863d5d9b07f",
       "evidence_sha256": "35a59023b6ea82eb8d98e605f08b80f6884432258be3aa41f052a3d10edfba68"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M2-039 a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "scope": "CHANGES_REQUESTED M2-039 a1866052ec539edaf7925c3fd426c0f66b21b91c",
+      "observation": "In a controlled-clock replay, the Windows fixture entered the public journey at 64 seconds when the endpoint became ready at 59 seconds and listener ownership was first confirmed at 64 seconds.",
+      "reviewer": "Independent Astra Standard (t157)",
+      "original_sha256": "34cb062a68b70d3e7f2c192f4acb2ce8a655bf59b81d5d8749572f90a3801a3c",
+      "response_id": "ea91747016ff3898ea1ff05b9c70c1aae8a6b1a9b479536b39154747fa34ebf5",
+      "response_sha256": "b51d540fdacd28ac14369e558aee43f27cc7922d9749689a32b5b862bf0f9d55",
+      "legacy_response_sha256": "6636b4728ccdb1a09a3592e48185921f8d13105459617d83e078f13264e8e976",
+      "observation_body_sha256": "6e5d4642d932eb8a578d413442c1bfbe61a898aec6fb9cde9f268e01fb6d7244",
+      "event": {
+        "id": "msg_0d1b4853f7780450016b0826c95fdc87d2ba340b27420a196c",
+        "timestamp": "2026-11-26T12:32:30.454Z"
+      },
+      "supersedes": "1d7f31b7f7c8bf63b1203aef093c3e3b8ebf6cced7a8f3b32da30863d5d9b07f",
+      "evidence_sha256": "07597432d84b02b63b71a466d362ece4d23547281dabc8f8b8e4aced668e7582"
     }
   ]
 }
