@@ -349,6 +349,15 @@
       },
       "supersedes": "c7403f9b7fb1d695bc21b49d8f57a40325d622a7bcd20e1369dfed1094201b22",
       "evidence_sha256": "4b15fc9fd874347c0b0dac559b35f0eb8fd103719aca7f1de9784b065ba19d3d"
+    },
+    {
+      "kind": "request",
+      "source_commit": "fd02515180726e0b843e590b62d0aeef404aed48",
+      "scope": "Review the shared full Windows aggregate publication and ordinary receipt import boundary on this exact source, including tasks without a Python check, required original log bytes, producer command, state, reason, exit, digest, role and attempt. Independently repeat wrong market-recovery-ui run and exit controls and restore original bytes for cold receipt reopen. Check browser and unsplit recovery retention, current split recovery binding and intact 2.0 receipts. Review the e593f4f3 composition and the historical timing fixture correction without borrowing native timing acceptance.",
+      "supersedes": "a05396e882ee9aa8d30d5aa8cbcf284b76ccb31097f4585e2ed6ae42412fd683",
+      "requested_at": "2026-11-26T16:05:03.649605+00:00",
+      "request_id": "2e964e2aca8cec6efbe7714c9176ae0455020227da810c1695ae485991bd5ebd",
+      "evidence_sha256": "825d6e03f67e95b8618b5bae8b5bc4fd456461feceeb0f0ee8aaed952cb278bc"
     }
   ]
 }
