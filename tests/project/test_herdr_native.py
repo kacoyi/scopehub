@@ -223,7 +223,7 @@ class HerdrCollectEntryTests(unittest.TestCase):
                     (return_path / 'archive.json').unlink()
                     return_path.rmdir()
                 archive = {key: value for key, value in record['archive'].items() if key != 'binding_sha256'}
-                write_record(lane, {**record, 'phase': 'retiring', 'archive': archive})
+                write_record(lane, {**record, 'version': 1, 'phase': 'retiring', 'archive': archive})
                 raise KeyboardInterrupt
             write_record(lane, record)
 
@@ -239,6 +239,7 @@ class HerdrCollectEntryTests(unittest.TestCase):
         self.assertEqual(self.fake.terminals[ADDRESS]['turn'], 2)
         self.assertEqual(self.fake.terminals[ADDRESS]['state'], 'finished')
         self.assert_archive(result, evidence, legacy=True)
+        self.assertEqual(json.loads(Path(result['receipt']).read_bytes())['version'], 2)
 
     def test_interrupted_atomic_archive_keeps_both_events_after_the_live_rollout_is_gone(self):
         evidence = self.register('atomic')
@@ -306,6 +307,9 @@ class HerdrCollectEntryTests(unittest.TestCase):
         self.assertEqual(self.collect('one-shot')['reason'], 'one_shot_exited')
 
         desktop.return_value = [(space, {'id': 'tab-new', 'terminals': [own_pane]}), (space, sibling)]
+        self.assertEqual(self.collect('one-shot')['reason'], 'one_shot_exited')
+
+        desktop.return_value = [({'id': 'another-space', 'machine': None}, sibling)]
         self.assertEqual(self.collect('one-shot')['reason'], 'one_shot_exited')
 
         desktop.return_value = [(space, sibling)]

@@ -26919,7 +26919,7 @@
           "sha256": "9c1132e153f0263273fb8f4d42edd4b164c3e8d84f8854ff833012d4375edbe3"
         }
       ],
-      "next_action": "Correct both independent lifecycle findings. Replay the live turn change and interrupted retirement through collect with a fake adapter. Verify original recovery and any supported self-exit using a disposable owned assignment, then hand off the exact clean source and private observations to the coordinator.",
+      "next_action": "Coordinator to obtain independent review on the exact clean source identified in .reports/observations/M0-162-lifecycle-follow-through/handoff.json. Review both public-entry race controls, private original and completion recovery, and the disposable native one-shot observation before task closure or publication.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26989,10 +26989,11 @@
           ],
           "change": [
             "Make a scoped and resumable result/retirement path available through the repository-owned Herdr workflow with direct behavior checks.",
-          "Register the ordinary visible coordinator launch with an exact local parent, preserve deliberate standalone sessions and native service tiers, and schedule an independent watcher so a final assignment is collectable without a later dispatch."
+            "Register the ordinary visible coordinator launch with an exact local parent, preserve deliberate standalone sessions and native service tiers, and schedule an independent watcher so a final assignment is collectable without a later dispatch.",
+            "Archive reusable assignments without terminal operations. Allow a dedicated one-shot implementation to archive its paired return evidence and end its own process, with independently observed desktop closure."
           ],
           "data_plan": "Development records only. Keep task originals private and preserve existing product data and permissions.",
-          "cleanup": "Use the supported repository entry for the corrected behavior. Retire superseded local workarounds after matched verification and preserve originals required for audit."
+          "cleanup": "Use the supported repository entry for the corrected behavior. Version 2 registrations keep older collectors from processing migrated lanes. Recover Version 1 originals without assuming prior retirement was verified. Retire superseded local workarounds after matched verification and preserve originals required for audit."
         }
       }
     }

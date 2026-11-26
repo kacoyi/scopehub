@@ -246,10 +246,15 @@ class NativeLifecycle:
         if row.get('reason') != 'exited' or type(exit_code) is not int or exit_code != 0:
             raise LifecycleHold('one_shot_exit_unverified')
         tab = execution['tab']
-        if tab and all(current.get('id') != tab['id'] and all(
-                entry.get('terminal') != row['address'] and entry.get('pane') != tab['pane']
-                for entry in current['terminals']) for _, current in _desktop_tabs(binding)):
-            raise LifecycleHold('one_shot_tab_closed')
+        if tab:
+            entries = _desktop_tabs(binding)
+            original_space = any(space.get('id') == binding['space'] and space.get('machine') is None
+                                 for space, _ in entries)
+            still_present = any(current.get('id') == tab['id'] or any(
+                entry.get('terminal') == row['address'] or entry.get('pane') == tab['pane']
+                for entry in current['terminals']) for _, current in entries)
+            if original_space and not still_present:
+                raise LifecycleHold('one_shot_tab_closed')
         raise LifecycleHold('one_shot_exited')
 
     def _observe(self, core, binding, expected):

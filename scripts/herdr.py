@@ -456,7 +456,7 @@ def collect_main():
             lane = result['assignments'][0]
             elapsed = time.monotonic() - started
             reason = lane.get('reason')
-            if lane['status'] in ('archived', 'retired') or reason in WATCH_FINAL_HOLDS or elapsed >= WATCH_SECONDS:
+            if lane['status'] == 'archived' or reason in WATCH_FINAL_HOLDS or elapsed >= WATCH_SECONDS:
                 break
             if not observed and reason == 'terminal_missing' and elapsed >= LAUNCH_SETTLE_SECONDS:
                 break
@@ -465,7 +465,7 @@ def collect_main():
             native.wait_for_change(args.assignment_id)
             # A lost connection must not turn the detached watcher into a busy loop.
             time.sleep(max(0, 1 - (time.monotonic() - waiting_since)))
-        if args.assignment_id is not None and result['assignments'][0]['status'] in ('archived', 'retired'):
+        if args.assignment_id is not None and result['assignments'][0]['status'] == 'archived':
             result['assignments'][0].update(lifecycle.archive_paths(args.assignment_id))
         print(json.dumps(result, indent=2))
     except (LaunchError, LifecycleHold, OSError, subprocess.SubprocessError) as error:

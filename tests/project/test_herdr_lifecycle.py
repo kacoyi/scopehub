@@ -203,3 +203,19 @@ class HerdrLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(LifecycleHold, 'invalid_registration'):
             self.register('coord', role='coordinate')
         self.observe.assert_not_called()
+
+    def test_legacy_registration_migrates_before_it_observes_the_live_session(self):
+        self.register()
+        record_path = self.lane() / 'assignment.json'
+        legacy = dict(self.state_record(), version=1)
+        record_path.write_text(json.dumps(legacy), encoding='utf-8')
+
+        self.assertEqual(self.collect(dry_run=True)['status'], 'eligible')
+        self.assertEqual(self.state_record(), legacy)
+
+        def still_working(binding, *, retiring):
+            self.assertEqual(self.state_record(), dict(legacy, version=2))
+            raise LifecycleHold('terminal_not_ready')
+
+        self.observe.side_effect = still_working
+        self.assertEqual(self.collect()['reason'], 'terminal_not_ready')

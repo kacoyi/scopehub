@@ -16,6 +16,7 @@ else:
 
 
 VERSION = 1
+REGISTRATION_VERSION = 2
 ID = re.compile(r'[a-z0-9][a-z0-9_-]{0,63}')
 COMMIT = re.compile(r'[a-f0-9]{40}(?:[a-f0-9]{24})?')
 SHA256 = re.compile(r'[a-f0-9]{64}')
@@ -147,7 +148,7 @@ class Lifecycle:
             raise LifecycleHold('invalid_registration') from error
         if not isinstance(record, dict) or type(record.get('version')) is not int:
             raise LifecycleHold('invalid_registration')
-        if record['version'] != VERSION:
+        if record['version'] not in (1, REGISTRATION_VERSION):
             raise LifecycleHold('unknown_registration_version')
         _validate_binding(record.get('binding'), self.parent, assignment)
         if record.get('phase') not in ('registered', 'archived', 'retiring', 'retired'):
@@ -171,7 +172,7 @@ class Lifecycle:
                 try:
                     existing = self._read_record(lane, assignment)
                 except FileNotFoundError:
-                    _write_record(lane, {'version': VERSION, 'phase': 'registered', 'binding': binding})
+                    _write_record(lane, {'version': REGISTRATION_VERSION, 'phase': 'registered', 'binding': binding})
                 else:
                     if existing['binding'] != binding:
                         raise LifecycleHold('registration_conflict')
@@ -338,6 +339,11 @@ class Lifecycle:
 
     def _advance(self, lane, assignment, dry_run):
         record = self._read_record(lane, assignment)
+        if (record['version'] == 1 and record['phase'] != 'retired'
+                and not dry_run and lane.parent == self.pending):
+            # Older detached collectors reject this version before considering any terminal operation.
+            record = dict(record, version=REGISTRATION_VERSION)
+            _write_record(lane, record)
         binding = record['binding']
         archive, directory = self._archive(lane, record)
         if archive is None:
