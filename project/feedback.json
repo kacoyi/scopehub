@@ -7630,6 +7630,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "maintenance-engagement-disappears-after-repair-closure",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/1 on 8bbf6e109fa13f235cdb29bb644af465643cc3e0. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-8bbf6e10/original-assistant-response.jsonl, SHA-256 b6ec4a4f7957d1658d7165f1b7152cb43c87bc5cb57cf5f17d9766098a21a818.",
+      "observation": "The independent reviewer projected the narrow repair done and transferred focus to the genuine M0-157 audit task. Ordinary startup and focused handoff recovered zero of the two open maintenance commitments and no stop condition. The known-path owner record still showed both open. The earlier warm and fresh starts exercised the repair focus and did not detect the loss across task turnover.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
