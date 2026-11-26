@@ -7934,6 +7934,30 @@
         "prevention": "The real-child control asserts the exact bounded row and field for stderr, fixed fallback for a stdout-only lookalike, cleanup of all acquired fixtures and no witness launch after failed preparation. Independent review replayed both cases and guarded workspace-timeframe passed on Linux and Windows."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-cancelled-indicator-scratch-survives-completion",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45825584085-core/observation.json (SHA-256 f23ddb7c013e30d93646825be88687fb316419a46db23daaf0d1ccdb82882a68).",
+      "observation": "First protected main push 45825584085 failed its Windows core producer. In the trusted-indicator suite the existing cancellation test reached the assertion that its scratch directory had been removed, which failed at trusted_indicator.rs:340. Thirteen adjacent cases passed. The original does not identify the surviving entry, elapsed cleanup or underlying filesystem error.",
+      "task_ids": [
+        "M0-167"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45825584085-1",
+          "source_commit": "8d088f7cba3e7d6322ee9eeb396bd2db59bfa4a2",
+          "report_sha256": "49e0b487bd0cd4501a5c5888ae2198149015b40a9cbcc78242d916ff08d4fff8"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
