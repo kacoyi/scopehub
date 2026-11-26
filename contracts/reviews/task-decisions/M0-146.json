@@ -329,6 +329,26 @@
       "requested_at": "2026-11-26T15:30:30.123205+00:00",
       "request_id": "a278bfb20b4bdc236983f4d27befb0cafa4fa70c3a69e28d92484e94d75e1536",
       "evidence_sha256": "a88dcc92a530c513043daf4e0b91f0f2bdf72ed4bee75e430e669988303f3881"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "07cc51a941fe209608fa32b69663f0f47a17420c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-146 07cc51a941fe209608fa32b69663f0f47a17420c",
+      "scope": "CHANGES_REQUESTED M0-146 07cc51a941fe209608fa32b69663f0f47a17420c",
+      "observation": "The candidate publisher accepted the core lane’s not_selected row for market-workflow and omitted the passing browser lane’s original log.",
+      "reviewer": "Independent Astra Standard (t19n)",
+      "original_sha256": "3d69a0b8823a737092be8da5dafd3b545a0930765b432d0c6b89466b26a0348e",
+      "response_id": "aad75298a445c8c126e3d5579ced8187b8787e34d0dd9fdfe7a2549866265153",
+      "response_sha256": "ca1b4f9fd69ef751ccf4e880d1661cc8f17110b98e5361f54ff8551a969aa96a",
+      "legacy_response_sha256": "8973502ccd69994bea6c5fd378e3533afb3c247d08d72fb9b8297828df4b29ae",
+      "observation_body_sha256": "d85fb45fe7dc2e0f420bdcdea44e1b185fce358439bbe197bea5bb97236aa223",
+      "event": {
+        "id": "msg_061f815ce1258290016b085274146087d2b297e5ce386a6cd3",
+        "timestamp": "2026-11-26T15:38:52.072Z"
+      },
+      "supersedes": "a278bfb20b4bdc236983f4d27befb0cafa4fa70c3a69e28d92484e94d75e1536",
+      "evidence_sha256": "e5fccd3288504b2a63687e14498b37d2600c8de497c7ecb3996ea5e3b3b53118"
     }
   ]
 }

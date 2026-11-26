@@ -329,6 +329,26 @@
       "requested_at": "2026-11-26T15:30:30.693519+00:00",
       "request_id": "c7403f9b7fb1d695bc21b49d8f57a40325d622a7bcd20e1369dfed1094201b22",
       "evidence_sha256": "5167b32eb4207c4a950d13c9fc6d67b2eaf9b6ee851fce1c0c3a809aa2fd1b6d"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "07cc51a941fe209608fa32b69663f0f47a17420c",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-139 07cc51a941fe209608fa32b69663f0f47a17420c",
+      "scope": "CHANGES_REQUESTED M0-139 07cc51a941fe209608fa32b69663f0f47a17420c",
+      "observation": "The aggregate publisher accepted the market-recovery-ui log from run 45680128413 while the unchanged recovery producer report for run 45839731781 recorded a different digest.",
+      "reviewer": "Independent Astra Standard (t19p)",
+      "original_sha256": "f118679fa8d91e488f78ffa35fc2573006cd62917320deb568740f280b718494",
+      "response_id": "a05396e882ee9aa8d30d5aa8cbcf284b76ccb31097f4585e2ed6ae42412fd683",
+      "response_sha256": "4f6136330782ebac40033e43f5c8e7321ace5ff0f932f4521b1443a791889fd0",
+      "legacy_response_sha256": "67839e7172338dcb1de6bda5541aa985c80ee887a8e07189e6e7f29818f23695",
+      "observation_body_sha256": "6f98e1441a2a46118a6ad23a92435a3524acbfe430be2cbd8452c6692f7a8a49",
+      "event": {
+        "id": "msg_00b8943b6d0cdbe9016b0852fe12d487d29b9e6e10be020cba",
+        "timestamp": "2026-11-26T15:41:15.268Z"
+      },
+      "supersedes": "c7403f9b7fb1d695bc21b49d8f57a40325d622a7bcd20e1369dfed1094201b22",
+      "evidence_sha256": "4b15fc9fd874347c0b0dac559b35f0eb8fd103719aca7f1de9784b065ba19d3d"
     }
   ]
 }
