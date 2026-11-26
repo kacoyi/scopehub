@@ -27124,6 +27124,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Unchanged call syntax may resolve to a different loader in the historical publishing launcher. Compare the rebound publisher and its stale artifact with the genuine publisher and a recognized publisher selecting a different catalog.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",

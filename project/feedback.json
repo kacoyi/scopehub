@@ -8835,6 +8835,23 @@
       "diagnostic_reports": [],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "timing-publisher-rebound-loader-bypasses-trusted-catalog",
+      "status": "open",
+      "severity": "major",
+      "source": "Public publisher binding control against 44f51ec60c3c174428742ae82dbd9857456f1ddf, retained at .reports/m0-155-publisher-lifetime/binding-44f51ec6/summary.json (SHA-256 53a949b777f625ceb0a5286e25e7c7e5c05dab99246ee87b11eb95617f63e9d7).",
+      "observation": "Rebinding the historical check launcher's load_project changed its selected check count from 35 to 34 while preserving the catalog loader blobs and call syntax. The stale report kept the 903-second Windows clock and one weekly receipt, and the 34-check report received zero.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "diagnostic_reports": [],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

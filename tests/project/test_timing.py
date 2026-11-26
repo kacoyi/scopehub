@@ -1610,6 +1610,8 @@ class HostedTimingTests(unittest.TestCase):
 
 class PRMainComparisonTests(unittest.TestCase):
     def setUp(self):
+        self.publisher_forms = set()
+        self.enterContext(patch.object(timing, '_WINDOWS_PUBLISHING_FORMS', self.publisher_forms))
         self.enterContext(isolated_git_environment())
         temp = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(temp)
@@ -1646,11 +1648,16 @@ def main():
     return json.dumps(report, indent=2)
 """)
         development = self.git('hash-object', '-w', '--stdin', contents=PUBLISHER_DEVELOPMENT)
+        scope = self.git('hash-object', '-w', '--stdin', contents=Path(verification_scope.__file__).read_text(encoding='utf-8'))
+        collector = self.git('hash-object', '-w', '--stdin', contents=Path(ci_artifacts.__file__).read_text(encoding='utf-8'))
         scripts = self.git('mktree', contents=(
-            f'100644 blob {harness}\tcheck.py\n100644 blob {policy}\tproject.py\n'
-            f'100644 blob {development}\tdevelopment.py\n'
+            f'100644 blob {harness}\tcheck.py\n100644 blob {collector}\tci_artifacts.py\n'
+            f'100644 blob {development}\tdevelopment.py\n100644 blob {policy}\tproject.py\n'
+            f'100644 blob {scope}\tverification_scope.py\n'
         ))
-        return self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
+        tree = self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
+        self.publisher_forms.add((policy, development, harness, scope, collector))
+        return tree
 
     def test_selection_comes_from_committed_publishing_catalog(self):
         full = (*BASIC_CHECKS, 'generated-contracts', 'windows-native-build')
@@ -1660,7 +1667,8 @@ def main():
         newer_head = self.commit('Other catalog', self.head, tree=self.publishing_tree(newer))
         publisher = self.commit('Publishing checkout', self.base, newer_head, tree=self.publishing_tree(catalog))
         self.assertEqual(timing.git(self.root, 'ls-tree', '-r', '-z', '--name-only', publisher),
-                         b'project/checks.json\0scripts/check.py\0scripts/development.py\0scripts/project.py\0')
+                         b'project/checks.json\0scripts/check.py\0scripts/ci_artifacts.py\0scripts/development.py\0'
+                         b'scripts/project.py\0scripts/verification_scope.py\0')
         self.assertEqual(timing.git(self.root, 'cat-file', 'blob', f'{publisher}:project/checks.json'),
                          json.dumps(catalog).encode('utf-8'))
         load = timing.native_publishing_catalog
@@ -1896,7 +1904,7 @@ def main():
         shared_selection = check_script.split('\ndef select_checks(', 1)[1].split('\n\ndef ', 1)[0]
 
         def publish(label, definition, *, shared=None, amendment='', report_amendment='', initial_selection=None,
-                    input_amendment='', collector=None):
+                    input_amendment='', collector=None, observed=False):
             collect = (
                 "    if args.ci_windows_aggregate:\n"
                 "        imported, elapsed = collect_windows_lanes(ROOT, args.ci_windows_aggregate, project, source, ci, "
@@ -1907,17 +1915,15 @@ def main():
             selection = initial_selection or (f'\ndef select_checks({shared_selection}' if shared else legacy_selection)
             (scripts / 'check.py').write_bytes((definition + '\n' + selection + '\n' + launcher).encode())
             scope_file = scripts / 'verification_scope.py'
-            if shared is None and not collector:
-                scope_file.unlink(missing_ok=True)
-            else:
-                scope_file.write_bytes((shared or Path(verification_scope.__file__).read_text(encoding='utf-8')).encode())
+            scope_file.write_text(shared or '# No shared selector in this launcher.\n', encoding='utf-8')
             collector_file = scripts / 'ci_artifacts.py'
-            if collector:
-                collector_file.write_text(collector, encoding='utf-8')
-            else:
-                collector_file.unlink(missing_ok=True)
+            collector_file.write_text(collector or '# No aggregate collector in this launcher.\n', encoding='utf-8')
             self.git('add', '-A')
-            return self.commit(label, self.head, tree=self.git('write-tree'))
+            revision = self.commit(label, self.head, tree=self.git('write-tree'))
+            if observed:
+                self.publisher_forms.add(tuple(self.git('rev-parse', f'{revision}:{name}')
+                                               for name in timing.WINDOWS_PUBLISHING_PATHS))
+            return revision
 
         def old_owner(browser, recovery):
             return (f'WINDOWS_BROWSER_CHECKS = {browser!r}\n'
@@ -1932,10 +1938,11 @@ def windows_lane_checks(selected, lane):
 
         earlier = old_owner({'workspace-timeframe', 'market-recovery-ui'}, {'market-recovery'})
         later = old_owner({'workspace-timeframe'}, {'market-recovery', 'market-recovery-ui'})
-        previous = publish('Four producers before the reassignment', earlier)
-        next_source = publish('Four producers after the reassignment', later)
+        previous = publish('Four producers before the reassignment', earlier, observed=True)
+        next_source = publish('Four producers after the reassignment', later, observed=True)
         invalid = publish('The same check claimed by two producers',
-                          old_owner({'workspace-timeframe', 'market-recovery-ui'}, {'market-recovery', 'market-recovery-ui'}))
+                          old_owner({'workspace-timeframe', 'market-recovery-ui'}, {'market-recovery', 'market-recovery-ui'}),
+                          observed=True)
         unsupported = publish('Unknown executable assignment', later.replace('return selected & WINDOWS_LANE_CHECKS[lane]', 'return selected'))
         mutations = (
             "WINDOWS_BROWSER_CHECKS -= {'market-recovery-ui'}\n"
@@ -2001,6 +2008,15 @@ select_checks = lambda *args, **kwargs: original_selection(*args, **kwargs) - {'
         ), encoding='utf-8')
         mutated.append(publish('Unsupported catalog item mutation in the imported validator', earlier))
         (scripts / 'development.py').write_text(PUBLISHER_DEVELOPMENT, encoding='utf-8')
+        mutated.append(publish('Launcher rebinds the trusted loader', earlier + """
+original_load = load_project
+def load_project(root):
+    project = original_load(root)
+    for check in project['checks'].values():
+        if check['id'] == 'market-recovery-ui':
+            check['cadence'] = 'task'
+    return project
+"""))
         mutated.append(publish('Unsupported helper selection amendment', earlier + """
 def build_window(catalog, selection, environment, index):
     selection.discard('market-recovery-ui')
@@ -2018,13 +2034,13 @@ def windows_lane_checks(selected, lane):
     if lane == 'browser':
         return selected & WINDOWS_BROWSER_CHECKS
     return selected - WINDOWS_PYTHON_CHECKS - WINDOWS_BROWSER_CHECKS
-""")
+""", observed=True)
         shared_source = Path(verification_scope.__file__).read_text(encoding='utf-8')
         delegated = publish('The shared selector owns current publishing',
                             'from verification_scope import windows_lane_checks',
-                            shared=shared_source)
+                            shared=shared_source, observed=True)
         collector = Path(ci_artifacts.__file__).read_text(encoding='utf-8')
-        aggregate_valid = publish('Unchanged aggregate consumer', earlier, collector=collector)
+        aggregate_valid = publish('Unchanged aggregate consumer', earlier, collector=collector, observed=True)
         aggregate_changed = publish('Aggregate consumer filters only its own selection', earlier, collector=(
             collector.replace('    checkout = source[\'git_head\']\n    _, head',
                               "    selected.discard('market-recovery-ui')\n    checkout = source['git_head']\n    _, head")
@@ -2066,7 +2082,7 @@ def windows_lane_checks(selected, lane):
         browser_old = ['market-recovery-ui', 'workspace-timeframe']
         recovery_new = ['market-recovery', 'market-recovery-ui']
         self.assertEqual(verification_scope.WINDOWS_LANE_CHECKS,
-                         verification_scope.committed_windows_assignment(self.root, delegated))
+                         timing.committed_windows_assignment(self.root, delegated))
         self.assertFalse(timing.native_report_issue(report(aggregate_valid, None, full), None, []))
         self.assertTrue(timing.native_report_issue(report(aggregate_changed, None, full), None, []))
         self.assertFalse(timing.native_report_issue(report(aggregate_changed, 'browser', browser_old), None, []))

@@ -21,8 +21,8 @@ if __package__:
     from .doctor import tool_version
     from .execution_inputs import committed_source_identity, is_source_input
     from .verification_scope import (
-        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, committed_windows_assignment, exact_commit,
-        git, json_object, oid, require_complete_history, windows_lane_report_matches, windows_published_scope,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
+        git, json_object, oid, read_windows_assignment, require_complete_history, windows_lane_report_matches, windows_published_scope,
         windows_result_issue, windows_x64,
     )
     from .worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
@@ -30,8 +30,8 @@ else:
     from doctor import tool_version
     from execution_inputs import committed_source_identity, is_source_input
     from verification_scope import (
-        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, committed_windows_assignment, exact_commit,
-        git, json_object, oid, require_complete_history, windows_lane_report_matches, windows_published_scope,
+        LEGACY_WINDOWS_LANES, SCOPED_PROFILES, WINDOWS_LANES, ScopeError, exact_commit,
+        git, json_object, oid, read_windows_assignment, require_complete_history, windows_lane_report_matches, windows_published_scope,
         windows_result_issue, windows_x64,
     )
     from worktree import WorktreeError, entry_info, exclusive_git_lock, git_path, reparse_point
@@ -1647,12 +1647,197 @@ def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
         return True, None
 
 
+# The catalog and lane literals are meaningful only with the publisher that
+# consumed them. Whole observed Git blobs bind the loader, its development
+# validator, the launcher and the scope module, including aliases and imports.
+# The aggregate also consumes the collector. Keep unsupported publisher forms
+# unavailable until their source behavior has been verified.
+WINDOWS_PUBLISHING_PATHS = ('scripts/project.py', 'scripts/development.py', 'scripts/check.py',
+                            'scripts/verification_scope.py', 'scripts/ci_artifacts.py')
+_WINDOWS_PUBLISHING_FORMS = {
+    (  # d9102de9
+        'e3af35e0ede7d13aa35bb9a1216d4651688a59be',
+        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
+        '06aeb9ae8526505e5a645e73797262d8d1ac2e3f',
+        '270d1c1381af27d6aaf16fc84eb8b2e6190eff89',
+        '88b64a344a3a61ec306e7170c47d3ceac4837b85',
+    ),
+    (  # c4f07b38
+        'e3af35e0ede7d13aa35bb9a1216d4651688a59be',
+        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
+        'dcf272ce03612c4e44042a1062053e5d1951e497',
+        '270d1c1381af27d6aaf16fc84eb8b2e6190eff89',
+        '231f64091a056eacfd1cdd331d76dd6ce70ab17b',
+    ),
+    (  # df7587ee
+        '7cfe2d5dcb642bc6bed87c08ca85209e23e999ce',
+        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
+        '06aeb9ae8526505e5a645e73797262d8d1ac2e3f',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        '88b64a344a3a61ec306e7170c47d3ceac4837b85',
+    ),
+    (  # 6d159be4
+        '72e70586f07bab5e79ae952aa931835e75f932ed',
+        'e60d1a6c1a56008b8e12b0ec818b38596df82895',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # e341d1ee
+        '335774be01ab80db11a811205986c4af74608955',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '50ff7471278f18f3fb7339c9e960142a38166d58',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 64eccbf6
+        '96d828d551e37d287b4335bdcbd57bb370857b9d',
+        'ede860086d6c3236d6404b402ca8c86b73083a4c',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # e6f2c917
+        '0ea916ea1a737f0780d6327c660288fe51ae0636',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # cb81c752
+        '96d828d551e37d287b4335bdcbd57bb370857b9d',
+        'ede860086d6c3236d6404b402ca8c86b73083a4c',
+        '7211b26f4d0675d786f0bd01977f6f9d7b924712',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # e342a17d
+        '0ea916ea1a737f0780d6327c660288fe51ae0636',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '7211b26f4d0675d786f0bd01977f6f9d7b924712',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 3491ace8
+        '3ce47e17c9199c41a2059d721ceb91197f1bdb89',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '7211b26f4d0675d786f0bd01977f6f9d7b924712',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 7b684c17
+        '3ce47e17c9199c41a2059d721ceb91197f1bdb89',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 1b99c03d
+        'f758e3833df4aeb38c115b603ae63b2d278a3cbe',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '010aa1c0fd7c9acea2faf6ef08ce3fe97e244fa7',
+        '2141f2e4d0934ce2908fc3652af6b9cdfc7cfda4',
+        '5a254b90db6d8c0fba41ac3ca6a3ce7c5f3e5ef7',
+    ),
+    (  # 794485aa
+        '3f9d5367b9069af3c7a1341f003bda101413c32c',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '010aa1c0fd7c9acea2faf6ef08ce3fe97e244fa7',
+        '2141f2e4d0934ce2908fc3652af6b9cdfc7cfda4',
+        '5a254b90db6d8c0fba41ac3ca6a3ce7c5f3e5ef7',
+    ),
+    (  # 178c7d26
+        '03ef853dfe0e856cf303b61f7e0cf351e756d9aa',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 2c212a68
+        '3ce47e17c9199c41a2059d721ceb91197f1bdb89',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
+        '06abe939b246a686949a28376e93655bc2cbc747',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 44d95310
+        '1e7587ee9ee1e4ed82deaf5f6c16044dee833edb',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
+        '50ff7471278f18f3fb7339c9e960142a38166d58',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # a3a76f27
+        '1e7587ee9ee1e4ed82deaf5f6c16044dee833edb',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        'c6f53477ffe085b019411f779aa67a9ea305625f',
+        '50ff7471278f18f3fb7339c9e960142a38166d58',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 93ad31e8
+        '3829af24a472718b0d4b650ce10e1372345dc64b',
+        '25b88bb5afb8df0a1fe3b26a0f1c69ddfb26311a',
+        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
+        '50ff7471278f18f3fb7339c9e960142a38166d58',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 727b4fb3
+        '3829af24a472718b0d4b650ce10e1372345dc64b',
+        '2a5444072b9c9821b2d21f4887f77bd7b007e59a',
+        'f8689e474d5e07faa0cbbb8ffb19bd7c8b0e5465',
+        '50ff7471278f18f3fb7339c9e960142a38166d58',
+        'cb0908676286a008fd3b4b8f6f85ec4016bd00e9',
+    ),
+    (  # 44f51ec6
+        '0ad12ea4e57ecde9777dc600324d8aca946d5da9',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '7a52882adfdc438a536af081051da65f572cbfa5',
+        'f01d181ecc43e260ba7c06d8fd4baeb20172293d',
+        '5167fc0195605f9c123bb097b05e8de2f1f443a2',
+    ),
+    (  # Reader-only refactor of the 44f51ec6 scope module
+        '0ad12ea4e57ecde9777dc600324d8aca946d5da9',
+        'cdf05d21c69f6d4c76c5821939772a9fefd540c0',
+        '7a52882adfdc438a536af081051da65f572cbfa5',
+        '66eac43da97d82c4f37f288bdc2ffd8c1ed64819',
+        '5167fc0195605f9c123bb097b05e8de2f1f443a2',
+    ),
+}
+
+
+def windows_publishing_objects(root, revision):
+    requests = ''.join(f'{revision}:{path}\n' for path in WINDOWS_PUBLISHING_PATHS).encode('ascii')
+    records = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)', input=requests).splitlines()
+    if len(records) != len(WINDOWS_PUBLISHING_PATHS) or any(not row.endswith(b' blob') for row in records):
+        return None
+    return tuple(row.split()[0].decode('ascii') for row in records)
+
+
+@lru_cache(maxsize=128)
+def committed_windows_publisher(root, revision):
+    if not commit_id(revision):
+        return None, False
+    try:
+        objects = windows_publishing_objects(root, revision)
+        if objects is None or not any(
+            objects[:-1] == known[:-1] for known in _WINDOWS_PUBLISHING_FORMS
+        ):
+            return None, False
+        return read_windows_assignment(root, revision), objects in _WINDOWS_PUBLISHING_FORMS
+    except (ScopeError, OSError, subprocess.SubprocessError, *TIMING_INPUT_ERRORS):
+        return None, False
+
+
+def committed_windows_assignment(root, revision, *, aggregate=False):
+    assignment, known_aggregate = committed_windows_publisher(root, revision)
+    return assignment if not aggregate or known_aggregate else None
+
+
 @lru_cache(maxsize=128)
 def committed_publishing_inputs(revision, *, root=ROOT):
     try:
         source = committed_source_identity(root, revision)
-        publishing_paths = ('project/checks.json', 'scripts/check.py', 'scripts/project.py', 'scripts/development.py',
-                            'scripts/ci_artifacts.py', 'scripts/verification_scope.py')
+        publishing_paths = ('project/checks.json', *WINDOWS_PUBLISHING_PATHS)
         if not all(is_source_input(path, source['exclusions']) for path in publishing_paths):
             return None
         return source['sha256']
