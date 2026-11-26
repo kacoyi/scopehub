@@ -146,6 +146,15 @@
       },
       "supersedes": "e6904baa46cd636e5a2826d0c6bfb14e5aafe19e8ab9ec5d37b3cd02ea940c11",
       "evidence_sha256": "7a5afb98edfbfee5900b9078eb4d9c16c0b65a62d250721e47a0afc586e50918"
+    },
+    {
+      "kind": "request",
+      "source_commit": "6cc6a82f9703bc732c733f5e0d172a9473ca907b",
+      "scope": "Independently exercise the real startup presentation boundary with a correctly painted series and controls for missing candles, last-price graphics, unrelated canvas marks and invalid history. Compare accepted, incomplete and rejected outcomes, timing and normal attachments. Evaluate the actual visible claim and retained originals, including the e11e24fc review.",
+      "supersedes": "985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433",
+      "requested_at": "2026-11-26T06:49:10.528295+00:00",
+      "request_id": "7fb718ad867f4a72e839645efebfa8f73c3a151b5eaea42de7025eceff8f002e",
+      "evidence_sha256": "8a6e9b6805e56216bd45fd5324c492818deb981daecf64186b5622d0617fb404"
     }
   ]
 }
