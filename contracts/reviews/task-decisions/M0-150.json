@@ -175,6 +175,26 @@
       "requested_at": "2026-11-26T12:55:48.615509+00:00",
       "request_id": "5144ebfbb1b66146d24b5c660e0abdab429b0c3eac5bd610f020ffbec9812eb3",
       "evidence_sha256": "d8f06b2d8348c7014a3e41b506e705abd160466f9562bbd902baaa8110688b35"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "CHANGES_REQUESTED M0-150 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "observation": "The weekly reader issued a Windows receipt for the old selection order in both the PR 121 and PR 116 controls after the publishing code emitted the reverse order.",
+      "reviewer": "Independent Astra Standard (t168)",
+      "original_sha256": "096d2cfb551481e654add2abc9e0b2fa37036a18e84f07bf8fa5f39573bc4ac8",
+      "response_id": "c76c4d0944f2b59bd70062da34abb256cfb2e72160862477e4be8f6f70d99088",
+      "response_sha256": "deafe11b99a25b341e639ce18b0361bdbb127c49da70f406c6a6bb215a22cf6a",
+      "legacy_response_sha256": "602840840aad89db0bd22647eb14951fc20964eba0386bd397f9f5b3b0a0037e",
+      "observation_body_sha256": "4705540d9eab5e691d1378241d649922ea75a255295d7844e02953782ea83be0",
+      "event": {
+        "id": "msg_0eb06c950bae02ff016b082dbbe27487d2baf16bec02054c4f",
+        "timestamp": "2026-11-26T13:02:15.031Z"
+      },
+      "supersedes": "5144ebfbb1b66146d24b5c660e0abdab429b0c3eac5bd610f020ffbec9812eb3",
+      "evidence_sha256": "ee7a5d471fb00445e66893bbd62b1b850c195cee7637894ea9fe73ce5db53038"
     }
   ]
 }

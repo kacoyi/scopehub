@@ -155,6 +155,26 @@
       "requested_at": "2026-11-26T12:55:49.335131+00:00",
       "request_id": "d339b3f7bfa441c2724ff47eeebbfcc771c6d0e7fcb17ca59a8e138abf5c775a",
       "evidence_sha256": "2de8b5f3ed4aa374eb80707b7673b54763dd4de032a1d5d798cd88edfefcd7dc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "CHANGES_REQUESTED M0-155 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "observation": "The weekly reader issued one Windows receipt for run 45546767887 when the only step identifying the aggregate job was recorded as both successful and skipped.",
+      "reviewer": "Independent Astra Standard (t167)",
+      "original_sha256": "03f744883a1b237ac950b85b8a0b7d619e3ac5951f451fa344258dab899448c0",
+      "response_id": "2d105334fa9373c774b9f50ebbfe8afa921cb8486034d0211a9720e8a31c1819",
+      "response_sha256": "c1371d08294633b2f4153caf2a0bacfc9e3cf6a79b3fbe502aa92604e126a5fd",
+      "legacy_response_sha256": "86503557379d6abddc60603094c4b869c28fc58b5835e9adce28da326f96c0cb",
+      "observation_body_sha256": "b372c0730737291541916ece099965f23623bef5f978de32a002f178cc23cf23",
+      "event": {
+        "id": "msg_0e1b46f892a13cd7016b082e0797c087d189694b7f19051455",
+        "timestamp": "2026-11-26T13:03:20.571Z"
+      },
+      "supersedes": "d339b3f7bfa441c2724ff47eeebbfcc771c6d0e7fcb17ca59a8e138abf5c775a",
+      "evidence_sha256": "9f4006ee6523964e07845191edee9a050a85e062005f91831984d53db706e7e7"
     }
   ]
 }

@@ -184,6 +184,26 @@
       "requested_at": "2026-11-26T12:55:50.069957+00:00",
       "request_id": "32b7845571a7c6cf28dc109f6a38ada8056cc62e77a28153faf38ab1a469d56b",
       "evidence_sha256": "cbb97bbf4912980db451d2196949c6007c7d9e74ea6f8a6de2e2d22e56f845be"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "scope": "CHANGES_REQUESTED M0-156 3eeb59bc39219905204e6aab95bd16af4d22a65e",
+      "observation": "On full and shallow Git history, the weekly reader issued a Windows receipt for PR 84 when the proof retained both original parents but claimed the first parent’s tree instead of the event head’s tree.",
+      "reviewer": "Independent Astra Standard (t169)",
+      "original_sha256": "8e0f2ed83cdff79886509c51ea2fbe9b4a0c04ba8b708f417f29a360c652d346",
+      "response_id": "66fde46b442a611d46176179d16df40106dad3186b123f658d86813636fcee05",
+      "response_sha256": "589a72f7414780eeddd7f64d3d401e67ec90ce7b8fd954efd93cce0eebb1d167",
+      "legacy_response_sha256": "88edf6ae1dedbe2b35c58194b8d6453f887c7195d89b580380b0b7cdf6db8201",
+      "observation_body_sha256": "a6f65098e2bc92dfde9c70df78a60087e94c725f94e26ea873649800e8979219",
+      "event": {
+        "id": "msg_07f5228fef01ad4d016b082e054f1487d1b4159b6473de663e",
+        "timestamp": "2026-11-26T13:03:17.260Z"
+      },
+      "supersedes": "32b7845571a7c6cf28dc109f6a38ada8056cc62e77a28153faf38ab1a469d56b",
+      "evidence_sha256": "5098ece76c0e11be484345f67279ded953f88f75b56cd7757e3214acb0a13ce5"
     }
   ]
 }
