@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-163",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "821a1eaaf5f1ea238472e9d111da87a0c7c30104",
+      "scope": "Trace the first actionable test and shared-capability decision from a clean checkout without host-specific guidance. Compare distinct product and protocol risks, optional external dependencies and genuinely restricted provider use. Check the durable source, existing authorization and any removed wording.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T07:31:38.719414+00:00",
+      "request_id": "86ba1e252b7fcd7652e3363561574f9e219d158cd34caad3b397136c19101de7",
+      "evidence_sha256": "ffaf406f87c4b69e605afcb6d482c601a78889469b0fd8ce212dcda1e4cc2032"
+    }
+  ]
+}
