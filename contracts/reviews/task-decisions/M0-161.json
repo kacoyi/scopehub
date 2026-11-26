@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "task_id": "M0-161",
+  "events": [
+    {
+      "kind": "request",
+      "source_commit": "727b4fb34ba87a731a159123e39f9531ba9ffb7c",
+      "scope": "Follow the first public action on an ordinary and read-only clean checkout. Test open, ended and absent engagements alongside actionable failures and unrelated product focus. Inspect historical compatibility and the effective command a new agent actually receives.",
+      "supersedes": null,
+      "requested_at": "2026-11-26T07:24:22.653438+00:00",
+      "request_id": "997734e91648f8261344d4e0ee1bed27bec028fecf2099f3b3e4cc28521fc0c3",
+      "evidence_sha256": "bfa37a796b26425d6e0b9ffcb558b1d0163e67d986e293d9dffee49cac5fd267"
+    }
+  ]
+}
