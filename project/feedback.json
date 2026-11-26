@@ -7,12 +7,8 @@
       "observation": "While holding a drag from before the first quote, the historical 09:40 wick stayed at x=519.5 on append, then jumped to x=378.5 on the next +6 px move instead of x=525.5. The SDK keeps a scroll-start offset based on the old time-scale base index. At the left limit the reviewer also observed an immediate one-bar shift on the first append. The original task check started holding the drag after the append.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-031"
-      ],
-      "regression_checks": [
-        "renderer-prototype-interaction"
-      ],
+      "task_ids": ["M2-031"],
+      "regression_checks": ["renderer-prototype-interaction"],
       "resolution": {
         "cause": "The SDK updates its base index when the first replay bar appears, while an active scroll retains its captured offset relative to the old base. The first append may also clamp the previously valid left limit before compensating for the new base.",
         "correction": "On explicit Start, reserve the single replay time with an invisible axis-only series and reapply the existing logical range. The first admitted quote fills that slot without advancing the base index. Reset clears the slot and restores the frozen series.",
@@ -3927,12 +3923,8 @@
       "observation": "The v2 permission procedure replaces explicit v1 denial paths with a generic protected-resource observation. Direct application SQLite and saved-credential checks can be omitted while reporting the generic observation, and v1 requires independent evidence per denied path.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-028"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "The generic v2 permission trial dropped the original list of individually observed denial paths.",
         "correction": "The effective specification lists four denied paths and binds each to a synthetic control, an independent observation and zero unauthorized outcomes.",
@@ -3946,12 +3938,8 @@
       "observation": "The Windows process failure procedure unconditionally requires WebView2-specific evidence. ADR 0027 permits a different evidenced renderer, while a WebView2 candidate still needs its actual reuse and ProcessFailed evidence and every candidate needs independently observed native loss and recovery. The re-review added ProcessFailed to the shared required observations at d4cea0d. All five specification tests still passed because the checks required minimum evidence without excluding WebView2-specific observations from the requirements effective for other runtimes.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-028"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "A WebView2-specific signal was required of all Windows runtimes. The initial correction checked only minimum lists.",
         "correction": "WebView2 candidates retain reuse and ProcessFailed evidence. A different native runtime proves its own identity and loss signal alongside the shared Rust, exit and recovery observations.",
@@ -3965,12 +3953,8 @@
       "observation": "The cold-restore procedure checks the revoked case but gives the granted reopen no required positive data value, source locator or saved selection outcome. An empty restored canvas could satisfy the listed observations.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-028"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M2-028"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "The granted cold-reopen procedure could restore an empty presentation while satisfying all listed outcomes.",
         "correction": "The granted native trial now requires the event-0910 row, its 25 basis-point value and its saved selection. The revoked trial starts with the old cache and requires zero protected reads and frames.",
@@ -4048,12 +4032,8 @@
       "observation": "The chart-only synthetic equity composition displayed the legacy futures source disclosure above its candlesticks. The host painted the expected annotations on the timeframe switch and restored the view after rejecting an unknown source.",
       "severity": "minor",
       "status": "addressed",
-      "task_ids": [
-        "M2-029"
-      ],
-      "regression_checks": [
-        "renderer-prototype-interaction"
-      ],
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
       "resolution": {
         "cause": "The canvas displayed its original synthetic futures source independently of which blocks were visible.",
         "correction": "The canvas discloses the futures source for the tile and table blocks and each candlestick discloses its synthetic equity binding.",
@@ -4067,12 +4047,8 @@
       "observation": "The reviewer accepted a candlestick showing the 15-minute 09:30 UTC result at 4.7%, previewed an empty composition, then rejected a grant-mismatched draft. Restore returned the original author text but switched the chart to the 5-minute 09:40 UTC result at 3.2%. The focused Chromium regression reproduced the reset of the 15-minute control after the chart was removed.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-029"
-      ],
-      "regression_checks": [
-        "renderer-prototype-interaction"
-      ],
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
       "resolution": {
         "cause": "The chart component owned the selected timeframe and lost it when an empty draft unmounted the accepted chart.",
         "correction": "The workbench retains the accepted block timeframes with their validated definitions and original authored text. Preview changes stay with the draft.",
@@ -4086,12 +4062,8 @@
       "observation": "Appending an identical candlestick definition changes the existing 15-minute chart and the new chart to five minutes. Changing only the accepted annotation threshold from 0.8 to 0.85 silently replaces the 09:30 UTC result at 4.7% with the five-minute 09:40 UTC result at 3.2%. The native review confirmed that accepting the scoped edit retains the wrong result. The coordinator also identified in-place edits to the plotted or condition field of a sole chart as same-source binding changes that must preserve its timeframe.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-029"
-      ],
-      "regression_checks": [
-        "renderer-prototype-interaction"
-      ],
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
       "resolution": {
         "cause": "The preview reconciled blocks using their complete binding and required a unique match. A scoped edit or duplicate could reset an existing block.",
         "correction": "Reconcile the transient instances by source, unchanged bindings and their occurrences. Preserve a single remaining same-source field edit and give a new instance its own timeframe.",
@@ -4105,12 +4077,8 @@
       "observation": "All five Chromium cases passed and the native executable built. The WebView2 probe stopped at tests/ui/renderer-probe-windows.ps1:49 when GetCurrentPattern(InvokePattern) returned Unsupported Pattern for a button. The log did not identify the requested control or list its patterns. A timeframe button exposing TogglePattern is a hypothesis.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M2-029"
-      ],
-      "regression_checks": [
-        "renderer-prototype-interaction"
-      ],
+      "task_ids": ["M2-029"],
+      "regression_checks": ["renderer-prototype-interaction"],
       "diagnostic_reports": [
         {
           "run_id": "20261124T091241.788693Z-00666947",
@@ -4188,12 +4156,8 @@
       "observation": "The CSV reader preserves distinct raw headers Close and Close followed by 1020 spaces, with respective values 101 and 202. Both match the draft's close alias after trimming. The editor discards the overlength name before counting candidates and silently binds Close, selecting 101 without an ambiguity warning.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M1-037"
-      ],
-      "regression_checks": [
-        "local-import-publication"
-      ],
+      "task_ids": ["M1-037"],
+      "regression_checks": ["local-import-publication"],
       "diagnostic_reports": [
         {
           "run_id": "20261124T111043.682851Z-363ffbde",
@@ -4504,19 +4468,13 @@
       "observation": "After a peer clears a shared bar selection, clicking the chart citation reads the new selection revision with a null target and rejects the jump. The composer still shows the old selected interval and enables Send for a draft until the core rejects the stale send. The real browser reproduced the enabled control with the draft, prior answer, and model request count unchanged.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M4-016"
-      ],
-      "regression_checks": [
-        "model-connection-workflow"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261124T111053.555558Z-28236d9b",
-          "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
-          "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
-        }
-      ],
+      "task_ids": ["M4-016"],
+      "regression_checks": ["model-connection-workflow"],
+      "diagnostic_reports": [{
+        "run_id": "20261124T111053.555558Z-28236d9b",
+        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+      }],
       "resolution": {
         "cause": "Citation navigation checked the new workspace snapshot while the composer continued to use the opening selection.",
         "correction": "Use the existing citation snapshot to invalidate only a composer binding superseded by same-workspace selection authority. Keep the draft and retain newer valid selections.",
@@ -4530,19 +4488,13 @@
       "observation": "After revealing a citation and returning to its focused row, a peer clears the shared selection. Enter on the same row rejects the jump, sends focus to the question field and scrolls the conversation to the bottom. The browser reproduction lost focus and moved the transcript scroll offset from 20 to 689 pixels after only a local snapshot read.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M4-016"
-      ],
-      "regression_checks": [
-        "model-connection-workflow"
-      ],
-      "diagnostic_reports": [
-        {
-          "run_id": "20261124T111053.555558Z-28236d9b",
-          "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
-          "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
-        }
-      ],
+      "task_ids": ["M4-016"],
+      "regression_checks": ["model-connection-workflow"],
+      "diagnostic_reports": [{
+        "run_id": "20261124T111053.555558Z-28236d9b",
+        "source_commit": "79e691ffc540c705a2b5e1745965b1be065b821f",
+        "report_sha256": "96bd42517e0a0ba27f5dd13787f9e16a85f758072d7798c04f8fe8d250730529"
+      }],
       "resolution": {
         "cause": "The return flag drove both reopening focus and ordinary transcript scrolling. Rejection changed the flag while the same citation remained open.",
         "correction": "Keep focus and scroll in the evidence reading state after a rejection. A deliberate submit clears that state so ordinary follow-up behavior resumes.",
@@ -4620,12 +4572,8 @@
       "observation": "After a successful synthetic folder picker reply from the ordinary Data sources panel, the source workflow timed out at tests/ui/local-import.spec.mjs:419. The first page-wide exact Local CSV match resolved to a hidden h3 on 14 polls. The chart keeps its panel mounted while CSV review is active, and the import header uses the same text. The retrieved and archived artifacts contain the verification log but lack the local-import screenshot and trace listed in it. Two local repetitions on df99e89 first verified the visible import region and the retained hidden heading, then failed at the original locator. The failure screenshot shows equities/daily.csv in the visible editor. The browser report, screenshots and traces remain under .reports/m1-038-red/ (browser-results.json SHA-256 20e5b3ad323f0041973de5460fcf91ac90836027410eb72e7fa07e6c807cd536).",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M1-038"
-      ],
-      "regression_checks": [
-        "local-import-ui"
-      ],
+      "task_ids": ["M1-038"],
+      "regression_checks": ["local-import-ui"],
       "diagnostic_reports": [
         {
           "run_id": "20261124T122836.056903Z-08468273",
@@ -6137,12 +6085,8 @@
       "observation": "A dispatch spy moved the remote ref from the reviewed commit to the protected base after the final GET. The CLI still returned submitted and remote_verified, and the POST contained only the movable ref and task ID. The workflow had no expected commit guard before its Linux and Windows verification jobs.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-106"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "The authenticated ref reads and GitHub's branch resolution are separate operations.",
         "correction": "Include the expected head and base in the request. Gate the matrix on the event commit and a fresh protected base observation, then pin checkout and evidence to the expected head.",
@@ -6156,12 +6100,8 @@
       "observation": "The exact M0-106 commit was accepted as a dependency attributed to M0-002 for M1-040, whose declared dependency is M1-039. The selected label was validated only by membership in the full ledger and inequality with the selected task.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-106"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "Membership in the task ledger did not attribute the changes in an explicit stack.",
         "correction": "Require scoped changes and a distinct committed task definition or a legitimate declared dependency.",
@@ -6175,12 +6115,8 @@
       "observation": "A spy accepted one POST and dropped the response. The CLI returned ordinary failure and lost the dispatch identity. Retrying could submit again and cancel the first run under the ordinary manual-task concurrency group. Successful responses also discarded any supplied run details.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-106"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "The CLI treated a lost POST response as ordinary failure and discarded response details.",
         "correction": "Expose an unknown outcome and a correlation ID without retrying. Retain the returned run ID and isolate guarded dispatch concurrency.",
@@ -6194,12 +6130,8 @@
       "observation": "A completed dependency with an unchanged task record can be attributed to an unrelated stack when their scope overlaps. M2-003 accepted the PR 91 commit as M2-002 through tests, and M1-040 accepted the historical Windows stack 2b078aa5f5e0d31dabf36705ce0cce117b91508b as M1-039. Both were offline reproductions.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-106"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "Shared scope and an older completed declaration could attribute unrelated changes to a stack.",
         "correction": "Require a supplementary receipt for an already completed dependency and check that it covers the proposed source.",
@@ -6213,12 +6145,8 @@
       "observation": "The real M0-074 supplementary receipt was accepted after substituting the parent commit's input digest while retaining its original source commit. Replacing only its file count with 1 also passed after the receipt reference digest was recomputed. The source commit was in the required ancestry in both cases.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-106"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "A receipt file digest authenticated its bytes without recomputing its recorded source from Git.",
         "correction": "Recompute the execution-input digest and file count from the receipt's own commit and historical snapshot rules.",
@@ -6232,12 +6160,8 @@
       "observation": "A planned task still naming a cancelled dependency was accepted through the declared dependency path when its stack touched the cancelled task's recorded scope. The review reproduced this with a synthetic task record and real Git changes.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-106"
-      ],
-      "regression_checks": [
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-106"],
+      "regression_checks": ["python-contracts-workers"],
       "resolution": {
         "cause": "The dependency preflight treated a cancelled record as unfinished.",
         "correction": "Reject cancelled dependencies on the protected base or the proposed base.",
@@ -6341,13 +6265,8 @@
       "observation": "The report inspected 88 registered worktrees. The consumer scans for audit-windows-acl, series-frame-probe and workbench-runtime-verification exceeded the fixed 20,000-entry budget. Those three incomplete observations produced a shared consumer hold across all rows. The snapshot also reported separate process visibility, registration and recovery reference holds.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-115"
-      ],
-      "regression_checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": {
         "cause": "The fixed per-checkout ignored-path traversal budget interrupted a consumer scan in each of the three large checkouts.",
         "correction": "Expose a validated entry limit on the existing retirement command and use it in the ignored-path inventories and Python consumer directories. Preserve the exhaustion hold.",
@@ -6361,13 +6280,8 @@
       "observation": "With an observation limit of one, the initial ignored-root sort still consumes a synthetic list of 10,000 sibling names before enforcing the budget. Git status also materializes the complete ignored root list before the traversal. Dirty status and status process failures must still be observed after limiting retained ignored paths.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-115"
-      ],
-      "regression_checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-115"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": {
         "cause": "Status parsing decoded all ignored roots, and the initial path sort evaluated the entire iterable before the inspection counter took effect.",
         "correction": "Stream Git status and retain up to the budget plus one root as an overflow witness. Bound the initial traversal intake before sorting and verify Git completion while preserving dirty status.",
@@ -6381,13 +6295,8 @@
       "observation": "At an entry limit of one, a stream with 10,000 ignored roots and a tracked modification at the tail yielded 10,001 records and 158,901 bytes to the consumer. The operation classified the checkout as dirty and retained two ignored paths, while continuing to consume the entire ignored listing after overflow was known.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-116"
-      ],
-      "regression_checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-116"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": {
         "cause": "The ignored collector kept reading Git stdout after overflow to find ordinary dirty records and determine the final process status.",
         "correction": "Observe ordinary Git status independently. Stop the ignored stream after one excess root, preserve any already observed Git failure, and close and reap the producer.",
@@ -6401,13 +6310,8 @@
       "observation": "The first ordinary status query was empty and the second query read a change to a tracked file or an ordinary untracked path. The retirement result nevertheless reported clean true, zero holds, and candidate because the second status query discarded ordinary observations it actually read.",
       "severity": "major",
       "status": "addressed",
-      "task_ids": [
-        "M0-117"
-      ],
-      "regression_checks": [
-        "project-state",
-        "python-contracts-workers"
-      ],
+      "task_ids": ["M0-117"],
+      "regression_checks": ["project-state", "python-contracts-workers"],
       "resolution": {
         "cause": "The first status query initialized the dirty flag. The second query discarded ordinary status records while collecting ignored roots.",
         "correction": "Keep the dirty flag true once either query has observed an ordinary record. Preserve the ignored budget cutoff, error holds, and process cleanup.",
@@ -7609,7 +7513,7 @@
         }
       ],
       "resolution": {
-        "cause": "The interpreter-path fixture replaced the process module’s runtime namespace with a stub lacking the platform read by process containment before launch. Both the redirector and normal case errored before checking identity.",
+        "cause": "The interpreter-path fixture replaced the process module\u2019s runtime namespace with a stub lacking the platform read by process containment before launch. Both the redirector and normal case errored before checking identity.",
         "correction": "Preserve the actual runtime platform in the two controlled interpreter configurations and let the existing gate-launch test exercise its process identity and containment assertions.",
         "prevention": "Run the assigned-process test on Windows alongside its redirector control, the timeout cleanup and the external reader. The Linux contrast independently checks a distinct redirector PID and process group."
       },
@@ -7832,6 +7736,404 @@
         "cause": "The read-only handoff emitted a package-managed continuation that required a writable cache to display the owner source.",
         "correction": "Propagate the pinned interpreter through read-only source navigation so the owner terms can be read in the same environment.",
         "prevention": "Execute the emitted source commands in an unwritable-cache checkout. The independent successor followed the read-only route and recovered both owner outcomes."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-private-handoff-verification-deadline",
+      "source": "Protected main push 45668943982, attempt 1, Windows browser producer 139398629052. The aggregate report is archives/runs/windows-change-45668943982-1/test-report.json. Its workspace-timeframe log has SHA-256 79d9d51be67b34df9c44be45c536f233d9eb17ac5a4e642c6d6eddcade96a35c.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The test-owned private handoff verifier reported subprocess deadline exceeded during its first assertion. Of 76 native Windows workspace cases, 73 passed and two used their documented platform skips. All 64 isolated workspace profiles prepared in 138 ms. The descriptor verdict and last internal stage were not observed. The earlier M0-125 incident had no classified subprocess outcome.",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45668943982-1",
+          "source_commit": "ae0259db9ea0481aaf004b8682023ddfd8350328",
+          "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
+        }
+      ],
+      "resolution": {
+        "cause": "The original protected Windows log classifies deadline expiry at the first handoff assertion. The cause, last internal stage and descriptor verdict remain unknown.",
+        "correction": "Use the existing test-owned bounded launcher with the native Rust file witness for the real handoff. The witness reads ownership, inherited and effective rights, and verifies an actual read/write open under the existing ten-second limit.",
+        "prevention": "The first live case passed on Windows in ordinary PR run 45769667627 and guarded run 45769688721 with the original descriptor refusals, cleanup and capability rotation. Separate child controls cover deadline classification and reaping. The coordinator owns verification of the first protected main push after integration."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-witness-rejects-ineffective-allow-entry",
+      "source": "Independent Astra Standard t10c at 0ff1c4da15fbede912b909aef2ad226ba7fce838. Archives/observations/repo-hygiene-20261125/independent-final-m0-147-0ff1c4da/final-response.txt SHA-256 9f8962801f6995ffc670ea32d8c58775dd127cb1f9ab0f4a63418c6518d2df7d; original response line SHA-256 7424ed9411eca2881653faadab3e0319e63222f00baf0483d801a67d2c670c1e.",
+      "observation": "The raw native handoff checker classifies every access-allowed entry before asking whether it grants access to this regular file. A valid private handoff with an inherited effective user grant and a zero-mask or inherit-only allow for another trustee can therefore receive exit 58. The earlier Framework file access-control view removes both entries during leaf ACL normalization. The independent finding is a source observation and does not explain the original subprocess deadline.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The witness evaluated trustee identity before applying the regular-file filter for zero-mask and inherit-only allow entries.",
+        "correction": "Validate the entry layout and apply the legacy leaf filter before evaluating the trustee of a surviving grant.",
+        "prevention": "The mandatory native file matrix in runs 45769667627 and 45769688721 passed zero-mask and inherit-only allow cases and retained exit 58 for an effective grant to another trustee. Independent review confirmed that each row passes exact readback, legacy managed and Rust witness assertions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-witness-rejects-ineffective-callback-layout",
+      "source": "Independent Astra Standard t10c at a5b94b98ab0ed7446787dfbee899c63cc731d2a2. Archives/observations/repo-hygiene-20261125/independent-final-m0-147-a5b94b98/final-response.txt SHA-256 ccc7058df47dfc3c8f22ca01d8ec4854e658952de6a51c3f844aa35bfeb1d0be; original response line SHA-256 a00f5e9e6148b308c5172ad8dc57cbace827d2eb35d8a12a6838fcd23fb27290.",
+      "observation": "The independent handoff witness returns 54 for a callback allow by type before checking its mask or applicability. The retained native regular-file matrix shows that the previous managed leaf projection drops structurally valid zero-mask and inherit-only callbacks. An effective callback remains unsupported. The current result does not explain the original subprocess deadline.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Dispatch by unsupported ACE type preceded layout and leaf applicability checks, so inert callback grants could be refused before the legacy leaf exclusion.",
+        "correction": "Validate known callback and object layouts before filtering inert entries and reject an effective unsupported grant.",
+        "prevention": "The native matrix in runs 45769667627 and 45769688721 passed the inert callback and object rows and required exit 54 for each effective unsupported row. The separately executed Rust parser suite rejects malformed and oversized entries before filtering."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-task-omits-rust-parser-execution",
+      "source": "Independent Astra Standard review of 7f12b10735fbe092a2a86cdbb58d4b31d1a797a6. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/original-assistant-response.jsonl (SHA-256 f73948ec6631ca5509b82863a5afa5b7553a9fe532881f55d08d5a0ae6fc3b9a). The retained combined run passed its four selected checks and omitted Rust execution.",
+      "observation": "The guarded M0-147 task selects environment, project state, Python and workspace checks. The Windows workspace setup builds windows_handoff_probe without running its seven portable Rust tests. The task can consequently pass without evidence for malformed entry rejection even when the example builds and native file comparisons run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T193206.473358Z-e7816a69",
+          "source_commit": "7f12b10735fbe092a2a86cdbb58d4b31d1a797a6",
+          "report_sha256": "c6efdf03e1146e14a2a0e7193decce96e4cd3698f2363618e8ab77af6c406998"
+        }
+      ],
+      "resolution": {
+        "cause": "The task selected the browser harness that built the example but omitted the existing Rust workspace check that executes its parser tests.",
+        "correction": "Select rust-contracts-workers as a required M0-147 check and register the maintained example as a Cargo test target.",
+        "prevention": "The guarded Linux and Windows originals from run 45769688721 each list seven windows_handoff_probe tests passed, including malformed and oversized entry controls. The separate Windows workspace-timeframe result covers the mandatory 24 regular-file comparisons."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-synthetic-readback-lacks-case-and-reason",
+      "source": "Ordinary PR127 Windows attempt 1 at archives/runs/windows-change-45689952772-1/test-report.json, then guarded M0-147 Windows at archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json. The ordinary 117-file manifest has SHA-256 e0cf5835e6d0197f4a6680a8f013b0535b7b272c373797b3b1d3cb45bdf47d65. The paired observation in archives/observations/repo-hygiene-20261125/m0-147-native-paired-readback-45690028912/observations.json has SHA-256 ca446c2f0d5aed7160e75eabeff6581c89efce1b693f6d4378219ae3cf94baba.",
+      "observation": "Both native Windows runs executed the seven Rust tests and reported 74 workspace passes, two skips and one failed live handoff case. The failure occurred during synthetic regular-file raw ACE readback before the array-wide native witness loop. Neither report identifies the row, differing field or read operation. This is distinct from the prior live probe deadline and the guarded Linux peer-note observation.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45689952772-1",
+          "source_commit": "bcd21c0981401d61d9f0c3b087eb8b0f88690956",
+          "report_sha256": "650a1c591652e66e403cdd01400c8e05e32d38b96fd5edb29dc92ebcadb2353d"
+        },
+        {
+          "run_id": "20261125T195735.990394Z-0479c9ec",
+          "source_commit": "d0020d3a1ddc5075dbf10e78ed349212df910d92",
+          "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
+        }
+      ],
+      "resolution": {
+        "cause": "The prior fixture readback diagnostic collapsed the failed row and property into a generic message. The exact row and underlying cause of those two failures remain unknown.",
+        "correction": "Report the first failing fixture with a bounded write, raw readback or managed comparison reason and retain the exact readback and witness assertions.",
+        "prevention": "Independent real-child controls verified the exact row and field for a complete stderr marker, the fixed fallback for a stdout lookalike and cleanup before any witness launch. Both retained Windows originals passed the mandatory exact readback, managed and witness assertions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-fixture-io-overwrites-readback-diagnostic",
+      "source": "Independent Astra Standard review of dc5be1ffdcfa6bff97c9f309ea171d054881fbfd, recorded by the authoritative M0-147 decision. Original event SHA-256 ae6da1b3005baf69d6f210a6455965fc0b2518048c8fc6b9545035035a8aa46f. Retained final archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt SHA-256 62690b5ef252673a61ac1cc33be5353cbcaf0642d1ed106a1b21af1981498d22.",
+      "observation": "The public synthetic leaf matrix reported raw ENOENT with an absolute fixture path when the profile was unavailable. In the independent combined control, the row 19 ACL revision readback diagnosis was replaced by row 0 cleanup EPERM with an absolute fixture path. The 24 expected ACL outcomes, bounded marker vocabulary and native deadline were independently preserved.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Fixture creation and cleanup could return raw filesystem errors, and cleanup failure could replace the first readback diagnosis.",
+        "correction": "Use exclusive creation, track owned fixtures, bound the creation and cleanup messages, attempt removal of every owned fixture and retain a primary failure before the cleanup message.",
+        "prevention": "The independently approved workspace controls preserve a pre-existing fixture and verify that row 19 readback remains first when row 0 cleanup also fails. The guarded Linux and Windows workspace suites passed those controls, and the Windows journey passed native cleanup."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-leaf-matrix-first-trustee-ace-absent",
+      "source": "Ordinary PR127 attempt 1 run 45710866374 tested merge 97c7fb79b462d6ec438164180b1d21c734838452 for branch head 3620427e1f9ca51cf1aaac8a629f067ca75659e6. See archives/runs/windows-change-45710866374-1/test-report.json and archives/observations/repo-hygiene-20261125/m0-147-native-first-row-45710866374/observation.json (SHA-256 f26fea324bf7b3ec08d3b6dd369915963f6acd68cf07f242ded6032b573cc845). Scoped run 45710987464 tested that exact branch head. See archives/runs/20261125T221246.075646Z-9b2ba873/test-report.json and archives/observations/repo-hygiene-20261125/m0-147-native-first-row-45710987464/observation.json (SHA-256 d6fd07520520dd30a6cbdd027a4b672a99c36a2c1a327942c5a44ad8b01b1f4f). The seven-row Windows calibration of 8c34ff030a889aa43bc83bf026a7893d0b5ec87a is archives/observations/repo-hygiene-20261125/m0-147-windows-first-row-45744210597/observation.json (SHA-256 5aab1a5a310f1121b455006d7717ab2841e9d3520f1f7701b8bfeb6c85030118, hosted run 45744210597).",
+      "observation": "Both Windows reports recorded 89 workspace cases passed, two skipped, one failed and zero flaky. The workspace journey passed the first live handoff and its two unsuitable descriptor controls plus the read-only control before matrix preparation reported no stored fixture trustee ACE for allow-zero-mask. No matrix witness result or subsequent capability rotation was reached. The guarded Linux task passed all five checks. Both native Rust suites separately passed protected regular-file zero-mask storage with an explicit owner grant. The first-row report did not measure the submitted ACE or a second reader. The cause of the earlier deadline and the row in earlier generic readback failures remain unknown. In the subsequent native calibration the two readers disagreed about the inherited grant even on the untouched baseline. All six proposed writes returned input-error before the write call. The witnesses saw the original files. No proposed writer was qualified by this experiment.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45710866374-1",
+          "source_commit": "97c7fb79b462d6ec438164180b1d21c734838452",
+          "report_sha256": "1c4c6cc8c2117e2aa7a014b50d2d157033bb0050dfa15442ea888fc5e8fb3cd7"
+        },
+        {
+          "run_id": "20261125T221246.075646Z-9b2ba873",
+          "source_commit": "3620427e1f9ca51cf1aaac8a629f067ca75659e6",
+          "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
+        }
+      ],
+      "resolution": {
+        "cause": "The original first-row failures observed no fixture trustee ACE through one reader and did not observe the submitted bytes. Calibration found reader disagreement on the untouched baseline, and six proposed writes stopped before submission. The cause of the original missing row remains unknown.",
+        "correction": "Use the protected test fixture writer with agreeing named and handle baselines. Verify exact submitted and stored ACEs, ACL revision and preservation of the inherited grant before comparing the managed and native witness results.",
+        "prevention": "Run 45748342112 directly observed two qualifying writes and managed and Rust outcomes 0 and 58. The independently reviewed mandatory 24-row loop passed in ordinary Windows run 45769667627 and guarded Windows run 45769688721."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-portable-diagnostic-marker-lost",
+      "source": "Independent Astra Standard review of bc89c85dcaf81f359c91adc23e7c87fa08a70966 at archives/observations/repo-hygiene-20261125/independent-final-m0-147-bc89c85d/final-response.txt (SHA-256 38109616760dc41d7be3eafe91b0a3de4051f9c5c5bd467704223c1eb676e09a). Local Node 24.22.3 reproduction at 3620427e1f9ca51cf1aaac8a629f067ca75659e6 in .reports/m0-147-first-row/portable-baseline.log (SHA-256 c7dc86bf7f0838a4036d3ea223fbcec8d88a439e395583e6f5278a1c016e0037).",
+      "observation": "The real portable calibration child returned exit 4 but the parser reported an unavailable diagnostic for a valid stderr marker. With execFile in the local checkout, Node stream writes returned no stdout or stderr bytes with either forced or natural exit. Synchronous writes returned five decoy stdout bytes and all 38 marker stderr bytes. The independent positive and rejected handoff child controls and the combined cleanup failure passed. Both latest hosted Windows runs passed the portable diagnostic cases. This observation concerns the portable child transport.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The real portable child produced no captured bytes through Node stream writes in the observed local execFile control, including natural exit.",
+        "correction": "Write the synthetic control streams synchronously and keep stderr as the diagnostic marker source.",
+        "prevention": "The real-child control asserts the exact bounded row and field for stderr, fixed fallback for a stdout-only lookalike, cleanup of all acquired fixtures and no witness launch after failed preparation. Independent review replayed both cases and guarded workspace-timeframe passed on Linux and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "engineering-guidance-assumes-test-order-and-an-unlocated-parent-rule",
+      "status": "addressed",
+      "severity": "minor",
+      "source": "Observed on ff6c880b289b18e3e58d667dcb5b76c7f12fe053. archives/observations/repo-hygiene-20261125/coordinator-checkpoints/resume-t113-20261126T0228Z/rule-effects-main-ff6c880b.json (SHA-256 10c6688525ca8763b09a223b721970b87a0ff84e914100475a684b1826a7a764).",
+      "observation": "The fixed UI-last instruction in repository_layout.implementation_instructions coexists with a policy to test the highest uncertainty first. The root guide also directs future shared-capability work to a parent ai-cap rule without a source in the protected checkout or its applicable instruction ancestors. The chart false-positive is independent evidence for the importance of testing the user-visible boundary. Its cause has not been attributed to the wording.",
+      "task_ids": [
+        "M0-163"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "architecture"
+      ],
+      "resolution": {
+        "cause": "The repository layout directed contributors to leave UI until last while delivery prescribed the first observable high-risk boundary. The parent-rule reference had no usable source in a clean checkout.",
+        "correction": "Root and layout guidance now resolve to the versioned first-test and dependency rules, including a chart distinction, a protocol boundary and the appropriate local or provider requirements.",
+        "prevention": "Focused checks resolve the portable references and their source rules. Independent review exercised normal navigation, a rejected pointer, and valid and oversized frames."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-closed-bar-repair-sample-document-deadline",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Protected Windows main run 45709117560, first attempt, and the same-tree first ordinary PR 129 run 45705520154. The authenticated recovery producer, original chart screenshot and both test reporters are indexed in archives/observations/repo-hygiene-20261125/m0-154-cold-sample-45709117560/observations.json (SHA-256 73542c6956547a0746dad8eba3bed2f2b2b599f6b38d4c78ae379b00b0957736). Complete protected aggregate archived at archives/runs/windows-change-45709117560-1/test-report.json. The recovery producer original with SHA-256 b5c7067e1d0e54c69b7d27e09f148d98b4eaede2b48c703abe182ccfdbf0e981 remains separately retained.",
+      "observation": "The first closed-bar repair browser case stopped at the ten-second DOMContentLoaded deadline. Its retained screenshot shows the static Opening ScopeHub panel and the manual reload control. Eleven other recovery cases passed. The same-tree ordinary Windows PR passed all twelve cases, including the original case in 5.549 seconds. The failed trace does not identify the document response stage or timing of individual module loads. It contains no failing chart repair assertion.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The former DOMContentLoaded wait stopped before chart assertions and did not report document or asset milestones. The precise trigger for the historical Windows timeout remains unknown.",
+        "correction": "Observe the public sample navigation and report a failed document, a committed document with pending code, or verified catalog, history and chart milestones. Keep the 10,000 ms navigation deadline and manual reload.",
+        "prevention": "The first ordinary Windows run 45823554677 verified the cold repair sample at 2,154 ms. The held required module stayed document-committed at 10,011 ms against an independent 10,012 ms reading. The failed-document and held dynamic entry controls also passed."
+      },
+      "deferral_reason": null,
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45709117560-1",
+          "source_commit": "00a6ab1ef8c02ebd15144c3e5d65fcff70771ebb",
+          "report_sha256": "495063b876f34779ecd4e844bda70c09d97720bc3caf0f900a14d1af9b23dd8a"
+        }
+      ]
+    },
+    {
+      "id": "sample-startup-verified-before-request-check",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision for M0-154 source 232d0902bd5013392c5edd9ccacd7a875d655d12. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt (SHA-256 e9856f900204e62e36880df2820256811e53f9cb4bceb8c2ac6e096d2f2bad21). Local browser replay on the unchanged startup implementation is retained at archives/observations/repo-hygiene-20261125/m0-154-rejected-startup-232d0902/repro-replies/observations.json (SHA-256 3036c550a2afd67020aa64bc59ddf6643ade395d65e078295d566265e69073a4).",
+      "observation": "The real startup entry reported sample-verified with ordinary requests. Shifting the history start by one minute, changing the catalog limit from 50 to 49 or reversing the two requests each made the startup entry reject, but the attachment reported history-verified in every rejected case.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The witness credited successful replies before validating the exact outgoing requests and their order.",
+        "correction": "Bind startup milestones to the expected request payloads and ordered catalog and history completion.",
+        "prevention": "The market-recovery controls now stop at catalog-verified for a shifted history start and at dom-content-loaded for a changed catalog limit or reversed requests."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-held-module-elapsed-unqualified",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision for M0-154 source 232d0902bd5013392c5edd9ccacd7a875d655d12. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-232d0902/final-response.txt (SHA-256 e9856f900204e62e36880df2820256811e53f9cb4bceb8c2ac6e096d2f2bad21). Replay of the original timing qualifier is retained at archives/observations/repo-hygiene-20261125/m0-154-rejected-startup-232d0902/repro/old-timing-qualifier-replay.json (SHA-256 ee688d5cf76a95224d612a66ba6213260d06f43627d5d6b00070d02cab5137b0).",
+      "observation": "The real held-module attachment recorded 10,018 ms. The retained observation qualifier accepted copies reporting 0 ms and 60,000 ms, while rejecting a wrong pending script path. The browser check asserted the ten-second timeout text, stage and script path without checking attachment elapsed time.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The original held-module check validated the timeout text, stage and asset without checking the reported elapsed time.",
+        "correction": "Qualify elapsed time against the existing 10,000 ms deadline and an independent monotonic clock reading.",
+        "prevention": "The held-module case retains both readings and rejects copied observations of 0 and 60,000 ms. The Windows first-attempt values were 10,011 and 10,012 ms."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-incompatible-history-response",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision c2ca1c11fed0dfa1fbd354224fa82acde1b2bd7954b4c85c685d337733dd8c43 for M0-154 source e8b8de61a0e98283a70bcef39b4a0aa765f035e6. Original final response retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-e8b8de61/final-response.txt (SHA-256 366cd57e60f55bd028d8ae77dc1e8de3ae887520afa094d0fe7fcd2aa3088f7c). The unchanged product and observer behavior was reproduced in Chromium with exact archived HTTP bodies in .reports/m0-154-history-response/before/observations.json (SHA-256 06212aabab7c0b7f0458d2decd46d032f4baea5d7884b4b05f4e481cb91481c4).",
+      "observation": "Replaying a correct startup history request with a real 40-bar reply whose snapshot started one minute later produced OUTPUT_INVALID in the application. The startup attachment nevertheless recorded history_verified_ms and history-verified before the chart visibility assertion failed.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The witness compared fewer response fields than the application and accepted a snapshot with shifted bounds for the correct request.",
+        "correction": "Use the shared request-bound history checks for the application and startup witness before crediting the frozen sample.",
+        "prevention": "The public startup case pairs the ordinary history control with the schema-valid shifted snapshot. The shifted reply stops at catalog-verified with a validation alert and zero chart bars."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-accepts-structurally-invalid-frozen-history",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 25f18c909377b012f42761502c36a36bb32c99dd46f8b4539cce6c9a2a39d98b for source 2f02d0f7d674bf1fb83b507f1e3303f3a7edaad5. The original response is retained at archives/observations/repo-hygiene-20261125/independent-final-m0-154-2f02d0f7/final-response.txt (SHA-256 e1a9a386def352c803a74161243a6fcd2611dd4338b08f6eda91c3346ed7d765). Matched traffic and its authenticated trace references are indexed in .reports/m0-154-history-response/traffic/archive-provenance.json and SHA256SUMS. The unchanged application and observer were replayed on Chromium with the archived control and the single-field deletion. The responses, startup attachments and unchanged execution inputs are bound by .reports/m0-154-response-admission/before/observations.json (SHA-256 63fcf6ba5f8464b2422dbb71a203f82b01755d8545a64064bfbcf8296fbaf276).",
+      "observation": "Removing only the required snapshot.content_hash from the matched 40-bar success reply still rendered all 40 bars in Chromium and produced sample-verified when the recorded events were replayed through the startup observer. Existing browser cases removed a field the request comparison already checked, omitted the whole result, shifted the range or changed event order. They did not reject a schema-invalid success that passed the shared comparisons. The first-page check compared the absent hash with itself and treated equality as proof of identity.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "Both consumers trusted the runtime shape of the decoded reply, and equality of two missing hash fields passed the identity comparison.",
+        "correction": "Require generated operation output validation before the application and the startup witness admit catalog or history data.",
+        "prevention": "The public startup controls admit compatible history and reject missing or malformed content hashes, other structural omissions and a legacy bars reply supplied as frozen history."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-without-chart-paint",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad for source 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c. The original response is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/ (original-assistant-response.jsonl SHA-256 914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8, final-response.txt SHA-256 b0133e5226b8091baf7c0b7a84a283eae876ab18f87125741eb8759990b28d33). Linux Chromium baseline on product source d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained at .reports/m0-154-chart-presentation/baseline/observations.json (SHA-256 88eb8b3d9f976ae550f8f4f169ef4f1d38e07cecb990aaaa5ba225599f083079).",
+      "observation": "Appending 100 trailing zeros to the valid catalog price tick 0.2, with the archived 40-bar history unchanged, made the real React chart show its rendering error and draw no candles. Replaying startup events still produced sample_verified_ms because the element had data-bars=40. Linux Chromium reproduced the same false success with the equivalent tick and with a controlled renderer mount failure.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "ui-build"
+      ],
+      "resolution": {
+        "cause": "Trailing zeros in a valid tick reached Intl as excessive fraction digits. The readiness check took accepted bar metadata as evidence of a mounted and painted chart.",
+        "correction": "Normalize equivalent ticks for price formatting, expose renderer mount failure, and require painted candles before recording sample readiness.",
+        "prevention": "The public entry paints equivalent-tick history. A controlled mount failure retains history-verified with a chart failure marker, a visible alert and zero price pixels."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-history-admits-contradictory-dataset-or-stream-position",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 3f2e7b36e1e1819b7ff73165bbe3b16965eaa63017b2c2bbf177abe081f5a6ad for source 222ba13c9ac8fca4e6e9962cd8a8c79e5e73843c. The original response is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-222ba13c/ (original-assistant-response.jsonl SHA-256 914d34e7fb9bdadb4ca9304c0b1ebc6ea840fb158cd3a39fae1f9c72570ac5c8, final-response.txt SHA-256 b0133e5226b8091baf7c0b7a84a283eae876ab18f87125741eb8759990b28d33). Linux Chromium baseline on product source d82aa466250e9872978c92a0a2b735e1e5cf5049 is retained at .reports/m0-154-chart-presentation/baseline/observations.json (SHA-256 88eb8b3d9f976ae550f8f4f169ef4f1d38e07cecb990aaaa5ba225599f083079).",
+      "observation": "Changing only the history dataset adjustment to split_adjusted with a raw request and raw snapshot, or returning a valid non-null stream position without a request for it, each let the UI draw all 40 candles and startup report sample-verified. The reviewer injected replies after the Rust/Python operation boundary. The Linux browser baseline also admitted a contradictory quality source and invalid OHLC bounds. The desktop history client separately admitted contradictory continuation data or sent it as a later request, as shown in .reports/m0-154-chart-presentation/validator-before/product-observations/observations.json (SHA-256 9ce0755b78e3c3a773526c0013c0a87f19a44984bb6801a6dc7276d406a21184).",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery",
+        "chart-history"
+      ],
+      "resolution": {
+        "cause": "The UI admitted shape-valid responses without fully binding the dataset, frozen snapshot, stream, quality and page to the active request.",
+        "correction": "Share request-bound page validation across initial history, replay preparation, continuations and the startup witness.",
+        "prevention": "Public startup rejects schema-valid adjustment, stream-position, quality and bar-price contradictions at catalog-verified. Chart-history exercises pinned-page contradictions and valid assembly."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-without-candle-paint",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 985ad89feb9dd836325744647162a0d52801aa17181bcca2688c4ea00456c433 for e11e24fcb079430b0e13414c5d969e63108411fa. Original material is retained under archives/observations/repo-hygiene-20261125/independent-final-m0-154-e11e24fc: final-response.txt SHA-256 e593f5a74093e355419c52f0417ee8a73cff70dd111247979fb1481882a737e7, original-assistant-response.jsonl SHA-256 7b10d48f04e8d0f865efe4999455181608f0cfb5f255d93f60860b113a99ffd7, console-logs/console-2026-11-26T05-57-35-431Z.log SHA-256 4d0107c3731a96084c6942c165c3ce8d7e68d848b0a10d564d36584c6c73024d and console-logs/console-2026-11-26T06-03-03-458Z.log SHA-256 0edd8e70ea2f4db1203bb7cd0bb6a73ee29545625ccb4be79129be14867fccb8. The independent Linux Chromium reproduction at clean e4cd88ec73e13c9064d53252dc031b83db4ddcd2 retains original bridge replies, screenshots, console events, the startup attachments and the reproducer in .reports/m0-154-candle-paint/baseline; observations.json SHA-256 355e2024e9f300c85fdb360aabfdd1e9ebd818df8fdb4c8619abb04f269c2080. Before the correction, the new market-recovery case passed the genuine render and failed both negative controls at the stage assertion. The raw reporter, input diff, screenshots and traces are retained in .reports/m0-154-candle-paint/regression-before; market-recovery/results.json SHA-256 2b875097e7cf6a695738fa567fdea33afdc4315fcad1e2bb14e50aa31559b37d.",
+      "observation": "At the ordinary /#demo entry, the same genuine catalog and 40-bar bridge history reached sample-verified with and without candle drawing. Suppressing only price-colored candle rectangles left 464 matches on one horizontal row of the price pane and 730 on its axis label. The old test counted all 1,194 as price ink without an alert. The genuine control showed 27,163 matching price-pane pixels across 438 rows and returned the same frozen snapshot.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "Price-color counts included the last-price line and axis label and could also count unrelated same-color ink.",
+        "correction": "Witness candlestick bodies and wicks in the main price pane, accounting for the last-price line.",
+        "prevention": "The Windows first-attempt missing-candle and unrelated-ink cases held the admitted 40-bar snapshot and genuine axis and last-price marks. Both stopped at history-verified after the presentation wait."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "sample-startup-verified-with-misplaced-candles",
+      "status": "addressed",
+      "severity": "major",
+      "source": "Independent changes-requested decision 0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60 for 6cc6a82f9703bc732c733f5e0d172a9473ca907b. The original-assistant-response.jsonl under archives/observations/repo-hygiene-20261125/independent-final-m0-154-6cc6a82f has SHA-256 f799265ce5a61c29d40cc8e8c95a194c5a8cf94c652351bb3cfd04f07dea1d3a. The Linux Chromium reproduction on cfc783280bc1d63cae4a1cdf6c74a25699af4d68 retains the test-only input diff, raw startup attachments, browser traces and failure screenshot under .reports/m0-154-candle-geometry/baseline. Its market-recovery/results.json has SHA-256 784e3e9ca1417c0a75b8d251e56b0fc4e6c13dacfdf6642ce4238459fe6f1fd5.",
+      "observation": "At /#demo with the same verified 40-bar snapshot as the genuine control, the observer reported sample-verified when every candle was replaced by a three-pixel-high mark of the corresponding direction. The marks occupied x=1 to 460 and y=22 to 24 on a 928-pixel-wide main price pane. The last-price line remained at y=390, and the axis label and chart mount were intact. The genuine control covered 438 price-colored rows. The missing-candle and unrelated-ink controls stayed history-verified.",
+      "task_ids": [
+        "M0-154"
+      ],
+      "regression_checks": [
+        "market-recovery"
+      ],
+      "resolution": {
+        "cause": "The color-order check did not verify candle time positions or OHLC spans.",
+        "correction": "Validate each candle's fitted time position and body and wick spans on the painted price pane, allowing pixel rounding and exposure beside dashed price marks.",
+        "prevention": "The Windows first-attempt desktop and 720 by 820 fractional-scale controls reached sample-verified. Replacement marks on pane rows 22 to 24 stayed history-verified with the original last-price line and axis label. The independent review also rejected a genuine image with one upper wick removed."
       },
       "deferral_reason": null
     },
