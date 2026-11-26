@@ -7740,6 +7740,202 @@
       "deferral_reason": null
     },
     {
+      "id": "windows-private-handoff-verification-deadline",
+      "source": "Protected main push 45668943982, attempt 1, Windows browser producer 139398629052. The aggregate report is archives/runs/windows-change-45668943982-1/test-report.json. Its workspace-timeframe log has SHA-256 79d9d51be67b34df9c44be45c536f233d9eb17ac5a4e642c6d6eddcade96a35c.",
+      "severity": "major",
+      "status": "addressed",
+      "observation": "The test-owned private handoff verifier reported subprocess deadline exceeded during its first assertion. Of 76 native Windows workspace cases, 73 passed and two used their documented platform skips. All 64 isolated workspace profiles prepared in 138 ms. The descriptor verdict and last internal stage were not observed. The earlier M0-125 incident had no classified subprocess outcome.",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45668943982-1",
+          "source_commit": "ae0259db9ea0481aaf004b8682023ddfd8350328",
+          "report_sha256": "cbfdfe1b62f5353bee9a15cb588abd3745352ba0ce4e77120ae44dcb48ea6a30"
+        }
+      ],
+      "resolution": {
+        "cause": "The original protected Windows log classifies deadline expiry at the first handoff assertion. The cause, last internal stage and descriptor verdict remain unknown.",
+        "correction": "Use the existing test-owned bounded launcher with the native Rust file witness for the real handoff. The witness reads ownership, inherited and effective rights, and verifies an actual read/write open under the existing ten-second limit.",
+        "prevention": "The first live case passed on Windows in ordinary PR run 45769667627 and guarded run 45769688721 with the original descriptor refusals, cleanup and capability rotation. Separate child controls cover deadline classification and reaping. The coordinator owns verification of the first protected main push after integration."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-witness-rejects-ineffective-allow-entry",
+      "source": "Independent Astra Standard t10c at 0ff1c4da15fbede912b909aef2ad226ba7fce838. Archives/observations/repo-hygiene-20261125/independent-final-m0-147-0ff1c4da/final-response.txt SHA-256 9f8962801f6995ffc670ea32d8c58775dd127cb1f9ab0f4a63418c6518d2df7d; original response line SHA-256 7424ed9411eca2881653faadab3e0319e63222f00baf0483d801a67d2c670c1e.",
+      "observation": "The raw native handoff checker classifies every access-allowed entry before asking whether it grants access to this regular file. A valid private handoff with an inherited effective user grant and a zero-mask or inherit-only allow for another trustee can therefore receive exit 58. The earlier Framework file access-control view removes both entries during leaf ACL normalization. The independent finding is a source observation and does not explain the original subprocess deadline.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The witness evaluated trustee identity before applying the regular-file filter for zero-mask and inherit-only allow entries.",
+        "correction": "Validate the entry layout and apply the legacy leaf filter before evaluating the trustee of a surviving grant.",
+        "prevention": "The mandatory native file matrix in runs 45769667627 and 45769688721 passed zero-mask and inherit-only allow cases and retained exit 58 for an effective grant to another trustee. Independent review confirmed that each row passes exact readback, legacy managed and Rust witness assertions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-witness-rejects-ineffective-callback-layout",
+      "source": "Independent Astra Standard t10c at a5b94b98ab0ed7446787dfbee899c63cc731d2a2. Archives/observations/repo-hygiene-20261125/independent-final-m0-147-a5b94b98/final-response.txt SHA-256 ccc7058df47dfc3c8f22ca01d8ec4854e658952de6a51c3f844aa35bfeb1d0be; original response line SHA-256 a00f5e9e6148b308c5172ad8dc57cbace827d2eb35d8a12a6838fcd23fb27290.",
+      "observation": "The independent handoff witness returns 54 for a callback allow by type before checking its mask or applicability. The retained native regular-file matrix shows that the previous managed leaf projection drops structurally valid zero-mask and inherit-only callbacks. An effective callback remains unsupported. The current result does not explain the original subprocess deadline.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Dispatch by unsupported ACE type preceded layout and leaf applicability checks, so inert callback grants could be refused before the legacy leaf exclusion.",
+        "correction": "Validate known callback and object layouts before filtering inert entries and reject an effective unsupported grant.",
+        "prevention": "The native matrix in runs 45769667627 and 45769688721 passed the inert callback and object rows and required exit 54 for each effective unsupported row. The separately executed Rust parser suite rejects malformed and oversized entries before filtering."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-task-omits-rust-parser-execution",
+      "source": "Independent Astra Standard review of 7f12b10735fbe092a2a86cdbb58d4b31d1a797a6. Original at archives/observations/repo-hygiene-20261125/independent-final-m0-147-7f12b107/original-assistant-response.jsonl (SHA-256 f73948ec6631ca5509b82863a5afa5b7553a9fe532881f55d08d5a0ae6fc3b9a). The retained combined run passed its four selected checks and omitted Rust execution.",
+      "observation": "The guarded M0-147 task selects environment, project state, Python and workspace checks. The Windows workspace setup builds windows_handoff_probe without running its seven portable Rust tests. The task can consequently pass without evidence for malformed entry rejection even when the example builds and native file comparisons run.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T193206.473358Z-e7816a69",
+          "source_commit": "7f12b10735fbe092a2a86cdbb58d4b31d1a797a6",
+          "report_sha256": "c6efdf03e1146e14a2a0e7193decce96e4cd3698f2363618e8ab77af6c406998"
+        }
+      ],
+      "resolution": {
+        "cause": "The task selected the browser harness that built the example but omitted the existing Rust workspace check that executes its parser tests.",
+        "correction": "Select rust-contracts-workers as a required M0-147 check and register the maintained example as a Cargo test target.",
+        "prevention": "The guarded Linux and Windows originals from run 45769688721 each list seven windows_handoff_probe tests passed, including malformed and oversized entry controls. The separate Windows workspace-timeframe result covers the mandatory 24 regular-file comparisons."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-synthetic-readback-lacks-case-and-reason",
+      "source": "Ordinary PR127 Windows attempt 1 at archives/runs/windows-change-45689952772-1/test-report.json, then guarded M0-147 Windows at archives/runs/20261125T195735.990394Z-0479c9ec/test-report.json. The ordinary 117-file manifest has SHA-256 e0cf5835e6d0197f4a6680a8f013b0535b7b272c373797b3b1d3cb45bdf47d65. The paired observation in archives/observations/repo-hygiene-20261125/m0-147-native-paired-readback-45690028912/observations.json has SHA-256 ca446c2f0d5aed7160e75eabeff6581c89efce1b693f6d4378219ae3cf94baba.",
+      "observation": "Both native Windows runs executed the seven Rust tests and reported 74 workspace passes, two skips and one failed live handoff case. The failure occurred during synthetic regular-file raw ACE readback before the array-wide native witness loop. Neither report identifies the row, differing field or read operation. This is distinct from the prior live probe deadline and the guarded Linux peer-note observation.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45689952772-1",
+          "source_commit": "bcd21c0981401d61d9f0c3b087eb8b0f88690956",
+          "report_sha256": "650a1c591652e66e403cdd01400c8e05e32d38b96fd5edb29dc92ebcadb2353d"
+        },
+        {
+          "run_id": "20261125T195735.990394Z-0479c9ec",
+          "source_commit": "d0020d3a1ddc5075dbf10e78ed349212df910d92",
+          "report_sha256": "db6e172b6b87a2c49a82f769a793ff5bfb54cb6088b3ea5c14ed78743bbc9315"
+        }
+      ],
+      "resolution": {
+        "cause": "The prior fixture readback diagnostic collapsed the failed row and property into a generic message. The exact row and underlying cause of those two failures remain unknown.",
+        "correction": "Report the first failing fixture with a bounded write, raw readback or managed comparison reason and retain the exact readback and witness assertions.",
+        "prevention": "Independent real-child controls verified the exact row and field for a complete stderr marker, the fixed fallback for a stdout lookalike and cleanup before any witness launch. Both retained Windows originals passed the mandatory exact readback, managed and witness assertions."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-fixture-io-overwrites-readback-diagnostic",
+      "source": "Independent Astra Standard review of dc5be1ffdcfa6bff97c9f309ea171d054881fbfd, recorded by the authoritative M0-147 decision. Original event SHA-256 ae6da1b3005baf69d6f210a6455965fc0b2518048c8fc6b9545035035a8aa46f. Retained final archives/observations/repo-hygiene-20261125/independent-final-m0-147-dc5be1ff/final-response.txt SHA-256 62690b5ef252673a61ac1cc33be5353cbcaf0642d1ed106a1b21af1981498d22.",
+      "observation": "The public synthetic leaf matrix reported raw ENOENT with an absolute fixture path when the profile was unavailable. In the independent combined control, the row 19 ACL revision readback diagnosis was replaced by row 0 cleanup EPERM with an absolute fixture path. The 24 expected ACL outcomes, bounded marker vocabulary and native deadline were independently preserved.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "Fixture creation and cleanup could return raw filesystem errors, and cleanup failure could replace the first readback diagnosis.",
+        "correction": "Use exclusive creation, track owned fixtures, bound the creation and cleanup messages, attempt removal of every owned fixture and retain a primary failure before the cleanup message.",
+        "prevention": "The independently approved workspace controls preserve a pre-existing fixture and verify that row 19 readback remains first when row 0 cleanup also fails. The guarded Linux and Windows workspace suites passed those controls, and the Windows journey passed native cleanup."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-leaf-matrix-first-trustee-ace-absent",
+      "source": "Ordinary PR127 attempt 1 run 45710866374 tested merge 97c7fb79b462d6ec438164180b1d21c734838452 for branch head 3620427e1f9ca51cf1aaac8a629f067ca75659e6. See archives/runs/windows-change-45710866374-1/test-report.json and archives/observations/repo-hygiene-20261125/m0-147-native-first-row-45710866374/observation.json (SHA-256 f26fea324bf7b3ec08d3b6dd369915963f6acd68cf07f242ded6032b573cc845). Scoped run 45710987464 tested that exact branch head. See archives/runs/20261125T221246.075646Z-9b2ba873/test-report.json and archives/observations/repo-hygiene-20261125/m0-147-native-first-row-45710987464/observation.json (SHA-256 d6fd07520520dd30a6cbdd027a4b672a99c36a2c1a327942c5a44ad8b01b1f4f). The seven-row Windows calibration of 8c34ff030a889aa43bc83bf026a7893d0b5ec87a is archives/observations/repo-hygiene-20261125/m0-147-windows-first-row-45744210597/observation.json (SHA-256 5aab1a5a310f1121b455006d7717ab2841e9d3520f1f7701b8bfeb6c85030118, hosted run 45744210597).",
+      "observation": "Both Windows reports recorded 89 workspace cases passed, two skipped, one failed and zero flaky. The workspace journey passed the first live handoff and its two unsuitable descriptor controls plus the read-only control before matrix preparation reported no stored fixture trustee ACE for allow-zero-mask. No matrix witness result or subsequent capability rotation was reached. The guarded Linux task passed all five checks. Both native Rust suites separately passed protected regular-file zero-mask storage with an explicit owner grant. The first-row report did not measure the submitted ACE or a second reader. The cause of the earlier deadline and the row in earlier generic readback failures remain unknown. In the subsequent native calibration the two readers disagreed about the inherited grant even on the untouched baseline. All six proposed writes returned input-error before the write call. The witnesses saw the original files. No proposed writer was qualified by this experiment.",
+      "severity": "major",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "workspace-timeframe"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45710866374-1",
+          "source_commit": "97c7fb79b462d6ec438164180b1d21c734838452",
+          "report_sha256": "1c4c6cc8c2117e2aa7a014b50d2d157033bb0050dfa15442ea888fc5e8fb3cd7"
+        },
+        {
+          "run_id": "20261125T221246.075646Z-9b2ba873",
+          "source_commit": "3620427e1f9ca51cf1aaac8a629f067ca75659e6",
+          "report_sha256": "febcca8e29fa0d23ecc437b3f99486d62d13c538886a005fe4ecfb50256aa873"
+        }
+      ],
+      "resolution": {
+        "cause": "The original first-row failures observed no fixture trustee ACE through one reader and did not observe the submitted bytes. Calibration found reader disagreement on the untouched baseline, and six proposed writes stopped before submission. The cause of the original missing row remains unknown.",
+        "correction": "Use the protected test fixture writer with agreeing named and handle baselines. Verify exact submitted and stored ACEs, ACL revision and preservation of the inherited grant before comparing the managed and native witness results.",
+        "prevention": "Run 45748342112 directly observed two qualifying writes and managed and Rust outcomes 0 and 58. The independently reviewed mandatory 24-row loop passed in ordinary Windows run 45769667627 and guarded Windows run 45769688721."
+      },
+      "deferral_reason": null
+    },
+    {
+      "id": "windows-handoff-portable-diagnostic-marker-lost",
+      "source": "Independent Astra Standard review of bc89c85dcaf81f359c91adc23e7c87fa08a70966 at archives/observations/repo-hygiene-20261125/independent-final-m0-147-bc89c85d/final-response.txt (SHA-256 38109616760dc41d7be3eafe91b0a3de4051f9c5c5bd467704223c1eb676e09a). Local Node 24.22.3 reproduction at 3620427e1f9ca51cf1aaac8a629f067ca75659e6 in .reports/m0-147-first-row/portable-baseline.log (SHA-256 c7dc86bf7f0838a4036d3ea223fbcec8d88a439e395583e6f5278a1c016e0037).",
+      "observation": "The real portable calibration child returned exit 4 but the parser reported an unavailable diagnostic for a valid stderr marker. With execFile in the local checkout, Node stream writes returned no stdout or stderr bytes with either forced or natural exit. Synchronous writes returned five decoy stdout bytes and all 38 marker stderr bytes. The independent positive and rejected handoff child controls and the combined cleanup failure passed. Both latest hosted Windows runs passed the portable diagnostic cases. This observation concerns the portable child transport.",
+      "severity": "minor",
+      "status": "addressed",
+      "task_ids": [
+        "M0-147"
+      ],
+      "regression_checks": [
+        "workspace-timeframe"
+      ],
+      "resolution": {
+        "cause": "The real portable child produced no captured bytes through Node stream writes in the observed local execFile control, including natural exit.",
+        "correction": "Write the synthetic control streams synchronously and keep stderr as the diagnostic marker source.",
+        "prevention": "The real-child control asserts the exact bounded row and field for stderr, fixed fallback for a stdout-only lookalike, cleanup of all acquired fixtures and no witness launch after failed preparation. Independent review replayed both cases and guarded workspace-timeframe passed on Linux and Windows."
+      },
+      "deferral_reason": null
+    },
+    {
       "id": "frozen-reopen-stale-access-status",
       "source": "The built desktop UI red regression at archives/runs/20261125T035923.329201Z-a36ab18a/test-report.json.",
       "severity": "minor",

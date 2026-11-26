@@ -18,7 +18,8 @@ import { startLocalImportBridge } from '../ui/local-import-bridge.mjs';
 import { openWorkspacePreview } from '../ui/preview-startup.mjs';
 import { busy, future, observeSampleRequests, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { observeSelectedHistory, operationPath, readMarketAttemptStages, traceHeader, waitForSelectedHistoryTerminal } from '../ui/selected-history.mjs';
-import { assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff } from './workspace_test_handoff_acl.mjs';
+import { assertWindowsLeafAclMatrix, assertUnsuitableWindowsHandoffsRejected, assertWindowsPrivateHandoff }
+  from './workspace_test_handoff_acl.mjs';
 import { handoffProbeCases } from './workspace_test_handoff_probe_cases.mjs';
 import { claimProfile, withProfilePoolAclControl } from './workspace_profile_pool.mjs';
 import { captureServiceOutput, observeServiceStartup, startupMessage } from './workspace_service_readiness.mjs';
@@ -4712,7 +4713,10 @@ test('the private launcher handoff is required and a previous launch cannot auth
       previous = server.capability;
       handoff = server.handoff;
       await assertPrivateHandoff(handoff);
-      if (process.platform === 'win32') await assertUnsuitableWindowsHandoffsRejected(profile.root);
+      if (process.platform === 'win32') {
+        await assertUnsuitableWindowsHandoffsRejected(profile.root);
+        await assertWindowsLeafAclMatrix(profile.root);
+      }
 
       for (const request of [snapshot, setTimeframe(0, '5m')]) {
         const denied = await post({ url: server.url }, request);
