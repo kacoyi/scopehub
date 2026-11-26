@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T04:10:27.894198+00:00",
       "request_id": "ce1b24fd36ff29c76a7f0b2963a71e93c11a6fac50bc0394824292593167ba96",
       "evidence_sha256": "4ea981e5fca88b0c83bd212f440eeff3b852176c99f38e6bec65c06e37189e07"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-131 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "After twelve newer captures rotated PR 84 out of the recent window, both readers restored the 645-second browser clock and 2467 Windows runner-seconds without a diagnostic when I placed conflicting success and failure observations for the same browser job in one list.",
+      "reviewer": "Independent Astra Standard (t12p)",
+      "original_sha256": "3a4b9bcaa36867d2fe09952a592bab65b7cbcd148c7b76397b50521ed25807f1",
+      "response_id": "889067d243d4421fbc7f7c3997089d2a61d8be4f6c4bacac4c36fb6e171be6b7",
+      "response_sha256": "a9d05aeb2e5d966233863f6e2139b2f739467a2138fdab9c1d2847fcb3503f5e",
+      "legacy_response_sha256": "2897e02ef71db63cd2c1ecb91a227cb552089b89a54f2e09f09c394b8f9c7a0a",
+      "observation_body_sha256": "80e2af557b029f887df0d9a11fda233c1b454f4e3cc96b31b6824ebc372bfdba",
+      "event": {
+        "id": "msg_0237a9ea6668bf26016b07b5787f9887d1b4f8edb4ad9843d2",
+        "timestamp": "2026-11-26T04:29:05.746Z"
+      },
+      "supersedes": "ce1b24fd36ff29c76a7f0b2963a71e93c11a6fac50bc0394824292593167ba96",
+      "evidence_sha256": "2d54333f9227c67f36613d8833ad010527bcd5b264679be69e009e259f992f4d"
     }
   ]
 }

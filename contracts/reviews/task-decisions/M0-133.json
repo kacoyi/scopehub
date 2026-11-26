@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T04:10:28.858569+00:00",
       "request_id": "f4aacce40a95591b0cd5494439044cf499f43b6f169d77b826008cc31eebe659",
       "evidence_sha256": "064d13c70d5f6c418937e6f8345063055bac362900f67863ce3a7d367d06a456"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-133 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "For run 45546767887, repeating the same browser job with only its conclusion omitted produced one Windows platform receipt across two job listings and zero when both observations appeared in one listing.",
+      "reviewer": "Independent Astra Standard (t12q)",
+      "original_sha256": "7b8a431972c61b13917c3b4e8b6c00ce552549409eb00b6485bdf917b5b63b06",
+      "response_id": "6df6c9f42ccb526c6e27c4d2aa73cacf3af0d0f7a470259d45ae2305b6589c21",
+      "response_sha256": "db842ae0dcf638c7e5401946539e9ea36488dd5e8f8dec21c100f44e43b384f6",
+      "legacy_response_sha256": "f69b5d872cb6039116221a561e2f0d266e6bd9688ff1655a3c41a94fd09b3d2e",
+      "observation_body_sha256": "600017064371834038af0f90989296757c4d2bff9ff562fda5b8bae099468f5b",
+      "event": {
+        "id": "msg_0e45f6cd13050be8016b07b59ae1e487d1a60c3126a32749b2",
+        "timestamp": "2026-11-26T04:29:32.227Z"
+      },
+      "supersedes": "f4aacce40a95591b0cd5494439044cf499f43b6f169d77b826008cc31eebe659",
+      "evidence_sha256": "143f7d199892e6732075d9dda2c266c2db3da120f8e1cd5269eded2e635489fe"
     }
   ]
 }

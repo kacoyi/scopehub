@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T04:10:29.847143+00:00",
       "request_id": "c482e1baf52a56b505d9a2a0984aa91f50393b3de0fefa487dfdc6c7335e51dd",
       "evidence_sha256": "e1b8f94def4e442a32994908e42a6befe0fd0647c68626ed3676bd57323596fc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-145 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-145 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "In an offline replay of run 45546767887, both recent-collection modes issued a Windows freshness receipt when only the Ubuntu timing artifact was available and its payload contained the authentic Windows report.",
+      "reviewer": "Independent Astra Standard (t12r)",
+      "original_sha256": "3966175f44310155c87ae821cedd6a37c5299f40eeb5a5b8580fc2b0857f756a",
+      "response_id": "40efa8cb3b61f1703da8f9ac9a849bd36ac74fe04b3ded3cb672eaf39f013ba6",
+      "response_sha256": "384382e1df4b99a985c07a7f6cd802264e7d1df7a924f6ff8d07519810946806",
+      "legacy_response_sha256": "bab50791a3169b8ea21cb343450a94996aa6e426ff1e0781f6152d31356f4e65",
+      "observation_body_sha256": "accf151ce1aae5be6da45e2590920fc9fcfe0e66c40dfa05f1d3e3482c578b40",
+      "event": {
+        "id": "msg_00a9a6af7436284c016b07b6cae06887d289cfdac835898fc6",
+        "timestamp": "2026-11-26T04:34:30.779Z"
+      },
+      "supersedes": "c482e1baf52a56b505d9a2a0984aa91f50393b3de0fefa487dfdc6c7335e51dd",
+      "evidence_sha256": "87e653fbc86bbb34d655484a4b7b10532f3f24bbb9f984afb3301c88ff56295d"
     }
   ]
 }

@@ -59,6 +59,26 @@
       "requested_at": "2026-11-26T04:10:31.699058+00:00",
       "request_id": "5428f2fd885e91e3862da32d4ec8acf6d26ba5ce6919d68bdf7cc694bc6343d1",
       "evidence_sha256": "a62c38bfb570d7128d2d85a68978060e7881656b1add8a9bc46b55433116508e"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-150 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "In two source-bound controls, the reader accepted stale producer selections and promoted the aggregate cache to warm after the publisher excluded market-recovery-ui.",
+      "reviewer": "Independent Astra Standard (t12t)",
+      "original_sha256": "5d3f2be57fafa64097402cef0d51bc7abda51b569076ef9ecd114c1c4b332f82",
+      "response_id": "e2b7927bf7a8daa017437ef8abda43fba2f2325b942325f4cac51fc35de24e5a",
+      "response_sha256": "4bf025d868a634bedac22aacb8b3fd28876ee83845c551a70d29acb29b6b5e08",
+      "legacy_response_sha256": "f2a87fe61fdb16b3c797ac759f1f1aaddd5aaf8ae10e2c275069c5da4c166fb0",
+      "observation_body_sha256": "50b02eee0b5a934d7a66706b36dda51cd75884e71f4f13df013548e1a4353b7e",
+      "event": {
+        "id": "msg_06af9d632c807db4016b07b7af289087d2970398767cf4dcfc",
+        "timestamp": "2026-11-26T04:38:26.319Z"
+      },
+      "supersedes": "5428f2fd885e91e3862da32d4ec8acf6d26ba5ce6919d68bdf7cc694bc6343d1",
+      "evidence_sha256": "f548bc269d8b708421daf710802b451510e1df51c045cc32d3d3a85363d0b500"
     }
   ]
 }

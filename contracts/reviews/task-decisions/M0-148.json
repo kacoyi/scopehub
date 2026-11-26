@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T04:10:30.765410+00:00",
       "request_id": "d0e335ff0dd8f7783dc249da07b74da3f29a87966b723241dec699103820b019",
       "evidence_sha256": "c0663f9868197f92549c25247463998354ae82badca11a7c2e286e61695b9722"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-148 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "After I replaced only the execution-input digest in Windows run 45577003837 with the digest from run 45570358218, the ordinary reader retained 718 wall seconds and 2,346 runner-seconds, and the weekly reader issued a receipt for the altered sample.",
+      "reviewer": "Independent Astra Standard (t12s)",
+      "original_sha256": "2caa979d2d9fc795616f2383f149007810731fff11b061c0e6c0c2b044bc5633",
+      "response_id": "775f1945cbc4718a59e54ee10105ca54caaf792d20ad98daef8bba14aaa19569",
+      "response_sha256": "8947b8f8da9e5f082fd13b43977435ef8053d1f7d530986c5614b9ba2c4c5b14",
+      "legacy_response_sha256": "6751afd3fda51950518f2c6eab31ac2406370b2e53fe5dd1bcbc2a8416e20c12",
+      "observation_body_sha256": "31a7e27d9968c6420adc1280591153a382f4215909e28b31f0903f1a327a3658",
+      "event": {
+        "id": "msg_027ebd92e24bc0b1016b07b6f4f81487d28d5dd7dcbd0a4791",
+        "timestamp": "2026-11-26T04:35:20.173Z"
+      },
+      "supersedes": "d0e335ff0dd8f7783dc249da07b74da3f29a87966b723241dec699103820b019",
+      "evidence_sha256": "480657beff3cca2e9aeff3c418e544bb37bc1e78d9a0ca56636fb414389dcdcc"
     }
   ]
 }

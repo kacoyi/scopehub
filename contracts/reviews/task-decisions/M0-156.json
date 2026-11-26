@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T04:10:33.563407+00:00",
       "request_id": "1becfbe5747aeddb2f9742ce30923bb1de96d877c79540f100b4f10c32ea60a2",
       "evidence_sha256": "bc23473c60e587f18ed1e214768c67f1f5f39ac8dc5931ce74609a56ad6edf2c"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "approved",
+      "decision": "APPROVE M0-156 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "APPROVE M0-156 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "For Windows run 45546767887, the ordinary and weekly readers agreed in all 102 paired cases and rejected the all-zero checkout with and without proof.",
+      "reviewer": "Independent Astra Standard (t12w)",
+      "original_sha256": "a0a4a91e90292e27a4e78f5ce9c11efd900f37f13c05049940cdbdd7403ed5ca",
+      "response_id": "29ba083e5dee1028bf9d092e8ede8cf6bf7abea10beaa409b43e4711fdc4202d",
+      "response_sha256": "468160c57e76c07fe6771e113d3de0d643bc034ab674825314bf58c4debd07e4",
+      "legacy_response_sha256": "82a78d7846ecf2a19bdad982c0fe34c224d700c2f0862a1fbd3d4fd8b0c9f091",
+      "observation_body_sha256": "1ca7e13f1836dec926a246754733ad42c1c969b531ad9f2439393cc6529cfcc0",
+      "event": {
+        "id": "msg_09d12c7eeaa85891016b07b7f52a0487d2bfdbda9e58cab863",
+        "timestamp": "2026-11-26T04:39:27.502Z"
+      },
+      "supersedes": "1becfbe5747aeddb2f9742ce30923bb1de96d877c79540f100b4f10c32ea60a2",
+      "evidence_sha256": "7c53ce39c79fa4da3bda31749371992eeb5c50eed5670ab6a8360b12154417c1"
     }
   ]
 }

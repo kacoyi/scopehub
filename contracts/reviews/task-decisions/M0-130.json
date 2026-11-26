@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T04:10:26.914485+00:00",
       "request_id": "31cd9a4f2f8bcb1b7d0489995b09525ef2d51bc13c4f89452a6c0932fb239e93",
       "evidence_sha256": "d1163dd725e47d31c952260881590fac592f928d1c1769f3fd5b393490eeb1e0"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-130 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-130 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "Swapping only the browser and aggregate job names in the retained PR 84 listing caused the weekly reader to qualify the browser job’s 645-second clock as Windows platform timing and return one receipt.",
+      "reviewer": "Independent Astra Standard (t12n)",
+      "original_sha256": "95d8516d056eb47114e90aa78f4ecc4ac9721e3b5a2b26e9404990fff96df277",
+      "response_id": "5d528ae2d8007b9e687c15a93c6432ee389e496b2841c45ffd1f253d7153c5fc",
+      "response_sha256": "ecd979ae1f30d3e00ed927877feb2be99618b8f2e8d4e2a52b0e51166d7b2115",
+      "legacy_response_sha256": "9615f118b7f750289ba404f26b9e8791ac102b7dce07600e653e8ed5aa3cd586",
+      "observation_body_sha256": "bc98c6dd417f108fd5976f1cf9a5048051d9bf3a4f25050b44a1819e95198804",
+      "event": {
+        "id": "msg_05bdaccdbe40e423016b07b4b597c887d28b4766260ba0f187",
+        "timestamp": "2026-11-26T04:25:38.418Z"
+      },
+      "supersedes": "31cd9a4f2f8bcb1b7d0489995b09525ef2d51bc13c4f89452a6c0932fb239e93",
+      "evidence_sha256": "0158a284ce5ae6950c29c5cf73348a1b29a2a3e7331274abf5cbfc40d8e16101"
     }
   ]
 }

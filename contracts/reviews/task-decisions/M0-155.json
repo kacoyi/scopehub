@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T04:10:32.632808+00:00",
       "request_id": "8da4230128db0cbd345e6b44093d0d9fc253613679bc5a318cb8be44bc39f323",
       "evidence_sha256": "e9ca7e4be99f2e7abb1c7473ddd975a26fdc8f1c1de174fd462f9a280f6c2022"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "scope": "CHANGES_REQUESTED M0-155 caea2a0a580fb4905b75558cbe0f171505b813a7",
+      "observation": "After twelve newer captures, the linked budget reader counted 804 seconds of Windows wall time and 2467 runner-seconds for run 45546767887 while its retained checkout conflict remained readable.",
+      "reviewer": "Independent Astra Standard (t12v)",
+      "original_sha256": "eedd4a0622131f502ea21d760988c467c726250784b7f9f0eb9d37d20a834072",
+      "response_id": "229f9ed94cc7b0ca2e7b38be563a7c5b37f55a41075ee30015dd3ef88cf24304",
+      "response_sha256": "603060bdbc671dab286e812e9a75d589189fe260a0b31a45f5976b12af056aa9",
+      "legacy_response_sha256": "ea3e12cc045746729b11941f7d5b06b6f3932fd17d8a6689d4b2fb34f17848bb",
+      "observation_body_sha256": "039ace58efeb3183028483011a3a42969a2eec146cefcd9b79b3d61296a405f3",
+      "event": {
+        "id": "msg_0ae6caa57366e1c4016b07b7c8408487d295ac7fe9f5b29eb8",
+        "timestamp": "2026-11-26T04:38:50.406Z"
+      },
+      "supersedes": "8da4230128db0cbd345e6b44093d0d9fc253613679bc5a318cb8be44bc39f323",
+      "evidence_sha256": "800f8dbaaba8f7d43d8d53ae755b6b47d9bd35871f490550c03cc06e5c9417c8"
     }
   ]
 }
