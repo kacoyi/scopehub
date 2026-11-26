@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T14:24:22.162824+00:00",
       "request_id": "f1fd47ace71ddd6fcae8964194f77936d455b68e1c5644481f567b5fff97a29c",
       "evidence_sha256": "c9c2345fd36f2531e652fa7eb98dd4dce8018ce28fad70ae252331e903d60a87"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-167 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "scope": "APPROVE M0-167 0ca842a35ca077d433c5b2d7930d29a7d8b1f23f",
+      "observation": "The public preview returned the artifact after exit 0 and recorded a task-scoped WORKER_EXITED with no artifact or committed effects after exit 1 and SIGTERM.",
+      "reviewer": "Independent Astra Standard (t18m)",
+      "original_sha256": "4b1e10c1146e25d2e21015a9ed46ab70f2b58a18ac3505bb65fc9603ec644f8b",
+      "response_id": "d8a082955cea3caf5567f5c478dc455401dde8936915f2513c60b9334ad76ce9",
+      "response_sha256": "ded4326fc6a614ae72eba1eeae553bba6fb48c6c2ca5b1488410ccbfea90c6d9",
+      "legacy_response_sha256": "d710cbfa6d4129b1d2d31b2f66d0bfaa89c9e53a982168c363541911056147d9",
+      "observation_body_sha256": "da47c9b166f244fe432f31d24575be3bb79c1d6d3b8e553639ac29fd68248a2a",
+      "event": {
+        "id": "msg_0eeb1ce527a73dc9016b0841f6c2c487d2a433a72e3e048100",
+        "timestamp": "2026-11-26T14:28:22.165Z"
+      },
+      "supersedes": "f1fd47ace71ddd6fcae8964194f77936d455b68e1c5644481f567b5fff97a29c",
+      "evidence_sha256": "bf9b5f09f111d4bcd214cfe1a98258c4cdb0f6a398517b629d1d2b02da077134"
     }
   ]
 }
