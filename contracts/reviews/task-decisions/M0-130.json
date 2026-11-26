@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T05:01:36.707205+00:00",
       "request_id": "afa97f99778e79f4ac3f2026f9dc63cd4b432ebd6a4f9aba4e472a87d2eec2cd",
       "evidence_sha256": "d5ff2ce51042abc23453c719e12fabd6817f32a943650093860b30bef3f9dbeb"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-130 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-130 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "With the PR 84 browser and aggregate job names swapped and one step omitted from each listing, the weekly reader accepted the browser job’s 645-second clock as Windows platform timing and issued one receipt.",
+      "reviewer": "Independent Astra Standard (t13b)",
+      "original_sha256": "8207483377afbb6edb9c0a79c0b41b27e711145081cbd2ae62e89fa03a073c2c",
+      "response_id": "67a2e5ed0a6cc3da533480815143006e37c03abeb07b8682b8c24b09d515e6a3",
+      "response_sha256": "470d4f8b3c5ff71345f2da0ab2afb112e0d1ae992abdce68b31a1e2d5754d341",
+      "legacy_response_sha256": "47839817a28fc742ad0b3602277752910046fe6f720c8c5c168abeafba8fd284",
+      "observation_body_sha256": "c1bd65b152b54830251f53bbc57a81625737fa0e6888551cc129a2a4b12b128c",
+      "event": {
+        "id": "msg_077279af0831476e016b07bf6a64dc87d2935e9195c55faca3",
+        "timestamp": "2026-11-26T05:11:22.880Z"
+      },
+      "supersedes": "afa97f99778e79f4ac3f2026f9dc63cd4b432ebd6a4f9aba4e472a87d2eec2cd",
+      "evidence_sha256": "61635b71079d4733dfac1210c0812fa3a075cff74428b310faa3f73babe5f2b7"
     }
   ]
 }

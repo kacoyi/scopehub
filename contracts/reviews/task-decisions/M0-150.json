@@ -88,6 +88,26 @@
       "requested_at": "2026-11-26T05:01:41.380324+00:00",
       "request_id": "7c5da930eda86c1b6ca32040791d348b09c88f3daf7ac5b95e5f4b7bb60db2a8",
       "evidence_sha256": "7ca0355b9d26bb30a9a703ca08a92ec07e87373fda9f57e272032c9d00277a10"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-150 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-150 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "The timing reader accepted stale producer selections in both runs and marked each aggregate warm after the publisher filtered the checks passed to its unchanged selector.",
+      "reviewer": "Independent Astra Standard (t13n)",
+      "original_sha256": "15fd3516b04b2f4aa0796472a87bb3d79911f229291acf09da9c7865e0a30ca2",
+      "response_id": "07e6d8466e3b0bad687ee7b22ab5ee90bb84af329c7d868af674245a0f6e496c",
+      "response_sha256": "d9295f679129f32d6c1f5615a7d5c71828d947ee83f6f5c8c0fd527554e0ab9c",
+      "legacy_response_sha256": "9822112c9efa1fc3dfc471f5c932b96aa48a3f9e4ae087ada2b53e5409ddf517",
+      "observation_body_sha256": "8708c2df83c56f7f890aa93cb51e2068a93a9dcbaaf75d5ade647db923881f73",
+      "event": {
+        "id": "msg_0201e1c8206f3e24016b07c3b0f33c87d182615b14a965a630",
+        "timestamp": "2026-11-26T05:29:42.432Z"
+      },
+      "supersedes": "7c5da930eda86c1b6ca32040791d348b09c88f3daf7ac5b95e5f4b7bb60db2a8",
+      "evidence_sha256": "5c8f36d9e5633ccd65d0f7dc422a785039450962004fffb48c5d9330e8fb6b3c"
     }
   ]
 }

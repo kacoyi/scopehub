@@ -68,6 +68,26 @@
       "requested_at": "2026-11-26T05:01:42.323476+00:00",
       "request_id": "ee8099a3bf22ad15e9435f8001105ca27a8ff34dce8eb03d321973e118888275",
       "evidence_sha256": "0d8eef610742a774f83e90729c47b37069169d6e42ec14073895b334d9834dae"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-155 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-155 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "The weekly reader issued a Windows timing receipt for run 45546767887 after a skipped row claimed a different checkout for the same browser job ID.",
+      "reviewer": "Independent Astra Standard (t13p)",
+      "original_sha256": "9e7d45dd8aca96351b2570ca8edd4671f17363945982ffd6696eea7fc1e38cae",
+      "response_id": "868f3c576ac6ec6962501ed24619e8f3a4e98dd477dd71e2e3058aaa0c23c2b7",
+      "response_sha256": "6126b279f83eaf6c240a1067e2869e523f63c219a68916288bf821e2cee10fa5",
+      "legacy_response_sha256": "9ac6920332c5d81d5b0cd3053c747759f89a574cff63a66e3b1b3fc8ae9dc260",
+      "observation_body_sha256": "7cf250b35a383e31388914b3740cb5b9762d4f6f41a375896b4052460cfbb011",
+      "event": {
+        "id": "msg_0243a6678fc4f07e016b07c4606a9c87d2ba0fb279a3c1f919",
+        "timestamp": "2026-11-26T05:32:35.520Z"
+      },
+      "supersedes": "ee8099a3bf22ad15e9435f8001105ca27a8ff34dce8eb03d321973e118888275",
+      "evidence_sha256": "87c74476f5bc137e9f426232d8be4bf84c6e60e93f899665887eea503ee03177"
     }
   ]
 }

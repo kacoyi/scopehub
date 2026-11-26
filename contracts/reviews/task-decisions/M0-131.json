@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T05:01:37.624833+00:00",
       "request_id": "9084c918dab30ed9906db2a5e4a839d205ed4f4c5b7e30e4536c4ba39f3ff841",
       "evidence_sha256": "ee7f0e55abe4ae26b7b470c7660be5e6ba22521c87c7fa64b86cb99148db86aa"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-131 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-131 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "After twelve newer captures rotated PR 84 out of the recent window, both readers retained the 645-second browser clock and 2467 Windows runner-seconds without a diagnostic when a skipped dispatch job claimed the successful browser job’s ID.",
+      "reviewer": "Independent Astra Standard (t13c)",
+      "original_sha256": "d9afcd473ae3091d93e5fe7dbc05afbbcc1a820b03a4ae26b3a50bfd3e64a77c",
+      "response_id": "956b9d5982a61afbebf6a46cb4f02f358ed468516a09b994b0f6152844a0ae07",
+      "response_sha256": "516b02e3e23493855c7ac3e018256de89911fcb09cfb352664ad186a5c85ec73",
+      "legacy_response_sha256": "c1aafe2cd644f68e4bf271d09f85f32df85e99c61e66e0d5e90ec6253f18c72d",
+      "observation_body_sha256": "06fa3f96f2e513de2e72ecfea1ad7d28e7b2acb28183053580b99a56aed84505",
+      "event": {
+        "id": "msg_0876d352cad1ec84016b07c080678087d19717b3b801602489",
+        "timestamp": "2026-11-26T05:16:05.429Z"
+      },
+      "supersedes": "9084c918dab30ed9906db2a5e4a839d205ed4f4c5b7e30e4536c4ba39f3ff841",
+      "evidence_sha256": "511749166296f78228b8a2fd2da8e4395aac3d660c6036d2ffec0bd3f58d35b1"
     }
   ]
 }

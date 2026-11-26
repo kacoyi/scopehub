@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T05:01:38.556373+00:00",
       "request_id": "d085cd2bbb3a0d1054515fa322a21425b8f49c917e4e160191abc53138cb6606",
       "evidence_sha256": "4629d4e25e5e508ed62897b0b1149ef23cda400df5860e873f8c1c6523090a0a"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-133 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-133 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "For run 45546767887, three observations of browser job 138978153110 with an omitted, successful, and failed conclusion produced one Windows platform receipt in a single listing and zero across three listings.",
+      "reviewer": "Independent Astra Standard (t13d)",
+      "original_sha256": "45554c3d5f0151822c89dcbbdf250db543efd4680ee42b5ef64845606f72a5f1",
+      "response_id": "b030ab3b1c4b35708ce6f8fab38c061ca02aaa3dc5df599b81473aef3f7d0a10",
+      "response_sha256": "95c7c3b18412c86b6980e7a7f12801368a35ce00152ad924aed7ddbea4d09147",
+      "legacy_response_sha256": "d928ea6ed14b338e1c6d5cf619ae16ac797b5dff329394f07516e7c3a3369b97",
+      "observation_body_sha256": "bc1ba831390cc08a83faa724dd833dfa842ce998756795cc84afe1f3764b9076",
+      "event": {
+        "id": "msg_05be9a3445bac637016b07c0690b2c87d2b6f8d5e7e944b015",
+        "timestamp": "2026-11-26T05:15:36.838Z"
+      },
+      "supersedes": "d085cd2bbb3a0d1054515fa322a21425b8f49c917e4e160191abc53138cb6606",
+      "evidence_sha256": "706f7a8e3849096e459234f031abed29c98d9fd16edc0298a7d16eb6141b3251"
     }
   ]
 }

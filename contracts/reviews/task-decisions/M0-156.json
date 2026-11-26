@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T05:01:43.248351+00:00",
       "request_id": "dba47eae97852fa3d92b7a9a2a7e4e2109e923da84be6e023a7d36e688c8bffb",
       "evidence_sha256": "8bd9fa3faf967971e0076f017ef7ed8f5eb7f46b93a4096260072ae2f5fff1dc"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-156 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-156 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "In an offline replay of Windows run 45546767887, the weekly reader issued a full receipt for a merge proof whose first parent Git identified as a blob.",
+      "reviewer": "Independent Astra Standard (t13q)",
+      "original_sha256": "ed6c1d39080965eeab849b181c297de3a81e6c3a6da25f6475166202312151fa",
+      "response_id": "b39454cfbe6e664ad4ec98172c54a17ff026c1f8ddfb40885731c20494fc1923",
+      "response_sha256": "adec9f28fe7e09ddc0e5c8ae91cfbd886d49f4e9fdd54854e5bf91b7ddb2ea5a",
+      "legacy_response_sha256": "a3bd5c08d771b67381875d82c9cd498329298c22a5658d885ed0d5e590a8bc2e",
+      "observation_body_sha256": "40b14e17446cb6648c3005c853afad97a7438f2f45aab704f51731dd9e7fb4a6",
+      "event": {
+        "id": "msg_07a7f0596827323c016b07c4cfc40487d295c7ab568b346cbc",
+        "timestamp": "2026-11-26T05:34:23.083Z"
+      },
+      "supersedes": "dba47eae97852fa3d92b7a9a2a7e4e2109e923da84be6e023a7d36e688c8bffb",
+      "evidence_sha256": "323b0475438742613993d80defacc0dec5956d5776aaf90a60810e4f40a71d6e"
     }
   ]
 }

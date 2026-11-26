@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T05:01:39.496961+00:00",
       "request_id": "16136e75d606c9264032a1ec51528a1c3e3cc907f3bff5d0d8721ac11434ca4a",
       "evidence_sha256": "70a4de52dd6fafd22aa965a108e5b8d12aa1dc4d8a6bd912d9a967c48ab64651"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "approved",
+      "decision": "APPROVE M0-145 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "APPROVE M0-145 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "In my offline replay of run 45546767887, both recent-collection modes issued one freshness receipt for the authentic Windows report from the Windows artifact and zero for the same bytes from the Ubuntu artifact.",
+      "reviewer": "Independent Astra Standard (t13k)",
+      "original_sha256": "dad64c1728fb031f59465455af2e365f4b660586cee267bb6eb32f75eb601e43",
+      "response_id": "39d476649460daf2ba9833ed2006bddc2b9fca21392349e9bdf574894ba6ef2c",
+      "response_sha256": "5ff34caccdef6ab138ebc09ee6038322846d8b9f72b950792b746b445a4484fc",
+      "legacy_response_sha256": "7cfc905bd3803bcfcca27dcdca563d97e680c3e4463c9039c9d9bd86cdff69cf",
+      "observation_body_sha256": "e577bce9171a7af9ad322c5d18884e141a8b6cb9706e39c77eadbdb5272082af",
+      "event": {
+        "id": "msg_0dd8bacca6a40380016b07c2ec183087d1923ed41a64df6e72",
+        "timestamp": "2026-11-26T05:26:17.386Z"
+      },
+      "supersedes": "16136e75d606c9264032a1ec51528a1c3e3cc907f3bff5d0d8721ac11434ca4a",
+      "evidence_sha256": "b5c268a3e289a85833f11c5247155b6a39bae0dfb66e13c84c25bfe2a37656c6"
     }
   ]
 }

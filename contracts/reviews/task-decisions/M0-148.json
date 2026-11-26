@@ -97,6 +97,26 @@
       "requested_at": "2026-11-26T05:01:40.421826+00:00",
       "request_id": "ab36156d32b9d0c8bd034cce3c88e382fc3b2884364e6f1d85ae167ef97e4a18",
       "evidence_sha256": "68cadf88096f9e882810b99f039c27ecbe165b179fa47fc7fa016db88ab06d31"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-148 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "scope": "CHANGES_REQUESTED M0-148 b12aefdc7e8dc74d6f26b0bf37071f798becd947",
+      "observation": "With only the Windows artifact available for push run 45577003837, replacing its recorded checkout and execution digest with the matching pair from run 45570358218 preserved 718 wall seconds and 2,346 runner-seconds in the ordinary reader and produced a weekly receipt for the altered sample.",
+      "reviewer": "Independent Astra Standard (t13m)",
+      "original_sha256": "b0f31091c5fdc9bb9dba9f40b6444e651209608da57e64c24c25874cb810b612",
+      "response_id": "89647a06a24103133d9aa6236b749d4744aad6eb553cfbb43a37d21fae455a54",
+      "response_sha256": "4d47ad3b0a9640b9e9c850bb8f6e659df3e3d3105ad0cdf8038b3a49ed5a442f",
+      "legacy_response_sha256": "9c70b92d5b4e02d1f9a45b57476bfb152f2b0ba25671cfe437626d3e4e9a0afc",
+      "observation_body_sha256": "bbb4f48835f89cf56c8041204d17b954edcb6e69fd93774384da9aec8a5fc2f6",
+      "event": {
+        "id": "msg_0818ebc99a6d2f2b016b07c2a2125087d1a39b3db40d598d27",
+        "timestamp": "2026-11-26T05:25:11.902Z"
+      },
+      "supersedes": "ab36156d32b9d0c8bd034cce3c88e382fc3b2884364e6f1d85ae167ef97e4a18",
+      "evidence_sha256": "2f85f71875fff7b6ac7dfc5cb74a36df99af253ddf4d278bb75f90e633675980"
     }
   ]
 }
