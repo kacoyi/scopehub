@@ -30,6 +30,15 @@
       },
       "supersedes": "42a5bece770e23427d57aa9cadd7f010a23f59914e2e293701dd8fcf8acbb4e9",
       "evidence_sha256": "d121e8de9b8037518736913164e74b3e1065fe3e1569d580361c45838806ef8f"
+    },
+    {
+      "kind": "request",
+      "source_commit": "236bd00c12f1efe58ce44d2b292c4fc389854ece",
+      "scope": "Use ordinary startup and focused handoff after the narrow repair finishes and a separate genuine audit successor owns work. Check discoverability of both open commitments, acceptance, ownership, finite stopping point, future independent work and unchanged schedules without prior task ID or a private archive. Verify the active positive, unrelated product focus, and completed-engagement contrasts. Retain the actual source and observations.",
+      "supersedes": "a473a907209cb2ae730a5ea5936db612b627336ffb4ca0b389c14fe355b39fc6",
+      "requested_at": "2026-11-26T04:19:49.323806+00:00",
+      "request_id": "f61cd91ae37e11c45ae4093df8e19ce0ff24ce552b963412ece4af8a8aab9275",
+      "evidence_sha256": "231f372e0fa5674b9edff32f15a2bbaafe7d0d872ed432f95d211195b2fbcc24"
     }
   ]
 }
