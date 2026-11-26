@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "id": "0036",
+  "title": "Qualify publishing claims before attempt-wide timing reduction",
+  "status": "accepted",
+  "recorded_at": "2026-11-26",
+  "context": "The three independent refusals on de7e2376 found that a missing recovery job start withdrew an execution duration proved by step endpoints, Linux raw admission inherited a newer publisher's observation rules, and a Linux report outside its job or with unresolved shallow ancestry could displace an independently qualified report. ADRs 0031–0035 already separate report provenance, reconciled Actions facts and timing projection.",
+  "decision": "Resolve report eligibility before combining attempt-wide checkout and cache claims. Use the same publishing-job instant comparison for both platforms, and evaluate raw observation ownership using the observed publisher closure before projecting away raw fields. Use bounded Git evidence to reject proven ancestry and withhold an unresolved checkout claim where ancestry evidence cannot be completed. Derive each execution interval from its actual step endpoints and known ordering constraints. Require complete job endpoints for summed runner time.",
+  "authority": "ADR 0007 assigns technical design and verification to the development AI. Independent exact-source review and matching verification remain acceptance gates.",
+  "alternatives": [
+    {
+      "option": "Patch the ordinary, weekly and retained readers individually.",
+      "reason": "They consume the same admitted observations for distinct outputs. Parallel predicates can let an ineligible report participate in conflict reduction or regain a receipt on reopen, even if one output suppresses it."
+    },
+    {
+      "option": "Reconstruct or execute each historical publisher.",
+      "reason": "The reviewed closure inventory can carry the small portable observation rule. Full replay requires historical native dependencies and artifact bytes, and duplicates validation beyond the timing boundary."
+    }
+  ],
+  "consequences": [
+    "Preserve existing report, archive and receipt shapes and original bytes. A raw report can only prove the raw claims that survive its source checks. Compact historical reports retain their existing evidence limits.",
+    "Preserve independent Actions clocks and qualified platform reports. A report contradicted by its publishing job or unresolved under bounded ancestry cannot supply a cross-platform checkout claim. Missing evidence establishes only the measurements it actually bounds.",
+    "Use matching genuine controls and the retained independent counterexamples at the ordinary and offline weekly boundaries, with rotation and cold reopen. Measure public-boundary cost against the prior source. Future publisher closures require genuine observations under ADR 0035."
+  ],
+  "supersedes": [],
+  "related_decisions": ["0007", "0031", "0032", "0033", "0034", "0035"],
+  "revisit_when": [
+    "A genuine supported publisher uses a different portable observation rule or a previously unavailable checkout becomes independently provable.",
+    "Repeated comparable measurements show the historical qualification or the public read exceeds its budget."
+  ]
+}

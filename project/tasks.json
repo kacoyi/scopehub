@@ -26584,7 +26584,8 @@
         "contracts/decisions/0031-shared-timing-producer-contract.json",
         "contracts/decisions/0032-normalized-timing-evidence.json",
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
-        "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json"
+        "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+        "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json"
       ],
       "decision_refs": [
         "0004",
@@ -26592,14 +26593,17 @@
         "0031",
         "0032",
         "0033",
-        "0034"
+        "0034",
+        "0035",
+        "0036"
       ],
       "acceptance": [
         "Retain the original independent rejection. Through the ordinary timing and budget-review entries, observe the browser-job and checkout conflicts both before and after twelve later captures rotate the original attempt out of the recent window.",
         "Keep disputed browser and runner values unknown while preserving an independently established 804-second platform clock. A conflicting checkout must continue to withhold platform eligibility and its runner total. Check unchanged valid and unrelated attempts, both arrival orders, and reopening from the retained originals.",
         "Use bounded historical lookup and retain the existing capture and saved-review formats. Verify the correction through the selected task checks and the exact independent review. Preserve each prior timing decision and the existing reports.",
         "On the common source, preserve compatible number-only step fragments, withhold conflicting or unbound fragments from their dependent phases, and retain independent clocks through ordinary reads, offline weekly collection, rotation and cold reopen.",
-        "Public and weekly timing preserve an aggregate for equivalent feasible endpoint assignments and withhold only affected metrics when the exact duration can change. Cover sub-microsecond distinctions, equivalent offsets, rotation, cold read and a separately reserved producer."
+        "Public and weekly timing preserve an aggregate for equivalent feasible endpoint assignments and withhold only affected metrics when the exact duration can change. Cover sub-microsecond distinctions, equivalent offsets, rotation, cold read and a separately reserved producer.",
+        "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls."
       ],
       "checks": [
         "project-state",
@@ -26607,7 +26611,7 @@
       ],
       "evidence": [],
       "diagnostic_reports": [],
-      "next_action": "Use the exact-source local evidence in .reports/m0-155-main-774b5704/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-de7e2376/handoff.json for exact-source independent primary review and matching verification. The coordinator retains the five held requests, hosted and native runs, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26631,7 +26635,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-155-da5d83da/original-assistant-response.jsonl",
           "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
           "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-318f54c8/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-318f54c8/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-155-de7e2376/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "Recent preload and historical linked reads can see different retained evidence when a conflict removes the platform index entry or an attempt is older than the routine window.",
@@ -26867,6 +26872,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Retain execution when observed steps and feasible ordering establish identical endpoints despite missing unrelated job starts. Keep runner sums unknown when a required job interval is unavailable. Exercise both originals and rejected ordering or incomplete endpoint controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain all source captures, saved reviews and original classifications if a change loses a valid clock or expands the ordinary read without a bound.",
@@ -26891,6 +26903,10 @@
             },
             {
               "path": "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
               "pointer": "/decision"
             }
           ],
@@ -26939,7 +26955,8 @@
         "project/feedback.json",
         "contracts/decisions/0032-normalized-timing-evidence.json",
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
-        "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json"
+        "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+        "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json"
       ],
       "decision_refs": [
         "0004",
@@ -26947,7 +26964,9 @@
         "0031",
         "0032",
         "0033",
-        "0034"
+        "0034",
+        "0035",
+        "0036"
       ],
       "acceptance": [
         "Run the ordinary weekly timing CLI in the supported system Python environment with the archived full Windows selection, unavailable preview and a source-equivalent historical substitute. Confirm it writes the weekly summary and current comparison with the original clocks.",
@@ -26955,7 +26974,8 @@
         "Reject the null Git checkout identity through normal and weekly public timing readers, with and without proof, in full and shallow Git. Preserve the original clocks for a valid preview commit or a genuinely missing preview with digest-bound substitute inputs. Keep known non-commit checkout objects ineligible.",
         "Retain the original failing interpretation and the positive control. Verify the change through focused regression, normal task verification and source-bound independent review.",
         "At ordinary and offline weekly entries, reject a proved event-head ancestor across shallow boundaries and withhold fallback when Git ancestry is incomplete at the reader. Preserve independently observed Actions clocks and the qualified expired-preview controls on cold reread.",
-        "Exclude independently disproved Linux and Windows checkouts before cross-platform conflict detection. The real paired valid Windows receipt and independent Actions clocks survive an invalid Linux counterpart in ordinary and cold weekly reads. Genuine expired previews continue to qualify."
+        "Exclude independently disproved Linux and Windows checkouts before cross-platform conflict detection. The real paired valid Windows receipt and independent Actions clocks survive an invalid Linux counterpart in ordinary and cold weekly reads. Genuine expired previews continue to qualify.",
+        "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls."
       ],
       "checks": [
         "project-state",
@@ -26963,7 +26983,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Use the exact-source local evidence in .reports/m0-155-main-774b5704/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-de7e2376/handoff.json for exact-source independent primary review and matching verification. The coordinator retains the five held requests, hosted and native runs, and the November 28 actual observation.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26989,7 +27009,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-156-da5d83da/original-assistant-response.jsonl",
           "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
           "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-318f54c8/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-318f54c8/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-156-de7e2376/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The substitute Git fingerprint is computable with the standard library; importing the full project entry brings an unrelated parser into the weekly job.",
@@ -27093,6 +27114,13 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Check reachable shallow boundary parent claims even when graph enumeration is unavailable. Withhold unproven checkout qualification when the bounded search cannot establish it. Keep genuine Windows receipts and separate Actions clocks with both input orders and both proof controls.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Retain the recorded evidence and archived identities; revert an extraction that changes the validated execution inputs or weekly runtime requirements.",
@@ -27118,6 +27146,10 @@
             },
             {
               "path": "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
               "pointer": "/decision"
             }
           ],
@@ -27173,7 +27205,8 @@
         "scripts/verification_report.py",
         "scripts/verification_evidence.py",
         "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
-        "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json"
+        "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+        "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json"
       ],
       "decision_refs": [
         "0004",
@@ -27182,7 +27215,8 @@
         "0031",
         "0032",
         "0033",
-        "0034"
+        "0034",
+        "0036"
       ],
       "checks": [
         "project-state",
@@ -27193,9 +27227,11 @@
         "The verifier binds a producer to its publishing job, platform, source or verified execution-equivalent catalog and exact ordered scope. Incorrectly swapped, missing, extra and unverifiable assignments cannot establish a warm comparable observation.",
         "Previously supported publishing layouts, incomplete sources and historical evidence retain their respective outcomes. Verify the shared current selection together with its integration consumer.",
         "At the public timing entry, retain historical genuine publisher controls while distinguishing precision-level recording conflicts, a required native result missing from a complete report, and a contradicted raw integration summary.",
-        "Apply portable observation ownership, passing status and integration summary admission to Linux and Windows before compaction. With real paired raw inputs, retain independent Actions clocks and accept equivalent recording offsets at full source precision."
+        "Apply portable observation ownership, passing status and integration summary admission to Linux and Windows before compaction. With real paired raw inputs, retain independent Actions clocks and accept equivalent recording offsets at full source precision.",
+        "Before conflict reduction, reject proved out-of-job report instants on both platforms. Keep the final-second positive, paired receipts, and independent Actions clocks across input order and reopen.",
+        "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input."
       ],
-      "next_action": "Use the exact-source local evidence in .reports/m0-155-main-774b5704/handoff.json for independent review intake and matching hosted verification. Keep the five held requests and the November 28 actual observation with the coordinator.",
+      "next_action": "Use the common local handoff in .reports/m0-155-post-de7e2376/handoff.json for exact-source independent primary review and matching verification. The coordinator retains the five held requests, hosted and native runs, and the November 28 actual observation.",
       "blocker": null,
       "evidence": [],
       "closure_reason": null,
@@ -27222,7 +27258,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m0-150-da5d83da/original-assistant-response.jsonl",
           "contracts/decisions/0033-source-evidence-before-timing-attribution.json",
           "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
-          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl"
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-318f54c8/original-assistant-response.jsonl",
+          "archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl"
         ],
         "hypotheses": [
           "The earlier and later sources had the same four Windows producer jobs and aggregate catalog. The browser and recovery assignments changed while the reader used one current mapping for both.",
@@ -27472,6 +27509,20 @@
               "project-state",
               "python-contracts-workers"
             ]
+          },
+          {
+            "failure": "Before conflict reduction, reject proved out-of-job report instants on both platforms. Keep the final-second positive, paired receipts, and independent Actions clocks across input order and reopen.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Bind observation ownership to the historical publisher before raw compaction. Verify PR 96 genuine raw and compact pairs, modified report admission and the genuine pair beside the modified input.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
           }
         ],
         "rollback": "Keep the original artifacts and the explicit unknown result for a source whose publishing selection cannot be established; restore the prior reader if historical coverage cannot be preserved.",
@@ -27498,6 +27549,10 @@
             },
             {
               "path": "contracts/decisions/0034-admit-timing-evidence-at-source-boundaries.json",
+              "pointer": "/decision"
+            },
+            {
+              "path": "contracts/decisions/0036-qualify-timing-before-attempt-reduction.json",
               "pointer": "/decision"
             }
           ],

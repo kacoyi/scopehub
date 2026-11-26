@@ -10105,6 +10105,70 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    }  ,
+    {
+      "id": "timing-linux-report-outside-publishing-job",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision 8cec27806783b38f670d7eb077d6a7bd5be7ed7db201c307c05fe6c5f79e20ab on de7e2376d216e0fe943c1301c336ef837b58c48a, recorded at 2e1bc8b734c8e16412e1a0986de2286359641047. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl (SHA-256 9f93ec0ee6dfa91ce169832e6509850c7bff24dddb0450b999e7c42729c52121).",
+      "observation": "Run 45838575346 Linux raw report at 14:39:38.999999999Z retained its receipt inside the publishing job final second. Moving only that instant to 14:39:39.000000001Z still admitted the report on ordinary and offline weekly reads and cold reopen. Combining it with the genuine artifact withdrew the legitimate Linux receipt.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-historical-linux-report-adopts-later-observation-ownership",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-150 decision 8cec27806783b38f670d7eb077d6a7bd5be7ed7db201c307c05fe6c5f79e20ab on de7e2376d216e0fe943c1301c336ef837b58c48a, recorded at 2e1bc8b734c8e16412e1a0986de2286359641047. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-150-de7e2376/original-assistant-response.jsonl (SHA-256 9f93ec0ee6dfa91ce169832e6509850c7bff24dddb0450b999e7c42729c52121).",
+      "observation": "The PR 96 Linux raw report gained a receipt after a synthetic passed configured-external-ai-clients result acquired observation={}. Its actual publishing closure prohibited that field, and the historical catalog still marked that check planned. The modified report displaced the genuine Linux receipt in both arrival orders.",
+      "task_ids": [
+        "M0-150"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-unrelated-lane-start-withdraws-proven-windows-execution",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-155 decision 228b1bece5972835df5d2a2d46e8c83a04fabf46103931651e8f0c224cb79a10 on de7e2376d216e0fe943c1301c336ef837b58c48a, recorded at 2e1bc8b734c8e16412e1a0986de2286359641047. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-155-de7e2376/original-assistant-response.jsonl (SHA-256 0a05cf443dcc923861c7efb02150fd2a64f56e638fba72f93be52e08bd46c204).",
+      "observation": "Removing only the recovery job start from the seven original Actions jobs of run 45838575346 preserves the earliest active execution step start at 14:24:27Z and the aggregate completion step at 14:45:09Z. Ordinary, weekly and cold readers withdrew their proven 1242-second interval while retaining the 1291-second wall clock. PR 96 independently reproduced the lost 827-second execution duration.",
+      "task_ids": [
+        "M0-155"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "timing-inconclusive-pr-ancestry-enters-cross-platform-conflict",
+      "status": "open",
+      "severity": "major",
+      "source": "Independent M0-156 decision 8c1c9c071bacf253782f1f9d64df98e78cddaee41cc58fb4115ce4b4c4dec613 on de7e2376d216e0fe943c1301c336ef837b58c48a, recorded at 2e1bc8b734c8e16412e1a0986de2286359641047. Original assistant response archives/observations/repo-hygiene-20261125/independent-final-m0-156-de7e2376/original-assistant-response.jsonl (SHA-256 c2fbdb2fe6cd197b39ba3a5780558dc3539cfaa2bd0a128cf001348d843c9cd1).",
+      "observation": "A depth-17 PR 133 view exposes a reachable shallow boundary whose raw parent is the claimed Linux checkout. With graph enumeration unavailable and bounded traversal exhausted, the false Linux preview gained a receipt on its own and suppressed the genuine Windows receipt in paired ordinary, weekly and cold reads, with and without the retained merge proof.",
+      "task_ids": [
+        "M0-156"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
