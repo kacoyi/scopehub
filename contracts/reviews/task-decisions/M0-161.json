@@ -88,6 +88,15 @@
       },
       "supersedes": "0d047910015badc6ef681e673655ad308b13d06028afe1a42a79d2e742a64dea",
       "evidence_sha256": "9d7710ef022a8666eafcbdee0a16e23177843625a29ffab2831534def87669b3"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ab6355e343569d7a55e6b3d617a0598606e9adbf",
+      "scope": "Review the combined ordinary and read-only navigation after integrating PR 135. Verify the shared development test file preserves both the authoritative first-test guidance and the two-workstream priority and stop rules.",
+      "supersedes": "501f49aad7b3b4d2e6df091cb1a336bfc920b3f9a42c5e469201d3f2dcfb9a08",
+      "requested_at": "2026-11-26T13:29:28.252401+00:00",
+      "request_id": "c59b8162de6c918263468ebff2f3d35568c1935096cbe362f1233346670e1407",
+      "evidence_sha256": "4333849a8de9fb43e273ab748efd70b7330ff1a25ea2dcd607389e02a5eb59f0"
     }
   ]
 }
