@@ -1418,11 +1418,19 @@ def matched_producer_caches(sample, producers, run):
 
 @lru_cache(maxsize=128)
 def native_publishing_catalog(revision, *, root=ROOT, object_type=b'commit'):
+    """Allow a substitute only when Git confirms the requested object is absent."""
+    if not commit_id(revision):
+        return True, None
+    oid = revision.encode('ascii')
     try:
-        if not commit_id(revision) or git(root, 'cat-file', '-t', revision).strip() != object_type:
-            return False, None
+        observed = git(root, 'cat-file', '--batch-check=%(objectname) %(objecttype)',
+                       input=oid + b'\n').strip()
     except (ScopeError, OSError, subprocess.SubprocessError):
+        return True, None
+    if observed == oid + b' missing':
         return False, None
+    if observed != oid + b' ' + object_type:
+        return True, None
     try:
         path = f'{revision}:project/checks.json'
         if int(git(root, 'cat-file', '-s', path)) > COMPACT_LIMIT:

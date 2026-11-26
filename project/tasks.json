@@ -26723,7 +26723,7 @@
       ],
       "diagnostic_reports": [],
       "evidence": [],
-      "next_action": "Reproduce and correct the known non-commit checkout receipt under system Python, coordinate the publisher boundary with M0-150, and request independent weekly review of the exact correction.",
+      "next_action": "Hand the exact correction and retained system-Python replay of run 45546767887 to the coordinator for a fresh independent review. Reconcile the checkout availability gate with M0-150 and retain the 2026-11-28 scheduled observation as pending until it occurs.",
       "blocker": null,
       "closure_reason": null,
       "plan": {

@@ -3,6 +3,7 @@
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 from datetime import timedelta
+from hashlib import sha256
 from io import StringIO
 import json
 import os
@@ -1390,21 +1391,20 @@ class PRMainComparisonTests(unittest.TestCase):
         return self.git('commit-tree', tree or self.tree,
                         *(arg for parent in parents for arg in ('-p', parent)), '-m', message)
 
+    def publishing_tree(self, catalog):
+        blob = self.git('hash-object', '-w', '--stdin', contents=json.dumps(catalog))
+        project = self.git('mktree', contents=f'100644 blob {blob}\tchecks.json\n')
+        policy = self.git('hash-object', '-w', '--stdin', contents='INPUT_EXCLUSIONS = []')
+        scripts = self.git('mktree', contents=f'100644 blob {policy}\tproject.py\n')
+        return self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
+
     def test_selection_comes_from_committed_publishing_catalog(self):
         full = (*BASIC_CHECKS, 'generated-contracts', 'windows-native-build')
         catalog = fixture_catalog(full, non_change=('release-artifacts',))
         newer = fixture_catalog((*full, 'architecture'), non_change=('release-artifacts',))
 
-        def with_catalog(label, data, parent):
-            blob = self.git('hash-object', '-w', '--stdin', contents=json.dumps(data))
-            project = self.git('mktree', contents=f'100644 blob {blob}\tchecks.json\n')
-            policy = self.git('hash-object', '-w', '--stdin', contents='INPUT_EXCLUSIONS = []')
-            scripts = self.git('mktree', contents=f'100644 blob {policy}\tproject.py\n')
-            tree = self.git('mktree', contents=f'040000 tree {project}\tproject\n040000 tree {scripts}\tscripts\n')
-            return self.commit(label, parent, tree=tree)
-
-        publisher = with_catalog('Publishing checkout', catalog, self.head)
-        newer_head = with_catalog('Other catalog', newer, self.head)
+        publisher = self.commit('Publishing checkout', self.head, tree=self.publishing_tree(catalog))
+        newer_head = self.commit('Other catalog', self.head, tree=self.publishing_tree(newer))
         self.assertEqual(timing.git(self.root, 'ls-tree', '-r', '-z', '--name-only', publisher),
                          b'project/checks.json\0scripts/project.py\0')
         self.assertEqual(timing.git(self.root, 'cat-file', 'blob', f'{publisher}:project/checks.json'),
@@ -1460,6 +1460,67 @@ class PRMainComparisonTests(unittest.TestCase):
         issues = []
         self.assertTrue(timing.native_report_issue(dict(expired, ci=dict(expired['ci'], head_sha=missing)), None, issues))
         self.assertIn('publishing catalog is unavailable', issues[0]['error'])
+
+    def test_weekly_receipts_require_a_commit_or_genuinely_missing_checkout(self):
+        tree = self.publishing_tree(fixture_catalog())
+        head = self.commit('Topic', self.base, tree=tree)
+        preview = self.commit('Merge preview', self.base, head, tree=tree)
+        missing = 'f' * 40
+        self.assertEqual('commit', self.git('cat-file', '-t', preview))
+        self.assertEqual('tree', self.git('cat-file', '-t', tree))
+        self.assertEqual(f'{missing} missing', self.git('cat-file', '--batch-check', contents=f'{missing}\n'))
+        inputs = timing.committed_publishing_inputs(head, root=self.root)
+        self.assertIsNotNone(inputs)
+        run = dict(hosted_run(), head_sha=head)
+        jobs = [
+            dict(hosted_job(31, 'ubuntu', '00:10', '04:00', 'Run pnpm check', '00:30', '03:50'), head_sha=head),
+            dict(hosted_job(32, 'windows', '00:20', '06:00', 'Run pnpm check', '00:50', '05:20'), head_sha=head),
+        ]
+        environment = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'fixture/scopehub', 'GH_TOKEN': 'fixture'}
+        for kind, checkout, seconds in (('commit', preview, 360), ('missing', missing, 360), ('tree', tree, None)):
+            with self.subTest(kind=kind):
+                report = fast_report(20, 190)
+                report['environment'].update(system='Windows', machine='AMD64')
+                report['selection']['profile'] = 'full'
+                report['source'].update(git_head=checkout, sha256=inputs, working_tree_dirty=False)
+                report['ci'] = {'repository': 'fixture/scopehub', 'run_id': '11', 'run_attempt': '1',
+                                'event': 'pull_request', 'head_sha': head, 'checkout_sha': checkout}
+                compact = timing.report_sample(report)
+                digest = sha256(json.dumps(compact, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+                expected = [{**report['ci'], 'platform': 'Windows', 'report_id': report['run_id'],
+                             'report_input_sha256': digest}] if seconds is not None else []
+                archive, summary = (self.root / f'{kind}.{ext}' for ext in ('json', 'md'))
+                argv = ['timing.py', '--recent', '12', '--github-actions', '--save', str(archive),
+                        '--summary', str(summary)]
+                load = timing.native_publishing_catalog
+                fingerprint = timing.committed_publishing_inputs
+                with (patch.object(sys, 'argv', argv), patch.dict(os.environ, environment),
+                      redirect_stdout(StringIO()) as stdout,
+                      patch.object(timing, 'native_publishing_catalog',
+                                   side_effect=lambda rev, **options: load(rev, root=self.root, **options)),
+                      patch.object(timing, 'committed_publishing_inputs',
+                                   side_effect=lambda rev: fingerprint(rev, root=self.root)),
+                      patch.object(timing, 'collection_source', return_value=preview),
+                      patch.object(timing, 'local_paths', return_value=[]),
+                      patch.object(timing, 'timing_directories', return_value=()),
+                      patch.object(timing, 'recent_runs', return_value=[run]),
+                      patch.object(timing, 'download_timing', return_value=[compact]),
+                      patch.object(timing, 'inspect_jobs', return_value=timing.hosted_timing(run, jobs))):
+                    timing.main()
+
+                view = json.loads(stdout.getvalue())
+                saved = json.loads(archive.read_bytes())
+                sample, = view['samples']
+                self.assertEqual(seconds, sample['seconds']['total'])
+                self.assertEqual(expected, view['recent_collection']['collected_samples'])
+                self.assertEqual(expected, saved['recent_collection']['collected_samples'])
+                self.assertEqual(1, len(view['hosted']))
+                if seconds is None:
+                    self.assertIn('publishing catalog is unavailable', view['input_issues'][0]['error'])
+                    self.assertNotIn('recent median 360s', summary.read_text(encoding='utf-8'))
+                else:
+                    self.assertEqual([], view['input_issues'])
+                    self.assertIn('recent median 360s', summary.read_text(encoding='utf-8'))
 
     def observe(self, commit, *, push=False, edit_report=None, rustfmt=None, platform='ubuntu', ref=None):
         run_id = 12 if push else 11
