@@ -26425,9 +26425,13 @@
         {
           "path": "project/evidence/M0-159-f919038561592227.json",
           "sha256": "6ab273a389a5cdd89cb26e84a2143529224b7a9a14e9fd9ea6789598f823b9b9"
+        },
+        {
+          "path": "project/evidence/M0-159-ff7d6e73923c1443.json",
+          "sha256": "867df7b45662b1beb835c8b54388ce3f2474b6db359710d490f037f412242ca1"
         }
       ],
-      "next_action": "Obtain one renewed independent decision on the clean M0-159 candidate and its retained public decision and native evidence controls. The coordinator owns publication, hosted checks and separate protected adoption. After adoption, the M0-153 repair owner registers planned task M0-160 and obtains current independent review and ordinary and guarded native evidence on the reconciled repair. The integration coordinator then owns M0-160 and the first actual protected main push. Keep the original deadline finding open until that exact event passes.",
+      "next_action": "Use .reports/audit-20261125/m0-159-protected-observation/corrective/implementation-handoff.json to obtain a renewed independent decision on the clean candidate and its retained controls. The coordinator owns publication, hosted checks and separate protected adoption. After adoption, the M0-153 repair owner registers planned task M0-160, obtains current independent review and ordinary and guarded native evidence, and commits the verified handoff on the observer. The integration coordinator then owns M0-160 and the first actual protected main push. Keep the original deadline finding open until that exact event passes.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
