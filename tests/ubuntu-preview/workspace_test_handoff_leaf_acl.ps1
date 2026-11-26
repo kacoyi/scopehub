@@ -4,6 +4,7 @@ $caseIndex = -1
 try {
   Add-Type -TypeDefinition @'
 using System;
+using System.Collections;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
@@ -13,12 +14,21 @@ public static class HandoffFixtureAcl
     private static extern bool GetFileSecurityW(
         string path, uint information, [Out] byte[] descriptor, uint length, out uint needed);
 
-    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-    private static extern uint SetNamedSecurityInfoW(
-        string path, int type, uint information, IntPtr owner, IntPtr group, [In] byte[] dacl, IntPtr sacl);
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    private static extern bool SetFileSecurityW(string path, uint information, [In] byte[] descriptor);
 
-    private const int FileObject = 1;
+    [DllImport("advapi32.dll")]
+    private static extern bool GetSecurityDescriptorDacl(
+        IntPtr descriptor, out bool present, out IntPtr dacl, out bool defaulted);
+
+    [DllImport("advapi32.dll")]
+    private static extern bool IsValidAcl(IntPtr acl);
+
+    [DllImport("advapi32.dll")]
+    private static extern bool GetAce(IntPtr acl, uint index, out IntPtr ace);
+
     private const uint Dacl = 4;
+    private const uint ProtectedDacl = 0x80000000;
 
     public static byte[] Read(string path)
     {
@@ -32,11 +42,34 @@ public static class HandoffFixtureAcl
         return bytes;
     }
 
-    public static void Write(string path, byte[] dacl)
+    public static bool HasFirstAce(byte[] descriptor, byte[] expected)
     {
-        uint error = SetNamedSecurityInfoW(path, FileObject, Dacl, IntPtr.Zero, IntPtr.Zero, dacl, IntPtr.Zero);
-        if (error != 0)
-            throw new Win32Exception((int)error);
+        // Inspect the actual submission independently of RawAcl serialization.
+        // The returned ACE pointer borrows from the pinned descriptor.
+        GCHandle pinned = GCHandle.Alloc(descriptor, GCHandleType.Pinned);
+        try
+        {
+            bool present, defaulted;
+            IntPtr dacl, ace;
+            if (!GetSecurityDescriptorDacl(pinned.AddrOfPinnedObject(), out present, out dacl, out defaulted) ||
+                !present || dacl == IntPtr.Zero || !IsValidAcl(dacl) || !GetAce(dacl, 0, out ace) ||
+                ace == IntPtr.Zero || (ushort)Marshal.ReadInt16(ace, 2) != expected.Length)
+                return false;
+
+            byte[] actual = new byte[expected.Length];
+            Marshal.Copy(ace, actual, 0, actual.Length);
+            return StructuralComparisons.StructuralEqualityComparer.Equals(actual, expected);
+        }
+        finally
+        {
+            pinned.Free();
+        }
+    }
+
+    public static void Write(string path, byte[] descriptor)
+    {
+        if (!SetFileSecurityW(path, Dacl | ProtectedDacl, descriptor))
+            throw new Win32Exception();
     }
 }
 '@
@@ -51,6 +84,7 @@ public static class HandoffFixtureAcl
   $inheritOnly = [int][Security.AccessControl.AceFlags]::InheritOnly
   $required = [int][Security.AccessControl.FileSystemRights]'Read, Write, Delete'
   $sections = [Security.AccessControl.AccessControlSections]'Owner, Access'
+  $descriptorFlags = [Security.AccessControl.ControlFlags]'DiscretionaryAclPresent, DiscretionaryAclProtected'
   $objectType = [Guid]'ee0570e9-82d5-481f-9529-ecb79d9b9945'
   $inheritedType = [Guid]'204ec986-64f0-4bf8-b9c5-6a4befb47f12'
   # The same synthetic conditional expression used by the native storage matrix.
@@ -116,6 +150,15 @@ public static class HandoffFixtureAcl
     $hadFixtureTrustee = @($raw.DiscretionaryAcl | Where-Object {
       $_ -is [Security.AccessControl.KnownAce] -and $_.SecurityIdentifier.Equals($world)
     }).Count -ne 0
+    $inheritedGrants = @($raw.DiscretionaryAcl | Where-Object {
+      $_ -is [Security.AccessControl.CommonAce] -and !$_.IsCallback -and
+      $_.AceQualifier -eq $allow -and $_.SecurityIdentifier.Value -eq $user -and
+      ([int]$_.AceFlags -band ($inherited -bor $inheritOnly)) -eq $inherited -and
+      ($_.AccessMask -band $required) -eq $required
+    })
+    $reason = 'fixture-inheritance'
+    if ($inheritedGrants.Count -eq 0) { throw 'Starting inherited user grant missing.' }
+    $reason = 'fixture-start'
     if ($null -eq $control.objectFlags) {
       $entry = [Security.AccessControl.CommonAce]::new($flags, $qualifier, $mask, $world, $callback, $opaque)
       $dacl = $raw.DiscretionaryAcl
@@ -129,8 +172,15 @@ public static class HandoffFixtureAcl
       $dacl.InsertAce(0, $entry)
       foreach ($original in $raw.DiscretionaryAcl) { $dacl.InsertAce($dacl.Count, $original) }
     }
-    $bytes = [byte[]]::new($dacl.BinaryLength)
-    $dacl.GetBinaryForm($bytes, 0)
+    # Use the protected regular-file write also exercised by the native
+    # storage matrix. Carry forward the actual inherited user ACE.
+    $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($descriptorFlags, $null, $null, $null, $dacl)
+    $bytes = [byte[]]::new($descriptor.BinaryLength)
+    $descriptor.GetBinaryForm($bytes, 0)
+    $reason = 'submitted-ace'
+    $entryBytes = [byte[]]::new($entry.BinaryLength)
+    $entry.GetBinaryForm($entryBytes, 0)
+    if (![HandoffFixtureAcl]::HasFirstAce($bytes, $entryBytes)) { throw 'Submitted fixture ACE differs.' }
     $reason = 'fixture-write'
     [HandoffFixtureAcl]::Write($control.path, $bytes)
 
@@ -151,6 +201,13 @@ public static class HandoffFixtureAcl
     if ($same.Count -eq 0) {
       $reason = Get-RawAceDifference $stored.DiscretionaryAcl $entry $hadFixtureTrustee
       throw 'Fixture ACE differs.'
+    }
+
+    $reason = 'raw-inheritance'
+    foreach ($grant in $inheritedGrants) {
+      if (!($stored.DiscretionaryAcl | Where-Object { $_.Equals($grant) })) {
+        throw 'Stored inherited user grant differs.'
+      }
     }
 
     $reason = 'legacy-read'

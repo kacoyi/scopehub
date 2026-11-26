@@ -120,15 +120,17 @@ async function verifyLeafCalibrationDiagnostics() {
       calls.push(path);
       return runHandoffProbe(process.execPath, ['-e', `process.exit(${expected.get(path)})`], options);
     };
-    const prepare = (record, code) => async (check, root, fixture, exitStages) => {
+    const prepare = (record, code, stdout = sid) => async (check, root, fixture, exitStages) => {
       assert.equal(root, profile);
       const { controls } = JSON.parse(fixture);
       assert.deepEqual(new Map(controls.map(({ path, expectedStage }) => [path, expectedStage])), expected);
       assert.equal(controls.length, 24);
       assert.equal((await readdir(profile)).length, controls.length);
-      const body = 'process.stdout.write(process.argv[1]);'
-        + 'process.stderr.write(process.argv[2]);process.exit(Number(process.argv[3]));';
-      return runHandoffProbe(process.execPath, ['-e', body, sid, record, String(code)], { exitStages });
+      // The control requires the marker to reach the actual captured pipes.
+      const body = "const fs = require('node:fs');"
+        + 'fs.writeSync(1, process.argv[1]);fs.writeSync(2, process.argv[2]);'
+        + 'process.exitCode = Number(process.argv[3]);';
+      return runHandoffProbe(process.execPath, ['-e', body, stdout, record, String(code)], { exitStages });
     };
 
     await assertWindowsLeafAclMatrix(profile, { prepareFixture: prepare('', 0), launch });
@@ -139,14 +141,18 @@ async function verifyLeafCalibrationDiagnostics() {
     const refused = [
       ['SCOPEHUB_ACL_FIXTURE 19 raw-revision\r\n', 'case object-callback-allow-inherit-only: stored ACL revision differs'],
       ['SCOPEHUB_ACL_FIXTURE 0 raw-flags\n', 'case allow-zero-mask: stored ACE flags differ'],
+      ['SCOPEHUB_ACL_FIXTURE 0 submitted-ace\n', 'case allow-zero-mask: submitted descriptor is missing the exact first fixture ACE'],
+      ['SCOPEHUB_ACL_FIXTURE 0 raw-absent\n', 'case allow-zero-mask: stored DACL has no ACE for the fixture trustee'],
+      ['SCOPEHUB_ACL_FIXTURE 0 raw-inheritance\n', 'case allow-zero-mask: stored DACL changed the required inherited user grant'],
       ['SCOPEHUB_ACL_FIXTURE 23 legacy-stage-0\n', 'case object-callback-deny-effective: legacy managed stage differs (expected 54, observed 0)'],
       ['SCOPEHUB_ACL_FIXTURE 24 raw-type\n', unavailable],
       ['SCOPEHUB_ACL_FIXTURE 0 unknown-reason\n', unavailable],
       [`SCOPEHUB_ACL_FIXTURE 0 raw-flags\n${marker} ${sid}\n`, unavailable],
+      ['', unavailable, 'SCOPEHUB_ACL_FIXTURE 0 raw-absent\n'],
     ];
-    for (const [record, disposition] of refused) {
+    for (const [record, disposition, stdout] of refused) {
       const blocked = assertWindowsLeafAclMatrix(profile, {
-        prepareFixture: prepare(record, 4),
+        prepareFixture: prepare(record, 4, stdout),
         launch: () => assert.fail('Failed preparation must stop before any witness launch.'),
       });
       await assert.rejects(blocked, {
