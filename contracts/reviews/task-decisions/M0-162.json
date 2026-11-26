@@ -88,6 +88,15 @@
       },
       "supersedes": "d5e3d5125eec5b8df0327fe05b8444260c46a97e33881e8a7a183fce7953130c",
       "evidence_sha256": "160d58d345c754ab87f74d259a2fd6a95408929e5959c67c31711327773fe49a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "d777f43b81fb116ceccad05a6836eee63259902d",
+      "scope": "Review the recovered start-save and completion path for ordinary one-shot assignments. Check transient and prolonged contention, trustworthy ownership, bounded waiting, single archival of exact originals, the runner exit, and neighboring tabs.",
+      "supersedes": "7376e8cbd2a3710aee1fbfe9898800913066c05abd3294fcc13b6f1fbec679f0",
+      "requested_at": "2026-11-26T13:42:13.808301+00:00",
+      "request_id": "21f3d81b60516c4df9656e54e94a1de024d8359ebc3b66ebed1352e2edfe4218",
+      "evidence_sha256": "af466a94cec3d24ed980b430cefe81808a1c13fca23868b248ee51a54b87cd9f"
     }
   ]
 }
