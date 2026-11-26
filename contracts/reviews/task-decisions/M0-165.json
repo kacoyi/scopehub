@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T14:02:39.149068+00:00",
       "request_id": "9c87f38f40134e5849283235e2407b56197b97fbaf6b3706d70fabef16f97eae",
       "evidence_sha256": "f82f57466b3f71a6508cb8ba2fc336adfbfa79d74f1f62c9f3d81a130f6172de"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "verdict": "approved",
+      "decision": "APPROVE M0-165 ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "scope": "APPROVE M0-165 ddb0ca167dc64c738f142cfde45c4f2b05a3396f",
+      "observation": "With the worker source held fixed, the architecture check accepted the implemented indicator entry and rejected the archived planned entry at the worker’s import of `python/indicators/trusted.py`.",
+      "reviewer": "Independent Astra Standard (t180)",
+      "original_sha256": "2c0b3ed4939481773111790dbeaec1570db874ab4fceb7f0c2ef11a1a2330354",
+      "response_id": "2f43e1bcfd52d3213d13d3021dc953e2f106db016f91bc1814a534308e34de6c",
+      "response_sha256": "f9ba5e521689487bf58209d4e0f96caa43b737967463974d2a03aa3e14bfa617",
+      "legacy_response_sha256": "ef59a5c76051869c60fbf2752e45ad1812ef839bac30a99d1120dadf71d5fc3c",
+      "observation_body_sha256": "69d0e4091c687098e641b6118f3fe88df1c9e995a6c6ab947469de87fafe7e7e",
+      "event": {
+        "id": "msg_05c7cea01b77dc2d016b083cb356d087d2857c3c289c977c55",
+        "timestamp": "2026-11-26T14:05:55.068Z"
+      },
+      "supersedes": "9c87f38f40134e5849283235e2407b56197b97fbaf6b3706d70fabef16f97eae",
+      "evidence_sha256": "6cacffcb7c6b9dcf2e6f8ca0829636c26aaf32a8cb759456385c7a81cc6bd6d8"
     }
   ]
 }
