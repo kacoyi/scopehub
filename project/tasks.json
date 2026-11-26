@@ -26426,12 +26426,15 @@
         "scripts/project.py",
         "scripts/development.py",
         "tests/project/test_development.py",
+        "tests/project/test_review_acceptance.py",
         "project/evidence"
       ],
       "acceptance": [
         "A new coordinator can use a supported repository entry to recover both owner outcomes, identify actual completion conditions and distinguish a finished operational checkpoint from unresolved delivery.",
         "Ordinary views stay concise and source-bound. An unrelated isolated checkout, absent optional private archive and an interrupted handoff have explicit appropriate outcomes.",
-        "A fresh independent AI with the normal entry receives no expected answers. Retain its own response, the exact source and contrasting controls, along with required task checks."
+        "A fresh independent AI with the normal entry receives no expected answers. Retain its own response, the exact source and contrasting controls, along with required task checks.",
+        "Ordinary overview and handoff end the engagement only after each workstream has an explicit accepted observation for its owner-defined criteria. A single acceptance leaves the other action open. Negative or missing observations cannot validate a declared closure.",
+        "A new coordinator can execute the source commands emitted through the read-only overview and handoff under an unwritable package cache and read the owner terms and any accepted closure."
       ],
       "checks": [
         "project-state",
@@ -26442,7 +26445,7 @@
         "0007"
       ],
       "evidence": [],
-      "next_action": "Use the ordinary overview and focused handoff on the clean candidate. The coordinator obtains and retains a fresh neutral trial after the audit transfer, renews exact-source independent review and completes evidence intake before closing this repair.",
+      "next_action": "Use the ordinary overview and focused handoff on the clean candidate to contrast acceptance and follow the emitted read-only commands. The coordinator obtains a fresh neutral trial after audit transfer, renews exact-source independent review and completes evidence intake.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26462,7 +26465,9 @@
         ],
         "hypotheses": [
           "The prior handoff preserved assignment identities but did not put the owner-defined end conditions on the restore path. Replaying operational tasks and reading the ordinary protected focus alone allowed an intermediate result to be reported as completion. Confirm the exact failure boundary in an unprompted fresh session.",
-          "The dated owner record is reachable through the narrow repair while that task is focused. Closing the repair removes that route. Compare an explicit successor pointer with project-level engagement state by switching to a genuine audit successor and then ending the engagement."
+          "The dated owner record is reachable through the narrow repair while that task is focused. Closing the repair removes that route. Compare an explicit successor pointer with project-level engagement state by switching to a genuine audit successor and then ending the engagement.",
+          "The common engagement loader verifies identity and observation text but infers acceptance from their presence. The earlier positive fixtures omitted a disposition. Correctly digested rejected, incomplete and accepted observations distinguish evidence identity from acceptance at the public views.",
+          "The overview selects pinned Python, but the handoff invocation loses the read-only mode. Earlier controls extracted arguments or translated the launcher. Execute the exact emitted handoff and source commands with an unwritable uv cache and compare the returned records."
         ],
         "risks": [
           {
@@ -26482,6 +26487,19 @@
             "failure": "Closing the repair or changing focus hides either open commitment, or a partial or unproven closure permits premature stop while later product work inherits maintenance scope.",
             "checks": [
               "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A digest-valid rejected or incomplete closure can end the engagement before the workstream meets the owner terms.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A pinned read-only handoff can return an owner or closure source command whose package launcher requires a writable cache.",
+            "checks": [
               "python-contracts-workers"
             ]
           }
@@ -26514,6 +26532,10 @@
               "pointer": "/events/1"
             },
             {
+              "path": "contracts/reviews/task-decisions/M0-158.json",
+              "pointer": "/events/3"
+            },
+            {
               "path": "project/delivery.json",
               "pointer": "/scaffold_maintenance/engagement"
             }
@@ -26530,7 +26552,8 @@
           ],
           "change": [
             "Make the two ongoing commitments reconstructible on the normal coordinator route with separate observed state and closure.",
-            "Keep the engagement discoverable beyond the focus repair. Derive its stop state from independently recorded acceptance for each workstream."
+            "Keep the engagement discoverable beyond the focus repair. Derive its stop state from independently recorded acceptance for each workstream.",
+            "Retain the focus-independent loader and shared command formatter. The independent successor control supports the engagement boundary. Validate the observation's explicit acceptance in that loader and carry the read-only mode from overview to handoff and its source commands. The two failures involve those existing boundaries and require no separate registry, source or migration."
           ],
           "data_plan": "Use the English owner-approved scope and synthetic controls. Keep personal conversation originals in the private development archive.",
           "cleanup": "Retire any temporary alternate route once the supported entry passes both recovery and unrelated-task controls."

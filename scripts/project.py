@@ -1659,7 +1659,7 @@ def attach_review_context(result, project, task, review, source_commit):
     }
     if source_commit:
         reply['current_checkout_review_command'] = read_only_project_command(
-            'context', task['id'], '--phase', 'handoff')
+            'context', task['id'], '--phase', 'handoff', '--read-only')
         if policy:
             reply['policy_command'] = read_only_project_command(
                 'source', 'project/development.json', '/quality/review', source_commit=source_commit)
@@ -1667,7 +1667,7 @@ def attach_review_context(result, project, task, review, source_commit):
     return result
 
 
-def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
+def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement', read_only=False):
     if __package__:
         from .development import (
             bound_review_navigation, causal_context, effective_decisions, feedback_for_task, focused_context,
@@ -1692,7 +1692,7 @@ def task_context(root=ROOT, task_id=None, *, detail=False, phase='implement'):
     engagement = {}
     if phase == 'handoff' and 'maintenance_engagement' in project:
         engagement['maintenance_engagement'] = engagement_handoff(
-            project['maintenance_engagement'], source_commit=source_commit,
+            project['maintenance_engagement'], read_only=read_only, source_commit=source_commit,
         )
     if not detail:
         context = focused_context(project, key, phase, source_commit=source_commit)
@@ -2673,6 +2673,7 @@ def main():
     context.add_argument('task_id', nargs='?')
     context.add_argument('--detail', action='store_true', help='Expand full policies, decisions and historical dependencies')
     context.add_argument('--phase', choices=['implement', 'verify', 'handoff'], default='implement')
+    context.add_argument('--read-only', action='store_true', help='Render maintenance handoff links using pinned Python')
     context.add_argument('--source', metavar='COMMIT', help='Require this clean commit in verification context')
     sub.add_parser('brief')
     source = sub.add_parser('source', help='Read one authoritative JSON section without expanding unrelated records')
@@ -2754,7 +2755,7 @@ def main():
             if args.source is not None:
                 require_review_source(ROOT, args.source)
                 records = CommittedPath.at(ROOT, args.source)
-            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase)
+            result = task_context(records, args.task_id, detail=args.detail, phase=args.phase, read_only=args.read_only)
             if args.source is not None:
                 require_review_source(ROOT, args.source)
                 result['review_source'] = records.commit

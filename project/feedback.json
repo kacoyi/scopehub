@@ -7646,6 +7646,37 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "maintenance-engagement-accepts-rejected-closure",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/3 on 236bd00c12f1efe58ce44d2b292c4fc389854ece. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-236bd00c/original-assistant-response.jsonl, SHA-256 46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21.",
+      "observation": "After audit focus transferred, the independent reviewer replaced one accepted closure observation with an explicitly rejected maintenance observation about the missing due-cycle review and recomputed the digest. Ordinary overview and focused handoff still reported both workstreams accepted and the engagement ended. The one-accepted and two-accepted controls had the expected outcomes.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
+    },
+    {
+      "id": "read-only-handoff-owner-source-uses-package-cache",
+      "status": "open",
+      "severity": "major",
+      "source": "contracts/reviews/task-decisions/M0-158.json#/events/3 on 236bd00c12f1efe58ce44d2b292c4fc389854ece. Original assistant event at archives/observations/repo-hygiene-20261125/independent-final-m0-158-236bd00c/original-assistant-response.jsonl, SHA-256 46885dac4cf1b285faa86cf30a132f04f2f448affeba5427a0fc57ff4bc1da21.",
+      "observation": "The independent reviewer followed the read-only overview into focused handoff and executed its owner-source command as emitted. It invoked pnpm and uv and exited with code 2 when uv could not write its cache lock. The pinned interpreter returned both sets of owner acceptance terms from the same checkout.",
+      "task_ids": [
+        "M0-158"
+      ],
+      "regression_checks": [
+        "python-contracts-workers"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

@@ -171,6 +171,8 @@ def load_maintenance_engagement(root, engagement):
             if (not isinstance(evidence, dict) or evidence.get('workstream_id') != key
                     or not isinstance(evidence.get('observation'), str) or not evidence['observation'].strip()):
                 raise ValueError(f'Engagement closure needs an observation for workstream {key}')
+            if evidence.get('status') != 'accepted':
+                raise ValueError(f'Engagement closure needs explicit acceptance for workstream {key}')
             row.update(status='accepted', closure=closure)
         rows.append(row)
     open_count = sum(row['status'] == 'open' for row in rows)
@@ -548,15 +550,16 @@ def evidence_view(root, project, source, latest, current, *, report_error=None):
 
 def project_navigation(*arguments, read_only=False, source_commit=None):
     if read_only or source_commit is not None:
-        if arguments[0] == 'status':
+        if arguments[0] == 'status' or (read_only and arguments[0] == 'context'):
             arguments += ('--read-only',)
         return read_only_project_command(*arguments, source_commit=source_commit)
     return shlex.join(('pnpm', 'project:' + arguments[0], *arguments[1:]))
 
 
-def engagement_handoff(engagement, *, source_commit=None):
+def engagement_handoff(engagement, *, read_only=False, source_commit=None):
     def source_command(reference):
-        return project_navigation('source', reference['path'], reference['pointer'], source_commit=source_commit)
+        return project_navigation('source', reference['path'], reference['pointer'],
+                                  read_only=read_only, source_commit=source_commit)
 
     return {
         **engagement,
