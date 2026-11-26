@@ -116,7 +116,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     }).catch(error => {
       if (abort.signal.aborted) return;
       if (displayAccessDenied(error)) {
-        void verify?.(snapshot.dataset_id);
+        void verify?.('csv', snapshot.dataset_id);
       }
       setMessage(previous => previous ?? { text: uiMessage('Accepted indicator output could not be restored.'), failed: true });
     });
@@ -137,7 +137,7 @@ export function IndicatorAcceptance({ preview, snapshot, workspace, access, clea
     setMessage(undefined);
     try { await action(AbortSignal.timeout(15_000)); }
     catch (error) {
-      if (displayAccessDenied(error)) void verify?.(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void verify?.('csv', snapshot.dataset_id);
       setMessage({ text: uiMessage('The indicator change could not be completed. Refresh the workspace and try again.'), failed: true });
     } finally { setPending(false); }
   }

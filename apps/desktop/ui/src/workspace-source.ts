@@ -55,7 +55,7 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
 
   const ready = loaded?.status === 'ready' && loaded.revision_id === id;
   const watched = id && !revoked && (missing || ready) ? id : undefined;
-  useWatchPublishedRevision(watched, access.verify, workspace, missing ? 'checked-by-reader' : 'check');
+  useWatchPublishedRevision(watched, 'csv', access.verify, workspace, missing ? 'checked-by-reader' : 'check');
   const generation = focus?.generation;
   useEffect(() => {
     const focusIsCurrent = () => generation !== undefined && hasConfirmedFocus?.(generation);
@@ -86,7 +86,7 @@ export function useRestoredWorkspaceSource(workspace: LocalWorkspace | undefined
   }, [openable, beginRead, withhold, attempt, generation, hasConfirmedFocus]);
 
   const retry = () => {
-    if (id && missing) void access.verify(id);
+    if (id && missing) void access.verify('csv', id);
     else if (openable) setAttempt(value => value + 1);
     else workspace?.reload();
   };

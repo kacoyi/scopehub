@@ -3363,8 +3363,9 @@ base('reviews conflicting declarations in a reopened historical CSV without chan
 });
 
 for (const kind of ['CSV', 'folder']) {
-  for (const decision of ['available', 'revoked']) {
-    base(`source-row absence keeps ${kind} hidden until retry confirms ${decision} access`, {
+  for (const [decision, route] of ['available', 'revoked'].flatMap(decision =>
+    ['explicit ID', 'list-only'].map(route => [decision, route]))) {
+    base(`source-row absence keeps ${kind} hidden until ${route} retry confirms ${decision} access`, {
       tag: '@profile-folder-refresh',
     }, async ({ page }, testInfo) => {
       const isFolder = kind === 'folder';
@@ -3379,6 +3380,9 @@ for (const kind of ['CSV', 'folder']) {
           : { relative_path: path, timeframe: series.timeframe, source_sha256: sourceHash, source_record_count: 2,
             review_revision: 1, mapping_sha256: 'a'.repeat(64) }),
       };
+      const discovery = route === 'list-only';
+      const other = { ...revision, revision_id: randomUUID(), [isFolder ? 'origin_path' : 'relative_path']: 'unrelated.csv',
+        bar_summary: { ...revision.bar_summary, final_close: 70 } };
       const locators = [1, 2].map(record_number => ({ record_number, line_start: record_number + 1, line_end: record_number + 1 }));
       const sources = locators.map(locator => ({ ...locator, relative_path: path, source_sha256: sourceHash }));
       const bars = equity.rows.map((row, index) => ({
@@ -3402,14 +3406,16 @@ for (const kind of ['CSV', 'folder']) {
         expect(command).toBe('execute_operation');
         if (operation === 'instrument.search') return { result: { instruments: [] } };
         if (operation === 'market.listLocalImportRevisions' || operation === 'market.listLocalFolderRevisions') {
-          calls.push({ phase, kind: 'list', operation });
-          return { result: { version: 1, revisions: operation === listingOperation ? [revision] : [], next_after_revision_id: null } };
+          const revisions = operation === listingOperation ? (discovery ? [revision, other] : [revision]) : [];
+          calls.push({ phase, kind: 'list', operation, ids: revisions.map(entry => entry.revision_id) });
+          return { result: { version: 1, revisions, next_after_revision_id: null } };
         }
         expect(payload.revision_id).toBe(id);
         if (payload.type === 'frozen_chart_status' || operation === chartOperation && payload.include_details === false) {
           expect(operation ?? payload.type).toBe(isFolder ? chartOperation : 'frozen_chart_status');
-          const access = phase === 'retry' ? decision : phase === 'absent' ? 'missing' : 'available';
-          calls.push({ phase, kind: 'status', operation: operation ?? payload.type, access });
+          const access = phase === 'retry' ? decision : ['absent', 'first refresh'].includes(phase) ? 'missing' : 'available';
+          calls.push({ phase, kind: 'status', operation: operation ?? payload.type, id: payload.revision_id,
+            requestId: requestId ?? payload.request_id, access });
           if (phase === 'retry') await retryStatus.promise;
           if (isFolder) {
             if (access === 'available') return { result: { version: 1, revision, bars: [], files: [] } };
@@ -3457,7 +3463,21 @@ for (const kind of ['CSV', 'folder']) {
       const rows = dialog.getByRole('table', { name: `Published ${isFolder ? 'folder ' : ''}source rows` });
       const rawFields = dialog.getByRole('region', { name: 'Original CSV fields', exact: true });
       const entry = dialog.getByRole('button', { name: /Final close 40/ });
+      const unrelated = dialog.getByRole('button', { name: /Final close 70/ });
+      const revisionInput = dialog.getByLabel('Revision ID');
       const open = control(dialog, isFolder ? 'Open frozen folder revision' : 'Open frozen chart');
+      const openLibrary = async () => {
+        await control(page, 'Open published CSV').last().click();
+        if (isFolder) await control(dialog, 'Folder revisions').click();
+        await expect(revisionInput).toHaveValue('');
+      };
+      const refreshList = async () => {
+        const listCount = calls.filter(call => call.operation === listingOperation).length;
+        await control(dialog, 'Refresh revisions').click();
+        await expect.poll(() => calls.filter(call => call.operation === listingOperation).length).toBe(listCount + 1);
+        await expect(unrelated).toBeVisible();
+        await expect(revisionInput).toHaveValue('');
+      };
       const inspect = record => control(dialog, `Inspect record ${record}${isFolder ? ` from ${path}` : ''}`).click();
       const observe = async label => visibility.push({ label, chart: await chart.count(), provenance: await provenance.count(),
         rows: await rows.count(), original: await rawFields.count(), entry: await entry.count() });
@@ -3467,9 +3487,8 @@ for (const kind of ['CSV', 'folder']) {
       };
       try {
         await page.goto('/');
-        await control(page, 'Open published CSV').last().click();
-        if (isFolder) await control(dialog, 'Folder revisions').click();
-        await dialog.getByLabel('Revision ID').fill(id);
+        await openLibrary();
+        if (!discovery) await revisionInput.fill(id);
         await expect(entry).toBeVisible();
         await entry.click();
         await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
@@ -3484,13 +3503,55 @@ for (const kind of ['CSV', 'folder']) {
         await inspect(2);
         await expectWithheld('source row reported absent');
 
+        if (discovery) {
+          await expect.poll(() => calls.filter(call => call.kind === 'status' && call.phase === 'absent').length).toBe(1);
+          phase = 'first refresh';
+          await refreshList();
+          await expectWithheld('first successful list refresh still withheld');
+        }
         phase = 'retry';
-        await open.click();
+        if (discovery) await refreshList();
+        else await open.click();
         await expect.poll(() => calls.filter(call => call.kind === 'status' && call.phase === 'retry').length,
-          { timeout: 2000, message: 'A public retry must ask the source to confirm access' }).toBe(1);
+          { timeout: 2000, message: `A public ${route} retry must ask the source to confirm access` }).toBe(1);
         await expectWithheld('retry status pending');
         expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
         retryStatus.resolve();
+
+        if (discovery) {
+          if (decision === 'available') await expect(entry).toBeVisible();
+          else await expectWithheld('list status confirmed revocation');
+          await expect(chart).toHaveCount(0);
+          expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
+          phase = 'reopen';
+          await control(dialog, 'Close').click();
+          await expect(dialog).toHaveCount(0);
+          lateRow.resolve();
+          await expect.poll(() => page.evaluate(() => window.lateSourceRowDelivered === true)).toBe(true);
+          await expect(chart).toHaveCount(0);
+          await openLibrary();
+          await expect(unrelated).toBeVisible();
+          if (decision === 'available') {
+            await expect(chart).toHaveCount(0);
+            await entry.click();
+          } else {
+            await expectWithheld('reopen after confirmed revocation');
+            await refreshList();
+            await expectWithheld('refresh after confirmed revocation');
+          }
+          const reads = calls.filter(call => call.kind === 'status');
+          const operation = isFolder ? chartOperation : 'frozen_chart_status';
+          expect(reads.map(call => [call.phase, call.operation, call.id, call.access])).toEqual([
+            ['absent', operation, id, 'missing'],
+            ['first refresh', operation, id, 'missing'],
+            ['retry', operation, id, decision],
+          ]);
+          expect(new Set(reads.map(call => call.requestId)).size).toBe(reads.length);
+          expect(reads.every(call => /^[\da-f-]{36}$/.test(call.requestId))).toBe(true);
+          expect(calls.filter(call => call.operation === listingOperation).every(call =>
+            JSON.stringify(call.ids) === JSON.stringify([id, other.revision_id]))).toBe(true);
+          await expect(revisionInput).toHaveValue('');
+        }
 
         if (decision === 'available') {
           await expect(chart.getByLabel('Selected bar')).toContainText('C 40');
@@ -3500,13 +3561,15 @@ for (const kind of ['CSV', 'folder']) {
           await observe('available status confirmed and reread chart');
           expect(calls.filter(call => call.kind === 'chart')).toHaveLength(2);
         } else {
-          await expect(dialog.getByRole('alert')).toBeVisible();
-          await expectWithheld('revoked status confirmed');
-          phase = 'confirmed';
-          await open.click();
-          await expect(dialog.getByRole('alert')).toBeVisible();
-          await expectWithheld('retry after confirmed revocation');
-          expect(calls.filter(call => call.kind === 'status' && call.phase === 'confirmed')).toEqual([]);
+          if (!discovery) {
+            await expect(dialog.getByRole('alert')).toBeVisible();
+            await expectWithheld('revoked status confirmed');
+            phase = 'confirmed';
+            await open.click();
+            await expect(dialog.getByRole('alert')).toBeVisible();
+            await expectWithheld('retry after confirmed revocation');
+            expect(calls.filter(call => call.kind === 'status' && call.phase === 'confirmed')).toEqual([]);
+          }
           expect(calls.filter(call => call.kind === 'chart')).toHaveLength(1);
         }
 
@@ -3523,7 +3586,7 @@ for (const kind of ['CSV', 'folder']) {
         lateRow.resolve();
         retryStatus.resolve();
         await testInfo.attach('source-row-access', {
-          body: JSON.stringify({ kind, decision, revision: id, calls, visibility,
+          body: JSON.stringify({ kind, decision, route, revision: id, calls, visibility,
             lateRowDelivered: await page.evaluate(() => window.lateSourceRowDelivered === true) }, null, 2),
           contentType: 'application/json',
         });

@@ -1,5 +1,5 @@
 import { waitForReply, withReplyDeadline } from './reply-deadline';
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ListLocalFolderRevisionsOutput, ListLocalImportRevisionsOutput, ReadLocalFolderRevisionOutput } from '../../../../contracts/generated/protocol';
 import { formatNumber, message, plural, t } from './i18n';
 import {
@@ -8,7 +8,7 @@ import {
 } from './local-import-transport';
 import { formatSourceBarValue, FrozenFolderChart, FrozenLocalChart } from './local-preview-chart';
 import { openAuthenticatedFrozenChart, UnavailableSharedSelection, type FrozenChartResult } from './frozen-evidence';
-import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess } from './published-revision-access';
+import { displayAccessDenied, useWatchPublishedRevision, type PublishedRevisionAccess, type PublishedRevisionKind } from './published-revision-access';
 import { type LocalWorkspace, WorkspaceSourceError } from './use-local-workspace';
 
 export function RevisionAccessActions({ disabled, folder = false, onRevoke }: { disabled: boolean; folder?: boolean; onRevoke: () => void }) {
@@ -50,8 +50,7 @@ type LibraryPage =
     next_after_revision_id: string | null;
   } };
 
-type RevisionKind = 'csv' | 'folder';
-type LibrarySelection = { kind: RevisionKind; cursors: Array<string | null> };
+type LibrarySelection = { kind: PublishedRevisionKind; cursors: Array<string | null> };
 type OpenedRevision =
   | { kind: 'csv'; result: FrozenChartResult }
   | { kind: 'folder'; result: ReadLocalFolderRevisionOutput };
@@ -78,7 +77,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const library = listing?.selection === selection ? listing.page : { status: 'loading' } as const;
   const [draft, setDraft] = useState('');
   const [frozen, setFrozen] = useState<OpenedRevision>();
-  const [opening, setOpening] = useState<{ id: string; kind: RevisionKind }>();
+  const [opening, setOpening] = useState<{ id: string; kind: PublishedRevisionKind }>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<ReturnType<typeof failureMessage>>();
   const [notice, setNotice] = useState<ReturnType<typeof message>>();
@@ -90,8 +89,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
   const visibleFrozen = frozen && revisionAccess.canDisplay(frozen.result.revision.revision_id) ? frozen : undefined;
   const visibleRevisions = library.status === 'ready'
     ? library.result.revisions.filter(entry => revisionAccess.canDisplay(entry.revision_id)) : [];
-  useWatchPublishedRevision(lostAccess ? undefined : watchedId,
-    watchedKind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify,
+  useWatchPublishedRevision(lostAccess ? undefined : watchedId, watchedKind ?? 'csv', revisionAccess.verify,
     watchedKind === 'folder' ? undefined : workspace, 'checked-by-reader');
 
   useEffect(() => {
@@ -126,23 +124,13 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     return () => { superseded = true; };
   }, [listLoading, selection, workspacePending]);
 
-  const withheldFolderIds = useEffectEvent((revisions: readonly { revision_id: string }[]) =>
-    revisions.map(entry => entry.revision_id).filter(id => revisionAccess.unavailable.has(id) && !revisionAccess.revoked.has(id)));
-  const { verifyFolder } = revisionAccess;
+  const { recheckListed } = revisionAccess;
   useEffect(() => {
-    if (kind !== 'folder' || library.status !== 'ready') return;
-    let superseded = false;
-    const withheld = withheldFolderIds(library.result.revisions);
-    // List membership is not a display grant. Recheck only temporary
-    // denials on the current page, in order on the native admission lane.
-    void (async () => {
-      for (const id of withheld) {
-        if (superseded) return;
-        await verifyFolder(id);
-      }
-    })();
-    return () => { superseded = true; };
-  }, [kind, library, verifyFolder]);
+    if (library.status !== 'ready') return;
+    const page = new AbortController();
+    void recheckListed(kind, library.result.revisions.map(entry => entry.revision_id), page.signal);
+    return () => page.abort();
+  }, [kind, library, recheckListed]);
 
   useEffect(() => {
     const node = dialog.current;
@@ -199,11 +187,10 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
     await request(async () => {
       setOpening({ id, kind });
       const denied = { code: workspace && kind === 'csv' ? 'SNAPSHOT_UNAVAILABLE' : 'PERMISSION_DENIED' };
-      const verify = kind === 'folder' ? revisionAccess.verifyFolder : revisionAccess.verify;
       let reading: (() => boolean) | undefined;
       try {
         if (!revisionAccess.canDisplay(id)) {
-          await waitForReply(signal, () => verify(id) ?? Promise.resolve());
+          await waitForReply(signal, () => revisionAccess.verify(kind, id));
         }
         if (!revisionAccess.canDisplay(id)) throw denied;
         reading = revisionAccess.beginRead(id);
@@ -225,7 +212,7 @@ export function OpenLocalRevisionDialog({ onClose, revisionAccess, workspace, na
           if (fromLibrary) libraryTitle.current?.focus();
           if (reading?.()) {
             revisionAccess.withhold(id);
-            void verify(id);
+            void revisionAccess.verify(kind, id);
             if (kind === 'csv') workspace?.refreshPublishedAccess(id);
           }
         }

@@ -7900,6 +7900,23 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "csv-revision-refresh-skips-temporary-access-recheck",
+      "source": "Independent Astra Standard t12c requested changes on 83303f3546ddb5385d4c6e5c768e7737705628e5. Decision: contracts/reviews/task-decisions/M2-039.json#/events/5. Original: archives/observations/repo-hygiene-20261125/independent-final-m2-039-83303f35/final-response.txt (SHA-256 292017634d64013034a11a901cf3c0cdc02d99873bb30bb59c136a258aa65da8). Original event SHA-256 849db57a869f404be92d5b3baa0910972555e0b0fa6336af2ab57e435f91917e.",
+      "observation": "In the independent React replay, opening a CSV from the list with a blank Revision ID and receiving SNAPSHOT_UNAVAILABLE during source-row inspection hid the chart and entry. Two successful refreshes returned that CSV after recovery but issued zero CSV status reads, and closing and reopening the dialog still left the entry hidden. Explicit ID submission restored it. The folder list control issued one status read and restored its entry. The prior Chromium cases prefilled the ID and retried via the form, leaving list-only recovery untested.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-import-ui",
+        "local-folder-refresh-preview",
+        "workspace-timeframe"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

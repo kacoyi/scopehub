@@ -288,7 +288,7 @@ export function IndicatorPreview({ snapshot, bars, workspace, access, showResult
     } catch (error) {
       if (attempt.taskId) void cancelTask(attempt.taskId).catch(() => {});
       if (attempt.poll.signal.aborted) return;
-      if (displayAccessDenied(error)) void access?.verify(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void access?.verify('csv', snapshot.dataset_id);
       setMessage({ text: describeError(error, mode), error: code(error) !== 'CANCELLED' });
     } finally {
       if (active.current === attempt) {

@@ -334,7 +334,7 @@ const revocationTest = test.extend({
 });
 
 revocationTest('published revocation removes visible and delayed frozen evidence and leaves an authorized clear', async ({ browser, localImportBridge }, testInfo) => {
-  const fixture = await publishRevocationFixture(testInfo, localImportBridge);
+  const fixture = await publishCsvAccessFixture(testInfo, localImportBridge);
   const port = Number(process.env.SCOPEHUB_EVIDENCE_REVOCATION_PORT ?? await freePort());
   const { revoked, entitled, profile, market } = fixture;
   const held = Promise.withResolvers();
@@ -434,7 +434,142 @@ revocationTest('published revocation removes visible and delayed frozen evidence
   }
 });
 
-async function publishRevocationFixture(testInfo, binary) {
+revocationTest('CSV list recovery preserves the saved selection and timeframe undo through the native registry', async ({
+  page, localImportBridge,
+}, testInfo) => {
+  const fixture = await publishCsvAccessFixture(testInfo, localImportBridge, { workspace: true });
+  const id = fixture.entitled.revision_id;
+  const earlierStatus = Promise.withResolvers();
+  const calls = [];
+  const observations = {};
+  let phase = 'initial';
+  try {
+    // The desktop-hosted UI enables the published library and original row reader.
+    // Run its invoke transport against the real profile-bound Rust test bridge.
+    await inService(await freePort(), fixture.profile, 'development', async server => {
+      await page.exposeBinding('testNativeInvoke', async (_, command, args) => {
+        const { payload, operation } = args;
+        const call = { phase, operation: operation ?? payload.type, revision: payload.revision_id,
+          requestId: args.requestId ?? payload.request_id };
+        calls.push(call);
+        const reply = await fixture.invoke(command, args);
+        call.error = reply.error?.code;
+        if (call.operation === 'market.listLocalImportRevisions') {
+          call.listed = reply.result?.revisions.map(revision => revision.revision_id);
+        } else if (call.operation === 'frozen_chart_status') {
+          call.available = reply.result?.available;
+          if (call.phase === 'unavailable') await earlierStatus.promise;
+        } else if (call.operation === 'market.readLocalImportSourceRow' && call.phase === 'unavailable') {
+          call.authorizedRow = reply.result?.revision_id;
+          call.deliveredError = 'SNAPSHOT_UNAVAILABLE';
+          return { error: { code: call.deliveredError } };
+        }
+        return reply;
+      });
+      await page.addInitScript(() => {
+        window.isTauri = true;
+        window.__SCOPEHUB_DESKTOP_WORKSPACE__ = true;
+        window.deliveredChartStatuses = [];
+        window.__TAURI_INTERNALS__ = {
+          async invoke(command, args) {
+            const reply = await window.testNativeInvoke(command, args);
+            if (args.payload.type === 'frozen_chart_status') window.deliveredChartStatuses.push(args.payload.request_id);
+            if (reply.error) throw reply.error;
+            return reply.result;
+          },
+        };
+      });
+      const clock = new Date('2026-04-16T08:00:00Z');
+      await page.clock.install({ time: clock });
+      await page.clock.pauseAt(new Date(clock.getTime() + 1000));
+      await page.goto(server.url);
+      const undo = control(page, 'Undo timeframe change');
+      await control(page, '5m').click();
+      await expect(undo).toBeEnabled();
+
+      await control(page, 'Open published CSV').last().click();
+      const dialog = page.getByRole('dialog', { name: 'Open published CSV' });
+      const entry = dialog.getByRole('button', { name: /Open entitled\.csv/ });
+      const revisionInput = dialog.getByLabel('Revision ID');
+      const chart = dialog.getByRole('region', { name: 'Frozen local CSV chart' });
+      const provenance = dialog.getByRole('region', { name: 'Published source provenance' });
+      const sourceRows = dialog.getByRole('table', { name: 'Published source rows' });
+      const originalFields = dialog.getByRole('region', { name: 'Original CSV fields' });
+      await expect(revisionInput).toHaveValue('');
+      await entry.click();
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 64.25');
+      await control(dialog, 'Share selected bar').click();
+      await expect(dialog.getByText(/Shared bar ·/)).toBeVisible();
+      const readDurableState = async () => {
+        const reply = await fixture.invoke('execute_operation', { operation: null, payload: snapshot });
+        expect(reply.error).toBeUndefined();
+        const { workspace, selection_revision, chart_evidence, undo } = reply.result;
+        return { workspace, selection_revision, chart_evidence, undo };
+      };
+      const before = observations.before = await readDurableState();
+      expect(before).toMatchObject({ workspace: { revision: 1, timeframe: '5m' }, selection_revision: 1,
+        chart_evidence: { revision_id: id }, undo: { committed_workspace_revision: 1 } });
+      expect(before.undo.operation_id).toEqual(expect.any(String));
+
+      await dialog.getByText('Source rows (2)', { exact: true }).click();
+      const inspect = control(dialog, 'Inspect record 2');
+      await inspect.click();
+      await expect(originalFields.getByRole('row', { name: 'Close 64.25', exact: true })).toBeVisible();
+      phase = 'unavailable';
+      await inspect.click();
+      for (const privateResult of [entry, chart, provenance, sourceRows, originalFields]) {
+        await expect(privateResult).toHaveCount(0);
+      }
+      const statusDuringLoss = () => calls.filter(call => call.phase === 'unavailable' && call.operation === 'frozen_chart_status');
+      await expect.poll(() => statusDuringLoss().map(call => call.available)).toEqual([true]);
+      expect(calls.filter(call => call.deliveredError)).toMatchObject([
+        { revision: id, authorizedRow: id, deliveredError: 'SNAPSHOT_UNAVAILABLE' },
+      ]);
+      // Let the browser's original status wait expire without changing the native grant.
+      await page.clock.fastForward(5100);
+      await expect(entry).toHaveCount(0);
+
+      phase = 'refresh';
+      await control(dialog, 'Refresh revisions').click();
+      const refreshCalls = operation => calls.filter(call => call.phase === 'refresh' && call.operation === operation);
+      await expect.poll(() => refreshCalls('market.listLocalImportRevisions').map(call => call.listed)).toEqual([
+        [fixture.revoked.revision_id, id].sort(),
+      ]);
+      const refreshStatus = () => refreshCalls('frozen_chart_status').map(call => ({ revision: call.revision, available: call.available }));
+      await expect.poll(refreshStatus, { timeout: 3000, message: 'Refresh must ask Rust about the withheld CSV revision' })
+        .toEqual([{ revision: id, available: true }]);
+      await expect(entry).toBeVisible();
+      await expect(chart).toHaveCount(0);
+      await expect(revisionInput).toHaveValue('');
+      expect(refreshCalls('frozen_chart')).toEqual([]);
+
+      phase = 'reopen';
+      await entry.click();
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 64.25');
+      await expect(provenance).toContainText(id);
+      await expect(originalFields).toHaveCount(0);
+      earlierStatus.resolve();
+      await expect.poll(() => page.evaluate(() => window.deliveredChartStatuses)).toContain(statusDuringLoss()[0].requestId);
+      await expect(chart.getByLabel('Selected bar')).toContainText('C 64.25');
+      expect(calls.filter(call => call.operation === 'frozen_chart').map(call => [call.phase, call.revision]))
+        .toEqual([['initial', id], ['reopen', id]]);
+      await control(dialog, 'Close').click();
+      await expect(undo).toBeEnabled();
+      observations.after = await readDurableState();
+      expect(observations.after).toEqual(before);
+      expect(calls.filter(call => ['chart.setTimeframe', 'workspace.selectEvidence', 'workspace.undo', 'workspace_source']
+        .includes(call.operation)).map(call => call.operation)).toEqual(['chart.setTimeframe', 'workspace.selectEvidence']);
+    });
+  } finally {
+    earlierStatus.resolve();
+    await fixture.close();
+    await testInfo.attach('csv-list-access-and-durable-state', {
+      body: JSON.stringify({ id, calls, ...observations }, null, 2), contentType: 'application/json',
+    });
+  }
+});
+
+async function publishCsvAccessFixture(testInfo, binary, { workspace = false } = {}) {
   const temp = await mkdtemp(join(tmpdir(), 'scopehub-evidence-revocation-'));
   const app = join(temp, 'app');
   const folder = join(temp, 'folder');
@@ -452,7 +587,7 @@ async function publishRevocationFixture(testInfo, binary) {
       ['entitled.csv', 'KEEP,60,64,59,61.5,25', 'KEEP,62,67,60,64.25,8'],
     ].map(([name, a, b]) => [name, `Date,Symbol,Open,High,Low,Close,Volume\n2026-02-03,${a}\n2026-02-04,${b}\n`]);
     for (const [name, csv] of sources) await writeFile(join(folder, name), csv);
-    bridge = startLocalImportBridge(binary, app, folder);
+    bridge = startLocalImportBridge(binary, app, folder, { workspace });
     const market = async (name, payload) => {
       const frame = await bridge.request('execute_operation', { operation: `market.${name}`, requestId: randomUUID(), payload });
       expect(frame.error, JSON.stringify(frame.error)).toBeUndefined();
@@ -480,7 +615,8 @@ async function publishRevocationFixture(testInfo, binary) {
     const { profile_id: id } = db.prepare('SELECT profile_id FROM profile_binding WHERE singleton = 1').get();
     db.close();
     await testInfo.attach('published-revisions', { body: JSON.stringify(revisions.map(revision => revision.revision_id)), contentType: 'application/json' });
-    return { revoked: revisions[0], entitled: revisions[1], profile: { root: path, id, workspaceId: 'main' }, market, close };
+    return { revoked: revisions[0], entitled: revisions[1], profile: { root: path, id, workspaceId: 'main' },
+      invoke: bridge.request, market, close };
   } catch (error) {
     await close();
     throw error;

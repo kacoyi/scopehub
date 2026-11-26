@@ -9,7 +9,7 @@ import { formatDateTime, formatNumber, getLocale, message, t } from './i18n';
 import { hasLocalCsvPicker, readLocalFolderSourceRow, readLocalImportSourceRow } from './local-import-transport';
 import { IndicatorPreview } from './indicator-preview';
 import { PriceChart } from './price-chart';
-import { displayAccessDenied, type PublishedRevisionAccess } from './published-revision-access';
+import { displayAccessDenied, type PublishedRevisionAccess, type PublishedRevisionKind } from './published-revision-access';
 import type { LocalWorkspace } from './use-local-workspace';
 
 type ChartProps = {
@@ -153,7 +153,7 @@ function sourceRowErrorCode(error: unknown) {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 }
 
-function useSourceRowRead(revisionId: string, kind: 'csv' | 'folder', access: PublishedRevisionAccess, workspace?: LocalWorkspace) {
+function useSourceRowRead(revisionId: string, kind: PublishedRevisionKind, access: PublishedRevisionAccess, workspace?: LocalWorkspace) {
   const [read, setRead] = useState<SourceRowRead>();
   const pending = useRef<string | undefined>(undefined);
 
@@ -198,8 +198,7 @@ function useSourceRowRead(revisionId: string, kind: 'csv' | 'folder', access: Pu
         clearRead();
         if (code === 'SNAPSHOT_UNAVAILABLE') {
           access.withhold(revisionId);
-          const verify = kind === 'folder' ? access.verifyFolder : access.verify;
-          void verify(revisionId);
+          void access.verify(kind, revisionId);
           workspace?.refreshPublishedAccess(revisionId);
         } else {
           access.revoke(revisionId);

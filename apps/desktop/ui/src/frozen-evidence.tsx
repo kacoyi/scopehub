@@ -65,7 +65,7 @@ export function FrozenEvidenceControls({ snapshot, bars, workspace, access }: {
         : message('{count} bars · First close {close} at {time}', { ...fields, count: result.rows.length });
       if (access.canDisplay(snapshot.dataset_id)) setInspection({ revision: state.selection_revision, message: observation });
     } catch (error) {
-      if (displayAccessDenied(error)) void access.verify(snapshot.dataset_id);
+      if (displayAccessDenied(error)) void access.verify('csv', snapshot.dataset_id);
       if (!access.canDisplay(snapshot.dataset_id)) return;
       const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
       setInspection({

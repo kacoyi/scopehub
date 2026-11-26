@@ -26090,6 +26090,9 @@
       ],
       "scope": [
         "apps/desktop/ui/src/workspace-source.ts",
+        "apps/desktop/ui/src/frozen-evidence.tsx",
+        "apps/desktop/ui/src/indicator-acceptance.tsx",
+        "apps/desktop/ui/src/indicator-preview.tsx",
         "apps/desktop/ui/src/local-preview-chart.tsx",
         "apps/desktop/ui/src/published-revision-access.ts",
         "apps/desktop/ui/src/use-local-workspace.ts",
@@ -26127,7 +26130,8 @@
         "Observe the ordinary un-intercepted private peer correction and refocus journey separately from the deliberately contended read, retaining exact correction, deletion and version facts.",
         "Restore the second conflict choice, one bar withdrawal and one source withdrawal after same-stage authorization is confirmed, keeping the private comparison out of the DOM during rechecks. A revision or stage change, cancellation of staging, or durable revocation discards the old decisions and prepared authority. Edit and reconfirm binds the visible choices to the exact native digest and one explicit publication.",
         "The test-owned Rust status gate holds and releases only a designated request, including when an unrelated same-revision status finishes first. Recover the proof snapshot after a genuine pre-admission refusal, propagate other failures, and retain ordinary explicit recovery and exact durable selection and rendering checks.",
-        "Inspect original rows through the ordinary published CSV and folder charts. Hide private chart and row content immediately after SNAPSHOT_UNAVAILABLE and discard late replies. An explicit retry restores only a revision confirmed available by its source status. A confirmed withdrawal stays hidden on later retry, and access checks leave the saved selection and its undo unchanged."
+        "Inspect original rows through the ordinary published CSV and folder charts. Hide private chart and row content immediately after SNAPSHOT_UNAVAILABLE and discard late replies. An explicit retry restores only a revision confirmed available by its source status. A confirmed withdrawal stays hidden on later retry, and access checks leave the saved selection and its undo unchanged.",
+        "With Revision ID blank, refresh the published CSV and folder libraries after a source-row interruption. Only temporarily withheld revisions on the current page receive the matching status reads. A verified revision becomes discoverable without opening its chart. Missing and revoked revisions stay hidden across refresh and dialog reopen. Verify the selected revision, its original rows and bars on explicit open, and preserve workspace selection and undo."
       ],
       "checks": [
         "ui-build",
@@ -26145,7 +26149,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Give the coordinator the clean source-row access correction and the retained before-and-after browser and task reports for fresh independent review and native qualification.",
+      "next_action": "Review the clean published revision access candidate with the retained list-only red and green browser observations. Obtain fresh independent decisions and qualify the matching native Windows run, including status admission and close/reopen after a source-row interruption.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26167,7 +26171,8 @@
           "archives/observations/repo-hygiene-20261125/m2-039-native-read-holder-45692413910/observations.json",
           "archives/observations/repo-hygiene-20261125/m2-039-dispatch-45710583418-linux",
           "archives/observations/repo-hygiene-20261125/m2-039-ordinary-45710479288-linux",
-          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-a66c84af/final-response.txt"
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-035-a66c84af/final-response.txt",
+          "archives/observations/repo-hygiene-20261125/independent-final-m2-039-83303f35/final-response.txt"
         ],
         "hypotheses": [
           "The focus observer starts only after the initial chart read settles. A first read must be fenced until a focus-initiated snapshot confirms the selected source.",
@@ -26175,7 +26180,8 @@
           "The folder list filters globally withheld revisions without rechecking them after a successful refresh.",
           "An overlapping focus snapshot can cause an unrelated private detail read to be refused, and the native test may count a refused snapshot as an admitted state observation. Examine these entrypoints independently.",
           "The observer fault route can claim a focus snapshot before the missing detail reaches the browser. Prove which request owns the shared fallback deadline and which requests belong to the independent workspace lane.",
-          "The shared source-row inspection handler makes an ambiguous missing reply terminal. Fence the old read and let the existing kind-specific status path determine whether the current grant can be used."
+          "The shared source-row inspection handler makes an ambiguous missing reply terminal. Fence the old read and let the existing kind-specific status path determine whether the current grant can be used.",
+          "The access owner retains withheld IDs across dialog mounts, but the dialog only sends a ready folder page for status reconciliation. Inspect the discovery, explicit ID, chart, original-row and focus callers before deciding where the provider dispatch and temporary-only policy belong."
         ],
         "risks": [
           {
@@ -26269,13 +26275,21 @@
               "workspace-timeframe",
               "desktop-workspace-transport"
             ]
-        },
-        {
-          "failure": "A public CSV or folder source-row reply marks temporary absence as terminal revocation, or a stale row, status or list reply restores private chart data before the source confirms access. Exercise immediate hiding, later status-confirmed recovery and durable denial through ordinary inspection and retry.",
-          "checks": [
-            "local-import-ui",
-            "local-folder-refresh-preview"
-          ]
+          },
+          {
+            "failure": "A public CSV or folder source-row reply marks temporary absence as terminal revocation, or a stale row, status or list reply restores private chart data before the source confirms access. Exercise immediate hiding, later status-confirmed recovery and durable denial through ordinary inspection and retry.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-refresh-preview"
+            ]
+          },
+          {
+            "failure": "A successful list page returns a recoverable CSV revision that stays hidden because only the explicit ID form or the folder list asks for status. The earlier tests prefilled IDs and could pass while discovery stayed broken. Assert exact provider, identity and counts from blank-ID refresh and reopen, including withheld, revoked and unrelated revisions, and keep selection and undo independent.",
+            "checks": [
+              "local-import-ui",
+              "local-folder-refresh-preview",
+              "workspace-timeframe"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26298,6 +26312,14 @@
             {
               "path": "engineering-contract-v1.json",
               "pointer": "/persistence"
+            },
+            {
+              "path": "contracts/storage-v1.json",
+              "pointer": "/local_import_publication"
+            },
+            {
+              "path": "contracts/workbench-v1.json",
+              "pointer": "/workspace_entry/restore"
             }
           ],
           "non_goals": [
@@ -26308,15 +26330,17 @@
         "evolution": {
           "kind": "additive",
           "preserve": [
-            "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants."
+            "Existing Rust operation registry, independent revision IDs, authenticated chart data and profile grants.",
+            "The CSV status envelope distinguishes availability and explicit revocation. A folder's exact summary reply confirms availability and its registry permission denial confirms revocation. A source-row error retains its existing treatment."
           ],
           "change": [
             "Fence the displayed source until the latest focus is confirmed across startup, ordinary snapshot and source-write readback. Verify withheld folder revisions returned by the current list.",
             "Preserve the native folder staging capacity and worker deadlines, let a user stop waiting, and discard late replies. Reuse bounded pre-admission retry for private background reads and count only admitted snapshots as state proofs.",
             "Withhold the staged comparison until its latest focus generation has a confirmed revision access read. Keep the UI's natural private correction journey independent from the deliberately contended read.",
             "Keep unpublished choices with their staged review and retain the prepared digest only for those decisions. Visibility rechecks hide the comparison without discarding authorized choices.",
-          "Correlate the test-only status gate with the designated Rust request. Keep durable selection and readback semantics separate from proof admission and fixture diagnostics.",
-          "Withhold a revision on an ambiguous source-row error and reopen its visibility only after confirmed access from its status operation. Preserve durable revocation, access decisions, the selection and its undo."
+            "Correlate the test-only status gate with the designated Rust request. Keep durable selection and readback semantics separate from proof admission and fixture diagnostics.",
+            "Withhold a revision on an ambiguous source-row error and reopen its visibility only after confirmed access from its status operation. Preserve durable revocation, access decisions, the selection and its undo.",
+            "A dialog-only branch could repair CSV refresh but would leave provider dispatch and temporary-only eligibility in individual callers. Route status verification and current-page rechecks through the existing profile access owner. The dialog supplies the page identity and stops scheduling obsolete page reads. An admitted status can settle with the profile subject to the owner's existing revocation and supersession fences."
           ],
           "data_plan": "Only synthetic profiles, chart values and source rows in the local scoped checks.",
           "cleanup": "Release delayed test replies, close both owned windows and bridges, remove test profiles, and retain original red and green evidence."

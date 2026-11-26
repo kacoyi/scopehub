@@ -340,14 +340,14 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   const refreshNeedsConfirmation = stagedRefresh !== undefined && stagedRefresh.focusGeneration !== focusGeneration;
   const refreshVisible = !focusPending && !refreshNeedsConfirmation && refreshRevisionId !== undefined
     && revisionAccess.canDisplay(refreshRevisionId);
-  const verifyRefresh = folderRefresh?.folder_base ? revisionAccess.verifyFolder : revisionAccess.verify;
-  useWatchPublishedRevision(lostAccess ? undefined : publishedId, revisionAccess.verify, workspace);
-  useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, revisionAccess.verifyFolder, undefined);
+  const refreshKind = folderRefresh?.folder_base ? 'folder' : 'csv';
+  const { verify } = revisionAccess;
+  useWatchPublishedRevision(lostAccess ? undefined : publishedId, 'csv', verify, workspace);
+  useWatchPublishedRevision(folderAccessLost ? undefined : publishedFolderId, 'folder', verify, undefined);
   useWatchPublishedRevision(
     refreshRevoked || (refreshNeedsConfirmation && !refreshMissing)
       || refreshRevisionId === publishedId || refreshRevisionId === publishedFolderId ? undefined : refreshRevisionId,
-    verifyRefresh,
-    folderRefresh?.folder_base ? undefined : workspace,
+    refreshKind, verify, refreshKind === 'folder' ? undefined : workspace,
   );
 
   useLayoutEffect(() => {
@@ -366,7 +366,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
   useEffect(() => {
     if (!refreshNeedsConfirmation || !refreshRevisionId || focusPending || refreshRevoked || refreshMissing) return;
     const controller = new AbortController();
-    void verifyRefresh(refreshRevisionId, controller.signal).then(status => {
+    void verify(refreshKind, refreshRevisionId, controller.signal).then(status => {
       if (controller.signal.aborted) return;
       if (status === 'available') {
         setPublicationFailure(undefined);
@@ -377,7 +377,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
     });
     return () => controller.abort();
   }, [focusGeneration, focusPending, folderRefresh, refreshMissing, refreshNeedsConfirmation, refreshRevisionId, refreshRevoked,
-    verifyRefresh]);
+    refreshKind, verify]);
 
   useLayoutEffect(() => {
     if (refreshRevoked) {
@@ -712,7 +712,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       } catch (error) {
         if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
           revisionAccess.withhold(revisionId);
-          void revisionAccess.verifyFolder(revisionId);
+          void verify('folder', revisionId);
         }
         throw error;
       }
@@ -753,7 +753,7 @@ export function LocalImportEditor({ initialCatalog, chooseFolder, previewImport,
       } catch (error) {
         if (!controller.signal.aborted && reading() && displayAccessDenied(error)) {
           revisionAccess.withhold(revisionId);
-          void revisionAccess.verify(revisionId);
+          void verify('csv', revisionId);
           workspace?.refreshPublishedAccess(revisionId);
         }
         throw error;

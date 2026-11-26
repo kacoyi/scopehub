@@ -4,10 +4,28 @@ import { readLocalFolderRevision } from './local-import-transport';
 import { withReplyDeadline } from './reply-deadline';
 
 type AccessStatus = 'available' | 'missing' | 'revoked' | undefined;
+export type PublishedRevisionKind = 'csv' | 'folder';
 
 export function displayAccessDenied(error: unknown) {
   return error !== null && typeof error === 'object' && 'code' in error
     && (error.code === 'SNAPSHOT_UNAVAILABLE' || error.code === 'PERMISSION_DENIED');
+}
+
+async function readAccessStatus(kind: PublishedRevisionKind, id: string, signal: AbortSignal): Promise<AccessStatus> {
+  if (kind === 'csv') {
+    const reply = await readFrozenRevisionStatus(id, signal);
+    if (reply?.available === true && reply.revoked === undefined) return 'available';
+    if (reply?.available === false) return reply.revoked === true ? 'revoked' : 'missing';
+    return;
+  }
+  try {
+    const reply = await readLocalFolderRevision(
+      { version: 1, revision_id: id, include_details: false }, crypto.randomUUID(), signal);
+    if (reply.revision.revision_id === id) return 'available';
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'PERMISSION_DENIED') return 'revoked';
+    throw error;
+  }
 }
 
 export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined) {
@@ -55,8 +73,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     setMissing(id, true);
   }, [setMissing, stopChecking]);
 
-  const verifyAccess = useCallback(async (id: string,
-    read: (signal: AbortSignal) => Promise<AccessStatus>, fresh?: AbortSignal) => {
+  const verify = useCallback(async (kind: PublishedRevisionKind, id: string, fresh?: AbortSignal) => {
     // A focus fence needs an observation that started after focus. Let a shared
     // earlier read finish, then check again without overlapping reads of this revision.
     if (fresh) {
@@ -69,7 +86,7 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     const current = checking.current.get(id);
     if (current) return current.request;
     const controller = new AbortController();
-    const request = withReplyDeadline(5000, read, controller.signal).then(status => {
+    const request = withReplyDeadline(5000, signal => readAccessStatus(kind, id, signal), controller.signal).then(status => {
       if (controller.signal.aborted) return;
       if (status === 'revoked') revoke(id);
       else if (status === 'missing') setMissing(id, true);
@@ -89,21 +106,16 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
     checking.current.set(id, { controller, request });
     return request;
   }, [canCheckRevision, refreshPublishedAccess, revoke, setMissing]);
-  const verify = useCallback((id: string, fresh?: AbortSignal) => verifyAccess(id, async signal => {
-    const reply = await readFrozenRevisionStatus(id, signal);
-    if (reply?.available === true && reply.revoked === undefined) return 'available';
-    if (reply?.available === false) return reply.revoked === true ? 'revoked' : 'missing';
-  }, fresh), [verifyAccess]);
-  const verifyFolder = useCallback((id: string, fresh?: AbortSignal) => verifyAccess(id, async signal => {
-    try {
-      const reply = await readLocalFolderRevision(
-        { version: 1, revision_id: id, include_details: false }, crypto.randomUUID(), signal);
-      if (reply.revision.revision_id === id) return 'available';
-    } catch (error) {
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'PERMISSION_DENIED') return 'revoked';
-      throw error;
+
+  const recheckListed = useCallback(async (kind: PublishedRevisionKind, ids: readonly string[], signal: AbortSignal) => {
+    // A list observes membership. Only a status read can restore a withheld grant.
+    // Keep checks serial on the native lane. An admitted check belongs to the
+    // profile, while the page controls whether to start any remaining checks.
+    for (const id of new Set(ids)) {
+      if (signal.aborted) return;
+      if (missing.current.has(id) && !observed.current.has(id)) await verify(kind, id);
     }
-  }, fresh), [verifyAccess]);
+  }, [verify]);
 
   useLayoutEffect(() => {
     const requests = checking.current;
@@ -126,16 +138,16 @@ export function usePublishedRevisionAccess(workspace: LocalWorkspace | undefined
       // The same selection is now redacted. Fence its previous reply immediately,
       // then let the registry distinguish temporary absence from withdrawal.
       withhold(previous.id);
-      void verify(previous.id);
+      void verify('csv', previous.id);
     }
   }, [snapshot, revoke, verify, withhold]);
-  return { revoked, unavailable, canDisplay, beginRead, revoke, withhold, verify, verifyFolder };
+  return { revoked, unavailable, canDisplay, beginRead, revoke, withhold, verify, recheckListed };
 }
 
 export type PublishedRevisionAccess = ReturnType<typeof usePublishedRevisionAccess>;
 
 export function useWatchPublishedRevision(
-  id: string | undefined, verify: PublishedRevisionAccess['verify'], workspace: LocalWorkspace | undefined,
+  id: string | undefined, kind: PublishedRevisionKind, verify: PublishedRevisionAccess['verify'], workspace: LocalWorkspace | undefined,
   initialAccess: 'check' | 'checked-by-reader' = 'check',
 ) {
   const refresh = workspace?.snapshot;
@@ -149,13 +161,13 @@ export function useWatchPublishedRevision(
     // The foreground read authorizes its own result. An independent profile change
     // still rechecks access, including while that result is in transit.
     const profileChanged = observed.id === id && (observed.refresh !== refresh || observed.errorId !== errorId);
-    if (id && (initialAccess === 'check' || profileChanged)) void verify(id);
-  }, [id, verify, refresh, errorId, initialAccess]);
+    if (id && (initialAccess === 'check' || profileChanged)) void verify(kind, id);
+  }, [id, kind, verify, refresh, errorId, initialAccess]);
 
   useEffect(() => {
     if (!id) return;
     const check = () => {
-      if (document.visibilityState === 'visible') void verify(id);
+      if (document.visibilityState === 'visible') void verify(kind, id);
     };
     const focus = () => {
       if (!workspaceHandlesFocus && canCheckRevision?.() !== false) check();
@@ -168,5 +180,5 @@ export function useWatchPublishedRevision(
       window.removeEventListener('focus', focus);
       document.removeEventListener('visibilitychange', focus);
     };
-  }, [id, workspaceHandlesFocus, verify, canCheckRevision]);
+  }, [id, kind, workspaceHandlesFocus, verify, canCheckRevision]);
 }
