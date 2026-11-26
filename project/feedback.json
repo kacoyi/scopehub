@@ -8103,6 +8103,22 @@
       ],
       "resolution": null,
       "deferral_reason": null
+    },
+    {
+      "id": "published-revision-probe-stops-at-withdrawal-status",
+      "source": "Independent Astra decisions t13s, t13t and t13v on 76fe9dd86e2838ac31463efd8e2a84ac432009e3. Retained originals under archives/observations/repo-hygiene-20261125/independent-final-m2-034-76fe9dd8/final-response.txt (SHA-256 32b5726b8e90e933243c8fd71f9514d87bb59a97e657f2179a48d4b41d9402b6), archives/observations/repo-hygiene-20261125/independent-final-m2-035-76fe9dd8/final-response.txt (SHA-256 6a5d262e36323586adc1d8d1b78b8bc3955f21d4e96217b04d373d51affcd589) and archives/observations/repo-hygiene-20261125/independent-final-m2-039-76fe9dd8/final-response.txt (SHA-256 56d6a71f5e0d2aefcc1abd4c36f1fe2a5a42b4e907795c45e86b02527d4f9627).",
+      "observation": "Withdrawing the sole published CSV or folder revision renders the access-removal confirmation and the empty-library message as two valid live status messages. The native probe asserts that the dialog's status locator has a single text. The folder case runs first and fails there, before native denial readback, closing and reopening, and the whole CSV case.",
+      "severity": "major",
+      "status": "open",
+      "task_ids": [
+        "M2-039"
+      ],
+      "regression_checks": [
+        "local-folder-refresh-preview",
+        "windows-published-revision-access"
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }

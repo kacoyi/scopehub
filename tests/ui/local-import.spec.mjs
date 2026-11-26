@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { painted } from './chart-pixels.mjs';
+import { expectEmptyRevisionLibrary, expectWithdrawnRevisionDenied, openPublishedRevisionDialog, withdrawPublishedRevision } from './published-revision-controls.mjs';
 import { control, openPanel, watchlistSymbol } from './workspace-controls.mjs';
 
 const folderId = '95ef05fd-a797-4bb7-9e63-112233440001';
@@ -3650,7 +3651,7 @@ async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
       const statusKind = payload.type === 'frozen_chart_status' ? 'CSV'
         : operation === 'market.readLocalFolderRevision' && payload.include_details === false ? 'folder' : undefined;
       const call = { phase, operation: operation ?? payload.type, id: payload.revision_id, statusKind,
-        requestId: args.requestId ?? payload.request_id };
+        requestId: args.requestId ?? payload.request_id, input: args };
       calls.push(call);
       const reply = await bridge.request(command, args);
       if (call.operation?.match(/listLocal(?:Import|Folder)Revisions$/)) {
@@ -3658,7 +3659,8 @@ async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
       }
       if (reply.error || statusKind || call.id === id) {
         call.native = { error: reply.error?.code, available: reply.result?.available, revoked: reply.result?.revoked,
-          revision: reply.result?.revision?.revision_id ?? reply.result?.revision_id };
+          revision: reply.result?.revision?.revision_id ?? reply.result?.revision_id, fields: reply.result?.raw_fields,
+          closes: reply.result?.bars?.map(entry => entry.bar.close) };
       }
       const delivered = await deliver(call, reply);
       if (delivered !== reply) call.substituted = delivered;
@@ -3691,7 +3693,8 @@ async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
     const status = dialog.getByRole('alert');
     const observe = async label => {
       const value = { label, entry: await entry.count(), chart: await chart.count(), provenance: await provenance.count(),
-        rows: await rows.count(), original: await original.count(), explanation: await status.allTextContents() };
+        rows: await rows.count(), original: await original.count(), explanation: await status.allTextContents(),
+        liveStatus: await dialog.getByRole('status').allTextContents() };
       observations.push(value);
       return value;
     };
@@ -3702,7 +3705,7 @@ async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
     const click = name => control(dialog, name).click();
     const chooseKind = folder => click(folder ? 'Folder revisions' : 'Single-file revisions');
     const openLibrary = async folder => {
-      await control(page, 'Open published CSV').last().click();
+      await openPublishedRevisionDialog(page);
       if (folder) await chooseKind(true);
       await expect(inputId).toHaveValue('');
     };
@@ -3721,7 +3724,7 @@ async function withPublishedAccessFixture(page, testInfo, isFolder, run) {
     const temporary = isFolder ? { error: { code: 'SNAPSHOT_UNAVAILABLE' } } : { result: { available: false } };
     await run({ calls, phase: value => { phase = value; }, deliver: intercept => { deliver = intercept; },
       id, kind, market, inputId, entry, chart, status, observe, hidden, click, chooseKind, openLibrary, openId,
-      inspect, showRow, correctStatus, chartCalls, temporary });
+      inspect, showRow, correctStatus, chartCalls, temporary, dialog });
   } finally {
     await bridge?.close();
     await rm(root, { recursive: true, force: true });
@@ -3739,7 +3742,7 @@ for (const isFolder of [false, true]) {
     tag: '@profile-folder-refresh',
   }, async ({ page }, testInfo) => withPublishedAccessFixture(page, testInfo, isFolder, async fixture => {
     const { id, calls, inputId, entry, chart, hidden, click, chooseKind, openLibrary, openId, inspect, showRow,
-      chartCalls, correctStatus, temporary, phase, deliver } = fixture;
+      chartCalls, correctStatus, temporary, phase, deliver, dialog, observe } = fixture;
     const releaseOther = Promise.withResolvers();
     const releaseCorrect = Promise.withResolvers();
     const matchingLists = () => calls.filter(call => ['reopen', 'refresh 1', 'refresh 2'].includes(call.phase)
@@ -3772,6 +3775,7 @@ for (const isFolder of [false, true]) {
       expect(wrongStatus().native).toMatchObject(isFolder ? { available: false } : { error: 'SNAPSHOT_UNAVAILABLE' });
       expect(wrongStatus().delivered).toBeUndefined();
       await click('Close');
+      await expect(dialog).toHaveCount(0);
 
       phase('reopen');
       await openLibrary(isFolder);
@@ -3795,6 +3799,7 @@ for (const isFolder of [false, true]) {
       }).toEqual([id]);
       expect(wrongStatus().delivered).toBe(true);
       await hidden('matching status is pending');
+      await expectEmptyRevisionLibrary(dialog, kind);
       releaseCorrect.resolve();
       await expect(entry).toBeVisible();
       await expect(chart).toHaveCount(0);
@@ -3805,7 +3810,36 @@ for (const isFolder of [false, true]) {
       await entry.click();
       await showRow();
       expect(chartCalls()).toHaveLength(2);
-      await fixture.observe('recovered chart and original row');
+      await observe('recovered chart and original row');
+
+      phase('confirmed withdrawal');
+      await withdrawPublishedRevision(dialog, kind);
+      await observe('withdrawal live status');
+      await hidden('withdrawal removed the entry, chart and original row');
+      const withdrawal = calls.filter(call => call.phase === 'confirmed withdrawal' && call.operation.startsWith('market.revoke'));
+      expect(withdrawal).toMatchObject([{ id, delivered: true, native: { revision: id } }]);
+      await click('Close');
+      await expect(dialog).toHaveCount(0);
+
+      phase('reopen after withdrawal');
+      await openLibrary(isFolder);
+      await expectEmptyRevisionLibrary(dialog, kind);
+      await click('Refresh revisions');
+      await expectEmptyRevisionLibrary(dialog, kind);
+      const listOperation = isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions';
+      expect(calls.filter(call => call.phase === 'reopen after withdrawal' && call.operation === listOperation)
+        .map(call => call.listed)).toEqual([[], []]);
+      await expect(inputId).toHaveValue('');
+      await hidden('reopened library remained empty after refresh');
+
+      phase('denied explicit reopen');
+      await inputId.fill(id);
+      await openId(isFolder);
+      await expectWithdrawnRevisionDenied(dialog);
+      await hidden('explicit reopen denied without displaying the prior revision');
+      expect(chartCalls()).toHaveLength(2);
+      await click('Close');
+      await expect(dialog).toHaveCount(0);
     } finally {
       releaseOther.resolve();
       releaseCorrect.resolve();

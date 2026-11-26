@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { expect, test } from '@playwright/test';
 import { withNativePublishedProfile } from './published-revision-access-windows.fixture.mjs';
+import { expectEmptyRevisionLibrary, expectWithdrawnRevisionDenied, openPublishedRevisionDialog, withdrawPublishedRevision } from './published-revision-controls.mjs';
 import { control } from './workspace-controls.mjs';
 
-const denied = 'This profile does not have permission to display this revision.';
 const sourcePath = 'daily.csv';
 
 function request(operation, revision_id, rest = {}) {
@@ -141,7 +141,7 @@ async function attachIpcProbe(page, kind, id, missingId) {
       if (type === 'row' && subjectId === id && event.phase === 'natural open') {
         probe.originalRow = args;
       }
-      if (type === 'row' || type === 'status') event.native_input = args;
+      event.native_input = args;
       if (type === 'status' && subjectId === id) {
         if (statusKind !== kind && event.phase === 'other library lookup') event.gate = 'other';
         if (statusKind === kind && ['reopen', 'refresh 1', 'refresh 2'].includes(event.phase)) event.gate = 'own';
@@ -195,7 +195,7 @@ async function observePublicDrawer(page, kind, id, otherId, observations) {
   const openExplicit = next => click(next === 'folder' ? 'Open frozen folder revision' : 'Open frozen chart');
   const release = gate => page.evaluate(name => window.scopehubPublishedRevisionProbe.release(name), gate);
   const openDrawer = async next => {
-    await control(page, 'Open published CSV').last().click();
+    await openPublishedRevisionDialog(page);
     if (next === 'folder') await switchKind(next);
     await expect(draft).toHaveValue('');
   };
@@ -211,6 +211,7 @@ async function observePublicDrawer(page, kind, id, otherId, observations) {
     await expect(original.getByRole('row', { name: 'Native close 40', exact: true })).toBeVisible();
   };
   const listOperation = isFolder ? 'market.listLocalFolderRevisions' : 'market.listLocalImportRevisions';
+  const revokeOperation = isFolder ? 'market.revokeLocalFolderRevision' : 'market.revokeLocalImportRevision';
   const refreshPhases = ['reopen', 'refresh 1', 'refresh 2'];
   const ownStatus = event => event.id === id && event.kind === kind
     && event.type === 'status' && refreshPhases.includes(event.phase);
@@ -264,6 +265,7 @@ async function observePublicDrawer(page, kind, id, otherId, observations) {
       await expect.poll(async () => (await settledLists()).length).toBe(number + 1);
       await expect(draft).toHaveValue('');
       await hidden('Refreshed the current library with the same native list membership and retained withheld content.');
+      await expectEmptyRevisionLibrary(dialog, kind);
     }
     expect(await settledLists()).toEqual(refreshPhases.map(name => [name, [id]]));
     expect((await readEvents(page)).filter(ownStatus)).toEqual([]);
@@ -276,6 +278,7 @@ async function observePublicDrawer(page, kind, id, otherId, observations) {
     expect((await gatedEvent('other')).delivered).toBe(true);
     expect((await gatedEvent('own')).delivered).toBeUndefined();
     await hidden('The unmodified matching native status was admitted. The entry remained withheld before delivery.');
+    await expectEmptyRevisionLibrary(dialog, kind);
     await release('own');
     await expect(entry).toBeVisible();
     await expect(chart).toHaveCount(0);
@@ -286,13 +289,16 @@ async function observePublicDrawer(page, kind, id, otherId, observations) {
     await phase('explicit restored open');
     await entry.click();
     await showOriginal();
+    expect((await readEvents(page)).filter(event => event.phase === 'explicit restored open' && event.type === 'chart'))
+      .toMatchObject([{ id, delivered: true, native: { id, closes: [38, 40] } }]);
     result.actions.push('Explicit open displayed the same revision, bars and original close 40 again.');
 
     await phase('confirmed withdrawal');
-    await click('Remove frozen chart access');
-    await click('Remove access');
-    await expect(dialog.getByRole('status')).toHaveText('Access removed for this published revision.');
+    await withdrawPublishedRevision(dialog, kind);
+    result.withdrawal_live_status = await dialog.getByRole('status').allTextContents();
     await hidden('The visible withdrawal action removed the entry and original data.');
+    expect((await readEvents(page)).filter(event => event.operation === revokeOperation))
+      .toMatchObject([{ id, delivered: true, native: { id } }]);
     expectWithdrawn(kind, await invoke(page, statusRequest(kind, id)));
     // Sequential direct reads use the same real Tauri dispatcher as the UI.
     expect((await invoke(page, { ...rowArgs, requestId: randomUUID() })).error?.code).toBe('PERMISSION_DENIED');
@@ -301,21 +307,25 @@ async function observePublicDrawer(page, kind, id, otherId, observations) {
     else expectWithdrawn(otherKind, surviving); // The folder trial withdrew its own revision first.
     await click('Close');
     await expect(dialog).toHaveCount(0);
+    await phase('reopen after withdrawal');
     await openDrawer(kind);
+    await expectEmptyRevisionLibrary(dialog, kind);
     await click('Refresh revisions');
+    await expectEmptyRevisionLibrary(dialog, kind);
     await expect.poll(async () => {
-      const lists = (await readEvents(page)).filter(event => event.phase === 'confirmed withdrawal'
+      const lists = (await readEvents(page)).filter(event => event.phase === 'reopen after withdrawal'
         && event.operation === listOperation && event.delivered);
       return lists.map(event => event.native.listed);
     }).toEqual([[], []]);
     await expect(draft).toHaveValue('');
     await hidden('The withdrawn revision remained absent after close, reopen and refresh.');
+    await phase('denied explicit reopen');
     await draft.fill(id);
     await openExplicit(kind);
-    await expect(dialog.getByRole('alert')).toHaveText(denied);
+    await expectWithdrawnRevisionDenied(dialog);
     await hidden('An explicit retry reported confirmed withdrawal without displaying the old row or chart.');
-    expect((await readEvents(page)).filter(event => event.phase === 'confirmed withdrawal'
-      && event.type === 'chart' && event.id === id)).toEqual([]);
+    expect((await readEvents(page)).filter(event => ['confirmed withdrawal', 'reopen after withdrawal', 'denied explicit reopen'].includes(event.phase)
+      && event.type === 'chart')).toEqual([]);
     await click('Close');
     await expect(dialog).toHaveCount(0);
   } finally {

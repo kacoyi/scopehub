@@ -26114,6 +26114,7 @@
         "tests/ui/workspace-writer-gate.mjs",
         "tests/ui/workspace-source.spec.mjs",
         "project/checks.json",
+        "tests/ui/published-revision-controls.mjs",
         "tests/ui/published-revision-access-windows.config.mjs",
         "tests/ui/published-revision-access-windows.fixture.mjs",
         "tests/ui/published-revision-access-windows.spec.mjs"
@@ -26156,7 +26157,7 @@
           "sha256": "fb4345db27bf793accfd0d67401a044be089c0305a0dc51c347691e17756de4a"
         }
       ],
-      "next_action": "Have the coordinator obtain renewed independent decisions for the clean protected-base composition. Run windows-published-revision-access on the same source in an interactive Windows x64 session and retain the executable identity and native status journal. Keep operator physical qualification separate.",
+      "next_action": "Give the coordinator the compiled-browser withdrawal regression and original rejection evidence for renewed independent decisions. Run windows-published-revision-access on that same clean source in an interactive Windows x64 session and retain executable and WebView2 identities, the native status journal, and both completed provider journeys. Keep operator physical qualification separate.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
@@ -26185,6 +26186,8 @@
           "archives/observations/repo-hygiene-20261125/independent-final-m2-039-359e3323/final-response.txt",
           ".reports/runs/20261126T041510.475356Z-783b4a68/test-report.json",
           ".reports/m2-039-native-access-gap/coverage.json",
+        ".reports/m2-039-withdrawal-status/red/local-folder-refresh-preview/browser-results.json",
+        "tests/ui/published-revision-controls.mjs",
           "tests/ui/published-revision-access-windows.config.mjs",
           "tests/ui/published-revision-access-windows.fixture.mjs",
           "tests/ui/published-revision-access-windows.spec.mjs"
@@ -26325,6 +26328,13 @@
             "checks": [
               "windows-published-revision-access"
             ]
+          },
+          {
+            "failure": "The probe assumes one live status and stops on the first provider after withdrawing its sole publication. Use the same public withdrawal assertion in the built browser UI and native WebView2. Verify the confirmation and empty library separately, then prove both provider journeys reach denial after reopening.",
+            "checks": [
+              "local-folder-refresh-preview",
+              "windows-published-revision-access"
+            ]
           }
         ],
         "rollback": "Revert the UI change while retaining the independent red and green observations. Existing stored revisions and schemas need no migration.",
@@ -26343,6 +26353,7 @@
             "tests/ui/ai-workflow-fixture.mjs",
             "tests/ui/workspace-writer-gate.mjs",
             "tests/ui/local-import.spec.mjs",
+            "tests/ui/published-revision-controls.mjs",
             "tests/ui/published-revision-access-windows.spec.mjs"
           ],
           "rules": [
