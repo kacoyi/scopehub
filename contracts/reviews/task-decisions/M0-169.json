@@ -39,6 +39,26 @@
       "requested_at": "2026-11-26T15:40:39.946732+00:00",
       "request_id": "73219a963f4c86d35fdd890e3e8a0b0f613231dae73e5e3e263aceed6fdcb307",
       "evidence_sha256": "967f2ec7b4a8f14463893555fa020d8411fcff810357e33c5c56045a8df75748"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "87bb428743835b71b2c7bd09a7808255d3231979",
+      "verdict": "approved",
+      "decision": "APPROVE M0-169 87bb428743835b71b2c7bd09a7808255d3231979",
+      "scope": "APPROVE M0-169 87bb428743835b71b2c7bd09a7808255d3231979",
+      "observation": "On Linux, I independently observed the candidate reject a group with one pipe-held child still alive and accept the same retained references after both children exited.",
+      "reviewer": "Independent Astra Standard (t19w)",
+      "original_sha256": "bd8e2c199bf81d69fbaeed183f108267184cc8ca758d08513973042ac14dc52b",
+      "response_id": "5c543c74445e7c4bcb96e0c2c708b84ee402f51b88598ff4fdba989d1389efa9",
+      "response_sha256": "f1dd85736ef7fdf6e324e6f09597d17f730db00a31ff6bbdae42472f9b18a7a6",
+      "legacy_response_sha256": "2c4d582b60c95fae5c359cc2beae9aee5995041bcdf3723f9bdce2963f3d8113",
+      "observation_body_sha256": "adc3f836d86e02a87367eb345b57e89c146e787276612ffd8dac808431e787e4",
+      "event": {
+        "id": "msg_016ae761ad5566a0016b085349e82887d2a0540fdac5a766fb",
+        "timestamp": "2026-11-26T15:42:25.177Z"
+      },
+      "supersedes": "73219a963f4c86d35fdd890e3e8a0b0f613231dae73e5e3e263aceed6fdcb307",
+      "evidence_sha256": "d7ee05a9c63dfe6e4670b7533330ff4b534b973799faa71d0ca0edcdd557b1fc"
     }
   ]
 }
