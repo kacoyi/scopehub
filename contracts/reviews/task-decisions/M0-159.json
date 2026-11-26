@@ -48,6 +48,26 @@
       "requested_at": "2026-11-26T12:39:51.069261+00:00",
       "request_id": "eb97fb1bd3a4aca1bcc8f811ba0738f16b6a771b3420b4acb87cb557eb9cb347",
       "evidence_sha256": "1e8a4cf17f747eef47b609e54b0d4614dd850f32fb7ae391e02838684a3ae7b6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "5a542187023202b74d128acaefed4ebee32da8a8",
+      "verdict": "changes_requested",
+      "decision": "CHANGES_REQUESTED M0-159 5a542187023202b74d128acaefed4ebee32da8a8",
+      "scope": "CHANGES_REQUESTED M0-159 5a542187023202b74d128acaefed4ebee32da8a8",
+      "observation": "Adding the retained Linux report from the same protected push changed the Windows Python observation from passed to missing.",
+      "reviewer": "Independent Astra Standard (t15s)",
+      "original_sha256": "51926b3d40a69aa4969eae244dab01b7054823902c0f9f9eb83f3b701c678ac7",
+      "response_id": "5252d6ab940a43a5941492ba3ef62620ff44e215640453ad489b4aeb3c43dcea",
+      "response_sha256": "7b8e8da844a3253a87df8099519c19ea75084c0177beae625b0a5f920100de5f",
+      "legacy_response_sha256": "2ba7403acc4ae2c1772a35ce4b320cbd16c67df5d2654c507ecf9f83853a6686",
+      "observation_body_sha256": "708a15a135f3533d1abf4ae0f3a0681cf8eae7c39ff243e70987b7c783a3a89f",
+      "event": {
+        "id": "msg_04f49894f13ad060016b082a5fd96c87d18a586e55afa33829",
+        "timestamp": "2026-11-26T12:47:50.719Z"
+      },
+      "supersedes": "eb97fb1bd3a4aca1bcc8f811ba0738f16b6a771b3420b4acb87cb557eb9cb347",
+      "evidence_sha256": "154bbf7eb76864eed1a793d5d30edb6ecc505aab56b21a8e5cfc45a10f27b6f7"
     }
   ]
 }
