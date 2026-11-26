@@ -59,6 +59,15 @@
       },
       "supersedes": "fc44f15140087edb868292c96e3039edf9791e31e60541b93c2e53c53972ed0c",
       "evidence_sha256": "a2046b7087afba4cb76163cf9d4926e938e38312c5a633f97514164985e11899"
+    },
+    {
+      "kind": "request",
+      "source_commit": "ff769c5a608bad0669d3931bda88b6cd53f2e49a",
+      "scope": "Review the verified collector-contention and desktop snapshot corrections. Distinguish complete empty spaces, ambiguous records, a later turn and a conclusively closed owned one-shot. Check the bounded recovery and current public entry.",
+      "supersedes": "1d37b9a431ee097ccc697b11c63559ed00283570da481a5807537ead3d9351d0",
+      "requested_at": "2026-11-26T13:20:30.212198+00:00",
+      "request_id": "d5e3d5125eec5b8df0327fe05b8444260c46a97e33881e8a7a183fce7953130c",
+      "evidence_sha256": "25052bbca27c0198a773ee9bf83bb3847112dc0b372ce9b99ff36048d97bce23"
     }
   ]
 }
