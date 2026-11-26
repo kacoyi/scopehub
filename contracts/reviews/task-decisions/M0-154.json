@@ -175,6 +175,15 @@
       },
       "supersedes": "7fb718ad867f4a72e839645efebfa8f73c3a151b5eaea42de7025eceff8f002e",
       "evidence_sha256": "5aa6456f23b9b97e5f205ca37ba3d63fe59a6e28a6c2194eadb8d5494298cd8a"
+    },
+    {
+      "kind": "request",
+      "source_commit": "83022759f4092699c08c0199cd8545c0b348a144",
+      "scope": "Review cold sample document readiness on the ordinary chart entry. Compare real candle bodies and wicks at the independently expected visible prices and times against the left-side block that previously passed. Check the normal and narrow viewport and deadline attribution.",
+      "supersedes": "0526cedf93d2538cd86ea558680dd0e8a7424cc0d82862c59d9994546232ad60",
+      "requested_at": "2026-11-26T12:46:02.652286+00:00",
+      "request_id": "0ac3985deba78705bb6ac7b08f5bb51480810125d2b6a25a061dc155528b65b2",
+      "evidence_sha256": "628ce4a1c1d067cb7b1d646d0243ce035e6727607850c006c708883a2ff6b30b"
     }
   ]
 }
