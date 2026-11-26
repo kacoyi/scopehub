@@ -8167,6 +8167,30 @@
         "prevention": "First ordinary PR 139 run 45830747074 verified both hosted platforms. The full window and one-reset cropped recovery rendered zero terminal volatility, and the cropped run retained warm-up provenance. The two-reset cropped trial recorded one genuine gated status refusal, one cancellation of the current task and the expected terminal alert. Separate synthetic refusal controls exercised termination between requests and expiry with an unforwarded final status request held in flight. The latter recorded the browser abort and no HTTP response before cancellation. Both use the existing 15-second polling deadline. The split-upload draft control delivered retryable HTTP 429 after complete upload, including after the writer became free, and checked committed receipt identity on an identical retry and rejection of altered same-key bytes. The coordinator owns the protected main recheck."
       },
       "deferral_reason": null
+    },
+    {
+      "id": "windows-indicator-deadline-expires-before-running-child-observation",
+      "status": "open",
+      "severity": "major",
+      "source": "First native observation archives/observations/repo-hygiene-20261125/main-producer-45844453865-core/observation.json (SHA-256 f846a83ef0363e4a5755e8de09c7e4ea09aec0b7797b2188de8a496b56083545).",
+      "observation": "Protected push 45844453865 Windows core job 139994374749 had 12 passing and two failing trusted-indicator tests. The deadline case at trusted_indicator.rs:450 observed TIMEOUT before its joined interpreter and sleeping-child witnesses completed. Its later cleanup and no-surviving-child assertions were not reached. The original does not determine which witness had already completed or whether Python had entered. A separate scratch assertion at line 340 recurred on the old implementation and remains owned by M0-167.",
+      "task_ids": [
+        "M0-169"
+      ],
+      "regression_checks": [
+        "project-state",
+        "rust-contracts-workers",
+        "indicator-workflow"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45844453865-1",
+          "source_commit": "774b5704a2c23a33d3c58230177ba50556e25744",
+          "report_sha256": "6b468211eee9b20f4b88479d1de6f0b9e1a18ae27e85269fa3bdae8fff60077e"
+        }
+      ],
+      "resolution": null,
+      "deferral_reason": null
     }
   ]
 }
