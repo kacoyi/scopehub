@@ -139,9 +139,13 @@ def _check_registration(binding, row):
     # Only inspect the exact direct Codex launch owned by this registration.
     expected = binding['labels']
     argv = row.get('argv')
+    labels = row.get('labels')
+    if isinstance(labels, dict):
+        # Codex/Herdr can update the native display-only working-directory label.
+        labels = {key: value for key, value in labels.items() if key != 'where'}
     if (not isinstance(argv, list) or len(argv) < 3 or not isinstance(argv[-1], str)
             or argv[:-1] != binding['codex_argv'] or sha256(argv[-1].encode()).hexdigest() != binding['prompt_sha256']
-            or row.get('labels') != expected or row.get('parent') != binding['parent']
+            or labels != expected or row.get('parent') != binding['parent']
             or row.get('cwd') != binding['checkout'] or row.get('name') != binding['name']
             or not ADDRESS.fullmatch(str(row.get('address'))) or type(row.get('created_ms')) is not int):
         raise LifecycleHold('foreign_terminal')

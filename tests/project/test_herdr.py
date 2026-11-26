@@ -131,6 +131,7 @@ class WorktreeFixture(unittest.TestCase):
 class DryRunTests(WorktreeFixture):
     def test_managed_plan_serves_the_explicit_native_coordinator_launch(self):
         self.use_family_profiles()
+        (self.codex_home / 'models_cache.json').write_text(json.dumps(FUTURE_CATALOG), encoding='utf-8')
         state = self.root / 'absent private state'
         result = self.cli('M0-025', 'implement', '--assignment', 'One bounded return', '--space', 's-local',
                           '--parent', 't25', '--no-notify', '--tier', 'priority', '--effort', 'ultra',

@@ -57,6 +57,7 @@ class HerdrNativeTests(unittest.TestCase):
         return nullcontext((self.core, CORE_ID))
 
     def test_exact_completed_launch_queries_only_its_children_and_foreground_process(self):
+        self.row['labels']['where'] = 'native display location'
         self.core.call.side_effect = [self.row, {'terminals': [{'address': 't13', 'state': 'finished'}]}]
 
         observed = self.native.observe(self.binding, retiring=None)
@@ -75,6 +76,7 @@ class HerdrNativeTests(unittest.TestCase):
             ('prompt', {'argv': [*ARGV[:-1], 'Unregistered prompt.']}),
             ('tier', {'argv': [*ARGV[:7], 'service_tier="default"', *ARGV[8:]]}),
             ('sibling', {'labels': {**self.binding['labels'], 'scopehub.assignment': 'assignment-b'}}),
+            ('shared tab', {'labels': {**self.binding['labels'], 'herdr.tab': 'unrelated-tab'}}),
         ):
             with self.subTest(label=label):
                 self.core.reset_mock()
