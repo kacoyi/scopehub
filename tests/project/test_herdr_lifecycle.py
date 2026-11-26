@@ -1,15 +1,16 @@
-"""Exercise archived-original and exact retirement behavior without real terminals."""
+"""Exercise recoverable assignment archives without real terminals."""
 
 from hashlib import sha256
 import json
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
+from scripts import herdr_lifecycle
 from scripts.herdr_lifecycle import Lifecycle, LifecycleHold
+from scripts.herdr_returns import Proof
 from scripts.worktree import exclusive_git_lock
 
 
@@ -21,14 +22,15 @@ class HerdrLifecycleTests(unittest.TestCase):
         self.state = Path(temporary.name).resolve() / 'state'
         self.parent = 't42'
         self.original = b'{"text":"The valid control ran."}\n'
+        self.completion = b'{"turn_id":"bound","type":"task_complete"}\n'
         self.terminal = {'id': 't43', 'session_id': 'fixture-session', 'turn': 1}
         self.observe = Mock(return_value=self.terminal.copy())
-        self.retire = Mock()
-        self.probe = Mock(return_value=SimpleNamespace(original=self.original, metadata={'turn': 1}))
+        self.probe = Mock(return_value=Proof(self.original, {'turn_id': 'bound',
+                          'completion_sha256': sha256(self.completion).hexdigest()}, self.completion))
         self.lifecycle = self.open_lifecycle()
 
     def open_lifecycle(self):
-        return Lifecycle(self.state, self.parent, observe=self.observe, retire=self.retire, probe=self.probe)
+        return Lifecycle(self.state, self.parent, observe=self.observe, probe=self.probe)
 
     def register(self, assignment='owned-1', **overrides):
         binding = {
@@ -43,21 +45,20 @@ class HerdrLifecycleTests(unittest.TestCase):
     def collect(self, assignment='owned-1', *, dry_run=False, lifecycle=None):
         return (lifecycle or self.lifecycle).collect(assignment, dry_run=dry_run)['assignments'][0]
 
-    def lane(self, assignment='owned-1', *, retired=False):
-        return self.state / self.parent / ('retired' if retired else 'pending') / assignment
+    def lane(self, assignment='owned-1', *, section='pending'):
+        return self.state / self.parent / section / assignment
 
-    def state_record(self, *, retired=False):
-        return json.loads((self.lane(retired=retired) / 'assignment.json').read_bytes())
+    def state_record(self, *, section='pending'):
+        return json.loads((self.lane(section=section) / 'assignment.json').read_bytes())
 
     def test_empty_and_foreign_dry_runs_have_no_side_effects(self):
         result = self.collect(dry_run=True)
         self.assertEqual(result['reason'], 'unregistered_assignment')
         self.assertFalse(self.state.exists())
         self.observe.assert_not_called()
-        self.retire.assert_not_called()
 
         self.register()
-        other = Lifecycle(self.state, 't45', observe=self.observe, retire=self.retire, probe=self.probe)
+        other = Lifecycle(self.state, 't45', observe=self.observe, probe=self.probe)
         self.assertEqual(self.collect(lifecycle=other)['reason'], 'unregistered_assignment')
         self.assertFalse((self.state / 't45').exists())
         self.observe.assert_not_called()
@@ -68,29 +69,28 @@ class HerdrLifecycleTests(unittest.TestCase):
         before = {p.relative_to(self.state): p.stat().st_mtime_ns for p in self.state.rglob('*')}
         self.assertEqual(self.collect(dry_run=True)['status'], 'eligible')
         self.assertEqual({p.relative_to(self.state): p.stat().st_mtime_ns for p in self.state.rglob('*')}, before)
-        self.retire.assert_not_called()
         self.assertEqual(self.state_record()['phase'], 'registered')
 
-    def test_only_exact_private_archive_is_available_before_last_assignment_retires(self):
+    def test_last_assignment_keeps_exact_private_archive_when_terminal_is_reusable(self):
         binding = self.register()
-
-        def verify_archive_before_close(received, terminal, *, original_sha256):
-            self.assertEqual(received, binding)
-            self.assertEqual(terminal, self.terminal)
-            receipt = self.state_record()
-            self.assertEqual(receipt['phase'], 'retiring')
-            self.assertEqual(receipt['archive']['sha256'], sha256(self.original).hexdigest())
-            self.assertEqual(receipt['archive']['sha256'], original_sha256)
-            self.assertEqual(self.lane().stat().st_mode & 0o777, 0o700)
-            self.assertEqual((self.lane() / 'original.jsonl').stat().st_mode & 0o777, 0o600)
-            self.assertEqual((self.lane() / 'original.jsonl').read_bytes(), self.original)
-
-        self.retire.side_effect = verify_archive_before_close
         result = self.collect(lifecycle=self.open_lifecycle())
-        self.assertEqual(result['status'], 'retired')
-        self.assertEqual(self.state_record(retired=True)['binding'], binding)
-        self.assertEqual(self.collect()['status'], 'retired')
-        self.retire.assert_called_once()
+
+        self.assertEqual((result['status'], result['reason']), ('archived', 'reusable_terminal'))
+        receipt = self.state_record(section='archived')
+        self.assertEqual(receipt['binding'], binding)
+        self.assertEqual(receipt['phase'], 'archived')
+        self.assertEqual(receipt['archive']['sha256'], sha256(self.original).hexdigest())
+        self.assertEqual(receipt['archive']['sha256'], result['original_sha256'])
+        archive = self.lane(section='archived') / 'return'
+        self.assertEqual(archive.stat().st_mode & 0o777, 0o700)
+        for filename, contents in (('original.jsonl', self.original), ('completion.jsonl', self.completion)):
+            with self.subTest(filename=filename):
+                path = archive / filename
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(path.read_bytes(), contents)
+
+        self.assertEqual(self.collect()['status'], 'archived')
+        self.probe.assert_called_once_with(binding, self.terminal)
         self.assertEqual(self.lifecycle.collect()['assignments'], [])
 
     def test_busy_corrupt_working_and_failed_lanes_leave_eligible_lane_independent(self):
@@ -99,7 +99,7 @@ class HerdrLifecycleTests(unittest.TestCase):
         self.register('working')
         self.register('failed')
         self.register('malformed')
-        eligible = self.register('eligible')
+        self.register('eligible')
         (self.lane('corrupt') / 'assignment.json').write_bytes(b'{"version":75}')
 
         def observe(binding, *, retiring):
@@ -116,76 +116,63 @@ class HerdrLifecycleTests(unittest.TestCase):
             results = self.lifecycle.collect()['assignments']
         self.assertEqual({row['assignment']: row.get('reason', row['status']) for row in results},
                          {'busy': 'assignment_busy', 'corrupt': 'unknown_registration_version',
-                          'eligible': 'retired', 'working': 'terminal_working',
+                          'eligible': 'reusable_terminal', 'working': 'terminal_working',
                           'failed': 'assignment_io_unavailable', 'malformed': 'invalid_assignment_input'})
-        self.retire.assert_called_once_with(eligible, self.terminal, original_sha256=sha256(self.original).hexdigest())
+        self.assertEqual([row['status'] for row in results if row['assignment'] == 'eligible'], ['archived'])
 
     def test_missing_or_ambiguous_result_keeps_terminal(self):
         self.register()
         for reason in ('original_missing', 'original_ambiguous', 'turn_interrupted'):
             self.probe.side_effect = LifecycleHold(reason)
             self.assertEqual(self.collect()['reason'], reason)
-        self.assertFalse((self.lane() / 'original.jsonl').exists())
-        self.retire.assert_not_called()
+        self.assertFalse((self.lane() / 'return').exists())
 
     def test_turn_change_after_archive_holds_original_and_leaves_terminal(self):
         self.register()
         changed = dict(self.terminal, turn=2)
         self.observe.side_effect = [self.terminal, changed, changed, None]
-        self.assertEqual(self.collect()['reason'], 'terminal_changed')
-        self.assertEqual(self.state_record()['phase'], 'archived')
+        result = self.collect()
+        self.assertEqual((result['status'], result['reason']), ('archived', 'terminal_changed'))
+        self.assertEqual(self.state_record(section='archived')['phase'], 'archived')
         self.assertEqual(self.collect()['reason'], 'terminal_changed')
         self.assertEqual(self.collect()['reason'], 'terminal_missing')
-        self.assertEqual((self.lane() / 'original.jsonl').read_bytes(), self.original)
-        self.retire.assert_not_called()
+        self.assertEqual((self.lane(section='archived') / 'return/original.jsonl').read_bytes(), self.original)
 
-    def test_interruption_after_archive_retries_exact_original_and_close_once(self):
+    def test_interruption_after_pair_commit_recovers_original_and_completion_without_a_live_turn(self):
         self.register()
-        self.observe.side_effect = [self.terminal, KeyboardInterrupt()]
-        with self.assertRaises(KeyboardInterrupt):
+        with (patch.object(herdr_lifecycle, '_write_record', side_effect=KeyboardInterrupt),
+              self.assertRaises(KeyboardInterrupt)):
             self.collect()
-        self.assertEqual(self.state_record()['phase'], 'archived')
-        self.retire.assert_not_called()
-        self.observe.side_effect = None
-        self.assertEqual(self.collect(lifecycle=self.open_lifecycle())['status'], 'retired')
-        self.retire.assert_called_once()
-
-    def test_interruption_after_native_close_recovers_without_closing_again(self):
-        self.register()
-
-        def interrupted_close(binding, terminal, *, original_sha256):
-            self.observe.return_value = None
-            raise KeyboardInterrupt()
-
-        self.retire.side_effect = interrupted_close
-        with self.assertRaises(KeyboardInterrupt):
-            self.collect()
-        self.assertEqual(self.collect(dry_run=True)['status'], 'recoverable_retirement')
-        self.assertEqual(self.state_record()['phase'], 'retiring')
-        self.assertEqual(self.collect(lifecycle=self.open_lifecycle())['status'], 'retired')
-        self.retire.assert_called_once()
-
-    def test_finished_interruption_uses_retained_original_without_the_live_cli(self):
-        binding = self.register()
-        self.retire.side_effect = KeyboardInterrupt()
-        with self.assertRaises(KeyboardInterrupt):
-            self.collect()
-        self.assertEqual(self.state_record()['phase'], 'retiring')
+        self.assertEqual(self.state_record()['phase'], 'registered')
+        archive = self.lane() / 'return'
+        expected_events = {'original.jsonl': self.original, 'completion.jsonl': self.completion}
+        self.assertEqual({name: (archive / name).read_bytes() for name in expected_events}, expected_events)
         self.probe.reset_mock()
-        self.retire.reset_mock(side_effect=True)
-        self.observe.return_value = dict(self.terminal, finished=True)
-        self.assertEqual(self.collect(dry_run=True)['status'], 'recoverable_retirement')
-        self.assertEqual(self.collect(lifecycle=self.open_lifecycle())['status'], 'retired')
-        self.probe.assert_not_called()
-        self.retire.assert_called_once_with(binding, self.terminal, original_sha256=sha256(self.original).hexdigest())
+        self.observe.return_value = None
 
-    def test_corrupt_retained_original_never_authorizes_retry(self):
+        result = self.collect(lifecycle=self.open_lifecycle())
+
+        self.assertEqual((result['status'], result['reason']), ('archived', 'terminal_missing'))
+        archive = self.lane(section='archived') / 'return'
+        self.assertEqual({name: (archive / name).read_bytes() for name in expected_events}, expected_events)
+        self.probe.assert_not_called()
+
+    def test_corrupt_retained_event_never_discloses_or_replaces_archive(self):
         self.register()
-        self.retire.side_effect = LifecycleHold('native_unavailable')
-        self.assertEqual(self.collect()['reason'], 'native_unavailable')
-        (self.lane() / 'original.jsonl').write_bytes(b'changed')
-        self.assertEqual(self.collect()['reason'], 'archive_changed')
-        self.retire.assert_called_once()
+        self.assertEqual(self.collect()['status'], 'archived')
+        self.observe.reset_mock()
+        self.probe.reset_mock()
+        archive = self.lane(section='archived') / 'return'
+        for filename, contents in (('original.jsonl', self.original), ('completion.jsonl', self.completion)):
+            with self.subTest(filename=filename):
+                path = archive / filename
+                path.write_bytes(b'changed')
+                result = self.collect()
+                self.assertEqual((result['status'], result['reason']), ('held', 'archive_changed'))
+                self.assertEqual(path.read_bytes(), b'changed')
+                path.write_bytes(contents)
+        self.observe.assert_not_called()
+        self.probe.assert_not_called()
 
     def test_orphaned_original_is_checked_by_dry_run_and_never_overwritten(self):
         self.register()
@@ -195,7 +182,6 @@ class HerdrLifecycleTests(unittest.TestCase):
         self.assertEqual(self.collect(dry_run=True)['reason'], 'archive_changed')
         self.assertEqual(self.collect()['reason'], 'archive_changed')
         self.assertEqual(original.read_bytes(), b'interrupted write')
-        self.retire.assert_not_called()
 
     def test_linked_state_parent_is_rejected_before_registration_creates_files(self):
         real_parent = self.state.parent / 'actual'

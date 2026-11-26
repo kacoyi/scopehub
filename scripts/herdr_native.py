@@ -1,6 +1,7 @@
 """Use the local Herdr Core protocol without starting a core or touching parent news."""
 
 from contextlib import contextmanager
+from datetime import date, timedelta
 from hashlib import sha256
 import json
 import os
@@ -135,8 +136,31 @@ def _one_rollout(pid, sessions):
     return matches.pop()
 
 
+def exec_rollout(pid, sessions, session):
+    if not isinstance(session, str) or not re.fullmatch(
+            r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', session):
+        raise LifecycleHold('session_mismatch')
+    try:
+        path, observed = _one_rollout(pid, sessions)
+    except LifecycleHold as error:
+        if str(error) not in ('original_missing', 'terminal_process_unavailable'):
+            raise
+    else:
+        if observed != session:
+            raise LifecycleHold('session_mismatch')
+        return path
+    # A short exec can close its descriptor before the wrapper receives thread.started.
+    today = date.today()
+    paths = [path for offset in (-1, 0, 1)
+             for path in (sessions / (today + timedelta(days=offset)).strftime('%Y/%m/%d')).glob(
+                 f'rollout-*-{session}.jsonl') if path.resolve() == path]
+    if len(paths) != 1:
+        raise LifecycleHold('original_ambiguous' if paths else 'original_missing')
+    return str(paths[0])
+
+
 def _check_registration(binding, row):
-    # Only inspect the exact direct Codex launch owned by this registration.
+    # Only inspect the exact launch owned by this registration.
     expected = binding['labels']
     argv = row.get('argv')
     labels = row.get('labels')
@@ -144,7 +168,8 @@ def _check_registration(binding, row):
         # Codex/Herdr can update the native display-only working-directory label.
         labels = {key: value for key, value in labels.items() if key != 'where'}
     if (not isinstance(argv, list) or len(argv) < 3 or not isinstance(argv[-1], str)
-            or argv[:-1] != binding['codex_argv'] or sha256(argv[-1].encode()).hexdigest() != binding['prompt_sha256']
+            or argv[:-1] != binding.get('launch_argv', binding['codex_argv'])
+            or sha256(argv[-1].encode()).hexdigest() != binding['prompt_sha256']
             or labels != expected or row.get('parent') != binding['parent']
             or row.get('cwd') != binding['checkout'] or row.get('name') != binding['name']
             or not ADDRESS.fullmatch(str(row.get('address'))) or type(row.get('created_ms')) is not int):
@@ -181,40 +206,75 @@ def _visible_tab(binding, address):
     return {'id': tab['id'], 'pane': terminal['pane']}
 
 
-def _assert_tab_gone(binding, terminal):
-    tab = terminal['tab']
-    if tab and any(current.get('id') == tab['id'] for _, current in _desktop_tabs(binding)):
-        raise LifecycleHold('desktop_retirement_pending')
-
-
 class NativeLifecycle:
-    """Bind private original discovery and exact retirement to one owned terminal."""
+    """Bind private original discovery to an exact owned terminal."""
 
-    def __init__(self, path, probe):
+    def __init__(self, path, *, execution=None):
         self.path = path
-        self.probe = probe
+        self.execution = execution
+
+    def own_process(self, binding, address, pid):
+        with connect(self.path, binding['core_id']) as (core, _):
+            row = core.call('terminal.get', terminal=address)
+            if (not row or row.get('address') != address or row.get('state') != 'live'
+                    or row.get('pid') != pid):
+                raise LifecycleHold('one_shot_owner_unverified')
+            _check_registration(binding, row)
+        try:
+            tab = _visible_tab(binding, address)
+        except LifecycleHold:
+            tab = None
+        return {'address': address, 'created_ms': row['created_ms'], 'pid': pid, 'tab': tab}
+
+    def _observe_one_shot(self, binding, row, expected):
+        execution = self.execution(binding['id'])
+        if (execution['address'] != row['address'] or execution['created_ms'] != row['created_ms']
+                or expected is not None and execution != expected):
+            raise LifecycleHold('assignment_execution_changed')
+        if row.get('pid') != execution['pid']:
+            raise LifecycleHold('terminal_program_changed')
+        if row.get('state') == 'live':
+            if expected is not None:
+                raise LifecycleHold('one_shot_awaiting_exit')
+            return execution
+        if row.get('state') != 'finished':
+            raise LifecycleHold('terminal_program_changed')
+        if expected is None:
+            # The persisted thread identity can recover its result after an interrupted runner.
+            return execution
+        exit_code = row.get('exit_code')
+        if row.get('reason') != 'exited' or type(exit_code) is not int or exit_code != 0:
+            raise LifecycleHold('one_shot_exit_unverified')
+        tab = execution['tab']
+        if tab and all(current.get('id') != tab['id'] and all(
+                entry.get('terminal') != row['address'] and entry.get('pane') != tab['pane']
+                for entry in current['terminals']) for _, current in _desktop_tabs(binding)):
+            raise LifecycleHold('one_shot_tab_closed')
+        raise LifecycleHold('one_shot_exited')
 
     def _observe(self, core, binding, expected):
         row = core.call('terminal.get', terminal=expected['address'] if expected else binding['name'])
         if row is None:
-            if expected:
-                _assert_tab_gone(binding, expected)
             return None
         argv = _check_registration(binding, row)
+        if binding.get('mode') == 'one-shot':
+            return self._observe_one_shot(binding, row, expected)
         identity = {'address': row['address'], 'created_ms': row['created_ms']}
         if expected and any(identity[key] != expected[key] for key in identity):
             raise LifecycleHold('foreign_terminal')
+        turn = row.get('turn')
+        if expected and type(turn) is int and turn != expected['turn']:
+            raise LifecycleHold('terminal_turn_changed')
         if row.get('state') == 'finished':
-            if not expected:
-                raise LifecycleHold('terminal_finished_without_archive')
-            return {**expected, 'finished': True}
+            # A finished reusable row cannot establish which Codex process and rollout ended.
+            raise LifecycleHold('terminal_finished_turn_unverified' if expected else 'terminal_finished_without_archive')
         status = row.get('status') or {}
         if not isinstance(status, dict):
             raise LifecycleHold('invalid_core_reply')
         if row.get('state') != 'live' or status.get('state') not in ('idle', 'done'):
             raise LifecycleHold('terminal_not_ready')
-        turn, status_ms = row.get('turn'), row.get('status_ms')
-        if row.get('reported') is not True or turn != 1 or type(status_ms) is not int:
+        status_ms = row.get('status_ms')
+        if row.get('reported') is not True or type(turn) is not int or turn != 1 or type(status_ms) is not int:
             raise LifecycleHold('terminal_turn_unconfirmed' if not turn else 'terminal_turn_changed')
         foreground = row.get('foreground') or {}
         if not isinstance(foreground, dict):
@@ -236,38 +296,6 @@ class NativeLifecycle:
     def observe(self, binding, *, retiring):
         with connect(self.path, binding['core_id']) as (core, _):
             return self._observe(core, binding, retiring)
-
-    def retire(self, binding, terminal, *, original_sha256):
-        # Herdr Core has no compare-and-kill API. Recheck the archive proof and the exact generation
-        # before using the narrowly scoped terminal operation. The UI reacts to that terminal's exit.
-        with connect(self.path, binding['core_id']) as (core, _):
-            row = core.call('terminal.get', terminal=terminal['address'])
-            if row is None:
-                _assert_tab_gone(binding, terminal)
-                return
-            _check_registration(binding, row)
-            if row.get('created_ms') != terminal['created_ms']:
-                raise LifecycleHold('foreign_terminal')
-            if row.get('state') == 'live':
-                if sha256(self.probe(binding, terminal).original).hexdigest() != original_sha256:
-                    raise LifecycleHold('original_changed')
-                # The scoped child subscription can send notifications after its reply, so observe
-                # on its own connection and make the last core read on this command connection.
-                if self.observe(binding, retiring=terminal) != terminal:
-                    raise LifecycleHold('terminal_changed_before_retirement')
-                current = core.call('terminal.get', terminal=terminal['address'])
-                if row != current:
-                    raise LifecycleHold('terminal_changed_before_retirement')
-                core.call('terminal.kill', terminal=terminal['address'])
-                row = core.call('terminal.get', terminal=terminal['address'])
-            if row is not None:
-                _check_registration(binding, row)
-                if row.get('state') != 'finished' or row.get('created_ms') != terminal['created_ms']:
-                    raise LifecycleHold('terminal_retirement_pending')
-                core.call('terminal.rm', terminal=terminal['address'])
-                if core.call('terminal.get', terminal=terminal['address']) is not None:
-                    raise LifecycleHold('terminal_retirement_pending')
-        _assert_tab_gone(binding, terminal)
 
     def wait_for_change(self, assignment):
         # Scope to the unique launch marker so this works before startup has returned an address.

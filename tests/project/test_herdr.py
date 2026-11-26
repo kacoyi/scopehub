@@ -172,6 +172,47 @@ class DryRunTests(WorktreeFixture):
         self.assertNotIn('--parent', plan['argv'])
         self.assertFalse(any(item.startswith('scopehub.assignment=') for item in plan['argv']))
         self.assertIn('herdr.space=s-local', plan['argv'])
+        self.assertEqual(plan['argv'][plan['argv'].index('--') + 1:][:2], ['codex', '--no-daemon'])
+        self.assertFalse(self.log.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_one_shot_dry_run_binds_an_owned_visible_implementation_to_codex_exec(self):
+        self.local_native_context()
+        state = self.root / 'absent private state'
+        result = self.cli('M0-025', 'implement', '--assignment', 'Complete one bounded turn', '--space', 's-local',
+                          '--one-shot', '--state-dir', str(state), '--dry-run')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        plan = json.loads(result.stdout)
+        self.assertEqual(plan['lifecycle'], {'version': 1, 'managed_entry_required': True, 'parent': 't25',
+                                             'tier': 'priority', 'host': 'linux', 'mode': 'one-shot'})
+        argv = plan['argv']
+        self.assertIn('herdr.space=s-local', argv)
+        self.assertEqual(argv[argv.index('--parent') + 1], 't25')
+        self.assertEqual(argv[argv.index('--') + 1:][:3], ['codex', 'exec', '--json'])
+        self.assertNotIn('--no-daemon', argv)
+        self.assertIn('--approve-for-me', argv)
+        self.assertTrue(argv[-1].endswith('\nComplete one bounded turn'))
+        self.assertFalse(state.exists())
+        self.assertFalse(self.log.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_one_shot_rejects_an_unowned_hidden_standalone_or_nonimplementation_launch(self):
+        arguments = ('--assignment', 'Complete one bounded turn', '--one-shot', '--dry-run')
+        for role, options, owned in (
+            ('implement', ('--space', 's-local'), False),
+            ('implement', ('--managed', '--parent', 't25'), True),
+            ('implement', ('--space', 's-local', '--standalone'), True),
+            ('coordinate', ('--space', 's-local'), True),
+            ('review', ('--space', 's-local'), True),
+        ):
+            with self.subTest(role=role, options=options, owned=owned):
+                if owned:
+                    self.local_native_context()
+                result = self.cli('M0-025', role, *arguments, *options)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn('--one-shot requires a managed implementation with a visible local space', result.stderr)
+                self.assertEqual(result.stdout, '')
         self.assertFalse(self.log.exists())
 
     def test_absent_incomplete_or_other_core_context_does_not_adopt_a_native_owner(self):

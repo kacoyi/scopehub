@@ -97,20 +97,24 @@ def _atomic_write(path, data):
         Path(temporary).unlink(missing_ok=True)
 
 
-def _write_record(lane, record):
+def _record_data(record):
     try:
         data = json.dumps(record, ensure_ascii=False, allow_nan=False, sort_keys=True).encode('utf-8') + b'\n'
     except (TypeError, ValueError, RecursionError) as error:
         raise LifecycleHold('invalid_private_record') from error
     if len(data) > RECORD_LIMIT:
         raise LifecycleHold('oversized_private_record')
-    _atomic_write(lane / 'assignment.json', data)
+    return data
+
+
+def _write_record(lane, record):
+    _atomic_write(lane / 'assignment.json', _record_data(record))
 
 
 class Lifecycle:
-    """The launcher supplies exact native observations, result proof and retirement."""
+    """Archive verified returns and keep their recovery independent of terminal state."""
 
-    def __init__(self, state_dir, parent, *, observe, retire, probe):
+    def __init__(self, state_dir, parent, *, observe, probe):
         require_supported_host()
         if not _matches(ID, parent):
             raise LifecycleHold('invalid_owner')
@@ -118,9 +122,9 @@ class Lifecycle:
         self.parent = parent
         self.owner = self.root / parent
         self.pending = self.owner / 'pending'
+        self.archived = self.owner / 'archived'
         self.retired = self.owner / 'retired'
         self.observe = observe
-        self.retire = retire
         self.probe = probe
 
     def _directories(self, *, create=False):
@@ -129,6 +133,10 @@ class Lifecycle:
             _private_dir(path, create=create)
             if create:
                 _sync_dir(path.parent)
+        if create or self.archived.exists():
+            _private_dir(self.archived, create=create)
+            if create:
+                _sync_dir(self.owner)
 
     def _read_record(self, lane, assignment):
         try:
@@ -152,14 +160,14 @@ class Lifecycle:
         _validate_binding(binding, self.parent, assignment)
         self._directories(create=True)
         lane = self.pending / assignment
-        if (self.retired / assignment).exists():
-            raise LifecycleHold('already_retired')
+        if self._completed(assignment):
+            raise LifecycleHold('already_collected')
         _private_dir(lane, create=True)
         _sync_dir(self.pending)
         try:
             with exclusive_git_lock(lane / 'operation.lock'):
-                if (self.retired / assignment).exists():
-                    raise LifecycleHold('already_retired')
+                if self._completed(assignment):
+                    raise LifecycleHold('already_collected')
                 try:
                     existing = self._read_record(lane, assignment)
                 except FileNotFoundError:
@@ -171,14 +179,19 @@ class Lifecycle:
             raise LifecycleHold('assignment_busy') from error
 
     def _find(self, assignment):
-        for directory in (self.retired, self.pending, self.retired):
-            lane = directory / assignment
-            try:
-                _private_dir(lane)
-            except FileNotFoundError:
-                continue
-            return lane
-        return None
+        return self._completed(assignment) or self._lane(self.pending, assignment) or self._completed(assignment)
+
+    def _completed(self, assignment):
+        return self._lane(self.archived, assignment) or self._lane(self.retired, assignment)
+
+    @staticmethod
+    def _lane(directory, assignment):
+        lane = directory / assignment
+        try:
+            _private_dir(lane)
+        except FileNotFoundError:
+            return None
+        return lane
 
     def _pending_assignments(self):
         with os.scandir(self.pending) as entries:
@@ -189,6 +202,40 @@ class Lifecycle:
                 if _matches(ID, entry.name):
                     assignments.append(entry.name)
         return sorted(assignments)
+
+    def registered_binding(self, assignment):
+        if not _matches(ID, assignment) or not (lane := self._lane(self.pending, assignment)):
+            raise LifecycleHold('unregistered_assignment')
+        return self._read_record(lane, assignment)['binding']
+
+    def save_execution(self, assignment, terminal):
+        lane = self._lane(self.pending, assignment)
+        if lane is None:
+            raise LifecycleHold('unregistered_assignment')
+        with exclusive_git_lock(lane / 'operation.lock'):
+            path = lane / 'execution.json'
+            data = _record_data(terminal)
+            try:
+                previous = _private_read(path, RECORD_LIMIT)
+            except FileNotFoundError:
+                _atomic_write(path, data)
+            else:
+                if previous != data:
+                    raise LifecycleHold('assignment_execution_changed')
+
+    def execution(self, assignment):
+        lane = self._find(assignment)
+        if lane is None:
+            raise LifecycleHold('unregistered_assignment')
+        try:
+            execution = json.loads(_private_read(lane / 'execution.json', RECORD_LIMIT))
+        except FileNotFoundError:
+            raise LifecycleHold('one_shot_start_unobserved') from None
+        except ValueError:
+            raise LifecycleHold('assignment_execution_changed') from None
+        if not isinstance(execution, dict):
+            raise LifecycleHold('assignment_execution_changed')
+        return execution
 
     def collect(self, assignment=None, *, dry_run=False):
         """Inspect one registered lane or the bounded pending lanes of this owner."""
@@ -211,7 +258,7 @@ class Lifecycle:
             lane = self._find(assignment)
             if lane is None:
                 return dict(result, status='held', reason='unregistered_assignment')
-            if dry_run or lane.parent == self.retired:
+            if dry_run or lane.parent != self.pending:
                 return dict(result, **self._advance(lane, assignment, True))
             with exclusive_git_lock(lane / 'operation.lock'):
                 return dict(result, **self._advance(lane, assignment, False))
@@ -226,87 +273,120 @@ class Lifecycle:
             return dict(result, status='held', reason=reason if _matches(ID, reason) else 'assignment_unavailable')
 
     def _archive(self, lane, record):
-        archive = record.get('archive')
+        directory = lane / 'return'
+        try:
+            _private_dir(directory)
+        except FileNotFoundError:
+            if record['phase'] == 'registered':
+                return None, None
+            # Version 1 collectors retained the reply and a completion digest in the receipt.
+            archive, directory = record.get('archive'), lane
+        else:
+            try:
+                archive = json.loads(_private_read(directory / 'archive.json', RECORD_LIMIT))
+            except (FileNotFoundError, ValueError, RecursionError) as error:
+                raise LifecycleHold('archive_unavailable') from error
+            if record['phase'] != 'registered' and archive != record.get('archive'):
+                raise LifecycleHold('archive_changed')
         if (not isinstance(archive, dict) or not isinstance(archive.get('terminal'), dict)
                 or not isinstance(archive.get('proof'), dict) or not _matches(SHA256, archive.get('sha256'))
                 or type(archive.get('bytes')) is not int or not 0 < archive['bytes'] <= ORIGINAL_LIMIT):
             raise LifecycleHold('archive_unavailable')
         try:
-            original = _private_read(lane / 'original.jsonl', ORIGINAL_LIMIT)
+            original = _private_read(directory / 'original.jsonl', ORIGINAL_LIMIT)
+            if directory != lane:
+                completion = _private_read(directory / 'completion.jsonl', ORIGINAL_LIMIT)
+                if (not completion or sha256(completion).hexdigest() != archive['proof'].get('completion_sha256')
+                        or archive.get('binding_sha256') != self._binding_digest(record['binding'])):
+                    raise LifecycleHold('archive_changed')
         except FileNotFoundError as error:
             raise LifecycleHold('archive_unavailable') from error
         if sha256(original).hexdigest() != archive.get('sha256') or len(original) != archive.get('bytes'):
             raise LifecycleHold('archive_changed')
-        return archive
+        return archive, directory
 
-    def _retain(self, lane, original, *, dry_run):
-        path = lane / 'original.jsonl'
+    @staticmethod
+    def _binding_digest(binding):
+        return sha256(json.dumps(binding, sort_keys=True).encode()).hexdigest()
+
+    def _retain(self, lane, binding, terminal, proof, *, dry_run):
+        if not proof.original or len(proof.original) > ORIGINAL_LIMIT:
+            raise LifecycleHold('invalid_original')
+        if (not proof.completion or len(proof.completion) > ORIGINAL_LIMIT
+                or sha256(proof.completion).hexdigest() != proof.metadata.get('completion_sha256')):
+            raise LifecycleHold('invalid_completion')
+        # A previous collector may have written the reply before it updated the journal.
         try:
-            previous = _private_read(path, ORIGINAL_LIMIT)
+            previous = _private_read(lane / 'original.jsonl', ORIGINAL_LIMIT)
         except FileNotFoundError:
-            if not dry_run:
-                _atomic_write(path, original)
+            pass
         else:
-            if previous != original:
+            if previous != proof.original:
                 raise LifecycleHold('archive_changed')
+        archive = {'sha256': sha256(proof.original).hexdigest(), 'bytes': len(proof.original),
+                   'proof': proof.metadata, 'terminal': terminal, 'binding_sha256': self._binding_digest(binding)}
+        if not dry_run:
+            # Commit both raw events together before observing the native state again.
+            with tempfile.TemporaryDirectory(prefix='.return-', dir=lane) as staging:
+                directory = Path(staging)
+                _atomic_write(directory / 'original.jsonl', proof.original)
+                _atomic_write(directory / 'completion.jsonl', proof.completion)
+                _atomic_write(directory / 'archive.json', _record_data(archive))
+                directory.rename(lane / 'return')
+                _sync_dir(lane)
+        return archive
 
     def _advance(self, lane, assignment, dry_run):
         record = self._read_record(lane, assignment)
         binding = record['binding']
-        phase = record['phase']
-        archive = self._archive(lane, record) if phase != 'registered' else None
-        if phase == 'retired':
-            if lane.parent == self.pending and not dry_run:
-                self._finish(lane)
-            return {'status': 'retired', 'original_sha256': archive['sha256']}
-        expected = archive['terminal'] if phase == 'retiring' else None
-        terminal = self.observe(binding, retiring=expected)
-        if terminal is None:
-            if phase != 'retiring':
+        archive, directory = self._archive(lane, record)
+        if archive is None:
+            terminal = self.observe(binding, retiring=None)
+            if terminal is None:
                 raise LifecycleHold('terminal_missing')
-            if not dry_run:
-                self._mark_retired(lane, record)
-            return {'status': 'recoverable_retirement' if dry_run else 'retired',
-                    'original_sha256': archive['sha256']}
-        if expected is not None and terminal == dict(expected, finished=True):
-            if not dry_run:
-                self.retire(binding, expected, original_sha256=archive['sha256'])
-                self._mark_retired(lane, record)
-            return {'status': 'recoverable_retirement' if dry_run else 'retired',
-                    'original_sha256': archive['sha256']}
-        if archive is not None and terminal != archive.get('terminal'):
-            raise LifecycleHold('terminal_changed')
-        proof = self.probe(binding, terminal)
-        if not proof.original or len(proof.original) > ORIGINAL_LIMIT:
-            raise LifecycleHold('invalid_original')
-        candidate = {'sha256': sha256(proof.original).hexdigest(), 'bytes': len(proof.original),
-                     'proof': proof.metadata, 'terminal': terminal}
-        if archive is not None and candidate != archive:
-            raise LifecycleHold('original_changed')
-        if archive is None:
-            self._retain(lane, proof.original, dry_run=dry_run)
-        if dry_run:
-            if self.observe(binding, retiring=expected) != terminal:
-                raise LifecycleHold('terminal_changed')
-            return {'status': 'eligible', 'original_sha256': candidate['sha256']}
-        if archive is None:
-            record = dict(record, phase='archived', archive=candidate)
-            _write_record(lane, record)
-            self._archive(lane, record)
-        if self.observe(binding, retiring=expected) != terminal:
-            raise LifecycleHold('terminal_changed')
-        if phase != 'retiring':
-            record = dict(record, phase='retiring')
-            _write_record(lane, record)
-        self.retire(binding, terminal, original_sha256=candidate['sha256'])
-        self._mark_retired(lane, record)
-        return {'status': 'retired', 'original_sha256': candidate['sha256']}
+            archive = self._retain(lane, binding, terminal, self.probe(binding, terminal), dry_run=dry_run)
+            if dry_run:
+                expected = None if binding.get('mode') == 'one-shot' else terminal
+                if self.observe(binding, retiring=expected) != terminal:
+                    raise LifecycleHold('terminal_changed')
+                return {'status': 'eligible', 'original_sha256': archive['sha256']}
+            archive, directory = self._archive(lane, record)
+        has_completion = directory != lane
+        if not dry_run and lane.parent == self.pending:
+            if record['phase'] in ('registered', 'retiring'):
+                _write_record(lane, dict(record, phase='archived', archive=archive))
+            _private_dir(self.archived, create=True)
+            destination = self.archived / lane.name
+            lane.rename(destination)
+            _sync_dir(self.pending)
+            _sync_dir(self.archived)
+            _sync_dir(self.owner)
+        result = {'status': 'archived', 'original_sha256': archive['sha256'],
+                  'reason': self._archive_disposition(binding, record, archive)}
+        if has_completion:
+            result['completion_sha256'] = archive['proof']['completion_sha256']
+        return result
 
-    def _mark_retired(self, lane, record):
-        _write_record(lane, dict(record, phase='retired'))
-        self._finish(lane)
+    def _archive_disposition(self, binding, record, archive):
+        if record['phase'] == 'retired':
+            return 'legacy_retirement_unverified'
+        terminal = archive['terminal']
+        try:
+            current = self.observe(binding, retiring=terminal)
+        except LifecycleHold as error:
+            reason = str(error)
+            return reason if _matches(ID, reason) else 'assignment_unavailable'
+        except (OSError, WorktreeError, KeyError, TypeError):
+            return 'terminal_unavailable'
+        if current is None:
+            return 'terminal_missing'
+        return 'reusable_terminal' if current == terminal else 'terminal_changed'
 
-    def _finish(self, lane):
-        lane.rename(self.retired / lane.name)
-        _sync_dir(self.pending)
-        _sync_dir(self.retired)
+    def archive_paths(self, assignment):
+        lane = self._find(assignment)
+        record = self._read_record(lane, assignment)
+        _, directory = self._archive(lane, record)
+        paths = {'receipt': str(lane / 'assignment.json'), 'original': str(directory / 'original.jsonl')}
+        if directory != lane:
+            paths['completion'] = str(directory / 'completion.jsonl')
+        return paths

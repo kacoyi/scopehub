@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -16,8 +17,8 @@ if __package__:
         HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
     )
     from .review_tree import CommittedPath
-    from .herdr_lifecycle import Lifecycle, LifecycleHold, require_supported_host
-    from .herdr_native import ADDRESS, NativeLifecycle, connect, core_socket
+    from .herdr_lifecycle import Lifecycle, LifecycleHold, ORIGINAL_LIMIT, require_supported_host
+    from .herdr_native import ADDRESS, NativeLifecycle, connect, core_socket, exec_rollout
     from .herdr_returns import ReturnHold, probe_return
     from .verification_scope import ScopeError
     from .storage import maintain_automatically
@@ -26,8 +27,8 @@ else:
         HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
     )
     from review_tree import CommittedPath
-    from herdr_lifecycle import Lifecycle, LifecycleHold, require_supported_host
-    from herdr_native import ADDRESS, NativeLifecycle, connect, core_socket
+    from herdr_lifecycle import Lifecycle, LifecycleHold, ORIGINAL_LIMIT, require_supported_host
+    from herdr_native import ADDRESS, NativeLifecycle, connect, core_socket, exec_rollout
     from herdr_returns import ReturnHold, probe_return
     from verification_scope import ScopeError
     from storage import maintain_automatically
@@ -39,6 +40,7 @@ CATALOG_TIMEOUT_SECONDS = 15
 MANAGED_TIERS = {'implement': 'priority', 'review': 'default'}
 WATCH_SECONDS = 24 * 60 * 60
 LAUNCH_SETTLE_SECONDS = 90
+ONE_SHOT_BIND_SECONDS = 3
 WATCH_FINAL_HOLDS = {'unregistered_assignment', 'foreign_terminal', 'terminal_finished_without_archive',
                      'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core'}
 
@@ -243,8 +245,9 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
         command.append('--no-notify')
     if args.managed:
         command.extend(['--label', f'scopehub.assignment={args.assignment_id}'])
-    command.extend(['--', 'codex', '--no-daemon', '--model', model, '-c',
-                    f'model_reasoning_effort={json.dumps(effort)}'])
+    command.extend(['--', 'codex'])
+    command.extend(['exec', '--json'] if args.one_shot else ['--no-daemon'])
+    command.extend(['--model', model, '-c', f'model_reasoning_effort={json.dumps(effort)}'])
     if args.tier is not None:
         command.extend(['-c', f'service_tier={json.dumps(args.tier)}'])
     phase = HERDR_ROLE_PHASES[args.role]
@@ -291,8 +294,8 @@ def checked_return(binding, terminal):
 
 
 def collector(state, parent):
-    native = NativeLifecycle(core_socket(), checked_return)
-    lifecycle = Lifecycle(state, parent, observe=native.observe, retire=native.retire, probe=checked_return)
+    native = NativeLifecycle(core_socket(), execution=lambda assignment: lifecycle.execution(assignment))
+    lifecycle = Lifecycle(state, parent, observe=native.observe, probe=checked_return)
     return lifecycle, native
 
 
@@ -331,13 +334,19 @@ def launch_managed(root, args, command):
         'model': argv[argv.index('--model') + 1], 'effort': json.loads(argv[argv.index('-c') + 1].split('=', 1)[1]),
         'tier': args.tier, 'sessions': str((session_root / 'sessions').resolve()),
     }
+    if args.one_shot:
+        runner = [sys.executable, '-B', str(Path(__file__).resolve()), 'run-owned',
+                  '--state-dir', str(state), '--parent', args.parent, '--assignment-id', args.assignment_id, '--']
+        binding.update(mode='one-shot', launch_argv=runner, codex_home=str(session_root.resolve()))
+        command = command[:command.index('--') + 1] + runner + [argv[-1]]
     state.parent.mkdir(parents=True, exist_ok=True)
     lifecycle.register(binding)
     env = {**os.environ, 'HC_SOCKET': str(native.path)}
-    worker = [sys.executable, '-B', str(Path(__file__).resolve()), 'collect', '--watch',
-              '--state-dir', str(state), '--parent', args.parent, '--assignment-id', args.assignment_id]
-    subprocess.Popen(worker, cwd=root, env=env, start_new_session=True, stdin=subprocess.DEVNULL,
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if not args.one_shot:
+        worker = [sys.executable, '-B', str(Path(__file__).resolve()), 'collect', '--watch',
+                  '--state-dir', str(state), '--parent', args.parent, '--assignment-id', args.assignment_id]
+        subprocess.Popen(worker, cwd=root, env=env, start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     reply = subprocess.run([*command[:3], '--json', *command[3:]], cwd=root, env=env, capture_output=True,
                            timeout=60, check=True)
     try:
@@ -351,9 +360,78 @@ def launch_managed(root, args, command):
                       'effort': binding['effort'], 'tier': args.tier}))
 
 
+def capture_execution(native, binding, terminal, pid, session):
+    deadline = time.monotonic() + ONE_SHOT_BIND_SECONDS
+    while True:
+        try:
+            path = exec_rollout(pid, Path(binding['sessions']), session)
+        except LifecycleHold as error:
+            if str(error) != 'original_missing' or time.monotonic() >= deadline:
+                raise
+        else:
+            observed = native.own_process(binding, terminal['address'], terminal['pid'])
+            if observed['created_ms'] != terminal['created_ms']:
+                raise LifecycleHold('assignment_execution_changed')
+            if observed['tab'] or time.monotonic() >= deadline:
+                return dict(observed, session_id=session, rollout_path=path)
+        time.sleep(0.1)
+
+
+def run_owned_main():
+    parser = argparse.ArgumentParser(prog='project:herdr run-owned', allow_abbrev=False)
+    parser.add_argument('--state-dir', type=Path, required=True)
+    parser.add_argument('--parent', required=True)
+    parser.add_argument('--assignment-id', required=True)
+    parser.add_argument('prompt')
+    args = parser.parse_args(sys.argv[2:])
+    owned = False
+    try:
+        lifecycle, native = collector(args.state_dir, args.parent)
+        binding = lifecycle.registered_binding(args.assignment_id)
+        address = inherited_parent()
+        if (not address or binding.get('mode') != 'one-shot' or binding['role'] != 'implement'
+                or sha256(args.prompt.encode()).hexdigest() != binding['prompt_sha256']):
+            raise LifecycleHold('one_shot_owner_unverified')
+        terminal = native.own_process(binding, address, os.getpid())
+        owned = True
+        check_review_source(Path(binding['checkout']), binding['source'])
+        with subprocess.Popen([*binding['codex_argv'], args.prompt], cwd=binding['checkout'],
+                              env={**os.environ, 'CODEX_HOME': binding['codex_home']},
+                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE) as codex:
+            execution = None
+            while raw := codex.stdout.readline(ORIGINAL_LIMIT + 1):
+                if not raw.endswith(b'\n') or len(raw) > ORIGINAL_LIMIT:
+                    raise LifecycleHold('invalid_one_shot_output')
+                event = json.loads(raw)
+                if not isinstance(event, dict):
+                    raise LifecycleHold('invalid_one_shot_output')
+                if event.get('type') == 'thread.started':
+                    if execution is not None:
+                        raise LifecycleHold('assignment_execution_changed')
+                    execution = capture_execution(native, binding, terminal, codex.pid, event.get('thread_id'))
+                    lifecycle.save_execution(args.assignment_id, execution)
+                sys.stdout.buffer.write(raw)
+                sys.stdout.buffer.flush()
+            if codex.wait() != 0 or execution is None:
+                raise LifecycleHold('one_shot_execution_failed')
+        result = lifecycle.collect(args.assignment_id)['assignments'][0]
+        if result['status'] != 'archived':
+            raise LifecycleHold(result.get('reason', 'assignment_unavailable'))
+        print(f"Verified assignment return archived ({result['original_sha256']}).", flush=True)
+        return 0
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        reason = str(error) if isinstance(error, LifecycleHold) else 'one_shot_execution_unavailable'
+        print(f'{parser.prog}: {reason}', file=sys.stderr, flush=True)
+        if owned:
+            print('The assignment remains open for inspection.', file=sys.stderr, flush=True)
+            while True:
+                signal.pause()
+        return 1
+
+
 def collect_main():
     parser = argparse.ArgumentParser(prog='pnpm project:herdr collect', allow_abbrev=False,
-                                     description='Recover and retire registered assignments of one local owner.')
+                                     description='Recover verified originals of registered assignments for one local owner.')
     parser.add_argument('--parent', required=True, help='Exact local Herdr owner terminal address.')
     parser.add_argument('--state-dir', type=Path, help='Existing private lifecycle root override.')
     parser.add_argument('--assignment-id', help='Inspect only this registered assignment.')
@@ -378,7 +456,7 @@ def collect_main():
             lane = result['assignments'][0]
             elapsed = time.monotonic() - started
             reason = lane.get('reason')
-            if lane['status'] == 'retired' or reason in WATCH_FINAL_HOLDS or elapsed >= WATCH_SECONDS:
+            if lane['status'] in ('archived', 'retired') or reason in WATCH_FINAL_HOLDS or elapsed >= WATCH_SECONDS:
                 break
             if not observed and reason == 'terminal_missing' and elapsed >= LAUNCH_SETTLE_SECONDS:
                 break
@@ -387,10 +465,8 @@ def collect_main():
             native.wait_for_change(args.assignment_id)
             # A lost connection must not turn the detached watcher into a busy loop.
             time.sleep(max(0, 1 - (time.monotonic() - waiting_since)))
-        if args.assignment_id is not None and result['assignments'][0]['status'] == 'retired':
-            lane = lifecycle.retired / args.assignment_id
-            result['assignments'][0].update(receipt=str(lane / 'assignment.json'),
-                                            original=str(lane / 'original.jsonl'))
+        if args.assignment_id is not None and result['assignments'][0]['status'] in ('archived', 'retired'):
+            result['assignments'][0].update(lifecycle.archive_paths(args.assignment_id))
         print(json.dumps(result, indent=2))
     except (LaunchError, LifecycleHold, OSError, subprocess.SubprocessError) as error:
         print(f'{parser.prog}: {error if isinstance(error, (LaunchError, LifecycleHold)) else "collection unavailable"}',
@@ -402,6 +478,8 @@ def collect_main():
 def main() -> int:
     if sys.argv[1:2] == ['collect']:
         return collect_main()
+    if sys.argv[1:2] == ['run-owned']:
+        return run_owned_main()
     parser = argparse.ArgumentParser(prog='pnpm project:herdr', description=__doc__, allow_abbrev=False)
     parser.add_argument('task_id')
     parser.add_argument('role', choices=ROLE_PROFILES)
@@ -412,8 +490,9 @@ def main() -> int:
     parser.add_argument('--no-notify', action='store_true', help='Suppress Herdr messages to the parent.')
     parser.add_argument('--tier', choices=('priority', 'default'), help='Codex service tier (Fast or Standard).')
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--managed', action='store_true', help='Explicitly register and automatically retire this assignment.')
-    mode.add_argument('--standalone', action='store_true', help='Keep this terminal interactive without automatic retirement.')
+    mode.add_argument('--managed', action='store_true', help='Explicitly register and automatically archive this assignment.')
+    mode.add_argument('--standalone', action='store_true', help='Keep this terminal interactive without registration.')
+    parser.add_argument('--one-shot', action='store_true', help='Run one owned implementation turn without interactive input.')
     parser.add_argument('--state-dir', type=Path, help='Private root override for a managed assignment.')
     parser.add_argument('--effort', help='Reasoning effort for this assignment with a family-based profile.')
     parser.add_argument('--escalate-model', action='store_true',
@@ -436,13 +515,15 @@ def main() -> int:
     if not args.standalone and sys.platform == 'linux' and eligible_role and (args.space or args.managed):
         parent = args.parent or inherited_parent()
         if parent is not None:
-            if args.dry_run and args.parent is None and not args.managed:
+            if args.dry_run and args.parent is None and not args.managed and not args.one_shot:
                 # Preserve the original argv contract for coordinators which hand it to hc themselves.
                 legacy_preview = argparse.Namespace(**vars(args))
             args.parent = parent
             args.managed = True
     if args.managed and (args.parent is None or not eligible_role):
         parser.error('--managed requires a matching local parent and an implementation or source-bound review.')
+    if args.one_shot and (not args.managed or args.role != 'implement' or args.space is None):
+        parser.error('--one-shot requires a managed implementation with a visible local space.')
     if args.state_dir is not None and not args.managed:
         parser.error('--state-dir requires a managed assignment.')
     if args.managed:
@@ -460,6 +541,8 @@ def main() -> int:
             if args.managed:
                 plan['lifecycle'] = {'version': 1, 'managed_entry_required': True,
                                      'parent': args.parent, 'tier': args.tier, 'host': 'linux'}
+                if args.one_shot:
+                    plan['lifecycle']['mode'] = 'one-shot'
             print(json.dumps(plan, indent=2))
             return 0
         if args.managed:

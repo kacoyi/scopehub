@@ -77,12 +77,48 @@ class HerdrReturnProofTests(unittest.TestCase):
 
         self.assertNotIn(b'M0-162', proof.original)
         self.assertEqual(proof.original, originals[6])
+        self.assertEqual(proof.completion, originals[7])
         self.assertEqual(proof.metadata, {
             'original_sha256': digest(originals[6]), 'completion_sha256': digest(originals[7]),
             'completed_at': '2026-11-26T06:42:07.002Z', 'response_timestamp': '2026-11-26T06:42:06.002Z',
             'message_id': 'msg_result', 'turn_id': TURN, 'session_id': SESSION, 'rollout_path': str(self.rollout),
         })
         self.assertEqual(self.rollout.read_bytes(), b''.join(originals))
+
+    def test_one_shot_requires_its_exact_exec_origin_and_retains_both_events(self):
+        self.binding['mode'] = 'one-shot'
+        events = self.events()
+        del events[5]
+        events[0]['payload'].update(source='exec', originator='codex_exec')
+        events[1]['payload']['turn_attribution']['turn_trigger'] = 'exec'
+        lines = self.write(events)
+
+        proof = self.probe()
+
+        self.assertEqual(proof.original, lines[-2])
+        self.assertEqual(proof.completion, lines[-1])
+        self.assertEqual(proof.metadata['turn_id'], TURN)
+        self.assertEqual(proof.metadata['completion_sha256'], digest(lines[-1]))
+        for path, value, reason in (
+            ((0, 'payload', 'source'), 'cli', 'session_mismatch'),
+            ((0, 'payload', 'originator'), 'codex-tui', 'session_mismatch'),
+            ((0, 'payload', 'git', 'commit_hash'), 'b2' * 20, 'session_mismatch'),
+            ((1, 'payload', 'turn_attribution', 'turn_trigger'), 'user', 'turn_changed'),
+            ((-1, 'payload', 'turn_id'), 'unrelated-turn', 'turn_changed'),
+        ):
+            with self.subTest(path=path):
+                changed = deepcopy(events)
+                field = changed
+                for key in path[:-1]:
+                    field = field[key]
+                field[path[-1]] = value
+                self.write(changed)
+                with self.assertRaisesRegex(ReturnHold, f'^{reason}$'):
+                    self.probe()
+        self.write(events)
+        self.binding.pop('mode')
+        with self.assertRaisesRegex(ReturnHold, '^session_mismatch$'):
+            self.probe()
 
     def test_rejects_missing_incomplete_ambiguous_mismatched_or_interrupted_originals(self):
         with self.assertRaisesRegex(ReturnHold, '^original_missing$'):
@@ -134,6 +170,7 @@ class HerdrReturnProofTests(unittest.TestCase):
         lines = self.write(self.events(verdict))
         proof = self.probe()
         self.assertEqual(proof.original, lines[6])
+        self.assertEqual(proof.completion, lines[7])
         self.assertEqual(proof.metadata['review_verdict'], 'changes_requested')
 
         for heading in (f'APPROVE M0-163 {SOURCE}', f'APPROVE M0-162 {SOURCE[:12]}', f'APPROVE {SOURCE}'):

@@ -26936,7 +26936,7 @@
         ],
         "hypotheses": [
           "The initial launcher had no versioned return-to-retirement path. The external collector treated human-facing wording as an identity test and serialized unrelated collections.",
-          "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact."
+          "An exact snapshot cannot bind a subsequent address-only kill to its completed turn. Restart must independently observe the finished turn or hold its terminal intact. A dedicated noninteractive one-shot can archive its original and completion event before exiting, allowing the desktop to remove its tab naturally."
         ],
         "risks": [
           {
@@ -26953,7 +26953,7 @@
             ]
           }
         ],
-        "rollback": "Retain every original before closing its owned session. Disable the new collector if identity becomes ambiguous and recover by the existing terminal and source receipt.",
+        "rollback": "Retain the original response and completion event before the owned one-shot process exits. Keep reusable or ambiguous sessions intact and recover by terminal and source receipt.",
         "independent_review": true,
         "implementation": {
           "modules": [

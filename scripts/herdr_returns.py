@@ -29,6 +29,7 @@ class ReturnHold(ValueError):
 class Proof:
     original: bytes
     metadata: dict
+    completion: bytes
 
 
 def _digest(value):
@@ -98,19 +99,21 @@ def _timestamp(value):
     return instant
 
 
-def _verify_header(events, checkout, source, session):
+def _verify_header(events, binding, session):
     event, _ = next(events, ({}, b''))
     if event.get('type') != 'session_meta':
         raise ReturnHold('session_mismatch')
     header = event['payload']
+    source, originator = ('exec', 'codex_exec') if binding.get('mode') == 'one-shot' else ('cli', 'codex-tui')
     if (header.get('id') != session or header.get('session_id') != session
-            or header.get('source') != 'cli' or header.get('originator') != 'codex-tui'
-            or header.get('thread_source') != 'user' or header.get('cwd') != checkout
-            or _object(header.get('git')).get('commit_hash') != source):
+            or header.get('source') != source or header.get('originator') != originator
+            or header.get('thread_source') != 'user' or header.get('cwd') != binding['checkout']
+            or _object(header.get('git')).get('commit_hash') != binding['source']):
         raise ReturnHold('session_mismatch')
 
 
 def _verify_turn(events, binding):
+    trigger = 'exec' if binding.get('mode') == 'one-shot' else 'user'
     turn = None
     assigned = context_verified = False
     response = completion = None
@@ -124,7 +127,7 @@ def _verify_turn(events, binding):
             attribution = _object(payload.get('turn_attribution'))
             if (turn is not None or not isinstance(started, str) or not started
                     or payload.get('root_turn_id') != started or attribution.get('turn_id') != started
-                    or attribution.get('root_turn_id') != started or attribution.get('turn_trigger') != 'user'
+                    or attribution.get('root_turn_id') != started or attribution.get('turn_trigger') != trigger
                     or attribution.get('parent_turn_id') is not None or attribution.get('initiating_agent_path') is not None):
                 raise ReturnHold('turn_changed')
             turn = started
@@ -178,15 +181,17 @@ def _verify_turn(events, binding):
             stamp = event.get('timestamp')
             if _timestamp(stamp) < _timestamp(response[1]['timestamp']):
                 raise ReturnHold('original_mismatch')
-            completion = {'completed_at': stamp, 'completion_sha256': _digest(raw)}
+            completion = raw, stamp
 
     if completion is None:
         raise ReturnHold('turn_incomplete')
     _, message, original = response
+    completion, completed_at = completion
     return original, {
-        **completion, 'turn_id': turn, 'message_id': message['id'],
+        'completed_at': completed_at, 'completion_sha256': _digest(completion),
+        'turn_id': turn, 'message_id': message['id'],
         'response_timestamp': message['timestamp'], 'original_sha256': _digest(original),
-    }
+    }, completion
 
 
 def _review_verdict(original, binding):
@@ -229,8 +234,8 @@ def probe_return(binding, terminal):
             if before.st_size > ROLLOUT_LIMIT:
                 raise ReturnHold('original_limit')
             events = _events(stream)
-            _verify_header(events, binding['checkout'], binding['source'], session)
-            original, metadata = _verify_turn(events, binding)
+            _verify_header(events, binding, session)
+            original, metadata, completion = _verify_turn(events, binding)
             if _version(before) != _version(os.fstat(stream.fileno())) or _version(before) != _version(path.lstat()):
                 raise ReturnHold('original_changed')
     except FileNotFoundError:
@@ -240,4 +245,4 @@ def probe_return(binding, terminal):
 
     if binding['role'] == 'review':
         metadata['review_verdict'] = _review_verdict(original, binding)
-    return Proof(original, {**metadata, 'session_id': session, 'rollout_path': str(path)})
+    return Proof(original, {**metadata, 'session_id': session, 'rollout_path': str(path)}, completion)
