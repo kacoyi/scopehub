@@ -2481,10 +2481,14 @@ fn cancelling_an_admitted_reviewed_save_keeps_the_profile_unwritten() {
         })
         .await;
         assert_eq!(
-            execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids.clone())
-                .await
-                .unwrap_err()
-                .code,
+            tokio::time::timeout(
+                Duration::from_secs(3),
+                execute_import(&state, LOAD_LOCAL_IMPORT_MAPPING, ids.clone()),
+            )
+            .await
+            .expect("load must reject admission while the save holds it")
+            .unwrap_err()
+            .code,
             ErrorCode::BUSY,
         );
         eprintln!("save phase=admitted checked_reread=pending");
