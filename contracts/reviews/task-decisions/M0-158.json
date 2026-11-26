@@ -59,6 +59,15 @@
       },
       "supersedes": "f61cd91ae37e11c45ae4093df8e19ce0ff24ce552b963412ece4af8a8aab9275",
       "evidence_sha256": "545774c5cb2dd4d83cfe990cc7febbc29907da22388f23e2cac692045d1045b4"
+    },
+    {
+      "kind": "request",
+      "source_commit": "da5fd0a6f56c6308d116e95d7174849bf62d70d2",
+      "scope": "Exercise ordinary and read-only successor handoff after a change of audit focus. Run the source command actually printed. Check accepted, rejected, pending and partially complete evidence, the resulting stop condition, unrelated product focus and unchanged schedules. Recheck both findings on 236bd00c and independently try one more transition.",
+      "supersedes": "389e58faea2732182da846bc9bc2d03d6d26a48e97c532c6e69f4d2660db818d",
+      "requested_at": "2026-11-26T05:00:07.570276+00:00",
+      "request_id": "7697357d71c741c3193e6e5a2107481efdf7c53698f8c7f51eb9b3df18c34990",
+      "evidence_sha256": "718ce52bbefcbc4050103c508fa4da42f5beef82dcb7a101598a9311e5be24bb"
     }
   ]
 }
