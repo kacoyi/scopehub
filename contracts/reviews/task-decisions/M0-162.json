@@ -30,6 +30,15 @@
       },
       "supersedes": "636940018c3c024d8881ffbd8fcceee558ca6493c8077ea5feeb3abf5ee1a3cf",
       "evidence_sha256": "e1aeb7e84939eaa59680826ababbf97ec7bddda36b187c3fdf2b7b7565a24df1"
+    },
+    {
+      "kind": "request",
+      "source_commit": "cf7e0805ee0430e6aa7bfcc06b6120b10aa09172",
+      "scope": "Review native owned Herdr handoff after the two turn-retirement incidents on c879713b. Check safe handling of a reusable, changed, ambiguous or already exited session and crash recovery of the original recorded turn. Check the self-ending owned one-shot case, independent final-assignment collection and historical originals.",
+      "supersedes": "8ee2427840f5e3af450187e19df1812d829f120f710761582f1c219cd9eddb33",
+      "requested_at": "2026-11-26T13:04:16.339527+00:00",
+      "request_id": "fc44f15140087edb868292c96e3039edf9791e31e60541b93c2e53c53972ed0c",
+      "evidence_sha256": "ffa7d552ca73bc8437d1fe62d8b0d4a19da91b49fbcc65641c64ddfbe2110f1d"
     }
   ]
 }
