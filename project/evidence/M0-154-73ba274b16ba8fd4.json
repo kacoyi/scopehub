@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-154",
+  "task_definition_sha256": "a6668064d1e078bbf618ba2e282f4bc6fe1843c94b1029568bebe8f769bcff38",
+  "run_id": "20261126T041800.763840Z-3b917525",
+  "recorded_at": "2026-11-26T04:23:14.831824+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "ff8372b33cd2fb8e33fb94624a957f679164569efd977a79e04412e460f3926c",
+    "file_count": 616,
+    "git_head": "272aed5402860db8994c733fb24c339b5652e549",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "73ba274b16ba8fd449d6882c55937d25b63d2bfb1b37619f7ee3f642b9f35d45",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-44-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ea21fba02554b8fc6ba96f30b5d9f7db3d562139dc0bd26183f2fe0942126541"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "13bbf31c92631fd9d344ea32722508c143316840afdb19fef00fafb0041ffd4d"
+    },
+    {
+      "id": "market-recovery",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-closed-bar-repair.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eb418cf19f15e8ed7afd9181fcff36543393845afb60cba923d075f2309836ae"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c763f386889365405ca9366f9a47efaff29861a73e39f65d57b128ba0e32d975"
+    },
+    {
+      "id": "generated-contracts",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/generate_contracts.py",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a4cd4b217f199d445fd595756b6021363f7be9475c5c034565dfc1a5e458cd28"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f21380b550ab5286cfbde3c312008c8dfad332ec0bb8ce4ce52202dac38d91e6"
+    },
+    {
+      "id": "chart-history",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/windows-sample-document-readiness/.venv/bin/python",
+        "scripts/check_chart_history.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6552953f1d59577dd415f2ae014861934ace0828c23e2afb2cc23e5863d03bee"
+    }
+  ],
+  "project_definition_sha256": "c3c142688fc64b4be6c7e18780e43cb0485614ca781eb4496433bc1be606eef2",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "1fd397158c85e8a9332c956d0c5e5117694f7cf6a076f45188129f4b4127c5b3",
+    "2ab601c737b9daef5cf68a7ab93bd7a93c0616dd34a4d56ed16c7086cd00b05d",
+    "2f6fd43d7f6e510ad20cd9274ec84d39f25391c34201fc7ce94942ebe87467fe",
+    "4e7bd4ef285b74cee9c27021d57cd739bf3f6fc48f18a5ab6782b92024f6ba75",
+    "d3b0585a4ecffce657c7d59f209fd1e3104a098fd1546c77c24402d502a7c634"
+  ]
+}

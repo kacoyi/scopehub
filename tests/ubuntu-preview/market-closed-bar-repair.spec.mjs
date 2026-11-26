@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { painted } from '../ui/chart-pixels.mjs';
 import { replayStage, waitForReplayRequest } from '../ui/replay-stages.mjs';
-import { openDefaultSample } from '../ui/sample-startup.mjs';
+import { openDefaultSample, sampleCatalogCall, sampleHistoryCall } from '../ui/sample-startup.mjs';
 import { control, openPanel } from '../ui/workspace-controls.mjs';
 
 const stream = '/__scopehub/market-stream';
@@ -40,9 +43,15 @@ function observeReplay(path) {
   };
 }
 
+function attachSampleStartup(observation) {
+  const body = JSON.stringify(observation);
+  if (observation.stage !== 'sample-verified') console.info('Sample startup', body);
+  return test.info().attach('sample-startup', { contentType: 'application/json', body });
+}
+
 async function openRepairSample(page, selected) {
   await page.addInitScript(observeReplay, stream);
-  await openDefaultSample(page);
+  await openDefaultSample(page, { reportStartup: attachSampleStartup });
   await openPanel(page, 'Data sources');
   await expect(revision(page)).toHaveValue('normal');
   await revision(page).selectOption(selected);
@@ -154,6 +163,506 @@ test('the real unrepaired sample keeps the missing interval visible and the char
   await expect(fact(page, 'Coverage')).toHaveText('Gapped');
   await page.screenshot({ path: testInfo.outputPath('unresolved-closed-bar-gap.png'), animations: 'disabled' });
   await readFrozenRows(page);
+});
+
+test('sample startup reports a terminal document before any committed sample', async ({ page }) => {
+  await page.route(url => url.pathname === '/', route => route.abort('connectionreset'));
+  try {
+    let observation;
+    await expect(openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } })).rejects.toThrow('Sample document GET failed (net::ERR_CONNECTION_RESET)');
+    expect(observation).toMatchObject({ stage: 'document-terminal',
+      document: { failure: 'net::ERR_CONNECTION_RESET' }, pending_count: 0 });
+    expect(observation.document.committed_ms).toBeUndefined();
+    expect(observation.catalog_verified_ms).toBeUndefined();
+  } finally {
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
+const navigationDeadlineMs = 10_000;
+const timerRoundingMs = 5;
+
+function verifyHeldModuleElapsed({ elapsed_ms }, independentElapsedMs) {
+  // Timer delivery can run late. Compare the two readings around the same cutoff.
+  const samplingToleranceMs = 250;
+  const earliestMs = Math.max(navigationDeadlineMs - timerRoundingMs, independentElapsedMs - samplingToleranceMs);
+  if (!Number.isInteger(elapsed_ms) || elapsed_ms < earliestMs || elapsed_ms > independentElapsedMs + samplingToleranceMs) {
+    throw new Error(`Sample startup attachment elapsed ${elapsed_ms} ms disagrees with the independent ${independentElapsedMs} ms reading`);
+  }
+}
+
+test('sample startup identifies a committed document with a held required module at the original deadline', async ({ page }) => {
+  const release = Promise.withResolvers();
+  const reload = page.getByRole('button', { name: 'Reload window' });
+  await page.route(url => url.pathname === '/src/workspace-start.ts', async route => {
+    await release.promise;
+    await route.abort().catch(() => {});
+  });
+  try {
+    let observation;
+    let independentElapsedMs;
+    const started = process.hrtime.bigint();
+    const stopped = expect(openDefaultSample(page, { reportStartup: report => {
+      independentElapsedMs = Math.round(Number(process.hrtime.bigint() - started) / 1_000_000);
+      observation = report;
+      return attachSampleStartup(report);
+    } })).rejects.toThrow(`Timeout ${navigationDeadlineMs}ms exceeded`);
+    await expect(reload).toBeEnabled();
+    await stopped;
+    await test.info().attach('sample-startup-clock', {
+      contentType: 'application/json', body: JSON.stringify({ elapsed_ms: independentElapsedMs }),
+    });
+    expect(observation).toMatchObject({ stage: 'document-committed',
+      document: { http: 200, committed_ms: expect.any(Number) },
+      pending: expect.arrayContaining([expect.objectContaining({ type: 'script', asset: '/src/workspace-start.ts' })]),
+    });
+    expect(observation.document.dom_content_loaded_ms).toBeUndefined();
+    expect(observation.catalog_verified_ms).toBeUndefined();
+    expect(independentElapsedMs).toBeGreaterThanOrEqual(navigationDeadlineMs - timerRoundingMs);
+    verifyHeldModuleElapsed(observation, independentElapsedMs);
+    for (const elapsed_ms of [0, 60_000]) {
+      expect(() => verifyHeldModuleElapsed({ ...observation, elapsed_ms }, independentElapsedMs))
+        .toThrow(`Sample startup attachment elapsed ${elapsed_ms} ms disagrees`);
+    }
+    await expect(chart(page)).toHaveCount(0);
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+  await openDefaultSample(page, { trigger: () => reload.click() });
+  await expect(chart(page)).toHaveAttribute('data-bars', '40');
+});
+
+test('DOMContentLoaded with a held dynamic entry still waits for the verified sample', async ({ page }) => {
+  const release = Promise.withResolvers();
+  await page.route(url => url.pathname === '/src/main.tsx', async route => {
+    await release.promise;
+    await route.continue().catch(() => {});
+  });
+  let observation;
+  try {
+    const dom = page.waitForEvent('domcontentloaded', { timeout: 10_000 });
+    const sample = openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } });
+    void sample.catch(() => {});
+    await dom;
+    await expect(page.getByRole('button', { name: 'Reload window' })).toBeEnabled();
+    await expect(chart(page)).toHaveCount(0);
+    expect(observation).toBeUndefined();
+    release.resolve();
+    await sample;
+    expect(observation).toMatchObject({ stage: 'sample-verified',
+      document: { http: 200, committed_ms: expect.any(Number), dom_content_loaded_ms: expect.any(Number) },
+      catalog_verified_ms: expect.any(Number), history_verified_ms: expect.any(Number), sample_verified_ms: expect.any(Number),
+    });
+    expect(observation.catalog_verified_ms).toBeGreaterThanOrEqual(observation.document.dom_content_loaded_ms);
+    expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+    await expect(chart(page)).toHaveAttribute('data-bars', '40');
+  } finally {
+    release.resolve();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
+test.describe('initial sample candle presentation', () => {
+  const candleColors = ['#43d4ac', '#f17d85'];
+  async function verifyPresentation(page, testInfo, variant) {
+    const draws = variant === 'rendered history';
+    const unrelated = variant === 'unrelated price-colored ink';
+    if (!draws) await page.addInitScript(({ candleColors, variant }) => {
+      const fillRect = CanvasRenderingContext2D.prototype.fillRect;
+      CanvasRenderingContext2D.prototype.fillRect = function(...rect) {
+        const color = candleColors.indexOf(this.fillStyle);
+        if (color < 0 || this.canvas !== document.querySelector('.history .chart canvas')) {
+          return fillRect.apply(this, rect);
+        }
+        // Skip bodies and wicks. The renderer still strokes the last-price line and draws its axis label.
+        if (variant === 'unrelated price-colored ink') fillRect.call(this, 24 + color * 48, 24, 20, 30);
+        if (variant === 'misplaced candles') {
+          const [x, , width] = rect;
+          fillRect.call(this, Math.floor(x / 2), 22, Math.max(1, Math.floor(width / 2)), 3);
+        }
+      };
+    }, { candleColors, variant });
+
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
+    const calls = [sampleCatalogCall, sampleHistoryCall()];
+    const replies = calls.map(call => page.waitForResponse(response =>
+      new URL(response.url()).pathname === '/__scopehub/operation' && response.status() === 200
+      && response.request().method() === 'POST' && response.request().postDataJSON()?.operation === call.operation));
+    let observation;
+    const startup = openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } }).catch(error => error);
+    const responses = await Promise.all(replies);
+    expect(responses.map(response => response.request().postDataJSON())).toEqual(calls);
+    const [catalog, history] = await Promise.all(responses.map(response => response.json()));
+    expect(catalog.result.instruments).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: calls[1].payload.series.instrument_id }),
+    ]));
+    expect(history.result.bars).toHaveLength(40);
+    const { snapshot } = history.result;
+    expect(snapshot.content_hash).toBe('8c5cccacb89d3cfa0a2f06418caa75cd5be6436e3cdd3ed4fadddd766cdff900');
+    const result = await startup;
+    const plot = page.getByRole('region', { name: 'Price chart' });
+    await expect(chart(page)).toHaveAttribute('data-bars', '40');
+    await expect(plot.getByRole('alert')).toHaveCount(0);
+    expect(pageErrors).toEqual([]);
+
+    // Independently retain ink counts by row for the price pane and its axis.
+    const ink = await chart(page).locator('.chart canvas').evaluateAll(canvases => [0, 2].map(index => {
+      const canvas = canvases[index];
+      const { width, height } = canvas;
+      const pixels = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+      const rows = Array.from({ length: height }, () => ({ count: 0, left: width, right: -1 }));
+      for (let i = 0; i < pixels.length; i += 4) {
+        const color = pixels[i] * 65536 + pixels[i + 1] * 256 + pixels[i + 2];
+        if (color === 0x43d4ac || color === 0xf17d85) {
+          const row = rows[Math.floor(i / (4 * width))];
+          const x = (i / 4) % width;
+          row.count++;
+          row.left = Math.min(row.left, x);
+          row.right = Math.max(row.right, x);
+        }
+      }
+      const occupied = rows.flatMap((row, y) => row.count ? [{ y, ...row }] : []);
+      const bounds = canvas.getBoundingClientRect();
+      return { width, height, pixels: occupied.reduce((sum, row) => sum + row.count, 0), rows: occupied.length,
+        cssWidth: bounds.width, cssHeight: bounds.height, deviceScale: devicePixelRatio,
+        widestRow: Math.max(...occupied.map(row => row.count)), sparseRows: occupied.length <= 4 ? occupied : undefined };
+    }));
+    await testInfo.attach('sample-startup-candle-ink', {
+      contentType: 'application/json', body: JSON.stringify({ variant, snapshot, ink,
+        error: result instanceof Error ? result.message : null }),
+    });
+    const [pane, axis] = ink;
+    expect(pane.widestRow, 'The last-price line remains visible').toBeGreaterThan(20);
+    expect(axis.pixels, 'The price-axis label remains visible').toBeGreaterThan(20);
+    if (draws || unrelated) expect(pane.rows).toBeGreaterThan(20);
+    else if (variant === 'misplaced candles') {
+      expect(pane.rows).toBe(4);
+      const replacementRows = pane.sparseRows.filter(row => row.count !== pane.widestRow);
+      expect(replacementRows.map(row => row.y)).toEqual([22, 23, 24]);
+      expect(Math.max(...replacementRows.map(row => row.right))).toBeLessThan(pane.width / 2);
+    } else expect(pane.rows).toBe(1);
+    expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
+    expect(observation.chart_failed_ms).toBeUndefined();
+    expect(observation.stage).toBe(draws ? 'sample-verified' : 'history-verified');
+    if (draws) {
+      expect(result).toEqual(snapshot);
+      expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+    } else {
+      expect(result).toBeInstanceOf(Error);
+      expect(result.message).toContain('Wait for initial sample chart presentation');
+      expect(observation.sample_verified_ms).toBeUndefined();
+    }
+    return pane;
+  }
+
+  for (const variant of ['rendered history', 'missing candles', 'unrelated price-colored ink', 'misplaced candles']) {
+    test(`reports startup with ${variant}`, ({ page }, testInfo) => verifyPresentation(page, testInfo, variant));
+  }
+
+  test.describe('narrow viewport at fractional device scale', () => {
+    test.use({ viewport: { width: 720, height: 820 }, deviceScaleFactor: 1.25 });
+    test('reports startup with rendered history', async ({ page }, testInfo) => {
+      const pane = await verifyPresentation(page, testInfo, 'rendered history');
+      expect(pane.cssWidth).toBeLessThan(720);
+      expect(pane.deviceScale).toBe(1.25);
+    });
+  });
+});
+
+for (const [change, stage, rejectedOperation] of [
+  ['history start', 'catalog-verified', 'market.readHistoryPage'],
+  ['catalog limit', 'dom-content-loaded', 'instrument.search'],
+  ['request order', 'dom-content-loaded', 'market.readHistoryPage'],
+]) {
+  test(`sample startup reports its last verified stage with a changed ${change}`, async ({ page }) => {
+    const catalog = structuredClone(sampleCatalogCall);
+    const history = sampleHistoryCall();
+    if (change === 'history start') history.payload.from_ms += 60_000;
+    if (change === 'catalog limit') catalog.payload.limit = 49;
+    const reversed = change === 'request order';
+    await page.addInitScript(({ change, earlyHistoryCall }) => {
+      const fetch = window.fetch;
+      let earlyHistory;
+      window.fetch = async (url, options) => {
+        if (url !== '/__scopehub/operation') return fetch(url, options);
+        const call = JSON.parse(options.body);
+        const send = body => fetch(url, { ...options, body: JSON.stringify(body) });
+        if (call.operation === 'instrument.search' && change === 'request order') {
+          earlyHistory = await send(earlyHistoryCall);
+          await earlyHistory.clone().arrayBuffer();
+        }
+        if (call.operation === 'instrument.search' && change === 'catalog limit') call.payload.limit = 49;
+        if (call.operation === 'market.readHistoryPage') {
+          if (earlyHistory) return earlyHistory;
+          if (change === 'history start') call.payload.from_ms += 60_000;
+        }
+        return send(call);
+      };
+    }, { change, earlyHistoryCall: history });
+
+    const navigations = [];
+    const calls = [];
+    const replies = [];
+    page.on('request', request => {
+      if (request.isNavigationRequest()) navigations.push(request.method());
+      if (request.method() === 'POST') calls.push(request.postDataJSON());
+    });
+    page.on('response', response => {
+      if (response.request().method() === 'POST') replies.push(response);
+    });
+    let observation;
+    const rejected = await openDefaultSample(page, { reportStartup: report => {
+      observation = report;
+      return attachSampleStartup(report);
+    } }).catch(error => error);
+    await expect.poll(() => replies.length).toBe(2);
+    expect(navigations).toEqual(['GET']);
+    expect(calls).toEqual(reversed ? [history, catalog] : [catalog, history]);
+    for (const reply of replies) {
+      expect(reply.status()).toBe(200);
+      expect(await reply.json()).toMatchObject({ ok: true });
+    }
+    expect(observation.stage).toBe(stage);
+    expect(rejected).toBeInstanceOf(Error);
+    expect(rejected.message).toContain(`POST parameters for ${rejectedOperation}`);
+    if (stage === 'catalog-verified') expect(observation.catalog_verified_ms).toEqual(expect.any(Number));
+    else expect(observation.catalog_verified_ms).toBeUndefined();
+    expect(observation.history_verified_ms).toBeUndefined();
+    expect(observation.sample_verified_ms).toBeUndefined();
+  });
+}
+
+test.describe('sample startup reply compatibility', () => {
+  const operation = '/__scopehub/operation';
+  const historyCall = sampleHistoryCall();
+  const catalogName = sampleCatalogCall.operation;
+  const historyName = historyCall.operation;
+  let catalogReply;
+  let historyReply;
+  let shiftedReply;
+  let legacyReply;
+  const readSchema = path => JSON.parse(readFileSync(new URL(`../../contracts/schemas/${path}`, import.meta.url), 'utf8'));
+  const ajv = new Ajv2020();
+  addFormats(ajv);
+  ajv.addSchema(readSchema('protocol.schema.json'));
+  const validateCatalog = ajv.compile(readSchema(`operations/${catalogName}.output.schema.json`));
+  const validateHistory = ajv.compile(readSchema(`operations/${historyName}.output.schema.json`));
+  const validateLegacyBars = ajv.compile(readSchema('operations/market.getBars.output.schema.json'));
+
+  test.beforeAll(async ({ request, baseURL }) => {
+    const headers = { Origin: new URL(baseURL).origin };
+    const capture = async call => {
+      const response = await request.post(operation, { data: call, headers });
+      expect(response.status()).toBe(200);
+      const reply = await response.json();
+      expect(reply.ok).toBe(true);
+      return reply;
+    };
+    catalogReply = await capture(sampleCatalogCall);
+    historyReply = await capture(historyCall);
+    const shiftedCall = structuredClone(historyCall);
+    shiftedCall.payload.from_ms += 60_000;
+    shiftedReply = await capture(shiftedCall);
+    const { series: { instrument_id, timeframe, provider_id }, from_ms, to_ms } = historyCall.payload;
+    legacyReply = await capture({ operation: 'market.getBars', payload: { instrument_id, timeframe, provider_id, from_ms, to_ms } });
+    expect(validateLegacyBars(legacyReply.result)).toBe(true);
+    expect(legacyReply.result.dataset).toMatchObject({ instrument_id, timeframe, provider_id, price_adjustment: 'raw' });
+    expect(legacyReply.result.bars).toHaveLength(40);
+    for (const [call, reply] of [[historyCall, historyReply], [shiftedCall, shiftedReply]]) {
+      expect(reply.result.snapshot).toMatchObject({
+        from_ms: call.payload.from_ms, to_ms: call.payload.to_ms, series: call.payload.series,
+        dataset_revision: call.payload.expected_revision,
+      });
+      expect(reply.result.bars).toHaveLength(40);
+      expect(reply.result.stream_position).toBeNull();
+      expect(reply.result.next_cursor).toBeNull();
+    }
+  });
+
+  const invalidData = 'The data response failed validation.';
+  const invalidHistory = 'History reply satisfies the operation output schema';
+  const contradictory = 'History reply matches the sample request';
+  const chartFailure = 'The chart could not be displayed. Review the bars in the data table.';
+  for (const [kind, scenario] of [
+    ['compatible', { stage: 'sample-verified' }],
+    ['equivalent price tick', { equivalentTick: true, stage: 'sample-verified' }],
+    ['chart mount failure', { mountFailure: true, stage: 'history-verified', error: 'Initial sample price series is painted' }],
+    ['shifted snapshot', { shifted: true, error: contradictory }],
+    ['contradictory dataset adjustment', { schemaValid: true, error: contradictory,
+      mutate: history => { history.result.dataset.price_adjustment = 'split_adjusted'; } }],
+    ['unsolicited stream position', { schemaValid: true, error: contradictory,
+      mutate: history => {
+        history.result.stream_position = { stream_id: history.result.snapshot.dataset_id, epoch: 'fixture', sequence: 0 };
+      } }],
+    ['contradictory quality source', { schemaValid: true, error: contradictory,
+      mutate: history => { history.result.quality_state.source_kind = 'native_bars'; } }],
+    ['contradictory bar prices', { schemaValid: true, error: contradictory,
+      mutate: history => { history.result.bars[0].high = history.result.bars[0].low - 1; } }],
+    ['omitted snapshot start', { mutate: history => delete history.result.snapshot.from_ms }],
+    ['omitted snapshot content hash', { mutate: history => delete history.result.snapshot.content_hash }],
+    ['malformed snapshot content hash', { mutate: history => { history.result.snapshot.content_hash = 'X'.repeat(64); } }],
+    ['omitted nullable stream position', { mutate: history => delete history.result.stream_position }],
+    ['invalid bar trading day', { mutate: history => { history.result.bars[0].trading_day = '2024-02-30'; } }],
+    ['omitted history result', { mutate: history => delete history.result }],
+    ['legacy bars returned for frozen history', { legacy: true }],
+    ['omitted catalog provider mappings', { catalogInvalid: true, stage: 'dom-content-loaded',
+      error: 'Catalog reply satisfies the operation output schema' }],
+    ['failed history response', { failed: true, error: 'returned HTTP 503 (WORKER_EXITED)' }],
+    ['history completed before catalog', { outOfOrder: true,
+      error: `Previous response finished before ${historyName} was sent` }],
+  ]) {
+    test(`public sample startup handles the ${kind} case`, async ({ page }) => {
+      const {
+        outOfOrder, shifted, legacy, mutate, catalogInvalid, failed, equivalentTick, mountFailure,
+        schemaValid = !(legacy || mutate), stage = 'catalog-verified', error = invalidHistory,
+      } = scenario;
+      const catalog = structuredClone(catalogReply);
+      const instrument = catalog.result.instruments.find(item => item.id === historyCall.payload.series.instrument_id);
+      if (catalogInvalid) delete instrument.provider_mappings;
+      if (equivalentTick) {
+        await page.setViewportSize({ width: 720, height: 900 });
+        expect(instrument.price_tick).toBe('0.2');
+        instrument.price_tick += '0'.repeat(100);
+        expect(Number(instrument.price_tick)).toBe(0.2);
+      }
+      if (mountFailure) {
+        // Fail the real chart's first layout subscription, leaving the market response alone.
+        await page.addInitScript(() => {
+          const observe = ResizeObserver.prototype.observe;
+          ResizeObserver.prototype.observe = function(element, options) {
+            if (element.classList.contains('chart')) throw new Error('Synthetic chart mount failure');
+            return observe.call(this, element, options);
+          };
+        });
+      }
+      const history = structuredClone(legacy ? legacyReply : shifted ? shiftedReply : historyReply);
+      if (mutate) mutate(history);
+      expect(validateCatalog(catalog.result)).toBe(!catalogInvalid);
+      expect(validateHistory(history.result)).toBe(schemaValid);
+      if (outOfOrder) {
+        await page.addInitScript(({ operation, historyCall }) => {
+          const fetch = window.fetch;
+          let earlyHistory;
+          window.fetch = (url, options) => {
+            if (url !== operation) return fetch(url, options);
+            const call = JSON.parse(options.body);
+            if (call.operation === 'instrument.search') {
+              const catalog = fetch(url, options);
+              earlyHistory = fetch(url, { ...options, body: JSON.stringify(historyCall) });
+              return catalog;
+            }
+            return call.operation === historyCall.operation && earlyHistory ? earlyHistory : fetch(url, options);
+          };
+        }, { operation, historyCall });
+      }
+
+      const calls = [];
+      const completed = [];
+      const releaseCatalog = Promise.withResolvers();
+      const recordCompletion = request => {
+        if (new URL(request.url()).pathname !== operation || request.method() !== 'POST') return;
+        const { operation: name } = request.postDataJSON();
+        completed.push(name);
+        if (name === historyName) releaseCatalog.resolve();
+      };
+      page.on('requestfinished', recordCompletion);
+      await page.route(`**${operation}`, async route => {
+        const call = route.request().postDataJSON();
+        calls.push(call);
+        if (call.operation === catalogName) {
+          if (outOfOrder) await releaseCatalog.promise;
+          return route.fulfill({ json: catalog });
+        }
+        if (failed) return route.fulfill({ status: 503, json: { ok: false, error: { code: 'WORKER_EXITED', retryable: true } } });
+        return route.fulfill({ json: history });
+      });
+
+      try {
+        const reports = [];
+        const startupEvents = ['request', 'response', 'requestfinished', 'requestfailed', 'framenavigated', 'domcontentloaded'];
+        const listenerCounts = () => startupEvents.map(event => page.listenerCount(event));
+        const before = listenerCounts();
+        const countsAtAttachment = [];
+        const startup = openDefaultSample(page, { reportStartup: async report => {
+          reports.push(report);
+          countsAtAttachment.push(listenerCounts());
+          await attachSampleStartup(report);
+          if (failed) throw new Error('Simulated attachment sink failure');
+        } }).catch(error => error);
+        const result = await startup;
+        const plot = page.getByRole('region', { name: 'Price chart' });
+        const alerts = plot.getByRole('alert');
+        const readChart = async () => ({
+          barCount: await chart(page).evaluateAll(elements => elements.map(element => element.getAttribute('data-bars'))),
+          alert: await alerts.allTextContents(),
+          pricePixels: await painted(page, 'candlestick'),
+        });
+        const draws = stage === 'sample-verified' || outOfOrder;
+        await expect.poll(async () => {
+          const { alert, pricePixels } = await readChart();
+          return alert.length > 0 || pricePixels > 20;
+        }, { message: 'Wait for the actual browser presentation to settle' }).toBe(true);
+        const presentation = await readChart();
+        await test.info().attach('sample-startup-product', {
+          contentType: 'application/json',
+          body: JSON.stringify({ ...presentation, responseSchemaValid: schemaValid, error: result instanceof Error ? result.message : null }),
+        });
+        expect(presentation.alert, 'Price chart alerts').toEqual(draws ? [] : [
+          mountFailure ? chartFailure : failed ? 'The market worker is disconnected.' : invalidData,
+        ]);
+        if (draws) {
+          expect(presentation.barCount).toEqual(['40']);
+          expect(presentation.pricePixels).toBeGreaterThan(20);
+          if (equivalentTick) {
+            await page.setViewportSize({ width: 1366, height: 900 });
+            await openPanel(page, 'Watchlist');
+            const details = page.getByRole('region', { name: 'Selected instrument details' });
+            await expect(details.locator('.quote')).toHaveText('3,500.8 CNY');
+          }
+        } else {
+          expect(presentation.pricePixels).toBe(0);
+          await expect(plot.locator('.chart canvas')).toHaveCount(0);
+          await expect(plot.getByRole('button', { name: 'Retry history' })).toHaveCount(failed ? 1 : 0);
+        }
+        expect(calls).toEqual(catalogInvalid ? [sampleCatalogCall] : [sampleCatalogCall, historyCall]);
+        expect(completed).toEqual(catalogInvalid ? [catalogName] : outOfOrder ? [historyName, catalogName] : [catalogName, historyName]);
+        expect(reports).toHaveLength(1);
+        expect(countsAtAttachment).toEqual([before]);
+        const [observation] = reports;
+        expect(observation.stage).toBe(stage);
+        if (catalogInvalid) expect(observation.catalog_verified_ms).toBeUndefined();
+        else expect(observation.catalog_verified_ms).toBeGreaterThanOrEqual(observation.document.dom_content_loaded_ms);
+        if (stage === 'sample-verified') {
+          expect(result).toEqual(history.result.snapshot);
+          expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
+          expect(observation.sample_verified_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+        } else {
+          expect(result).toBeInstanceOf(Error);
+          expect(result.message).toContain(error);
+          if (mountFailure) {
+            expect(observation.history_verified_ms).toBeGreaterThanOrEqual(observation.catalog_verified_ms);
+            expect(observation.chart_failed_ms).toBeGreaterThanOrEqual(observation.history_verified_ms);
+          } else expect(observation.history_verified_ms).toBeUndefined();
+          expect(observation.sample_verified_ms).toBeUndefined();
+        }
+      } finally {
+        releaseCatalog.resolve();
+        page.off('requestfinished', recordCompletion);
+        await page.unrouteAll({ behavior: 'wait' });
+      }
+    });
+  }
 });
 
 async function routeCompletedRepair(page, rewrite, headers) {
