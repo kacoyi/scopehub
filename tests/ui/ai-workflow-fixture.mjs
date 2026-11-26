@@ -50,28 +50,34 @@ export async function seedDisplayOnlyChart(profile, revision, bar) {
   create.child.stdin.end();
   await create;
 
-  // Independent published CSV fixture. The real registry resolves its display
-  // entitlement and verifies its frozen chart. The fixture has no model grant.
-  const bars = [{ bar, locators: [{ record_number: 1, line_start: 2, line_end: 2 }] }];
+  seedPublishedChart(join(profile.directory, 'workspace.sqlite3'), revision, [bar]);
+}
+
+export function seedPublishedChart(database, revision, prices) {
+  // Independent published CSV fixture. The real registry resolves the
+  // entitlement and verifies its frozen chart.
+  const bars = prices.map((bar, index) => ({
+    bar, locators: [{ record_number: index + 1, line_start: index + 2, line_end: index + 2 }],
+  }));
   const series = {
     instrument_kind: 'equity', venue: 'FIXTURE', timeframe: '1d', calendar_id: 'fixture-calendar',
     session_scope: 'regular', timezone: 'UTC', quantity_unit: 'shares', price_adjustment: 'raw', roll_method: null,
   };
   const csv = Buffer.from([
     'Date,Symbol,Open,High,Low,Close,Volume',
-    [bar.trading_day, 'FIX', bar.open, bar.high, bar.low, bar.close, bar.volume].join(','),
+    ...prices.map(bar => [bar.trading_day, 'FIX', bar.open, bar.high, bar.low, bar.close, bar.volume].join(',')),
     '',
   ].join('\n'));
   const source = `display-only-${revision}`;
   const digest = createHash('sha256').update(csv).digest('hex');
-  const db = new DatabaseSync(join(profile.directory, 'workspace.sqlite3'));
+  const db = new DatabaseSync(database);
   try {
     db.exec('PRAGMA foreign_keys = ON; BEGIN');
     db.prepare('INSERT INTO reviewed_import_mappings VALUES (?, ?, ?, ?)').run(source, 1, 'a'.repeat(64), '{}');
     db.prepare('INSERT INTO local_dataset_source_blobs VALUES (?, ?)').run(digest, csv);
     db.prepare('INSERT INTO local_dataset_revisions VALUES (?, ?, ?, ?, ?, ?, ?)').run(
       revision, source, 'display-only.csv', digest, 1, 'b'.repeat(64),
-      JSON.stringify({ symbol: 'FIX', series, source_record_count: 1, bars }),
+      JSON.stringify({ symbol: 'FIX', series, source_record_count: bars.length, bars }),
     );
     db.exec('COMMIT');
   } finally {

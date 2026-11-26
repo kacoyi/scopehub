@@ -1869,6 +1869,9 @@
     "ScaffoldMaintenance": {
       "type": "object",
       "properties": {
+        "engagement": {
+          "$ref": "#/$defs/MaintenanceEngagement"
+        },
         "triggers": {
           "type": "array",
           "items": {
@@ -1976,6 +1979,58 @@
         "bootstrap",
         "periodic_reviews"
       ],
+      "additionalProperties": false
+    },
+    "MaintenanceEngagement": {
+      "type": "object",
+      "properties": {
+        "authority": {
+          "$ref": "#/$defs/DigestBoundSource"
+        },
+        "workstreams": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "next_action": {
+                "oneOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "type": "null" }
+                ]
+              },
+              "closure": {
+                "$ref": "#/$defs/DigestBoundSource"
+              }
+            },
+            "required": ["next_action"],
+            "additionalProperties": false,
+            "if": { "required": ["closure"] },
+            "then": { "properties": { "next_action": { "type": "null" } } },
+            "else": { "properties": { "next_action": { "type": "string" } } }
+          }
+        }
+      },
+      "required": ["authority", "workstreams"],
+      "additionalProperties": false
+    },
+    "DigestBoundSource": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pointer": {
+          "type": "string",
+          "pattern": "^(/.*)?$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": ["path", "pointer", "sha256"],
       "additionalProperties": false
     },
     "SourceReference": {

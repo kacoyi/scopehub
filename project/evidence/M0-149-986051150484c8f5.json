@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "task_id": "M0-149",
+  "task_definition_sha256": "2cca51a5a8bcefb0f73bda3c001e13a5449e9174d84dba50a3c010451c68b66f",
+  "run_id": "20261125T214819.589630Z-e37bfb41",
+  "recorded_at": "2026-11-25T21:53:32.252140+00:00",
+  "source": {
+    "snapshot_kind": "execution-inputs-v1",
+    "sha256": "69bd84dac8664f44af9f4e14b437a8bcc21b58cfa64be478ac845bd743612d7b",
+    "file_count": 607,
+    "git_head": "52ad99d49445354ab4cda4f651de336af1cc9152",
+    "working_tree_dirty": false,
+    "exclusions": [
+      "project/tasks.json",
+      "project/evidence/",
+      "contracts/decisions/",
+      "contracts/reviews/",
+      "contracts/references.json",
+      "project/feedback.json"
+    ]
+  },
+  "report_sha256": "986051150484c8f5430ab695e947ce68a1b2a753e9751e9776d79f0c4c10608b",
+  "environment": {
+    "system": "Linux",
+    "release": "7.0.0-43-generic",
+    "machine": "x86_64",
+    "python": "3.12.15",
+    "python_executable": "/home/puzzlednoob/worktrees/scopehub/indicator-status-loss-admission/.venv/bin/python",
+    "tools": {
+      "node": "v24.22.3",
+      "pnpm": "11.28.5",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "uv": "uv 0.13.9 (x86_64-unknown-linux-gnu)"
+    }
+  },
+  "checks": [
+    {
+      "id": "project-state",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-status-loss-admission/.venv/bin/python",
+        "scripts/project.py",
+        "check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "dc33c3ce55ecf03e6453e8a414983d33d1f0415f8f41e34e2fd0a8bd9f8c390a"
+    },
+    {
+      "id": "python-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-status-loss-admission/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-t",
+        ".",
+        "-p",
+        "test_*.py",
+        "-v",
+        "--durations",
+        "0"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2efcf1abe2ec38cfa742c900303988499d1f5e071e71e9f6f526666266bb97c9"
+    },
+    {
+      "id": "ui-build",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8578eac09565ff18768349ccb0a906b5b9e4a817328d6cd1d5325fe112191096"
+    },
+    {
+      "id": "market-workflow",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/market-workflow.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "158dbaf41954dfcdafdda6cca31b97d472c89a61da31e2fbb8391b4bc96fbecc"
+    },
+    {
+      "id": "workspace-timeframe",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ubuntu-preview/workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "64a114bbfda119e7df8d4ed519057fad60a22617d9d3e7f6b8243ed28a161490"
+    },
+    {
+      "id": "desktop-workspace-transport",
+      "status": "passed",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        "tests/ui/desktop-workspace.config.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d32f511edd16603165c731e01b93f9428f1c780bc228c1ef5490f93e9cda7660"
+    },
+    {
+      "id": "rust-contracts-workers",
+      "status": "passed",
+      "command": [
+        "/home/puzzlednoob/worktrees/scopehub/indicator-status-loss-admission/.venv/bin/python",
+        "scripts/rust_workspace.py",
+        "test"
+      ],
+      "exit_code": 0,
+      "log_sha256": "093c3389ac4aaeb916b0a76fb85e43c019545a3cd6dc0c0e60f31c61306f6d1f"
+    }
+  ],
+  "project_definition_sha256": "3dc7bfbdd0f095aa814c8213f819f62397b0dcd28979528b3f0d68f70fda2b4a",
+  "claim_scope": "Completed task at the recorded execution inputs; not a release or current-worktree guarantee.",
+  "observed_feedback": [
+    "4f6b834815b4609b924c82afcee705191b523e808bcbce8f9b20bebc994982bc",
+    "6685c456432aaca6b1fb56d4bfeaa656ffbcf0c88b1a0ff0e712f735752168d4",
+    "aa60f66456ac1b08d3a2ddab1409bb93b000af26a8c150f4183e2aa004450588",
+    "ab82fdb29484780f17a20d65f2964745fa88434ef2b57568808186492ee123fe"
+  ]
+}
