@@ -129,6 +129,37 @@ class WorktreeFixture(unittest.TestCase):
 
 
 class DryRunTests(WorktreeFixture):
+    def test_managed_plan_serves_the_explicit_native_coordinator_launch(self):
+        self.use_family_profiles()
+        state = self.root / 'absent private state'
+        result = self.cli('M0-025', 'implement', '--assignment', 'One bounded return', '--space', 's-local',
+                          '--parent', 't25', '--no-notify', '--tier', 'priority', '--effort', 'ultra',
+                          '--state-dir', str(state), '--managed', '--dry-run')
+        self.assertEqual(0, result.returncode, result.stderr)
+        plan = json.loads(result.stdout)
+        argv = plan['argv']
+        self.assertEqual(argv[:3], ['hc', 'run', '--bg'])
+        self.assertEqual(argv[argv.index('--parent') + 1], 't25')
+        self.assertIn('--no-notify', argv)
+        self.assertIn('herdr.space=s-local', argv)
+        self.assertIn('model_reasoning_effort="ultra"', argv)
+        self.assertIn('service_tier="priority"', argv)
+        self.assertEqual(argv[argv.index('--model') + 1], 'gpt-10.9-sol')
+        self.assertTrue(plan['lifecycle']['managed_entry_required'])
+        self.assertFalse(state.exists())
+        self.assertFalse(self.log.exists())
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Managed sockets are local Linux only')
+    def test_collection_dry_run_neither_starts_a_core_nor_creates_state(self):
+        state = self.root / 'absent private state'
+        self.env['HC_SOCKET'] = str(self.root / 'absent-core.sock')
+        result = self.cli('collect', '--parent', 't25', '--state-dir', str(state), '--dry-run')
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual({'version': 1, 'parent': 't25', 'dry_run': True, 'assignments': []},
+                         json.loads(result.stdout))
+        self.assertFalse(state.exists())
+        self.assertFalse(self.log.exists())
+
     def test_reads_linked_worktree_records_and_needs_no_executables(self):
         self.write_records(self.worktree, 'M0-025', implement={'model': 'fixture-model', 'reasoning_effort': 'high'})
         result = self.cli('M0-025', 'implement', '--assignment', 'Inspect one file', '--space', 's-local', '--dry-run')

@@ -1,12 +1,14 @@
 """Launch a bounded ScopeHub development session in the local Herdr core."""
 
 import argparse
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 from uuid import uuid4
 
 if __package__:
@@ -14,6 +16,9 @@ if __package__:
         HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
     )
     from .review_tree import CommittedPath
+    from .herdr_lifecycle import Lifecycle, LifecycleHold, require_supported_host
+    from .herdr_native import ADDRESS, NativeLifecycle, connect, core_socket
+    from .herdr_returns import ReturnHold, probe_return
     from .verification_scope import ScopeError
     from .storage import maintain_automatically
 else:
@@ -21,6 +26,9 @@ else:
         HERDR_ROLE_PHASES, feedback_for_task, feedback_row_routable, read_only_project_command, task_launch_excerpt,
     )
     from review_tree import CommittedPath
+    from herdr_lifecycle import Lifecycle, LifecycleHold, require_supported_host
+    from herdr_native import ADDRESS, NativeLifecycle, connect, core_socket
+    from herdr_returns import ReturnHold, probe_return
     from verification_scope import ScopeError
     from storage import maintain_automatically
 
@@ -28,6 +36,11 @@ else:
 ROLE_PROFILES = {'implement': 'implement', 'review': 'supervise', 'coordinate': 'supervise'}
 HIGHER_EFFORTS = ('high', 'xhigh', 'max', 'ultra')
 CATALOG_TIMEOUT_SECONDS = 15
+MANAGED_TIERS = {'implement': 'priority', 'review': 'default'}
+WATCH_SECONDS = 24 * 60 * 60
+LAUNCH_SETTLE_SECONDS = 90
+WATCH_FINAL_HOLDS = {'unregistered_assignment', 'foreign_terminal', 'terminal_finished_without_archive',
+                     'terminal_turn_changed', 'turn_changed', 'turn_interrupted', 'wrong_core'}
 
 
 class LaunchError(ValueError):
@@ -224,8 +237,16 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     ]
     if args.space is not None:
         command.extend(['--label', f'herdr.space={args.space}'])
+    if args.parent is not None:
+        command.extend(['--parent', args.parent])
+    if args.no_notify:
+        command.append('--no-notify')
+    if args.managed:
+        command.extend(['--label', f'scopehub.assignment={args.assignment_id}'])
     command.extend(['--', 'codex', '--no-daemon', '--model', model, '-c',
                     f'model_reasoning_effort={json.dumps(effort)}'])
+    if args.tier is not None:
+        command.extend(['-c', f'service_tier={json.dumps(args.tier)}'])
     phase = HERDR_ROLE_PHASES[args.role]
     if args.role == 'review':
         command.extend(['--sandbox', 'read-only', '--ask-for-approval', 'never'])
@@ -250,13 +271,135 @@ def launch_argv(root: Path, args: argparse.Namespace) -> list[str]:
     return command
 
 
+def git_value(root, *args):
+    return subprocess.check_output(['git', '--no-optional-locks', *args], cwd=root, text=True, timeout=10).strip()
+
+
+def state_directory(root, explicit):
+    if explicit is not None:
+        return explicit.absolute()
+    base = Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state')
+    common = git_value(root, 'rev-parse', '--path-format=absolute', '--git-common-dir')
+    return base / f'scopehub-herdr-{sha256(os.fsencode(common)).hexdigest()[:20]}'
+
+
+def checked_return(binding, terminal):
+    try:
+        return probe_return(binding, terminal)
+    except ReturnHold as error:
+        raise LifecycleHold(str(error)) from None
+
+
+def collector(state, parent):
+    native = NativeLifecycle(core_socket(), checked_return)
+    lifecycle = Lifecycle(state, parent, observe=native.observe, retire=native.retire, probe=checked_return)
+    return lifecycle, native
+
+
+def launch_managed(root, args, command):
+    state = state_directory(root, args.state_dir)
+    lifecycle, native = collector(state, args.parent)
+    with connect(native.path) as (core, core_id):
+        parent = core.call('terminal.get', terminal=args.parent)
+        if not parent or parent.get('address') != args.parent or parent.get('state') != 'live':
+            raise LifecycleHold('owner_terminal_unavailable')
+    source = args.source or git_value(root, 'rev-parse', 'HEAD')
+    check_review_source(root, source)
+    session_root = (root / os.environ['CODEX_HOME'] if os.environ.get('CODEX_HOME') else Path.home() / '.codex')
+    argv = command[command.index('--') + 1:]
+    labels = {'task': args.task_id, 'role': args.role, 'scopehub.assignment': args.assignment_id}
+    if args.space is not None:
+        labels['herdr.space'] = args.space
+    binding = {
+        'id': args.assignment_id, 'core_id': core_id, 'parent': args.parent, 'task': args.task_id,
+        'role': args.role, 'checkout': str(root), 'source': source, 'space': args.space,
+        'name': command[command.index('--name') + 1], 'labels': labels,
+        'prompt_sha256': sha256(argv[-1].encode()).hexdigest(), 'codex_argv': argv[:-1],
+        'model': argv[argv.index('--model') + 1], 'effort': json.loads(argv[argv.index('-c') + 1].split('=', 1)[1]),
+        'tier': args.tier, 'sessions': str((session_root / 'sessions').resolve()),
+    }
+    state.parent.mkdir(parents=True, exist_ok=True)
+    lifecycle.register(binding)
+    env = {**os.environ, 'HC_SOCKET': str(native.path)}
+    worker = [sys.executable, '-B', str(Path(__file__).resolve()), 'collect', '--watch',
+              '--state-dir', str(state), '--parent', args.parent, '--assignment-id', args.assignment_id]
+    subprocess.Popen(worker, cwd=root, env=env, start_new_session=True, stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    reply = subprocess.run([*command[:3], '--json', *command[3:]], cwd=root, env=env, capture_output=True,
+                           timeout=60, check=True)
+    try:
+        address = json.loads(reply.stdout)['address']
+        if not isinstance(address, str) or not ADDRESS.fullmatch(address):
+            raise ValueError
+    except (ValueError, KeyError, TypeError):
+        raise LifecycleHold('launch_reply_unavailable') from None
+    print(json.dumps({'version': 1, 'assignment': args.assignment_id, 'terminal': address,
+                      'source': source, 'role': args.role, 'model': binding['model'],
+                      'effort': binding['effort'], 'tier': args.tier}))
+
+
+def collect_main():
+    parser = argparse.ArgumentParser(prog='pnpm project:herdr collect', allow_abbrev=False,
+                                     description='Recover and retire registered assignments of one local owner.')
+    parser.add_argument('--parent', required=True, help='Exact local Herdr owner terminal address.')
+    parser.add_argument('--state-dir', type=Path, help='Existing private lifecycle root override.')
+    parser.add_argument('--assignment-id', help='Inspect only this registered assignment.')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--dry-run', action='store_true', help='Inspect without changing records or terminals.')
+    mode.add_argument('--watch', action='store_true', help='Resume an assignment watcher after interruption.')
+    args = parser.parse_args(sys.argv[2:])
+    if not ADDRESS.fullmatch(args.parent):
+        parser.error('--parent must be an exact local terminal address.')
+    if args.watch and args.assignment_id is None:
+        parser.error('--watch requires --assignment-id.')
+    try:
+        require_supported_host()
+        root = find_worktree(Path.cwd())
+        lifecycle, native = collector(state_directory(root, args.state_dir), args.parent)
+        started = time.monotonic()
+        observed = False
+        while True:
+            result = lifecycle.collect(args.assignment_id, dry_run=args.dry_run)
+            if not args.watch:
+                break
+            lane = result['assignments'][0]
+            elapsed = time.monotonic() - started
+            reason = lane.get('reason')
+            if lane['status'] == 'retired' or reason in WATCH_FINAL_HOLDS or elapsed >= WATCH_SECONDS:
+                break
+            if not observed and reason == 'terminal_missing' and elapsed >= LAUNCH_SETTLE_SECONDS:
+                break
+            observed = observed or reason in {'terminal_not_ready', 'terminal_turn_unconfirmed', 'original_missing'}
+            waiting_since = time.monotonic()
+            native.wait_for_change(args.assignment_id)
+            # A lost connection must not turn the detached watcher into a busy loop.
+            time.sleep(max(0, 1 - (time.monotonic() - waiting_since)))
+        if args.assignment_id is not None and result['assignments'][0]['status'] == 'retired':
+            lane = lifecycle.retired / args.assignment_id
+            result['assignments'][0].update(receipt=str(lane / 'assignment.json'),
+                                            original=str(lane / 'original.jsonl'))
+        print(json.dumps(result, indent=2))
+    except (LaunchError, LifecycleHold, OSError, subprocess.SubprocessError) as error:
+        print(f'{parser.prog}: {error if isinstance(error, (LaunchError, LifecycleHold)) else "collection unavailable"}',
+              file=sys.stderr)
+        return 1
+    return 0
+
+
 def main() -> int:
+    if sys.argv[1:2] == ['collect']:
+        return collect_main()
     parser = argparse.ArgumentParser(prog='pnpm project:herdr', description=__doc__, allow_abbrev=False)
     parser.add_argument('task_id')
     parser.add_argument('role', choices=ROLE_PROFILES)
     parser.add_argument('--assignment', required=True,
                         help='Bounded task text. Use --assignment=TEXT if it begins with a dash.')
     parser.add_argument('--space', metavar='ID', help='Existing local Herdr space for a visible tab.')
+    parser.add_argument('--parent', metavar='TERMINAL', help='Explicit local Herdr parent terminal address.')
+    parser.add_argument('--no-notify', action='store_true', help='Suppress Herdr messages to the parent.')
+    parser.add_argument('--tier', choices=('priority', 'default'), help='Codex service tier (Fast or Standard).')
+    parser.add_argument('--managed', action='store_true', help='Register and automatically retire this one assignment.')
+    parser.add_argument('--state-dir', type=Path, help='Private lifecycle root override with --managed.')
     parser.add_argument('--effort', help='Reasoning effort for this assignment with a family-based profile.')
     parser.add_argument('--escalate-model', action='store_true',
                         help='Use the supervise model family for this implementation assignment.')
@@ -271,25 +414,46 @@ def main() -> int:
         parser.error('--escalate-model requires the implement role.')
     if args.source is not None and args.role != 'review':
         parser.error('--source requires the review role.')
+    if args.parent is not None and not ADDRESS.fullmatch(args.parent):
+        parser.error('--parent must be an exact local terminal address.')
+    if args.managed and (args.parent is None or args.role == 'coordinate' or args.role == 'review' and args.source is None):
+        parser.error('--managed requires an explicit --parent and an implementation or source-bound review.')
+    if args.state_dir is not None and not args.managed:
+        parser.error('--state-dir requires --managed.')
+    if args.managed:
+        args.assignment_id = uuid4().hex
+        args.tier = args.tier or MANAGED_TIERS[args.role]
     try:
         root = find_worktree(Path.cwd())
         command = launch_argv(root, args)
         if args.dry_run:
             if args.source is not None:
                 check_review_source(root, args.source)
-            print(json.dumps({'cwd': str(root), 'argv': command}, indent=2))
+            plan = {'cwd': str(root), 'argv': command}
+            if args.managed:
+                plan['lifecycle'] = {'version': 1, 'managed_entry_required': True,
+                                     'parent': args.parent, 'tier': args.tier, 'host': 'linux'}
+            print(json.dumps(plan, indent=2))
             return 0
+        if args.managed:
+            require_supported_host()
         if args.space is not None:
             require_local_space(root, args.space)
         if args.source is not None:
             check_review_source(root, args.source)
-        subprocess.run(command, cwd=root, check=True)
+        if args.managed:
+            launch_managed(root, args, command)
+        else:
+            subprocess.run(command, cwd=root, check=True)
         maintain_automatically(root)
     except subprocess.CalledProcessError as error:
         tool = ' '.join(error.cmd[:2])
         print(f'{parser.prog}: {tool} failed with exit status {error.returncode}.', file=sys.stderr)
         return error.returncode if error.returncode > 0 else 128 - error.returncode
-    except (LaunchError, ScopeError, OSError) as error:
+    except subprocess.TimeoutExpired:
+        print(f'{parser.prog}: launch or verification timed out.', file=sys.stderr)
+        return 1
+    except (LaunchError, ScopeError, LifecycleHold, OSError) as error:
         print(f'{parser.prog}: {error}', file=sys.stderr)
         return 1
     return 0
