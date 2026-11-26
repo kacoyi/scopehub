@@ -525,7 +525,11 @@ class WindowsLaneTests(ProjectFixture):
     def partition_fixture(self, discovery=None, *, scoped_catalog=False, receipt_scope=False, legacy_runner=False):
         catalog_path = self.root / 'project/checks.json'
         catalog = read_json(catalog_path)
-        next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)['command'] = windows_python.COMMAND
+        python_check = next(row for row in catalog['checks'] if row['id'] == windows_python.CHECK)
+        python_check['command'] = windows_python.COMMAND
+        if discovery == 'case_exchange':
+            # Both fixture lanes run sequentially on the same test host.
+            python_check['timeout_seconds'] = 60
         if scoped_catalog:
             production = read_json(Path(__file__).resolve().parents[2] / 'project/checks.json')
             present = {check['id'] for check in catalog['checks']}
@@ -923,13 +927,13 @@ class WindowsLaneTests(ProjectFixture):
         self.assertIn(b'cleanup ok', serial)
         self.produce()
         code, report = self.run_harness('--require-windows', '--ci-windows-aggregate', str(self.downloads))
-        self.assertEqual((0, 'passed'), (code, report['status']))
+        original_row = next(row for row in report['checks'] if row['id'] == windows_python.CHECK)
+        self.assertEqual((0, 'passed'), (code, report['status']), original_row)
         destination = Path(self.enterContext(tempfile.TemporaryDirectory()))
         good = destination / 'legitimate'
         self.assertTrue(ci_artifacts.stage_artifacts(self.root, good, os.environ))
         original_parts = ci_artifacts.python_parts(self.reports, report, windows_python.LANES)
         self.assertIn('test_手順'.encode('utf-8'), original_parts[1][1])
-        original_row = next(row for row in report['checks'] if row['id'] == windows_python.CHECK)
         original_log = (self.root / original_row['log']).read_bytes()
         self.assertEqual([line for line in serial if b' ... ' in line],
                          [line for line in original_log.splitlines() if b' ... ' in line])
