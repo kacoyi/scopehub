@@ -260,6 +260,26 @@
       "requested_at": "2026-11-26T13:09:50.978311+00:00",
       "request_id": "9f655d0688aa7f88d71f34e9f89a5621c5de755d7ef3565ded6d1ae689282b08",
       "evidence_sha256": "66874b51ddb8e9908d80226334cebc721b4bfb0859f0e9564378d07fa74b0db6"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-034 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "APPROVE M2-034 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "observation": "With the list access check held open, my controlled replay of the candidate UI hooks issued one explicit clear, advanced the selection revision from 13 to 14, and restored an empty selection on remount.",
+      "reviewer": "Independent Astra Standard (t16s)",
+      "original_sha256": "ac7c1707a1a5967b3c3fe07eee99628ccc5f7ad33365c36a206bf37eccf044ee",
+      "response_id": "29e822206c5f3ec8263e7b464ad7a33a2c062b3149983e544a4bc4eb1d685511",
+      "response_sha256": "bbc2e93957c210fc14842a408150c66200890153fd232df450ca875e69111aa0",
+      "legacy_response_sha256": "c683d81f1d3ab60c7917e2e97642f5571930b4cf633faa21cfb7b2bff7ed16b7",
+      "observation_body_sha256": "d6b6e57d66908861ab701ba4f7ceee4f05e33090e151e0d8968985bb26d03c48",
+      "event": {
+        "id": "msg_0d2f71b4e546763d016b0830a251a087d2816acdd27ace5ca4",
+        "timestamp": "2026-11-26T13:14:30.208Z"
+      },
+      "supersedes": "9f655d0688aa7f88d71f34e9f89a5621c5de755d7ef3565ded6d1ae689282b08",
+      "evidence_sha256": "8f7d1593de5045297f753324dc18c21e6dd59bcd31fa6745733919fa631cdbc0"
     }
   ]
 }

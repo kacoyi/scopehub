@@ -280,6 +280,26 @@
       "requested_at": "2026-11-26T13:09:51.707807+00:00",
       "request_id": "0d44310a01747a837147169cb15c619a24e2d2d9535f57045004e90bef440db7",
       "evidence_sha256": "172b113410c224149908efbef5ed85307100cdd774ee0f89e11590e3f02e9645"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "APPROVE M2-035 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "observation": "The merged workspace spec calls the new Windows ACL comparison only inside the private launcher handoff test, and the retained CSV and folder traces each show zero additional chart reads when a withdrawn revision was reopened by ID.",
+      "reviewer": "Independent Astra Standard (t16t)",
+      "original_sha256": "81c07472dcd2513e7a7159b9b369778d86bd458edc42d68241f99fedcb9479fa",
+      "response_id": "7eb9286670918b01cf141364d15c0c5455ca97f34cfcf5b603e3ed47146ca833",
+      "response_sha256": "d1431c10c5101ad5fe2f16b95800adfe789f9d3460ef0c84212a061a83461f2c",
+      "legacy_response_sha256": "1bb07316807b0aac017777e152c083ed20a10b9cac5f3cf50d21adf881d660f1",
+      "observation_body_sha256": "8b2436d322c5e596046ff4e808466db1bca785d8b9f49893f5714f980c49873c",
+      "event": {
+        "id": "msg_05dd06ce3fb063f4016b08306c312c87d2b6c5649bc6c5f79c",
+        "timestamp": "2026-11-26T13:13:33.395Z"
+      },
+      "supersedes": "0d44310a01747a837147169cb15c619a24e2d2d9535f57045004e90bef440db7",
+      "evidence_sha256": "126284ef9ede3384703bd8c9556dd947ff39455c63bc7d8e370f34eaa30151c6"
     }
   ]
 }

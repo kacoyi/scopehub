@@ -300,6 +300,26 @@
       "requested_at": "2026-11-26T13:09:50.284980+00:00",
       "request_id": "b2081837548683ff20d2a525eaab939a26ed66f9ba75b38472f556406f2fcfbe",
       "evidence_sha256": "3266aaa9de4ed7766a83d7c0e5958c6ad9b4b80fa165bd8bc950a132704736b2"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "verdict": "approved",
+      "decision": "APPROVE M2-039 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "scope": "APPROVE M2-039 01026c1b3545c940f8d3d960eb64b603e1324b33",
+      "observation": "On Linux, Playwright collected 99 workspace cases from the combined source, including the private launcher handoff, CSV list recovery, and both refocus cases, while the scoped Windows configuration collected one native revision-access case.",
+      "reviewer": "Independent Astra Standard (t16r)",
+      "original_sha256": "a4e6ebe20d9a8113d6ea3cf8ca055d0439539032a04e7edcfc9e779bf9009173",
+      "response_id": "d53b2118199987762742ca0388cfa7b1485d12c44a997611af93519eee59cba1",
+      "response_sha256": "8fd5f16e2677dae9acaa24077f718382b6450b26e30a3c191914c35cbebe1b20",
+      "legacy_response_sha256": "1d5c303eed4d422bd0036b105c9a18236a5b1ece70766cbdbb92df80151a4052",
+      "observation_body_sha256": "db5ddd0d4e52450c63012ca767fb6e0bb92f3d906fd660bc7299b8c2c9e4d554",
+      "event": {
+        "id": "msg_0062ba1665670e3b016b08306ccfac87d2b0b7ee92e8702035",
+        "timestamp": "2026-11-26T13:13:39.567Z"
+      },
+      "supersedes": "b2081837548683ff20d2a525eaab939a26ed66f9ba75b38472f556406f2fcfbe",
+      "evidence_sha256": "351e187129857c9cb65701cc39bf5e4d4d80558f38fc1a34d7c15f17442b7213"
     }
   ]
 }
