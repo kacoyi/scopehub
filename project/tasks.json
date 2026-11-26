@@ -25982,6 +25982,10 @@
         {
           "path": "project/evidence/M0-154-bfb6958fa70338b3.json",
           "sha256": "7fafedaf54305dfe2e50eddbdcc6d54ddd3f6666d83f7b40d7c33477029e5509"
+        },
+        {
+          "path": "project/evidence/M0-154-a4209b3465db38fc.json",
+          "sha256": "3e299258a947ba1a905d5c5990e4120625721080666a9446ec8651ad9b31ed1b"
         }
       ],
       "next_action": "Use .reports/m0-154-candle-geometry/handoff.json for the reproduced failure, candidate measurements and exact source. Obtain fresh independent review on the clean candidate. The coordinator owns publication and one ordinary first-attempt Windows qualification. Packaged physical Windows acceptance is separate and historical Windows asset attribution remains unknown.",
