@@ -347,6 +347,26 @@
       "requested_at": "2026-11-26T15:05:48.156035+00:00",
       "request_id": "3ff104f970ca712f0bbcba542c228541add6a9228fcd8b0965c5ad3dea6c2885",
       "evidence_sha256": "762b960accb74ff10a9acb317852231dab7f18d386539b096edc2b1e04c26ee4"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "verdict": "approved",
+      "decision": "APPROVE M2-035 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "scope": "APPROVE M2-035 e04c951d90ee2c99b6e039b2caf8f753d21727de",
+      "observation": "In my local replay, the HTTP 403 denial and the HTTP 200 reply containing both result and error each left the withheld CSV ineligible for display after exactly one status read and zero chart reads.",
+      "reviewer": "Independent Astra Standard (t191)",
+      "original_sha256": "9bd2f0f19fcafc58851cc8da1a30c9bc719280c9e04ffa9c8ede93570086a59b",
+      "response_id": "fc6c672c842ee89af6c23ff3448c4f38bd073cf765ff6d0b5aba1a2b64470bb3",
+      "response_sha256": "74b7da3c859fa104ea83be7d78f83fd0c436dfa33a1d30a06d2dc92fca36270b",
+      "legacy_response_sha256": "aea43463dcbab9fec4c14f2595baf90632eb6006bd4e6f921110db99d894edc4",
+      "observation_body_sha256": "2933eb25892c18fc7a4abbc02b4f00a374080b97900d42e73a727c6c358590bf",
+      "event": {
+        "id": "msg_04e98eee2e96eaca016b084b95081887d28ae6b3c70e7d40fc",
+        "timestamp": "2026-11-26T15:09:23.425Z"
+      },
+      "supersedes": "3ff104f970ca712f0bbcba542c228541add6a9228fcd8b0965c5ad3dea6c2885",
+      "evidence_sha256": "fee4ab19a5473d9846d0cc4aaafb8e6b03958ee88021ba693bdd6528f5fb7343"
     }
   ]
 }
