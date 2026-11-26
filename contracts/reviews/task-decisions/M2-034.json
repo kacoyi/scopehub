@@ -88,6 +88,15 @@
       },
       "supersedes": "8cccda8612f428653f2f65525ae9c89808c92ef560e278b202ee67cb81ebb55a",
       "evidence_sha256": "427db6a73432f0397226e2d84095ed227299f034ff4a9522b4127cd1d3420f39"
+    },
+    {
+      "kind": "request",
+      "source_commit": "359e33231892432813493958b580ee25aaf94a5f",
+      "scope": "Independently test the coupled frozen chart selection and persistence contract with the new source-row recovery. Reopen a previously saved selection, inspect explicit clearing, and verify ordinary restore and revocation via the supported application. Preserve previous decisions and the node and Chromium controls.",
+      "supersedes": "26f55494dffdb83cd61790cba0f93bc89509b9d23c9cb9af8a65f15ec02a0a02",
+      "requested_at": "2026-11-26T04:21:35.331199+00:00",
+      "request_id": "d1786e93e6c14d270443d996e83df12540a115994cd15e92a31cacf4a609fb3a",
+      "evidence_sha256": "e40207ed90df817690c3adde36320caabe8ef64204e63a6b24058d1631ee4124"
     }
   ]
 }
