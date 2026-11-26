@@ -271,6 +271,26 @@
       "requested_at": "2026-11-26T13:58:52.678012+00:00",
       "request_id": "1ed644babe1d01bc345e9710fed7cc56e4e7396586f1eda83889d70c48f123dc",
       "evidence_sha256": "7e30473b3480fa9096bc11e3f5336b4222840a07789e797ed916d75ed5f7c804"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "verdict": "approved",
+      "decision": "APPROVE M0-139 c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "scope": "APPROVE M0-139 c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "observation": "The public importer reopened the archived receipt for Windows run 45680128413 and rejected an attempt-two claim that retained both required logs from attempt one.",
+      "reviewer": "Independent Astra Standard (t17w)",
+      "original_sha256": "f09d288c80e32282f15f0324bce78de2f3c1f7d8f403ef3c62d73df62cd95f48",
+      "response_id": "6e3cc2341e38e67d2790b85a3d4b6e709d45544535ac40f4d72e896adef29cb9",
+      "response_sha256": "1f5c2453243961fc38b0a5ad332d8258cb1c744e8351d0b4067b036bc7138b57",
+      "legacy_response_sha256": "bdfc2881d192eace9b3c34e0bb14462b34d2e544942be4bb8674cb07e3fb67ab",
+      "observation_body_sha256": "63d97fd77da8abae49ae18617d0dc726861ee4d50ae7e8103dc5ded2b86896fd",
+      "event": {
+        "id": "msg_009d5c51c52fcf5c016b083c9690a487d2b0135ae21c1df654",
+        "timestamp": "2026-11-26T14:05:36.599Z"
+      },
+      "supersedes": "1ed644babe1d01bc345e9710fed7cc56e4e7396586f1eda83889d70c48f123dc",
+      "evidence_sha256": "9027428c88697a2a0989feb80c9fc20e3b4c76f02055f78cb9fda3107b8168f4"
     }
   ]
 }

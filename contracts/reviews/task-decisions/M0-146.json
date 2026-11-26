@@ -271,6 +271,26 @@
       "requested_at": "2026-11-26T13:58:53.236241+00:00",
       "request_id": "dfb7268849aa893802a4f59bd3e7f3f527f2370622f3286207fd3546377fdef1",
       "evidence_sha256": "f913cf4b483dce5600b6bf6b0823fa54df18bb0920c14ab129be963ca20bf75b"
+    },
+    {
+      "kind": "decision",
+      "source_commit": "c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "verdict": "approved",
+      "decision": "APPROVE M0-146 c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "scope": "APPROVE M0-146 c6e7f9e4932adf54856d3bd53344e11e3ea2f935",
+      "observation": "I reproduced opposite pass and skip outcomes with byte-identical legacy logs, and the candidate rejected both assignments while accepting and reopening both independently witnessed current outcomes.",
+      "reviewer": "Independent Astra Standard (t17s)",
+      "original_sha256": "aba4d3d5e79cc2c8eaab6d926ba8c75bb5cc18f1cec5336db7bbc9715363983b",
+      "response_id": "adc4825eb5d5c5fc2ee61e277a3eef5400e5848852a581ebd0b0bd9deaad3e33",
+      "response_sha256": "9db663648e94f37c7f2a58abeada06656021e764b7354c2a8f65d5e9601d78c4",
+      "legacy_response_sha256": "8d9ce59214ebc140d244f0cd92e0cd037126fbfe68f1d5fbfa71a56749534e27",
+      "observation_body_sha256": "6a7901a084660c7edc6fe678d07baf379990b8cf51d162c2014a2ea20d230c83",
+      "event": {
+        "id": "msg_0940973a2e160613016b083cfca3a087d1815f965bdead23a4",
+        "timestamp": "2026-11-26T14:07:21.725Z"
+      },
+      "supersedes": "dfb7268849aa893802a4f59bd3e7f3f527f2370622f3286207fd3546377fdef1",
+      "evidence_sha256": "92dd0e97fa58a0299c9a3b8e0c8ad4af09cc655b4b4acac18c1476e4b9da2380"
     }
   ]
 }
