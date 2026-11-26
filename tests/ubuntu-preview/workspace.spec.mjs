@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { promisify } from 'node:util';
+import { isDeepStrictEqual, promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { control, leaveSample } from '../ui/workspace-controls.mjs';
 import { painted } from '../ui/chart-pixels.mjs';
@@ -856,7 +856,252 @@ test('workspace delivers pre-admission BUSY after a complete indicator draft req
   }
 });
 
-test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }) => {
+test('indicator-preview shows zero volatility for equal closes in a full or cropped window', async ({ browser }, testInfo) => {
+  await observeFrozenIndicatorPreview(browser, testInfo, [
+    { count: 3, cut: 0 },
+    { count: 1, cut: 1, refusals: 2 },
+    { count: 1, cut: 2, refusals: 1 },
+  ]);
+});
+
+const indicatorStatusFaults = [
+  ['an admitted BUSY', 200, () => busy, 'The workspace is busy. Try the preview again.'],
+  ['a nonretryable 429', 429, () => ({ ok: false, error: { code: 'BUSY', retryable: false } }),
+    'The workspace is busy. Try the preview again.'],
+  ['a contradictory 429', 429, reply => ({ ...busy, result: reply.result }), 'The workspace is busy. Try the preview again.'],
+  ['a different task', 200, reply => ({ ok: true, result: { ...reply.result, task_id: randomUUID() } }),
+    'The indicator preview could not be completed.'],
+  ['persistent admission contention', 429, () => busy, 'The indicator preview could not be completed.', true],
+];
+
+for (const [name, http, body, alert, persistent] of indicatorStatusFaults) {
+  test(`indicator-preview stops on ${name} after a lost status reply`, async ({ browser }, testInfo) => {
+    await observeFrozenIndicatorPreview(browser, testInfo, [{ count: 1, cut: 1, fault: { name, http, body, alert, persistent } }]);
+  });
+}
+
+test('indicator-preview accounts for the terminal deadline on the persistent refusal route', async ({ browser }, testInfo) => {
+  const fault = {
+    name: 'persistent refusal with a held final reply', http: 429, body: () => busy,
+    alert: 'The indicator preview could not be completed.', persistent: true, holdFinalReply: true,
+  };
+  await observeFrozenIndicatorPreview(browser, testInfo, [{ count: 1, cut: 1, fault }]);
+});
+
+function isWorkspaceAdmissionRefusal({ http, reply, delivery, lost, substituted, response_error, browserDeadline }) {
+  return http === 429 && !delivery && !lost && !substituted && !response_error && !browserDeadline
+    && isDeepStrictEqual(reply, busy);
+}
+
+function isIsolatedStatusDeadline(attempt) {
+  return attempt?.syntheticRefusalRoute === true && attempt.browserDeadline === true
+    && attempt.delivery === 'net::ERR_ABORTED'
+    && ['http', 'reply', 'response_error', 'lost', 'substituted', 'gated'].every(key => attempt[key] === undefined);
+}
+
+function expectSingleAdmittedCommand(attempts, result) {
+  const last = attempts.at(-1);
+  expect(last).toMatchObject({ http: 200, reply: { ok: true, result } });
+  expect(last.reply.result.request_id).toBe(last.request_id);
+  for (const refused of attempts.slice(0, -1)) {
+    expect(isWorkspaceAdmissionRefusal(refused)).toBe(true);
+    expect(refused.body).toBe(last.body);
+  }
+  return last;
+}
+
+function verifyFrozenIndicatorJournal(journal, previousTask, { cut, fault }) {
+  const drafts = journal.filter(attempt => attempt.operation === 'indicator.createDraft');
+  const runs = journal.filter(attempt => attempt.operation === 'indicator.runPreview');
+  const draft = expectSingleAdmittedCommand(drafts, { outcome: { state: 'committed' } });
+  const run = expectSingleAdmittedCommand(runs, { outcome: { state: 'committed' } });
+  expect(run.payload.intent.arguments.draft_id).toBe(draft.reply.result.outcome.result.draft_id);
+  expect(journal.indexOf(draft)).toBeLessThan(journal.indexOf(runs[0]));
+  const taskId = run.reply.result.outcome.result.task_id;
+  expect(taskId).toEqual(expect.any(String));
+
+  const statuses = journal.filter(attempt => attempt.operation === 'indicator_preview_status');
+  expect(statuses.every(attempt => attempt.task_id === taskId && typeof attempt.request_id === 'string'
+    && attempt.request_id.length > 0)).toBe(true);
+  expect(new Set(statuses.map(attempt => attempt.request_id)).size).toBe(statuses.length);
+  expect(journal.indexOf(run)).toBeLessThan(journal.indexOf(statuses[0]));
+
+  const firstLoss = statuses.findIndex(attempt => attempt.lost);
+  const firstReady = statuses.findIndex(attempt => attempt.reply?.result?.status === 'ready');
+  const terminalIndex = cut ? firstLoss : firstReady;
+  expect(terminalIndex).toBeGreaterThanOrEqual(0);
+  for (const attempt of statuses.slice(0, terminalIndex).filter(a => !isWorkspaceAdmissionRefusal(a))) {
+    expect(attempt).toMatchObject({ http: 200, reply: { ok: true, result: { status: 'running', task_id: taskId } } });
+  }
+  let deadline;
+  if (fault?.persistent) {
+    const afterLoss = statuses.slice(terminalIndex + 1);
+    if (isIsolatedStatusDeadline(afterLoss.at(-1))) deadline = afterLoss.pop();
+    expect(afterLoss.length).toBeGreaterThan(1);
+    expect(afterLoss.every(attempt => attempt.syntheticRefusalRoute === true && isWorkspaceAdmissionRefusal(attempt))).toBe(true);
+    if (fault.holdFinalReply) {
+      expect(afterLoss).toHaveLength(2);
+      expect(deadline).toMatchObject({ heldForDeadline: true, triedLateFulfillment: true });
+    }
+  }
+  // Every post-loss row is independently accounted for above in the persistent
+  // case. The isolated deadline is neither a refusal nor a status observation.
+  const observations = statuses.slice(terminalIndex)
+    .filter(attempt => attempt !== deadline && !isWorkspaceAdmissionRefusal(attempt));
+  const expectedObservations = cut === 0 || fault?.persistent ? 1 : 2;
+  expect(observations).toHaveLength(expectedObservations);
+  for (const attempt of observations.slice(0, cut)) {
+    expect(attempt).toMatchObject({ delivery: 'net::ERR_CONNECTION_RESET',
+      lost: { http: 200, result: { status: 'ready', task_id: taskId, event: { task_id: taskId } } } });
+    expect(attempt.http).toBeUndefined();
+    expect(attempt.lost.result).toEqual(observations[0].lost.result);
+  }
+  if (fault && !fault.persistent) {
+    expect(observations[1]).toMatchObject({ http: fault.http,
+      substituted: { http: 200, result: { status: 'ready', task_id: taskId } } });
+    expect(observations[1].reply).toEqual(observations[1].substituted.replacement);
+  } else if (!fault && cut < 2) {
+    const ready = observations.at(-1);
+    expect(ready).toMatchObject({ http: 200, reply: { ok: true,
+      result: { status: 'ready', task_id: taskId, event: { task_id: taskId } } } });
+    if (cut) expect(ready.reply.result).toEqual(observations[0].lost.result);
+  }
+  if (!fault?.persistent) expect(statuses.at(-1)).toBe(observations.at(-1));
+
+  const cancels = journal.filter(attempt => attempt.operation === 'task.cancel');
+  const current = cancels.filter(attempt => attempt.task_id === taskId);
+  const previous = previousTask ? cancels.filter(attempt => attempt.task_id === previousTask) : [];
+  expect(cancels.length).toBe(current.length + previous.length);
+  if (previousTask) {
+    expectSingleAdmittedCommand(previous, { task_id: previousTask, outcome: { status: 'completed' } });
+    expect(journal.indexOf(previous[0])).toBeLessThan(journal.indexOf(drafts[0]));
+  }
+  if (cut === 2 || fault) {
+    expectSingleAdmittedCommand(current, { task_id: taskId, outcome: { status: 'completed' } });
+    expect(journal.indexOf(current[0])).toBeGreaterThan(journal.indexOf(statuses.at(-1)));
+  } else {
+    expect(current).toEqual([]);
+  }
+  return taskId;
+}
+
+function rejectAlteredIndicatorJournals(journal, previousTask, trial) {
+  const lost = journal.findLast(attempt => attempt.lost);
+  const refuse = journal.find(attempt => attempt.operation === 'indicator_preview_status' && isWorkspaceAdmissionRefusal(attempt));
+  const cancel = journal.findLast(attempt => attempt.operation === 'task.cancel');
+  const additionalAttempt = (attempt, identity) => {
+    const payload = { ...attempt.payload, request_id: randomUUID(), ...identity };
+    return { ...attempt, ...identity, request_id: payload.request_id, payload, body: JSON.stringify(payload) };
+  };
+  const insert = (index, frame) => [...journal.slice(0, index), frame, ...journal.slice(index)];
+  const cancelAt = journal.indexOf(cancel);
+  const controls = {
+    'extra admitted loss': insert(cancelAt, additionalAttempt(lost)),
+    'wrong-task refusal': insert(cancelAt, additionalAttempt(refuse, { task_id: randomUUID() })),
+    'extra cancel': [...journal, cancel],
+    'extra draft': insert(cancelAt, journal.findLast(attempt => attempt.operation === 'indicator.createDraft')),
+    'extra preview': insert(cancelAt, journal.findLast(attempt => attempt.operation === 'indicator.runPreview')),
+    'ambiguous refusal': journal.map(attempt => attempt === refuse ? { ...attempt, http: 200 } : attempt),
+  };
+  for (const [name, altered] of Object.entries(controls)) {
+    expect(() => verifyFrozenIndicatorJournal(altered, previousTask, trial), name).toThrow();
+  }
+  console.info('Frozen indicator journal rejected controls', JSON.stringify(Object.keys(controls)));
+}
+
+function rejectAlteredDeadlineJournals(journal, previousTask, trial) {
+  const natural = { ...trial, fault: { ...trial.fault, holdFinalReply: false } };
+  const deadline = journal.find(isIsolatedStatusDeadline);
+  const refusal = journal.find(attempt => attempt.syntheticRefusalRoute && isWorkspaceAdmissionRefusal(attempt));
+  const lost = journal.find(attempt => attempt.lost);
+  const index = journal.indexOf(deadline);
+  const prefix = journal.slice(0, index);
+  const suffix = journal.slice(index + 1);
+  const verify = rows => verifyFrozenIndicatorJournal(rows, previousTask, natural);
+  const fresh = (attempt, task_id = attempt.task_id) => {
+    const payload = { ...attempt.payload, request_id: randomUUID(), task_id };
+    return { ...attempt, request_id: payload.request_id, task_id, payload, body: JSON.stringify(payload) };
+  };
+
+  expect(verify(journal)).toBe(deadline.task_id);
+  // Project the same complete refusals without the canceled wire request.
+  expect(verify([...prefix, ...suffix])).toBe(deadline.task_id);
+  const controls = {
+    'missing abort provenance': [{ ...deadline, browserDeadline: undefined }],
+    'possibly forwarded timeout': [{ ...deadline, syntheticRefusalRoute: undefined }],
+    'response headers without delivery': [{ ...deadline, http: 429 }],
+    'link reset instead of deadline': [{ ...deadline, delivery: 'net::ERR_CONNECTION_RESET' }],
+    'wrong task': [fresh(deadline, randomUUID())],
+    'duplicate wire request': [deadline, deadline],
+    'two distinct aborts': [fresh(deadline), deadline],
+    'later delivered refusal': [deadline, fresh(refusal)],
+    'later admitted result': [deadline, { ...fresh(refusal),
+      syntheticRefusalRoute: undefined, http: 200, reply: { ok: true, result: lost.lost.result } }],
+  };
+  for (const [name, replacement] of Object.entries(controls)) {
+    expect(() => verify([...prefix, ...replacement, ...suffix]), name).toThrow();
+  }
+  const earlier = prefix.indexOf(refusal);
+  expect(() => verify([...prefix.slice(0, earlier), deadline, ...prefix.slice(earlier), ...suffix]),
+    'a timeout before the delivered refusals').toThrow();
+  console.info('Frozen indicator deadline journal rejected controls', JSON.stringify(Object.keys(controls)));
+}
+
+// Observe the real fetch rejection without replacing the promise used by the app.
+function observeFrozenStatusDeadlines() {
+  const fetch = window.fetch;
+  const deadlines = new Set();
+  window.frozenStatusDeadlines = deadlines;
+  window.fetch = function (path, options) {
+    const response = fetch.call(this, path, options);
+    if (path === '/__scopehub/workspace' && typeof options?.body === 'string') {
+      const payload = JSON.parse(options.body);
+      if (payload.type === 'indicator_preview_status') {
+        void response.then(undefined, error => {
+          if (options.signal?.aborted && error === options.signal.reason && error.name === 'TimeoutError') {
+            deadlines.add(payload.request_id);
+          }
+        });
+      }
+    }
+    return response;
+  };
+}
+
+function frozenJournalEvidence(journal) {
+  const attempts = [...journal.values()];
+  const bounded = value => typeof value === 'string' ? value.slice(0, 120) : undefined;
+  const result = value => value && ({
+    status: bounded(value.status), task_id: bounded(value.task_id),
+    request_id: bounded(value.request_id), outcome: bounded(value.outcome?.state ?? value.outcome?.status),
+    result_hash: bounded(value.event?.artifact?.result_hash),
+  });
+  const reply = value => value && ({
+    ok: typeof value.ok === 'boolean' ? value.ok : undefined, result: result(value.result),
+    error: value.error && { code: bounded(value.error.code),
+      retryable: typeof value.error.retryable === 'boolean' ? value.error.retryable : undefined },
+  });
+  return {
+    total: attempts.length,
+    omitted: Math.max(0, attempts.length - 192),
+    attempts: (attempts.length <= 192 ? attempts : [...attempts.slice(0, 96), ...attempts.slice(-96)]).map(attempt => ({
+      operation: bounded(attempt.operation), request_id: bounded(attempt.request_id), task_id: bounded(attempt.task_id),
+      at_ms: attempt.at_ms, body_sha256: createHash('sha256').update(attempt.body ?? '').digest('hex'),
+      http: attempt.http, reply: reply(attempt.reply), delivery: bounded(attempt.delivery),
+      response_error: bounded(attempt.response_error), browserDeadline: attempt.browserDeadline,
+      syntheticRefusalRoute: attempt.syntheticRefusalRoute, heldForDeadline: attempt.heldForDeadline,
+      triedLateFulfillment: attempt.triedLateFulfillment,
+      lateFulfillmentError: bounded(attempt.lateFulfillmentError), gated: attempt.gated,
+      lost: attempt.lost && { http: attempt.lost.http, result: result(attempt.lost.result) },
+      substituted: attempt.substituted && {
+        http: attempt.substituted.http, result: result(attempt.substituted.result),
+        replacement: reply(attempt.substituted.replacement),
+      },
+    })),
+  };
+}
+
+async function observeFrozenIndicatorPreview(browser, testInfo, trials) {
   const profile = await makeProfile();
   const revision = randomUUID();
   const prices = [133.33, 120.21, 120.21].map((close, index) => {
@@ -874,132 +1119,168 @@ test('indicator-preview shows zero volatility for equal closes in a full or crop
         await dialog.getByRole('button', { name: 'Open frozen chart' }).click();
         const panel = dialog.getByRole('region', { name: 'Indicator preview' });
         await expect(panel.getByLabel('Rolling period')).toHaveValue('2');
-        let losses = 0;
-        let frames = [];
-        let dropped = [];
-        let requests = [];
-        let startedAt = performance.now();
-        const previewRequest = request => {
-          if (new URL(request.url()).pathname !== endpoint) return undefined;
+        const failure = panel.getByRole('alert').or(panel.getByText('Indicator preview cancelled.', { exact: true }));
+        const run = panel.getByRole('button', { name: 'Run preview' });
+        if (trials.some(trial => trial.fault?.persistent)) await page.evaluate(observeFrozenStatusDeadlines);
+        let journal = new Map();
+        let routeStatus;
+        let startedAt;
+        const elapsed = () => Math.round(performance.now() - startedAt);
+        page.on('request', request => {
+          if (new URL(request.url()).pathname !== endpoint) return;
           const payload = request.postDataJSON();
           const operation = payload?.intent?.operation ?? payload?.operation ?? payload?.type;
-          return ['indicator.createDraft', 'indicator.runPreview', 'indicator_preview_status', 'task.cancel'].includes(operation)
-            ? { operation, request_id: payload.request_id, task_id: payload.task_id } : undefined;
-        };
-        page.on('request', request => {
-          const entry = previewRequest(request);
-          if (entry) requests.push(entry);
+          if (!['indicator.createDraft', 'indicator.runPreview', 'indicator_preview_status', 'task.cancel'].includes(operation)) return;
+          journal.set(request, { operation, request_id: payload.request_id, task_id: payload.task_id,
+            at_ms: elapsed(), body: request.postData(), payload });
         });
         page.on('response', async response => {
-          const entry = previewRequest(response.request());
-          if (!entry) return;
-          const frame = { ...entry, at_ms: Math.round(performance.now() - startedAt), http: response.status() };
-          frames.push(frame);
-          try {
-            const reply = await response.json();
-            const result = reply.result;
-            frame.ok = reply.ok;
-            frame.outcome = result?.outcome?.state ?? result?.status;
-            frame.terminal = result?.event?.outcome?.status ?? result?.outcome?.status;
-            frame.code = reply.error?.code ?? result?.outcome?.error?.code ?? result?.event?.outcome?.error?.code;
-            frame.reply_task_id = result?.task_id ?? result?.outcome?.result?.task_id;
-            if (result?.status === 'ready') frame.ready = result;
-          } catch (error) {
-            frame.response_error = error.name;
-          }
+          const attempt = journal.get(response.request());
+          if (!attempt) return;
+          attempt.http = response.status();
+          try { attempt.reply = await response.json(); }
+          catch (error) { attempt.response_error = error.name; }
         });
         page.on('requestfailed', request => {
-          const entry = previewRequest(request);
-          if (entry) frames.push({ ...entry, at_ms: Math.round(performance.now() - startedAt), delivery: request.failure()?.errorText });
+          const attempt = journal.get(request);
+          if (attempt) attempt.delivery = request.failure()?.errorText;
         });
-        await page.route(server.url + endpoint, async route => {
-          const entry = previewRequest(route.request());
-          if (dropped.length >= losses || entry?.operation !== 'indicator_preview_status') return route.continue();
-          const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
-          const result = (await response.json()).result;
-          if (result?.status !== 'ready') return route.fulfill({ response });
-          dropped.push({ ...entry, http: response.status(), result, requestsAtLoss: requests.length });
-          await route.abort('connectionreset');
+        await page.route(server.url + endpoint, route => {
+          const attempt = journal.get(route.request());
+          return attempt?.operation === 'indicator_preview_status' ? routeStatus(route, attempt) : route.continue();
         });
-        for (const { count, cut } of [{ count: 3, cut: 0 }, { count: 1, cut: 1 }, { count: 1, cut: 2 }]) {
-          frames = [];
-          dropped = [];
-          requests = [];
-          losses = cut;
+
+        let previousTask;
+        for (const trial of trials) {
+          const { count, cut, fault, refusals = 0 } = trial;
+          journal = new Map();
           startedAt = performance.now();
-          if (cut === 1) await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
-          const failure = panel.getByRole('alert').or(panel.getByText('Indicator preview cancelled.', { exact: true }));
-          const run = panel.getByRole('button', { name: 'Run preview' });
-          const describe = visibleError => JSON.stringify({
-            count, cut, alert: visibleError,
-            frames: frames.map(({ ready, ...frame }) => frame),
-            ...(dropped.length && { afterLoss: requests.slice(dropped[0].requestsAtLoss) }),
-            lost: dropped.map(({ result, ...frame }) => ({
-              ...frame, status: result.status, result_hash: result.event.artifact.result_hash,
-            })),
-          });
+          let lost = 0;
+          let substituted = false;
+          let simulatedAttempts = 0;
+          let remaining = refusals;
+          let holder;
+          let snapshotReply;
+          let alert;
+          routeStatus = async (route, attempt) => {
+            if (fault?.persistent && lost === cut) {
+              attempt.syntheticRefusalRoute = true;
+              if (++simulatedAttempts === 3 && fault.holdFinalReply) {
+                // Let the real application deadline end this request while
+                // the route still has its refusal available to fulfill.
+                attempt.heldForDeadline = true;
+                await page.waitForEvent('requestfailed', {
+                  predicate: request => request === route.request(), timeout: 18_000,
+                });
+                attempt.triedLateFulfillment = true;
+                try { await route.fulfill({ status: fault.http, json: fault.body() }); }
+                catch (error) { attempt.lateFulfillmentError = error.name; }
+                return;
+              }
+              return route.fulfill({ status: fault.http, json: fault.body() });
+            }
+            if (!remaining && lost >= cut && (!fault || substituted)) return route.continue();
+            const response = await route.fetch({ timeout: 5_000, maxRetries: 0 });
+            try {
+              const reply = await response.json();
+              if (holder && remaining > 0) {
+                expect({ http: response.status(), reply }).toEqual({ http: 429, reply: busy });
+                attempt.gated = true;
+                if (--remaining === 0) {
+                  holder.release();
+                  await holder.wait('drained');
+                  expect(await responseStatus(await snapshotReply)).toBe(200);
+                }
+                return await route.fulfill({ response });
+              }
+              if (reply.result?.status !== 'ready') return await route.fulfill({ response });
+              if (fault && lost === cut) {
+                const replacement = fault.body(reply);
+                attempt.substituted = { http: response.status(), result: reply.result, replacement };
+                substituted = true;
+                return await route.fulfill({ status: fault.http, json: replacement });
+              }
+              attempt.lost = { http: response.status(), result: reply.result };
+              if (++lost === 1 && remaining > 0) {
+                // Hold an actual snapshot reply at the portable writer pipe.
+                // The authenticated status receives the host's own refusal.
+                holder = server.tagSnapshot();
+                snapshotReply = post(server, snapshot, holder.headers, AbortSignal.timeout(5_000));
+                void snapshotReply.catch(() => {});
+                await holder.wait('written');
+              }
+              await route.abort('connectionreset');
+            } finally {
+              await response.dispose();
+            }
+          };
           try {
+            if (count === 1 && cut === 1) {
+              await panel.getByLabel('First visible bar').selectOption(String(prices[2].time_ms));
+            }
             await run.click();
             await expect(panel.getByText(/Preview layers/).or(failure)).toBeVisible({ timeout: 30_000 });
-          } catch (error) {
-            console.info('Frozen indicator preview observation', describe(null));
-            throw error;
-          }
-          const visibleError = await failure.isVisible() ? await failure.innerText() : null;
-          const observation = describe(visibleError);
-          console.info('Frozen indicator preview observation', observation);
-          expect(visibleError, observation).toBe(cut === 2 ? 'The indicator preview could not be completed.' : null);
-
-          const admitted = () => frames.find(frame => frame.operation === 'indicator.runPreview' && frame.outcome === 'committed');
-          const current = () => {
-            return frames.find(frame => frame.ready && frame.task_id === admitted()?.reply_task_id)?.ready;
-          };
-          if (cut) {
-            await expect.poll(() => admitted()?.reply_task_id).toBe(dropped[0]?.task_id);
-            expect(dropped).toHaveLength(cut);
-            for (const entry of dropped) {
-              expect(entry).toMatchObject({ http: 200, task_id: admitted()?.reply_task_id });
-              expect(frames).toContainEqual(expect.objectContaining({
-                request_id: entry.request_id, task_id: entry.task_id, delivery: 'net::ERR_CONNECTION_RESET',
-              }));
-            }
-            const afterLoss = requests.slice(dropped[0].requestsAtLoss);
-            expect(afterLoss.filter(({ operation }) =>
-              operation === 'indicator.createDraft' || operation === 'indicator.runPreview'),
-            'Actual requests after status delivery loss must not resubmit the preview').toEqual([]);
-            expect(afterLoss.filter(({ operation }) => operation === 'indicator_preview_status'))
-              .toMatchObject([{ operation: 'indicator_preview_status', task_id: dropped[0].task_id }]);
-          }
-          if (cut === 2) {
+            alert = await failure.isVisible() ? await failure.innerText() : null;
+            expect(alert).toBe(fault?.alert ?? (cut === 2 ? 'The indicator preview could not be completed.' : null));
             await expect(run).toBeEnabled();
-            expect(current()).toBeUndefined();
-            await expect.poll(() => frames.some(frame => frame.operation === 'task.cancel'
-              && frame.task_id === dropped[0].task_id && frame.http === 200)).toBe(true);
-            expect(frames.filter(frame => frame.operation === 'indicator_preview_status'
-              && frame.task_id === dropped[0].task_id && frame.code !== 'BUSY' && frame.outcome !== 'running')).toHaveLength(2);
-            continue;
+            if (alert) {
+              await expect(panel.getByText(/Preview layers/)).toHaveCount(0);
+              await expect.poll(() => [...journal.values()].some(attempt => attempt.operation === 'task.cancel'
+                && attempt.task_id !== previousTask && attempt.reply?.ok === true)).toBe(true);
+              // Leave time for an erroneous further poll at the normal 100 ms cadence.
+              await delay(150);
+            }
+            await expect.poll(() => [...journal.values()].every(attempt =>
+              attempt.reply || attempt.delivery || attempt.response_error)).toBe(true);
+            const attempts = [...journal.values()];
+            if (fault?.persistent) {
+              const expired = new Set(await page.evaluate(() => [...window.frozenStatusDeadlines]));
+              for (const attempt of attempts) {
+                if (expired.has(attempt.request_id)) attempt.browserDeadline = true;
+              }
+            }
+            const task = verifyFrozenIndicatorJournal(attempts, previousTask, trial);
+            expect(attempts.filter(attempt => attempt.gated && isWorkspaceAdmissionRefusal(attempt))).toHaveLength(refusals);
+            if (cut === 0) {
+              const payload = { type: 'request', operation: 'task.cancel', request_id: randomUUID() };
+              const unscoped = {
+                operation: 'task.cancel', request_id: payload.request_id, payload, body: JSON.stringify(payload),
+                http: 400, reply: { ok: false, error: { code: 'INVALID_ARGUMENT', retryable: false } },
+              };
+              expect(() => verifyFrozenIndicatorJournal([...attempts, unscoped], previousTask, trial),
+                'A raw cancellation without a task ID must fail on the first trial').toThrow();
+            }
+            if (cut === 2) rejectAlteredIndicatorJournals(attempts, previousTask, trial);
+            if (fault?.holdFinalReply) rejectAlteredDeadlineJournals(attempts, previousTask, trial);
+            if (alert) continue;
+            previousTask = task;
+            const ready = attempts.find(attempt => attempt.reply?.result?.status === 'ready').reply.result;
+            expect(ready.event.artifact.result.series[1].points).toHaveLength(count);
+            expect(ready.event.artifact.result.series[1].points.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
+            if (count === 1) expect(ready.warmup_from_ms).toBe(prices[1].time_ms);
+            const table = panel.getByRole('table', { name: 'Indicator preview values' });
+            if (!await table.isVisible()) await panel.getByText('Preview provenance and values').click();
+            await expect(table.locator('tbody tr')).toHaveCount(count);
+            await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
+          } finally {
+            try {
+              const evidence = { count, cut, refusals, fault: fault?.name, alert, elapsed_ms: elapsed(),
+                ...frozenJournalEvidence(journal) };
+              await testInfo.attach('Frozen indicator request journal', {
+                body: JSON.stringify(evidence), contentType: 'application/json',
+              });
+            } finally {
+              holder?.release();
+              if (snapshotReply) await Promise.allSettled([snapshotReply.then(responseStatus)]);
+            }
           }
-          await expect.poll(current, { message: 'Observe the ready status for the admitted preview task' }).toBeDefined();
-          const ready = current();
-          if (cut) {
-            expect(ready).toEqual(dropped[0].result);
-            expect(frames.some(frame => frame.operation === 'task.cancel' && frame.task_id === ready.task_id)).toBe(false);
-          }
-          const values = ready.event.artifact.result.series[1].points;
-          expect(values).toHaveLength(count);
-          expect(values.at(-1)).toEqual({ time_ms: prices[2].time_ms, value: 0 });
-          if (count === 1) expect(ready.warmup_from_ms).toBe(prices[1].time_ms);
-          const table = panel.getByRole('table', { name: 'Indicator preview values' });
-          if (!await table.isVisible()) await panel.getByText('Preview provenance and values').click();
-          await expect(table.locator('tbody tr')).toHaveCount(count);
-          await expect(table.locator('tbody tr').last().getByRole('cell').last()).toHaveText('0');
         }
       });
-    });
+    }, { snapshotGate: true });
   } finally {
     await profile.close();
   }
-});
+}
 
 test('indicator-preview evaluates real frozen chart bytes and isolates failure and cancellation', async ({ browser }, testInfo) => {
   const profile = await makeProfile();

@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "task_id": "M0-157",
+  "events": [
+    {
+      "kind": "decision",
+      "source_commit": "0c76d793f879190a23c90229db0fd4d3b8178c36",
+      "verdict": "approved",
+      "decision": "APPROVE M0-157 0c76d793f879190a23c90229db0fd4d3b8178c36",
+      "scope": "APPROVE M0-157 0c76d793f879190a23c90229db0fd4d3b8178c36",
+      "observation": "I verified from the retained controls that the corrected peer still held the lock at 30.5501 seconds and that deliberately releasing it before SIGINT failed the final running-stage assertion.",
+      "reviewer": "Independent Astra Standard (t115)",
+      "original_sha256": "17be4891c27898ace97e96e4058d68b2422a97e753ba0f59f5da087e03671beb",
+      "response_id": "5e8a503986c7107d31a48ae6eda136b970b470b6a0f0c1203b0cf50049e63389",
+      "response_sha256": "7dad1b4d2d98ff4b1e62bd61239d04d12584a13398467a2a1c647c2056cd005a",
+      "legacy_response_sha256": "bb0775743f6e062028ad2a227cf6a1b2245ac36c15758d738caeddb55be060d5",
+      "observation_body_sha256": "5d90be0b9a73e27c15da55eb7b95259f77249e3ec6e302fb43b4771334ed5a94",
+      "event": {
+        "id": "msg_0585761541467c28016b0799c45a5887d1b06efafbbd0a7b9a",
+        "timestamp": "2026-11-26T02:30:50.975Z"
+      },
+      "supersedes": null,
+      "evidence_sha256": "7111a78684d1ae9e855c7022dc676a3614e753a418c3033db46986fd613238ab"
+    }
+  ]
+}

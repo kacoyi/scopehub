@@ -25920,6 +25920,472 @@
       ]
     },
     {
+      "id": "M0-157",
+      "title": "Verify peer lock ownership across a slow interrupted console check",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-138"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "scope": [
+        "tests/project/test_processes.py",
+        "scripts/check.py",
+        "scripts/processes.py",
+        "project/tasks.json",
+        "project/feedback.json",
+        "project/evidence"
+      ],
+      "acceptance": [
+        "Retain the protected failure and identical-tree passing control. Establish whether the peer exited independently before the last running-stage assertion by observing its lifetime and lock.",
+        "Exercise one SIGINT during blocked console output with a live, unrelated owner and a deliberately released lock as a rejected control. Verify reports, original bytes, retry and cleanup across all seven existing scenarios, including an interaction outlasting the previous helper window.",
+        "If the controller exits early, its owned fixture exits and releases its lock. Preserve the existing check deadlines, reject a lost witness and retain a successful ordinary Linux run of the corrected source."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-157-de21eedf9be349e7.json",
+          "sha256": "fd16e42541d8dc34490fe88374472ca9560e377a0668a0f354500625b2ddc86c"
+        },
+        {
+          "path": "project/evidence/M0-157-99117aff466fa0b0.json",
+          "sha256": "f2058cbb7eb5164b25b57b35a41279b5a8549e54ed706abf765e04d77fbd2c0d"
+        },
+        {
+          "path": "project/evidence/M0-157-3d83af1e735f571d.json",
+          "sha256": "a04d051d9ea46761e8df8dc3c7652be23923a00064fc15ff4718f50b2d141dde"
+        }
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "20261125T222514.810400Z-4ec1e5c9",
+          "source_commit": "5aedc53645f217b18bdf996f987019d75bb098c2",
+          "report_sha256": "14548f0393830e4c498471ba573ce76a12743c68cc4ca96aaec233123dfa6fe9"
+        },
+        {
+          "run_id": "20261125T224715.532164Z-bac3bdc0",
+          "source_commit": "0d44ea5f13cc4f50e1bbfb7a3f2ff2ce9ae3395e",
+          "report_sha256": "67fce911b24ee381336706ccddc7190909437d577c2dceaa9ce7ef400873ad6c"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "The corrected Linux test passed all seven SIGINT stages in the ordinary PR and exact-source task workflows. A slow control retained the unrelated lock beyond the old deadline and an early-release control failed the expected assertion. Both original native failures remain archived. Their peer exit reasons were not recorded.",
+      "plan": {
+        "outcome": "A slow interrupted check verifies a live independent lock holder for the entire interaction and releases its owned fixture on every exit.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "project/checks.json",
+          "project/delivery.json",
+          "tests/project/test_processes.py",
+          "scripts/check.py",
+          "archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-45712964544/observation.json",
+          "archives/observations/repo-hygiene-20261125/m0-157-pull-request-recurrence-45716055348/observation.json",
+          "archives/observations/repo-hygiene-20261125/m0-157-terminal-lock-lifetime-660ce4c/observation.json"
+        ],
+        "hypotheses": [
+          "The protected log identifies only the failed acquisition assertion. On the exact original fixture, holding the final blocked console past 30 seconds reproduced the peer exiting normally and exposing the lock before SIGINT. The same protected sequence can therefore fail even when the check leaves unrelated processes alone."
+        ],
+        "risks": [
+          {
+            "failure": "The assertion passes without a live independent owner or rejects a healthy slow check.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A helper inherits a lifetime handle or remains alive after a failing parent, leaving a lock or process behind.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Retain the native failure and restore the previous witness if lock isolation, cancellation outcomes or fixture cleanup regress.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "tests/project/test_processes.py",
+            "scripts/check.py",
+            "scripts/processes.py"
+          ],
+          "rules": [
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/source_control/verification"
+            }
+          ],
+          "non_goals": [
+            "Changes to product records, the production timeout policy or the Windows verification schedule."
+          ],
+          "open_questions": [
+            "Can the corrected peer survive a console interaction past the old fallback and release immediately when its owning controller closes the pipe or dies, including when other children remain alive?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Single-SIGINT report publication, owned-child cleanup, lock isolation, healthy retries and the existing process bounds."
+          ],
+          "change": [
+            "Give only the test controller the peer stdin writer. Verify clean exit and lock release on EOF while keeping the seven public stages, their SIGINT bound and their report assertions."
+          ],
+          "data_plan": "Use temporary locks, pipes and synthetic verification files. Retain both original CI reports.",
+          "cleanup": "Reap the test-owned peer on normal and early exits. Verify that other processes and original reports survive the interrupted check."
+        }
+      }
+    },
+    {
+      "id": "M0-149",
+      "title": "Distinguish refused indicator status reads during delivery recovery",
+      "milestone": "M0",
+      "status": "done",
+      "depends_on": [
+        "M0-099",
+        "M0-101"
+      ],
+      "scope": [
+        "apps/desktop/ui",
+        "tests/ubuntu-preview",
+        "apps/desktop/src-tauri",
+        "tests/ui"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007",
+        "0008"
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers",
+        "ui-build",
+        "market-workflow",
+        "workspace-timeframe",
+        "desktop-workspace-transport",
+        "rust-contracts-workers"
+      ],
+      "diagnostic_reports": [
+        {
+          "run_id": "windows-change-45682874140-1",
+          "source_commit": "00dfb23fc59e5e73f964eb574d29edfb48c5bf5e",
+          "report_sha256": "fd2955be884d13462c10aeb350f6ac33569d62ba0aec545a4ec3bc5ef1bacbb3"
+        },
+        {
+          "run_id": "20261125T194525.509241Z-4e48ed14",
+          "source_commit": "2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "report_sha256": "88266e9796629772a779229c75bbc857111c5dcb104245769e690f891336e025"
+        },
+        {
+          "run_id": "20261125T201655.779125Z-2e9681e2",
+          "source_commit": "1a95eec502041af7903bd9405f5a37cc4f257fbc",
+          "report_sha256": "2ea16881b4c1bf92d66d5b47e91755c7f441eca72daff032baa380418586df37"
+        },
+        {
+          "run_id": "windows-change-45702463807-1",
+          "source_commit": "beb6fa11cee8923675f9fdbcc327b24f8fede2e9",
+          "report_sha256": "291ada56b3627513814fcaeb478508b97e6874ea4cc0ff234b7db221ce9161a0"
+        }
+      ],
+      "acceptance": [
+        "The full, cropped and lost-delivery indicator journeys exercise the actual workspace. When a status read is explicitly refused before admission, the observable result, original admitted task, bounded delivery recovery and user-visible exhaustion remain correct.",
+        "The verification records every raw draft, preview, status and cancellation. An extra admitted status recovery, a new or repeated preview submission, a wrong-task read and an ambiguous refusal cannot satisfy the same-task recovery assertion.",
+        "Retain the original Windows admission sequence, the focused positive and rejected controls, and a passing ordinary Windows exercise of the corrected candidate.",
+        "Native preview status retries only an explicitly refused writer admission. An admitted registry or storage BUSY, an older unclassified reply and an unrelated native error stop and cancel the original task.",
+        "The first-window journal rejects a raw cancellation with no task ID. A valid previous-task cancellation and the cancellation on exhaustion remain accounted for."
+      ],
+      "next_action": null,
+      "blocker": null,
+      "delivery": "current-contract",
+      "evidence": [
+        {
+          "path": "project/evidence/M0-149-986051150484c8f5.json",
+          "sha256": "74dfbda9adea96fc2d922ee8c41066bebaf75e0bff310451890923a9314e00e6"
+        },
+        {
+          "path": "project/evidence/M0-149-798f9be1c30afd19.json",
+          "sha256": "9784b39c69b89dc1c6607111eae300a9acc01462c8e468c216d52f3020397f63"
+        },
+        {
+          "path": "project/evidence/M0-149-65e6b10d5bd355ff.json",
+          "sha256": "79d45758a5d8182ede755ae6dd6a6057f4348bf8d94bff7164b2b655a8080804"
+        }
+      ],
+      "closure_reason": "On the ordinary PR and scoped workflows, Linux and Windows each delivered nine browser journals from seven frozen-preview scenarios and four native transport controls. After losing a ready reply, the bounded held route observed two explicit refusals, the unforwarded request reaching its original browser deadline, and one cancellation of the same task. Full and cropped windows returned zero volatility. The earlier protected run retained two request identities without their HTTP outcomes.",
+      "plan": {
+        "outcome": "Preserve bounded same-task recovery and make the native zero-volatility observation distinguish a definite pre-admission refusal from a second accepted status recovery.",
+        "change_types": [
+          "tooling",
+          "ui"
+        ],
+        "context": [
+          "apps/desktop/ui/src/indicator-preview.tsx",
+          "apps/desktop/ui/src/use-local-workspace.ts",
+          "tests/ubuntu-preview/workspace.spec.mjs",
+          "PR 116 run 45682874140",
+          "apps/desktop/src-tauri/src/workspace.rs",
+          "tests/ui/desktop-workspace.spec.mjs",
+          "Independent Astra review of 2738fa7edc800b37ba3eb3d4196eb86908e36104",
+          "archives/observations/repo-hygiene-20261125/m0-149-deadline-abort-45693164625/observations.json",
+          "archives/observations/repo-hygiene-20261125/main-python-and-indicator-45702463807/observations.json"
+        ],
+        "hypotheses": [
+          "The Windows two-loss trial received one explicit HTTP 429 BUSY and one lost HTTP 200 ready response after the original ready delivery reset. The existing raw length assertion counted both as recovery attempts.",
+          "Real Windows and Linux controls separate the original ready delivery reset, an authenticated HTTP 429 before writer admission and the next admitted read. Each status attempt owns a distinct wire ID for the same task.",
+          "The old polling loop retried any BUSY, including HTTP 200 after admission. Use the existing transport admission signal and preserve both the total polling deadline and the single allowed frozen status delivery recovery.",
+          "The native writer lock can be acquired before an application or SQLite BUSY is returned. Only the pre-lock failure can attest to refusal.",
+          "With no previous task, equality against an undefined task ID can hide an invalid raw cancellation.",
+          "The browser can abandon a last intercepted synthetic request at the polling deadline before a refusal becomes observable. The original transport failure alone cannot establish delivery or admission."
+        ],
+        "risks": [
+          {
+            "failure": "A count based only on admitted or unique task IDs hides duplicate status, draft or preview operations, or permits requests for another task.",
+            "checks": [
+              "workspace-timeframe",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "Changing the evidence predicate admits a malformed or ambiguous refusal, misses a duplicate cancellation or alters the full and cropped results.",
+            "checks": [
+              "workspace-timeframe",
+              "ui-build",
+              "market-workflow"
+            ]
+          },
+          {
+            "failure": "Treating an admitted native storage error or an older unclassified reply as pre-admission reissues a status read. Moving the signal outside the writer lock boundary also risks changing other workspace and protocol replies.",
+            "checks": [
+              "rust-contracts-workers",
+              "desktop-workspace-transport"
+            ]
+          },
+          {
+            "failure": "An unscoped cancellation is treated as past-task cleanup, or rejecting it disrupts real previous-task or exhaustion cleanup.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          },
+          {
+            "failure": "A terminal request with ambiguous transport, wrong task, earlier position or possible upstream admission is hidden as a refusal or accepted recovery; an assertion drops the complete bounded journal.",
+            "checks": [
+              "workspace-timeframe"
+            ]
+          }
+        ],
+        "rollback": "Retain both native reports, their raw request journals and the historical strict replay controls. Restore the prior assertion if the admission boundary cannot be identified.",
+        "implementation": {
+          "modules": [
+            "ui",
+            "desktop"
+          ],
+          "entrypoints": [
+            "apps/desktop/ui/src/indicator-preview.tsx",
+            "apps/desktop/ui/src/use-local-workspace.ts",
+            "tests/ubuntu-preview/workspace.spec.mjs",
+            "apps/desktop/src-tauri/src/workspace.rs",
+            "tests/ui/desktop-workspace.spec.mjs"
+          ],
+          "rules": [
+            {
+              "path": "project/development.json",
+              "pointer": "/quality"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance"
+            }
+          ],
+          "non_goals": [
+            "Expanding operation authority, changing the preview result or increasing the recovery allowance or deadline."
+          ],
+          "open_questions": [
+            "Which reliable response fields prove rejection before the same-task status operation is admitted, and how is its request identity related to subsequent polling?"
+          ]
+        },
+        "evolution": {
+          "kind": "refactor",
+          "preserve": [
+            "Exact admitted task and artifact, finite delivery recovery, all raw outbound operations, cancellation and honest visible failure."
+          ],
+          "change": [
+            "Qualify the first demonstrated mismatch between a definite refusal and the recovery assertion at its owning entry.",
+            "Separate a terminal browser deadline on a never-forwarded test route from observed HTTP refusal, admitted status and ambiguous transport outcomes."
+          ],
+          "data_plan": "Use the accepted synthetic frozen chart and isolated workspace. Retain response status, operation identity and synthetic results.",
+          "cleanup": "Release response controls, close owned windows and reap the portable writer on every path."
+        }
+      }
+    },
+    {
+      "id": "M0-158",
+      "milestone": "M0",
+      "title": "Recover the owner’s full maintenance outcomes across interrupted coordination",
+      "status": "done",
+      "depends_on": [
+        "M0-134",
+        "M0-135",
+        "M0-136"
+      ],
+      "scope": [
+        "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+        "project/tasks.json",
+        "project/feedback.json",
+        "scripts/project.py",
+        "scripts/development.py",
+        "tests/project/test_development.py",
+        "tests/project/test_review_acceptance.py",
+        "project/evidence"
+      ],
+      "acceptance": [
+        "A new coordinator can use a supported repository entry to recover both owner outcomes, identify actual completion conditions and distinguish a finished operational checkpoint from unresolved delivery.",
+        "Ordinary views stay concise and source-bound. An unrelated isolated checkout, absent optional private archive and an interrupted handoff have explicit appropriate outcomes.",
+        "A fresh independent AI with the normal entry receives no expected answers. Retain its own response, the exact source and contrasting controls, along with required task checks.",
+        "Ordinary overview and handoff end the engagement only after each workstream has an explicit accepted observation for its owner-defined criteria. A single acceptance leaves the other action open. Negative or missing observations cannot validate a declared closure.",
+        "A new coordinator can execute the source commands emitted through the read-only overview and handoff under an unwritable package cache and read the owner terms and any accepted closure."
+      ],
+      "checks": [
+        "project-state",
+        "python-contracts-workers"
+      ],
+      "decision_refs": [
+        "0004",
+        "0007"
+      ],
+      "evidence": [
+        {
+          "path": "project/evidence/M0-158-0b0402de362f34b5.json",
+          "sha256": "3ea421f21c00eee4c67be1c0b6055c31c056e77ea1b89f5b1697c30f5b3119c6"
+        }
+      ],
+      "next_action": null,
+      "blocker": null,
+      "closure_reason": "A fresh read-only coordinator on successor 683c949a recovered both open undertakings, their separate acceptance, the due review and the stopping condition. Corrections on da5fd0a6 passed the task harness and independent review. The cold original is retained at archives/observations/repo-hygiene-20261125/m0-158-fresh-handoff-683c949a/original-response.jsonl. Both owner workstreams remain open.",
+      "plan": {
+        "outcome": "A fresh coordination session inherits the two accountable workstreams and can act on their outstanding evidence.",
+        "change_types": [
+          "tooling"
+        ],
+        "context": [
+          "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+          "project/development.json",
+          "project/delivery.json",
+          "scripts/project.py",
+          "scripts/development.py",
+          "contracts/reviews/task-decisions/M0-158.json",
+          "contracts/schemas/project.schema.json",
+          "contracts/decisions/0030-project-maintenance-engagement.json"
+        ],
+        "hypotheses": [
+          "The prior handoff preserved assignment identities but did not put the owner-defined end conditions on the restore path. Replaying operational tasks and reading the ordinary protected focus alone allowed an intermediate result to be reported as completion. Confirm the exact failure boundary in an unprompted fresh session.",
+          "The dated owner record is reachable through the narrow repair while that task is focused. Closing the repair removes that route. Compare an explicit successor pointer with project-level engagement state by switching to a genuine audit successor and then ending the engagement.",
+          "The common engagement loader verifies identity and observation text but infers acceptance from their presence. The earlier positive fixtures omitted a disposition. Correctly digested rejected, incomplete and accepted observations distinguish evidence identity from acceptance at the public views.",
+          "The overview selects pinned Python, but the handoff invocation loses the read-only mode. Earlier controls extracted arguments or translated the launcher. Execute the exact emitted handoff and source commands with an unwritable uv cache and compare the returned records."
+        ],
+        "risks": [
+          {
+            "failure": "A coordinator can collapse one completed assignment into completion of the whole maintenance effort, or lose the continuing iteration requirement.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A repair overloads routine context, assumes private transcripts exist on every host or silently changes unrelated product scope.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "Closing the repair or changing focus hides either open commitment, or a partial or unproven closure permits premature stop while later product work inherits maintenance scope.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A digest-valid rejected or incomplete closure can end the engagement before the workstream meets the owner terms.",
+            "checks": [
+              "project-state",
+              "python-contracts-workers"
+            ]
+          },
+          {
+            "failure": "A pinned read-only handoff can return an owner or closure source command whose package launcher requires a writable cache.",
+            "checks": [
+              "python-contracts-workers"
+            ]
+          }
+        ],
+        "rollback": "Keep the authenticated original pause and owner records, restore the prior navigation and use the explicit authoritative workstream reference while verifying the repair.",
+        "implementation": {
+          "modules": [
+            "development-tooling"
+          ],
+          "entrypoints": [
+            "scripts/project.py",
+            "scripts/development.py",
+            "tests/project/test_development.py"
+          ],
+          "rules": [
+            {
+              "path": "contracts/reviews/2026-11-26-maintenance-workstreams.json",
+              "pointer": ""
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/workflow"
+            },
+            {
+              "path": "project/development.json",
+              "pointer": "/quality/evolution"
+            },
+            {
+              "path": "contracts/reviews/task-decisions/M0-158.json",
+              "pointer": "/events/1"
+            },
+            {
+              "path": "contracts/reviews/task-decisions/M0-158.json",
+              "pointer": "/events/3"
+            },
+            {
+              "path": "project/delivery.json",
+              "pointer": "/scaffold_maintenance/engagement"
+            }
+          ],
+          "non_goals": [
+            "Product runtime operations, public publication of private transcripts, or a requirement to retain every development conversation."
+          ],
+          "open_questions": []
+        },
+        "evolution": {
+          "kind": "additive",
+          "preserve": [
+            "Existing status, focused context, protected checks, task scope and evidence identities."
+          ],
+          "change": [
+            "Make the two ongoing commitments reconstructible on the normal coordinator route with separate observed state and closure.",
+            "Keep the engagement discoverable beyond the focus repair. Derive its stop state from independently recorded acceptance for each workstream.",
+            "Retain the focus-independent loader and shared command formatter. The independent successor control supports the engagement boundary. Validate the observation's explicit acceptance in that loader and carry the read-only mode from overview to handoff and its source commands. The two failures involve those existing boundaries and require no separate registry, source or migration."
+          ],
+          "data_plan": "Use the English owner-approved scope and synthetic controls. Keep personal conversation originals in the private development archive.",
+          "cleanup": "Retire any temporary alternate route once the supported entry passes both recovery and unrelated-task controls."
+        }
+      }
+    },
+    {
       "id": "M0-154",
       "title": "Qualify cold sample document readiness in the Windows closed-bar repair journey",
       "milestone": "M0",
