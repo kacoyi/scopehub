@@ -27,6 +27,7 @@ const cancelIndicator = 'task.cancel';
 const acceptIndicator = 'indicator.acceptVersion';
 const removeIndicator = 'indicator.remove';
 const indicatorConfirmation = 'confirmation.respond';
+const indicatorWorkerProgram = 'scopehub-indicator-child';
 const indicatorWorkerFailure = 'Trusted indicator execution failed.';
 const indicatorWorkerFrameBytes = 4 * 1024 * 1024;
 // One registry job can run while a previous carrier still owns cleanup.
@@ -353,9 +354,8 @@ function isWorkerFailure(value) {
     && error.details && typeof error.details === 'object' && !Array.isArray(error.details);
 }
 
-function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage, {
-  env = process.env, earlyFailure = false,
-} = {}) {
+function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMessage, { env = process.env } = {}) {
+  const isIndicator = program === indicatorWorkerProgram;
   const executable = process.platform === 'win32' ? program + '.exe' : program;
   const child = spawn(resolve(root, 'target/debug', executable), ['--root', root], {
     cwd: root, stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, env,
@@ -394,7 +394,7 @@ function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMess
     if (!chunk.includes(10)) return;
     try {
       const { raw, value } = decodeWorkerFrame(Buffer.concat(chunks, length));
-      if (earlyFailure && !cancelled && !workerError && isWorkerFailure(value)) {
+      if (isIndicator && !cancelled && !workerError && isWorkerFailure(value)) {
         // A terminal failure cannot publish an artifact. Drain the carrier
         // through close while its reaper still owns cleanup.
         failureDelivered = true;
@@ -422,7 +422,8 @@ function launchTrustedWorker(root, program, wireRequest, frameBytes, failureMess
       if (cancelled) return finished.resolve(workerFault('CANCELLED'));
       if (outputLimit) return finished.resolve(workerFault('RESOURCE_LIMIT'));
       if (workerError || exit !== 0 && length === 0) return finished.resolve(workerFault('WORKER_EXITED'));
-      finished.resolve(rawFrame ?? workerFault('OUTPUT_INVALID'));
+      if (rawFrame == null) return finished.resolve(workerFault('OUTPUT_INVALID'));
+      finished.resolve(isIndicator && exit !== 0 ? workerFault('WORKER_EXITED') : rawFrame);
     } finally {
       chunks.length = 0;
       rawFrame = null;
@@ -477,8 +478,8 @@ function startWriter(root, { path, profileId, workspaceId }) {
       finishIndicator(task, trustedWorkerFault('BUSY', indicatorWorkerFailure));
       return;
     }
-    const run = launchTrustedWorker(root, 'scopehub-indicator-child', request, indicatorWorkerFrameBytes,
-      indicatorWorkerFailure, { earlyFailure: true });
+    const run = launchTrustedWorker(root, indicatorWorkerProgram, request, indicatorWorkerFrameBytes,
+      indicatorWorkerFailure);
     run.pending = true;
     indicatorCarriers.set(task, run);
     void run.result.then(result => {

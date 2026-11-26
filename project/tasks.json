@@ -26666,11 +26666,11 @@
           "report_sha256": "224cf1a54de8ed450870007188fd2b81ec999eaad48374cda7e40081e5b1f9b9"
         }
       ],
-      "next_action": "Retain public registry controls for exit 0, exit 1 and signal termination against the reviewed transport and the corrected candidate. Hand off the exact local source and evidence for independent review and coordinated native and integrated Windows rechecks, including the sharing-denied handle case. Keep the original Windows cause unknown unless new evidence identifies it.",
+      "next_action": "Use the implementation handoff and retained public registry controls to review the clean candidate independently. The coordinator owns native and integrated Windows rechecks, including the sharing-denied handle case. Keep the original Windows cause unknown unless new evidence identifies it.",
       "blocker": null,
       "closure_reason": null,
       "plan": {
-        "outcome": "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations. Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction.",
+        "outcome": "Retain the first protected Windows failure, its named assertion and neighboring results. Determine what the application guarantees when returning a cancelled task and distinguish a remaining child, handle or scratch path using observations. Exercise the ordinary trusted worker cancellation entry with an approved benign fixture. Verify one terminal cancellation, absence of a persistable result and cleanup of only its owned scratch files. Preserve normal completion, deadlines, task isolation and interruption. Retain a controlled failure that distinguishes the chosen correction. Require the public preview registry to reject the same valid success frame after abnormal carrier close and preserve it after exit status 0.",
         "change_types": [
           "indicators"
         ],

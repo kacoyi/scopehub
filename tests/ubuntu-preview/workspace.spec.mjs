@@ -2338,7 +2338,7 @@ test('indicator-preview runs trusted Python once per approved task while earlier
   const before = 1704200940000;
   const after = 1704243600000;
   const observation = {};
-  const detached = { child: 0, stdin: 0, stdout: 0 };
+  const detached = { exit: 1, child: 0, stdin: 0, stdout: 0 };
   const frame = () => ({ protocol_version: '1.1', type: 'request', request_id: randomUUID(),
     message_id: randomUUID(), timestamp_ms: Date.now() });
   const status = task_id => ({ type: 'indicator_preview_status', request_id: randomUUID(), task_id });
@@ -2394,12 +2394,15 @@ test('indicator-preview runs trusted Python once per approved task while earlier
       observation.failureWhileOpen = (await call(status(first.task_id))).result;
       observation.failureObservedMsAfterApproval = Math.round(performance.now() - firstApprovalStarted);
       expect(observation.failureWhileOpen).toMatchObject({ status: 'terminal', task_id: first.task_id,
-        event: { event: 'task.terminal', outcome: { status: 'failed', error: { code: 'WORKER_EXITED' } }, committed_effects: [] },
+        event: { event: 'task.terminal', outcome: { status: 'failed', error: { code: 'OUTPUT_INVALID' } }, committed_effects: [] },
       });
       expect(observation.failureWhileOpen.event.artifact).toBeUndefined();
       expect(await readFile(join(scratch, 'input.json'), 'utf8')).toBe('synthetic input');
 
-      expect(await gate.wait(1, 'close-held')).toEqual({ exit: 0 });
+      observation.zeroExit = await gate.wait(1, 'close-held');
+      expect(observation.zeroExit.exit).toBe(0);
+      const originalFrame = JSON.parse(observation.zeroExit.raw);
+      expect(originalFrame).toMatchObject({ task_id: second.task_id });
       observation.successBeforeClose = (await call(status(second.task_id))).result;
       expect(observation.successBeforeClose).toEqual({ status: 'running', task_id: second.task_id });
       await gate.command(1, 'release');
@@ -2408,46 +2411,108 @@ test('indicator-preview runs trusted Python once per approved task while earlier
       expect(ready).toMatchObject({ status: 'ready', task_id: second.task_id });
       observation.successPoints = ready.event.artifact.result.series[0].points;
       expect(observation.successPoints).toEqual([{ time_ms: before, value: null }, { time_ms: after, value: 3500.5 }]);
+      expect(ready.event.artifact.result_hash).toBe(originalFrame.artifact.result_hash);
 
-      const third = await stage();
-      expect((await call(approve(third.challenge_id))).result.outcome)
-        .toMatchObject({ state: 'committed', result: { task_id: third.task_id } });
-      expect(await gate.wait(2, 'started')).toEqual({ task_id: third.task_id });
-      observation.cancellation = (await call({ ...frame(), operation: 'task.cancel', task_id: third.task_id })).result;
-      expect(observation.cancellation).toMatchObject({ task_id: third.task_id,
+      const assertMatchingSuccess = (raw, taskId) => {
+        const { task_id, request_id, draft_id, ...payload } = JSON.parse(raw);
+        expect(task_id).toBe(taskId);
+        expect(request_id).not.toBe(originalFrame.request_id);
+        expect(draft_id).not.toBe(originalFrame.draft_id);
+        expect({ ...payload, task_id: originalFrame.task_id,
+          request_id: originalFrame.request_id, draft_id: originalFrame.draft_id }).toEqual(originalFrame);
+      };
+      async function assertExitFailure(run, admittedTask) {
+        // The adjacent approval must succeed before the first status read of
+        // this failed task. It exercises registry delivery independently of polling.
+        run.admittedTask = admittedTask;
+        run.terminal = (await call(status(run.taskId))).result;
+        expect.soft(run.terminal, `Abnormal carrier close for ${run.mode}`).toMatchObject({
+          status: 'terminal', task_id: run.taskId,
+          event: { event: 'task.terminal', outcome: { status: 'failed', error: { code: 'WORKER_EXITED' } }, committed_effects: [] },
+        });
+        expect.soft(run.terminal.event.artifact, `Artifact after ${run.mode}`).toBeUndefined();
+      }
+      observation.abnormalExits = [];
+      for (const [index, mode, close] of [
+        [2, 'nonzero', { exit: 1, signal: null }],
+        [3, 'signal', { exit: null, signal: 'SIGTERM' }],
+      ]) {
+        const task = await stage();
+        const approval = (await call(approve(task.challenge_id))).result.outcome;
+        expect(approval).toMatchObject({ state: 'committed', result: { task_id: task.task_id } });
+        if (observation.abnormalExits.length) await assertExitFailure(observation.abnormalExits.at(-1), approval);
+
+        const run = { mode, taskId: task.task_id, approval };
+        observation.abnormalExits.push(run);
+        expect(await gate.wait(index, 'started')).toEqual({ task_id: task.task_id });
+        await gate.command(index, 'success');
+        ({ raw: run.raw } = await gate.wait(index, 'frame'));
+        assertMatchingSuccess(run.raw, task.task_id);
+        run.beforeClose = (await call(status(task.task_id))).result;
+        expect(run.beforeClose).toEqual({ status: 'running', task_id: task.task_id });
+        await gate.command(index, 'release');
+        run.close = await gate.wait(index, 'closed');
+        expect(run.close).toEqual(close);
+      }
+
+      const cancelledTask = await stage();
+      const cancelledApproval = (await call(approve(cancelledTask.challenge_id))).result.outcome;
+      expect(cancelledApproval).toMatchObject({ state: 'committed', result: { task_id: cancelledTask.task_id } });
+      await assertExitFailure(observation.abnormalExits.at(-1), cancelledApproval);
+      expect(await gate.wait(4, 'started')).toEqual({ task_id: cancelledTask.task_id });
+      observation.cancellation = (await call({ ...frame(), operation: 'task.cancel', task_id: cancelledTask.task_id })).result;
+      expect(observation.cancellation).toMatchObject({ task_id: cancelledTask.task_id,
         outcome: { status: 'cancelled' }, committed_effects: [],
       });
-      await gate.wait(2, 'stdin-ended');
-      await gate.command(2, 'complete');
-      await gate.wait(2, 'frame');
+      await gate.wait(4, 'stdin-ended');
+      await gate.command(4, 'success');
+      observation.lateCancelledSuccess = await gate.wait(4, 'late-success');
+      assertMatchingSuccess(observation.lateCancelledSuccess.raw, cancelledTask.task_id);
+      await gate.command(0, 'success');
+      observation.lateFailedSuccess = await gate.wait(0, 'late-success');
+      assertMatchingSuccess(observation.lateFailedSuccess.raw, first.task_id);
 
-      const fourth = await stage();
-      expect((await call(approve(fourth.challenge_id))).result.outcome)
-        .toMatchObject({ state: 'committed', result: { task_id: fourth.task_id } });
-      observation.carrierLimit = (await call(status(fourth.task_id))).result;
-      expect(observation.carrierLimit).toMatchObject({ status: 'terminal', task_id: fourth.task_id,
+      const atCapacity = await stage();
+      expect((await call(approve(atCapacity.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: atCapacity.task_id } });
+      observation.carrierLimit = (await call(status(atCapacity.task_id))).result;
+      expect(observation.carrierLimit).toMatchObject({ status: 'terminal', task_id: atCapacity.task_id,
         event: { outcome: { status: 'failed', error: { code: 'BUSY' } }, committed_effects: [] },
       });
       expect(observation.carrierLimit.event.artifact).toBeUndefined();
       await gate.command(-1, 'count');
-      expect(await gate.wait(-1, 'count')).toEqual({ launches: 3 });
+      expect(await gate.wait(-1, 'count')).toEqual({ launches: 5 });
 
-      await gate.command(2, 'release');
-      observation.cancelledCarrierHandlers = await gate.wait(2, 'closed');
+      await gate.command(4, 'release');
+      observation.cancelledCarrierHandlers = await gate.wait(4, 'closed');
       expect(observation.cancelledCarrierHandlers).toEqual(detached);
-      const cancelled = (await call(status(third.task_id))).result;
-      expect(cancelled).toMatchObject({ status: 'terminal', event: { outcome: { status: 'cancelled' }, committed_effects: [] } });
+      const cancelled = (await call(status(cancelledTask.task_id))).result;
+      expect(cancelled).toMatchObject({ status: 'terminal', task_id: cancelledTask.task_id,
+        event: { event: 'task.terminal', outcome: { status: 'cancelled' }, committed_effects: [] } });
       expect(cancelled.event.artifact).toBeUndefined();
       expect((await call(status(first.task_id))).result).toEqual(observation.failureWhileOpen);
 
+      // Release a failure with an abnormal status while the server is
+      // available, then verify the previously published typed error is stable.
+      await gate.command(0, 'release');
+      observation.failedCarrierHandlers = await gate.wait(0, 'closed');
+      expect(observation.failedCarrierHandlers).toEqual(detached);
+      observation.failureAfterClose = (await call(status(first.task_id))).result;
+      expect(observation.failureAfterClose).toEqual(observation.failureWhileOpen);
+      await expect(stat(scratch)).rejects.toMatchObject({ code: 'ENOENT' });
+
+      const shutdownTask = await stage();
+      expect((await call(approve(shutdownTask.challenge_id))).result.outcome)
+        .toMatchObject({ state: 'committed', result: { task_id: shutdownTask.task_id } });
+      expect(await gate.wait(5, 'started')).toEqual({ task_id: shutdownTask.task_id });
       await server.stop();
       await gate.wait(-1, 'closing');
       observation.disconnectedBeforeCleanup = await gate.disconnectsWithin(150);
       expect(observation.disconnectedBeforeCleanup).toBe(false);
       expect(await readFile(join(scratch, 'input.json'), 'utf8')).toBe('synthetic input');
-      await gate.command(0, 'release');
-      observation.failedCarrierHandlers = await gate.wait(0, 'closed');
-      expect(observation.failedCarrierHandlers).toEqual(detached);
+      await gate.command(5, 'release');
+      observation.shutdownCarrierHandlers = await gate.wait(5, 'closed');
+      expect(observation.shutdownCarrierHandlers).toEqual(detached);
       await expect(stat(scratch)).rejects.toMatchObject({ code: 'ENOENT' });
       observation.disconnectedAfterCleanup = await gate.disconnectsWithin(5_000);
       expect(observation.disconnectedAfterCleanup).toBe(true);
